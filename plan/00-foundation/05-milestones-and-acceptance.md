@@ -5,7 +5,7 @@ tier: 00-foundation
 status: draft
 owns: [milestones M1-M6, per-milestone exit criteria, demo scripts, dependency order]
 depends_on: [01-vision-and-scope, 03-repository-layout, 07-quality-attributes]
-traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-07, R-08, R-09, R-10, R-11, R-12, R-13, R-14, R-15, R-16, R-17, R-18, R-19, R-20, R-21, R-22, R-23, R-24, R-25, R-26, R-27, R-28, R-29, R-30, R-31, R-32, R-33, R-34, R-35, R-36, R-37, R-38, R-39, R-40, R-41, R-42, R-43, R-44, R-45]
+traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-07, R-08, R-09, R-10, R-11, R-12, R-13, R-14, R-15, R-16, R-17, R-18, R-19, R-20, R-21, R-22, R-23, R-24, R-25, R-26, R-27, R-28, R-29, R-30, R-31, R-32, R-33, R-34, R-35, R-36, R-37, R-38, R-39, R-40, R-41, R-42, R-43, R-44, R-45, R-46, R-47, R-48, R-49, R-50, R-51]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -92,6 +92,19 @@ brief's original example verbatim.
       included. Then: print(parse(print(parse(x)))) == print(parse(x)) for every sample.
 - [ ] Every diagnostic code emitted appears in [`16-diagnostics`](../10-language/16-diagnostics.md)'s
       table.
+- [ ] A script with three `circuit` headers binds three circuits; a header with no number resolves to
+      100, 200, 300 in declaration order, and a stated number is kept verbatim (`D-33`).
+- [ ] `supply N3` / `return N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
+      instead produces a diagnostic naming `supply`, and **never** a component named `in` of kind `N3`
+      — a test asserts the old silent misparse is gone.
+- [ ] `project dynamic plant_01` sets the default mode for every circuit; a circuit stating
+      `fluid static` overrides it locally and a differing pair produces a warning, not a silent
+      resolution (`D-37`).
+- [ ] `spacing 20` binds into style settings and is absent from every Core layout structure (`D-37`).
+- [ ] `PID1 pid kp=3` binds through the registry with no new grammar, and `control actuate=TV1
+      measure=N2.t by=PID1 setpoint=20` binds its four named arguments. Transposing two arguments
+      changes the binding, not merely the order (`D-40`).
+- [ ] Printing a script containing every new statement reproduces it byte for byte.
 
 The byte-for-byte round trip is the criterion that makes M5 possible. It is much cheaper to get right
 now than to retrofit once the printer has been written loosely.
@@ -126,6 +139,16 @@ defined in [`01-vision-and-scope`](01-vision-and-scope.md).
       so. A pump with known flow but no explicit resistance sizes to zero head with `FS2312`.
 - [ ] Test coverage of `src/FluidScript.Core/Components` and `/Solvers` gives every governing equation
       independent hand-checked and regression tests (`R-17`).
+- [ ] The **distribution header** reference circuit — parent 100 with subcircuits 101 and 102 on a
+      shared supply/return pair (`D-33`) — solves, and each subcircuit's flow sums to the parent's.
+- [ ] Every device carries a tag: `100PU01`, `101TV01`, `101PU01`, `102TV01`, `102PU01`. Ordinals
+      restart per circuit and follow declaration order; inserting a pump above another renumbers the
+      tags and changes **no** component identifier, and a test asserts selection and diagnostic
+      anchors survive it (`D-34`).
+- [ ] A generated tag never lexes as a quantity literal — a test runs every kind's tag code against
+      the unit-symbol table and fails on a collision (`D-34`, `FS1003`).
+- [ ] `circuit AHU 101` resolves the role through the registry, and an unknown role name yields a
+      `Neutral` role plus an info diagnostic rather than an error (`D-35`).
 
 ## M2b — Coupled thermal rating
 
@@ -140,6 +163,11 @@ The two-sided rated heat exchanger (`R-35`, `D-17`) and two thermally coupled hy
       a validation rather than a regression test.
 - [ ] The substation solves as **two hydraulic circuits** with two pressure datums, one stated and one
       auto-picked, and produces no `FS2213`.
+- [ ] The substation's exchanger is tagged into exactly one circuit — the one on its enthalpy-losing
+      side — and a test asserts the tag does not change when the two circuit blocks are swapped in
+      the source, since declaration order must not renumber equipment (`D-36`).
+- [ ] A heat pump cooling circuit 400 and heating circuit 100 tags as `400HP01`, not `100HP01`; the
+      rule is computed from the heat-transfer edge with no layout input of any kind (`D-36`, `D-03`).
 - [ ] A one-sided `heat_exchanger` behaves exactly as it did before `D-17` on both other demo scripts —
       the rated model must not change a duty-mode answer.
 - [ ] A duty above what the inlet temperatures allow reports `FS2111` naming the thermodynamic maximum,
@@ -182,6 +210,19 @@ accessibility, and SVG/PNG export.
 - [ ] Every component's `SymbolId` resolves to Core metadata used by both the canvas and exported SVG.
 - [ ] SVG and PNG exports pass [`59-static-export`](../50-frontend/59-static-export.md)'s
       standalone, metadata, and gradient checks.
+- [ ] The distribution-header reference renders in **header layout**: supply along the top, return
+      along the bottom, subcircuits 101 and 102 stacked between them, each branch leaving the header
+      vertically and turning in the heat direction. A circuit with no subcircuits still renders as a
+      loop rectangle (`D-38`, `R-48`).
+- [ ] Components on a header are spaced by their bounding boxes, never adjacent; `spacing 20` changes
+      the gap and changes no Core output — a test asserts the model contract is byte-identical across
+      two spacing values (`D-37`).
+- [ ] Tags render as component labels; the identifier remains what hover, diagnostics and write-back
+      address (`D-34`).
+- [ ] Two documents open as tabs, each with its own source, dirty state, file handle and recovery
+      entry. Only the active one renders (`D-39`, `R-50`).
+- [ ] The solver status is visible and states which computation it describes, distinguishable without
+      colour — a test asserts the three states differ in text and shape, not only hue (`R-51`, `R-42`).
 - [ ] Keyboard-only and screen-reader users can edit, inspect, run static solve, read diagnostics and
       state, save, and export; WCAG 2.2 AA and `07` budgets pass.
 
@@ -212,6 +253,16 @@ source boundaries feeding a five-layer 300 dm³ tank and two consumer boundaries
       independently tabulated plug-displacement reference without changing total capacity.
 - [ ] The PI controller settles without sustained oscillation on the demo case, and anti-windup is
       demonstrated by a test that saturates the actuator.
+- [ ] A `control` binding drives its named actuator from its named measurement; swapping `actuate=`
+      and `measure=` produces a bind-time diagnostic rather than a model that runs backwards (`D-40`).
+- [ ] Valves and pumps show their 0–1 position as an indicator beside the symbol, with the value also
+      available as text for assistive technology (`R-42`, `R-51`).
+- [ ] Switching to another tab during a transient stops that run's rendering and **not** the run:
+      switching back resumes playback from frames produced while it was hidden, and the frame count
+      is unbroken. Only Stop, closing the document, or leaving the application ends a run
+      (`D-39`, `D-22`).
+- [ ] The status line tracks the transient — converging during the run, converged at its end, failed
+      on a stop condition — and names the run it refers to (`R-51`).
 - [ ] The canvas and SVG export use the Core-owned controller symbol and expose its measurement and
       actuator relationships without a frontend-only glyph.
 - [ ] Frames stream over the WebSocket and playback starts before the run finishes (`R-19`).

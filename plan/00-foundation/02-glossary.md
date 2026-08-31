@@ -5,7 +5,7 @@ tier: 00-foundation
 status: draft
 owns: [canonical term spellings, domain vocabulary, identifier casing conventions]
 depends_on: [01-vision-and-scope]
-traces_to: [R-01, R-09, R-28, R-29, R-37, R-38, R-39, R-41, R-44, R-45]
+traces_to: [R-01, R-09, R-28, R-29, R-37, R-38, R-39, R-41, R-44, R-45, R-46, R-47, R-48, R-50]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -65,7 +65,13 @@ names.
 
 | Term | Script | C# | Meaning |
 |---|---|---|---|
-| **Circuit** | `circuit` | `Circuit` | A named, connected set of components sharing one fluid and solved together. |
+| **Circuit** | `circuit` | `Circuit` | A named, numbered, connected set of components sharing one fluid and solved together. A script may declare several (`D-33`). |
+| **Circuit number** | `circuit AHU 101` | `CircuitNumber` | The integer designating a circuit on a drawing. Stated in the header, or resolved automatically as the lowest unused multiple of 100 in declaration order (`D-33`). |
+| **Subcircuit** | `circuit` + `supply`/`return` | `Circuit` | A circuit declared in the same script that attaches to a parent circuit at two explicitly named nodes. It is an ordinary circuit with a parent, not a distinct type. **Not a subsystem** — see below (`D-33`). |
+| **Circuit role** | the header's name | `CircuitRole` | A circuit's classification — `ahu`, `radiator`, `hot_water`, `ground_loop` — resolved from the header name through a registry by `D-15`'s three stages, never a keyword. Feeds `D-31` thermal classification (`D-35`). |
+| **Distribution header** | — | — | The supply and return line pair that a set of subcircuits attaches to. **Supply header** carries flow out, **return header** carries it back. |
+| **Tag** | — | `Tag` | The derived equipment designation `<circuit><code><ordinal>` — `400PU01`. Core-computed metadata carried in the model contract. **Never an identifier**: the component's name is what the user wrote (`D-34`). |
+| **Tag code** | — | `TagCode` | The one-to-three-letter code for a component kind within a tag — `PU`, `HE`, `TV`, `S`. A registry field on the kind, not a hard-coded table (`D-34`). |
 | **Component** | — | `IComponent` | Any named model participant with parameters and a `SymbolId`. A **flow component** also has ports/equations; an **observer** reads model state without joining the fluid graph (`D-20`). |
 | **Node** | `node` | `Node` | The primitive component. Carries a single fluid **state**; has no length and imposes no pressure drop of its own. |
 | **Port** | — | `Port` | A named attachment point on a component. Every connection joins exactly two ports. |
@@ -85,7 +91,7 @@ names.
 | **Absolute pressure** | `kPaa`, `bara` | — | Pressure relative to vacuum, required by substance properties. Standard atmosphere is 101.325 kPa absolute in v1. |
 | **Open port** | — | — | A declared port with no connection. Terminated automatically with a boundary node (`R-06`). |
 | **Implicit node** | — | — | A node the binder inserts because two components were connected directly and the graph needs a state between them. |
-| **Subsystem** | `circuit` (nested) | `Subsystem` | A circuit referenced from another circuit. **Phase M6.** Reserved here so no other meaning claims the word. |
+| **Subsystem** | — | `Subsystem` | A circuit definition *reused* from elsewhere — composition and instantiation, not attachment. **Phase M6.** A subcircuit is declared inline and attaches hydraulically; a subsystem is a reusable definition referenced by name. The words are close and the concepts are not. |
 
 ### Thermodynamics
 
@@ -139,6 +145,8 @@ names.
 | **Trivia** | `Trivia` | Whitespace, blank lines, and `#` comments (`D-13`). Preserved through the round trip (`R-25`). |
 | **Diagnostic** | `Diagnostic` | A coded, spanned message: error, warning, or info. |
 | **Span** | `TextSpan` | A start offset and length into the script. What an editor squiggle is drawn from. |
+| **Project directive** | `project` | — | The global statement naming the project and setting the default solve mode for every circuit in the file. Follows the version directive (`D-37`). |
+| **Control binding** | `control` | `ControlBinding` | The statement joining a controller definition to the parameter it actuates and the property it measures, with named arguments. Distinct from the controller *declaration*, which carries the algorithm and gains (`D-40`). |
 
 ### Rendering
 
@@ -150,6 +158,10 @@ names.
 | **Symbol** | `Symbol` (TS) | The drawn glyph for a component kind. |
 | **Route** | `Route` (TS) | The polyline a connection is drawn along. |
 | **Thermal stage** | `ThermalStage` | A source, conversion/storage, consumer, or neutral component group assigned one left-to-right heat-progression rank. It does not replace fluid-flow direction (`D-31`). |
+| **Header layout** | — | The layout mode drawing a distribution circuit as a supply line along the top and a return line along the bottom with its subcircuits stacked between them. The alternative mode is the **loop rectangle** (`D-38`). |
+| **Loop rectangle** | — | The layout mode distributing one closed loop's components around the perimeter of a rectangle. The original and still the default for a circuit with no subcircuits (`D-38`). |
+| **Spacing** | `spacing` | The minimum gap between adjacent component bounding boxes, in world units. A presentation value carried through Core untouched — never a layout hint (`D-37`). |
+| **Active document** | — | The one open document that renders and streams frames. Others retain their state and any running transient (`D-39`). |
 
 ## Banned and confusable terms
 
@@ -165,6 +177,9 @@ names.
 | "pinch" for one exchanger's minimum ΔT | **approach** | "Pinch analysis" is a plant-wide network method and is out of scope; using the word for a single exchanger guarantees the two get conflated. |
 | "plate spacing", "channel gap" | **lamella** | Three words for one dimension. |
 | "hot side" / "cold side" as parameter names | **side 1 / side 2** (`in`/`out` vs `in2`/`out2`) | Which side is hot is a solved outcome. A script that says `hot_in=40` and solves to the cold side is worse than one that says nothing. |
+| "subsystem" for an inline attached circuit | **subcircuit** | A subsystem is an M6 reusable definition; a subcircuit is declared inline and attaches at named nodes. Two concepts, two words, and they must not swap (`D-33`). |
+| "name", "id" or "identifier" for `400PU01` | **tag** | The identifier is what the user wrote; the tag is derived. Conflating them is the mistake `D-34` exists to prevent, and it silently breaks every consumer keyed by id. |
+| "circuit id" | **circuit number** | The number is a drawing designation chosen by the engineer, not a system-assigned identity. |
 
 ## Worked example
 

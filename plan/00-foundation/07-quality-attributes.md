@@ -5,7 +5,7 @@ tier: 00-foundation
 status: draft
 owns: [quality budgets, supported scale, execution isolation, engineering validity claim, accessibility baseline]
 depends_on: [01-vision-and-scope, 06-decision-log]
-traces_to: [R-05, R-11, R-12, R-17, R-21, R-40, R-41, R-42, R-43, R-45]
+traces_to: [R-05, R-11, R-12, R-17, R-21, R-40, R-41, R-42, R-43, R-45, R-50, R-51]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -46,6 +46,9 @@ reviewed baseline update, not silent threshold relaxation.
 | Cancellation/stop | User Stop, client disconnect, or a stop condition reaches the solver cancellation boundary within one produced frame or 250 ms, whichever is longer; no worker continues afterwards. |
 | Resource use | A 10-minute run at 10 frames/s keeps at most 60 s of decoded frames plus one full checkpoint per 60 frames by default and remains below 250 MiB additional process memory. Older deltas may stay compact or be discarded according to the declared retention mode. |
 | Input limits | Default limits are 1 MiB source text, 10,000 declarations, 100,000 tokens, and 800 solver unknowns. Exceeding one returns a stable diagnostic before solve; limits are returned by metadata. |
+| Open documents | At most 8 documents open at once and at most **2 concurrent transient runs**, counted across all documents rather than per document. A third run is refused with a diagnostic naming the running two, never queued silently. An inactive document holds its source, compile result and run state but performs no layout, frame decoding or render preparation (`D-39`). |
+| Detached run cost | A run whose document is not active stays within the same 250 MiB retention budget as an active one and adds no UI-thread work. The budget is per run, so two concurrent runs are gated at 500 MiB additional process memory and the second is refused above it (`D-39`). |
+| Status latency | The solver status reaches its visible state within 250 ms of the underlying transition, and names which computation it describes — draft compile, steady solve, or a specific transient run (`R-51`). |
 | Determinism | Identical source bytes, language major, catalogue pin, property-backend version, solver settings, and platform produce the same graph ordering and diagnostic order. Numeric values meet the tolerance matrix; cross-platform bit identity is not promised. |
 | Availability | A malformed or temporarily incomplete draft returns diagnostics and retains the last good static render. It does not terminate the editor session. |
 | Accessibility | All v1 workflows meet WCAG 2.2 AA and pass automated checks plus keyboard-only and screen-reader acceptance tests. Canvas information has a structured accessible equivalent. |

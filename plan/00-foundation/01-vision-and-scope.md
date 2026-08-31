@@ -60,6 +60,8 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-04` | Dimensioned values may be written bare (`power=30` means kW) or with an explicit unit (`power=30000 W`); both resolve to the same internal SI quantity. |
 | `R-05` | The parser recovers from errors: one bad line does not prevent the rest of the script from being analysed and rendered. |
 | `R-06` | The language infers what it reasonably can: intermediate nodes between named components, terminating nodes on open ports, and flow direction from connection order. |
+| `R-46` | A script may describe several circuits, each with a number that is stated or resolved automatically, and subcircuits that attach to a parent circuit at explicitly named nodes. A circuit's role (`AHU`, `radiator`) resolves through a registry rather than a keyword (`D-33`, `D-35`). |
+| `R-49` | A controller is declared once with its algorithm and gains, and bound to its actuator and measurement by a separate statement with named arguments (`D-40`). |
 
 ### Physics and core
 
@@ -81,6 +83,7 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-36` | Persistent sensors, instrumentation dynamics, and report points are deferred beyond v1 (`D-23`); direct references to node and component properties provide v1 control measurements. |
 | `R-37` | Component symbols are declarative Core-owned metadata shared by the canvas and exporters, not duplicated renderer code. |
 | `R-45` | A `tank` stores liquid in a parameterized number of equal-volume, perfectly mixed layers; it supports multiple indexed inlet/outlet ports with normalized elevations and conserves mass and enthalpy during a transient (`D-32`). |
+| `R-47` | Every device carries a derived equipment tag of the form `<circuit><code><ordinal>` — `400PU01` — computed by Core from the circuit number, a per-kind code, and declaration order. The tag is metadata carried in the model contract; the component's identifier remains the name the user wrote (`D-34`, `D-36`). |
 
 ### API
 
@@ -107,6 +110,9 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-41` | A transient run uses an immutable compiled snapshot. Script editing continues independently; simulation, frame decoding, and render preparation run off the UI thread. Isolation, worker, protocol, or model-integrity failure stops the affected run. |
 | `R-42` | All v1 workflows meet WCAG 2.2 AA: keyboard operation, visible focus, non-colour status cues, accessible data readouts, reduced motion, and equivalent alternatives for canvas-only interactions. |
 | `R-44` | P&I diagrams render nominal heat progression from left to right: source and cooling-side circuits on the left, conversion/storage centrally, and heating consumers on the right, including parallel source and consumer groups (`D-31`). |
+| `R-48` | A distribution circuit renders as a supply header along the top and a return header along the bottom, with its subcircuits stacked between them. Components are spaced sparsely by default, and the spacing is adjustable from the script without Core interpreting it (`D-37`, `D-38`). |
+| `R-50` | Several documents are open at once as tabs; only the active document renders and streams frames, and a run whose document is switched away from continues rather than stopping (`D-39`). |
+| `R-51` | The solver's state — converging, converged, or failed — is continuously visible, conveyed by text and shape as well as colour, and names which computation it refers to. |
 
 ### Documentation and delivery
 

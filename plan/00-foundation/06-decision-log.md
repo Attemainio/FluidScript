@@ -5,7 +5,7 @@ tier: 00-foundation
 status: draft
 owns: [architectural decisions D-xx, their rationale, their supersession chain]
 depends_on: [01-vision-and-scope]
-traces_to: [R-01, R-02, R-03, R-04, R-07, R-16, R-18, R-19, R-30, R-44, R-45]
+traces_to: [R-01, R-02, R-03, R-04, R-07, R-16, R-18, R-19, R-30, R-44, R-45, R-46, R-47, R-48, R-49, R-50]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -261,7 +261,7 @@ and free.
 
 ## D-11 · Two named reference circuits, and no unnamed variants
 
-**Accepted, amended by `D-16`, `D-18`, `D-32` · 2026-08-29**
+**Accepted, amended by `D-16`, `D-18`, `D-32`, `D-33` · 2026-08-29**
 
 [`01-vision-and-scope`](01-vision-and-scope.md) defines exactly two solvable reference circuits — the
 **cooling loop** (a three-way mixing circuit, used for topology, layout, the model contract and
@@ -1131,6 +1131,366 @@ conservative finite-volume model whose accuracy is directly controlled by one vi
 [`61-documentation-plan`](../60-docs-and-devex/61-documentation-plan.md),
 [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md),
 [`72-roadmap`](../70-future/72-roadmap.md), `R-09`, and `R-45`.
+
+---
+
+## D-33 · A script holds several numbered circuits, and subcircuits attach explicitly
+
+**Accepted · 2026-08-31**
+
+A script may declare more than one circuit. `circuit <name> [<number>]` gains an optional integer
+designation — `circuit groundSource 400` — and `SemanticModel.Circuit` becomes `Circuits`. An omitted
+number is resolved automatically: the lowest unused multiple of 100 in declaration order, so a
+single-circuit script never mentions a number and every existing script keeps its meaning.
+
+A **subcircuit** is a circuit that attaches to another rather than standing alone. It states its
+attachment explicitly, with two statements naming the parent's nodes:
+
+```fluidscript
+circuit AHU 101
+HE1 duty in=50 out=30 power=24 kW
+TV1 three_way_valve
+PU1 pump
+
+supply N3        # takes flow from the parent circuit at N3
+return N5        # returns it to the parent at N5
+```
+
+There is no automatic attachment. `supply`/`return` become reserved words; `in`/`out` were the obvious
+spelling and are rejected below.
+
+This entry also adds the **sixth reference circuit, the distribution header** — one parent circuit
+numbered 100 with two subcircuits 101 and 102 on a shared supply/return pair — and amends `D-11`
+accordingly. Without it, `D-34`, `D-36` and `D-38` have no fixture to be tested against.
+
+**Why.** Every real plant in the reference drawings is several numbered circuits sharing a
+distribution header, and the tagging scheme (`D-34`), the ownership rule (`D-36`) and the header
+layout (`D-38`) are all expressed *per circuit*. A one-circuit model cannot express any of them.
+Attachment is explicit because the alternative is inferring which parent node a subcircuit belongs to,
+and a wrong inference there is a wrong hydraulic topology that still solves — the failure class `P3`
+exists to refuse.
+
+**Rejected.**
+- *`in N3` / `out N5` as the attachment keywords.* Matches the user's own first draft and reads well.
+  Cost: `in N3` already parses today — the disambiguation rule in
+  [`12-grammar`](../10-language/12-grammar.md) sees a first token that is not reserved and a second
+  token that is not `-`, and produces a component named `in` of kind `N3`. Silently. Reserving `in`
+  and `out` would fix the parse but collides with `in=`/`out=` as heat-exchanger parameter names,
+  where the same two words already mean inlet and outlet temperature. Two meanings, one word, one
+  document — the collision would be discovered by a user, not by a test.
+- *Automatic attachment by proximity or by declaration order.* Removes two lines per subcircuit.
+  Cost: the attachment point determines flow split and pressure drop; guessing it produces a model
+  that solves and is wrong, and the user has no way to see what was assumed.
+- *One circuit per file, composed by an include mechanism.* Keeps the semantic model singular. Cost:
+  `R-03` has no imports and adding them makes the language a build system; a header and its branches
+  are one drawing and belong in one file.
+
+**Constrains.** [`01-vision-and-scope`](01-vision-and-scope.md),
+[`02-glossary`](02-glossary.md),
+[`12-grammar`](../10-language/12-grammar.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`16-diagnostics`](../10-language/16-diagnostics.md),
+[`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md), `D-11`, and `R-46`.
+
+---
+
+## D-34 · Equipment tags are derived metadata, never identity
+
+**Accepted · 2026-08-31**
+
+Every device carries a **tag** of the form `<circuit><code><ordinal>` — `400PU01`, `101TV01`,
+`100S02` — derived by Core and carried in the model contract. It is *not* the component's identifier.
+The script keeps the user's name, `PU1`, and that name remains the stable id
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md) keys selection, DOM reconciliation, worker
+commits and export identity to.
+
+| Part | Source |
+|---|---|
+| `<circuit>` | The circuit's number (`D-33`) |
+| `<code>` | A `TagCode` field on the component kind in the registry — `PU`, `HE`, `TV`, `S` |
+| `<ordinal>` | Two digits, per `(circuit, code)`, **in declaration order**, from `01` |
+
+An optional `.NN` branch extension — `100TE01.02` — appends the branch ordinal for a component on a
+numbered branch of a distribution header. The format is fixed now so it does not change later; v1
+emits it only for devices, because the case that motivates it most (a supply and return sensor per
+branch) needs the sensors `D-23` defers.
+
+Tags never enter the script by themselves. An explicit **Apply tags** editor operation rewrites them
+in as identifiers, reported through `IScriptEditor`'s old-id/new-id mapping like any other rename.
+
+**Why.** Ordinals renumber whenever a declaration is inserted above another. If the tag were identity,
+that renumbering would invalidate selection, diagnostic anchors, route caches and export identity on a
+keystroke — the diagram-jumps-while-typing failure that
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md)'s whole determinism section exists to
+prevent. Declaration order rather than topological order for the same reason: topological ordinals
+churn every time a connection is edited, and a connection edit is the most common edit there is.
+
+The cost is real and is accepted: writing the return line before the supply line gives the return the
+lower ordinal. That is visible, local, and fixed by moving one line — unlike a tag that changes because
+something three screens away changed.
+
+**Rejected.**
+- *The tag is the identifier; auto-naming rewrites the script.* Makes "every device is auto renamed"
+  literally true. Cost: the churn above, on every keystroke, against every consumer keyed by id.
+- *Topological ordinals, supply before return.* Matches how a drafter numbers a finished drawing.
+  Cost: a finished drawing is not edited live. Tags would move under the cursor whenever a connection
+  changed, and every diagnostic and export identity would move with them.
+- *An explicit `tag=` parameter on every component.* Fully predictable, no inference. Cost: it is the
+  noise `P1` exists to prevent, and it defeats the feature — the point is not typing them.
+
+**Constrains.** [`15-semantic-model`](../10-language/15-semantic-model.md),
+[`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md),
+[`22-component-model`](../20-core-domain/22-component-model.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`59-static-export`](../50-frontend/59-static-export.md), `D-23`, and `R-47`.
+
+---
+
+## D-35 · Circuit roles resolve through a registry, not through keywords
+
+**Accepted · 2026-08-31**
+
+`circuit AHU 101` and `circuit radiators 102` classify the circuit by **role**, and the role name
+resolves against a circuit-role registry using `D-15`'s existing three stages — normalise, exact match
+against canonical names and curated aliases, then similarity. `AHU`, `radiator`, `hot_water` and
+`ground_loop` are registry entries, not reserved words. An unresolved name is not an error: the circuit
+gets the `Neutral` role and an info diagnostic, exactly as an unresolved component kind still produces
+a component.
+
+The role feeds `D-31`'s thermal classification — a `radiator` role is a `Consumer`, a `ground_loop` is
+a `Source` — which is what places the circuit on the canvas.
+
+**Why.** The reserved-word list is eleven words and `P6` keeps it that way. Component *kinds* are
+already registry-resolved precisely so that adding a kind never breaks a script that used the name as
+an identifier; circuit roles are the same shape of problem and get the same mechanism rather than a
+second one. Making `AHU` a keyword would mean every new consumer type is a language change with a
+version bump behind it, and any script with a component named `AHU` breaks on upgrade.
+
+**Rejected.**
+- *`AHU` and `radiator` as reserved words.* Simplest to parse. Cost: an unbounded reserved list that
+  grows with the component library, each addition breaking existing scripts, for no expressive gain
+  over a registry lookup.
+- *An explicit `role=` parameter on the circuit header.* Unambiguous. Cost: `circuit AHU 101 role=ahu`
+  says the same thing twice, and the name is already the natural place to say it.
+- *Infer the role from the circuit's contents.* No new syntax at all. Cost: a circuit with a pump and
+  an exchanger is a source or a consumer depending entirely on which side of the exchanger it is on,
+  which is what `D-36` has to resolve separately — inference here would double-guess it.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md), `D-15`, `D-31`, and `R-46`.
+
+---
+
+## D-36 · A two-sided component belongs to the circuit on its enthalpy-losing side
+
+**Accepted · 2026-08-31**
+
+A component touching two circuits — a rated exchanger, a heat pump, a tank with coils — is owned by
+exactly one of them for tagging (`D-34`) and grouping. The owner is the circuit on the side **losing**
+nominal enthalpy across the component's heat-transfer edge. A heat pump cooling circuit 400 and heating
+circuit 100 is `400HP01`. A tank charged by circuit 100 and discharging to hot-water circuit 201 is
+`100S02`.
+
+Fallbacks, in order, when that edge does not decide it: both sides in one circuit → that circuit; one
+side against a boundary → the circuit side; still undecided → the lower circuit number, with an info
+diagnostic naming the ambiguity.
+
+**Why.** The intuitive statement of this rule is "the leftmost circuit owns it", and that is what a
+designer reading a drawing sees. But leftmost is a *layout outcome* and `D-03` forbids Core from
+knowing about pixels — a Core-computed tag cannot depend on where the renderer put something. The
+enthalpy-losing side is the same rule stated in Core's own terms:
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md) already builds exactly that directed edge
+for thermal staging, "from the side losing nominal enthalpy to the side gaining it". Under `D-31` the
+losing side is the left one, so the rule and the intuition agree — but the rule is computable without
+a canvas and testable without a renderer.
+
+**Rejected.**
+- *"The leftmost circuit owns it", taken literally.* Matches how a designer describes it. Cost:
+  violates `D-03`; Core would need layout coordinates to compute a tag, and the tag would change when
+  the renderer changed.
+- *The circuit that declared the component owns it.* Trivial to compute, no new concept. Cost:
+  declaration order is a text-editing accident. Moving a line between two circuit blocks would
+  renumber equipment on a drawing, which is the property `D-34` is built to avoid.
+- *Ownership by both, with a compound tag.* Loses no information. Cost: `100/400HP01` is not a tag any
+  plant convention uses, and it doubles every equipment schedule row.
+
+**Constrains.** [`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md), `D-03`, `D-31`, `D-34`, and `R-47`.
+
+---
+
+## D-37 · `project` carries the solve mode; `spacing` is presentation, never a hint
+
+**Accepted · 2026-08-31**
+
+Two global directives, valid only in the declaration section and only after the version directive:
+
+```fluidscript
+fluidscript 1
+project dynamic plant_01     # names the project; `dynamic` is the default solve mode for every circuit
+spacing 20                   # component spacing on the canvas, in world units
+```
+
+`project [dynamic|static] <name>` sets the **default** solve mode for every circuit in the file. A
+circuit's own `fluid dynamic|static` still wins locally; stating both with different modes is a
+warning, not a silent resolution, because the two readings differ and neither is obviously right.
+
+`spacing` lands in `StyleSettings` — the opaque presentation payload Core already parses and passes
+through untouched — and **not** in `LayoutHints`. Core never interprets it. The default is sparse.
+
+**Why.** `spacing` is a distance, and `LayoutHints` invariant 1 is that it contains no coordinate,
+dimension or pixel value; `D-03` puts every such quantity on the frontend side of the line. The
+temptation is to treat spacing as "layout, therefore a layout hint", which would put the first number
+into a payload whose entire testable property is that it holds none. `style` already exists as the
+channel for presentation values that travel through Core without being understood by it, and spacing is
+exactly that.
+
+Solve mode moves up because it is a property of the run, not of a fluid: stating `dynamic` once per
+circuit in a six-circuit file is five repetitions of one decision.
+
+**Rejected.**
+- *`spacing` as a field on `LayoutHints`.* Keeps all layout inputs in one payload. Cost: breaks
+  invariant 1 and `D-03`, and makes Core's layout tests depend on a number Core cannot check.
+- *`project` replaces the `fluidscript` version directive.* One fewer line. Cost:
+  [`18-script-compatibility`](../10-language/18-script-compatibility.md) requires the version to be
+  the first non-trivia token so a file can be rejected before it is parsed; a project name in front of
+  it means parsing an unsupported file to find out it is unsupported.
+- *Project-level mode only, dropping per-circuit `fluid dynamic`.* Simplest precedence — there is
+  none. Cost: a mixed model where one slow circuit is transient and the rest are steady becomes
+  inexpressible, and that is a real design question users ask.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`55-design-system`](../50-frontend/55-design-system.md), `D-03`, and `R-48`.
+
+---
+
+## D-38 · Header layout is a second layout mode beside the loop rectangle
+
+**Accepted · 2026-08-31**
+
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) gains a second layout mode. The existing
+mode lays a loop out as a rectangle with components on its perimeter. The **header** mode lays a
+distribution circuit out as a horizontal supply line along the top and a return line along the bottom,
+with its subcircuits stacked vertically *between* them, each connecting up to supply and down to
+return. A branch leaving the header continues away from it vertically and then turns in the heat
+direction — right for heating, left for cooling, per `D-31`.
+
+Selection is structural, not stylistic: a circuit with two or more subcircuits attached to a shared
+supply/return pair (`D-33`) renders as a header; everything else keeps the rectangle. Core supplies the
+grouping through `LayoutHints`; the renderer owns every coordinate, as `D-03` requires.
+
+**Why.** The rectangle is the right picture for one closed loop and the wrong one for a plant. Every
+reference drawing this project is measured against is a header with branches, and a renderer that only
+knows rectangles draws a six-circuit plant as six disconnected rectangles with long routes between
+them — technically correct, unrecognisable to a designer, and a direct failure of `R-27`. Two modes
+rather than one general algorithm because the two shapes have genuinely different rules, and a general
+algorithm that produced both would be tuned until it produced one badly.
+
+**Rejected.**
+- *One generalised layout algorithm covering both.* No mode selection to get wrong. Cost: the
+  constraints differ (a loop distributes around a perimeter, a header stacks between two rails); a
+  single parameterised algorithm is the force-directed trap `53` already rejects, one level up.
+- *Header layout only, dropping the rectangle.* One mode. Cost: the cooling loop and simple loop —
+  two protected reference circuits — are single loops with no header, and both would regress.
+- *Let the script choose the mode with a directive.* Explicit and predictable. Cost: it asks the user
+  to describe the drawing rather than the plant, which is the line `R-01` draws.
+
+**Constrains.** [`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`55-design-system`](../50-frontend/55-design-system.md), `D-03`, `D-31`, `D-33`, and `R-48`.
+
+---
+
+## D-39 · Documents are tabbed, and a run detached by a tab switch keeps running
+
+**Accepted · 2026-08-31**
+
+[`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md)'s single `DocumentState` becomes a
+collection with one active document. Each tab owns its own source, dirty state, file handle, recovery
+entry and run. Only the active document renders and streams frames.
+
+Switching tabs **detaches rendering; it does not stop the run.** The transient continues from its
+immutable snapshot, off the UI thread, and switching back resumes playback from the frames it
+produced. A run is stopped only by the user's Stop, by closing its document, or by leaving the
+application. [`07-quality-attributes`](07-quality-attributes.md) owns the cap on concurrent runs and
+the memory budget that follows from it.
+
+**Why.** The brief for tabs said the previous tab "stops converging" on switch, and that is the one
+part rejected. `D-22` and `R-41` establish that a run owns an immutable snapshot precisely so that
+activity in the editor cannot destroy it; a tab switch is a cheaper and more frequent gesture than an
+edit, and having it silently discard a 600-frame run would defeat the isolation `D-22` exists to
+provide. The computation is already off the UI thread, so nothing about the responsiveness argument
+requires stopping it — only the *rendering* needs to stop, and that is what detaching does.
+
+**Rejected.**
+- *A tab switch stops the run.* The simplest resource story: at most one run exists. Cost: silent loss
+  of completed work on a stray click, and a new cancel path contradicting `D-22`'s guarantee.
+- *Prompt on switch — keep running or stop.* No silent loss. Cost: a modal in the most repeated
+  interaction in the application.
+- *Background tabs keep rendering.* No resume logic. Cost: pays full frame-application and
+  render-preparation cost for pixels nobody sees, against `07`'s budgets.
+
+**Constrains.** [`07-quality-attributes`](07-quality-attributes.md),
+[`51-frontend-architecture`](../50-frontend/51-frontend-architecture.md),
+[`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md),
+[`43-realtime-contract`](../40-api/43-realtime-contract.md), `D-22`, `R-41`, and `R-50`.
+
+---
+
+## D-40 · A controller is defined once and bound separately, by named role
+
+**Accepted · 2026-08-31**
+
+The single controller declaration of
+[`34-controllers`](../30-solver/34-controllers.md) splits into a definition and a binding:
+
+```fluidscript
+PID1 pid kp=3                                       # definition: an ordinary component declaration
+control actuate=TV1 measure=N2.t by=PID1 setpoint=20 # binding: `control` is a reserved word
+```
+
+The definition is a component declaration and needs no new grammar — `pid`, `pi` and `p` resolve
+through the registry like any other kind (`D-15`). The binding is a new statement whose arguments are
+**named, not positional**. `setpoint` stays on the binding, because under `D-23` there is no sensor
+component to carry it.
+
+**Why.** Splitting them lets one tuning be stated once and read at each place it is used, and it puts
+the gains next to the algorithm rather than in the middle of a wiring statement. Named arguments
+because the positional form — `control TV1 TE01 PID1` — has no memorable order: reversing the
+actuator and the measurement produces a model that binds, solves, and is wrong. A binding that fails
+loudly on a typo is worth four extra words.
+
+The `dT` mode from the original sketch is **not** included. Its stated meaning, "measured by a setpoint
+and actual temperature difference", is the error signal every controller already computes, so the
+keyword would name the default. A genuine two-sensor differential mode needs two measurement points
+and can be added later without changing this syntax, since every argument is named.
+
+**Rejected.**
+- *Keep the single `TC1 controller measure=… actuate=… setpoint=…` declaration.* No new statement, and
+  it already works. Cost: the gains and the wiring are one line, so a retuning edit and a rewiring edit
+  touch the same statement, and the same tuning cannot be shared.
+- *Positional binding arguments.* Shortest to type, closest to the original sketch. Cost: silent
+  argument transposition, above.
+- *A `dT` mode keyword now.* Matches the sketch. Cost: it would name the default behaviour, and the
+  name would then be unavailable for the real differential mode.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`16-diagnostics`](../10-language/16-diagnostics.md),
+[`34-controllers`](../30-solver/34-controllers.md),
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md), `D-15`, `D-23`, and `R-49`.
 
 ---
 
