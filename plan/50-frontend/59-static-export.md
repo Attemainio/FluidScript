@@ -2,12 +2,12 @@
 id: 59-static-export
 title: Static SVG and PNG export
 tier: 50-frontend
-status: draft
+status: reviewed
 owns: [M3 SVG export, M3 PNG export, export accessibility and provenance]
 depends_on: [26-model-contract, 53-canvas-renderer, 55-design-system, 57-state-visualization]
 traces_to: [R-23, R-24, R-28, R-31, R-37, R-39, R-42, R-44, R-47]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Static SVG and PNG export
@@ -99,7 +99,8 @@ the same SVG rasterized at 300 dpi produces the PNG.
 - [ ] Light export is legible on white regardless of current app theme; dark export is explicit.
 - [ ] Every component id, label, state unit, warning cue, gradient, and legend survives as configured.
 - [ ] Labels carry tags where the kind has a tag code, while element ids carry identifiers; an export
-      of a model with two `PU1`s in different circuits contains two distinct ids and two distinct tags.
+      of the distribution header contains `PU_AHU`/`PU_RAD` as element ids and `101PU01`/`102PU01` as
+      drawn labels.
 - [ ] `<title>`/`<desc>` pass screen-reader inspection and carry all required provenance.
 - [ ] The canvas and exporter consume one symbol-definition golden set; no TypeScript kind-specific
       drawing implementation exists.

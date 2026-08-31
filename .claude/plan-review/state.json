@@ -1,6 +1,6 @@
 {
-  "pass": 5,
-  "sweep": 1,
+  "pass": 6,
+  "sweep": 2,
   "nextTier": null,
   "cleanSweeps": 0,
   "tierOrder": [
@@ -36,6 +36,8 @@
       "note": "First whole-tree sweep using the skill's agent fan-out (17 plan-reviewer agents, 2-4 per tier, disjoint scopes), per the notes left after pass 4. 7 of pass 4's 8 findings confirmed resolved (F-5/thermal-staging only partially, reopened). Per-tier depth surfaced a much larger set of contract-precision defects (undefined types referenced throughout 14/15/17/18/31, worked-example arithmetic errors, a catalog-directive grammar self-contradiction found independently by two reviewers) that whole-tree direct review had missed. Findings in findings/2026-08-31-164251-pass5-full-tree.md. CORRECTED 2026-08-31: all 29 blocking findings were subsequently applied in a session that did not update this file, which recorded applied=0 and misled a later session into reporting a 29-finding backlog that did not exist. Verified individually against the committed text; the 43 should-fix findings were NOT re-verified. Three of the seventeen agents hit a session-wide rate limit and were retried once each; all three retries succeeded." }
     ,{ "pass": 5, "tier": "all", "blocking": 0, "shouldFix": 0, "applied": 0,
       "note": "Verification only, not a review pass. Re-checked all 29 of pass 5's blocking findings against the committed text before starting feature work: every one is resolved (F-1..F-3 foundation, F-4..F-12 language, F-13/F-14 core, F-15..F-19 solver, F-20/F-21 api, F-22..F-24 frontend, F-25..F-27 docs, F-28/F-29 future). No findings raised, no edits applied, cleanSweeps deliberately NOT advanced - a verification by the session that benefits from it is not an independent sweep." }
+    ,{ "pass": 6, "tier": "all", "blocking": 4, "shouldFix": 4, "applied": 8,
+      "note": "Sweep 2, pass 6. Direct whole-tree review (no agent fan-out; the user asked for a sweep, not delegation), semantic depth on the 24 documents changed by D-33..D-40. Mechanical checks clean throughout. Found 4 blocking + 4 should-fix, all in this session's own material; all applied. Cross-checked against an INDEPENDENT Codex review of the same diff (findings/2026-08-31-222651-current-diff.md), which found 7 blocking + 4 should-fix: 4 overlapped, and 6 were genuine misses by this session - spacing transport contradiction, ApplyTags non-atomicity, R-50/D-39 streaming wording, docs-gate unsatisfiability, close Stop/Keep, circuit-name uniqueness and attachment parent consistency. All applied. Added D-41 (identifiers unique across the model - applied OPPOSITE to this pass's own recommendation, which would have added namespace machinery), D-42 (detaching stops presentation not transport, amending D-39) and D-43 (actuator is a qualified parameter reference, amending D-40). User also supplied two layout corrections: header branches are U-shaped, and symbol orientation/corner rules were missing entirely. cleanSweeps NOT advanced: reviewer and author were the same session." }
   ],
   "notes": [
     "2026-08-31 - OPERATIONAL WARNING: the per-tier `blocking`/`shouldFix` counts record what a pass FOUND, not what remains outstanding. Pass 5's counts (29/43) were read by a later session as an open backlog when in fact every blocking finding had already been applied. Before treating any count as outstanding work, verify a sample against the committed text; whoever applies findings must update that pass's `applied` in the same session.",

@@ -2,12 +2,12 @@
 id: 43-realtime-contract
 title: Realtime contract
 tier: 40-api
-status: draft
+status: reviewed
 owns: [WebSocket protocol, frame messages, backpressure, reconnection, run lifecycle]
 depends_on: [26-model-contract, 33-transient-time-domain, 41-api-architecture]
 traces_to: [R-19, R-12, R-40, R-41, R-45, R-50]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Realtime contract
@@ -135,7 +135,7 @@ participates in correctness.
 ## A detached run keeps streaming
 
 When the user switches to another tab, that document's run **continues and its socket stays open**
-(`D-39`). Detaching removes work from the pipeline's tail, not its head:
+(`D-39`, `D-42`). Detaching removes work from the pipeline's tail, not its head:
 
 | Stage | Attached | Detached |
 |---|---|---|

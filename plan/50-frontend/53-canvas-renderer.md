@@ -2,12 +2,12 @@
 id: 53-canvas-renderer
 title: Canvas renderer
 tier: 50-frontend
-status: draft
+status: reviewed
 owns: [SVG canvas rendering, viewport, layout engine and its two modes, routing, declarative-symbol interpretation, axes, component spacing]
 depends_on: [25-layout-hints, 26-model-contract, 51-frontend-architecture]
 traces_to: [R-22, R-23, R-27, R-34, R-37, R-41, R-42, R-44, R-45, R-46, R-47, R-48]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Canvas renderer
@@ -87,21 +87,26 @@ route per connection.
 1. Heat bands  Allocate monotonically increasing X bands from hints.thermalStages: sources,
                conversion/storage, then consumers. Parallel groups share a band and stack.
 2. Mode        For each circuit group, choose a layout mode from structure alone:
-               a circuit named in a hints.distributionGroups entry with 2+ members → HEADER;
+               a circuit named in a hints.distributionGroups entry → HEADER;
                everything else → LOOP RECTANGLE. Core never names the mode (D-38).
 3. Partition   Within each band/group, split into loop members (hints.loops) and tree parts.
 4a. Rectangle  Lay each loop out as a rectangle in hints.loopOrientations, components distributed
                around its perimeter in traversal order, sized by member count. Shared-component
                loops sit side-by-side with that component between them.
-4b. Header     Lay the parent circuit's supply chain along a top rail and its return chain along a
-               bottom rail; stack the group's members between them in hints order; connect each
-               member up to supply and down to return at its supplyAnchorId/returnAnchorId.
+4b. Header     Lay the parent's supply chain along a top rail and its return chain along a bottom
+               rail. Place the group's members side by side in hints order, each drawn as a U —
+               supply run rightward, consumer on the descending side, return run leftward — tee'd
+               off the rails at its supplyAnchorId/returnAnchorId.
 5. Tree parts  Layered locally by hints.rank: rank = column, siblings stack vertically.
 6. Attach      Tree parts attach to their loop or rail at the shared node's position.
 7. Compact     Remove empty local columns/rows without crossing a thermal-band boundary; centre.
 8. Space       Enforce the minimum gap between adjacent bounding boxes (below).
 9. Route       Orthogonal routing between port anchors, including right-to-left returns.
 ```
+
+The membership test needs no member count: Core emits no group below two members
+([`25`](../20-core-domain/25-layout-hints.md)'s invariant 11), so a parent with one subcircuit simply
+has no group and takes the rectangle. Repeating the threshold here would put one rule in two places.
 
 **Step 2 reads structure and produces a shape, and the split matters.** Core says *these circuits
 share a supply/return pair*; the renderer decides that such a set is drawn as two rails with members
@@ -116,32 +121,121 @@ and the other badly. `D-38` records the alternatives.
 
 ### Header layout
 
-The mode that makes a plant look like a plant, and the reason `D-33` added a sixth reference circuit
-to have something to test it against. Picture a heating circuit `100` with subcircuits `101` and
-`102`:
+The mode that makes a plant look like a plant, and the reason `D-33` added the **distribution header**
+([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) as a sixth reference circuit to test
+it against.
+
+**A branch is a U, not a box.** The shape below is the target, and it is what a designer draws: the
+branch leaves the supply rail, runs left to right through its flow components, turns **down** the far
+side through its consumer, and returns **right to left** along the bottom into the return rail.
 
 ```
-     supply rail ──┬─────────────┬──────────────►
-                   │             │
-              ┌────┴────┐   ┌────┴────┐
-              │   101   │   │   102   │      members stack, in hints order
-              └────┬────┘   └────┬────┘
-                   │             │
-     return rail ◄─┴─────────────┴───────────
+SUPPLY ──────▶[3-way valve]──────▶[pump]──[P]──[T]─┐
+                    ▲                              │
+                    │                           [valve]
+                    │                              │
+             [check valve]                 [heat exchanger]
+                    │                              │
+                    │                           [valve]
+                    │                              │
+RETURN ◀────────────┴──────────────[P]──[T]────────┘
 ```
 
-Rules:
+Four rules produce it:
 
-- **The parent's supply chain is the top rail, its return chain the bottom.** Which is which comes
-  from `hints.loopOrientations` for the parent, not from a guess: supply on top and return below is
-  already `D-30`'s convention.
-- **Members stack in `DistributionGroup.Members` order**, which Core fixes to declaration order. This
-  is what stops the branches reordering between renders.
-- **A branch leaves its rail vertically, then turns in the heat direction** — right for heating, left
-  for cooling, per `D-31`. The vertical-then-horizontal shape is what makes the rails readable as
+1. **The supply run is the top edge and the return run is the bottom**, flow left to right on top and
+   right to left underneath. Which chain is which comes from `hints.loopOrientations`, not a guess:
+   supply above return is already `D-30`'s convention.
+2. **The consumer turns the corner.** The component carrying the branch's duty — the heat exchanger,
+   the load — is placed on the *descending* side with its isolating valves above and below it, because
+   that is where a reader looks for it and because it keeps the two horizontal runs free for
+   instrumentation.
+3. **The bypass leg closes the U on the near side.** A three-way valve's recirculation port routes
+   straight down to the return run, and whatever sits on that leg — a check valve here — sits on the
+   vertical. This is the same `PortSides` fact the cooling loop already relies on (`3WV.b North`,
+   `3WV.c South`); the header only chooses which vertical it descends.
+4. **Inline components stay inline.** Sensors, isolating valves and fittings are placed along whichever
+   run they belong to, evenly spaced by their bounding boxes, never bunched at a corner.
+
+**Parallel subcircuits repeat the U side by side, off shared rails:**
+
+```
+SUPPLY ──┬──────────────────────────────────────┬───────────────────────────────▶
+         │                                      │
+         └──▶[3WV]──▶[pump]──[P]──[T]─┐         └──▶[3WV]──▶[pump]──[P]──[T]─┐
+              ▲                       │              ▲                       │
+              │                    [valve]           │                    [valve]
+              │                       │              │                       │
+       [check valve]          [heat exchanger]  [check valve]        [heat exchanger]
+              │                       │              │                       │
+              │                    [valve]           │                    [valve]
+              │                       │              │                       │
+         ┌────┴───────[P]──[T]────────┘         ┌────┴───────[P]──[T]────────┘
+         │                                      │
+RETURN ◀─┴──────────────────────────────────────┴─────────────────────────────────
+```
+
+- **Members are laid out side by side, in `DistributionGroup.Members` order** — Core fixes that to
+  declaration order, which is what stops the branches swapping places between renders.
+- **Each member is the single-circuit shape above, unchanged.** The header adds the two rails and the
+  tee where each branch leaves and rejoins them; it does not change how a branch is drawn. Modes nest.
+- **The rails extend past the last branch**, so a plant that continues beyond the drawn extent reads as
+  continuing rather than as terminating at its last consumer.
+- **A branch leaves the rail vertically before turning**, which is what keeps the rails legible as
   rails rather than as two more branches.
-- **A member is laid out internally by its own mode.** A subcircuit that is itself a loop draws as a
-  rectangle inside its slot. Modes nest; they do not compete.
+
+Two notes on what these shapes need that v1 does not yet have:
+
+**The `[P]` and `[T]` positions are sensor positions, and `D-23` defers persistent sensors.** In v1
+those slots are simply unoccupied — the runs are drawn, the spacing is the same, and pinned readouts
+and the accessible state table carry the values instead
+([`57-state-visualization`](57-state-visualization.md)). The layout is specified with them because the
+positions are where a reader expects to find them, and a layout that has to be rearranged when sensors
+land is a layout that was specified around a temporary gap.
+
+**The check valve on the bypass leg is a `valve`, not a distinct kind.** `R-09` ships one valve family;
+a non-return valve is that component with its own symbol variant, not a seventh family. If a future
+kind is added for it, the layout above is unchanged — the leg is chosen by port side, not by kind.
+
+### Symbol orientation and the corner rule
+
+Core supplies each symbol in a normalised unit box with named port anchors (`D-20`, `D-24`). Choosing
+how that box is **oriented and where it sits on a run** is the renderer's, and it is what separates a
+diagram a designer recognises from one that is merely correct.
+
+| Kind | Default orientation | Why |
+|---|---|---|
+| `heat_exchanger` | **Vertical** — flow enters one end and leaves the other along a vertical run | This is how exchangers are drawn on nearly every P&I diagram: the two sides read as two stacked passes, and a rated exchanger's second side attaches horizontally without crossing anything |
+| `tank` | **Vertical**, always | Its layers are stratified by elevation (`D-32`); a horizontal tank would make layer 1 mean nothing |
+| `pump` | **Horizontal**, on a horizontal run, triangle pointing along flow | A pump is read by its flow direction, which is only legible on a horizontal run |
+| `valve`, `three_way_valve` | Along the run it sits on; the third stub perpendicular | The controlled leg has to be visually distinct from the through leg |
+| `pipe`, `node` | None — a node is a point, a pipe is the run itself | |
+| `controller` | Beside its actuator, offset perpendicular to that component's run | It is not in the flow path (`D-40`) and must not read as though it were |
+
+**The corner rule: an oriented component never sits at a *bend*.** A bend is where exactly two runs
+meet and the path simply turns. A component whose preferred orientation is vertical is placed on a
+vertical run, one whose orientation is horizontal on a horizontal run, and the layout allocates run
+length for them before it places bends.
+
+**A junction is not a bend, and the distinction is the whole rule.** Where three or more runs meet, a
+junction *element* — a three-way valve, a tee — belongs exactly there, because it **is** the junction.
+Placing it beside the meeting point would mean drawing a bare tee and then a valve next to it, which
+is both longer and wrong. The cooling loop's `3WV` sits at such a T and is correctly placed;
+`23-topology-and-graph`'s flow-group test already names precisely these components, so the renderer
+does not have to guess which they are.
+
+So: **bends carry no oriented component; junctions carry their junction element; runs carry
+everything else.** Nodes are exempt everywhere, having no direction to get wrong.
+
+**This is not cosmetic.** A symbol at a corner has one port on each of two perpendicular runs, so its
+own geometry has to absorb a 90° turn: the exchanger's two passes stop being parallel, the pump's
+triangle points diagonally, and a reader can no longer tell at a glance which way anything flows. It is
+also the failure that makes a generated diagram look generated.
+
+**Consequence for loops.** A four-component loop does not become a square with one component per
+corner. The rectangle is sized so each run is long enough to carry its components clear of the bends —
+which is why `hints.loops` gives *traversal order* rather than positions, and why the perimeter is
+sized by member count rather than fixed.
 
 ### Component spacing
 
@@ -150,11 +244,19 @@ or a perimeter. **Sparse by default**: the reference drawings this convention co
 sensors and fittings well apart, and a diagram whose symbols touch reads as a single smear at fit
 zoom.
 
-The gap comes from `spacing` in the style settings (`D-37`), defaulting to the design system's token
-when the script says nothing. It is in world units and it is **not** a layout hint: Core carries the
-number without interpreting it, and a test asserts the model contract is byte-identical across two
-different spacing values. That test is the enforcement of `D-03` from this side — if spacing ever
-changed a Core output, the boundary would have moved without anyone deciding to move it.
+The gap comes from `spacing` in the serialized style payload (`D-37`), defaulting to the design
+system's token when the script says nothing. It is in world units and it is **not** a layout hint.
+
+**The isolation test has to be stated precisely, because the obvious phrasing is impossible.** Spacing
+must reach the renderer, so it is serialized, so the model contract is *not* byte-identical across two
+spacing values — `style.spacing` differs, and must. What is identical is everything Core computes:
+solved state, every parameter and its `source`/`basis`, the graph, and the whole of `layout`. The test
+asserts that, comparing the two contracts with `style` excluded, and separately asserts that the two
+placements differ. A test written as "the whole contract is byte-identical" either fails immediately or
+passes only because spacing never reached the frontend at all.
+
+That pair is the enforcement of `D-03` from this side: spacing crosses Core as opaque presentation and
+influences nothing Core decides.
 
 `D-31` makes step 1 normative. Cooling/source circuits occupy the left, conversion and storage the
 middle, and radiator/AHU heating networks the right. Multiple sources and multiple consumers stack
@@ -260,6 +362,9 @@ first impression a user forms.
 3. No symbol overlaps another for a model inside `07`'s supported scale after mandatory initial
    collapse has been applied.
 4. Every connection route starts and ends at a port anchor.
+4a. No oriented component is placed at a two-run bend. A junction element (`hints` flow groups of
+   three or more ports) is placed *at* its junction; every other oriented component is placed on a run
+   matching its default orientation unless a stated hint overrides it. Nodes are exempt.
 5. Rendering a model with `solved: false` succeeds, showing topology with no state.
 6. The prepared scene contains every symbol, route, label, state, and provenance input required by
    [`59-static-export`](59-static-export.md), with no second drawing implementation.
@@ -309,24 +414,39 @@ The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-sco
 `[N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV]`. Tree parts: the primary supply `N1 → N2`, and the primary
 return `3WV → 3WV__P1 → P1 → N3`.
 
-**Step 2 — loop.** Six members on a rectangle, 320 × 160 world units, distributed clockwise from the
-loop's entry node:
+**Step 2 — loop.** Six members on a rectangle **480 × 240** world units, distributed clockwise from the
+loop's entry node. The rectangle is wider than the member count alone would need, because the corner
+rule reserves the four bends for routing:
 
-| Component | Position | Port sides |
-|---|---|---|
-| `N2` | (0, 0) | — (a node has no sides) |
-| `PU1` | (160, 0) | in West, out East |
-| `PU1__HE1` | (320, 0) | — |
-| `HE1` | (320, −160) | in North, out South |
-| `HE1__3WV` | (160, −160) | — |
-| `3WV` | (0, −160) | a East, b North, c South |
+| Component | Position | On | Port sides |
+|---|---|---|---|
+| `N2` | (0, 0) | top run, above `3WV` | — (a node has no sides) |
+| `PU1` | (240, 0) | top run | in West, out East — **horizontal** |
+| `PU1__HE1` | (400, 0) | top run | — |
+| `HE1` | (480, −120) | **right run** | in North, out South — **vertical** |
+| `HE1__3WV` | (400, −240) | bottom run | — |
+| `3WV` | (0, −240) | bottom run, at the T | a East, b North, c West |
 
-`3WV.b North` sends the recirculation branch straight up the rectangle's left edge back to `N2`, and
-`3WV.c South` puts the primary return below it — the two outlets separate without the renderer having
-to work out which is which.
+**`HE1` sits at the midpoint of the right run, not on a corner.** An exchanger is drawn vertically
+(above), and the two right-hand bends at (480, 0) and (480, −240) carry the turns. Placing it on the
+corner — as an earlier version of this example did — would force its two passes through a 90° turn and
+make the diagram unreadable at exactly the component a designer looks at first.
 
-**Step 3–4 — tree parts.** `N1` attaches left of `N2` at (−160, 0). The return chain hangs below
-`3WV`: `3WV__P1` at (0, −280), `P1` at (0, −380), `N3` at (0, −480).
+**`3WV` sits at a T, and that is placement rather than a corner-rule breach.** Three runs meet at
+(0, −240): the return arriving from the east, the recirculation leaving north up the left vertical to
+`N2`, and the primary return continuing west to `N3`. A three-way valve *is* the junction — putting it
+anywhere else would mean drawing a bare tee and then a valve beside it. `3WV.b North` and `3WV.c West`
+separate the two outlets without the renderer having to work out which is which.
+
+**The primary return continues along the bottom run, it does not hang below.** `3WV__P1`, `P1` and
+`N3` extend westward from the valve on the same horizontal as the rest of the return. An earlier
+version of this example dropped them downward as a stub, which put a third vertical on the diagram and
+destroyed the supply-above-return reading the shape exists to give.
+
+**Step 3–4 — tree parts.** `N1` attaches west of `N2` at (−160, 0), on the supply run. The primary
+return continues west from `3WV` on the return run: `3WV__P1` at (−160, −240), `P1` at (−320, −240),
+`N3` at (−480, −240). Supply enters top-left and return leaves bottom-left, which is the reading a
+designer expects.
 
 **Step 7 — routes.** Nine connections, all single-segment or one-bend, because the loop is a rectangle
 with components on and between its corners and both tree parts leave it perpendicular.
@@ -334,14 +454,20 @@ with components on and between its corners and both tree parts leave it perpendi
 **Rendered:**
 
 ```
-   N1 ──────► N2 ────► PU1 ────► PU1__HE1
-               ▲                     │
-               │                     ▼
-              3WV ◄── HE1__3WV ◄─── HE1
-               │
-               ▼
-            3WV__P1 ──► P1 ──► N3
+   N1 ──────▶ N2 ────────▶[PU1]────────▶ PU1__HE1 ─────┐
+               ▲                                       │
+               │                                    [HE1]     consumer: vertical,
+               │                                       │      mid-run, never on a bend
+               │                                       ▼
+   N3 ◀── P1 ◀── 3WV__P1 ◀──[3WV]◀───────── HE1__3WV ──┘
+                              ▲
+                       (b: north, up to N2)
 ```
+
+Supply along the top running right, consumer descending the right, return along the bottom running
+left, and the recirculation closing the loop on the left vertical — the same shape as the header
+branch above, with the three-way valve on the return end rather than the supply end because that is
+where the cooling loop puts it.
 
 Every connection carries an arrow: this circuit has no dead legs. `N2`, `PU1__HE1`, `HE1__3WV` and
 `3WV__P1` render as small light circles because they are inferred; `HE1`, `3WV`, `PU1`, `P1` and the
@@ -370,6 +496,13 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 ## Acceptance criteria
 
 - [ ] The worked example produces the placement above, deterministically across 100 runs.
+- [ ] `HE1` renders vertically at the midpoint of the loop's right run; no oriented component in any
+      sample or reference circuit lands on a two-run bend.
+- [ ] `3WV` renders at the T where the return, the recirculation and the primary outlet meet, not
+      beside it.
+- [ ] The cooling loop's primary return runs west along the return line to `N3`; no sample places a
+      third vertical by dropping a return chain below the loop.
+- [ ] A tank renders vertically in every circuit that contains one.
 - [ ] The recirculation branch `3WV.b → N2` renders as a closed loop edge, not as a stub.
 - [ ] The cooling loop follows Core's `Clockwise` orientation; two loops sharing an exchanger render
       side-by-side with the exchanger between them.
@@ -385,14 +518,18 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 - [ ] An unknown component kind renders a labelled rectangle rather than breaking the canvas.
 - [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning.
 - [ ] Inferred components are visually distinguishable from declared ones without hovering.
-- [ ] The distribution-header reference renders as two rails with both subcircuits stacked between
-      them, each branch leaving its rail vertically before turning; a circuit with no subcircuits
-      still renders as a loop rectangle.
+- [ ] The distribution-header reference renders as two rails with both subcircuits side by side, each
+      drawn as a U: supply run left to right on top, consumer on the descending side between its two
+      isolating valves, return run right to left below. A circuit with no subcircuits renders the same
+      U without rails.
+- [ ] A three-way valve's recirculation port descends the near side and rejoins the branch's own
+      return run, not the header's.
+- [ ] Both branches' rails extend past the last consumer rather than terminating at it.
 - [ ] Reordering the two subcircuit blocks in the source reorders the stack and changes nothing else.
 - [ ] Symbols carry their tag as a label, and a test asserts no DOM key, selection key, or export id
       contains a tag.
-- [ ] Two components named `PU1` in different circuits render as two symbols with distinct tags and
-      distinct DOM keys.
+- [ ] The header's two pumps render with distinct DOM keys from their identifiers (`PU_AHU`,
+      `PU_RAD`) and distinct drawn labels from their tags (`101PU01`, `102PU01`).
 - [ ] Adjacent components on a rail never touch at the default spacing; setting `spacing` to twice the
       default widens every gap and leaves the model contract byte-identical.
 - [ ] A modulating valve shows a 0–1 indicator whose accessible name states the numeric value.

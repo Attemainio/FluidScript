@@ -2,12 +2,12 @@
 id: 23-topology-and-graph
 title: Topology and the circuit graph
 tier: 20-core-domain
-status: draft
+status: reviewed
 owns: [circuit graph construction, branch decomposition, boundary conditions, well-posedness validation, lowering from the semantic model]
 depends_on: [15-semantic-model, 21-fluid-and-state, 22-component-model]
 traces_to: [R-06, R-11, R-16, R-43, R-45, R-46, R-47]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Topology and the circuit graph
@@ -240,6 +240,11 @@ So the existing rules carry over unchanged and need no per-circuit variants: one
 *hydraulic connected component* (not per circuit), mass balance per hydraulic component, one energy
 system over every node in the model, `FS2213` only for a subgraph coupled by nothing at all.
 
+Because identifiers are unique across the model (`D-41`), an attachment endpoint is an ordinary
+symbol-table lookup with no qualification: `supply N3` finds the one `N3` there is. Had names been
+scoped per circuit, each of the four attachment lines in the distribution header would have needed a
+qualified form the language does not have — which is the argument that decided `D-41`.
+
 **A subcircuit's attachment lowers to ordinary connections.** `supply N3` in circuit 101 becomes a
 connection from the parent's `N3` to 101's first unconnected inlet, and `return N5` a connection from
 101's last unconnected outlet to `N5`. After lowering there is nothing structurally special about a
@@ -274,6 +279,13 @@ Resolution order, first match winning:
 | Both sides in one circuit | That circuit |
 | One side against a boundary, the other in a circuit | The circuit side |
 | Otherwise | The lower circuit number, with `FS2216` (info) naming the ambiguity |
+
+**`FS2217` and `FS1518` partition one mistake between them and never both fire.** `FS1518` is the
+binder's: the name resolves to nothing. `FS2217` is this document's: the name resolves, to a component
+of the attaching circuit itself. Splitting by *whether resolution succeeded* rather than by document
+convenience is what keeps a single typo from producing two errors — the outcome
+[`16-diagnostics`](../10-language/16-diagnostics.md)'s rule 4 exists to prevent, and one that two
+documents each owning a near-identical check would have produced.
 
 The intuitive form of this rule is "the leftmost circuit owns it", and under `D-31` the losing side
 *is* the left one — but leftmost is a layout outcome, and `D-03` forbids Core from computing anything
@@ -479,7 +491,7 @@ individually reasonable and the interaction is invisible.
 | `FS2214` | Loop with no flow driver | Warning | `Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?` |
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
-| `FS2217` | A subcircuit's attachment endpoint is in the same circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
+| `FS2217` | A subcircuit's attachment endpoint resolves to its own circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
 
 **`FS2214` is a warning, not info.** A loop with no driver is almost always a mis-placed pump — the
 mistake the cooling loop's own history records ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) —

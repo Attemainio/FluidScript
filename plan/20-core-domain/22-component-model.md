@@ -2,12 +2,12 @@
 id: 22-component-model
 title: Component model
 tier: 20-core-domain
-status: draft
+status: reviewed
 owns: [component interface hierarchy, ports, the six v1 flow-component families, parameters, governing equations, parameter registry, per-kind tag codes]
 depends_on: [13-type-and-unit-system, 15-semantic-model, 21-fluid-and-state]
 traces_to: [R-02, R-09, R-10, R-16, R-35, R-37, R-43, R-45, R-47]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Component model
@@ -644,7 +644,7 @@ Each kind also registers a `TagCode` — the letters in its equipment tag (`D-34
 | `valve` | `V` | `400V01` |
 | `three_way_valve` | `TV` | `400TV01` |
 | `tank` | `S` | `400S01` |
-| `controller` | `PID` | `400PID01` |
+| `controller` (aliases `pi`, `pid`, `p`) | `PID` | `400PID01` |
 | `node`, `pipe` | *none* | untagged |
 
 `node` and `pipe` are deliberately untagged. Both are mostly inferred, both outnumber every other kind

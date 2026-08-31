@@ -2,12 +2,12 @@
 id: 05-milestones-and-acceptance
 title: Milestones and acceptance
 tier: 00-foundation
-status: draft
+status: reviewed
 owns: [milestones M1-M6, per-milestone exit criteria, demo scripts, dependency order]
 depends_on: [01-vision-and-scope, 03-repository-layout, 07-quality-attributes]
 traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-07, R-08, R-09, R-10, R-11, R-12, R-13, R-14, R-15, R-16, R-17, R-18, R-19, R-20, R-21, R-22, R-23, R-24, R-25, R-26, R-27, R-28, R-29, R-30, R-31, R-32, R-33, R-34, R-35, R-36, R-37, R-38, R-39, R-40, R-41, R-42, R-43, R-44, R-45, R-46, R-47, R-48, R-49, R-50, R-51]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Milestones and acceptance
@@ -101,9 +101,9 @@ brief's original example verbatim.
       `fluid static` overrides it locally and a differing pair produces a warning, not a silent
       resolution (`D-37`).
 - [ ] `spacing 20` binds into style settings and is absent from every Core layout structure (`D-37`).
-- [ ] `PID1 pid kp=3` binds through the registry with no new grammar, and `control actuate=TV1
-      measure=N2.t by=PID1 setpoint=20` binds its four named arguments. Transposing two arguments
-      changes the binding, not merely the order (`D-40`).
+- [ ] `PID1 pid kp=3` binds through the registry with no new grammar, and `control
+      actuate=TV1.position measure=N2.t by=PID1 setpoint=20` binds its four named arguments. Transposing two arguments
+      changes the binding, not merely the order (`D-40`). A bare `actuate=TV1` is rejected (`D-43`).
 - [ ] Printing a script containing every new statement reproduces it byte for byte.
 
 The byte-for-byte round trip is the criterion that makes M5 possible. It is much cheaper to get right
@@ -114,9 +114,10 @@ now than to retrofit once the printer has been written loosely.
 Liquid properties for the hydronic v1 domain (`D-28`), flow components in duty mode, topology construction, catalogue-backed sizing,
 explicit minor losses, and the Newton hydraulic solve.
 
-**Demo scripts:** `samples/m2-cooling-loop.fluid` (the mixing circuit — topology) and
-`samples/m2-simple-loop.fluid` (one series loop — sizing and solver arithmetic), both
-defined in [`01-vision-and-scope`](01-vision-and-scope.md).
+**Demo scripts:** `samples/m2-cooling-loop.fluid` (the mixing circuit — topology),
+`samples/m2-simple-loop.fluid` (one series loop — sizing and solver arithmetic), and
+`samples/m2-distribution-header.fluid` (three circuits on one supply/return pair — numbering,
+attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-scope.md).
 
 **Exit criteria**
 
@@ -139,8 +140,9 @@ defined in [`01-vision-and-scope`](01-vision-and-scope.md).
       so. A pump with known flow but no explicit resistance sizes to zero head with `FS2312`.
 - [ ] Test coverage of `src/FluidScript.Core/Components` and `/Solvers` gives every governing equation
       independent hand-checked and regression tests (`R-17`).
-- [ ] The **distribution header** reference circuit — parent 100 with subcircuits 101 and 102 on a
-      shared supply/return pair (`D-33`) — solves, and each subcircuit's flow sums to the parent's.
+- [ ] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s through the AHU
+      branch, 0.3589 through the radiator branch, and 0.6460 through the source — the branch sum is
+      the criterion no single-circuit reference can test (`D-33`).
 - [ ] Every device carries a tag: `100PU01`, `101TV01`, `101PU01`, `102TV01`, `102PU01`. Ordinals
       restart per circuit and follow declaration order; inserting a pump above another renumbers the
       tags and changes **no** component identifier, and a test asserts selection and diagnostic
@@ -215,8 +217,8 @@ accessibility, and SVG/PNG export.
       vertically and turning in the heat direction. A circuit with no subcircuits still renders as a
       loop rectangle (`D-38`, `R-48`).
 - [ ] Components on a header are spaced by their bounding boxes, never adjacent; `spacing 20` changes
-      the gap and changes no Core output — a test asserts the model contract is byte-identical across
-      two spacing values (`D-37`).
+      the gap and changes nothing Core computes — the contract is byte-identical across two spacing
+      values with `style` excluded, while `style.spacing` and the placements both differ (`D-37`).
 - [ ] Tags render as component labels; the identifier remains what hover, diagnostics and write-back
       address (`D-34`).
 - [ ] Two documents open as tabs, each with its own source, dirty state, file handle and recovery

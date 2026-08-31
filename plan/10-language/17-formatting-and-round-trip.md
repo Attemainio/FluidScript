@@ -2,12 +2,12 @@
 id: 17-formatting-and-round-trip
 title: Formatting, printing, and round-trip
 tier: 10-language
-status: draft
+status: reviewed
 owns: [printer, trivia preservation, script mutation API, formatter, write-back edit primitives]
 depends_on: [12-grammar, 15-semantic-model]
 traces_to: [R-25, R-05, R-45, R-46, R-47]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Formatting, printing, and round-trip
@@ -109,7 +109,18 @@ public interface IScriptEditor
     EditResult Rename(string oldName, string newName);
 
     /// <summary>Rewrites derived equipment tags into the script as identifiers (`D-34`).</summary>
+    /// <remarks>
+    /// The result must still satisfy `D-41`: identifiers are unique across the whole file. Tags
+    /// already are, because a tag embeds its circuit number — `101PU01` and `102PU01` cannot collide —
+    /// so applying tags to a valid script always yields a valid one. That is a property worth naming
+    /// rather than relying on: it is why this operation can rewrite every circuit at once.
+    /// </remarks>
     /// <param name="scope">One circuit's name, or null for every circuit in the file.</param>
+    /// <remarks>
+    /// Component parameters on this interface are unqualified names throughout, and stay that way
+    /// under `D-41`: a name identifies one component in the model, so no method needs a circuit
+    /// argument.
+    /// </remarks>
     /// <returns>
     /// One <see cref="Rename"/>-equivalent edit set per tagged component, with the same old-id/new-id
     /// mapping, so the frontend migrates selection and focus exactly as it does for a typed rename.
@@ -121,13 +132,22 @@ public interface IScriptEditor
     /// insertion, which is the churn `D-34` exists to prevent.
     /// <para>
     /// The operation is not idempotent in the way it first appears: applying it, inserting a pump,
-    /// and applying it again renames the components after the insertion point. That is correct and
-    /// is why it is a command rather than a formatting pass — the user chooses when their identifiers
-    /// move.
+    /// and applying it again renames the components after the insertion point. That is correct, it is
+    /// why this is a command rather than a formatting pass, and it is exactly the case the atomic
+    /// rename set below exists to permit — the second application's targets are names the set itself
+    /// currently holds.
     /// </para>
     /// <para>
-    /// Fails as a whole, editing nothing, if any target tag already names a different component in
-    /// the same circuit; a partial application would leave the script referencing both.
+    /// <b>The rename set is atomic and self-aware.</b> A target identifier occupied by another member
+    /// of the same rename set is legal — that is the ordinary case, since inserting a pump shifts
+    /// every later pump's tag onto its neighbour's current name. The operation fails, editing nothing,
+    /// only when a target is occupied by a component <i>outside</i> the set.
+    /// <para>
+    /// Chains and cycles within the set are resolved by computing every replacement against the
+    /// original text and applying them simultaneously, never sequentially. Applied one at a time,
+    /// renaming <c>PU1</c> to <c>100PU02</c> while <c>100PU02</c> still exists would collide or
+    /// silently merge; computed against the original and applied at once, the set permutes cleanly.
+    /// Failure to satisfy the outside-the-set condition is <c>FS1604</c>.
     /// </para>
     /// </remarks>
     EditResult ApplyTags(string? scope);
@@ -213,21 +233,22 @@ deliberately rather than discovered.
 6. Applying an `EditResult`'s edits in any order gives the same result — spans within one result never
    overlap.
 7. The formatter is idempotent: `Format(Format(x)) == Format(x)`.
-8. A circuit header whose number was resolved rather than written prints without a number (`D-33`).
+8. Editing a parameter through its canonical name or alias preserves the spelling already present;
+   insertion uses the canonical name and never creates canonical-plus-alias duplicates.
+9. A circuit header whose number was resolved rather than written prints without a number (`D-33`).
    `CircuitSymbol.NumberIsExplicit` is what invariant 1 depends on here: printing a resolved number
    would make `Print(Parse(x)) != x` for every single-circuit script in existence.
-9. `ApplyTags` either renames every eligible component in its scope or edits nothing, and its
-   old-id/new-id mapping covers exactly the components it renamed.
+10. `ApplyTags` either renames every eligible component in its scope or edits nothing; its
+    old-id/new-id mapping covers exactly the components it renamed; and its replacements are computed
+    against the original text and applied simultaneously, so a rename set that permutes existing names
+    succeeds.
 
-**Invariant 8 is the round trip's newest sharp edge.** The binder assigns every circuit a number, so
+**Invariant 9 is the round trip's newest sharp edge.** The binder assigns every circuit a number, so
 the obvious printer reads `CircuitSymbol.Number` and writes it — which quietly rewrites
 `circuit coolingLoop` as `circuit coolingLoop 100` the first time anything touches the file. The
 printer must therefore print from the *syntax tree*, where the number is absent, not from the bound
 model, where `D-33` guarantees it never is. This is the same rule that already keeps aliases and written parameter
 spellings intact, applied to a value the binder invents rather than one it normalises.
-8. Editing a parameter through its canonical name or alias preserves the spelling already present;
-   insertion uses the canonical name and never creates canonical-plus-alias duplicates.
-
 Invariant 3 is the one users actually feel, and it is the reason to write it as a test that diffs the
 whole file rather than asserting on the changed line.
 
@@ -236,6 +257,7 @@ whole file rather than asserting on the changed line.
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1601` | `SetParameter` replacing an expression with a literal | Warning | `Replacing '{expr}' with {value}.` |
+| `FS1604` | `ApplyTags` target identifier is held by a component outside the rename set | Error | `Cannot apply tags: '{tag}' is already the name of '{component}'. Rename it first.` |
 | `FS1602` | Editing an inferred component | Error | `'{name}' was added automatically and has no line to edit. Write it into the script first.` |
 | `FS1603` | `Rename` to an existing name | Error | `'{new}' is already used at line {n}.` |
 | `FS1604` | `Rename` to a name that lexes as a quantity | Error | `'{new}' reads as a quantity. Try '{suggestion}'.` |

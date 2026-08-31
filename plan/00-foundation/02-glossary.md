@@ -2,12 +2,12 @@
 id: 02-glossary
 title: Glossary
 tier: 00-foundation
-status: draft
+status: reviewed
 owns: [canonical term spellings, domain vocabulary, identifier casing conventions]
 depends_on: [01-vision-and-scope]
 traces_to: [R-01, R-09, R-28, R-29, R-37, R-38, R-39, R-41, R-44, R-45, R-46, R-47, R-48, R-50]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Glossary
@@ -125,7 +125,7 @@ names.
 | **Steady state** | `SteadyStateSolution` | The equilibrium: all time derivatives zero. |
 | **Transient** | `TransientSolution` | Time-domain evolution from an initial state under changing boundary conditions. |
 | **Frame** | `TransientFrame` | One solved instant of a transient run: simulation time plus every component's state. |
-| **Controller** | `Controller` | A non-flow model element that measures one resolved property and actuates one writable parameter during a transient. |
+| **Controller** | `Controller` | A non-flow model element that measures one resolved property and actuates one writable parameter during a transient. Script keyword `controller`; `pi`, `pid` and `p` are aliases, never names (`D-40`). Its declaration carries the algorithm and gains; the `control` binding carries what it measures, actuates and targets. |
 | **Schedule** | `Schedule` | The ordered set of time-based disturbances declared after the `schedule` section marker. |
 | **Residual** | `Residual` | How far an equation is from being satisfied at the current guess. The solver drives these to zero. |
 | **Unknown** | `Unknown` | One scalar the solver is free to change. The count of unknowns must equal the count of equations. |
@@ -161,7 +161,7 @@ names.
 | **Header layout** | — | The layout mode drawing a distribution circuit as a supply line along the top and a return line along the bottom with its subcircuits stacked between them. The alternative mode is the **loop rectangle** (`D-38`). |
 | **Loop rectangle** | — | The layout mode distributing one closed loop's components around the perimeter of a rectangle. The original and still the default for a circuit with no subcircuits (`D-38`). |
 | **Spacing** | `spacing` | The minimum gap between adjacent component bounding boxes, in world units. A presentation value carried through Core untouched — never a layout hint (`D-37`). |
-| **Active document** | — | The one open document that renders and streams frames. Others retain their state and any running transient (`D-39`). |
+| **Active document** | — | The one open document that performs presentation work — layout, colour, DOM. Others retain their state, and a running transient in one keeps receiving and reconstructing frames (`D-39`, `D-42`). |
 
 ## Banned and confusable terms
 

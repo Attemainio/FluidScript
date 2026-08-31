@@ -7,7 +7,7 @@ owns: [lexical grammar, syntactic grammar, reserved words, sections, AST node sh
 depends_on: [02-glossary, 06-decision-log, 11-language-overview, 13-type-and-unit-system]
 traces_to: [R-01, R-03, R-04, R-05, R-39, R-46, R-48, R-49]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 6
 ---
 
 # Grammar
@@ -156,9 +156,15 @@ append-only-with-review, and a test asserts that no sample script's identifiers 
 `catalog` · `connections` · `schedule` · `supply` · `return` · `control`
 
 Five words were added for `D-33`, `D-37` and `D-40`: `project`, `spacing`, `supply`, `return` and `control`.
-Each introduces a statement, so each must be recognisable from the first token — the same standard the original
-eleven meet. None collides with an identifier in any sample or reference circuit, which was checked before they
-were reserved rather than assumed.
+Each introduces a statement, so each must be recognisable from the first token — the same standard the
+original eleven meet.
+
+**Adding a reserved word is a breaking language change**, because a word that was a legal identifier
+stops being one ([`18-script-compatibility`](18-script-compatibility.md)). These five ship inside
+major 1 under `18`'s pre-release exemption — no durable v1 file exists yet — and not because a sweep
+of this repository's samples found no collision. That sweep was run and found none, but it is evidence
+about files we wrote, not about files users write. After v1 ships, a sixth reserved word needs a new
+major and a renaming migration.
 
 Reserved words may not be used as identifiers. The list is deliberately tiny (P6): component *kinds*
 like `heat_exchanger` are **not** reserved — they are looked up in the component registry at bind
@@ -378,18 +384,20 @@ is parsed ([`18-script-compatibility`](18-script-compatibility.md)).
 
 ```fluidscript
 PID1 pid kp=3
-control actuate=TV1 measure=N2.t by=PID1 setpoint=20
+control actuate=TV1.position measure=N2.t by=PID1 setpoint=20
 ```
 
 The controller *definition* is an ordinary component declaration and needs no production of its own —
-`pid`, `pi` and `p` resolve through the registry like any other kind. The **binding** is a new
+`pid`, `pi` and `p` are registered aliases of the kind `controller` and resolve through the registry
+like any other spelling (`D-15`). The **binding** is a new
 statement: the keyword `control` followed by named parameters, reusing the `parameter` production
 already defined for declarations (`D-40`).
 
 **Named, never positional.** `control TV1 N2.t PID1` would be shorter and is rejected: there is no
 memorable order for actuator, measurement and controller, and transposing two of them produces a
 model that binds, solves, and drives the wrong way. The four recognised names — `actuate`, `measure`,
-`by`, `setpoint` — and which are required are
+`by`, `setpoint` — are named, and `actuate` takes a qualified `component.parameter` reference
+(`D-43`). Which are required is
 [`15-semantic-model`](15-semantic-model.md)'s to define; this document owns only the shape.
 
 ### Style directive
@@ -678,7 +686,7 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
 | `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'supply {node}' or 'return {node}'.` |
 | `FS1110` | `supply` or `return` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
-| `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1 measure=N2.t by=PID1'.` |
+| `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.` |
 | `FS1112` | `project` or `spacing` after the first `circuit` header, or a second of either | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
 | `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |

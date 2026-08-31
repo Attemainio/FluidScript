@@ -2,12 +2,12 @@
 id: 18-script-compatibility
 title: Script compatibility and migration
 tier: 10-language
-status: draft
+status: reviewed
 owns: [language version directive, catalogue pin syntax, compatibility policy, migration contract]
 depends_on: [01-vision-and-scope, 06-decision-log, 12-grammar, 16-diagnostics, 17-formatting-and-round-trip]
-traces_to: [R-01, R-05, R-30, R-38, R-39, R-45]
+traces_to: [R-01, R-05, R-30, R-38, R-39, R-45, R-46, R-49]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Script compatibility and migration
@@ -98,8 +98,24 @@ an `expectedHash` different from the preview and never searches for a compatible
   run snapshot.
 
 Backward-compatible additions may ship within major 1. Removing syntax, changing bare-unit meaning,
-renaming a kind/parameter without an alias, or changing inference semantics requires a new language
-major and migration. Diagnostic wording and editor completion do not.
+renaming a kind/parameter without an alias, **adding a reserved word**, or changing inference
+semantics requires a new language major and migration. Diagnostic wording and editor completion do not.
+
+**Adding a reserved word is a removal, not an addition**, which is why it belongs in that list rather
+than in the sentence above it. A word that was a legal identifier stops being one: a script that named
+a component `control` parsed before and fails with `FS1004` after. The addition looks purely additive
+from the grammar's side, and that is exactly what makes it easy to ship by mistake.
+
+The pre-release exemption is the same one `D-32` relies on below: **until a v1 file can be saved, the
+reserved list may grow freely.** `D-33`, `D-37` and `D-40` added `project`, `spacing`, `supply`,
+`return` and `control` under that exemption. Afterwards, growing the list requires a new major and a
+migration that renames colliding identifiers — which is mechanical, since the migration knows both the
+old and new reserved sets and every identifier's span.
+
+A sweep of this repository's own samples is **not** evidence that an addition is safe. It shows the
+change is safe for files we wrote; the files that matter are the ones users wrote, which no sweep can
+see. Before v1 ships, that gap does not exist because those files do not exist yet — and that, not the
+sweep, is the argument.
 
 `D-32` establishes the initial v1 semantics before release: a bare tank `volume`/`v` value is dm³,
 `tank` has the `container` kind alias, and the omitted defaults are 300 dm³ and five layers. Once a

@@ -7,7 +7,7 @@ owns: [new/open/save/save-as/download, dirty state, local recovery, file conflic
 depends_on: [01-vision-and-scope, 06-decision-log, 17-formatting-and-round-trip, 18-script-compatibility, 51-frontend-architecture, 52-editor]
 traces_to: [R-21, R-25, R-30, R-38, R-39, R-42, R-50]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 6
 ---
 
 # File lifecycle and recovery
@@ -64,7 +64,7 @@ recovery, or run.
 | Recovery | Continues on its existing idle timer — an unsaved background tab is still protected |
 | Compile / debounce | Cancelled. The draft pipeline serves the visible editor and nothing else |
 | Layout and rendering | Detached. No layout, no render preparation, no DOM |
-| **An active transient run** | **Continues** (`D-39`) |
+| **An active transient run** | **Continues**, and keeps receiving and reconstructing frames — only presentation stops (`D-39`, `D-42`) |
 
 **The run continuing is the one people expect to go the other way**, and it is the point of `D-39`.
 `D-22` and `R-41` already establish that a run owns an immutable snapshot precisely so activity in the
@@ -73,9 +73,18 @@ it silently discard a 600-frame run would defeat the isolation those exist to pr
 is already off the UI thread, so only the *rendering* has to stop. What "detached" means precisely for
 the frame pipeline is [`43-realtime-contract`](../40-api/43-realtime-contract.md)'s.
 
-A run ends only on the user's Stop, on closing its document, or on leaving the application. Closing a
-document with a run presents the run's Stop/Keep choice separately from the unsaved-text choice, as it
-already does — there are two independent things to lose and one prompt cannot ask about both.
+A run ends only on the user's Stop, on closing its document, or on leaving the application.
+
+**Closing a document with an active run offers Stop or Cancel, not Stop or Keep**, and the difference
+matters. "Keep" would mean a run outliving the document that owns it — a detached job — and v1 has
+none: the run's snapshot, its frames and its checkpoints all live in that document's stores, and
+`43`'s socket is bound to it. Keeping it would require somewhere for it to live, which is the
+post-v1 server-job boundary this document already draws.
+
+So the choice is: **Stop** ends the run and closes, or **Cancel** abandons the close and leaves both
+the run and the document exactly as they were. A user who wants the run to finish cancels, waits, and
+closes afterwards. The unsaved-text choice is presented separately, because losing edits and losing a
+run are two independent things and one prompt cannot ask about both.
 
 `07-quality-attributes` caps the workspace at 8 documents and 2 concurrent runs. A third run is
 refused with a diagnostic naming the two already running, never queued silently: a queued run that
@@ -114,7 +123,7 @@ replaces the other. A recovery with only the same display name but a different s
 match and remains listed separately.
 
 Transient run snapshots reference a source hash only. Saving, opening, or editing does not mutate an
-active run. Closing the document presents separate choices for unsaved text and active-run Stop/Keep;
+active run. Closing the document presents separate choices for unsaved text and active-run Stop/Cancel;
 leaving the application stops the run because v1 has no detached server jobs.
 
 ### Accessible workflow
@@ -135,7 +144,7 @@ never colour alone. Dialog focus is trapped and restored; every action works wit
    `recoveryStatus` or `runId` — asserted by comparing the whole workspace across a switch and back,
    field by field (`D-39`).
 8. A run ends only through Stop, closing its document, or application exit. No navigation, selection
-   or editing gesture ends one.
+   or editing gesture ends one, and no run outlives its document.
 9. Recovery is per document and keyed by `documentId`; two dirty tabs produce two recovery entries and
    restoring one never touches the other.
 
@@ -151,7 +160,7 @@ never colour alone. Dialog focus is trapped and restored; every action works wit
 | `FILE006` | User cancels picker or confirmation | No state change and no error toast |
 | `FILE007` | Opening a ninth document | Refuse with a message naming the limit; no tab is closed to make room |
 | `FILE008` | Starting a third concurrent run | Refuse, naming the two running documents; never queued |
-| `FILE009` | Closing a document with an active run | Two separate choices — unsaved text, and Stop/Keep for the run |
+| `FILE009` | Closing a document with an active run | Two separate choices — unsaved text, and Stop/Cancel for the run. No option keeps a run whose document is gone |
 
 ## Worked example
 

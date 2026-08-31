@@ -7,7 +7,7 @@ owns: [language design principles, inference rules, compilation pipeline stages]
 depends_on: [01-vision-and-scope, 02-glossary, 06-decision-log]
 traces_to: [R-01, R-02, R-03, R-05, R-06, R-46, R-49]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 6
 ---
 
 # Language overview and design principles
@@ -91,7 +91,7 @@ demonstration of what those principles actually decide:
 | `supply N3` / `return N5` | Keyword and endpoint | **P3** — attachment is structure the language refuses to guess, because a wrong guess still solves |
 | `project dynamic plant_01` | File-wide default | **P1** — stating `dynamic` once per circuit in a six-circuit file is five repetitions of one decision |
 | `spacing 20` | Bare number, world units | **P5** — presentation lives in the text with everything else, rather than in a side file |
-| `control actuate=… measure=… by=…` | Named arguments | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
+| `control actuate=… measure=… by=…` | Named arguments, each a qualified reference (`D-43`) | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
 
 **`supply`/`return` is where P3 did the most work.** The obvious spelling was `in N3` / `out N5`, and
 it is lexically impossible: it parses as a component named `in` of kind `N3`, binds, and describes a
@@ -101,7 +101,7 @@ wrong inference yields a model that is well-posed, solvable, and wrong. Structur
 determine unambiguously is structure the user writes.
 
 **`control`'s named arguments are the one place P1 lost.** `control TV1 N2.t PID1` is shorter than
-`control actuate=TV1 measure=N2.t by=PID1`, and P1 says brevity wins ties. This was not a tie: the
+`control actuate=TV1.position measure=N2.t by=PID1`, and P1 says brevity wins ties. This was not a tie: the
 positional form has no memorable order, and transposing two arguments produces a controller that
 drives the wrong way while binding cleanly. P1 asks for an argument stronger than consistency, and
 "the short form silently reverses the control loop" is one.

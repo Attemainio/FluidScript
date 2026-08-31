@@ -2,12 +2,12 @@
 id: 01-vision-and-scope
 title: Vision and scope
 tier: 00-foundation
-status: draft
+status: reviewed
 owns: [requirement register, non-goals, target users, phase boundaries]
 depends_on: []
 traces_to: []
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Vision and scope
@@ -111,7 +111,7 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-42` | All v1 workflows meet WCAG 2.2 AA: keyboard operation, visible focus, non-colour status cues, accessible data readouts, reduced motion, and equivalent alternatives for canvas-only interactions. |
 | `R-44` | P&I diagrams render nominal heat progression from left to right: source and cooling-side circuits on the left, conversion/storage centrally, and heating consumers on the right, including parallel source and consumer groups (`D-31`). |
 | `R-48` | A distribution circuit renders as a supply header along the top and a return header along the bottom, with its subcircuits stacked between them. Components are spaced sparsely by default, and the spacing is adjustable from the script without Core interpreting it (`D-37`, `D-38`). |
-| `R-50` | Several documents are open at once as tabs; only the active document renders and streams frames, and a run whose document is switched away from continues rather than stopping (`D-39`). |
+| `R-50` | Several documents are open at once as tabs; only the active document performs presentation work. A run whose document is switched away from continues, and keeps receiving and reconstructing its frames (`D-39`, `D-42`). |
 | `R-51` | The solver's state — converging, converged, or failed — is continuously visible, conveyed by text and shape as well as colour, and names which computation it refers to. |
 
 ### Documentation and delivery
@@ -228,8 +228,9 @@ names components, sizes them, or reports temperatures, it is a circuit and `D-11
 | **Substation** — a two-sided plate exchanger between two circuits | `samples/m2-substation.fluid` | thermal rating, two-sided sizing, coupled circuits |
 | **Demand-step loop** — the cooling loop in time, with a controller | `samples/m4-demand-step.fluid` | transient, controllers, streaming, playback |
 | **Storage header** — two source boundaries, a stratified tank, and two consumer boundaries | `samples/m4-storage-header.fluid` | tank physics, indexed ports, thermal ordering, multiple sources/consumers |
+| **Distribution header** — one heating circuit with two subcircuits on a shared supply/return pair | `samples/m2-distribution-header.fluid` | several circuits, attachment, header layout, per-circuit tag ordinals |
 
-Five are needed because they answer different questions. The cooling loop is the interesting
+Six are needed because they answer different questions. The cooling loop is the interesting
 *topology* — a junction, a bypass, a three-port component, mixed temperatures — and it is what the
 graph, layout and rendering documents must be exercised against. The simple loop has one flow
 everywhere, which is what makes a sizing or solver worked example checkable by hand. The demand-step
@@ -238,7 +239,9 @@ measurement**, which is what every transient and control example actually depend
 substation adds the two things a single circuit cannot show: **a component with a fluid on both sides**,
 and **two hydraulic circuits solved together** (`D-17`, `D-18`). The storage header adds an intentional
 thermal capacitance, several connections on one component, and parallel source/consumer groups
-(`D-32`).
+(`D-32`). The distribution header is the only one with **more than one circuit**, which is what
+`D-33`'s numbering and attachment, `D-34`'s per-circuit tag ordinals and `D-38`'s header layout are
+all measured against; every other fixture has exactly one circuit and can exercise none of them.
 
 The intended whole-plant reading is:
 
@@ -462,7 +465,9 @@ HE1 heat_exchanger power=30 out=50
 PU1 pump
 P1  pipe length=25
 PB  pipe length=8 dn=20 nodes=4   # recirculation branch — the path the controller sees
-TC1 controller measure=N2.t actuate=3WV.position setpoint=20
+TC1 pi                            # definition: algorithm and gains (D-40)
+
+control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
 
 connections
 N1 - N2
@@ -589,6 +594,118 @@ the transient; only arrows and temperatures change.
 **Inference inventory:** five declared components, no inferred components. The tank materializes
 `in1`, `in2`, `out1`, and `out2` from the qualified endpoints; its other indexed ports do not exist in
 this model.
+
+#### The distribution header — multi-circuit, attachment and layout reference
+
+The only reference circuit with more than one circuit. It exists so that `D-33`'s numbering and
+attachment, `D-34`'s per-circuit tag ordinals, `D-38`'s header layout and `D-41`'s naming rule have a
+fixture to be tested against; every other reference has exactly one circuit and exercises none of them.
+
+```fluidscript
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=54 in=40 out=60    # the plant-side source
+PU_MAIN pump
+
+connections
+N1 - HS1 - N2 - PU_MAIN - N3
+N3 - N4                                        # supply header
+N6 - N5
+N5 - N1                                        # return header
+
+N1 node p=250
+
+circuit AHU 101
+
+HE_AHU  duty in=50 out=30 power=24 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+
+supply N3
+return N5
+
+circuit radiators 102
+
+HE_RAD  duty in=50 out=30 power=30 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+
+supply N4
+return N6
+```
+
+**Three circuits, three numbers, one of them resolved.** `heating` states 100, `AHU` states 101,
+`radiators` states 102. Had any been omitted it would have resolved to the next unused multiple of
+100 in declaration order; the fixture states all three so the printer's
+`NumberIsExplicit` round trip is exercised in its `true` form here and in its `false` form by every
+other reference circuit, which writes no number at all.
+
+**Attachment is explicit and cross-circuit.** `AHU` takes flow at `N3` and returns it at `N5`; both
+name nodes of `heating`. This is the only place in the language where a statement in one circuit
+refers to a component of another, and it is why identifiers are unique across the whole file
+(`D-41`) rather than scoped per circuit — with scoping, each of these four lines would need a
+qualified form the language does not have.
+
+**Names and tags do different jobs, and this fixture is where the difference shows.** Both subcircuits
+have a pump and a three-way valve. Their *identifiers* must differ, so they are `PU_AHU`/`PU_RAD` and
+`TV_AHU`/`TV_RAD`. Their *tags* are derived per circuit and both start at `01`:
+
+| Component | Circuit | Tag |
+|---|---|---|
+| `HS1` | 100 | `100HE01` |
+| `PU_MAIN` | 100 | `100PU01` |
+| `HE_AHU` | 101 | `101HE01` |
+| `TV_AHU` | 101 | `101TV01` |
+| `PU_AHU` | 101 | `101PU01` |
+| `HE_RAD` | 102 | `102HE01` |
+| `TV_RAD` | 102 | `102TV01` |
+| `PU_RAD` | 102 | `102PU01` |
+
+`101HE01` and `102HE01` are two different components with the same ordinal, which is exactly what
+`D-34`'s per-circuit counting means and what a plant drawing does. Nothing keys on a tag.
+
+**Design point.** The two subcircuit duties sum to the source duty, which is what makes the fixture
+checkable by hand:
+
+```
+AHU        24 kW
+radiators  30 kW
+           ──────
+source     54 kW      = HS1's stated power
+```
+
+Each subcircuit takes 50 °C supply and returns 30 °C, so with `cp = 4.18 kJ/(kg·K)` and a 20 K drop:
+
+```
+ṁ_AHU = 24 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.2871 kg/s
+ṁ_RAD = 30 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.3589 kg/s
+ṁ_100 = 0.2871 + 0.3589                 = 0.6460 kg/s
+```
+
+and the source's own 20 K rise (40 → 60 °C) carries the same total:
+
+```
+54 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.6460 kg/s   ✓
+```
+
+**The header flow sum is the acceptance criterion**, and it is the one thing this fixture proves that
+no single-circuit reference can: flow entering the supply header equals the sum of what the
+subcircuits draw, and the return header carries it back.
+
+**Layout.** One `DistributionGroup` — parent `heating`, members `AHU` and `radiators` in declaration
+order. `heating`'s supply chain draws as the top rail and its return chain as the bottom; the two
+subcircuits stack between them, `AHU` first. Both subcircuit roles resolve to `Consumer`, so they
+share a thermal stage rank and neither is placed upstream of the other.
+
+**Inference inventory:** eight declared components and six declared nodes (`N1`…`N6`). Rule I2 inserts
+one node per directly-connected pair inside each subcircuit; the attachments lower to ordinary
+connections and infer nothing. `N1` is declared with a pressure and is therefore the datum — one
+datum for the whole model, because attaching the subcircuits makes all three circuits one hydraulic
+connected component (`D-33`).
 
 ## Invariants
 

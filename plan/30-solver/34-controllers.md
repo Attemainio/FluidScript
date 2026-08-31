@@ -7,7 +7,7 @@ owns: [controller model, v1 PI algorithm, optional PID extension, anti-windup, s
 depends_on: [22-component-model, 33-transient-time-domain]
 traces_to: [R-13, R-49]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 6
 ---
 
 # Controllers
@@ -48,12 +48,15 @@ public interface IController
     string Name { get; }
 
     /// <summary>What is measured directly under D-23: a component property reference such as <c>N2.t</c>.</summary>
+    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`); see below.</remarks>
     PropertyReference Measurement { get; }
 
     /// <summary>What is driven: a settable parameter such as <c>3WV.position</c>.</summary>
+    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`).</remarks>
     ParameterReference Actuator { get; }
 
     /// <summary>Target value for the measurement, in the measurement's dimension.</summary>
+    /// <remarks>Projected from the <c>control</c> binding at lowering (`D-40`).</remarks>
     Quantity Setpoint { get; }
 
     /// <summary>Advances the controller by one timestep and returns the new actuator value.</summary>
@@ -76,6 +79,22 @@ public interface IController
     void Initialize(double actuatorValue);
 }
 ```
+
+**These three properties are populated from the binding, not from the declaration** (`D-40`). The
+controller *declaration* carries the algorithm and its gains; the `control` *binding* carries what is
+measured, what is actuated, and the setpoint. Lowering resolves each `ControlBindingSymbol`
+([`15-semantic-model`](../10-language/15-semantic-model.md)) and projects its three references onto
+the `IController` instance its `by=` argument names, before the first timestep.
+
+The direction is one-way and worth stating because the alternative is silently plausible: the binding
+is the source, the interface is the consequence, and nothing writes back. A controller named by no
+binding is inert — it holds gains and drives nothing — which is `FS3208`, a warning rather than an
+error, because a half-written script is the normal editing state (`P4`).
+
+Two bindings naming one controller is `FS3209`: a single PI instance holds one integral term, so
+driving two actuators from it would couple them through shared state in a way nobody writes on
+purpose. Reusing a *tuning* across loops is the legitimate case behind that shape, and it is served by
+declaring two controllers with the same gains.
 
 **"Call exactly once per accepted timestep" is the invariant that adaptive stepping breaks.**
 [`33-transient-time-domain`](33-transient-time-domain.md)'s Heun method evaluates derivatives twice per
@@ -201,6 +220,8 @@ discrete-time nature.
 | `FS3205` | Actuator parameter is not settable | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS3206` | Process-gain estimation failed | Warning | `{name}: could not measure a process gain; using conservative defaults.` |
 | `FS3207` | Setpoint outside the measurement's plausible range | Warning | `{name}: a setpoint of {v} is outside the usual range for {dimension}.` |
+| `FS3208` | A declared controller is named by no `control` binding | Warning | `{name}` drives nothing; add a 'control' line naming it. |
+| `FS3209` | Two `control` bindings name one controller | Error | `{name}` is used by {n} control lines; a controller holds one integral term and drives one actuator. |
 
 `FS3203` requires oscillation detection — zero crossings of the error over a sliding window, with a
 period and an amplitude — which is a small amount of work and turns the most common user problem from
@@ -216,6 +237,15 @@ load steps 30 → 45 kW at t = 60 s.
 TC1 pi                                                    # definition: algorithm and gains
 control actuate=3WV.position measure=N2.t by=TC1 setpoint=20   # binding: what it drives, what it reads
 ```
+
+`actuate=` names a qualified parameter — `3WV.position`, never `3WV` (`D-43`).
+
+**`pi` is an alias of the kind `controller`, not a kind of its own** (`D-15`). `controller`, `pi`,
+`pid` and `p` all resolve to one registry entry, which is what lets one `TagCode` cover every spelling
+and keeps `/docs` at one page. The algorithm is selected by which gains are present, not by which
+alias was typed: `kd` absent means PI, and `kd` stated means PID. Making the spelling select the
+algorithm would let `TC1 pi kd=3` mean two contradictory things, and `P6` refuses to ship a form whose
+meaning depends on agreement between two places.
 
 Two statements under `D-40`. The **definition** is an ordinary component declaration whose kind
 resolves through the registry like any other; `kp`, `ki` and `kd` are optional per `D-02` — omitted

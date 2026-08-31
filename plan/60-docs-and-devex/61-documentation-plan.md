@@ -2,12 +2,12 @@
 id: 61-documentation-plan
 title: Documentation plan
 tier: 60-docs-and-devex
-status: draft
+status: reviewed
 owns: [the /docs tree, page templates, the documentation gate, LLM-readability conventions, generated pages]
 depends_on: [01-vision-and-scope, 22-component-model]
-traces_to: [R-28, R-29, R-30, R-44, R-45, R-46, R-47, R-48, R-49, R-50]
+traces_to: [R-28, R-29, R-30, R-44, R-45, R-46, R-47, R-48, R-49, R-50, R-51]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Documentation plan
@@ -70,17 +70,22 @@ docs/
 │   ├── reading-diagnostics.md   every warning class and what to do about it
 │   ├── troubleshooting.md       "it will not converge", "the sizes look wrong"
 │   ├── plant-layout.md          headers, how the diagram is arranged, spacing
-│   └── working-in-tabs.md       several documents, what keeps running when you switch
+│   ├── working-in-tabs.md       several documents, what keeps running when you switch
+│   └── reading-solver-status.md converging, converged, failed — and which computation it means
 │
 ├── functions/                   reference. one page per thing. exhaustive.
 │   ├── index.md                 the complete list — the agent's entry point
-│   ├── circuit.md               ─┐
-│   ├── project.md                │ directives
+│   ├── fluidscript.md           ─┐ directives
+│   ├── circuit.md                │
+│   ├── project.md                │
 │   ├── spacing.md                │
 │   ├── fluid.md                  │
+│   ├── catalog.md                │
 │   ├── style.md                  │
 │   ├── show.md                   │
 │   ├── let.md                   ─┘
+│   ├── connections.md           ─┐ section markers
+│   ├── schedule.md              ─┘
 │   ├── supply-return.md         ─┐ statements
 │   ├── control.md               ─┘
 │   ├── node.md                  ─┐
@@ -122,6 +127,22 @@ documentation for the first three features.
 word list** as well as the component registry, or the gate passes on a language feature with no page
 at all. That is precisely how a documentation rule decays: it keeps working for the case it was
 written against and silently stops covering everything else.
+
+**Widening the gate exposed four words that never had pages** — `fluidscript`, `catalog`,
+`connections` and `schedule` — which is the gate working, not a reason to narrow it. They are added
+above. `supply` and `return` share one page because they are one construct with two directions, and
+the manifest records that pairing explicitly so the check does not have to infer it:
+
+```
+supply, return  → functions/supply-return.md
+```
+
+Every other statement-introducing reserved word maps to `functions/<word>.md`. A word absent from both
+the manifest and the tree fails the gate.
+
+`R-51`'s solver status is user-visible and therefore needs a page too; it is
+`advanced/reading-solver-status.md`, because what a user needs is not the status line's shape but what
+"did not converge" means and what to do about it.
 
 Two of the new pages are gates on *derived* behaviour rather than on syntax:
 

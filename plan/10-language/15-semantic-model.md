@@ -2,12 +2,12 @@
 id: 15-semantic-model
 title: Semantic model and binding
 tier: 10-language
-status: draft
+status: reviewed
 owns: [binder, symbol table, semantic model types, component registry, kind resolution and aliases, lowering boundary]
 depends_on: [12-grammar, 13-type-and-unit-system, 14-expressions-and-references]
 traces_to: [R-01, R-02, R-06, R-16, R-45, R-46, R-47, R-49]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Semantic model and binding
@@ -232,7 +232,17 @@ The normalised input is looked up against the normalised keywords and aliases. A
 | Three-way valve | `three_way_valve` | `3_way_valve`, `mixing_valve`, `diverting_valve`, `3wv` |
 | Pump | `pump` | `circulator` |
 | Tank | `tank` | `container` |
-| Controller | `controller` | `pi`, `thermostat`, `control` |
+| Controller | `controller` | `pi`, `pid`, `p`, `thermostat` |
+
+**`control` was an alias and has been removed, because `D-40` made it a reserved word.** A reserved
+word cannot appear in `kind-name` position ([`12-grammar`](12-grammar.md)'s word classification), so
+the alias was unwriteable: `TC1 control` lexes as a keyword and never reaches kind resolution. `pid`
+and `p` join `pi` in its place, so every algorithm spelling a user might reach for resolves to the one
+`controller` kind — which is what keeps one `TagCode` and one `/docs` page covering all of them.
+
+This is the general hazard of reserving a word: it silently invalidates any alias equal to it. The
+registry-build check that asserts no two kinds share a normalised alias (invariant 9) must also assert
+that **no alias equals a reserved word**, or the next reserved word repeats this.
 
 `controller` is in the table although [`22-component-model`](../20-core-domain/22-component-model.md)
 describes six *flow-component families*: a controller is a registry kind with no ports, declared like any
@@ -309,7 +319,7 @@ public sealed record SemanticModel
     /// </remarks>
     public required ImmutableArray<CircuitSymbol> Circuits { get; init; }
 
-    /// <summary>File-wide settings from the <c>project</c> and <c>spacing</c> directives (`D-37`).</summary>
+    /// <summary>File-wide settings from the <c>project</c> directive (`D-37`).</summary>
     public required ProjectSettings Project { get; init; }
 
     /// <summary>Controller bindings, in declaration order (`D-40`).</summary>
@@ -352,6 +362,11 @@ public sealed record CircuitSymbol
     /// <value><c>Neutral</c> when the name matches no role — never an error.</value>
     public required CircuitRole Role { get; init; }
 
+    /// <summary>The circuit both attachments resolve into, or null when this circuit stands alone.</summary>
+    /// <remarks>Derived, not written: it is the circuit owning <see cref="Supply"/>'s and
+    /// <see cref="Return"/>'s resolved components, which must be the same one (`FS1526`).</remarks>
+    public string? ParentCircuit { get; init; }
+
     /// <summary>Where this circuit takes flow from its parent, or null when it stands alone (`D-33`).</summary>
     public AttachmentSymbol? Supply { get; init; }
 
@@ -363,7 +378,8 @@ public sealed record CircuitSymbol
 
 /// <summary>One end of a subcircuit's attachment to its parent (`D-33`).</summary>
 /// <remarks><see cref="ParentComponent"/> is resolved during connection binding, so it is null
-/// while the named node does not exist; that condition is <c>FS1518</c>, not an exception.</remarks>
+/// while the named node does not exist; that condition is <c>FS1518</c>, not an exception. A name that
+/// resolves to this circuit's own component is <c>FS2217</c> instead — the two never both fire.</remarks>
 public sealed record AttachmentSymbol(
     string ParentComponentName,
     ComponentSymbol? ParentComponent,
@@ -374,13 +390,15 @@ public sealed record AttachmentSymbol(
 /// never a grammar change (`D-35`).</remarks>
 public sealed record CircuitRole(string CanonicalName, ThermalStageRole Stage);
 
-/// <summary>File-wide settings (`D-37`).</summary>
-/// <remarks><see cref="Spacing"/> is in world units and is carried, never interpreted, by Core —
-/// it reaches the renderer through style settings and appears in no layout structure.</remarks>
+/// <summary>File-wide settings from the <c>project</c> directive (`D-37`).</summary>
+/// <remarks>
+/// Spacing is deliberately <b>not</b> here. `D-37` puts it in <see cref="StyleSettings"/>, the
+/// presentation payload Core already carries without interpreting, and a second home on this record
+/// would create two paths for one value — the one that gets serialized and the one that does not.
+/// </remarks>
 public sealed record ProjectSettings(
     string? Name,
-    FluidMode? DefaultMode,
-    double? Spacing);
+    FluidMode? DefaultMode);
 
 /// <summary>A controller bound to what it drives and what it reads (`D-40`).</summary>
 /// <remarks>
@@ -394,6 +412,8 @@ public sealed record ControlBindingSymbol
     public required ComponentSymbol Controller { get; init; }
 
     /// <summary>The settable parameter named by <c>actuate=</c>, such as <c>TV1.position</c>.</summary>
+    /// <remarks>Always qualified as <c>component.parameter</c>; a bare component name is <c>FS1515</c>
+    /// (`D-43`). There is no per-kind default actuator to fall back on, deliberately.</remarks>
     public required ParameterReference Actuator { get; init; }
 
     /// <summary>The property named by <c>measure=</c>, such as <c>N2.t</c>.</summary>
@@ -419,7 +439,15 @@ public sealed record BindingSymbol(
     Quantity? Value,
     TextSpan DeclarationSpan);
 
-public sealed record StyleSettings(ImmutableArray<StyleTokenSyntax> Tokens);
+/// <summary>Presentation values Core carries and never interprets.</summary>
+/// <remarks>
+/// <see cref="Tokens"/> holds the <c>style</c> directive's positional tokens verbatim.
+/// <see cref="Spacing"/> is the <c>spacing</c> directive's value in world units, or null when the
+/// script states none, in which case the renderer's own default applies (`D-37`).
+/// </remarks>
+public sealed record StyleSettings(
+    ImmutableArray<StyleTokenSyntax> Tokens,
+    double? Spacing);
 
 public abstract record Origin
 {
@@ -554,12 +582,14 @@ expects `AirHandlingUnit` to find `ahu`.
 
 0. **Partition into circuits and read the file-wide settings.** Each `CircuitHeaderSyntax` opens a
    circuit that owns every statement until the next header; a script with no header gets one implicit
-   circuit named for the file (`FS1508`). `project` and `spacing` bind into `ProjectSettings`.
+   circuit named for the file (`FS1508`). `project` binds into `ProjectSettings`; `spacing` binds into
+   `StyleSettings`, not `ProjectSettings` — one value, one path (`D-37`).
    Circuit numbers are assigned here — stated ones kept, omitted ones filled with the lowest unused
    multiple of 100 in declaration order — and a collision is `FS1524`. Roles resolve through the role
    registry (`FS1519`), and each circuit's `Mode` is settled by `D-37`'s precedence (`FS1517`).
 1. **Collect declarations.** Every `ComponentDeclarationSyntax` and `LetBindingSyntax` enters the
-   symbol table of *its* circuit. Duplicates → `FS1501` / `FS1401`.
+   symbol table. The table is one per model, not one per circuit (`D-41`), and its circuit is recorded
+   on the symbol. Duplicates → `FS1501` / `FS1401`.
 2. **Resolve kinds** against the registry, in the three stages below — normalise, exact, similarity.
    Unresolved → `FS1502`; ambiguous → `FS1513`. Either way the component is still created with an
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
@@ -582,7 +612,12 @@ expects `AirHandlingUnit` to find `ahu`.
 8. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
    has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
 9. **Bind attachments and control bindings.** Each `supply`/`return` endpoint resolves against the
-   *other* circuits' components (`FS1518`); a lone one is `FS1520`. Each `control` line resolves its
+   the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
+   the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
+   final. A lone `supply` or `return` is `FS1520`. **Both must resolve into the same circuit**, which
+   is then this circuit's `ParentCircuit`; resolving into two different circuits is `FS1526`, because
+   the model carries one parent and a subcircuit fed by one circuit and draining into another is a
+   topology the user should state as connections rather than as an attachment. Each `control` line resolves its
    named arguments — `by=` to a controller component (`FS1523`), `actuate=` to a settable parameter
    (`FS1522`), `measure=` to a property reference, `setpoint=` to a quantity — with a missing required
    argument reported as `FS1521`.
@@ -651,8 +686,10 @@ the language test suite must run in milliseconds, and property lookups are not m
 ## Invariants
 
 1. `Bind` never throws, for any syntax tree including one that is entirely `MalformedStatementSyntax`.
-2. Every `ComponentSymbol` has a unique `Name` within its circuit. Two circuits may each declare a
-   `PU1`; nothing resolves a bare name across a circuit boundary except an attachment endpoint.
+2. Every `ComponentSymbol` has a unique `Name` **within the model** (`D-41`). Circuits scope tags, not
+   identifiers: two circuits may not both declare a `PU1`, and a bare name resolves the same way from
+   anywhere in the script — which is what makes an attachment endpoint and a cross-circuit control
+   binding ordinary lookups rather than qualified ones.
 3. A parameter absent from `ComponentSymbol.Parameters` was not written by the user. There is no other
    reason for absence.
 4. Every `ConnectionSymbol` endpoint resolves to an existing `ComponentSymbol` and one of its ports.
@@ -662,8 +699,10 @@ the language test suite must run in milliseconds, and property lookups are not m
 7. The semantic model references no type from `FluidScript.Core.Fluids`, `.Components`, or `.Solvers`.
 8. **Kind resolution is deterministic and total**: the same input and the same registry always yield
    the same kind or the same diagnostic, and no input throws.
-9. **No two kinds share a normalised keyword or alias.** Asserted when the registry is built, because
-   a collision makes stage 2 order-dependent and stage 3 permanently ambiguous.
+9. **No two kinds share a normalised keyword or alias, and no keyword or alias equals a reserved
+   word.** Asserted when the registry is built: a collision between kinds makes stage 2
+   order-dependent and stage 3 permanently ambiguous, and a collision with a reserved word makes the
+   spelling unwriteable, since the lexer classifies it as a keyword before resolution is reached.
 10. `ComponentSymbol` records the canonical `Keyword`; the alias or misspelling the user wrote survives
     only in the source text and in `DeclarationSpan`.
 11. Every materialized indexed port has an index in its family's closed range, and no unevidenced
@@ -674,6 +713,9 @@ the language test suite must run in milliseconds, and property lookups are not m
 
 13. Every `CircuitSymbol.Number` is unique within the model, and every resolved one is a multiple of
     100 that was unused when it was assigned.
+13a. Every `CircuitSymbol.Name` is unique within the model. `ParentCircuit`, `component.circuit` and
+    `DistributionGroup.Members` all use the name as an identity, so a duplicate would make each of
+    them ambiguous in the same way a duplicate component name would (`FS1525`).
 14. `ComponentSymbol.Tag` is read by no binder stage. It is output, never input.
 15. A tag's ordinal sequence is contiguous from `01` within each `(circuit, code)` pair, and is a
     function of declaration order alone — permuting statements that do not change declaration order
@@ -690,7 +732,7 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS1501` | Duplicate component name | Error | `'{name}' is already declared at line {n}.` |
+| `FS1501` | Duplicate component name anywhere in the script | Error | `'{name}' is already declared at line {n}{inCircuit}. Names are unique across the whole file; tags are what distinguish circuits.` |
 | `FS1502` | Unknown component kind | Error | `There is no '{kind}'. Did you mean '{suggestion}'?` |
 | `FS1503` | Unknown parameter for the kind | Error | `A {kind} has no '{param}'. It accepts: {list}.` |
 | `FS1504` | Endpoint names an unknown component | Error | Handled by I1 unless the name is a declared non-component symbol, then: `'{name}' is a value, not a component.` |
@@ -707,13 +749,15 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{param}' names a component property, like 'N2.t'.` |
 | `FS1516` | An indexed port or parameter lies outside its declared family | Error | `'{written}' is outside {kind}'s supported {min}…{max} range.` |
 | `FS1517` | A circuit's `fluid` mode contradicts the project default | Warning | `'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.` |
-| `FS1518` | An attachment names a node no other circuit declares | Error | `'{name}' is not a node of any other circuit. A subcircuit attaches to its parent.` |
+| `FS1518` | An attachment names a component no circuit declares | Error | `'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.` |
 | `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
 | `FS1520` | A subcircuit declares `supply` without `return`, or the reverse | Warning | `'{circuit}' takes flow at '{node}' and never returns it. Add the matching '{other}' line.` |
 | `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
 | `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |
 | `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
+| `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
+| `FS1526` | A subcircuit's `supply` and `return` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
 
 **`FS1509` is retired, not redefined, and the distinction matters.** It meant "more than one `circuit`
 header", a condition `D-33` makes legal. The tempting move is to keep the number for the nearest

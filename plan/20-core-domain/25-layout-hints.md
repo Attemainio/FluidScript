@@ -2,12 +2,12 @@
 id: 25-layout-hints
 title: Layout hints
 tier: 20-core-domain
-status: draft
+status: reviewed
 owns: [the layout hint payload, topological ordering, thermal stages, port sides, grouping, stable component ids, circuit membership, distribution grouping]
 depends_on: [23-topology-and-graph]
 traces_to: [R-22, R-27, R-44, R-45, R-46, R-47, R-48]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Layout hints
@@ -95,6 +95,12 @@ public sealed record LayoutHints
     /// <summary>Suggested side for each port, from its role and the component's orientation.</summary>
     /// <value>Inlets <c>West</c>, outlets <c>East</c>, a three-way valve's bypass <c>South</c>.
     /// A hint, not a constraint — the renderer may rotate a component and reassign.</value>
+    /// <remarks>
+    /// The default is stated as though every component sat on a horizontal run, because Core does not
+    /// know which run it will land on. A renderer that draws an exchanger vertically reassigns these
+    /// to North/South, which is expected and is not a contract breach
+    /// (<see href="../50-frontend/53-canvas-renderer.md">53</see>'s orientation conventions).
+    /// </remarks>
     public required ImmutableDictionary<PortId, PortSide> PortSides { get; init; }
 
     /// <summary>Components forming each independent loop, in traversal order.</summary>
@@ -181,6 +187,14 @@ public sealed record CircuitRoleHint(string CanonicalName, ThermalStageRole Stag
 public sealed record DistributionGroup
 {
     public required string ParentCircuit { get; init; }
+
+    /// <summary>The member circuits, at least two, in declaration order.</summary>
+    /// <remarks>
+    /// A parent with exactly one subcircuit produces <b>no group at all</b> rather than a group of
+    /// one. One branch off a pair of rails is a tree, not a header, and drawing two rails for it
+    /// wastes most of the canvas. Emitting the singleton and expecting the renderer to ignore it
+    /// would put the same threshold in two places, where it would eventually disagree.
+    /// </remarks>
     public required ImmutableArray<string> Members { get; init; }
 }
 
@@ -274,9 +288,11 @@ exists to prevent, and it would look like a mysterious flicker rather than an ob
 the frontend through the model contract as component metadata
 ([`26-model-contract`](26-model-contract.md)) and are used for display only.
 
-Two components in different circuits may share an identifier — `101PU1` and `102PU1` are both `PU1` —
-so **the id is qualified by circuit** wherever it crosses a boundary. `CircuitOf` gives the
-qualification; within one circuit's own structures the bare name is unambiguous.
+**Identifiers are unique across the whole model, not per circuit** (`D-41`), so every id-keyed
+structure here stays a flat `string` and no qualification is needed anywhere. `CircuitOf` records
+*membership* — which circuit owns a component, for grouping and tagging — and is never a
+disambiguator. Two pumps on two branches of a header are `PU_AHU` and `PU_RAD` in the script, and
+`101PU01` and `102PU01` on the drawing.
 
 The failure mode is renaming: `HE1` → `HX1` looks to consumers like one component disappearing and
 another appearing. Options considered were a content hash (unstable under a parameter edit), a source
@@ -339,8 +355,9 @@ document.
    is its actuation target's component, and `NavigationOrder` is unique after the anchored component.
 10. Every component in the graph appears exactly once in `CircuitOf`, and its value names a circuit in
     `Circuits`.
-11. `DistributionGroups` are disjoint; every circuit appears in at most one, and a group's
-    `ParentCircuit` is never also one of its own `Members`.
+11. `DistributionGroups` are disjoint; every circuit appears in at most one, a group's
+    `ParentCircuit` is never also one of its own `Members`, and every group has **at least two**
+    members.
 12. No field of `LayoutHints` holds an equipment tag, a spacing value, or a layout mode name.
     Invariant 1 already forbids the spacing on dimensional grounds; the other two are forbidden for
     the separate reason that they are not structure — a tag is display metadata (`D-34`) and a mode is
@@ -403,8 +420,10 @@ fluid-flow arrows remain independently governed by `Flow`.
 
 ### The distribution header
 
-`D-33`'s sixth reference circuit is the multi-circuit case: parent `100` with subcircuits `101` (AHU)
-and `102` (radiators) on one supply/return pair.
+The **distribution header** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)), which
+`D-33` added as the sixth reference circuit: parent `heating` (100) with subcircuits `AHU` (101) and
+`radiators` (102) on one supply/return pair. Node names, duties and flows are `01`'s; this document
+adds only the hints derived from them.
 
 ```
 Circuits:
@@ -418,9 +437,9 @@ DistributionGroups:
   [ { ParentCircuit: heating, Members: [AHU, radiators] } ]
 
 CircuitOf:
-  N3 → heating · N5 → heating · PU1 → heating
-  TV1 → AHU · PU1 → AHU          ← two PU1s, disambiguated by circuit
-  TV1 → radiators · PU1 → radiators
+  N3 → heating · N5 → heating · PU_MAIN → heating
+  TV_AHU → AHU · PU_AHU → AHU
+  TV_RAD → radiators · PU_RAD → radiators
 
 ThermalStages:
   0 Source   [heating's boundary]
@@ -429,9 +448,11 @@ ThermalStages:
 
 Three things this fixture pins that the storage header does not:
 
-**Two components named `PU1` coexist.** Each circuit has its own symbol table, so `CircuitOf` is what
-distinguishes them; a renderer that keyed a dictionary by bare name would silently collapse the two
-into one and draw one pump. That is the failure this example exists to catch.
+**Membership is not identity.** Each circuit's pump has its own identifier — `PU_AHU`, `PU_RAD` — and
+`CircuitOf` records which circuit owns it, for grouping and tagging (`D-41`). The drawing distinguishes
+them as `101PU01` and `102PU01`; the script distinguishes them by name. A reader who expects the
+circuit to act as a namespace is the one this example is written for: it does not, and the tag is what
+carries the circuit.
 
 **The group is one entry, not two.** `AHU` and `radiators` attach to the same parent through different
 nodes (`N3`/`N5` and `N4`/`N6`) and still form one distribution group, because grouping is by shared
@@ -477,7 +498,8 @@ scaffolding the language put in.
 - [ ] Reversing a solved flow or duty in a transient changes `Flow` but leaves `ThermalStages`
       byte-identical to the run snapshot.
 - [ ] The distribution header produces one `DistributionGroup` with both subcircuits as members, and
-      `CircuitOf` distinguishes the two components named `PU1`.
+      `CircuitOf` reports each pump's owning circuit.
+- [ ] Declaring `PU1` in two circuits produces exactly one `FS1501`, not two silently-merged components.
 - [ ] Both subcircuits share a `Consumer` stage rank; neither is ranked upstream of the other.
 - [ ] A circuit whose role says `radiator` but whose duty sign says source classifies as `Source` and
       emits `FS2403` — the name never overrules the physics.

@@ -2,12 +2,12 @@
 id: 26-model-contract
 title: Model contract
 tier: 20-core-domain
-status: draft
+status: reviewed
 owns: [the serialized model shape, model contract versioning, JSON field conventions, what every consumer receives]
 depends_on: [22-component-model, 23-topology-and-graph, 24-auto-sizing, 25-layout-hints]
 traces_to: [R-18, R-20, R-23, R-31, R-37, R-39, R-41, R-44, R-45, R-46, R-47]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Model contract
@@ -65,6 +65,11 @@ converting there costs one pass and removes a whole class of consumer bug.
   "project": {                         // D-37; absent when the script has no `project` line
     "name": "plant_01",
     "defaultMode": "dynamic"           // "steady" | "transient" | null
+  },
+
+  "style": {                           // presentation Core carries and never interprets
+    "tokens": ["blue", "2px", "fillet", "--"],
+    "spacing": 20                      // world units, or null — D-37
   },
 
   "circuits": [                        // D-33; always at least one, in declaration order
@@ -318,14 +323,18 @@ blank the diagram constantly.
 
 1. Every numeric value is in the canonical script unit for its dimension, and its `unit` field says so.
 2. `contractVersion` is present and is the version the producing Core actually implements.
-3. Every `component.id` is unique **within its circuit** and matches an entry in `layout.order`. Two
-   circuits may each hold a `PU1`; a consumer keying components by bare id across the whole model is
-   wrong, and `component.circuit` is the qualifier (`D-33`).
+3. Every `component.id` is unique across the whole model and matches an entry in `layout.order`
+   (`D-41`). A consumer may key components by bare id; `component.circuit` records membership, not
+   identity.
 4. Every `connections[].from`/`to` names an existing component and one of its ports.
 5. `parameters[].source == "stated"` if and only if the user wrote it.
 6. `basis` is present exactly when `source` is `sized` or `default`.
-7. `state` is `null` on every component when `circuit.solved` is false, and non-null on every
-   component when it is true — **unless `FS2502` is present**, in which case `statesOmitted` is `true`
+7. `state` is `null` on every component of a circuit whose `solved` is false, and non-null on every
+   component of one whose `solved` is true. **Solve state is per circuit, not per model** (`D-33`):
+   a model may hold a solved circuit and an unsolved one, and a consumer that reads a single
+   whole-model flag would blank the states of a circuit that has them. Where a whole-model answer is
+   wanted — enabling an export, say — it is the conjunction over `circuits[]`, computed by the
+   consumer rather than carried as a second field that could disagree — **unless `FS2502` is present**, in which case `statesOmitted` is `true`
    and the consumer fetches states on demand. The two must never disagree: a solved model with null
    states and no `FS2502` is a bug.
 8a. `component.tag` is display metadata and is never used as a key, a reference, or a lookup by any

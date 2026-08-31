@@ -7,7 +7,7 @@ owns: [CI pipeline, branch policy, public-repo requirements, README, licence, co
 depends_on: [03-repository-layout, 61-documentation-plan, 62-testing-strategy]
 traces_to: [R-28, R-30, R-32, R-46, R-49]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 6
 ---
 
 # CI and repository hygiene
@@ -66,7 +66,9 @@ more than an intention:
    diagnostic code has a page or generated entry. Enumerating the reserved-word list matters as much
    as enumerating the component registry: `D-33`, `D-37` and `D-40` added five statements that are not
    component kinds, and a gate that walked only the registry would have passed all five undocumented.
-   A retired diagnostic code is exempt and must be, or the gate demands a page for `FS1509`.
+   A retired diagnostic code is exempt and must be, or the gate demands a page for `FS1509`. Words
+   sharing one page — `supply` and `return` — are covered by `61`'s explicit manifest rather than by
+   the check guessing at pairings.
 2. Every `fluidscript` block in `/docs` compiles, or produces its annotated diagnostic.
 3. Generated pages match what the code would generate.
 4. Every function page has every template section.

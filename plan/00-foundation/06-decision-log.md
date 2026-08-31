@@ -2,12 +2,12 @@
 id: 06-decision-log
 title: Decision log
 tier: 00-foundation
-status: draft
+status: reviewed
 owns: [architectural decisions D-xx, their rationale, their supersession chain]
 depends_on: [01-vision-and-scope]
 traces_to: [R-01, R-02, R-03, R-04, R-07, R-16, R-18, R-19, R-30, R-44, R-45, R-46, R-47, R-48, R-49, R-50]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 6
 ---
 
 # Decision log
@@ -1415,7 +1415,7 @@ algorithm that produced both would be tuned until it produced one badly.
 
 ## D-39 · Documents are tabbed, and a run detached by a tab switch keeps running
 
-**Accepted · 2026-08-31**
+**Accepted, amended by `D-42` · 2026-08-31**
 
 [`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md)'s single `DocumentState` becomes a
 collection with one active document. Each tab owns its own source, dirty state, file handle, recovery
@@ -1451,7 +1451,7 @@ requires stopping it — only the *rendering* needs to stop, and that is what de
 
 ## D-40 · A controller is defined once and bound separately, by named role
 
-**Accepted · 2026-08-31**
+**Accepted, amended by `D-43` · 2026-08-31**
 
 The single controller declaration of
 [`34-controllers`](../30-solver/34-controllers.md) splits into a definition and a binding:
@@ -1491,6 +1491,135 @@ and can be added later without changing this syntax, since every argument is nam
 [`16-diagnostics`](../10-language/16-diagnostics.md),
 [`34-controllers`](../30-solver/34-controllers.md),
 [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md), `D-15`, `D-23`, and `R-49`.
+
+---
+
+## D-41 · Component identifiers are unique across the script; circuits scope tags, not names
+
+**Accepted · 2026-09-01**
+
+A component's identifier is unique in the whole file. Two circuits may not both declare `PU1`; the
+second is `FS1501`, the duplicate-name error that already exists. **Circuits scope equipment tags
+(`D-34`), not identifiers** — `101PU01` and `102PU01` are distinct tags belonging to components that
+must be named, say, `PU_AHU` and `PU_RAD`.
+
+`15-semantic-model`'s invariant 2 is corrected from "unique within its circuit" to unique within the
+model. Every id-keyed structure stays a flat `string`: `LayoutHints.Order`, `Rank`, `Inferred`,
+`ComponentGroup.Children`, `26`'s `component.id`, `IScriptEditor`'s parameters, `SymbolMap`, DOM keys
+and export ids are all unchanged by `D-33`.
+
+**Why.** The phrase "within its circuit" predates `D-33` and was written when a script held exactly one
+circuit, where it meant the same as "within the model". `D-33` made a dormant qualifier load-bearing
+without supplying anything a real namespace needs, and the result was incoherent: `25-layout-hints`
+warned that a renderer keying components by bare name "would silently collapse the two", while
+`LayoutHints.Rank` is itself an `ImmutableDictionary<string, int>` keyed by bare name. Core would have
+committed the error the document warns the renderer against.
+
+Restoring global uniqueness is the fix that **removes** machinery rather than adding it. Per-circuit
+naming would require, at minimum: a qualification syntax in the language, a qualified-id type threaded
+through four documents and every consumer, cross-circuit reference rules, and a rewrite of every
+worked example in the tree. It would also be **the only scoping construct in the language** — `R-03`
+has no control flow, no functions, and no imports — introduced so that two components may share a
+name.
+
+The qualification syntax alone is disqualifying. `.` is already the port separator (`3WV.b`) and the
+property separator (`N2.t`), so `AHU.PU1` is lexically indistinguishable from a property reference,
+and any other separator is a new token in a language whose reserved list is deliberately tiny (`P6`).
+
+**Cross-circuit references settle themselves under this rule.** `supply N3` names a node in the parent
+circuit, and a `control` binding may measure and actuate across circuits. With unique identifiers each
+of those is an ordinary lookup; with per-circuit scoping every one needs a qualified form that does not
+exist.
+
+The cost is real and small: a user copying a subcircuit block must rename its components. They are
+already renaming the circuit and choosing its number, and the diagram still distinguishes the two
+pumps, because the *tags* do exactly what the user wanted them to do.
+
+**Rejected.**
+- *Qualify ids at construction as `circuit.name` (`AHU.PU1`).* Keeps every flat structure and needs no
+  new type. Cost: collides lexically with property references; and either every id in every existing
+  worked example changes — breaking `D-11`'s reproduce-the-figures rule across nine documents — or
+  qualification applies only when ambiguous, which makes an id context-dependent, so adding a second
+  circuit silently renames a component in the first.
+- *A `ComponentId(string Circuit, string Name)` record struct.* Type-safe, and the compiler finds every
+  site. Cost: a two-field key in every hot dictionary, an object-or-encoded-string decision on the
+  wire, and signature churn through four documents — all to buy a namespace nothing else in the
+  language has.
+- *Let the binder disambiguate duplicates automatically.* No user-visible constraint at all. Cost: it
+  reintroduces exactly the instability `D-34` rejects for tags — adding a circuit would rename a
+  component in another one, invalidating selection, diagnostics and export identity.
+
+**Constrains.** [`15-semantic-model`](../10-language/15-semantic-model.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
+[`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md), `D-33`, `D-34`,
+and `R-46`.
+
+---
+
+## D-42 · Detaching a run stops presentation, not transport
+
+**Accepted · 2026-09-01 · amends `D-39`**
+
+A run whose document is not active **keeps receiving and reconstructing frames**. Detaching removes
+only the presentation stages: colour scales, geometry, and the DOM commit. Decode, delta application,
+checksum verification and checkpoint retention continue at full rate.
+
+This supersedes `D-39`'s clause "Only the active document renders and streams frames", which
+contradicts `D-39`'s own next paragraph and
+[`43-realtime-contract`](../40-api/43-realtime-contract.md). The correct phrasing is **only the active
+document performs presentation work**. `R-50` and the glossary's *Active document* entry are corrected
+to match; `43`'s detached-run section was already right and is unchanged.
+
+**Why.** Frames are deltas against the previous frame (`43` invariant 8). A client that stops applying
+them holds state at frame 200 while the socket delivers frame 640, and cannot bridge the gap without a
+reconnection and a fresh `base` — so "stops streaming" and "resumes on switching back" cannot both be
+true. `D-39` decided the run continues; that decision is unchanged and this entry states what it costs.
+
+**Rejected.**
+- *Stop draining the socket while detached.* Saves decode and delta work for frames nobody watches.
+  Cost: backpressure stalls the solver against a client that is deliberately not reading, and resume
+  needs a fresh `base` — which throws away the scrubbing history for the detached interval.
+- *Buffer frames server-side and replay on reattach.* Also avoids client work. Cost: unbounded
+  server memory per detached run, and v1 has no detached server jobs
+  ([`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md)).
+
+**Constrains.** [`01-vision-and-scope`](01-vision-and-scope.md) (`R-50`),
+[`02-glossary`](02-glossary.md),
+[`43-realtime-contract`](../40-api/43-realtime-contract.md),
+[`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md), `D-39`, and `R-50`.
+
+---
+
+## D-43 · A control binding's actuator is a qualified parameter reference
+
+**Accepted · 2026-09-01 · amends `D-40`**
+
+`actuate=` takes `component.parameter` — `actuate=3WV.position`, never `actuate=3WV`. This matches
+`ControlBindingSymbol.Actuator`'s declared `ParameterReference` type
+([`15-semantic-model`](../10-language/15-semantic-model.md)) and the symmetry with `measure=N2.t`.
+`D-40`'s illustrative line and the examples derived from it wrote the bare component name and are
+corrected.
+
+**Why.** A bare component name would require a "default actuated parameter" per kind, and there is no
+defensible default for several: a pump can be driven by speed or by head, and a three-way valve's
+`position` is obvious only until a second settable parameter exists. The shorthand also breaks the
+symmetry that makes the statement readable — `measure=` already names a property, so `actuate=` naming
+a parameter is the form a reader predicts.
+
+**Rejected.**
+- *Allow the bare component name as shorthand for its default actuated parameter.* Shorter, and `P1`
+  favours brevity. Cost: a registry field naming each kind's default actuator, a diagnostic for kinds
+  with no default, and two spellings for one thing (`P6`). The saved characters are four.
+- *Accept both forms.* No migration of existing examples. Cost: the same `P6` violation, plus a
+  script whose meaning depends on which form the author happened to use.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`11-language-overview`](../10-language/11-language-overview.md),
+[`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
+[`34-controllers`](../30-solver/34-controllers.md), `D-40`, and `R-49`.
 
 ---
 
