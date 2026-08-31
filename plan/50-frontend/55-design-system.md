@@ -5,7 +5,7 @@ tier: 50-frontend
 status: reviewed
 owns: [design tokens, themes, colour palettes, syntax highlighting palette, typography, spacing, motion, primitives]
 depends_on: [51-frontend-architecture]
-traces_to: [R-26, R-27, R-22, R-33]
+traces_to: [R-26, R-27, R-22, R-33, R-48]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -218,6 +218,31 @@ a high-contrast theme.
 
 **Nothing animates position on the canvas.** A component that slides to a new place after a recompile
 looks alive and makes the diagram impossible to read while typing. Values cross-fade; geometry cuts.
+
+### Canvas spacing tokens
+
+Canvas spacing is a separate scale from UI spacing, in **world units** rather than pixels, because it
+survives zoom and the UI scale does not.
+
+| Token | Default | Meaning |
+|---|---|---|
+| `--canvas-spacing-default` | 20 | The gap between adjacent component bounding boxes when the script says nothing (`D-37`) |
+| `--canvas-spacing-min` | 8 | Floor; a script asking for less is clamped and told so |
+| `--canvas-rail-gap` | 120 | Vertical distance between a header's supply and return rails (`D-38`) |
+| `--canvas-branch-stride` | 160 | Horizontal distance between adjacent members stacked on a header |
+
+**Sparse is the default and it is a deliberate cost.** Tight packing fits more on screen and is what a
+generic layout produces; the reference drawings this convention comes from leave valves, sensors and
+fittings well apart, and at fit zoom a tightly packed run of six inline symbols reads as one smear.
+The default is set so the common case needs no `spacing` line at all — `P1`'s standard applied to
+presentation.
+
+`spacing` from the script overrides `--canvas-spacing-default` only. The rail and stride tokens stay
+under the design system's control, because a user asking for tighter components is not asking for
+their supply and return rails to converge.
+
+**These are the renderer's numbers, not Core's.** They live here rather than in `LayoutHints` for the
+same reason `spacing` does (`D-37`): they are distances, and Core holds none.
 
 Under `@media (prefers-reduced-motion: reduce)`, every nonessential duration token becomes `0ms` and
 transient playback updates values without cross-fades. Progress remains visible through text and

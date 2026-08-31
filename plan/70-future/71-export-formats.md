@@ -61,7 +61,7 @@ runtime object graph:
 {
   "format": "fluidscript-model",
   "formatVersion": 1,
-  "contractVersion": "1.0",
+  "contractVersion": "2.0",
   "provenance": {
     "sourceHash": "sha256:…",
     "languageMajor": 1,

@@ -151,7 +151,7 @@ The Solve button on a script whose pump is unconnected — the brief's original 
 POST /api/v1/solve   { sessionId, script: <the brief's example> }
 
 200 {
-  "model": { "circuit": { "solved": false, … },
+  "model": { "circuits": [ { "name": "coolingLoop", "number": 100, "solved": false, … } ],
              "components": [ … nine components, states null … ],
              "diagnostics": [
     { "code": "FS1507", "severity": "error",

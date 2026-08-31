@@ -3,9 +3,9 @@ id: 25-layout-hints
 title: Layout hints
 tier: 20-core-domain
 status: draft
-owns: [the layout hint payload, topological ordering, thermal stages, port sides, grouping, stable component ids]
+owns: [the layout hint payload, topological ordering, thermal stages, port sides, grouping, stable component ids, circuit membership, distribution grouping]
 depends_on: [23-topology-and-graph]
-traces_to: [R-22, R-27, R-44, R-45]
+traces_to: [R-22, R-27, R-44, R-45, R-46, R-47, R-48]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -51,6 +51,11 @@ holding an opinion.
 | Symbol size | **No** | Presentation. |
 | Label placement | **No** | Presentation. |
 | Colour | **No** | Style; comes from the `style` directive, not from hints. |
+| Circuit membership | **Yes** | Structural. Only Core knows which circuit a component was declared in, and `D-36` decides which one owns a two-sided component. |
+| Which circuits form a distribution group | **Yes** | Topology. Whether a set of subcircuits shares one supply/return pair is a graph question the renderer would re-derive by walking attachments. |
+| Which layout mode to use | **Yes**, as structure | Core states the grouping; the renderer chooses the mode from it (`D-38`). Core never names a mode, because "header" and "rectangle" are shapes and shapes are pixels. |
+| Component spacing | **No** | A distance. `spacing` travels in style settings and never enters this payload (`D-37`, invariant 1). |
+| Equipment tag | **No** | Not structure. Tags are component metadata and cross the wire in the model contract ([`26`](26-model-contract.md)), not as a placement hint (`D-34`). |
 
 ## The payload
 
@@ -116,10 +121,67 @@ public sealed record LayoutHints
     /// </remarks>
     public required ImmutableArray<NonFlowElementHint> NonFlowElements { get; init; }
 
+    /// <summary>Which circuit each component belongs to, by component id (`D-33`).</summary>
+    /// <remarks>
+    /// For a two-sided component this is the owning circuit under `D-36` — the side losing nominal
+    /// enthalpy — which may differ from the circuit block its declaration sits in. Every component in
+    /// the graph appears exactly once.
+    /// </remarks>
+    public required ImmutableDictionary<string, string> CircuitOf { get; init; }
+
+    /// <summary>Every circuit, in declaration order, with the structure a renderer needs (`D-33`).</summary>
+    public required ImmutableArray<CircuitHint> Circuits { get; init; }
+
+    /// <summary>Sets of circuits sharing one supply/return pair (`D-38`).</summary>
+    /// <remarks>
+    /// A renderer draws a group of two or more as a header — supply along one edge, return along the
+    /// other, members stacked between — and anything else as a loop rectangle. <b>Core states the
+    /// grouping and never the mode</b>: "header" is a shape, and shapes are the renderer's under
+    /// `D-03`. Groups are disjoint and every circuit appears in at most one.
+    /// </remarks>
+    public required ImmutableArray<DistributionGroup> DistributionGroups { get; init; }
+
     /// <summary>Components created by inference (I1/I2/I3) rather than written.</summary>
     /// <remarks>Rendered differently — lighter, or hidden behind a toggle — so the user can tell
     /// what they wrote from what the language added (principle P3).</remarks>
     public required ImmutableHashSet<string> Inferred { get; init; }
+}
+
+/// <summary>One circuit's structural facts (`D-33`, `D-35`).</summary>
+public sealed record CircuitHint
+{
+    public required string Name { get; init; }
+
+    /// <summary>The circuit's number, stated or resolved. The leading part of every tag it owns.</summary>
+    public required int Number { get; init; }
+
+    /// <summary>Resolved role, or null when the name matched no registry entry (`D-35`).</summary>
+    /// <remarks>Feeds thermal classification: a consumer role biases the circuit's stage rightward,
+    /// a source role leftward. Null means Neutral and is not an error.</remarks>
+    public CircuitRoleHint? Role { get; init; }
+
+    /// <summary>Parent circuit name, or null when this circuit stands alone (`D-33`).</summary>
+    public string? ParentCircuit { get; init; }
+
+    /// <summary>The parent's component this circuit takes flow from, when attached.</summary>
+    public string? SupplyAnchorId { get; init; }
+
+    /// <summary>The parent's component this circuit returns flow to, when attached.</summary>
+    public string? ReturnAnchorId { get; init; }
+}
+
+public sealed record CircuitRoleHint(string CanonicalName, ThermalStageRole Stage);
+
+/// <summary>Circuits sharing one supply/return pair, in stacking order (`D-38`).</summary>
+/// <remarks>
+/// <see cref="Members"/> is ordered by each member's declaration order, which is what keeps the
+/// stacked branches from reordering between renders. <see cref="ParentCircuit"/> owns the two header
+/// lines themselves.
+/// </remarks>
+public sealed record DistributionGroup
+{
+    public required string ParentCircuit { get; init; }
+    public required ImmutableArray<string> Members { get; init; }
 }
 
 public sealed record ComponentGroup
@@ -163,7 +225,14 @@ Thermal staging is computed on a separate **thermal group graph** (`D-31`):
 3. Classify vertices before ranking: boundary groups injecting enthalpy and cooling/source circuits are
    `Source`; extended exchangers are `Conversion`; `tank` is `Storage`; boundary groups extracting
    useful heat are `Consumer`; everything else is `Neutral`. Stated duty sign and terminal
-   temperatures are authoritative. A boundary with stated flow but no temperature or duty is then
+   temperatures are authoritative.
+
+   **A circuit role is evidence, not an override** (`D-35`). A vertex whose components all belong to a
+   circuit with a resolved role adopts that role's stage when the rules above leave it `Neutral`, and
+   is overruled by them when they do not. A circuit named `radiators` whose duty sign says it is
+   giving heat away is a source regardless of its name: the name is what the user called it, the duty
+   is what the physics says, and where they disagree the physics wins and `FS2403` says so. This
+   ordering is what keeps a mislabelled circuit from silently reversing a diagram. A boundary with stated flow but no temperature or duty is then
    classified from nominal connection direction: an edge leaving the boundary makes it `Source`, and
    an edge entering it makes it `Consumer`. Only a directionally ambiguous boundary remains `Neutral`;
    source order breaks ties but never reverses a nominal boundary role.
@@ -178,6 +247,12 @@ Thermal staging is computed on a separate **thermal group graph** (`D-31`):
    `Neutral` stage. This prevents an undirected shortcut through a return branch from moving a
    source-side boundary to a consumer stage.
 
+**Ownership of a two-sided vertex follows `D-36`, and it is read off the same edge.** Step 2 already
+adds a directed heat-transfer edge from the side losing nominal enthalpy to the side gaining it; the
+owning circuit is the one on the losing end. No separate traversal, no geometry, and the same edge
+that decides *where* a component sits decides *whose* it is — which is why the two rules cannot
+disagree. An indeterminate edge falls back to the lower circuit number with `FS2216`.
+
 Sort stages by rank and components within a stage by source order then ordinal id. The result is a
 deterministic total sequence of stage records representing a stable partial thermal order, not a claim
 about every connection. Several groups may share any rank. A transient duty/flow reversal changes
@@ -190,6 +265,18 @@ next keystroke. That requires an id that survives an edit elsewhere in the scrip
 
 **The id is the component's name.** Declared components use the user's identifier; inferred ones use
 their derived name (`HE1__3WV`, `N1`, `P1__2`). Both are stable under edits that do not touch them.
+
+**The equipment tag is not the id, and must never be used as one** (`D-34`). `400PU01` is a label:
+it is derived from declaration order, so inserting a pump above another changes the tags of every
+pump below it while changing no identifier. A renderer that keyed selection, DOM nodes, worker commits
+or export identity by tag would invalidate all four on that insertion — the exact churn the decision
+exists to prevent, and it would look like a mysterious flicker rather than an obvious bug. Tags reach
+the frontend through the model contract as component metadata
+([`26-model-contract`](26-model-contract.md)) and are used for display only.
+
+Two components in different circuits may share an identifier — `101PU1` and `102PU1` are both `PU1` —
+so **the id is qualified by circuit** wherever it crosses a boundary. `CircuitOf` gives the
+qualification; within one circuit's own structures the bare name is unambiguous.
 
 The failure mode is renaming: `HE1` → `HX1` looks to consumers like one component disappearing and
 another appearing. Options considered were a content hash (unstable under a parameter edit), a source
@@ -236,7 +323,9 @@ document.
 
 ## Invariants
 
-1. `LayoutHints` contains no coordinate, dimension, or pixel value.
+1. `LayoutHints` contains no coordinate, dimension, or pixel value. `spacing` is the case most likely
+   to be added here by mistake, because it reads as a layout input; it is a distance, it travels in
+   style settings, and Core never interprets it (`D-37`).
 2. Every component in the graph appears exactly once in `Order`.
 3. `Rank` is defined for every non-loop component and absent for every loop member. Pure trees anchor
    rank 0 at the pressure datum; attached trees anchor rank 1 next to the loop attachment.
@@ -248,6 +337,14 @@ document.
    heat-transfer edge; parallel source or consumer groups may share a rank.
 9. Every rendered non-flow component appears exactly once in `NonFlowElements`; its placement anchor
    is its actuation target's component, and `NavigationOrder` is unique after the anchored component.
+10. Every component in the graph appears exactly once in `CircuitOf`, and its value names a circuit in
+    `Circuits`.
+11. `DistributionGroups` are disjoint; every circuit appears in at most one, and a group's
+    `ParentCircuit` is never also one of its own `Members`.
+12. No field of `LayoutHints` holds an equipment tag, a spacing value, or a layout mode name.
+    Invariant 1 already forbids the spacing on dimensional grounds; the other two are forbidden for
+    the separate reason that they are not structure — a tag is display metadata (`D-34`) and a mode is
+    a shape (`D-38`).
 
 ## Error cases
 
@@ -258,6 +355,7 @@ exist because the user can see the consequence and would otherwise wonder:
 |---|---|---|
 | `FS2401` | The graph has no clean topological order (always true for a closed loop) — a DFS order is used | Info, suppressed by default |
 | `FS2402` | A group exceeds 10 members or the scene exceeds 500 elements and will render collapsed | Info |
+| `FS2403` | A circuit's role contradicts its solved duty direction; the duty is used | Info |
 
 ## Worked example
 
@@ -303,6 +401,47 @@ PortSides: T1.in1 West · T1.in2 West · T1.out1 East · T1.out2 East
 Sources and consumers at the same rank stack in source order. Their X coordinates do not interleave;
 fluid-flow arrows remain independently governed by `Flow`.
 
+### The distribution header
+
+`D-33`'s sixth reference circuit is the multi-circuit case: parent `100` with subcircuits `101` (AHU)
+and `102` (radiators) on one supply/return pair.
+
+```
+Circuits:
+  { Name: heating,   Number: 100, Role: null,     ParentCircuit: null }
+  { Name: AHU,       Number: 101, Role: ahu,      ParentCircuit: heating,
+    SupplyAnchorId: N3, ReturnAnchorId: N5 }
+  { Name: radiators, Number: 102, Role: radiator, ParentCircuit: heating,
+    SupplyAnchorId: N4, ReturnAnchorId: N6 }
+
+DistributionGroups:
+  [ { ParentCircuit: heating, Members: [AHU, radiators] } ]
+
+CircuitOf:
+  N3 → heating · N5 → heating · PU1 → heating
+  TV1 → AHU · PU1 → AHU          ← two PU1s, disambiguated by circuit
+  TV1 → radiators · PU1 → radiators
+
+ThermalStages:
+  0 Source   [heating's boundary]
+  1 Consumer [AHU, radiators]      ← both roles resolve to Consumer, so they share a rank
+```
+
+Three things this fixture pins that the storage header does not:
+
+**Two components named `PU1` coexist.** Each circuit has its own symbol table, so `CircuitOf` is what
+distinguishes them; a renderer that keyed a dictionary by bare name would silently collapse the two
+into one and draw one pump. That is the failure this example exists to catch.
+
+**The group is one entry, not two.** `AHU` and `radiators` attach to the same parent through different
+nodes (`N3`/`N5` and `N4`/`N6`) and still form one distribution group, because grouping is by shared
+*parent circuit*, not by shared node. Grouping by node would produce two groups of one and lose the
+header entirely.
+
+**The subcircuits share a stage rank.** Both roles classify as `Consumer`, so neither is placed
+upstream of the other — they are parallel branches of one header, and a diagram that ranked `101`
+before `102` would imply heat flows through the AHU on its way to the radiators.
+
 Two observations. `3WV.b North` returns the recirculation branch to the junction it came from while
 `3WV.c South` sends the primary return downward, so the two outlets separate without the renderer
 having to guess which is which — a small hint doing real work. And **four of the ten components are
@@ -337,6 +476,15 @@ scaffolding the language put in.
       target at `N2` and a navigation position immediately after `3WV`.
 - [ ] Reversing a solved flow or duty in a transient changes `Flow` but leaves `ThermalStages`
       byte-identical to the run snapshot.
+- [ ] The distribution header produces one `DistributionGroup` with both subcircuits as members, and
+      `CircuitOf` distinguishes the two components named `PU1`.
+- [ ] Both subcircuits share a `Consumer` stage rank; neither is ranked upstream of the other.
+- [ ] A circuit whose role says `radiator` but whose duty sign says source classifies as `Source` and
+      emits `FS2403` — the name never overrules the physics.
+- [ ] The substation's exchanger appears in `CircuitOf` under the circuit on its enthalpy-losing side,
+      and swapping the two circuit blocks in the source leaves that value unchanged.
+- [ ] A test asserts no field of `LayoutHints` holds a tag, a spacing value, or a mode name — the same
+      reflection test that already asserts it holds no dimension.
 
 ## Open questions
 

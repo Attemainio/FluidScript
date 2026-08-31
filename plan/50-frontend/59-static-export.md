@@ -5,7 +5,7 @@ tier: 50-frontend
 status: draft
 owns: [M3 SVG export, M3 PNG export, export accessibility and provenance]
 depends_on: [26-model-contract, 53-canvas-renderer, 55-design-system, 57-state-visualization]
-traces_to: [R-23, R-24, R-28, R-31, R-37, R-39, R-42, R-44]
+traces_to: [R-23, R-24, R-28, R-31, R-37, R-39, R-42, R-44, R-47]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -51,7 +51,14 @@ includes `<title>`/`<desc>`. PNG rasterizes that exact SVG; it has no separate d
 
 `<desc>` records application version, model contract, language major, source hash, exact catalogue and
 property-backend versions, atmosphere reference, solved/unsolved status, shown property/unit/scale, and
-generation time. It does not embed the source text unless explicitly added in a future privacy review.
+generation time.
+
+**Tags are recorded as of the exported source hash, and the `<desc>` says so.** A tag is derived from
+declaration order (`D-34`), so the same component can carry `400PU01` in one export and `400PU02` in a
+later one after a pump was inserted above it. That is correct behaviour and it is also exactly the
+kind of thing that makes someone distrust two drawings side by side. The source hash already in
+`<desc>` is what distinguishes "the tags changed because the design changed" from "the tags changed
+for no reason", and it is the reason tags may be exported at all. It does not embed the source text unless explicitly added in a future privacy review.
 
 ## Invariants
 
@@ -60,6 +67,11 @@ generation time. It does not embed the source text unless explicitly added in a 
 3. Export never invents geometry or engineering data absent from the model/scene.
 4. Unsolved values are absent/labelled “not solved”, never serialized as zero.
 5. Component ids remain searchable and unique; text and warning meaning are not conveyed by colour alone.
+5a. A component's visible label is its equipment tag where it has one, and its id otherwise (`D-34`).
+   Both are present: the tag is the drawn text, the id is the element's `id` attribute. An exported
+   diagram is the artefact a reader matches against an equipment schedule, so the tag has to be
+   readable; a consumer diffing two exports has to key on something that survives an insertion, so the
+   id has to be there too. Serializing only one loses one of those.
 6. Export work may run in a worker, but its source scene is immutable and identified by source hash.
 7. Export preserves the scene's left-to-right thermal stages and real per-connection fluid arrows; it
    never mirrors a return branch merely to make every arrow point right (`D-31`).
@@ -86,6 +98,8 @@ the same SVG rasterized at 300 dpi produces the PNG.
 - [ ] PNG pixels match rasterization of the golden SVG at 96/150/300 dpi within image tolerance.
 - [ ] Light export is legible on white regardless of current app theme; dark export is explicit.
 - [ ] Every component id, label, state unit, warning cue, gradient, and legend survives as configured.
+- [ ] Labels carry tags where the kind has a tag code, while element ids carry identifiers; an export
+      of a model with two `PU1`s in different circuits contains two distinct ids and two distinct tags.
 - [ ] `<title>`/`<desc>` pass screen-reader inspection and carry all required provenance.
 - [ ] The canvas and exporter consume one symbol-definition golden set; no TypeScript kind-specific
       drawing implementation exists.

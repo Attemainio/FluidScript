@@ -5,7 +5,7 @@ tier: 20-core-domain
 status: draft
 owns: [the serialized model shape, model contract versioning, JSON field conventions, what every consumer receives]
 depends_on: [22-component-model, 23-topology-and-graph, 24-auto-sizing, 25-layout-hints]
-traces_to: [R-18, R-20, R-23, R-31, R-37, R-39, R-41, R-44, R-45]
+traces_to: [R-18, R-20, R-23, R-31, R-37, R-39, R-41, R-44, R-45, R-46, R-47]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -55,21 +55,35 @@ converting there costs one pass and removes a whole class of consumer bug.
 
 ```jsonc
 {
-  "contractVersion": "1.0",
+  "contractVersion": "2.0",            // D-33 made `circuit` → `circuits` a breaking change
   "provenance": {
     "sourceHash": "sha256:…", "languageMajor": 1,
     "catalog": { "id": "steel-en10255", "version": "2026.1" },
     "propertyBackend": { "id": "sharp-prop", "version": "…" },
     "atmosphereKPaAbsolute": 101.325       // gauge/absolute boundary fixed by D-26
   },
-  "circuit": {
-    "name": "coolingLoop",
-    "substance": "water",
-    "mode": "steady",                  // "steady" | "transient"
-    "solved": true,
-    "statesOmitted": false,          // true only alongside FS2502
-    "pressureDatum": "N1"
+  "project": {                         // D-37; absent when the script has no `project` line
+    "name": "plant_01",
+    "defaultMode": "dynamic"           // "steady" | "transient" | null
   },
+
+  "circuits": [                        // D-33; always at least one, in declaration order
+    {
+      "name": "coolingLoop",
+      "number": 100,
+      "numberIsExplicit": false,       // false when the binder resolved it — the printer needs this
+      "substance": "water",
+      "mode": "steady",                // "steady" | "transient"
+      "role": null,                    // resolved circuit role, or null for Neutral (D-35)
+      "parentCircuit": null,           // D-33; set on a subcircuit
+      "supplyAnchorId": null,          // the parent component this circuit takes flow from
+      "returnAnchorId": null,
+      "solved": true,
+      "statesOmitted": false           // true only alongside FS2502
+    }
+  ],
+
+  "pressureDatums": ["N1"],            // one per hydraulic connected component, NOT per circuit
 
   "components": [
     {
@@ -79,6 +93,8 @@ converting there costs one pass and removes a whole class of consumer bug.
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",            // "declared" | "inferred:I1" | "inferred:I2" | "inferred:I3"
       "sourceSpan": { "start": 142, "length": 39 },   // null for inferred
+      "circuit": "coolingLoop",        // D-33; owning circuit under D-36 for a two-sided component
+      "tag": "100HE01",                // D-34; display metadata, null when the kind has no tag code
 
       "parameters": {
         "power": { "value": 30,   "unit": "kW", "source": "stated" },
@@ -246,6 +262,34 @@ no diagram.
 even though the JSON shape is identical — this is the change that would otherwise ship silently and
 produce a diagram that is wrong by a factor of 100.
 
+### `1.0` → `2.0`: `circuit` becomes `circuits`
+
+`D-33` replaces the single `circuit` object with a `circuits` array, and that is **a major bump by
+this document's own rule**: a consumer reading `model.circuit.name` against the new shape gets
+`undefined`, not an error. It cannot be done as an additive minor.
+
+The rejected softer options are worth recording, because both look cheaper and are worse:
+
+- *Keep `circuit` as the first circuit and add `circuits` alongside.* Additive, so a minor bump, and
+  every existing consumer keeps working — on a lie. A two-circuit model would report one circuit to
+  anything that had not been updated, and the diagram would silently lose half the plant. A field that
+  is correct only for single-circuit models is a trap with a timer on it.
+- *Keep `circuit` for single-circuit models and emit `circuits` only when there are several.* No
+  duplication. Cost: the shape now depends on the data, so every consumer needs both code paths and
+  the single-circuit path is the one that gets tested.
+
+A major bump is honest and the frontend already refuses to render on a major mismatch, which is
+exactly the behaviour wanted here.
+
+### `pressureDatum` moved out of the circuit, and that is a correction
+
+It was `circuit.pressureDatum`, which quietly asserted one datum per circuit. That was never true —
+[`23-topology-and-graph`](23-topology-and-graph.md) puts one datum per **hydraulic connected
+component**, and a rated exchanger already produces two of those inside one circuit. Under `D-33` the
+mismatch becomes visible in both directions: a subcircuit attached to its parent shares the parent's
+datum, so two circuits have one between them, while the substation's single circuit has two.
+`pressureDatums` is therefore top-level and plural, which is what the graph has always meant.
+
 ## Contracts
 
 ```csharp
@@ -274,7 +318,9 @@ blank the diagram constantly.
 
 1. Every numeric value is in the canonical script unit for its dimension, and its `unit` field says so.
 2. `contractVersion` is present and is the version the producing Core actually implements.
-3. Every `component.id` is unique and matches an entry in `layout.order`.
+3. Every `component.id` is unique **within its circuit** and matches an entry in `layout.order`. Two
+   circuits may each hold a `PU1`; a consumer keying components by bare id across the whole model is
+   wrong, and `component.circuit` is the qualifier (`D-33`).
 4. Every `connections[].from`/`to` names an existing component and one of its ports.
 5. `parameters[].source == "stated"` if and only if the user wrote it.
 6. `basis` is present exactly when `source` is `sized` or `default`.
@@ -282,6 +328,11 @@ blank the diagram constantly.
    component when it is true — **unless `FS2502` is present**, in which case `statesOmitted` is `true`
    and the consumer fetches states on demand. The two must never disagree: a solved model with null
    states and no `FS2502` is a bug.
+8a. `component.tag` is display metadata and is never used as a key, a reference, or a lookup by any
+   consumer. It is null exactly when the component's kind has no tag code or the component is
+   inferred (`D-34`).
+8b. Every `component.circuit` names an entry in `circuits`, and every `circuits[].parentCircuit`, when
+   non-null, names a different entry.
 8. `diagnostics` at the top level is the only diagnostic collection. Consumers group it by its
    `component` field; components do not duplicate diagnostic codes.
 9. Every `component.symbolId` resolves to exactly one entry in `symbols`, and every port resolves to
