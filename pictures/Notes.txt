@@ -1,0 +1,141 @@
+Hello! I would like to add additional features to our plan:
+
+1. Automatic naming and positioning of devices
+
+```FluidScript
+circuit groundSource 400
+```
+name of the circuit: groundSource
+circuit number: 400
+
+circuit number should be always auto resolved if not explicitly provided
+Every sensor and device should be auto renamed.
+
+If we have pump, heat exchanger, and 3 way valve the naming shoould be
+
+400PU01
+400HE01
+400TV01
+
+if we have 2 pumps, for example, it resolvers to
+
+400PU01
+400PU02
+
+Positions for sensor and devices should be in numeric order
+
+supply 400TE01
+return 400TE02
+
+if the supply or return have multiple branches it goes with dot extension like
+
+400TE01.01
+400TE01.02
+
+For example, if we have a heating network with multiple branches:
+
+Heat pump
+ supply 100TE01
+ return 100TE02
+to heating networks
+ supply 100TE01.01
+ return 100TE02.01
+to hot water
+ supply 100TE01.02
+ return 100TE02.02
+
+2. We could define subcircuits with same circuit system.
+
+```FluidScript
+circuit AHU 101
+HE1 duty in=50 out=30 power=24 kW
+TV1 three_way_valve
+PU1 pump
+
+in N3	# connects to main circuit specific node as supply of main circuit
+out N5  # connects to main circuit specific node as return to main circuit
+```
+
+We shouldn't advice to automatic connection, but in and out should be declared manually. Or we could think if there is automatic detection to main circuit. "AHU" could be a keyword. or "radiator" could be also a keyword.
+
+Subcircuit has it's own position identifiers and starts from zero
+
+101HE01
+101TV01
+101PU01 
+
+even the subcircuit is connected to the main heating circuit.
+
+3. How about heat exchangers and duty blocks - which circuits owns them?
+
+Consider that we have heat pump which provides the cooling to left side and heating to right side.
+Heating Network is 100 and cooling Network is 400.
+Heat pump is owned by the circuit at leftmost circuit, so this case 400 Network.
+
+Naturally, if we have a heating Network labeled as 101 AHU, the duty block belongs to 101 AHU Network.
+
+4. Positioning of elements supply and distribution lines
+
+Usually distribution lines are aligned top and bottom of the subcircuits.
+If the supply and return lines are divided into branches we continue up/down and then into the same direction where to supply goes: heating to right, cooling to left.
+Subcircuits are placed *between* supply and return distribution lines.
+
+5. Global statements in the beginning of the file
+
+```FluidScript
+project dynamic plant_01	# define the name of the project, specifies time based simulation with dynamic argument. Dynamic applies to every circuit
+spacing 20			# defines a spacing between components, how tightly fit the components are placed into the canvas.
+
+circuit AHU 101
+HE1 duty in=50 out=30 power=24 kW
+TV1 three_way_valve
+PU1 pump
+```
+
+So instead of giving every circuit explicitly dynamic keyword, it is declared in top level statements
+
+6. Spacing of components in distribution lines
+
+In frontend rendering, every component has a bounding box, and spacing defines how much spacing should be between components: filters, sensors, valves, etc.
+Sparse spacing for components by default.
+We do not want that the components are tightly adjacent to each other
+We could have also optional spacing between components
+
+7. Tabs for frontend
+
+We could manage multiple projects in same interface, separated in tabs.
+Every tabs has their own script.
+Only active document is rendered and simulated
+If tab is switched, the previous tab stops converging and active starts to render and simulate.
+
+8. Footer in the interface to measure is the system has converged
+
+Statusline: Converging…
+
+or
+
+Statusline: Converged!
+
+Green - converged, orange - convergind, and red for issues and cannot be resolved.
+
+8. Automatic detection of the syntax
+
+We already know that "HX1 - PU1" is a connection from component to another. I think "-" is the keyword
+Recognize also component definitions by pattern regognition
+project, dynamic, fluid, etc.
+
+9. controller logic
+
+It would be hard do distinguish or automatically detect that which PID devices control which system.
+We should be able to determine in the syntax which devices control which components
+
+```FluidScript
+TE01 T_sensor 10 C	# temperature sensor set point 10 C
+TV01 three_way_valve	# auto sizing three way valve
+
+control_01 PID K=3			# definition of controller with arguments. Name forst. Automatic detection for controller with PI, PID, P, etc. keywords
+
+control TV01 TE01 control_01 dT		# control as keyword. Read: control three way valve by temperature difference with PID controller. Measured by a setpoint and actual temperature difference.
+```
+
+I don't really know that is dT mandatory or optional. We can leave it undefined if it is not necessary.

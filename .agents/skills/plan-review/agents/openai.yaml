@@ -1,0 +1,7 @@
+interface:
+  display_name: "Plan Review"
+  short_description: "Audit plans for implementation readiness"
+  default_prompt: "Use $plan-review to audit the planning documents and report prioritized findings without editing the specifications."
+
+policy:
+  allow_implicit_invocation: true

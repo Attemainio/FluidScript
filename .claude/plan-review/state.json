@@ -1,0 +1,47 @@
+{
+  "pass": 5,
+  "sweep": 1,
+  "nextTier": null,
+  "cleanSweeps": 0,
+  "tierOrder": [
+    "00-foundation",
+    "10-language",
+    "20-core-domain",
+    "30-solver",
+    "40-api",
+    "50-frontend",
+    "60-docs-and-devex",
+    "70-future"
+  ],
+  "tiers": {
+    "00-foundation":     { "lastPass": 5, "blocking": 3, "shouldFix": 10, "reviewedAt": "2026-08-31T16:42:51Z" },
+    "10-language":       { "lastPass": 5, "blocking": 9, "shouldFix": 6,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "20-core-domain":    { "lastPass": 5, "blocking": 2, "shouldFix": 5,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "30-solver":         { "lastPass": 5, "blocking": 5, "shouldFix": 4,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "40-api":            { "lastPass": 5, "blocking": 2, "shouldFix": 6,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "50-frontend":       { "lastPass": 5, "blocking": 3, "shouldFix": 5,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "60-docs-and-devex": { "lastPass": 5, "blocking": 3, "shouldFix": 6,  "reviewedAt": "2026-08-31T16:42:51Z" },
+    "70-future":         { "lastPass": 5, "blocking": 2, "shouldFix": 1,  "reviewedAt": "2026-08-31T16:42:51Z" }
+  },
+  "history": [
+    { "pass": 1, "tier": "all", "blocking": 11, "shouldFix": 18, "applied": 29,
+      "note": "Whole-tree inline review, no reviewer agents (user asked for a direct review). Findings in findings/2026-08-29-150218-full-tree.md; all blocking and should-fix findings applied. D-11 and D-12 added." },
+    { "pass": 2, "tier": "all", "blocking": 10, "shouldFix": 10, "applied": 20,
+      "note": "Post-decision whole-tree review requested directly by the user. Findings in findings/2026-08-30-075753-full-tree.md; all accepted blocking and should-fix findings applied. Remediation verification in findings/2026-08-30-170708-remediation.md. This was not an independent clean sweep." }
+    ,{ "pass": 3, "tier": "canvas-layout", "blocking": 1, "shouldFix": 0, "applied": 0,
+      "note": "Targeted direct review of circuit layout/rendering found an overlap-contract conflict in 53. Findings in findings/2026-08-30-173811-canvas-layout.md; no specification edits applied." }
+    ,{ "pass": 4, "tier": "all", "blocking": 4, "shouldFix": 4, "applied": 0,
+      "note": "Fresh full-tree direct semantic review. Mechanical checks pass; transport discretization, overlap behavior, omission/default semantics, and symbol phasing block implementation. Findings in findings/2026-08-31-060829-full-tree.md; no specification edits applied." }
+    ,{ "pass": 5, "tier": "all", "blocking": 29, "shouldFix": 43, "applied": 0,
+      "note": "First whole-tree sweep using the skill's agent fan-out (17 plan-reviewer agents, 2-4 per tier, disjoint scopes), per the notes left after pass 4. 7 of pass 4's 8 findings confirmed resolved (F-5/thermal-staging only partially, reopened). Per-tier depth surfaced a much larger set of contract-precision defects (undefined types referenced throughout 14/15/17/18/31, worked-example arithmetic errors, a catalog-directive grammar self-contradiction found independently by two reviewers) that whole-tree direct review had missed. Findings in findings/2026-08-31-164251-pass5-full-tree.md; no specification edits applied yet, pending user triage. Three of the seventeen agents hit a session-wide rate limit and were retried once each; all three retries succeeded." }
+  ],
+  "notes": [
+    "2026-08-29 - mechanical checks (check.py) clean before and after the pass: 43 documents, 43 index rows, 34/34 requirements claimed.",
+    "2026-08-29 - pass 1 was run INLINE, not through the skill's agent fan-out, so it does not satisfy D-08's sweep protocol. cleanSweeps stays 0 and the next sweep should use reviewer agents, which will also give the applied edits an independent read.",
+    "2026-08-29 - 33 documents edited and marked status: reviewed. 10 documents were untouched: 03, 04, 11, 15, 41, 51, 52, 63, 64, 72.",
+    "The plan-reviewer agent type registers at session start. A fresh session can select it.",
+    "2026-08-30 - pass 2 found post-D-19/D-20/D-21 propagation gaps plus current M1/M2 contract blockers.",
+    "2026-08-30 - user accepted all blocking/should-fix corrections and scope recommendations. D-30 closes the remaining implementation-shaping questions; remediation covers 47 indexed documents, 43 requirements, and zero active open questions. Mechanical checks pass. cleanSweeps remains 0 until an independent full review finds no blocking or should-fix items.",
+    "2026-08-31 - pass 5 used the skill's proper agent fan-out for the first time on a full sweep, as the pass-4 note recommended. Mechanical checks stayed clean throughout (47/47/45/0). None of pass 5's findings have been applied yet; state will need another update once the user triages and edits land, and cleanSweeps will not advance until a subsequent independent pass finds none of these unresolved and introduces no new ones."
+  ]
+}
