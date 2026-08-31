@@ -5,7 +5,7 @@ tier: 10-language
 status: reviewed
 owns: [diagnostic code registry, severity model, span model, message style rules, suggestion mechanism]
 depends_on: [12-grammar, 13-type-and-unit-system, 14-expressions-and-references, 15-semantic-model]
-traces_to: [R-05, R-20, R-24, R-29]
+traces_to: [R-05, R-20, R-24, R-29, R-46, R-49]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -69,6 +69,18 @@ without checking.
 **Codes are permanent.** A code is never reused for a different meaning and never renumbered, because
 scripts, tests, `/docs` pages, and agent prompts all reference them. A retired code is marked retired
 in the registry and left unallocated.
+
+**The rule has one live application worth recording**, because it is the case where reuse looks
+harmless. `D-33` made "more than one `circuit` header" legal, retiring `FS1509`. The nearest surviving
+error — two circuits claiming one number — is a different condition, so it took a new code (`FS1524`)
+rather than inheriting the vacated one. The test is whether the *meaning* changed, not whether the new
+condition is nearby: `FS1103` kept its number through `D-13` because its trigger widened while its
+meaning held, and `FS1509` lost its because its old trigger became valid input. A code whose old
+condition now parses cleanly is the dangerous case — every existing reference to it silently becomes
+wrong, and nothing fails to announce it.
+
+`DiagnosticRegistry` therefore carries retired entries explicitly rather than omitting them, so
+invariant 1's both-directions test can distinguish "never allocated" from "allocated and retired".
 
 ## Severity
 
@@ -179,6 +191,24 @@ Rule 9 is the one that requires design rather than discipline: each stage checks
 is about already carries an error before adding another. The `SemanticModel` therefore tracks which
 symbols are already-reported.
 
+### Naming the accepted set
+
+A diagnostic about a name the user got wrong must list the names that would have been right. This
+already applies to kinds (`FS1502`), parameters (`FS1503`) and ports (`FS1505`), and `D-40`'s control
+binding is the case that makes the rule worth stating as a rule rather than repeating per code:
+
+> *A 'control' line needs actuate, measure and by. Missing: measure.*
+
+reads as a fix, where *"missing required argument"* reads as a puzzle. The binding's arguments are
+named precisely so a mistake is caught rather than silently accepted, and that guarantee is only worth
+having if the message says which name to write. The same standard applies to `FS1519`'s circuit roles
+(`D-35`), where the accepted set is registry data and therefore neither closed nor guessable by the
+user.
+
+Where the accepted set is unbounded or very large, the message names the nearest few and points at the
+`/docs` page rather than printing everything — a list of forty parameter names is as unhelpful as no
+list at all.
+
 ## The registry
 
 Every code in the tables above is collected into one machine-readable registry, generated from the
@@ -207,7 +237,8 @@ is how a code invented in an ad-hoc `throw` gets caught.
 5. `Suggestion.Replacement` applied to `Suggestion.Span` always produces a script that parses.
 6. Message text contains no term from the banned-jargon list (rule 6), asserted by a test over the
    registry.
-7. Codes are never reused or renumbered.
+7. Codes are never reused or renumbered. A retired code stays in the registry marked retired, and no
+   later allocation may take its number.
 
 Invariant 5 is testable and worth the effort: an editor quick-fix that produces a broken script is
 worse than having no quick-fix.

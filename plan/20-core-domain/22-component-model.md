@@ -3,9 +3,9 @@ id: 22-component-model
 title: Component model
 tier: 20-core-domain
 status: draft
-owns: [component interface hierarchy, ports, the six v1 flow-component families, parameters, governing equations, parameter registry]
+owns: [component interface hierarchy, ports, the six v1 flow-component families, parameters, governing equations, parameter registry, per-kind tag codes]
 depends_on: [13-type-and-unit-system, 15-semantic-model, 21-fluid-and-state]
-traces_to: [R-02, R-09, R-10, R-16, R-35, R-37, R-43, R-45]
+traces_to: [R-02, R-09, R-10, R-16, R-35, R-37, R-43, R-45, R-47]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -632,6 +632,35 @@ registration — not duplicated into the binder.
 A test asserts the registry's parameter set matches this document's tables. Without it, the two
 diverge on the first component change and the divergence is invisible until a user writes a parameter
 that the docs promise and the binder rejects.
+
+### Tag codes
+
+Each kind also registers a `TagCode` — the letters in its equipment tag (`D-34`). The v1 set:
+
+| Kind | `TagCode` | Tag at circuit 400 |
+|---|---|---|
+| `pump` | `PU` | `400PU01` |
+| `heat_exchanger` | `HE` | `400HE01` |
+| `valve` | `V` | `400V01` |
+| `three_way_valve` | `TV` | `400TV01` |
+| `tank` | `S` | `400S01` |
+| `controller` | `PID` | `400PID01` |
+| `node`, `pipe` | *none* | untagged |
+
+`node` and `pipe` are deliberately untagged. Both are mostly inferred, both outnumber every other kind
+in a lowered graph, and no plant schedule tags them — a diagram labelling forty `400PI` nodes would
+bury the six pieces of equipment a reader is looking for.
+
+**A code is a house convention, not a standard**, and registering it as data rather than hard-coding
+it is what makes that survivable. The reference drawings this scheme is modelled on write `LP` for a
+pump where the table above writes `PU`; both are defensible, neither is a published standard for a
+tool to claim, and a site that wants `LP` should get it by changing a registry row rather than by
+patching the tagger.
+
+Two constraints hold on any code: it is unique across kinds, and no tag it produces may lex as a
+quantity literal — `400PU01` is safe because `PU01` is not a unit symbol, but a code sharing a symbol
+with the unit table would produce tags the language reads as numbers. Both are asserted when the
+registry is built, alongside the parameter-set test above.
 
 ## Invariants
 

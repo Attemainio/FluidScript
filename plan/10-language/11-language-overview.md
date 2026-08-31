@@ -5,7 +5,7 @@ tier: 10-language
 status: reviewed
 owns: [language design principles, inference rules, compilation pipeline stages]
 depends_on: [01-vision-and-scope, 02-glossary, 06-decision-log]
-traces_to: [R-01, R-02, R-03, R-05, R-06]
+traces_to: [R-01, R-02, R-03, R-05, R-06, R-46, R-49]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -78,6 +78,33 @@ another way for two scripts that mean the same thing to look different in a diff
 keywords are words rather than symbols, and structure is explicit enough that a generator does not
 have to model whitespace. A language that is easy for a person to skim is usually easy for an agent to
 emit; where they conflict, the person wins, and `/docs` closes the gap.
+
+## Statements added after the first draft
+
+Five statements joined the language with `D-33`, `D-37` and `D-40`. They are listed here because the
+principles above were the argument for each of their shapes, and reading them together is the clearest
+demonstration of what those principles actually decide:
+
+| Statement | Shape | Which principle chose it |
+|---|---|---|
+| `circuit AHU 101` | Optional trailing number; the name doubles as the role | **P1** — a single-circuit script writes no number and is unchanged. **P6** — the role is not a second way to say what the name says |
+| `supply N3` / `return N5` | Keyword and endpoint | **P3** — attachment is structure the language refuses to guess, because a wrong guess still solves |
+| `project dynamic plant_01` | File-wide default | **P1** — stating `dynamic` once per circuit in a six-circuit file is five repetitions of one decision |
+| `spacing 20` | Bare number, world units | **P5** — presentation lives in the text with everything else, rather than in a side file |
+| `control actuate=… measure=… by=…` | Named arguments | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
+
+**`supply`/`return` is where P3 did the most work.** The obvious spelling was `in N3` / `out N5`, and
+it is lexically impossible: it parses as a component named `in` of kind `N3`, binds, and describes a
+different plant. The rejected alternative — inferring the attachment from proximity or declaration
+order — fails P3 for the same reason one level up: the attachment point sets the flow split, so a
+wrong inference yields a model that is well-posed, solvable, and wrong. Structure the language cannot
+determine unambiguously is structure the user writes.
+
+**`control`'s named arguments are the one place P1 lost.** `control TV1 N2.t PID1` is shorter than
+`control actuate=TV1 measure=N2.t by=PID1`, and P1 says brevity wins ties. This was not a tie: the
+positional form has no memorable order, and transposing two arguments produces a controller that
+drives the wrong way while binding cleanly. P1 asks for an argument stronger than consistency, and
+"the short form silently reverses the control loop" is one.
 
 ## The inference rules
 
@@ -171,6 +198,10 @@ reason hover (`R-23`) must show inferred names: the user must be able to see wha
 4. The language never infers a *value*, only a structure (P3).
 5. Every canvas-originated change reaches the model as a text edit, never as a parallel model (P5).
 6. There is exactly one syntactic form for each thing the language can express (P6).
+7. Every statement is classifiable from its first token plus at most one token of lookahead. A
+   proposed statement that needs more is rejected, not accommodated — this is what makes P4's
+   line-granular recovery possible, and it is why `supply` is a keyword rather than `in` being
+   contextually reinterpreted.
 
 ## Acceptance criteria
 

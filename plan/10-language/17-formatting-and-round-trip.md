@@ -5,7 +5,7 @@ tier: 10-language
 status: draft
 owns: [printer, trivia preservation, script mutation API, formatter, write-back edit primitives]
 depends_on: [12-grammar, 15-semantic-model]
-traces_to: [R-25, R-05, R-45]
+traces_to: [R-25, R-05, R-45, R-46, R-47]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -108,6 +108,30 @@ public interface IScriptEditor
     /// <returns>One edit per occurrence, including references inside expressions.</returns>
     EditResult Rename(string oldName, string newName);
 
+    /// <summary>Rewrites derived equipment tags into the script as identifiers (`D-34`).</summary>
+    /// <param name="scope">One circuit's name, or null for every circuit in the file.</param>
+    /// <returns>
+    /// One <see cref="Rename"/>-equivalent edit set per tagged component, with the same old-id/new-id
+    /// mapping, so the frontend migrates selection and focus exactly as it does for a typed rename.
+    /// Components whose kind has no <c>TagCode</c> are untouched, as are inferred components.
+    /// </returns>
+    /// <remarks>
+    /// <b>Explicit and user-invoked, never automatic.</b> Tags are metadata until someone asks for
+    /// this; a binder that wrote them back would renumber identifiers under the cursor on every
+    /// insertion, which is the churn `D-34` exists to prevent.
+    /// <para>
+    /// The operation is not idempotent in the way it first appears: applying it, inserting a pump,
+    /// and applying it again renames the components after the insertion point. That is correct and
+    /// is why it is a command rather than a formatting pass — the user chooses when their identifiers
+    /// move.
+    /// </para>
+    /// <para>
+    /// Fails as a whole, editing nothing, if any target tag already names a different component in
+    /// the same circuit; a partial application would leave the script referencing both.
+    /// </para>
+    /// </remarks>
+    EditResult ApplyTags(string? scope);
+
     /// <summary>Promotes an inferred component (I1/I2/I3) into a written declaration.</summary>
     /// <remarks>
     /// The migration path for a user who wants to configure a node the language created for them.
@@ -189,6 +213,18 @@ deliberately rather than discovered.
 6. Applying an `EditResult`'s edits in any order gives the same result — spans within one result never
    overlap.
 7. The formatter is idempotent: `Format(Format(x)) == Format(x)`.
+8. A circuit header whose number was resolved rather than written prints without a number (`D-33`).
+   `CircuitSymbol.NumberIsExplicit` is what invariant 1 depends on here: printing a resolved number
+   would make `Print(Parse(x)) != x` for every single-circuit script in existence.
+9. `ApplyTags` either renames every eligible component in its scope or edits nothing, and its
+   old-id/new-id mapping covers exactly the components it renamed.
+
+**Invariant 8 is the round trip's newest sharp edge.** The binder assigns every circuit a number, so
+the obvious printer reads `CircuitSymbol.Number` and writes it — which quietly rewrites
+`circuit coolingLoop` as `circuit coolingLoop 100` the first time anything touches the file. The
+printer must therefore print from the *syntax tree*, where the number is absent, not from the bound
+model, where `D-33` guarantees it never is. This is the same rule that already keeps aliases and written parameter
+spellings intact, applied to a value the binder invents rather than one it normalises.
 8. Editing a parameter through its canonical name or alias preserves the spelling already present;
    insertion uses the canonical name and never creates canonical-plus-alias duplicates.
 

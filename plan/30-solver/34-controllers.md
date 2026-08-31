@@ -5,7 +5,7 @@ tier: 30-solver
 status: reviewed
 owns: [controller model, v1 PI algorithm, optional PID extension, anti-windup, setpoints, actuator coupling, default tunings]
 depends_on: [22-component-model, 33-transient-time-domain]
-traces_to: [R-13]
+traces_to: [R-13, R-49]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -27,8 +27,9 @@ coupling, and default tunings.
 
 **Explicitly does not own.** Time integration ([`33-transient-time-domain`](33-transient-time-domain.md)),
 component equations ([`22-component-model`](../20-core-domain/22-component-model.md)), controller syntax
-([`12-grammar`](../10-language/12-grammar.md), which now defines it as an ordinary component
-declaration with reference-valued parameters).
+([`12-grammar`](../10-language/12-grammar.md), which defines the declaration and the `control`
+binding), or how a binding's named arguments resolve
+([`15-semantic-model`](../10-language/15-semantic-model.md)).
 
 ## The model
 
@@ -212,12 +213,32 @@ M4's demo is the **demand-step loop** ([`01-vision-and-scope`](../00-foundation/
 load steps 30 → 45 kW at t = 60 s.
 
 ```fluidscript
-TC1 controller measure=N2.t actuate=3WV.position setpoint=20
+TC1 pi                                                    # definition: algorithm and gains
+control actuate=3WV.position measure=N2.t by=TC1 setpoint=20   # binding: what it drives, what it reads
 ```
 
-An ordinary component declaration. `measure` and `actuate` are reference-valued parameters
-([`15-semantic-model`](../10-language/15-semantic-model.md)'s `ParameterValueKind.Reference`), and
-`kp`, `ki`, `kd` are optional per `D-02` — omitted here, so the defaults below apply.
+Two statements under `D-40`. The **definition** is an ordinary component declaration whose kind
+resolves through the registry like any other; `kp`, `ki` and `kd` are optional per `D-02` — omitted
+here, so the defaults below apply. The **binding** is a `control` statement whose four arguments are
+named, resolved by
+[`15-semantic-model`](../10-language/15-semantic-model.md) into a `ControlBindingSymbol`.
+
+**Why the split, and why named arguments.** One tuning stated once can be read at each place it is
+used, and a retuning edit no longer touches the same line as a rewiring edit. Named rather than
+positional because there is no memorable order for actuator, measurement and controller: `control
+3WV.position N2.t TC1` and `control N2.t 3WV.position TC1` are both plausible-looking, exactly one is
+right, and the wrong one binds, solves, and drives the valve the wrong way. Four extra words buy a
+bind-time error instead of a plausible wrong answer.
+
+`setpoint` sits on the binding rather than on a sensor because `D-23` defers persistent sensor
+components; when they land, a setpoint carried by a sensor is a non-breaking addition, since every
+argument is already named.
+
+**There is no `dT` mode.** A differential keyword was considered and rejected in `D-40`: its proposed
+meaning — the difference between setpoint and measurement — is the error signal every controller
+already computes, so the keyword would name the default behaviour and then be unavailable for a
+genuine two-sensor differential mode. That mode needs two measurement points and can be added later
+as a second named argument.
 
 **`HE1` states `power` and `out` but not `in`, and that is the point rather than an incidental
 simplification.** In the steady circuit that stated value is a constraint, and it promotes the valve

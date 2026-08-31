@@ -5,7 +5,7 @@ tier: 10-language
 status: draft
 owns: [binder, symbol table, semantic model types, component registry, kind resolution and aliases, lowering boundary]
 depends_on: [12-grammar, 13-type-and-unit-system, 14-expressions-and-references]
-traces_to: [R-01, R-02, R-06, R-16, R-45]
+traces_to: [R-01, R-02, R-06, R-16, R-45, R-46, R-47, R-49]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -72,6 +72,19 @@ public sealed record ComponentKindInfo
     /// <summary>Whether this kind can contribute net hydraulic head and satisfy FS2214.</summary>
     /// <remarks>Explicit registry metadata; never inferred from residual implementation (`D-30`).</remarks>
     public required bool DrivesFlow { get; init; }
+
+    /// <summary>Letter code used in this kind's equipment tag — <c>PU</c>, <c>HE</c>, <c>TV</c> (`D-34`).</summary>
+    /// <value>
+    /// Null for a kind that carries no tag. <c>node</c> and <c>pipe</c> are null deliberately: they
+    /// are mostly inferred, they outnumber every other kind, and no plant schedule tags them.
+    /// </value>
+    /// <remarks>
+    /// Registry data rather than a hard-coded table, so a new kind ships its own code and a house
+    /// convention that writes <c>LP</c> for a pump instead of <c>PU</c> is a data change. A code must
+    /// not make any tag lex as a quantity literal, which is asserted against the unit-symbol table
+    /// when the registry is built (invariant 16).
+    /// </remarks>
+    public string? TagCode { get; init; }
 
     /// <summary>Every parameter this kind accepts, keyed by script name.</summary>
     public required ImmutableDictionary<string, ParameterInfo> Parameters { get; init; }
@@ -289,7 +302,18 @@ error, and concludes the tool is fussy.
 /// <summary>A bound script: every name resolved, every value typed, ready for lowering.</summary>
 public sealed record SemanticModel
 {
-    public required CircuitSymbol Circuit { get; init; }
+    /// <summary>Every circuit in the script, in declaration order (`D-33`).</summary>
+    /// <remarks>
+    /// Non-empty for any script with a <c>circuit</c> header. A script with none binds a single
+    /// implicit circuit named for the file, so consumers never special-case an empty collection.
+    /// </remarks>
+    public required ImmutableArray<CircuitSymbol> Circuits { get; init; }
+
+    /// <summary>File-wide settings from the <c>project</c> and <c>spacing</c> directives (`D-37`).</summary>
+    public required ProjectSettings Project { get; init; }
+
+    /// <summary>Controller bindings, in declaration order (`D-40`).</summary>
+    public required ImmutableArray<ControlBindingSymbol> ControlBindings { get; init; }
     public required ImmutableArray<ComponentSymbol> Components { get; init; }
     public required ImmutableArray<ConnectionSymbol> Connections { get; init; }
     public required ImmutableArray<BindingSymbol> Bindings { get; init; }
@@ -301,7 +325,85 @@ public sealed record SemanticModel
     public required ISymbolMap SymbolMap { get; init; }
 }
 
-public sealed record CircuitSymbol(string Name, string Substance, FluidMode Mode);
+public sealed record CircuitSymbol
+{
+    /// <summary>The identifier written in the header. Also the source of <see cref="Role"/>.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>The circuit's designation, used as the leading part of every tag it owns.</summary>
+    /// <value>As written, or resolved by the binder as the lowest unused multiple of 100 in
+    /// declaration order when the header omitted it (`D-33`).</value>
+    public required int Number { get; init; }
+
+    /// <summary>Whether the number was written or resolved.</summary>
+    /// <remarks>The printer needs this to reproduce the source byte for byte, and the canvas uses it
+    /// to render a resolved number at reduced emphasis, as it does any inferred value (`P3`).</remarks>
+    public required bool NumberIsExplicit { get; init; }
+
+    public required string Substance { get; init; }
+
+    /// <summary>Steady or transient for this circuit, after applying `D-37`'s precedence.</summary>
+    /// <remarks>The circuit's own <c>fluid dynamic|static</c> wins; otherwise the project default;
+    /// otherwise <see cref="FluidMode.Static"/>. A circuit contradicting the project gets
+    /// <c>FS1517</c> and keeps its own value.</remarks>
+    public required FluidMode Mode { get; init; }
+
+    /// <summary>The circuit's role, resolved from <see cref="Name"/> through the role registry (`D-35`).</summary>
+    /// <value><c>Neutral</c> when the name matches no role — never an error.</value>
+    public required CircuitRole Role { get; init; }
+
+    /// <summary>Where this circuit takes flow from its parent, or null when it stands alone (`D-33`).</summary>
+    public AttachmentSymbol? Supply { get; init; }
+
+    /// <summary>Where this circuit returns flow to its parent, or null when it stands alone.</summary>
+    public AttachmentSymbol? Return { get; init; }
+
+    public required TextSpan DeclarationSpan { get; init; }
+}
+
+/// <summary>One end of a subcircuit's attachment to its parent (`D-33`).</summary>
+/// <remarks><see cref="ParentComponent"/> is resolved during connection binding, so it is null
+/// while the named node does not exist; that condition is <c>FS1518</c>, not an exception.</remarks>
+public sealed record AttachmentSymbol(
+    string ParentComponentName,
+    ComponentSymbol? ParentComponent,
+    TextSpan Span);
+
+/// <summary>A circuit's thermal classification, feeding `D-31` staging.</summary>
+/// <remarks>Registry data, not a closed set in the language: adding a role is a registry change,
+/// never a grammar change (`D-35`).</remarks>
+public sealed record CircuitRole(string CanonicalName, ThermalStageRole Stage);
+
+/// <summary>File-wide settings (`D-37`).</summary>
+/// <remarks><see cref="Spacing"/> is in world units and is carried, never interpreted, by Core —
+/// it reaches the renderer through style settings and appears in no layout structure.</remarks>
+public sealed record ProjectSettings(
+    string? Name,
+    FluidMode? DefaultMode,
+    double? Spacing);
+
+/// <summary>A controller bound to what it drives and what it reads (`D-40`).</summary>
+/// <remarks>
+/// Every field is resolved from a named argument, so a transposition is a binding error rather than
+/// a silent reversal. <see cref="Setpoint"/> lives here rather than on a sensor because `D-23`
+/// defers persistent sensor components.
+/// </remarks>
+public sealed record ControlBindingSymbol
+{
+    /// <summary>The controller component named by <c>by=</c>.</summary>
+    public required ComponentSymbol Controller { get; init; }
+
+    /// <summary>The settable parameter named by <c>actuate=</c>, such as <c>TV1.position</c>.</summary>
+    public required ParameterReference Actuator { get; init; }
+
+    /// <summary>The property named by <c>measure=</c>, such as <c>N2.t</c>.</summary>
+    public required PropertyReference Measurement { get; init; }
+
+    /// <summary>The target value named by <c>setpoint=</c>, in the measurement's dimension.</summary>
+    public required Quantity Setpoint { get; init; }
+
+    public required TextSpan Span { get; init; }
+}
 
 public sealed record ConnectionSymbol(
     EndpointSymbol From,
@@ -357,6 +459,21 @@ public sealed record ComponentSymbol
 
     /// <summary>Source span of the declaration, or null for an inferred component.</summary>
     public TextSpan? DeclarationSpan { get; init; }
+
+    /// <summary>Name of the circuit this component was declared in (`D-33`).</summary>
+    /// <remarks>For a two-sided component this is the owning circuit under `D-36`, which may differ
+    /// from the circuit whose block the declaration sits in.</remarks>
+    public required string CircuitName { get; init; }
+
+    /// <summary>The derived equipment tag, such as <c>400PU01</c>, or null when the kind has no
+    /// tag code (`D-34`).</summary>
+    /// <remarks>
+    /// <b>Metadata, never identity.</b> <see cref="Name"/> is what every consumer keys on — selection,
+    /// diagnostics, write-back, export. A tag changes whenever a declaration is inserted above this
+    /// one; a name does not, and that difference is the whole content of `D-34`. Nothing may index by
+    /// this field.
+    /// </remarks>
+    public string? Tag { get; init; }
 }
 
 /// <summary>A parameter the user supplied. Its mere presence is a constraint (D-02).</summary>
@@ -386,10 +503,63 @@ language created (`R-23`, and principle P3's justification), diagnostics must no
 inferred component does not have, and write-back must refuse to edit a component with no declaration.
 Carrying it as data beats deriving it from a null span.
 
+## Tag derivation
+
+Every device gets a tag of the form `<circuit><code><ordinal>` — `400PU01` — computed after binding
+and carried in the model contract (`D-34`).
+
+| Part | Rule |
+|---|---|
+| `<circuit>` | The owning circuit's `Number`. Ownership is declaration for a one-sided component, `D-36`'s enthalpy-losing side for a two-sided one. |
+| `<code>` | `ComponentKindInfo.TagCode` ([`22-component-model`](../20-core-domain/22-component-model.md)). A kind with no code — `node`, `pipe` — gets no tag. |
+| `<ordinal>` | Two digits from `01`, counted per `(circuit, code)` **in declaration order**, zero-padded and widening past 99 rather than wrapping. |
+
+Inferred components are never tagged. They have no declaration to order by, their count changes with
+unrelated edits, and tagging scaffolding the user did not write would put `HE1__3WV` on an equipment
+schedule.
+
+**Declaration order, not topological order, and the choice is load-bearing.** A topological ordinal
+would put the supply sensor before the return one, which is how a drafter numbers a finished drawing.
+But a finished drawing is not edited live: topological ordinals move whenever a *connection* changes,
+and a connection edit is the most common edit there is. Declaration order moves a tag only when a
+declaration moves, which the user can see on the line they are editing. The cost is accepted and
+visible — writing the return line first gives the return the lower ordinal.
+
+The optional `.NN` branch extension (`100TE01.02`) appends a header branch ordinal. The format is
+fixed now so it will not change later, and v1 emits it only for devices, because the case that
+motivates it — a supply and a return sensor per branch — needs the sensors `D-23` defers.
+
+**A tag must never lex as a quantity.** `400PU01` is safe because rule 3 of
+[`12-grammar`](12-grammar.md) matches a whole word against `number , unit-symbol` and `PU01` is not a
+unit symbol. A tag code that made one — a hypothetical `W` — would produce a tag the language reads as
+a power. A test runs every registered tag code against the unit-symbol table and fails on a collision,
+because this is a data change that breaks the language silently.
+
+## Circuit role resolution
+
+`circuit AHU 101`'s role comes from the header name through the **same three stages** kind resolution
+uses (`D-15`): normalise, exact match against canonical names and curated aliases, then similarity.
+`AHU`, `ahu` and `air_handling_unit` all reach one role; `radiators` reaches `radiator` by similarity.
+
+An unresolved name is **not an error**. The circuit gets `ThermalStageRole.Neutral` and `FS1519`
+(info), exactly as an unresolved component kind still produces a component (`P4`). A plant is full of
+circuits whose function has no registry entry, and refusing to bind one would make the language
+useless for the plant it is describing.
+
+Reusing `D-15`'s stages rather than writing a second matcher is deliberate: two similarity
+implementations drift, and a user who learns that `3WayValve` finds `three_way_valve` reasonably
+expects `AirHandlingUnit` to find `ahu`.
+
 ## Binding order
 
+0. **Partition into circuits and read the file-wide settings.** Each `CircuitHeaderSyntax` opens a
+   circuit that owns every statement until the next header; a script with no header gets one implicit
+   circuit named for the file (`FS1508`). `project` and `spacing` bind into `ProjectSettings`.
+   Circuit numbers are assigned here — stated ones kept, omitted ones filled with the lowest unused
+   multiple of 100 in declaration order — and a collision is `FS1524`. Roles resolve through the role
+   registry (`FS1519`), and each circuit's `Mode` is settled by `D-37`'s precedence (`FS1517`).
 1. **Collect declarations.** Every `ComponentDeclarationSyntax` and `LetBindingSyntax` enters the
-   symbol table. Duplicates → `FS1501` / `FS1401`.
+   symbol table of *its* circuit. Duplicates → `FS1501` / `FS1401`.
 2. **Resolve kinds** against the registry, in the three stages below — normalise, exact, similarity.
    Unresolved → `FS1502`; ambiguous → `FS1513`. Either way the component is still created with an
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
@@ -411,10 +581,26 @@ Carrying it as data beats deriving it from a null span.
    is where the inference rules fire.
 8. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
    has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
-9. **Validate.** Port over-subscription, connections to unknown components, orphaned components.
+9. **Bind attachments and control bindings.** Each `supply`/`return` endpoint resolves against the
+   *other* circuits' components (`FS1518`); a lone one is `FS1520`. Each `control` line resolves its
+   named arguments — `by=` to a controller component (`FS1523`), `actuate=` to a settable parameter
+   (`FS1522`), `measure=` to a property reference, `setpoint=` to a quantity — with a missing required
+   argument reported as `FS1521`.
+10. **Validate.** Port over-subscription, connections to unknown components, orphaned components.
+11. **Assign tags.** Per the derivation above, after every declaration is known and ordered. Tags are
+    computed last because an ordinal depends on the complete declaration set of its circuit, and
+    because nothing in binding may depend on a tag — a stage that read one would make identity
+    circular.
 
-Steps 1–5 have no notion of topology and steps 6–9 have no notion of expressions; the split keeps each
-half testable alone.
+Steps 1–5 have no notion of topology and steps 6–10 have no notion of expressions; the split keeps each
+half testable alone. Step 0 knows about neither, which is what lets circuit partitioning be tested
+against a syntax tree with no registry at all.
+
+**Step 11 is last, and its position is a contract rather than a convenience.** A tag is derived from
+the finished declaration set, so computing it earlier would make it depend on how much of the file had
+been bound. Nothing in steps 0–10 may read `ComponentSymbol.Tag`; an architecture test asserts it,
+because a binder stage that resolved a reference by tag would reintroduce exactly the identity `D-34`
+removed.
 
 The binder preserves the exact presence of `in2`, `out2`, `dt2`, and `flow2` plus secondary-port
 connections. During lowering, the heat-exchanger factory derives `duty`, `rated`, or `coupled` from
@@ -465,7 +651,8 @@ the language test suite must run in milliseconds, and property lookups are not m
 ## Invariants
 
 1. `Bind` never throws, for any syntax tree including one that is entirely `MalformedStatementSyntax`.
-2. Every `ComponentSymbol` has a unique `Name` within its circuit.
+2. Every `ComponentSymbol` has a unique `Name` within its circuit. Two circuits may each declare a
+   `PU1`; nothing resolves a bare name across a circuit boundary except an attachment endpoint.
 3. A parameter absent from `ComponentSymbol.Parameters` was not written by the user. There is no other
    reason for absence.
 4. Every `ConnectionSymbol` endpoint resolves to an existing `ComponentSymbol` and one of its ports.
@@ -485,8 +672,19 @@ the language test suite must run in milliseconds, and property lookups are not m
     basis; one with `Size` has neither. Defaults never appear in `ComponentSymbol.Parameters`, whose
     presence continues to mean the user wrote the parameter.
 
+13. Every `CircuitSymbol.Number` is unique within the model, and every resolved one is a multiple of
+    100 that was unused when it was assigned.
+14. `ComponentSymbol.Tag` is read by no binder stage. It is output, never input.
+15. A tag's ordinal sequence is contiguous from `01` within each `(circuit, code)` pair, and is a
+    function of declaration order alone — permuting statements that do not change declaration order
+    leaves every tag unchanged.
+16. No registered `TagCode` produces a tag that lexes as a quantity literal (`FS1003`).
+17. Every `AttachmentSymbol` with a non-null `ParentComponent` names a component of a *different*
+    circuit. A circuit never attaches to itself.
+
 Invariant 7 is checkable by an architecture test and should be, since it is the one a well-meaning
-refactor breaks first.
+refactor breaks first. Invariant 14 needs the same treatment for the same reason: reading a tag during
+binding is a natural-looking shortcut whose cost only appears when a user inserts a line.
 
 ## Error cases
 
@@ -500,7 +698,7 @@ refactor breaks first.
 | `FS1506` | Port connected more than once | Error | `Port '{port}' of '{name}' is already connected at line {n}.` |
 | `FS1507` | Component in no connection | Warning | `'{name}' is not connected to anything.` |
 | `FS1508` | No `circuit` header | Warning | `No circuit name; using '{filename}'.` |
-| `FS1509` | More than one `circuit` header | Error | `One circuit per file for now.` |
+| `FS1509` | *(retired)* | — | Meant "more than one `circuit` header", which `D-33` makes legal. Retired, not reused; left unallocated. |
 | `FS1510` | A component was inferred | Info | `Added {kind} '{name}' ({rule}).` |
 | `FS1511` | Graph is disconnected | Warning | `'{name}' and {n} others are not connected to the rest of the circuit.` |
 | `FS1512` | A kind, parameter, or property name resolved by similarity (stage 3) | Info | `Read '{written}' as '{canonical}'.` |
@@ -508,6 +706,26 @@ refactor breaks first.
 | `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{param}' accepts {list}; '{written}' is none of them.` |
 | `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{param}' names a component property, like 'N2.t'.` |
 | `FS1516` | An indexed port or parameter lies outside its declared family | Error | `'{written}' is outside {kind}'s supported {min}…{max} range.` |
+| `FS1517` | A circuit's `fluid` mode contradicts the project default | Warning | `'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.` |
+| `FS1518` | An attachment names a node no other circuit declares | Error | `'{name}' is not a node of any other circuit. A subcircuit attaches to its parent.` |
+| `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
+| `FS1520` | A subcircuit declares `supply` without `return`, or the reverse | Warning | `'{circuit}' takes flow at '{node}' and never returns it. Add the matching '{other}' line.` |
+| `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
+| `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
+| `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |
+| `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
+
+**`FS1509` is retired, not redefined, and the distinction matters.** It meant "more than one `circuit`
+header", a condition `D-33` makes legal. The tempting move is to keep the number for the nearest
+surviving error — two circuits claiming one number — on the grounds that both are "a second circuit
+where only one may be". [`16-diagnostics`](16-diagnostics.md)'s invariant 7 forbids it: codes are
+referenced by scripts, tests, `/docs` pages and agent prompts, and a code that silently changes
+meaning makes every one of those references wrong without breaking anything visibly. `FS1509` is
+marked retired in the registry and left unallocated; duplicate numbers get `FS1524`.
+
+This is the opposite treatment from `FS1103`, and the difference is the test: `FS1103`'s trigger
+*widened* while its meaning held, so it kept its number. `FS1509`'s old condition is now valid input,
+which is a change of meaning, not of scope.
 
 `FS1507` and `FS1511` are warnings rather than errors because a partially-written script is the normal
 editing state (P4) and erroring would blank the diagram on every keystroke.

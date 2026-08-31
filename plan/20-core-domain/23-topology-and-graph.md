@@ -5,7 +5,7 @@ tier: 20-core-domain
 status: draft
 owns: [circuit graph construction, branch decomposition, boundary conditions, well-posedness validation, lowering from the semantic model]
 depends_on: [15-semantic-model, 21-fluid-and-state, 22-component-model]
-traces_to: [R-06, R-11, R-16, R-43, R-45]
+traces_to: [R-06, R-11, R-16, R-43, R-45, R-46, R-47]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -227,6 +227,64 @@ loop, which is the common case — gets an auto-picked datum instead.
 | **Temperature boundary** | `t` on a node, or a heat exchanger's `in`/`out` | The energy datum |
 | **Flow boundary** | `flow` on a node | A known injection or extraction |
 
+### Several circuits are one graph, not several graphs
+
+`D-33` lets a script declare several circuits. **This does not multiply `CircuitGraph`.** The model is
+one graph whose components carry circuit membership, for the reason the next subsection already
+establishes: a rated exchanger produces more than one hydraulic connected component inside a single
+graph, and energy spans what pressure does not. Circuits are the same shape of thing one level up —
+an organisational and naming layer over a graph that was already prepared to hold disconnected
+hydraulic parts.
+
+So the existing rules carry over unchanged and need no per-circuit variants: one pressure datum per
+*hydraulic connected component* (not per circuit), mass balance per hydraulic component, one energy
+system over every node in the model, `FS2213` only for a subgraph coupled by nothing at all.
+
+**A subcircuit's attachment lowers to ordinary connections.** `supply N3` in circuit 101 becomes a
+connection from the parent's `N3` to 101's first unconnected inlet, and `return N5` a connection from
+101's last unconnected outlet to `N5`. After lowering there is nothing structurally special about a
+subcircuit: it is a set of components connected to the rest, and every well-posedness rule below
+applies to it without modification.
+
+That is the whole point of making attachment explicit. An inferred attachment would have to guess
+which port of which component the header meets, and a wrong guess yields a graph that is well-posed,
+solvable, and describes a different plant.
+
+Two consequences worth stating because they surprise:
+
+- **A subcircuit is usually not its own hydraulic component.** Attaching it to the parent connects
+  them by flow, so parent and subcircuit share one pressure datum. A circuit boundary is a naming
+  boundary, never automatically a hydraulic one.
+- **A circuit may span hydraulic components, and a hydraulic component may span circuits.** Neither
+  containment holds in either direction, which is why membership is a component-level field rather
+  than a partition of the graph.
+
+### Which circuit owns a two-sided component
+
+`D-36`: a component touching two circuits belongs to the one on the side **losing** nominal enthalpy
+across its heat-transfer edge. The graph already builds that directed edge for
+[`25-layout-hints`](25-layout-hints.md)'s thermal staging — "from the side losing nominal enthalpy to
+the side gaining it" — so ownership is read off it rather than computed a second way.
+
+Resolution order, first match winning:
+
+| Situation | Owner |
+|---|---|
+| A heat-transfer edge with a determinate direction | The circuit on the losing side |
+| Both sides in one circuit | That circuit |
+| One side against a boundary, the other in a circuit | The circuit side |
+| Otherwise | The lower circuit number, with `FS2216` (info) naming the ambiguity |
+
+The intuitive form of this rule is "the leftmost circuit owns it", and under `D-31` the losing side
+*is* the left one — but leftmost is a layout outcome, and `D-03` forbids Core from computing anything
+from geometry. Stated as enthalpy the rule is testable with no renderer, which is what makes the
+substation acceptance criterion ("the tag does not change when the two circuit blocks are swapped in
+the source") checkable at all.
+
+**Ownership is a tagging and grouping question, never a solver one.** No equation, unknown, datum or
+balance depends on it. A test asserts the solved state is identical with ownership forced either way,
+because an ownership rule that leaked into the physics would make a drawing convention change results.
+
 ### Hydraulically separate, thermally coupled
 
 A rated heat exchanger joins two streams that never mix, so a circuit containing one has **more than
@@ -420,6 +478,8 @@ individually reasonable and the interaction is invisible.
 | `FS2213` | Isolated subgraph | Error | `'{list}' are not connected to the rest of the circuit.` |
 | `FS2214` | Loop with no flow driver | Warning | `Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?` |
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
+| `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
+| `FS2217` | A subcircuit's attachment endpoint is in the same circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
 
 **`FS2214` is a warning, not info.** A loop with no driver is almost always a mis-placed pump — the
 mistake the cooling loop's own history records ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) —

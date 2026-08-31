@@ -5,7 +5,7 @@ tier: 10-language
 status: draft
 owns: [dimensions, unit symbol table, canonical script units, display units, coercion rules, Quantity type]
 depends_on: [02-glossary, 06-decision-log, 11-language-overview]
-traces_to: [R-04, R-45]
+traces_to: [R-04, R-45, R-48]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -182,6 +182,24 @@ One token of lookahead, which [`12-grammar`](12-grammar.md)'s invariant 5 permit
 
 **`C` for Celsius without the degree sign** is required — nobody types `°`. `20C` and `20 C` are both
 quantities; `C` alone, with no number before it, is an identifier.
+
+### World units are dimensionless, and `spacing` is the reason to say so
+
+`spacing 20` (`D-37`) takes a bare `number`, never a `quantity`. World units are the canvas
+coordinate system ([`02-glossary`](../00-foundation/02-glossary.md)); they are not metres, not
+millimetres, and not pixels, so no symbol in the table above denotes one and `spacing 20 mm` is
+`FS1113`.
+
+**The temptation is to accept `mm` and treat the canvas as a drawing at some scale**, and it must be
+refused. A P&I diagram is a schematic: the distance between a pump and a valve on the page has no
+relationship to the pipe length between them, and a unit that implied otherwise would invite a user
+to read dimensions off the diagram. It also keeps `spacing` clear of the dimensional algebra
+entirely — it is a presentation value carried through Core untouched, and giving it a dimension would
+put it into an expression system that has no business evaluating it.
+
+This is the same reasoning that makes `DN` its own dimension rather than a `Length`: a number that
+looks dimensional and is not causes a specific, silent class of error, and the type system is where
+that gets stopped.
 
 ## Canonical parameter units
 

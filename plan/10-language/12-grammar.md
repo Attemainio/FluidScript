@@ -3,9 +3,9 @@ id: 12-grammar
 title: Grammar
 tier: 10-language
 status: reviewed
-owns: [lexical grammar, syntactic grammar, reserved words, sections, AST node shapes, trivia model, schedule and catalog syntax]
+owns: [lexical grammar, syntactic grammar, reserved words, sections, AST node shapes, trivia model, schedule and catalog syntax, circuit numbering and attachment syntax, global directives, control-binding syntax]
 depends_on: [02-glossary, 06-decision-log, 11-language-overview, 13-type-and-unit-system]
-traces_to: [R-01, R-03, R-04, R-05, R-39]
+traces_to: [R-01, R-03, R-04, R-05, R-39, R-46, R-48, R-49]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -152,8 +152,13 @@ append-only-with-review, and a test asserts that no sample script's identifiers 
 
 ### Reserved words
 
-`fluidscript` · `circuit` · `fluid` · `dynamic` · `static` · `style` · `show` · `let` · `catalog` · `connections` ·
-`schedule`
+`fluidscript` · `project` · `circuit` · `fluid` · `dynamic` · `static` · `spacing` · `style` · `show` · `let` ·
+`catalog` · `connections` · `schedule` · `supply` · `return` · `control`
+
+Five words were added for `D-33`, `D-37` and `D-40`: `project`, `spacing`, `supply`, `return` and `control`.
+Each introduces a statement, so each must be recognisable from the first token — the same standard the original
+eleven meet. None collides with an identifier in any sample or reference circuit, which was checked before they
+were reserved rather than assumed.
 
 Reserved words may not be used as identifiers. The list is deliberately tiny (P6): component *kinds*
 like `heat_exchanger` are **not** reserved — they are looked up in the component registry at bind
@@ -192,13 +197,18 @@ impossible, and only the hyphen needs a diagnostic.
 
 ```ebnf
 script          = version-directive , { statement } ;
-statement       = circuit-header | fluid-directive | catalog-directive | style-directive
-                | show-directive | let-binding | component-decl
+statement       = project-directive | spacing-directive
+                | circuit-header | attachment | fluid-directive | catalog-directive | style-directive
+                | show-directive | let-binding | component-decl | control-binding
                 | connections-header | connection
                 | schedule-header | disturbance ;
 
 version-directive   = "fluidscript" , unsigned-integer ;
-circuit-header      = "circuit" , identifier ;
+project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
+spacing-directive   = "spacing" , number ;
+circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
+attachment          = ( "supply" | "return" ) , endpoint ;
+control-binding     = "control" , parameter , { parameter } ;
 fluid-directive     = "fluid" , [ "dynamic" | "static" ] , identifier ;
 catalog-directive   = "catalog" , identifier , [ "@" , catalog-version ] ;
 catalog-version     = unsigned-integer , "." , unsigned-integer ;
@@ -239,9 +249,19 @@ section), `connections`, and `schedule`. There are no braces and no `end`.
 | Statement | Declaration section | After `connections` | After `schedule` |
 |---|---|---|---|
 | Directives, `let` | ✓ | `FS1103` | `FS1103` |
+| `project`, `spacing` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` |
+| `circuit-header` | ✓ | `FS1103` | `FS1103` |
+| `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` |
 | `component-decl` | ✓ | ✓ | `FS1103` |
+| `control-binding` | ✓ | ✓ | `FS1103` |
 | `connection` | `FS1102` | ✓ | `FS1102` |
 | `disturbance` | `FS1106` | `FS1106` | ✓ |
+
+`attachment` and `control-binding` follow `component-decl` in being legal in both the declaration and
+connection sections, for the same reason: both name components, and a user writing topology naturally
+writes what attaches to what next to the connections it attaches through. A `circuit` header below
+`connections` is refused instead — it would begin a new circuit inside another circuit's topology,
+which has no reading at all.
 
 **A component declaration is legal after the `connections` header, and that is the change that makes
 the reference circuits parse.** Both write their boundary conditions below the topology:
@@ -270,10 +290,16 @@ in the declaration section, and the printer preserves whichever the user chose.
 Both `circuit coolingLoop` and `HE1 heat_exchanger` are two identifiers in a row, and inside the
 connection section so are `N1 node t=6` and `N1 - N2`. The rule:
 
-> If the first token of a line is a reserved word, the statement is the directive or section header
-> that word introduces. Otherwise, if the **second** token is `-`, the statement is a connection;
-> otherwise it is a component declaration. In the `schedule` section every non-reserved line is a
-> disturbance.
+> If the first token of a line is a reserved word, the statement is the directive, section header, or
+> statement that word introduces. Otherwise, if the **second** token is `-`, the statement is a
+> connection; otherwise it is a component declaration. In the `schedule` section every non-reserved
+> line is a disturbance.
+
+Every statement added by `D-33`, `D-37` and `D-40` is introduced by a reserved word, so all five fall
+into the rule's first clause and none of them costs a second token of lookahead. That was a
+constraint on their design, not a happy accident: a new statement form that could only be recognised
+by looking further ahead would break invariant 5, and the `in N3` shape rejected above is exactly
+what such a form looks like.
 
 **One token of lookahead, and no more.** The earlier rule used section position alone, which cannot
 separate a declaration from a connection once both are legal in the same section. One token keeps the
@@ -281,6 +307,90 @@ parser single-pass and keeps invariant 5 meaningful; unbounded lookahead is stil
 
 A connection written above the `connections` header still produces `FS1102` rather than a confusing
 "unknown component kind", because the second token is `-` and the section is wrong.
+
+### Circuit header and numbering
+
+`circuit groundSource 400` names a circuit and designates it 400. The number is optional: an omitted
+one is resolved by the binder, not the parser ([`15-semantic-model`](15-semantic-model.md)), as the
+lowest unused multiple of 100 in declaration order. A single-circuit script never writes a number and
+means exactly what it meant before this production existed (`D-33`).
+
+**A script may hold several circuit headers.** Each one begins a circuit; every declaration and
+connection that follows belongs to it until the next header. That makes the header a section marker
+in effect while remaining a directive in form — no braces, no `end`, consistent with the three
+existing section markers.
+
+The name doubles as the circuit's **role**, resolved through a registry rather than a keyword
+(`D-35`). `circuit AHU 101` is not a reserved word `AHU`; it is an identifier the binder looks up.
+The parser neither knows nor cares which roles exist, which is what lets the role set grow without a
+language version.
+
+### Subcircuit attachment
+
+```fluidscript
+circuit AHU 101
+HE1 duty in=50 out=30 power=24 kW
+TV1 three_way_valve
+PU1 pump
+
+supply N3        # takes flow from the parent circuit at N3
+return N5        # returns it to the parent at N5
+```
+
+Two statements, each a keyword and an endpoint, declaring where this circuit meets its parent
+(`D-33`). Both are optional; a circuit with neither stands alone. A circuit with exactly one produces
+a diagnostic, because a subcircuit that takes flow and never returns it is not a topology anyone
+means.
+
+**`in` and `out` were the obvious spelling and are lexically impossible.** `in N3` is a first token
+that is not reserved followed by a second token that is not `-`, so the disambiguation rule below
+classifies it as a component declaration: a component named `in`, of kind `N3`. It parses, it binds,
+and it is silently not what the user wrote. Reserving `in` and `out` would fix the parse and break
+`HE1 heat_exchanger in=20 out=50`, where the same two words are parameter names for inlet and outlet
+temperature — one word, two meanings, one document. `supply` and `return` collide with nothing and
+say what they mean, so the parser recognises the `in`/`out` shape only to reject it with `FS1109`.
+
+### Project and spacing directives
+
+```fluidscript
+fluidscript 1
+project dynamic plant_01
+spacing 20
+```
+
+`project [dynamic|static] <name>` names the project and sets the **default** solve mode for every
+circuit in the file (`D-37`). A circuit's own `fluid dynamic|static` still wins locally; the binder
+warns when the two disagree rather than picking silently, because both readings are defensible and
+the user should know which one they got.
+
+`spacing <number>` is a bare number in world units. It is presentation, not physics and not layout
+structure: the binder puts it in style settings and Core never reads it (`D-37`,
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md)'s invariant 1). It takes a plain `number`
+rather than a `quantity` deliberately — world units are not metres, and admitting `20 mm` here would
+invite the reader to believe the canvas has a physical scale.
+
+**Both must precede the first `circuit` header**, because both are file-global and a global statement
+appearing after the thing it governs reads as though it applied only from that point. `project` must
+also follow the version directive, which stays first so an unsupported file can be rejected before it
+is parsed ([`18-script-compatibility`](18-script-compatibility.md)).
+
+### Control binding
+
+```fluidscript
+PID1 pid kp=3
+control actuate=TV1 measure=N2.t by=PID1 setpoint=20
+```
+
+The controller *definition* is an ordinary component declaration and needs no production of its own —
+`pid`, `pi` and `p` resolve through the registry like any other kind. The **binding** is a new
+statement: the keyword `control` followed by named parameters, reusing the `parameter` production
+already defined for declarations (`D-40`).
+
+**Named, never positional.** `control TV1 N2.t PID1` would be shorter and is rejected: there is no
+memorable order for actuator, measurement and controller, and transposing two of them produces a
+model that binds, solves, and drives the wrong way. The four recognised names — `actuate`, `measure`,
+`by`, `setpoint` — and which are required are
+[`15-semantic-model`](15-semantic-model.md)'s to define; this document owns only the shape.
 
 ### Style directive
 
@@ -383,9 +493,82 @@ public abstract record SyntaxNode
 
 public sealed record ScriptSyntax(ImmutableArray<StatementSyntax> Statements) : SyntaxNode;
 
+/// <summary>A bare identifier: a component name, a kind name, a parameter name, a circuit name.</summary>
+/// <remarks><see cref="Text"/> is the spelling exactly as written. Normalisation for kind and
+/// parameter resolution happens at bind time (`D-15`) and never rewrites this.</remarks>
+public sealed record IdentifierSyntax(string Text) : SyntaxNode;
+
+/// <summary>A number with no unit symbol.</summary>
+/// <remarks><see cref="Text"/> retains the source spelling — <c>1.50</c>, <c>1.5</c> and <c>15e-1</c>
+/// are one value and three different strings, and the printer must reproduce the one written
+/// (`R-25`).</remarks>
+public sealed record NumberLiteralSyntax(double Value, string Text) : ExpressionSyntax;
+
+/// <summary>A number immediately or whitespace-separated from a unit symbol.</summary>
+/// <remarks><see cref="Unit"/> is the matched symbol as written, not its canonical spelling; the
+/// dimension it denotes is <see href="13-type-and-unit-system.md">13</see>'s.</remarks>
+public sealed record QuantityLiteralSyntax(double Value, string Text, string Unit) : ExpressionSyntax;
+
+/// <summary>A double-quoted string. Cannot span a newline (invariant 6).</summary>
+public sealed record StringLiteralSyntax(string Value) : ExpressionSyntax;
+
+/// <summary>Base of the expression hierarchy.</summary>
+/// <remarks>
+/// The literal leaves above are declared here because the statement productions in this document
+/// consume them directly. Operator, reference and range nodes belong to
+/// <see href="14-expressions-and-references.md">14</see>, which owns evaluation.
+/// </remarks>
+public abstract record ExpressionSyntax : SyntaxNode;
+
+/// <summary>Whether a fluid or a project is solved as an equilibrium or in time.</summary>
+public enum FluidMode { Static, Dynamic }
+
+/// <summary>Which side of a subcircuit's attachment a statement declares (`D-33`).</summary>
+public enum AttachmentDirection { Supply, Return }
+
 public abstract record StatementSyntax : SyntaxNode;
 
-public sealed record CircuitHeaderSyntax(IdentifierSyntax Name) : StatementSyntax;
+/// <summary>Begins a circuit. Every statement until the next header belongs to it.</summary>
+/// <remarks>
+/// <paramref name="Number"/> is the circuit designation as written; null when omitted, in which case
+/// the binder resolves one (`D-33`). The parser never invents a number — an absent number must stay
+/// distinguishable from a written one so the printer can reproduce the source byte for byte.
+/// <paramref name="Name"/> also carries the circuit's role, resolved against the role registry at
+/// bind time (`D-35`); the parser does not classify it.
+/// </remarks>
+public sealed record CircuitHeaderSyntax(
+    IdentifierSyntax Name,
+    NumberLiteralSyntax? Number) : StatementSyntax;
+
+/// <summary>Names the project and sets the file-wide default solve mode (`D-37`).</summary>
+/// <remarks><paramref name="Mode"/> is null when neither <c>dynamic</c> nor <c>static</c> was
+/// written, which leaves every circuit's own directive to decide.</remarks>
+public sealed record ProjectDirectiveSyntax(
+    FluidMode? Mode,
+    IdentifierSyntax Name) : StatementSyntax;
+
+/// <summary>Component spacing on the canvas, in world units (`D-37`).</summary>
+/// <remarks>A bare number, never a quantity: world units have no physical dimension, and accepting
+/// <c>20 mm</c> would imply the canvas has a scale it does not have.</remarks>
+public sealed record SpacingDirectiveSyntax(NumberLiteralSyntax Value) : StatementSyntax;
+
+/// <summary>Where a subcircuit meets its parent (`D-33`).</summary>
+/// <remarks>
+/// <c>Supply</c> takes flow from the parent, <c>Return</c> gives it back. The endpoint names a node
+/// in the parent circuit; whether it exists is a binder question, not a parser one.
+/// </remarks>
+public sealed record AttachmentSyntax(
+    AttachmentDirection Direction,        // Supply | Return
+    EndpointSyntax Endpoint) : StatementSyntax;
+
+/// <summary>Binds a declared controller to what it actuates and what it measures (`D-40`).</summary>
+/// <remarks>
+/// Arguments are named and order-independent, reusing <see cref="ParameterSyntax"/>. The parser
+/// accepts any set of names and any count; which names are recognised, which are required, and what
+/// each must resolve to are <see href="15-semantic-model.md">the binder's</see>.
+/// </remarks>
+public sealed record ControlBindingSyntax(
+    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax;
 
 public sealed record FluidDirectiveSyntax(
     FluidMode Mode,                       // Static (default) | Dynamic
@@ -493,6 +676,11 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1106` | Disturbance outside the `schedule` section | Error | `Put this under a 'schedule' line.` |
 | `FS1107` | `schedule` section under `fluid static` | Warning | `This circuit is solved as a steady state, so the schedule is ignored. Write 'fluid dynamic {substance}' to run it in time.` |
 | `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
+| `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'supply {node}' or 'return {node}'.` |
+| `FS1110` | `supply` or `return` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
+| `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1 measure=N2.t by=PID1'.` |
+| `FS1112` | `project` or `spacing` after the first `circuit` header, or a second of either | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
+| `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
@@ -501,6 +689,14 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 rather than retired**, because its trigger has widened rather than changed meaning: it still fires on
 a statement that is in the wrong section, and it no longer fires on a declaration below `connections`,
 which is now legal. No script that was accepted before is rejected now.
+
+**`FS1109` exists because the failure it prevents is silent.** `in N3` is a legal component
+declaration — a component named `in` of kind `N3` — so without this code the user gets an unknown-kind
+diagnostic pointing at `N3`, or, if a kind named `N3` ever existed, no diagnostic at all and a
+subcircuit that never attaches. The parser therefore recognises `in`/`out` followed by a single
+identifier at statement position and rejects it by name rather than letting the general rule classify
+it. This is the only place the parser looks at an identifier's spelling, and it is worth the
+exception: a wrong answer that compiles is the outcome `P3` exists to refuse.
 
 **`FS1203` is a warning about a comment, which sounds odd until you see the failure.** `style #2f6f9f
 2px fillet` under `D-13` comments out everything from `#`, leaving a `style` directive with no tokens
