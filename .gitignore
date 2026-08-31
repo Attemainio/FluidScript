@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local reference drawings — not redistributed (see plan/ for the layout conventions they informed)
+pictures/
