@@ -5,7 +5,7 @@ tier: 60-docs-and-devex
 status: draft
 owns: [test project layout, test tiers and traits, golden files, physical validation cases, assertion tolerances, frontend testing]
 depends_on: [03-repository-layout, 07-quality-attributes, 18-script-compatibility, 36-numerics-and-convergence, 61-documentation-plan]
-traces_to: [R-17, R-38, R-39, R-40, R-41, R-42, R-43, R-44, R-45]
+traces_to: [R-17, R-38, R-39, R-40, R-41, R-42, R-43, R-44, R-45, R-46, R-47, R-48, R-50]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -128,6 +128,12 @@ The tests that would catch a wrong model. Each asserts something true of reality
 | V15 | Mixed tank | `layers=1` step response against `T(t)=T_in+(T0−T_in)e^(−ṁt/m)` | 0.1 K |
 | V16 | Tank conservation | Integrated external mass/enthalpy equals stored change for multi-inlet/outlet storage header | conservation row in `07` |
 | V17 | Stratified tank | Layer refinement converges monotonically to an independently tabulated plug-displacement case; inversion remix preserves mass/enthalpy | monotone; conservation row in `07` |
+| V18 | Circuit partitioning | The distribution header binds three circuits; each subcircuit's flow sums to the parent's at the attachment nodes | conservation row in `07` |
+| V19 | Tag determinism | Tags are a function of declaration order alone: permuting connections changes no tag; inserting a declaration renumbers only its own `(circuit, code)` sequence and changes no identifier | exact |
+| V20 | Tag/quantity collision | No registered tag code produces a tag that lexes as a quantity literal | exact |
+| V21 | Two-sided ownership | The substation exchanger's owning circuit is unchanged when the two circuit blocks are swapped in the source | exact |
+| V22 | Spacing isolation | The model contract is byte-identical across two `spacing` values that visibly change placements | byte-exact |
+| V23 | Detached run continuity | Detaching a run for 200 frames and reattaching yields contiguous `sequence`, no second `base`, and correct backward scrubbing | exact |
 
 **V8 is the strongest test in the suite.** Two solvers sharing no numerical code arriving at the same
 answer is evidence neither is systematically wrong, which no amount of unit testing provides. It is

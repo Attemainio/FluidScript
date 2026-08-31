@@ -5,7 +5,7 @@ tier: 60-docs-and-devex
 status: reviewed
 owns: [CI pipeline, branch policy, public-repo requirements, README, licence, contribution flow, release]
 depends_on: [03-repository-layout, 61-documentation-plan, 62-testing-strategy]
-traces_to: [R-28, R-30, R-32]
+traces_to: [R-28, R-30, R-32, R-46, R-49]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -62,7 +62,11 @@ as F# `.fs` inputs.
 [`61-documentation-plan`](61-documentation-plan.md)'s enforcement, and the mechanism that makes `R-28`
 more than an intention:
 
-1. Every registered component kind, directive, and diagnostic code has a page or generated entry.
+1. Every registered component kind, **every reserved word that introduces a statement**, and every
+   diagnostic code has a page or generated entry. Enumerating the reserved-word list matters as much
+   as enumerating the component registry: `D-33`, `D-37` and `D-40` added five statements that are not
+   component kinds, and a gate that walked only the registry would have passed all five undocumented.
+   A retired diagnostic code is exempt and must be, or the gate demands a page for `FS1509`.
 2. Every `fluidscript` block in `/docs` compiles, or produces its annotated diagnostic.
 3. Generated pages match what the code would generate.
 4. Every function page has every template section.

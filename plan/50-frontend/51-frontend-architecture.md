@@ -5,7 +5,7 @@ tier: 50-frontend
 status: reviewed
 owns: [React/Vite structure, state management, the debounce pipeline, API layer, app shell layout]
 depends_on: [26-model-contract, 42-rest-contract, 43-realtime-contract]
-traces_to: [R-19, R-21, R-27, R-38, R-41, R-42]
+traces_to: [R-19, R-21, R-27, R-38, R-41, R-42, R-50, R-51]
 open_questions: 0
 last_review_pass: 2
 ---
@@ -66,6 +66,7 @@ frontend/src/
 | **Draft model** | Last successful static model, diagnostics, solve status, source hash | Replaced per draft response | No |
 | **Run** | Snapshot/source ids, reconstructed verified state, checkpoints, terminal reason | One explicit run | No |
 | **UI** | Theme, panel sizes, viewport | Session | localStorage |
+| **Workspace** | Open documents, tab order, `activeDocumentId` | Application | localStorage (ids and names only) |
 
 **The script lives in the editor, not in a global store.** CodeMirror owns its document, its undo
 history, and its cursor; mirroring that into React state means two sources of truth and a class of bug
@@ -77,9 +78,26 @@ send it, and never writes it except through an explicit edit transaction
 canvas keeps drawing the previous one (`R-05`). Blanking the diagram on every transient syntax error —
 which is most keystrokes — makes the tool feel broken.
 
+**Script, Draft model and Run are per document; UI and Workspace are global** (`D-39`). The first
+three are keyed by `documentId`, which is what lets a background tab keep a running transient while
+the visible one is recompiled. Viewport is deliberately in the *global* UI store rather than per
+document: a user switching tabs to compare two circuits wants the same view of both, and restoring a
+per-tab pan/zoom makes the comparison impossible.
+
+**Only the active document is fed by the debounce pipeline.** Switching cancels any in-flight compile
+for the outgoing document rather than letting it land — its result would be written to a store nothing
+is rendering, and it would race with the incoming document's first compile for the single-flight slot
+that invariant 3 guards.
+
+A background document's Run store keeps being updated by its own worker
+([`43-realtime-contract`](../40-api/43-realtime-contract.md)'s detached-run rules). That is the one
+place where a non-active document does work, and it is deliberate: stopping it would discard the run.
+
 State library: **Zustand**. The state is small, mostly flat, and mutated from outside React
 (WebSocket frames). Redux is ceremony at this size; Context re-renders too broadly for a canvas
-receiving frames at 1 Hz.
+receiving frames at 1 Hz. Per-document stores are slices keyed by `documentId` in one store rather
+than one store per document, so a tab close disposes its slice in a single action and cannot leak a
+subscription.
 
 ## The debounce pipeline
 
@@ -155,6 +173,8 @@ full state, so scrubbing to any t replays at most 59 deltas and remains within `
 ```
 ┌────────────────────────────────────────────────────────────┐
 │  toolbar: file · run · stop · theme · export               │
+├────────────────────────────────────────────────────────────┤
+│  tabs: plant_01 ● │ substation │ ahu-test ▸        (D-39)   │
 ├──────────────────────┬─────────────────────────────────────┤
 │                      │                                     │
 │   editor             │   canvas                            │
@@ -164,8 +184,38 @@ full state, so scrubbing to any t replays at most 59 deltas and remains within `
 │                      │   playback (visible during a run)   │
 ├──────────────────────┴─────────────────────────────────────┤
 │  log (collapsible, ~120 px)                                │
+├────────────────────────────────────────────────────────────┤
+│  status: ● Converged · steady solve · plant_01     (R-51)   │
 └────────────────────────────────────────────────────────────┘
 ```
+
+A tab shows its display name, a dirty marker (`●`), and a running marker (`▸`) when it owns an active
+transient. The running marker is what makes `D-39` legible: a user needs to see that a background tab
+is still working, or a run continuing after a switch is indistinguishable from a leak.
+
+### Status line
+
+One line, always present, stating what the solver is doing (`R-51`):
+
+| State | Shown | When |
+|---|---|---|
+| Converging | ◐ *Converging* | A steady solve or a transient run is in progress |
+| Converged | ● *Converged* | The last computation finished within tolerance |
+| Failed | ▲ *Did not converge* | Iteration cap, a stop condition, or a non-finite state |
+| Idle | ○ *Not solved* | A parsed draft with no solve attempted |
+
+**It names which computation it describes**, because there are three sources and they disagree
+routinely: a draft compile, a steady solve, and a specific transient run. "Converged" with no subject
+is unreadable in a workspace where a background tab is mid-transient and the visible one has a syntax
+error. The line reads `Converged · steady solve · plant_01`.
+
+**Shape and text carry the state; colour only reinforces it.** Green, amber and red are the obvious
+encoding and are not sufficient on their own under `R-42` — each state has a distinct glyph and a
+distinct word, and the automated check asserts the three are distinguishable in greyscale.
+
+Status for a **background** run is reachable from its tab's running marker rather than shown in the
+line, which always describes the active document. One line describing an invisible document's run
+would be worse than no line.
 
 Script left, drawing right — the brief's "renders natively next to the script". The split is
 resizable and its position persists. Mobile is out of scope: this is a design tool for a desktop screen,
@@ -196,6 +246,12 @@ implementation.
 6. Layout is recomputed only on a topology change.
 7. Canvas interactions (pan, zoom, hover) never trigger a network request.
 8. Draft and run stores share identifiers only, never a mutable model object.
+8a. Script, draft-model and run state are keyed by `documentId`; no store holds a value belonging to
+   more than one document (`D-39`).
+8b. A tab switch cancels the outgoing document's in-flight compile and starts no work for it
+   afterwards, except its own detached run's frame handling.
+8c. The status line always names the computation and document it describes, and its three states are
+   distinguishable without colour.
 9. Worker failure, snapshot/sequence/shape/checksum mismatch, or non-finite state stops playback and
    prevents the suspect commit; ordinary draft edits do not.
 

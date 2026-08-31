@@ -5,7 +5,7 @@ tier: 60-docs-and-devex
 status: draft
 owns: [the /docs tree, page templates, the documentation gate, LLM-readability conventions, generated pages]
 depends_on: [01-vision-and-scope, 22-component-model]
-traces_to: [R-28, R-29, R-30, R-44, R-45]
+traces_to: [R-28, R-29, R-30, R-44, R-45, R-46, R-47, R-48, R-49, R-50]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -61,21 +61,28 @@ docs/
 │
 ├── advanced/                    non-linear; each solves one real problem
 │   ├── mixing-circuits.md       three-way valves, bypass, authority
+│   ├── circuits-and-tags.md     numbering, subcircuits, how equipment tags are derived
 │   ├── discretized-pipes.md     nodes=, transport delay, the accuracy trade
 │   ├── control-loops.md         PI tuning, dead time, why it oscillates
 │   ├── stratified-storage.md    mixed layers, port elevations, source/load ordering
 │   ├── humid-air.md             psychrometrics, the dry-air enthalpy basis
 │   ├── sizing-strategy.md       what auto-sizing decides and what it does not
 │   ├── reading-diagnostics.md   every warning class and what to do about it
-│   └── troubleshooting.md       "it will not converge", "the sizes look wrong"
+│   ├── troubleshooting.md       "it will not converge", "the sizes look wrong"
+│   ├── plant-layout.md          headers, how the diagram is arranged, spacing
+│   └── working-in-tabs.md       several documents, what keeps running when you switch
 │
 ├── functions/                   reference. one page per thing. exhaustive.
 │   ├── index.md                 the complete list — the agent's entry point
 │   ├── circuit.md               ─┐
-│   ├── fluid.md                  │ directives
+│   ├── project.md                │ directives
+│   ├── spacing.md                │
+│   ├── fluid.md                  │
 │   ├── style.md                  │
 │   ├── show.md                   │
 │   ├── let.md                   ─┘
+│   ├── supply-return.md         ─┐ statements
+│   ├── control.md               ─┘
 │   ├── node.md                  ─┐
 │   ├── pipe.md                   │ components
 │   ├── heat-exchanger.md         │
@@ -84,6 +91,7 @@ docs/
 │   ├── pump.md                   │
 │   ├── tank.md                   │
 │   ├── controller.md            ─┘
+│   ├── tags.md                  [generated] every kind's tag code and an example tag
 │   ├── units.md                 [generated] every symbol, dimension, canonical unit
 │   ├── properties.md            [generated] every referenceable property
 │   ├── diagnostics.md           [generated] every FSxxxx code
@@ -106,6 +114,25 @@ and diagnostic code must have a page or a generated entry, and the build fails o
 
 This is the only mechanism that makes `R-28` real. A convention that documentation is required produces
 documentation for the first three features.
+
+### The gate covers statements and directives, not only components
+
+`D-33`, `D-37` and `D-40` added five statements — `project`, `spacing`, `supply`/`return` and
+`control` — and none of them is a component kind. The CI check must therefore enumerate the **reserved
+word list** as well as the component registry, or the gate passes on a language feature with no page
+at all. That is precisely how a documentation rule decays: it keeps working for the case it was
+written against and silently stops covering everything else.
+
+Two of the new pages are gates on *derived* behaviour rather than on syntax:
+
+- **`functions/tags.md` is generated from the registry** (`D-34`), like `units.md` and
+  `diagnostics.md`. A tag code is data, so a hand-written page would drift the first time a kind was
+  added. The generated page lists every kind's code and an example tag, and it is what a reader
+  matches against a drawing.
+- **`advanced/circuits-and-tags.md` must explain declaration order**, because that is the part users
+  will find surprising: inserting a pump renumbers every pump below it. The page states the rule, says
+  why topological numbering was rejected, and points at the explicit *Apply tags* command for anyone
+  who wants tags written into their script.
 
 ## The function-page template
 

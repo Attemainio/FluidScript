@@ -5,7 +5,7 @@ tier: 40-api
 status: draft
 owns: [WebSocket protocol, frame messages, backpressure, reconnection, run lifecycle]
 depends_on: [26-model-contract, 33-transient-time-domain, 41-api-architecture]
-traces_to: [R-19, R-12, R-40, R-41, R-45]
+traces_to: [R-19, R-12, R-40, R-41, R-45, R-50]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -132,6 +132,40 @@ socket drains one slot, the next outbound message is `{ "type": "lagging" }` bef
 it is emitted once per continuous full-channel episode. No platform-specific socket-buffer byte count
 participates in correctness.
 
+## A detached run keeps streaming
+
+When the user switches to another tab, that document's run **continues and its socket stays open**
+(`D-39`). Detaching removes work from the pipeline's tail, not its head:
+
+| Stage | Attached | Detached |
+|---|---|---|
+| Solver produces frames | ✓ | ✓ |
+| Socket delivers them | ✓ | ✓ |
+| Worker decodes, applies deltas, verifies checksums | ✓ | ✓ |
+| Worker retains checkpoints for scrubbing | ✓ | ✓ |
+| Worker computes colour scales and geometry | ✓ | **skipped** |
+| UI thread commits DOM | ✓ | **skipped** |
+
+**Decode and delta application must not be skipped, and that is the whole subtlety.** Frames are
+deltas against the previous frame (invariant 8), so a client that stops applying them cannot resume:
+it would hold state at frame 200 and a socket delivering frame 640, with no way to bridge the gap
+short of a reconnection and a fresh `base`. Skipping only the presentation stages keeps the state
+exact and makes reattaching a matter of preparing one render from state already in hand.
+
+The cost is honest and bounded: a detached run pays decode and delta application for frames nobody is
+watching. That is roughly the cheap half of the pipeline, it is already off the UI thread, and
+`07-quality-attributes` caps concurrent runs at two precisely so the total stays inside the retention
+budget. The alternative — dropping frames while detached — breaks invariant 7 and produces a run that
+cannot be scrubbed backwards through the gap.
+
+**Detaching is not backpressure and must not trigger the lagging path.** The worker keeps draining the
+socket at full rate; the bounded channel never fills for this reason. A detached run that reported
+itself lagging would slow the solver for a presentation stage that is deliberately switched off.
+
+Reattaching prepares a render from current state — no reconnection, no fresh `base`, no
+re-verification. The run's `sequence` continues unbroken across the switch, which is the acceptance
+criterion.
+
 ## Lifecycle
 
 ```
@@ -177,6 +211,10 @@ circuit takes seconds; restarting is cheaper than the machinery to avoid it.
 8. Applying every frame in order to `base` reproduces the state the server computed and its checksum.
 9. Solver integration runs only on the dedicated backend worker; frontend decode, delta application,
    scale and render preparation run only in the Web Worker; DOM commit alone runs on the UI thread.
+9a. Detaching a run skips colour-scale, geometry and DOM stages only. Decode, delta application and
+   checksum verification continue, so `sequence` stays contiguous across a detach/reattach and
+   invariants 3, 7 and 8 hold unchanged (`D-39`).
+9b. Detaching never triggers `lagging`, never changes the solver's rate, and never closes the socket.
 10. Every diagnostic occurrence starts once and clears at most once; applying events through frame N
     reproduces the server's active diagnostic set and complete intervals through that frame.
 11. Tank layer deltas key by immutable one-based layer index (`D-32`). A frame may update layer values but may
@@ -246,6 +284,13 @@ break invariant 3's no-gaps rule for no meaningful saving.
       playback and backward scrubbing; duplicate/missing occurrence events stop with `FS4507`.
 - [ ] Storage-header deltas update only changed tank layers and reconstruct all five exactly; an index
       0/6 or changed layer count stops the run as a shape mismatch.
+- [ ] Detaching a run mid-stream and reattaching 200 frames later yields contiguous `sequence` with no
+      gap, no reconnection, and no second `base`.
+- [ ] A detached run never emits `lagging`, and its frame rate is unchanged — measured against the
+      same run left attached.
+- [ ] Scrubbing backwards across the detached interval replays correctly from checkpoints.
+- [ ] A counting spy shows zero colour-scale and zero geometry calls while detached, and non-zero
+      decode and delta-application calls over the same interval.
 
 ## Open questions
 
