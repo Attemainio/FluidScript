@@ -104,7 +104,12 @@ public sealed record LayoutHints
     public required ImmutableDictionary<PortId, PortSide> PortSides { get; init; }
 
     /// <summary>Components forming each independent loop, in traversal order.</summary>
-    /// <remarks>A renderer can lay a loop out as a closed circuit rather than a tree.</remarks>
+    /// <remarks>
+    /// A renderer can lay a loop out as a closed circuit rather than a tree. This is deliberately an
+    /// <i>order</i> and not a set of positions: `D-44` forbids a component at a corner, so the
+    /// renderer has to size each perimeter to fit its members clear of the bends. A hint that named
+    /// positions would decide that sizing here, without knowing any symbol's extent.
+    /// </remarks>
     public required ImmutableArray<ImmutableArray<string>> Loops { get; init; }
 
     /// <summary>Orientation per loop, aligned by index with Loops.</summary>

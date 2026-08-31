@@ -1623,6 +1623,60 @@ a parameter is the form a reader predicts.
 
 ---
 
+## D-44 · A pipe turns on bare pipe; no component is ever placed at a corner
+
+**Accepted · 2026-09-01**
+
+**A corner carries no component. Ever.** Where a run changes direction, the turn is made on bare pipe,
+and every component — oriented or not, declared or inferred, node included — is placed on a straight
+section. This is a hard rule with no exceptions and no severity ladder: a layout that puts a component
+at a corner is a renderer invariant breach, not a degraded result.
+
+A **corner** is a point where a run changes direction and nothing branches. A **junction**, where three
+or more runs meet, is not a corner: a three-way valve belongs at its T because it *is* the junction,
+and a node belongs where connections actually meet. The rule constrains turns, not branches.
+
+When a placement would otherwise land a component on a corner, the renderer lengthens the affected run
+and reflows — deterministically, as it already does for overlap — until every component sits on a
+straight section. Running out of room is an invariant failure that surfaces as one; it is never
+resolved by placing the component anyway.
+
+**Why.** Two reasons, and the second is the one that matters.
+
+The first is that it looks wrong. A symbol at a bend absorbs a 90° turn in its own geometry: an
+exchanger's two passes stop being parallel, a pump's triangle points diagonally, a valve's bowtie
+becomes a chevron. A reader can no longer tell which way anything flows, at exactly the components they
+look at first.
+
+The second is that **it is wrong**. Plants are not built this way. Nobody welds an elbow into a pump
+casing or bends a plate exchanger around a corner; the turn is made in pipework and the equipment sits
+in a straight run, because that is what is fabricable, supportable and maintainable. A diagram that
+puts equipment in an elbow depicts an installation that cannot exist, and the whole point of this tool
+is that its output resembles the plant.
+
+Stated as a hard rule rather than a preference because a soft version has one outcome: it holds until
+the first cramped layout, then quietly stops holding, and the exception becomes the common case in
+exactly the dense diagrams where legibility matters most.
+
+**Rejected.**
+- *Allow it when space is tight, with a rotation penalty.* What a generic graph layout does, and it
+  always fits. Cost: the tight cases are the crowded ones, so the rule would be suspended precisely
+  where it is most needed, and the diagram degrades without saying so.
+- *Restrict it to oriented components, letting nodes sit on corners.* Nearly free — a node is a dot and
+  has no direction to get wrong. Cost: two rules where one would do, a per-kind exception list to
+  maintain, and the reflow machinery is needed anyway for the oriented case. A dot on a bend also
+  hides a real junction: a reader cannot tell a routing corner from a two-connection node.
+- *Leave it as a renderer guideline rather than a binding decision.* No decision-log entry, less
+  ceremony. Cost: `53`'s first version had no orientation policy at all and placed the cooling loop's
+  exchanger on a corner for exactly that reason. A guideline is what this already was.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md),
+[`59-static-export`](../50-frontend/59-static-export.md),
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md), `D-03`, `D-38`, and `R-48`.
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

@@ -134,6 +134,7 @@ The tests that would catch a wrong model. Each asserts something true of reality
 | V21 | Two-sided ownership | The substation exchanger's owning circuit is unchanged when the two circuit blocks are swapped in the source | exact |
 | V22 | Spacing isolation | Across two `spacing` values: everything Core computes — solved state, parameters with `source`/`basis`, graph, and all of `layout` — is byte-identical with `style` excluded, while `style.spacing` and the resulting placements both differ | byte-exact outside `style` |
 | V23 | Detached run continuity | Detaching a run for 200 frames and reattaching yields contiguous `sequence`, no second `base`, and correct backward scrubbing | exact |
+| V24 | Corner rule | Across every sample, reference circuit and the supported 200-component fixture, no placement's bounding box contains any route direction change that is not a branch; a deliberately crowded fixture reflows rather than violating it, and one crowded past the limit reports `FS5002` (`D-44`) | exact |
 
 **V8 is the strongest test in the suite.** Two solvers sharing no numerical code arriving at the same
 answer is evidence neither is systematically wrong, which no amount of unit testing provides. It is

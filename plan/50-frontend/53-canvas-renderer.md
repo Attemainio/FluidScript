@@ -212,20 +212,32 @@ diagram a designer recognises from one that is merely correct.
 | `pipe`, `node` | None — a node is a point, a pipe is the run itself | |
 | `controller` | Beside its actuator, offset perpendicular to that component's run | It is not in the flow path (`D-40`) and must not read as though it were |
 
-**The corner rule: an oriented component never sits at a *bend*.** A bend is where exactly two runs
-meet and the path simply turns. A component whose preferred orientation is vertical is placed on a
-vertical run, one whose orientation is horizontal on a horizontal run, and the layout allocates run
-length for them before it places bends.
+**The corner rule (`D-44`): a pipe turns on bare pipe. No component is ever placed at a corner.**
 
-**A junction is not a bend, and the distinction is the whole rule.** Where three or more runs meet, a
+This is a hard rule. It admits no component of any kind — oriented or not, declared or inferred, node
+included — and no exception for a cramped layout. A corner is a point where a run changes direction
+and nothing branches; the turn is made on empty pipe and every component sits on a straight section.
+
+**A junction is not a corner, and the distinction is the whole rule.** Where three or more runs meet, a
 junction *element* — a three-way valve, a tee — belongs exactly there, because it **is** the junction.
-Placing it beside the meeting point would mean drawing a bare tee and then a valve next to it, which
-is both longer and wrong. The cooling loop's `3WV` sits at such a T and is correctly placed;
-`23-topology-and-graph`'s flow-group test already names precisely these components, so the renderer
-does not have to guess which they are.
+Placing it beside the meeting point would mean drawing a bare tee and then a valve next to it, which is
+both longer and wrong. The cooling loop's `3WV` sits at such a T and is correctly placed;
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md)'s flow-group test already names
+precisely these components, so the renderer does not have to guess which they are. A node placed where
+connections genuinely meet is a junction for the same reason.
 
-So: **bends carry no oriented component; junctions carry their junction element; runs carry
-everything else.** Nodes are exempt everywhere, having no direction to get wrong.
+So: **corners carry nothing; junctions carry their junction element; straight runs carry everything
+else.**
+
+**When it cannot be satisfied, the layout reflows — it does not compromise.** A placement that would
+land a component on a corner lengthens the affected run and re-runs steps 7–9, deterministically, the
+same machinery overlap resolution already uses. Exhausting that is a renderer invariant failure
+reported as one (`FS5002`), never a diagram with a pump in an elbow.
+
+`D-44` records why this is binding rather than advisory: the soft version holds until the first
+cramped layout and then stops holding, in exactly the dense diagrams where legibility matters most.
+And the rule is not only aesthetic — nobody welds an elbow into a pump casing, so a diagram that does
+depicts an installation that cannot be built.
 
 **This is not cosmetic.** A symbol at a corner has one port on each of two perpendicular runs, so its
 own geometry has to absorb a 90° turn: the exchanger's two passes stop being parallel, the pump's
@@ -362,9 +374,11 @@ first impression a user forms.
 3. No symbol overlaps another for a model inside `07`'s supported scale after mandatory initial
    collapse has been applied.
 4. Every connection route starts and ends at a port anchor.
-4a. No oriented component is placed at a two-run bend. A junction element (`hints` flow groups of
-   three or more ports) is placed *at* its junction; every other oriented component is placed on a run
-   matching its default orientation unless a stated hint overrides it. Nodes are exempt.
+4a. **No component of any kind is placed at a corner** — a direction change with no branch (`D-44`).
+   There is no exception for nodes, for inferred components, or for a layout that has run out of room.
+4b. A junction element (a flow group of three or more ports) is placed *at* its junction. Every other
+   component is placed on a straight run matching its default orientation unless a stated hint
+   overrides the orientation — the orientation is overridable, the corner rule is not.
 5. Rendering a model with `solved: false` succeeds, showing topology with no state.
 6. The prepared scene contains every symbol, route, label, state, and provenance input required by
    [`59-static-export`](59-static-export.md), with no second drawing implementation.
@@ -375,6 +389,7 @@ first impression a user forms.
 | Situation | Behaviour |
 |---|---|
 | A supported post-collapse model would overlap | Deterministically increase stage/row spacing and reflow until clear; failure is a renderer invariant breach, not a degraded success |
+| A placement would land a component on a corner | Lengthen the affected run and reflow deterministically until every component sits on a straight section; exhausting that is `FS5002`, a renderer invariant breach (`D-44`) |
 | An unsupported/degraded model still overlaps after collapse/reflow | Place deterministically with overlap, log `FS5001` (warning), mark the scene degraded, and never present it as satisfying the supported layout gate |
 | A route cannot avoid crossing a symbol | Route through it, drawn beneath — a visible imperfection beats a missing connection |
 | Model exceeds 500 rendered elements | Collapse every collapsible group; groups over 10 members start collapsed even below the scene limit (`FS2402`) |
@@ -420,12 +435,19 @@ rule reserves the four bends for routing:
 
 | Component | Position | On | Port sides |
 |---|---|---|---|
-| `N2` | (0, 0) | top run, above `3WV` | — (a node has no sides) |
-| `PU1` | (240, 0) | top run | in West, out East — **horizontal** |
-| `PU1__HE1` | (400, 0) | top run | — |
-| `HE1` | (480, −120) | **right run** | in North, out South — **vertical** |
-| `HE1__3WV` | (400, −240) | bottom run | — |
-| `3WV` | (0, −240) | bottom run, at the T | a East, b North, c West |
+| `N2` | (0, 0) | **junction** — `N1` west, recirculation south, `PU1` east | — (a node has no sides) |
+| `PU1` | (240, 0) | straight run | in West, out East — **horizontal** |
+| `PU1__HE1` | (400, 0) | straight run | — |
+| `HE1` | (480, −120) | **straight run**, midpoint of the right side | in North, out South — **vertical** |
+| `HE1__3WV` | (400, −240) | straight run | — |
+| `3WV` | (0, −240) | **junction** — return east, recirculation north, primary west | a East, b North, c West |
+| *(none)* | (480, 0) | **corner** | — |
+| *(none)* | (480, −240) | **corner** | — |
+
+The last two rows are the point. Both corners are empty, and every one of the six components sits on
+either a straight run or a genuine three-way junction (`D-44`). `N2` and `3WV` are at junctions
+because three runs actually meet there, not because nodes and valves get an exemption — there is
+none.
 
 **`HE1` sits at the midpoint of the right run, not on a corner.** An exchanger is drawn vertically
 (above), and the two right-hand bends at (480, 0) and (480, −240) carry the turns. Placing it on the
@@ -496,8 +518,14 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 ## Acceptance criteria
 
 - [ ] The worked example produces the placement above, deterministically across 100 runs.
-- [ ] `HE1` renders vertically at the midpoint of the loop's right run; no oriented component in any
-      sample or reference circuit lands on a two-run bend.
+- [ ] `HE1` renders vertically at the midpoint of the loop's right run.
+- [ ] **No component of any kind sits at a corner in any sample, reference circuit, or the supported
+      200-component fixture** — asserted by walking every route's direction changes and checking each
+      against every placement's bounding box. A node at a corner fails this test exactly as a pump
+      does (`D-44`).
+- [ ] A fixture deliberately crowded enough to force the issue reflows to a clear layout rather than
+      placing a component on a corner, and a fixture crowded past that limit reports `FS5002` rather
+      than rendering one.
 - [ ] `3WV` renders at the T where the return, the recirculation and the primary outlet meet, not
       beside it.
 - [ ] The cooling loop's primary return runs west along the return line to `N3`; no sample places a

@@ -65,6 +65,11 @@ for no reason", and it is the reason tags may be exported at all. It does not em
 1. SVG is standalone: no network, external CSS, script, or unavailable font is required.
 2. SVG and PNG resolve the same Core symbols, placements, routes, state, diagnostics, and theme.
 3. Export never invents geometry or engineering data absent from the model/scene.
+3a. No component appears at a corner in an exported diagram (`D-44`). This needs no separate
+   enforcement — export serializes the same `PreparedScene` the canvas draws, so a violation would
+   already have failed `53`'s invariant — but it is asserted on the export path too, because the
+   exported file is the artefact that outlives the session and gets read by someone who cannot
+   re-render it.
 4. Unsolved values are absent/labelled “not solved”, never serialized as zero.
 5. Component ids remain searchable and unique; text and warning meaning are not conveyed by colour alone.
 5a. A component's visible label is its equipment tag where it has one, and its id otherwise (`D-34`).
