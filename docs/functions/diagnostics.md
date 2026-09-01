@@ -42,7 +42,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 ## Codes
 
 <!-- BEGIN GENERATED: diagnostic-codes -->
-| Code | Severity | Reported by | Message |
+| Code | Severity | About | Message |
 |---|---|---|---|
 | `FS1001` | Error | Lexer | Unterminated string; add a closing quote. |
 | `FS1002` | Error | Lexer | '{ch}' is not valid here. |

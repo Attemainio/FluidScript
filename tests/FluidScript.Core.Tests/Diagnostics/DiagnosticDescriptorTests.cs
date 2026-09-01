@@ -6,17 +6,17 @@ public sealed class DiagnosticDescriptorTests
 {
     [Theory]
     [Trait("Category", "Unit")]
-    [InlineData("FS1002", DiagnosticStage.Lexer)]
-    [InlineData("FS1302", DiagnosticStage.Units)]
-    [InlineData("FS1509", DiagnosticStage.Binder)]
-    [InlineData("FS4001", DiagnosticStage.DesignWarning)]
-    [InlineData("FS4501", DiagnosticStage.Realtime)]
-    [InlineData("FS9001", DiagnosticStage.Internal)]
-    public void Stage_IsDerivedFromTheCode(string code, DiagnosticStage expected)
+    [InlineData("FS1002", DiagnosticArea.Lexer)]
+    [InlineData("FS1302", DiagnosticArea.Units)]
+    [InlineData("FS1509", DiagnosticArea.Binder)]
+    [InlineData("FS4001", DiagnosticArea.DesignWarning)]
+    [InlineData("FS4501", DiagnosticArea.Realtime)]
+    [InlineData("FS9001", DiagnosticArea.Internal)]
+    public void Area_IsDerivedFromTheCode(string code, DiagnosticArea expected)
     {
         var descriptor = new DiagnosticDescriptor(code, DiagnosticSeverity.Error, "Something is wrong.");
 
-        Assert.Equal(expected, descriptor.Stage);
+        Assert.Equal(expected, descriptor.Area);
     }
 
     [Theory]
@@ -38,8 +38,8 @@ public sealed class DiagnosticDescriptorTests
     public void Constructor_CodeInAnUnallocatedRange_Throws()
     {
         // FS41xx sits inside the design-warning family's reserved block but is not an allocated
-        // stage. Taking a code from it would file the message under a stage nobody can name, which
-        // is the first question anyone debugging asks.
+        // area. Taking a code from it would file the message under a subject nobody can name, which
+        // is what a reader follows to find the rule behind the message.
         var exception = Assert.Throws<ArgumentException>(() =>
             new DiagnosticDescriptor("FS4101", DiagnosticSeverity.Warning, "Something is wrong."));
 

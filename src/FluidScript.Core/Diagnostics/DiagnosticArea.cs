@@ -1,24 +1,31 @@
 namespace FluidScript.Core.Diagnostics;
 
 /// <summary>
-/// The pipeline stage that produces a family of diagnostic codes.
+/// What a family of diagnostic codes is about.
 /// </summary>
 /// <remarks>
 /// <para>
 /// <strong>The numeric value of each member is the first two digits of its code range</strong>, and
 /// that is load-bearing rather than incidental: <c>FS1002</c> divided by 100 is 10, which is
-/// <see cref="Lexer"/>. A descriptor therefore derives its stage from its code instead of being told
-/// it, so the two can never disagree — the failure this removes is a code filed under the wrong
-/// stage, which is invisible until someone debugging asks the first question they always ask, namely
-/// which stage produced this.
+/// <see cref="Lexer"/>. A descriptor therefore derives its area from its code instead of being told
+/// it, so the two can never disagree — the failure this removes is a code filed under an area it does
+/// not belong to, which is invisible until a reader follows the message to the wrong rule.
 /// </para>
 /// <para>
-/// There is no zero member. Stage 0 is not an allocated range, so a <c>default</c> value would be a
-/// stage that cannot exist. The range table is owned by
+/// <strong>An area is a subject, not the code path that raised the diagnostic</strong> (<c>D-53</c>).
+/// <see cref="Units"/> messages are raised by the binder's evaluator, <see cref="ModelContract"/> ones
+/// during lowering, and <see cref="DesignWarning"/> ones by whichever computation ran last. Even
+/// <see cref="Lexer"/> is a subject: <c>FS1003</c> is a lexical collision that only the parser can
+/// notice, because <c>3K</c> is three kelvin everywhere — including in <c>let x = 3K</c>, where that is
+/// correct — and only the parser knows a token is standing where a name belongs.
+/// </para>
+/// <para>
+/// There is no zero member. Area 0 is not an allocated range, so a <c>default</c> value would be an
+/// area that cannot exist. The range table is owned by
 /// <c>plan/10-language/16-diagnostics.md</c>; adding a range means adding a member here.
 /// </para>
 /// </remarks>
-public enum DiagnosticStage
+public enum DiagnosticArea
 {
     /// <summary>Characters to tokens. <c>FS10xx</c>.</summary>
     Lexer = 10,
@@ -94,7 +101,7 @@ public enum DiagnosticStage
 
     /// <summary>The tool itself failed. <c>FS90xx</c>.</summary>
     /// <remarks>
-    /// The one stage whose messages may use internal vocabulary, because they are bug reports rather
+    /// The one area whose messages may use internal vocabulary, because they are bug reports rather
     /// than statements about the user's script.
     /// </remarks>
     Internal = 90,

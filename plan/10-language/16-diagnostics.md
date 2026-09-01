@@ -32,10 +32,12 @@ displayed ([`52-editor`](../50-frontend/52-editor.md),
 
 ## Code ranges
 
-Codes are `FS` + four digits. The range says which stage produced it, which is the first thing anyone
-debugging wants to know.
+Codes are `FS` + four digits. The range says **what the message is about**, and the owner column says
+which document defines it (`D-53`). It does not say which code path emitted the diagnostic, and a
+reader should not infer one: `FS1003` is a lexical rule raised by the parser, and an `FS40xx`
+plausibility warning is raised by whichever computation ran last.
 
-| Range | Stage | Owner |
+| Range | Subject | Owner |
 |---|---|---|
 | `FS10xx` | Lexer | [`12-grammar`](12-grammar.md) |
 | `FS11xx` | Parser | [`12-grammar`](12-grammar.md) |
@@ -66,10 +68,18 @@ inside it as `FS43xx`, which reads as one. They are `FS45xx` instead, leaving `F
 design-warning family. A reader who sees `FS4` should be able to assume "something about the design"
 without checking.
 
-**The range is not metadata beside the code; it is derived from it.** A descriptor's owning stage is
-computed from the code's first two digits, so a code cannot be filed under a stage it does not belong
-to, and a code in an unallocated range — `FS41xx`, inside the design-warning block but not assigned —
-fails at construction rather than being silently accepted. Adding a range means adding a stage.
+**The range is not metadata beside the code; it is derived from it.** A descriptor's area is computed
+from the code's first two digits, so a code cannot be filed under an area it does not belong to, and a
+code in an unallocated range — `FS41xx`, inside the design-warning block but not assigned — fails at
+construction rather than being silently accepted. Adding a range means adding an area.
+
+**The area is not the emitter, and three of these ranges make that plain** (`D-53`). `FS13xx` is about
+units and is raised by the binder's evaluator; `FS25xx` is about the model contract and is raised
+during lowering; `FS1003` is about a lexical collision and can only be raised by the parser, because
+`3K` is three kelvin everywhere — including in `let x = 3K`, where that is correct — and only the
+parser knows a token is standing where a name belongs. Grouping by subject is what makes the ranges
+useful to a *reader*, who has a message and wants the rule behind it; grouping by emitter would serve
+only a debugger, who already has a stack trace.
 
 **Codes are permanent.** A code is never reused for a different meaning and never renumbered, because
 scripts, tests, `/docs` pages, and agent prompts all reference them. A retired code is marked retired

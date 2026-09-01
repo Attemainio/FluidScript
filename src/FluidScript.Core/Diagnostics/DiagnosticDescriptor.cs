@@ -40,7 +40,7 @@ public sealed class DiagnosticDescriptor
     /// </param>
     /// <exception cref="ArgumentException">
     /// The code is not <c>FS</c> plus four digits, its first two digits are not an allocated
-    /// <see cref="DiagnosticStage"/>, the template is blank, or the template's braces are unbalanced
+    /// <see cref="DiagnosticArea"/>, the template is blank, or the template's braces are unbalanced
     /// or name an empty placeholder. Each of these is a mistake in the descriptor's own source rather
     /// than in a script, so it fails at construction — which happens once, as the registry is built.
     /// </exception>
@@ -49,7 +49,7 @@ public sealed class DiagnosticDescriptor
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
         ArgumentException.ThrowIfNullOrWhiteSpace(messageTemplate);
 
-        Stage = StageOf(code);
+        Area = AreaOf(code);
         Code = code;
         Severity = severity;
         MessageTemplate = messageTemplate;
@@ -74,11 +74,12 @@ public sealed class DiagnosticDescriptor
     /// <value>The template as written, which is the form the generated <c>/docs</c> page shows.</value>
     public string MessageTemplate { get; }
 
-    /// <summary>Gets the pipeline stage that owns this code.</summary>
+    /// <summary>Gets what this code is about.</summary>
     /// <value>
-    /// Derived from <see cref="Code"/> rather than supplied, so a code and its stage cannot disagree.
+    /// Derived from <see cref="Code"/> rather than supplied, so a code and its area cannot disagree.
+    /// This is the code's subject, not the stage that emits it (<c>D-53</c>).
     /// </value>
-    public DiagnosticStage Stage { get; }
+    public DiagnosticArea Area { get; }
 
     /// <summary>Gets the placeholder names the template expects, in order of first appearance.</summary>
     /// <value>
@@ -129,7 +130,7 @@ public sealed class DiagnosticDescriptor
         return $"{{{name}}}";
     }
 
-    private static DiagnosticStage StageOf(string code)
+    private static DiagnosticArea AreaOf(string code)
     {
         if (code.Length != CodeLength
             || !code.StartsWith(CodePrefix, StringComparison.Ordinal)
@@ -144,12 +145,12 @@ public sealed class DiagnosticDescriptor
                 nameof(code));
         }
 
-        var stage = (DiagnosticStage)(digits / 100);
+        var stage = (DiagnosticArea)(digits / 100);
         if (!Enum.IsDefined(stage))
         {
             throw new ArgumentException(
                 $"'{code}' falls in the unallocated range FS{digits / 100:D2}xx. Allocate the range as "
-                + $"a {nameof(DiagnosticStage)} member before taking a code from it.",
+                + $"a {nameof(DiagnosticArea)} member before taking a code from it.",
                 nameof(code));
         }
 

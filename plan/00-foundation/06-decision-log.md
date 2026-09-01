@@ -2080,6 +2080,60 @@ word and falls in the disambiguation rule's first clause.
 
 **Constrains.** [`12-grammar`](../10-language/12-grammar.md).
 
+## D-53 · A code range names the subject, not the stage that emitted it
+
+**Accepted · 2026-09-01**
+
+[`16-diagnostics`](../10-language/16-diagnostics.md)'s range table classifies a code by **what the
+message is about**, and by the document that defines it — the `Owner` column it already carries. It
+does not name the code path that produced the diagnostic, and never did.
+
+`DiagnosticStage` in Core is renamed `DiagnosticArea`, and `Diagnostic`'s and
+`DiagnosticDescriptor`'s `Stage` becomes `Area`.
+
+**Why.** `16` said "the range says which stage produced it, which is the first thing anyone debugging
+wants to know", and that sentence is false for at least six of its twenty-three ranges:
+
+| Range | Says | Actually emitted by |
+|---|---|---|
+| `FS10xx` | Lexer | the lexer — except `FS1003` and `FS1004`, which only the parser can raise |
+| `FS12xx` | Style directive | the parser, and the binder for the categories |
+| `FS13xx` | Units and dimensions | the binder's evaluator |
+| `FS14xx` | Expressions and references | the binder |
+| `FS25xx` | Model contract serialization | lowering |
+| `FS40xx` | Physical plausibility warnings | whatever ran last — `FS4001` compares a *solved* node temperature against a freezing point |
+
+`FS1003` is the clearest case and the one that surfaced this. It fires on an identifier that reads as
+a quantity, and the lexer cannot raise it: `3K` is three kelvin everywhere, including in `let x = 3K`
+where that is exactly right, and only the parser knows a token stands where a name belongs. Filing it
+under the parser would fix that one code and leave the other five ranges lying.
+
+The subject reading needs no renumbering and no code moves, because it is what the table was already
+doing — every row's `Owner` is the document that defines the rule, and every row's middle column is
+the rule's subject. Only the sentence claiming otherwise, and a C# type named after it, were wrong.
+
+**What this does not change.** The range is still derived from the code's first two digits rather than
+stored beside it, so a code still cannot be filed under an area it does not belong to, and a code in an
+unallocated range still fails at construction. Codes are still permanent and never renumbered.
+`FS90xx` is still the one area exempt from the message style rules, because its messages are bug
+reports rather than statements about a script.
+
+**Rejected.**
+- *Keep "stage" and renumber `FS1003` and `FS1004` into `FS11xx`.* Cheap now, since neither has
+  shipped. Cost: it fixes two rows and leaves four ranges still naming a stage that does not emit
+  them, and `FS40xx` cannot be fixed this way at all — a plausibility warning is raised by sizing, by
+  the steady solver and by the transient one, so there is no single stage to file it under. The rule
+  would be true of the codes anyone checked and false of the rest, which is the state it is in now.
+- *Add a second, separate "emitted by" field alongside the range.* Records both facts. Cost: it is
+  metadata beside the code rather than derived from it, so it can disagree with reality silently —
+  precisely the failure `16` designed the derived range to remove — and nothing consumes it. The one
+  place the emitting stage genuinely matters is a stack trace, which already has it.
+- *Leave the sentence and rename nothing.* Zero work. Cost: a type called `DiagnosticStage` with a
+  member called `Parser` will be read as "the parser emitted this" by every future session, and two
+  of them have already had to work out that it does not mean that.
+
+**Constrains.** [`16-diagnostics`](../10-language/16-diagnostics.md).
+
 ---
 
 ## Adding an entry

@@ -32,7 +32,7 @@ public static class DiagnosticsPage
 
     /// <summary>Renders the table of live codes.</summary>
     /// <returns>
-    /// A markdown table, one row per code, ordered by code. When no stage emits a diagnostic yet, a
+    /// A markdown table, one row per code, ordered by code. When nothing reports a diagnostic yet, a
     /// sentence saying so — an empty table with a header and no rows reads as a broken page.
     /// </returns>
     public static string RenderCodes()
@@ -43,13 +43,13 @@ public static class DiagnosticsPage
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine("| Code | Severity | Reported by | Message |");
+        builder.AppendLine("| Code | Severity | About | Message |");
         builder.AppendLine("|---|---|---|---|");
 
         foreach (var descriptor in DiagnosticRegistry.All)
         {
             builder.AppendLine(CultureInfo.InvariantCulture,
-                $"| `{descriptor.Code}` | {descriptor.Severity} | {Readable(descriptor.Stage)} | {Cell(descriptor.MessageTemplate)} |");
+                $"| `{descriptor.Code}` | {descriptor.Severity} | {Readable(descriptor.Area)} | {Cell(descriptor.MessageTemplate)} |");
         }
 
         return builder.ToString().TrimEnd();
@@ -79,9 +79,11 @@ public static class DiagnosticsPage
 
     private static string Cell(string text) => text.Replace("|", @"\|", StringComparison.Ordinal);
 
-    private static string Readable(DiagnosticStage stage)
+    // The column says what the message is about, never which stage raised it: FS1003 is a lexical
+    // rule the parser reports, and a plausibility warning is reported by whatever ran last (D-53).
+    private static string Readable(DiagnosticArea area)
     {
-        var name = stage.ToString();
+        var name = area.ToString();
         var builder = new StringBuilder(name.Length + 2);
 
         for (var index = 0; index < name.Length; index++)

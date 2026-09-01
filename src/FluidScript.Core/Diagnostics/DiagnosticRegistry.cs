@@ -28,7 +28,7 @@ public static class DiagnosticRegistry
 
     static DiagnosticRegistry()
     {
-        All = [.. Stages().OrderBy(static descriptor => descriptor.Code, StringComparer.Ordinal)];
+        All = [.. Areas().OrderBy(static descriptor => descriptor.Code, StringComparer.Ordinal)];
         Retired = [.. RetiredCodes().OrderBy(static retired => retired.Code, StringComparer.Ordinal)];
 
         var duplicate = All.GroupBy(static descriptor => descriptor.Code, StringComparer.Ordinal)
@@ -97,12 +97,13 @@ public static class DiagnosticRegistry
     public static bool IsRetired(string code) =>
         Retired.Any(retired => string.Equals(retired.Code, code, StringComparison.Ordinal));
 
-    /// <summary>Collects the descriptors each stage owns.</summary>
+    /// <summary>Collects the descriptors each work package registers.</summary>
     /// <remarks>
     /// One entry per work package, added by that package: the lexer's codes arrived with the lexer,
-    /// and the parser's arrive with the parser.
+    /// and the parser's arrive with the parser. A descriptor lands with whatever emits it, which is
+    /// not always the area its code belongs to (<c>D-53</c>).
     /// </remarks>
-    private static IEnumerable<DiagnosticDescriptor> Stages() => [.. LexerDiagnostics.All];
+    private static IEnumerable<DiagnosticDescriptor> Areas() => [.. LexerDiagnostics.All];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>
     private static IEnumerable<RetiredDiagnostic> RetiredCodes() =>

@@ -27,7 +27,7 @@ public static class MessageStyleRules
     /// <summary>Terms rule 6 keeps out of a message about a user's script.</summary>
     /// <remarks>
     /// The user wrote a line of text; the message is about that line. Internal vocabulary belongs to
-    /// the <see cref="DiagnosticStage.Internal"/> range, whose messages are bug reports and are
+    /// the <see cref="DiagnosticArea.Internal"/> range, whose messages are bug reports and are
     /// therefore exempt.
     /// </remarks>
     public static readonly ImmutableArray<string> BannedJargon =
@@ -91,7 +91,7 @@ public static class MessageStyleRules
             violations.Add("rule 1: a message is ordinary prose, with single spaces between words.");
         }
 
-        if (descriptor.Stage != DiagnosticStage.Internal)
+        if (descriptor.Area != DiagnosticArea.Internal)
         {
             violations.AddRange(
                 BannedJargon
