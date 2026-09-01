@@ -103,7 +103,8 @@ public static class DiagnosticRegistry
     /// and the parser's arrive with the parser. A descriptor lands with whatever emits it, which is
     /// not always the area its code belongs to (<c>D-53</c>).
     /// </remarks>
-    private static IEnumerable<DiagnosticDescriptor> Areas() => [.. LexerDiagnostics.All];
+    private static IEnumerable<DiagnosticDescriptor> Areas() =>
+        [.. LexerDiagnostics.All, .. ParserDiagnostics.All];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>
     private static IEnumerable<RetiredDiagnostic> RetiredCodes() =>

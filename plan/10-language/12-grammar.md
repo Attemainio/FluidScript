@@ -286,6 +286,8 @@ section), `connections`, and `schedule`. There are no braces and no `end`.
 | Directives, `let` | ✓ | `FS1103` | `FS1103` |
 | `project`, `spacing` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` |
 | `circuit-header` | ✓ | ✓ — ends the section (`D-52`) | ✓ — ends the section (`D-52`) |
+| `connections-header` | ✓ | `FS1101` | `FS1103` (`D-56`) |
+| `schedule-header` | ✓ | ✓ — the usual position (`D-56`) | `FS1101` |
 | `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` |
 | `component-decl` | ✓ | ✓ | `FS1103` |
 | `control-binding` | ✓ | ✓ | `FS1103` |
@@ -331,9 +333,13 @@ Both `circuit coolingLoop` and `HE1 heat_exchanger` are two identifiers in a row
 connection section so are `N1 node t=6` and `N1 - N2`. The rule:
 
 > If the first token of a line is a reserved word, the statement is the directive, section header, or
-> statement that word introduces. Otherwise, if the **second** token is `-`, the statement is a
+> statement that word introduces. Otherwise, if the **second** token is `-` or `.`, the statement is a
 > connection; otherwise it is a component declaration. In the `schedule` section every non-reserved
 > line is a disturbance.
+
+`.` is in that clause because a connection's first endpoint may be port-qualified — `3WV.b - N3`
+(`D-56`). It costs no extra lookahead, and nothing else can put a `.` in second position: a component
+declaration is two identifiers, and a name cannot contain a dot.
 
 Every statement added by `D-33`, `D-37` and `D-40` is introduced by a reserved word, so all five fall
 into the rule's first clause and none of them costs a second token of lookahead. That was a
@@ -485,8 +491,15 @@ after an `@` would make the lexer position-sensitive, which invariant 5 exists t
 therefore splits `CatalogVersionSyntax`'s major and minor out of the number's *source text* rather than
 its value, which is also the only way `@2026.10` stays distinguishable from `@2026.1`. The version is optional so a draft may track
 the shipped version of a named catalogue, but a durable reproducible design should pin it. v1 has no
-catalogue preference list: a second identifier is `FS1101`. With no directive, the shipped default
+catalogue preference list: a second identifier is `FS1114`. With no directive, the shipped default
 applies and `FS2606` reports its exact id and version.
+
+**That code was `FS1101` and could not have been**, which is worth recording rather than quietly
+correcting. `FS1101`'s message is *"Only the first '{section}' section is used"*, about a duplicated
+`connections` or `schedule` header, and nothing in it fits a catalogue. The real condition is the
+general one — a statement that parsed, followed by text the line has no place for — which
+`spacing 20 30`, `circuit a 100 200` and `fluidscript 1 2` all reach as well, and which had no code
+at all. `FS1114` is that code.
 
 It is a directive rather than a per-pipe `series=` parameter because the series is a property of the
 installation, not of one pipe, and repeating it on every pipe is the kind of noise `P1` exists to
@@ -525,28 +538,79 @@ what makes the brief's example work without any port names at all.
 
 ## AST shapes
 
-Every node carries a `TextSpan` and its leading/trailing trivia. Nodes are records; the tree is
-immutable.
+Nodes are records; the tree is immutable. **A node holds the tokens it consumes** — its keywords and
+its punctuation, not only its structural children — and trivia hangs off those tokens (`D-55`), which
+is the model [`17-formatting-and-round-trip`](17-formatting-and-round-trip.md) states and the only one
+that round-trips: no node is a `let`, an `=`, a `-` or a `(`, so a tree that dropped them would drop
+every space around them too.
+
+A node's span and trivia are therefore **derived**, never supplied. The parser never computes a span,
+which is what makes invariant 3 hold by construction rather than by arithmetic being right at forty
+sites.
 
 ```csharp
 public abstract record SyntaxNode
 {
-    /// <summary>Span in the source text, excluding trivia.</summary>
-    public required TextSpan Span { get; init; }
+    /// <summary>Every token this node and its descendants consume, in source order.</summary>
+    /// <remarks>Concatenating each token's leading trivia, its text and its trailing trivia, over the
+    /// whole tree, reproduces the source byte for byte.</remarks>
+    public abstract ImmutableArray<Token> Tokens { get; }
 
-    /// <summary>Trivia attached before this node, in source order.</summary>
-    public required ImmutableArray<Trivia> LeadingTrivia { get; init; }
+    /// <summary>Span in the source text, excluding trivia. From the first token to the last.</summary>
+    public TextSpan Span { get; }
 
-    /// <summary>Trivia attached after this node up to the next newline, in source order.</summary>
-    public required ImmutableArray<Trivia> TrailingTrivia { get; init; }
+    /// <summary>Trivia before this node: its first token's.</summary>
+    public ImmutableArray<Trivia> LeadingTrivia { get; }
+
+    /// <summary>Trivia after this node up to the next newline: its last token's.</summary>
+    public ImmutableArray<Trivia> TrailingTrivia { get; }
 }
 
+/// <summary>A whole script: one ordered list of statements, and nothing beside it.</summary>
+/// <remarks>
+/// The version directive is a statement in this list rather than a field of its own (`D-54`), even
+/// though the grammar writes it as <c>script = version-directive , { statement }</c>. A script under
+/// editing has it missing, duplicated, or not first, and all three must round-trip; one ordered list
+/// is what makes that true and keeps the printer walking a single sequence.
+/// </remarks>
 public sealed record ScriptSyntax(ImmutableArray<StatementSyntax> Statements) : SyntaxNode;
 
+/// <summary>The <c>fluidscript</c> line and the language major it names.</summary>
+/// <remarks>
+/// The parser records it and judges nothing. Whether an absent directive is an unsaved draft
+/// (<c>FS1701</c>) or a misplaced one (<c>FS1705</c>) depends on whether the text is a durable file,
+/// which the parser cannot know; <see href="18-script-compatibility.md">18</see> owns both.
+/// </remarks>
+public sealed record VersionDirectiveSyntax(NumberLiteralSyntax Major) : StatementSyntax;
+
+/// <summary>Which fluid properties drive the canvas colour scale.</summary>
+/// <remarks>The property names are resolved against the property registry by
+/// <see href="../50-frontend/57-state-visualization.md">57</see>, never here.</remarks>
+public sealed record ShowDirectiveSyntax(
+    ImmutableArray<IdentifierSyntax> Properties,
+    RangeSyntax? Scale) : StatementSyntax;
+
+/// <summary>One positional token of a <c>style</c> directive.</summary>
+/// <remarks>
+/// Classified by lexical shape only. Which category it belongs to — colour, width, corner, pattern —
+/// needs the colour and corner registries and is decided at bind time, which is also where
+/// <c>FS1201</c> and <c>FS1202</c> are raised. A pattern token carries the recombined text
+/// (<c>--</c>, <c>..</c>, <c>-.</c>), which the lexer produced as two tokens.
+/// </remarks>
+public sealed record StyleTokenSyntax(StyleTokenKind Kind, string Text) : SyntaxNode;
+
+/// <summary>The lexical shape of a <c>style</c> token.</summary>
+public enum StyleTokenKind { Word, Number, Quantity, String, Pattern }
+
 /// <summary>A bare identifier: a component name, a kind name, a parameter name, a circuit name.</summary>
-/// <remarks><see cref="Text"/> is the spelling exactly as written. Normalisation for kind and
+/// <remarks><see cref="Text"/> is the token's spelling exactly as written. Normalisation for kind and
 /// parameter resolution happens at bind time (`D-15`) and never rewrites this.</remarks>
-public sealed record IdentifierSyntax(string Text) : SyntaxNode;
+public sealed record IdentifierSyntax(Token Token) : SyntaxNode;
+
+// Every leaf wraps its token the same way (`D-55`); the shapes below name their structural children
+// and are shown without the keyword and punctuation tokens they also hold, which would triple the
+// length of this listing without adding a production. `LetBindingSyntax` really holds
+// (Token Keyword, IdentifierSyntax Name, Token Equals, ExpressionSyntax Value).
 
 /// <summary>A number with no unit symbol.</summary>
 /// <remarks><see cref="Text"/> retains the source spelling — <c>1.50</c>, <c>1.5</c> and <c>15e-1</c>
@@ -561,6 +625,15 @@ public sealed record QuantityLiteralSyntax(double Value, string Text, string Uni
 
 /// <summary>A double-quoted string. Cannot span a newline (invariant 6).</summary>
 public sealed record StringLiteralSyntax(string Value) : ExpressionSyntax;
+
+/// <summary>An expression the user wrapped in parentheses.</summary>
+/// <remarks>
+/// Kept as a node rather than re-derived from precedence when printing (`D-54`). <c>(a + b) * c</c>
+/// and <c>a + b * c</c> differ, and a redundant grouping in an engineering formula is usually
+/// deliberate; reconstructing parentheses from precedence prints a correct expression rather than the
+/// user's, which is not what `R-25` asks for.
+/// </remarks>
+public sealed record ParenthesizedExpressionSyntax(ExpressionSyntax Inner) : ExpressionSyntax;
 
 /// <summary>Base of the expression hierarchy.</summary>
 /// <remarks>
@@ -620,8 +693,14 @@ public sealed record AttachmentSyntax(
 public sealed record ControlBindingSyntax(
     ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax;
 
+/// <summary>What a circuit carries, and how it is solved.</summary>
+/// <remarks><paramref name="Mode"/> is null when neither <c>dynamic</c> nor <c>static</c> was
+/// written, which leaves the project directive's default to decide (`D-37`, `D-54`). It must not
+/// default to <c>Static</c>: that loses the difference between <c>fluid water</c> and
+/// <c>fluid static water</c>, which breaks the round trip and makes every circuit in a
+/// <c>project dynamic</c> file warn about a word its author never wrote.</remarks>
 public sealed record FluidDirectiveSyntax(
-    FluidMode Mode,                       // Static (default) | Dynamic
+    FluidMode? Mode,
     IdentifierSyntax Substance,
     ImmutableArray<ExpressionSyntax> Arguments) : StatementSyntax;
 
@@ -649,11 +728,12 @@ public sealed record DisturbanceSyntax(
     EndpointSyntax Target,                // component.parameter
     RangeOrPointSyntax Value) : StatementSyntax;
 
-public abstract record RangeOrPointSyntax : SyntaxNode
-{
-    public sealed record Point(ExpressionSyntax Value) : RangeOrPointSyntax;
-    public sealed record Range(ExpressionSyntax From, ExpressionSyntax To) : RangeOrPointSyntax;
-}
+/// <summary>Either one value or a span between two.</summary>
+/// <remarks>The two cases are sibling records rather than nested ones, so that <c>RangeSyntax</c>
+/// can be named on its own — <c>show</c> takes a range and never a point.</remarks>
+public abstract record RangeOrPointSyntax : SyntaxNode;
+public sealed record PointSyntax(ExpressionSyntax Value) : RangeOrPointSyntax;
+public sealed record RangeSyntax(ExpressionSyntax From, ExpressionSyntax To) : RangeOrPointSyntax;
 
 public sealed record ComponentDeclarationSyntax(
     IdentifierSyntax Name,
@@ -735,6 +815,7 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.` |
 | `FS1112` | `project` or `spacing` after the first `circuit` header, or a second of either | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
 | `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
+| `FS1114` | Text after a statement that is already complete | Error | `'{extra}' is more than this line can hold.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
@@ -815,6 +896,8 @@ the previous rules the second line was `FS1104` and the first reference circuit 
       `pipe` reach `kind-name` position, which reserving them made impossible.
 - [ ] `N1 - N2` and `N1 node t=6` in the same connection section classify differently, by one token of
       lookahead.
+- [ ] `3WV.b - N3` classifies as a connection, not as a component named `3WV` of kind `.` (`D-56`).
+- [ ] A `schedule` section below a `connections` section in the same circuit parses (`D-56`).
 - [ ] `4.18 kJ/(kg*K)` lexes as one quantity token, and `Q / (cp * dT)` lexes with no unit-symbol among
       its tokens — the same characters, classified by whether a number precedes them.
 - [ ] `power=30 in=20` lexes as two parameters and never as thirty inches (rule 5's `=` clause).
@@ -831,6 +914,13 @@ the previous rules the second line was `FS1104` and the first reference circuit 
 - [ ] A `schedule` section under `fluid static` parses and produces exactly one `FS1107`.
 - [ ] The distribution-header reference circuit parses: three `circuit` headers, the second and
       third below a `connections` section, each opening its own declaration section (`D-52`).
+- [ ] `fluid water` and `fluid static water` produce different trees and print back differently;
+      a circuit that states no mode never warns about disagreeing with the project (`D-54`).
+- [ ] `(a + b) * c` prints back with its parentheses, and so does `(a) + b` (`D-54`).
+- [ ] Concatenating the whole tree's tokens, each with its trivia, reproduces the source byte for
+      byte — the same assertion the lexer passes, now over the parsed tree (`D-55`).
+- [ ] `let   x = 1` and `HE1  heat_exchanger` keep every run of whitespace, including the interior
+      runs that no structural child owns (`D-55`).
 - [ ] Deleting each character of each sample in turn never throws and always yields a tree.
 - [ ] A fuzz corpus of 10 000 random mutations produces no exception and no span outside bounds.
 - [ ] Every code `FS1xxx` above has a test that triggers exactly it.

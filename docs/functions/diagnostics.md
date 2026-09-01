@@ -46,6 +46,22 @@ plausible readings means no suggestion, and a message that explains the choice i
 |---|---|---|---|
 | `FS1001` | Error | Lexer | Unterminated string; add a closing quote. |
 | `FS1002` | Error | Lexer | '{ch}' is not valid here. |
+| `FS1003` | Error | Lexer | '{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'. |
+| `FS1004` | Error | Lexer | '{word}' is reserved. Choose another name. |
+| `FS1101` | Warning | Parser | Only the first '{section}' section is used. |
+| `FS1102` | Error | Parser | Connections must come after the 'connections' line. |
+| `FS1103` | Error | Parser | A {statement} cannot appear after the '{section}' line. |
+| `FS1104` | Error | Parser | Cannot read this line. Expected a component declaration or a connection. |
+| `FS1105` | Error | Parser | '{token}' looks like a parameter but has no value. Write '{token}=…'. |
+| `FS1106` | Error | Parser | Put this under a 'schedule' line. |
+| `FS1108` | Error | Parser | '{text}' — a name cannot contain '-'. Write '{underscored}'. |
+| `FS1109` | Error | Parser | '{word}' is not an attachment. Write 'supply {node}' or 'return {node}'. |
+| `FS1110` | Error | Parser | '{word}' needs one node of the parent circuit, and may appear once per circuit. |
+| `FS1111` | Error | Parser | A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'. |
+| `FS1112` | Error | Parser | '{word}' applies to the whole file and must come before the first 'circuit' line. |
+| `FS1113` | Error | Parser | Spacing is in world units, so write 'spacing {n}' with no unit. |
+| `FS1114` | Error | Parser | '{extra}' is more than this line can hold. |
+| `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

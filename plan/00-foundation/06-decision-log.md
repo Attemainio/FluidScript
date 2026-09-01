@@ -2134,6 +2134,166 @@ reports rather than statements about a script.
 
 **Constrains.** [`16-diagnostics`](../10-language/16-diagnostics.md).
 
+## D-54 · The AST as specified could not round-trip, and four productions had no node at all
+
+**Accepted · 2026-09-01**
+
+Five corrections to [`12-grammar`](../10-language/12-grammar.md)'s AST shapes, found by walking its
+syntactic grammar against its node list before writing the parser.
+
+**`FluidDirectiveSyntax.Mode` becomes `FluidMode?`.** It was declared non-nullable with the comment
+`Static (default) | Dynamic`, and the production is `"fluid" , [ "dynamic" | "static" ] , identifier`.
+
+**Four productions had no node**, and now do: `version-directive` → `VersionDirectiveSyntax`,
+`show-directive` → `ShowDirectiveSyntax`, `style-token` → `StyleTokenSyntax` (referenced by
+`StyleDirectiveSyntax` and never defined), and a parenthesised expression →
+`ParenthesizedExpressionSyntax`.
+
+**Why the nullability is the one that mattered.** Defaulting an absent mode to `Static` loses the
+distinction between `fluid water` and `fluid static water`, and both halves of that are load-bearing.
+`Print(Parse(x)) == x` fails immediately — the printer has nothing left to tell it which of the two
+was written, so it emits the longer one and the round-trip invariant is gone on the first script that
+omits a mode. And `D-37` breaks in the same stroke: the project directive sets a file-wide default
+that a circuit's own directive overrides, and the binder is required to *warn* when the two disagree
+rather than resolving silently. With the default baked into the node, every circuit in a
+`project dynamic` file silently claims to have asked for `static`, so every one of them warns. The
+warning would be about a word the user never wrote.
+
+`ProjectDirectiveSyntax.Mode` was already nullable for exactly this reason, which is what makes the
+inconsistency visible: the same optional keyword in the same document, modelled two ways.
+
+**Why the missing nodes are not a drafting nicety.** `ParenthesizedExpressionSyntax` is the same
+round-trip problem in a second place — `(a + b) * c` and `a + b * c` differ, and reconstructing
+parentheses from precedence alone reproduces neither the user's spacing nor their redundant grouping.
+`StyleTokenSyntax` was referenced by a node that was defined, so the list was internally incomplete.
+
+**Where the version directive sits.** `VersionDirectiveSyntax` is a `StatementSyntax`, and the grammar
+reads `script = version-directive , { statement }` — a distinction worth stating rather than leaving
+to be re-derived. A script under editing has the directive missing, duplicated, or not first, and all
+three must round-trip; one ordered statement list is what makes that true, and it keeps the printer
+walking a single sequence. `ScriptSyntax` exposes the first one as a property for the callers that
+want it. **The parser does not report a missing directive.** Whether that is an
+`FS1701` unsaved draft or an `FS1705` misplacement depends on whether the text is a durable file,
+which the parser cannot know; [`18-script-compatibility`](../10-language/18-script-compatibility.md)
+owns both codes and the pass that decides.
+
+**Rejected.**
+- *Keep `Mode` non-nullable and record "was it written" as a separate flag.* Preserves the existing
+  shape. Cost: two fields that can disagree, on a node whose whole job is to say what was written.
+  `CircuitHeaderSyntax` already models an omitted number as `null` rather than as a number plus a
+  flag, so this would also be the second convention for the same idea.
+- *Drop the parenthesised node and re-derive parentheses from precedence when printing.* Fewer nodes.
+  Cost: it prints a *correct* expression rather than the user's, so `Print(Parse(x)) == x` fails on
+  every redundant grouping — and redundant grouping in an engineering formula is usually deliberate.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md).
+
+## D-55 · Trivia lives on tokens, and the tree holds tokens
+
+**Accepted · 2026-09-01**
+
+Every syntax node holds the **tokens** it consumes — its keywords and its punctuation, not only its
+structural children — and trivia hangs off those tokens.
+[`12-grammar`](../10-language/12-grammar.md)'s `SyntaxNode` no longer carries
+`LeadingTrivia`/`TrailingTrivia` fields of its own; it derives them, and its span, from its first and
+last token. A leaf wraps a token rather than a string: `IdentifierSyntax(Token Token)`, not
+`IdentifierSyntax(string Text)`.
+
+**Why.** `12` put trivia on nodes; [`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md),
+which owns the preservation rules, says "every **token** carries its leading and trailing trivia" and
+walks write-back in terms of "its `Kind` token ... and its trailing trivia". Only one of those can be
+built, and `12`'s cannot round-trip, because its node list has nowhere to put a token that is not a
+structural child:
+
+```fluidscript
+let   x = 1        # every space here belongs to `let`, `x` or `=`
+HE1  heat_exchanger
+```
+
+`LetBindingSyntax(IdentifierSyntax Name, ExpressionSyntax Value)` holds no `let` and no `=`, so three
+runs of whitespace and the two keywords' own text have no owner. `ComponentDeclarationSyntax` holds
+two identifiers and no way to record that two spaces separated them. Attaching trivia to nodes does
+not help: a node's leading trivia is its first token's, so interior trivia — between a node's own
+children — is exactly what falls out, and interior trivia is most of a formatted script.
+
+**Spans stop being computed and start being derived.** A node's span runs from its first token's start
+to its last token's end, so `12`'s invariant 3 — a parent's span contains every child's — holds by
+construction rather than by the parser getting arithmetic right at forty-odd sites. The parser never
+writes a span.
+
+**This is the change `08` placed the printer at P2.5 to force**, and it arrived one package early
+instead. `08` says the printer "does not create losslessness; it *reveals* whether the lexer and AST
+already have it", and that written fifth it is a cheap AST change while written eighth it is a change
+underneath the binder, the registry and every golden file. It was cheaper still at P2.4, before
+anything consumed the tree at all.
+
+**Rejected.**
+- *Keep trivia on nodes and let the printer re-emit keywords and punctuation from the grammar.* No
+  token plumbing, smaller records. Cost: the printer would emit a *canonical* rendering of each
+  statement, so `Print(Parse(x)) == x` holds only for scripts already in canonical form — which is the
+  formatter's guarantee, not the printer's, and `17` is explicit that they are different commands.
+  Every alignment a user typed would be normalised on the first canvas write-back.
+- *Keep the tree as specified and print from the lexer's token list instead.* Trivially lossless, and
+  the smallest change of all. Cost: it makes the round-trip test vacuous — it would prove the lexer
+  lossless, which is already proven, and prove nothing about the tree. Worse, write-back mutates the
+  *tree*, so a printer that reads the token list would have to reconcile the two, and the reconciliation
+  is where the information would be lost instead.
+- *Store each node's full span, including trivia, and print source slices for unmodified subtrees.*
+  Fast, and correct for an unedited file. Cost: a mutated subtree has no source to slice, so the
+  printer needs the canonical renderer anyway for exactly the case write-back exists to serve.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md).
+
+## D-56 · The section table omits its own markers, and one token of lookahead could not see a port
+
+**Accepted · 2026-09-01**
+
+Two corrections to [`12-grammar`](../10-language/12-grammar.md), both found by running the syntax tour
+through the parser rather than by reading the document again.
+
+**The two section markers are rows in the section table.** `connections` is legal in a circuit's
+declaration section only; `schedule` is legal in the declaration *and* connection sections. Neither
+appeared in the table at all, and the only row they could be read into was "Directives, `let`", which
+refuses both below a `connections` line.
+
+**A statement whose second token is `.` is a connection**, alongside `-`. The disambiguation rule read
+"if the **second** token is `-`, the statement is a connection; otherwise it is a component
+declaration", and a port-qualified first endpoint puts a `.` there.
+
+**Why.** Both are the document contradicting its own worked examples.
+
+`12` writes the schedule section as following the topology, and its own example is
+
+```fluidscript
+connections
+N1 - N2
+
+schedule
+at 60 s  HE1.power = 45
+```
+
+Read as a directive, that `schedule` line is `FS1103` and the section it opens is unreachable — there
+is no legal position for a schedule in a circuit that has any connections, which is every circuit that
+has a transient to schedule.
+
+The port case is the same shape. `12`'s connections section states that "port qualification uses `.`:
+`3WV.b - N3`", and under the disambiguation rule that line is a component declaration named `3WV` of
+kind `.`, which is `FS1104`. Extending the rule to `.` costs nothing and keeps invariant 7 intact: it
+is still the second token and no further. Nothing else can put a `.` in that position — a component
+declaration is two identifiers, and a name cannot contain a dot.
+
+**Rejected.**
+- *Require the first endpoint of a connection to be unqualified, and write `N3 - 3WV.b` instead.*
+  Keeps the rule as written. Cost: it makes the legality of a line depend on which end the user typed
+  first, for no reason the user could infer, and `12` gives `3WV.b - N3` as its example of port
+  qualification.
+- *Let the schedule marker be recognised by position rather than by section legality.* Cost: the
+  section table stops being the single statement of where each statement may appear, which is the one
+  thing it is for.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md).
+
 ---
 
 ## Adding an entry
