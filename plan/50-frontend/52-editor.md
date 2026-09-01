@@ -150,7 +150,7 @@ compiler refuses to make.
 After `param=`, the parameter's dimension is known from the registry, and everything offered is
 filtered to it. This is the rule that makes `let` bindings pay for themselves.
 
-```fluidscript
+```
 let dTdesign = 20 K
 let Tflow    = 70 C
 let Qtotal   = 120 kW
@@ -195,7 +195,7 @@ half-written script is the normal state, and the editor's job is to stay useful 
 The kind completion and the value completion are what make an aliased, `let`-heavy script writable
 without memorising anything:
 
-```fluidscript
+```
 let Tsupply = 70 C
 
 BLR heat_ex⇥ power=150 out=Ts⇥

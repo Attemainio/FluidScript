@@ -311,7 +311,7 @@ the reference circuits parse.** Both write their boundary conditions below the t
 ```fluidscript
 connections
 N1 - N2
-...
+# ... the rest of the topology
 
 N1 node t=6 p=300         # primary-side boundary
 N3 node p=280
@@ -886,7 +886,8 @@ the previous rules the second line was `FS1104` and the first reference circuit 
 ## Acceptance criteria
 
 - [ ] **Every script in `samples/`, and every `fluidscript` block in `plan/` and `/docs`, parses with
-      zero unexpected diagnostics** — extracted and run in CI. Both reference circuits previously
+      zero unexpected diagnostics** — a block that is meant to be wrong declares its codes on its
+      fence, as [`61`](../60-docs-and-devex/61-documentation-plan.md) specifies — extracted and run in CI. Both reference circuits previously
       failed to parse under this document while every acceptance criterion here passed, which is what
       a corpus test over the specification's own examples exists to catch.
 - [ ] Round-trip test: for every file in `samples/`, `Print(Parse(text)) == text` byte for byte.

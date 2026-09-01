@@ -20,7 +20,7 @@ A `#` makes the rest of its line a comment, wherever it appears. There is one ex
 one you will meet: **a `#` inside quotes is not a comment**, which is why a hex colour is written as
 text.
 
-```fluidscript
+```fluidscript expects=FS1203
 style "#2f6f9f" 2px      # a colour
 style #2f6f9f 2px        # NOT a colour: everything from the # is a comment
 ```
@@ -37,8 +37,8 @@ perfectly good name for a three-way valve.
 A name may **not** contain a hyphen. `-` joins components in the `connections` section and subtracts in
 an expression, so it can never be part of a name:
 
-```fluidscript
-3-way-valve      # not a name — write 3_way_valve
+```fluidscript expects=FS1108
+TV1 3-way-valve      # a hyphen is impossible — write 3_way_valve
 ```
 
 You never have to learn a canonical spelling for a component *kind*: `3_way_valve`, `3WayValve` and
@@ -53,8 +53,8 @@ suggests a name that works, such as `K3`.
 A unit may be written against the number or separated from it by a space. Both are the same value:
 
 ```fluidscript
-power=30kW
-power=30 kW
+PU1 pump power=30kW
+PU2 pump power=30 kW      # the same value
 ```
 
 A unit is only recognised **immediately after a number**. Everywhere else the same characters are

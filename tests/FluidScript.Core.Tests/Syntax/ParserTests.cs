@@ -65,24 +65,70 @@ public sealed class ParserTests
     [Trait("Category", "Unit")]
     public void ClassificationReadsNothingBeyondTwoTokens()
     {
-        // Invariant 7, asserted through the signature rather than around it: Classify cannot see a
-        // third token, so a statement form that needed one could not be added without changing this
-        // call. The test pins the classification of every line of the tour to what those two tokens
-        // say, which is what would break if a later production reached further.
-        var tour = ScriptCorpus.Samples()
-            .Single(static s => s.Name.EndsWith("m1-syntax-tour.fluid", StringComparison.Ordinal));
-
-        var lex = Lexer.Lex(new SourceText(tour.Text));
-        var seen = new HashSet<StatementKind>();
-
-        foreach (var token in lex.Tokens.Where(static t => t.Kind != TokenKind.EndOfFile))
+        // Invariant 7, and P2.4's exit criterion. `Classify` cannot see a third token — that much is
+        // the signature — so what has to be tested is that the parser agrees with it: every statement
+        // in the corpus is the kind those two tokens said it would be. A production that decided
+        // anything from a third token would show up here as a node disagreeing with its own
+        // classification, which is the failure the signature alone cannot catch.
+        //
+        // The section is recovered from the produced tree rather than from the parser's state, so the
+        // test does not reuse the machine it is checking.
+        foreach (var script in ScriptCorpus.All())
         {
-            seen.Add(FluidScriptParser.Classify(token, null, ScriptSection.Declaration));
-        }
+            var root = FluidScriptParser.Parse(new SourceText(script.Text)).Root;
+            var section = ScriptSection.Declaration;
 
-        Assert.Contains(StatementKind.Declaration, seen);
-        Assert.Contains(StatementKind.Circuit, seen);
+            foreach (var statement in root.Statements)
+            {
+                if (statement is MalformedStatementSyntax)
+                {
+                    continue;
+                }
+
+                var tokens = statement.Tokens;
+                var classified = FluidScriptParser.Classify(
+                    tokens[0],
+                    tokens.Length > 1 ? tokens[1] : null,
+                    section);
+
+                Assert.True(
+                    classified == KindOf(statement),
+                    $"{script.Name}: '{statement.Span}' parsed as {statement.GetType().Name} but two "
+                    + $"tokens classify it as {classified}");
+
+                section = statement switch
+                {
+                    CircuitHeaderSyntax => ScriptSection.Declaration,
+                    ConnectionsHeaderSyntax when section == ScriptSection.Declaration =>
+                        ScriptSection.Connections,
+                    ScheduleHeaderSyntax when section != ScriptSection.Schedule =>
+                        ScriptSection.Schedule,
+                    _ => section,
+                };
+            }
+        }
     }
+
+    private static StatementKind KindOf(StatementSyntax statement) => statement switch
+    {
+        VersionDirectiveSyntax => StatementKind.Version,
+        ProjectDirectiveSyntax => StatementKind.Project,
+        SpacingDirectiveSyntax => StatementKind.Spacing,
+        CircuitHeaderSyntax => StatementKind.Circuit,
+        FluidDirectiveSyntax => StatementKind.Fluid,
+        CatalogDirectiveSyntax => StatementKind.Catalog,
+        StyleDirectiveSyntax => StatementKind.Style,
+        ShowDirectiveSyntax => StatementKind.Show,
+        LetBindingSyntax => StatementKind.Let,
+        ConnectionsHeaderSyntax => StatementKind.ConnectionsHeader,
+        ScheduleHeaderSyntax => StatementKind.ScheduleHeader,
+        AttachmentSyntax => StatementKind.Attachment,
+        ControlBindingSyntax => StatementKind.Control,
+        ConnectionSyntax => StatementKind.Connection,
+        DisturbanceSyntax => StatementKind.Disturbance,
+        ComponentDeclarationSyntax => StatementKind.Declaration,
+        _ => StatementKind.Unclassifiable,
+    };
 
     [Theory]
     [InlineData("circuit demo", StatementKind.Circuit)]
@@ -265,13 +311,28 @@ public sealed class ParserTests
     [Trait("Category", "Unit")]
     public void EverySampleParsesWithNoUnexpectedDiagnostic()
     {
-        foreach (var sample in ScriptCorpus.Samples())
+        // 12's first acceptance criterion, over the whole corpus — the samples and every fenced block
+        // in `plan/` and `docs/`. A block that is meant to be wrong declares what it produces on its
+        // fence, so "unexpected" is a real distinction rather than a synonym for "any". This is the
+        // check that would have caught D-52 and D-56 in the document instead of in the parser.
+        var offenders = new List<string>();
+
+        foreach (var script in ScriptCorpus.All())
         {
-            var result = FluidScriptParser.Parse(new SourceText(sample.Text));
-            Assert.True(
-                result.Diagnostics.IsEmpty,
-                $"{sample.Name}: {string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}"))}");
+            var produced = FluidScriptParser.Parse(new SourceText(script.Text))
+                .Diagnostics
+                .Select(static d => d.Code)
+                .ToHashSet(StringComparer.Ordinal);
+
+            if (!produced.SetEquals(script.Expected))
+            {
+                offenders.Add(
+                    $"{script.Name}: expected [{string.Join(", ", script.Expected)}], "
+                    + $"got [{string.Join(", ", produced.Order(StringComparer.Ordinal))}]");
+            }
         }
+
+        Assert.True(offenders.Count == 0, string.Join("\n", offenders));
     }
 
     // ---- one test per code ------------------------------------------------------------------
@@ -395,5 +456,90 @@ public sealed class ParserTests
             .ToArray();
 
         Assert.True(untested.Length == 0, $"Registered and never triggered: {string.Join(", ", untested)}");
+    }
+
+    // ---- where the two section markers may stand (D-56) ---------------------------------------
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AScheduleFollowsItsConnections()
+    {
+        // The shape 12 writes its own schedule example in, and the one that was FS1103 until D-56:
+        // there is no other position for a schedule in a circuit that has any connections.
+        var result = Parse("""
+            fluidscript 1
+            circuit demo
+            connections
+            N1 - HS1 - N2
+
+            schedule
+            at 60 s HS1.power = 45
+            """);
+
+        Assert.Empty(result.Diagnostics);
+        Assert.IsType<ScheduleHeaderSyntax>(result.Root.Statements[4]);
+        Assert.IsType<DisturbanceSyntax>(result.Root.Statements[5]);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASecondScheduleIsIgnoredRatherThanMisplaced()
+    {
+        // A duplicate header is FS1101 and nothing else. Reporting FS1103 beside it would tell the
+        // user their schedule is in the wrong place, which is not what is wrong with it.
+        var result = Parse("""
+            fluidscript 1
+            circuit demo
+            schedule
+            schedule
+            """);
+
+        Assert.Equal("FS1101", Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void EachCircuitGetsItsOwnSchedule()
+    {
+        var result = Parse("""
+            fluidscript 1
+            circuit first
+            schedule
+            circuit second
+            schedule
+            """);
+
+        Assert.Empty(result.Diagnostics);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ConnectionsCannotReopenBelowASchedule()
+    {
+        // The one direction that stays an error: the sections are ordered, and a topology written
+        // below the schedule that acts on it would bind against components declared after the fact.
+        var result = Parse("""
+            fluidscript 1
+            circuit demo
+            schedule
+            connections
+            """);
+
+        Assert.Equal("FS1103", Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void EitherEndOfAConnectionMayNameItsPort()
+    {
+        var result = Parse("""
+            fluidscript 1
+            connections
+            N1 - 3WV.b - N3.a
+            """);
+
+        Assert.Empty(result.Diagnostics);
+        var connection = Assert.IsType<ConnectionSyntax>(result.Root.Statements[2]);
+        Assert.Equal([null, "b", "a"], connection.Endpoints.Select(static e => e.Port?.Text));
     }
 }

@@ -13,8 +13,10 @@ namespace FluidScript.Fixtures;
 /// </para>
 /// <para>
 /// A block is used for the properties that hold for any text at all — losslessness, termination, spans
-/// inside bounds. Assertions about a script being *correct* are made against <c>samples/</c>, because a
-/// fragment lifted out of prose is not a script and was never meant to be one.
+/// inside bounds — and for parsing cleanly. <c>61</c> requires every documented example to be complete
+/// and runnable, and <c>12</c>'s acceptance criterion covers the plan's blocks too, so a block that is
+/// meant to be wrong says so on its fence: <c>```fluidscript expects=FS1203</c>. A block that is not a
+/// script at all — an editing session with a cursor in it, say — is not marked <c>fluidscript</c>.
 /// </para>
 /// </remarks>
 public static class ScriptCorpus
@@ -38,7 +40,7 @@ public static class ScriptCorpus
     public static ImmutableArray<ScriptSource> Samples() =>
     [
         .. EnumerateSampleFiles()
-            .Select(static path => new ScriptSource(RepositoryLayout.ToRelative(path), ReadVerbatim(path))),
+            .Select(static path => new ScriptSource(RepositoryLayout.ToRelative(path), ReadVerbatim(path), [])),
     ];
 
     /// <summary>Extracts every fenced <c>fluidscript</c> block from the plan and the documentation.</summary>
@@ -80,7 +82,7 @@ public static class ScriptCorpus
 
         for (var i = 0; i < lines.Length; i++)
         {
-            if (!IsOpeningFence(lines[i]))
+            if (!TryOpenFence(lines[i], out var expected))
             {
                 continue;
             }
@@ -100,13 +102,47 @@ public static class ScriptCorpus
             // the rest of the file into one enormous fake script.
             if (i < lines.Length)
             {
-                yield return new ScriptSource($"{relative}:{opened + 1}", string.Join('\n', content) + "\n");
+                yield return new ScriptSource(
+                    $"{relative}:{opened + 1}",
+                    string.Join('\n', content) + "\n",
+                    expected);
             }
         }
     }
 
-    private static bool IsOpeningFence(string line) =>
-        line.TrimEnd().Equals(Fence + Language, StringComparison.Ordinal);
+    private static bool TryOpenFence(string line, out ImmutableArray<string> expected)
+    {
+        expected = [];
+
+        var text = line.TrimEnd();
+        if (!text.StartsWith(Fence + Language, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var info = text[(Fence.Length + Language.Length)..].Trim();
+        if (info.Length == 0)
+        {
+            return true;
+        }
+
+        // The one annotation the corpus reads, and the reason the info line is not simply compared:
+        // `61` requires an intentionally-broken example to be annotated with what it produces. Any
+        // other info string is not a fluidscript block, which is what keeps ```fluidscriptish out.
+        const string Expects = "expects=";
+        if (!info.StartsWith(Expects, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        expected =
+        [
+            .. info[Expects.Length..]
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+        ];
+
+        return true;
+    }
 
     // File.ReadAllText strips nothing, but it does detect and consume a byte-order mark. Reading the
     // bytes and decoding without one keeps a BOM in the text, where a losslessness assertion has to
@@ -121,4 +157,8 @@ public static class ScriptCorpus
 /// A repository-relative path, and for a markdown block the line its fence opens on.
 /// </param>
 /// <param name="Text">The source verbatim.</param>
-public readonly record struct ScriptSource(string Name, string Text);
+/// <param name="Expected">
+/// The diagnostic codes the block's fence says it produces, empty for a block that is meant to be
+/// clean. Written as <c>```fluidscript expects=FS1102,FS1104</c>.
+/// </param>
+public readonly record struct ScriptSource(string Name, string Text, ImmutableArray<string> Expected);

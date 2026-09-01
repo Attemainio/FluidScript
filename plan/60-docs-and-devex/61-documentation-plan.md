@@ -220,8 +220,22 @@ report.
 | **State units explicitly, everywhere** | The single most likely thing for a generator to get wrong |
 
 **Every code block in `/docs` that is marked `fluidscript` is extracted and compiled by the test
-suite.** Blocks marked as intentionally-broken are annotated and asserted to produce the stated
-diagnostic. This is the mechanism that makes the documentation trustworthy for both audiences, and it
+suite** — and so is every such block in `plan/`, which is [`12`](../10-language/12-grammar.md)'s first
+acceptance criterion. A block that is meant to be wrong is annotated on its fence with the codes it
+produces, and asserted to produce exactly those:
+
+````markdown
+```fluidscript expects=FS1203
+style #2f6f9f 2px        # NOT a colour: everything from the # is a comment
+```
+````
+
+The annotation rides on the info string, so it is invisible in the rendered page and the block keeps
+its highlighting. Two rules follow from it, and both are enforced rather than advisory: a block with no
+annotation must parse clean, and **a block that is not a script at all** — an editing session with a
+cursor glyph in it, a fragment with an elision — **is not marked `fluidscript`**. It gets a bare fence
+instead, because an example that cannot be run cannot be trusted, and one that is not a script cannot
+be run. This is the mechanism that makes the documentation trustworthy for both audiences, and it
 turns `/docs` into a second test corpus at almost no cost.
 
 ## Generated pages
