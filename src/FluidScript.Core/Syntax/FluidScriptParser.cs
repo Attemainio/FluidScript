@@ -47,7 +47,7 @@ public static class FluidScriptParser
         }
 
         var root = new ScriptSyntax(statements.ToImmutable(), lex.Tokens[^1]);
-        return new ParseResult(root, diagnostics.ToImmutable());
+        return new ParseResult(source, root, diagnostics.ToImmutable());
     }
 
     /// <summary>Decides what a line is, from its first token and at most one more.</summary>

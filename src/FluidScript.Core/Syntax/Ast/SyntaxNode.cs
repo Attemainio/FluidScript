@@ -39,6 +39,28 @@ public abstract record SyntaxNode
         }
     }
 
+    /// <summary>Gets the span this node occupies including the trivia on its outermost tokens.</summary>
+    /// <value>
+    /// From the start of the first token's leading trivia to the end of the last token's trailing
+    /// trivia, which for the root is the whole file. This is the span
+    /// <see cref="SyntaxPrinter.Print(SourceText, SyntaxNode)"/> reproduces, and the one a text edit
+    /// has to respect: replacing <see cref="Span"/> alone would leave a statement's indentation and
+    /// its trailing comment behind.
+    /// </value>
+    public TextSpan FullSpan
+    {
+        get
+        {
+            var tokens = Tokens;
+            var first = tokens[0];
+            var last = tokens[^1];
+
+            return TextSpan.FromBounds(
+                first.LeadingTrivia.IsEmpty ? first.Span.Start : first.LeadingTrivia[0].Span.Start,
+                last.TrailingTrivia.IsEmpty ? last.Span.End : last.TrailingTrivia[^1].Span.End);
+        }
+    }
+
     /// <summary>Gets the trivia before this node, in source order.</summary>
     /// <value>Its first token's leading trivia.</value>
     public ImmutableArray<Trivia> LeadingTrivia => Tokens[0].LeadingTrivia;

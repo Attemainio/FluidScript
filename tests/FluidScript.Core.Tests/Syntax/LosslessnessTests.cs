@@ -26,51 +26,8 @@ namespace FluidScript.Core.Tests.Syntax;
 /// </remarks>
 public sealed class LosslessnessTests
 {
-    // Weighted towards the characters that carry lexical decisions, because a uniform draw over the
-    // whole code-point space spends nearly every mutation on a character the lexer treats identically.
-    private static readonly ImmutableArray<char> Interesting =
-        [.. "\"#=.-+*/%@,()\n\r\t 0123456789eE_kWmsK° é"];
-
-    /// <summary>Text that is not a script, chosen for the ways a scanner fails to terminate.</summary>
-    private static readonly string[] Adversarial =
-    [
-        "",
-        " ",
-        "\n",
-        "\r",
-        "\r\n",
-        "\n\r",
-        "#",
-        "#no newline at end",
-        "\"",
-        "\"unterminated",
-        "\"unterminated\nnext line",
-        ".",
-        "..",
-        "...",
-        "30.",
-        "30..60",
-        "30...60",
-        "1e",
-        "1e+",
-        "1e-",
-        "1exchanger",
-        "0x1F",
-        "%",
-        "10 % 3",
-        "é",
-        "😀",
-        "﻿fluidscript 1",
-        "let x = ",
-        "= = =",
-        "((((((((((",
-        "3WV",
-        "30 ",
-        "30 kW",
-        "30kW",
-        "\t\t\t",
-        "a b",
-    ];
+    // The adversarial list and the mutation generator live in ScriptCorpus: the round-trip fuzz in
+    // PrinterTests runs the same inputs through the printer, and two copies of a fuzz corpus drift.
 
     public static TheoryData<string, string> Corpus()
     {
@@ -86,7 +43,7 @@ public sealed class LosslessnessTests
     public static TheoryData<string> AdversarialText()
     {
         var data = new TheoryData<string>();
-        foreach (var text in Adversarial)
+        foreach (var text in ScriptCorpus.Adversarial)
         {
             data.Add(text);
         }
@@ -136,17 +93,14 @@ public sealed class LosslessnessTests
     [Trait("Category", "Property")]
     public void RandomMutationsNeverThrowAndNeverEscapeTheirBounds()
     {
-        // A fixed seed: a fuzz test that finds a different failure on every run cannot be bisected,
-        // and one that finds none is indistinguishable from one that is not running.
-        var random = new Random(20260901);
-        var seeds = ScriptCorpus.Samples();
-        Assert.NotEmpty(seeds);
+        var seen = 0;
 
-        for (var iteration = 0; iteration < 10_000; iteration++)
+        foreach (var text in ScriptCorpus.Mutations(10_000, seed: 20260901))
         {
-            var seed = seeds[random.Next(seeds.Length)].Text;
-            AssertLossless($"mutation {iteration}", Mutate(seed, random));
+            AssertLossless($"mutation {seen++}", text);
         }
+
+        Assert.Equal(10_000, seen);
     }
 
     [Fact]
@@ -219,30 +173,5 @@ public sealed class LosslessnessTests
             span.End <= source.Length,
             $"{name}: {span} reaches past {source.Length} characters.");
         position = span.End;
-    }
-
-    private static string Mutate(string text, Random random)
-    {
-        var builder = new StringBuilder(text);
-        var edits = random.Next(1, 6);
-
-        for (var i = 0; i < edits && builder.Length > 0; i++)
-        {
-            var at = random.Next(builder.Length);
-            switch (random.Next(3))
-            {
-                case 0:
-                    builder.Remove(at, 1);
-                    break;
-                case 1:
-                    builder.Insert(at, Interesting[random.Next(Interesting.Length)]);
-                    break;
-                default:
-                    builder[at] = Interesting[random.Next(Interesting.Length)];
-                    break;
-            }
-        }
-
-        return builder.ToString();
     }
 }

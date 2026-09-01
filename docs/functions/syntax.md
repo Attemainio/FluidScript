@@ -125,6 +125,17 @@ is legal.
 
 `|` is not used for anything, and is deliberately kept free.
 
+## Your formatting is yours
+
+FluidScript never reformats what you wrote. Spacing, alignment, blank lines, the column your comments
+sit in, whether you wrote `power=30kW` or `power=30 kW` — all of it is kept exactly, including when
+the diagram writes a change back into the script. Editing a valve's size on the canvas changes that
+one value and nothing else on the line, and nothing at all on any other line.
+
+That is deliberate, and it has one visible consequence: after a write-back your comment columns can
+end up misaligned, because realigning them would mean changing lines you did not touch. Tidying is a
+separate command you run when you want it (`Shift+Alt+F`), and it is one undo step.
+
 ## When something is not read the way you meant
 
 | You wrote | FluidScript read | Because |

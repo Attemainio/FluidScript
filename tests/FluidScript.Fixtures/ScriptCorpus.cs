@@ -37,11 +37,18 @@ public static class ScriptCorpus
 
     /// <summary>Reads every sample script.</summary>
     /// <returns>One entry per file, carrying the path for a failure message and the text verbatim.</returns>
-    public static ImmutableArray<ScriptSource> Samples() =>
+    /// <remarks>
+    /// Read once per test run and cached. Nothing writes to <c>samples/</c> during a run, and the
+    /// corpus is walked by dozens of tests: re-reading it each time cost more than everything the
+    /// suite actually measures, against <c>08</c>'s two-second budget for the unit tier.
+    /// </remarks>
+    public static ImmutableArray<ScriptSource> Samples() => LazySamples.Value;
+
+    private static readonly Lazy<ImmutableArray<ScriptSource>> LazySamples = new(() =>
     [
         .. EnumerateSampleFiles()
             .Select(static path => new ScriptSource(RepositoryLayout.ToRelative(path), ReadVerbatim(path), [])),
-    ];
+    ]);
 
     /// <summary>Extracts every fenced <c>fluidscript</c> block from the plan and the documentation.</summary>
     /// <returns>
@@ -49,7 +56,12 @@ public static class ScriptCorpus
     /// The text is the block's content without the fences, and without a trailing newline where the
     /// fence supplied one.
     /// </returns>
-    public static ImmutableArray<ScriptSource> MarkdownBlocks()
+    /// <remarks>Read once per test run and cached, as <see cref="Samples"/> is.</remarks>
+    public static ImmutableArray<ScriptSource> MarkdownBlocks() => LazyBlocks.Value;
+
+    private static readonly Lazy<ImmutableArray<ScriptSource>> LazyBlocks = new(ReadMarkdownBlocks);
+
+    private static ImmutableArray<ScriptSource> ReadMarkdownBlocks()
     {
         var blocks = ImmutableArray.CreateBuilder<ScriptSource>();
 
@@ -150,6 +162,104 @@ public static class ScriptCorpus
     private static string ReadVerbatim(string path) =>
         new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false)
             .GetString(File.ReadAllBytes(path));
+
+    /// <summary>Text that is not a script, chosen for the ways a scanner fails to terminate.</summary>
+    /// <value>
+    /// Short strings, each one a shape that has broken a scanner somewhere: unterminated constructs,
+    /// the dot cases <c>D-51</c> settled, an exponent with no digits, a byte-order mark, an emoji.
+    /// </value>
+    public static ImmutableArray<string> Adversarial { get; } =
+    [
+        "",
+        " ",
+        "\n",
+        "\r",
+        "\r\n",
+        "\n\r",
+        "#",
+        "#no newline at end",
+        "\"",
+        "\"unterminated",
+        "\"unterminated\nnext line",
+        ".",
+        "..",
+        "...",
+        "30.",
+        "30..60",
+        "30...60",
+        "1e",
+        "1e+",
+        "1e-",
+        "1exchanger",
+        "0x1F",
+        "%",
+        "10 % 3",
+        "é",
+        "\U0001F600",
+        "﻿fluidscript 1",
+        "let x = ",
+        "= = =",
+        "((((((((((",
+        "3WV",
+        "30 ",
+        "30 kW",
+        "30kW",
+        "\t\t\t",
+        "a b",
+    ];
+
+    /// <summary>Produces mutations of the sample scripts.</summary>
+    /// <param name="count">How many mutations to produce.</param>
+    /// <param name="seed">
+    /// The random seed. Every caller fixes it: a fuzz that finds a different failure on each run
+    /// cannot be bisected, and one that finds none is indistinguishable from one that is not running.
+    /// </param>
+    /// <returns>
+    /// <paramref name="count"/> texts, each a sample with one to five characters deleted, inserted or
+    /// replaced. Every intermediate state of a script being edited is reachable this way, which is
+    /// what makes this the standing test for "no stage throws on user input" rather than a milestone
+    /// check (<c>08</c>, P2.5).
+    /// </returns>
+    public static IEnumerable<string> Mutations(int count, int seed)
+    {
+        var random = new Random(seed);
+        var seeds = Samples();
+
+        for (var i = 0; i < count && seeds.Length > 0; i++)
+        {
+            yield return Mutate(seeds[random.Next(seeds.Length)].Text, random);
+        }
+    }
+
+    // Weighted towards the characters that carry lexical decisions, because a uniform draw over the
+    // whole code-point space spends nearly every mutation on a character the lexer treats identically.
+    private static readonly ImmutableArray<char> Interesting =
+        [.. "\"#=.-+*/%@,()\n\r\t 0123456789eE_kWmsK° é"];
+
+    private static string Mutate(string text, Random random)
+    {
+        var builder = new System.Text.StringBuilder(text);
+        var edits = random.Next(1, 6);
+
+        for (var i = 0; i < edits && builder.Length > 0; i++)
+        {
+            var at = random.Next(builder.Length);
+            switch (random.Next(3))
+            {
+                case 0:
+                    builder.Remove(at, 1);
+                    break;
+                case 1:
+                    builder.Insert(at, Interesting[random.Next(Interesting.Length)]);
+                    break;
+                default:
+                    builder[at] = Interesting[random.Next(Interesting.Length)];
+                    break;
+            }
+        }
+
+        return builder.ToString();
+    }
 }
 
 /// <summary>One piece of FluidScript source, with a name that identifies it in a failure message.</summary>

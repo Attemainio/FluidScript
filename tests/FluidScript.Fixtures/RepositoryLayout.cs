@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
 namespace FluidScript.Fixtures;
@@ -44,17 +45,51 @@ public static class RepositoryLayout
     /// generated code under <c>bin</c> or <c>obj</c>. Ordered by path so a failure names the same file
     /// on every platform.
     /// </returns>
-    public static IEnumerable<string> EnumerateSourceFiles() =>
-        Directory.EnumerateFiles(Root, "*.cs", SearchOption.AllDirectories)
-            .Where(static path => !IsBuildOutput(path))
-            .Order(StringComparer.Ordinal);
+    public static IEnumerable<string> EnumerateSourceFiles() => LazySourceFiles.Value;
 
     /// <summary>Enumerates every MSBuild project file in the repository.</summary>
     /// <returns>Absolute paths to <c>.csproj</c> files, excluding build output, ordered by path.</returns>
-    public static IEnumerable<string> EnumerateProjectFiles() =>
-        Directory.EnumerateFiles(Root, "*.csproj", SearchOption.AllDirectories)
-            .Where(static path => !IsBuildOutput(path))
-            .Order(StringComparer.Ordinal);
+    public static IEnumerable<string> EnumerateProjectFiles() => LazyProjectFiles.Value;
+
+    private static readonly Lazy<ImmutableArray<string>> LazySourceFiles = new(() => Enumerate("*.cs"));
+
+    private static readonly Lazy<ImmutableArray<string>> LazyProjectFiles = new(() => Enumerate("*.csproj"));
+
+    // Pruned during the walk rather than filtered after it, and walked once rather than once per
+    // caller. `Directory.EnumerateFiles(Root, pattern, AllDirectories)` descends into
+    // frontend/node_modules and every bin and obj before anything can reject them, which costs about
+    // half a second per call on a checkout mounted from Windows -- paid five times by the architecture
+    // tests alone, and 08's invariant 3 gives the whole unit tier two seconds.
+    private static ImmutableArray<string> Enumerate(string pattern)
+    {
+        var found = ImmutableArray.CreateBuilder<string>();
+        var pending = new Stack<string>();
+        pending.Push(Root);
+
+        while (pending.Count > 0)
+        {
+            var directory = pending.Pop();
+            found.AddRange(Directory.EnumerateFiles(directory, pattern));
+
+            foreach (var child in Directory.EnumerateDirectories(directory))
+            {
+                if (!IsExcluded(Path.GetFileName(child)))
+                {
+                    pending.Push(child);
+                }
+            }
+        }
+
+        found.Sort(StringComparer.Ordinal);
+
+        return found.ToImmutable();
+    }
+
+    private static bool IsExcluded(string directoryName) =>
+        directoryName.Equals("bin", StringComparison.OrdinalIgnoreCase)
+        || directoryName.Equals("obj", StringComparison.OrdinalIgnoreCase)
+        || directoryName.Equals("node_modules", StringComparison.Ordinal)
+        || directoryName.Equals(".git", StringComparison.Ordinal);
 
     /// <summary>Renders a path for a failure message.</summary>
     /// <param name="absolutePath">A path at or below <see cref="Root"/>.</param>
@@ -65,15 +100,7 @@ public static class RepositoryLayout
     public static string ToRelative(string absolutePath) =>
         Path.GetRelativePath(Root, absolutePath).Replace('\\', '/');
 
-    private static bool IsBuildOutput(string path)
-    {
-        var relative = Path.GetRelativePath(Root, path);
-        var segments = relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        return segments.Any(static segment =>
-            segment.Equals("bin", StringComparison.OrdinalIgnoreCase)
-            || segment.Equals("obj", StringComparison.OrdinalIgnoreCase)
-            || segment.Equals("node_modules", StringComparison.Ordinal));
-    }
+
 
     private static string FindRoot([CallerFilePath] string callerFilePath = "")
     {

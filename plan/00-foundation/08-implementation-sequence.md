@@ -186,7 +186,7 @@ The largest phase and the one where scope creeps, because every package is visib
 | P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](../40-api/42-rest-contract.md), [`44`](../40-api/44-diagnostics-contract.md), [`41`](../40-api/41-api-architecture.md)) |
 | P5.3 | Design tokens and themes ([`55`](../50-frontend/55-design-system.md)) |
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](../50-frontend/51-frontend-architecture.md)) |
-| P5.5 | Editor: syntax palette, completion, inline diagnostics ([`52`](../50-frontend/52-editor.md)) |
+| P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](../50-frontend/52-editor.md), [`17`](../10-language/17-formatting-and-round-trip.md)) |
 | P5.6 | Canvas viewport and Core-owned symbols ([`53`](../50-frontend/53-canvas-renderer.md), `D-24`) |
 | P5.7 | **The layout engine** ([`53`](../50-frontend/53-canvas-renderer.md)) |
 | P5.8 | Hover, selection, console log, status line ([`54`](../50-frontend/54-interaction-and-writeback.md), [`56`](../50-frontend/56-console-log.md)) |
@@ -196,6 +196,12 @@ The largest phase and the one where scope creeps, because every package is visib
 
 **P5.3 precedes every component that has a colour**, so the "no literal colour outside the theme
 files" assertion never has to be enforced retroactively across a built UI.
+
+**P5.5 carries the formatter, which no package claimed until it was looked for.** `17` owns it and
+`52` binds it to `Shift+Alt+F`, but `08` scheduled only the printer (P2.5), so the one operation of
+the pair that is allowed to move text had no home. It belongs with the command that invokes it rather
+than with the printer it must not become: written beside the printer it would share a code path, and
+`17`'s whole thesis is that these two operations stay separate.
 
 **P5.7 is the phase's schedule risk**, and it is placed after the viewport so it has something to
 render into but before hover and log so those are built against real placements. It carries two

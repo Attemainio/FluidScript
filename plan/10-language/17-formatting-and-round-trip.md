@@ -48,7 +48,11 @@ users will want alignment; it is a command, never a side effect.
 Every token carries its leading and trailing trivia, including `D-13`'s `#` comments. The attachment rules are what make round-tripping
 deterministic:
 
-1. **Trailing trivia** runs from the end of a token to the end of its line, including a line comment.
+1. **Trailing trivia** runs from the end of a token to the end of its line, including a line comment,
+   and stops **before** the line break. The break itself opens the next token's leading trivia, which
+   is what makes a statement's tokens cover exactly one line and never the newline that ends it —
+   the property the line-granular parser and recovery are built on. This is deliberately not Roslyn's
+   convention, where the terminator is trailing; rule 3 below is the same either way.
 2. **Leading trivia** is everything from the previous line's newline up to the token — indentation and
    any full-line comments above it.
 3. **A blank line belongs to the following token's leading trivia**, so inserting a statement before a
@@ -147,7 +151,7 @@ public interface IScriptEditor
     /// original text and applying them simultaneously, never sequentially. Applied one at a time,
     /// renaming <c>PU1</c> to <c>100PU02</c> while <c>100PU02</c> still exists would collide or
     /// silently merge; computed against the original and applied at once, the set permutes cleanly.
-    /// Failure to satisfy the outside-the-set condition is <c>FS1604</c>.
+    /// Failure to satisfy the outside-the-set condition is <c>FS1607</c>.
     /// </para>
     /// </remarks>
     EditResult ApplyTags(string? scope);
@@ -257,12 +261,16 @@ whole file rather than asserting on the changed line.
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1601` | `SetParameter` replacing an expression with a literal | Warning | `Replacing '{expr}' with {value}.` |
-| `FS1604` | `ApplyTags` target identifier is held by a component outside the rename set | Error | `Cannot apply tags: '{tag}' is already the name of '{component}'. Rename it first.` |
 | `FS1602` | Editing an inferred component | Error | `'{name}' was added automatically and has no line to edit. Write it into the script first.` |
 | `FS1603` | `Rename` to an existing name | Error | `'{new}' is already used at line {n}.` |
 | `FS1604` | `Rename` to a name that lexes as a quantity | Error | `'{new}' reads as a quantity. Try '{suggestion}'.` |
 | `FS1605` | `RemoveConnection` for a connection that is not present | Error | `There is no connection from '{a}' to '{b}'.` |
 | `FS1606` | An edit would produce an unparseable script | Error | `Internal: this edit would break the script. No change made.` |
+| `FS1607` | `ApplyTags` target identifier is held by a component outside the rename set | Error | `Cannot apply tags: '{tag}' is already the name of '{component}'. Rename it first.` |
+
+`FS1607` was written as a second `FS1604` in this table, against a `Rename` trigger that already held
+that code. Two triggers behind one code is the failure `16`'s registry exists to prevent: the page a
+user is sent to would describe the other one.
 
 `FS1606` is a guard, not a user-facing expectation: every method validates its own output by
 re-parsing before returning. It costs a parse per edit — microseconds on scripts of this size — and it
@@ -307,8 +315,11 @@ worth a dedicated test.
 
 ## Acceptance criteria
 
-- [ ] Round-trip over the whole `samples/` corpus: `Print(Parse(x)) == x` byte for byte, malformed
-      samples included.
+- [ ] Round-trip over the whole corpus: `Print(Parse(x)) == x` byte for byte, over `samples/`, every
+      fenced block in `plan/` and `docs/`, the adversarial list, and every mutation the fuzz produces.
+      `samples/` deliberately holds no malformed file — [`12`](12-grammar.md)'s corpus criterion
+      requires those to parse clean — so malformed input comes from the fuzz, which covers far more
+      of it than a checked-in broken sample could.
 - [ ] Idempotence: `Print(Parse(Print(Parse(x)))) == Print(Parse(x))`.
 - [ ] The worked example produces exactly one `TextEdit`, of exactly the text shown and at exactly the
       offset shown — the offset is part of the assertion, since an edit at the wrong offset still
