@@ -45,7 +45,7 @@ store — no network call ([`51-frontend-architecture`](51-frontend-architecture
 │  authority   0.57     solved           │
 │                                        │
 │  ── state ─────────────────────────    │
-│  flow        0.2394 kg/s               │
+│  flow        0.2392 kg/s               │
 │  Δp          29.4 kPa                  │
 │  in          50.0 °C                   │
 └────────────────────────────────────────┘

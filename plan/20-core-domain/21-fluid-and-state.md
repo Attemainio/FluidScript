@@ -287,16 +287,27 @@ And humid air at 25 °C dry bulb, 50 % RH, 101 325 Pa:
 
 | Property | Expected | Tolerance |
 |---|---|---|
-| Humidity ratio | 0.009 88 kg/kg dry air | 0.5 % |
+| Humidity ratio | 0.009 93 kg/kg dry air | 0.5 % |
 | Wet bulb | 17.9 °C | 0.1 K |
 | Dew point | 13.9 °C | 0.1 K |
-| Enthalpy | 50.3 kJ/kg **dry air** | 0.5 % |
+| Enthalpy | 49.93 kJ/kg **dry air** | 0.5 % |
 | Density of the moist air | 1.177 kg/m³ | 0.5 % |
 
 These are the M2 exit criteria made concrete. Two rows are traps.
 
-**Enthalpy** catches the basis error: per kg of *mixture* the same state gives ≈ 49.8 kJ/kg — a 1 %
-difference that no plausibility check would ever flag.
+**Enthalpy is the row that was measured rather than derived, and it is worth saying why.** Earlier
+drafts stated 50.3 kJ/kg, which is what the ASHRAE ideal-gas relation
+`h = 1.006·t + W·(2501 + 1.86·t)` gives. CoolProp returns **49.93**, because it treats the vapour term
+with the real-gas formulation and an enhancement factor rather than with those two constants. The
+M0 spike (P1.1) settled which is which: at 0 % RH the two agree to 0.002 kJ/kg, so this is not a
+reference-state offset — the gap scales with humidity, reaching 1.55 kJ/kg at saturation. The same
+correction applies to the humidity ratio, 0.009 93 against the ideal-gas 0.009 88.
+
+**The basis trap is still real and is now sharper, not softer.** Per kg of *mixture* the same state
+gives ≈ 49.8 kJ/kg, which is only 0.3 % from the correct per-dry-air 49.93. A basis error that used
+to look like a 1 % discrepancy now hides inside the tolerance of the right answer, so it cannot be
+caught by eye at all — only by V14, which asserts the basis through the adapter and the model
+contract rather than inspecting a number.
 
 **Density** catches a different one. 1.177 kg/m³ is the mass of *moist air* per m³, from
 `(p − p_w)/(R_a T) + p_w/(R_v T)`. The number a reference table is far more likely to hand you is

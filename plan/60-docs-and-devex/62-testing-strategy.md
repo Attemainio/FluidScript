@@ -68,8 +68,11 @@ Traits, so a fast subset can run constantly and the whole suite before a commit.
 | `Category=Validation` | < 60 s | Physical validation cases | Pre-commit |
 | `Category=Golden` | < 10 s | Parser, printer, model-contract snapshots | Pre-commit |
 | `Category=Api` | < 30 s | Endpoint and contract tests | Pre-commit |
+| `Category=Docs` | < 5 s | The documentation gate: registry, reserved words and diagnostic codes against `/docs` | Pre-commit, and its own CI check |
 
-`dotnet test --filter Category=Unit` must stay under two seconds. That is what makes tests something
+`dotnet test --filter-trait Category=Unit` must stay under two seconds. (The flag is
+`--filter-trait` rather than `--filter`: .NET 10 drives xunit v3 through Microsoft.Testing
+Platform, opted into by the repository's `global.json`, and VSTest's `--filter` is gone.) That is what makes tests something
 run after every edit rather than before every commit, and it is achievable only because of the fake
 property backend.
 
@@ -303,10 +306,10 @@ comment in the test so nobody "fixes" it:
 | Where | cp used | Flow | Why |
 |---|---|---|---|
 | This unit test | 4182 (the fake's constant) | 0.2391 kg/s | Asserts the *equation*, against a fake with declared properties |
-| [`22`](../20-core-domain/22-component-model.md) | enthalpy difference, real backend | 0.2394 kg/s | The physical answer |
+| [`22`](../20-core-domain/22-component-model.md) | enthalpy difference, real backend | 0.2392 kg/s | The physical answer |
 | [`14`](../10-language/14-expressions-and-references.md) | 4180 (written in the script) | 0.2392 kg/s | An expression uses the number the user wrote |
 
-A unit test that asserted 0.2394 against `FakeWater` would be asserting the real backend's answer
+A unit test that asserted 0.2392 against `FakeWater` would be asserting the real backend's answer
 against a fake that cannot produce it — which is exactly the confusion between "did I write what I
 meant" and "is it physically true" that the table above this section exists to prevent.
 
@@ -348,7 +351,7 @@ prove one of the three.
 
 ## Acceptance criteria
 
-- [ ] `dotnet test --filter Category=Unit` runs in under two seconds.
+- [ ] `dotnet test --filter-trait Category=Unit` runs in under two seconds.
 - [ ] `dotnet test` runs everything with no arguments (`R-17`).
 - [ ] V1–V17 are present and pass against the applicable real backend and independent oracle.
 - [ ] Every governing equation has a hand-checked unit test.

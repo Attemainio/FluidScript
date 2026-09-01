@@ -63,10 +63,15 @@ risk fixtures before the language can parse a `.fluid` script.
 - [ ] The pinned SharpProp spike passes the water and humid-air rows in `07`/`21`, records its real API,
       valid ranges, basis, exceptions, construction cost, and concurrency behavior. If it disagrees
       with the planned adapter, implementation stops and the contracts are revised first.
-- [ ] Benchmark fixtures record the reference environment and baselines for 200 declarations,
-      200 solver unknowns, 800-unknown refusal/support behavior, and a 200-component render.
-- [ ] Model and realtime JSON Schemas generate both C# and TypeScript DTO test fixtures.
-- [ ] Accessibility automation plus keyboard and screen-reader test harnesses run in CI.
+- [ ] The benchmark harness runs in CI and `benchmarks/reference-environment.json` records the
+      reference environment per `07`. Under `D-45` M0 installs the harness and records only the
+      baseline it can actually measure — the 200-declaration draft-compile budget, once M1 exits;
+      every other baseline in `07` belongs to the milestone that first produces its artifact.
+- [ ] The model and realtime JSON Schemas are **emitted from Core's hand-written types**, committed,
+      and checked for drift; the TypeScript DTOs and the Api `Contracts/` mirror are generated from
+      the committed schema, and both generated sets have test fixtures (`D-46`).
+- [ ] Accessibility automation plus the keyboard and screen-reader harnesses execute in CI against
+      the shell that exists, proving the wiring. Their acceptance thresholds are M3's (`D-45`).
 
 ## M1 — Language spine
 
@@ -128,7 +133,7 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
 - [ ] Loop closure, mass balance, and duty-mode energy balance meet `07`/`62`'s explicit tolerances.
 - [ ] `PU1 pump` with no parameters is sized, and its head equals the loop's total pressure drop
       within tolerance — 5.28 m on the simple loop.
-- [ ] The cooling loop's recirculation branch carries non-zero flow (0.0764 kg/s), and its mixing node
+- [ ] The cooling loop's recirculation branch carries non-zero flow (0.0763 kg/s), and its mixing node
       sits at 20 °C between a 6 °C primary and a 50 °C return.
 - [ ] Adding `head=15` to the pump makes the solver honour it and either satisfy or report the
       resulting mismatch — an explicit value constrains rather than seeds (`R-02`).
@@ -142,7 +147,12 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       independent hand-checked and regression tests (`R-17`).
 - [ ] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s through the AHU
       branch, 0.3589 through the radiator branch, and 0.6460 through the source — the branch sum is
-      the criterion no single-circuit reference can test (`D-33`).
+      the criterion no single-circuit reference can test (`D-33`). **The source figure is the mass
+      continuity sum**, asserted to `07`'s conservation row. `HS1` also states `power`, `in` and
+      `out`, which pins its flow through its own energy balance; the two agree exactly only under
+      constant `cp`, and with real properties the energy-balance route lands about 0.046 % lower
+      because `cp` over 40–60 °C exceeds `cp` over 30–50 °C. Continuity governs, and a residual
+      inside the conservation row is not a diagnostic.
 - [ ] Every device carries a tag: `100PU01`, `101TV01`, `101PU01`, `102TV01`, `102PU01`. Ordinals
       restart per circuit and follow declaration order; inserting a pump above another renumbers the
       tags and changes **no** component identifier, and a test asserts selection and diagnostic
@@ -151,6 +161,8 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       the unit-symbol table and fails on a collision (`D-34`, `FS1003`).
 - [ ] `circuit AHU 101` resolves the role through the registry, and an unknown role name yields a
       `Neutral` role plus an info diagnostic rather than an error (`D-35`).
+- [ ] The solver-scale baselines deferred from M0 by `D-45` are recorded on the reference
+      environment: 200 solver unknowns, and the 800-unknown limit's refusal/support behaviour.
 
 ## M2b — Coupled thermal rating
 
@@ -227,6 +239,9 @@ accessibility, and SVG/PNG export.
       colour — a test asserts the three states differ in text and shape, not only hue (`R-51`, `R-42`).
 - [ ] Keyboard-only and screen-reader users can edit, inspect, run static solve, read diagnostics and
       state, save, and export; WCAG 2.2 AA and `07` budgets pass.
+- [ ] The render, editor-response and accessibility baselines deferred from M0 by `D-45` are recorded
+      on the reference environment: the 200-component render, the editor-response and static-render
+      budgets in `07`, and the automated accessibility results the M0 harness was wired to produce.
 
 ## M4 — Make it move
 
@@ -274,6 +289,9 @@ source boundaries feeding a five-layer 300 dm³ tank and two consumer boundaries
       the active immutable run snapshot. The UI labels its source revision and offers explicit restart.
 - [ ] Backend integration uses the dedicated worker; browser decode/delta/scale/render preparation uses
       a Web Worker; only a bounded coalesced SVG DOM commit uses the UI thread.
+- [ ] The transient baselines deferred from M0 by `D-45` are recorded on the reference environment:
+      transient playback throughput, cancellation/stop latency, and the retention and detached-run
+      memory budgets in `07`.
 
 ## M5 — Close the loop
 

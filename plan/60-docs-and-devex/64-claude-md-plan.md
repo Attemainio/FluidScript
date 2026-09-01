@@ -80,7 +80,7 @@ As important as what goes in, because every line is paid for in every session:
 <MCP-tools-not-grep, with the non-C# carve-out. Points at the plugin's skills; restates nothing.>
 
 ## Commands
-dotnet build · dotnet test · dotnet test --filter Category=Unit · npm run dev
+dotnet build · dotnet test · dotnet test --filter-trait Category=Unit · npm run dev
 <plus the one-line note that Category=Unit is under two seconds and worth running constantly>
 
 ## Interaction protocol

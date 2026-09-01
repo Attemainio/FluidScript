@@ -83,7 +83,7 @@ Run as ordinary xUnit tests so they fail with a readable message rather than as 
 
 | Assertion | Guards |
 |---|---|
-| Core references no ASP.NET, UI, or serialization package | `R-16`, [`04`](../00-foundation/04-engineering-standards.md)'s architecture test |
+| Core takes no ASP.NET, UI, hosting or transport package, and no Core source file or public member reaches a serialization type (`D-47`) | `R-16`, [`04`](../00-foundation/04-engineering-standards.md)'s architecture test |
 | Exactly one type references SharpProp | [`21`](../20-core-domain/21-fluid-and-state.md)'s invariant 1 |
 | Tier-10 namespaces reference no tier-20 type | [`15`](../10-language/15-semantic-model.md)'s invariant 7 |
 | `CircuitGraph` references no syntax type | [`23`](../20-core-domain/23-topology-and-graph.md)'s invariant 7 |

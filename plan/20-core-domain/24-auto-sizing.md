@@ -372,7 +372,7 @@ N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
 ```
 
 **Step 1 — seed.** `HE1` states `power`, `in` and `out`, so the energy balance fixes its flow
-directly: **0.2394 kg/s** (from [`22-component-model`](22-component-model.md)'s worked example), which
+directly: **0.2392 kg/s** (from [`22-component-model`](22-component-model.md)'s worked example), which
 at the loop's 35 °C mean density of 994 kg/m³ is **0.241 l/s**.
 
 **Step 2 — propagate.** The circuit is one series loop, so that flow is every component's flow. Nothing
@@ -384,10 +384,18 @@ in this circuit is free to move it — which is the point of choosing it for thi
 |---|---|---|
 | `P1` (25 m) | 0.241 l/s against [`27-component-catalog`](27-component-catalog.md)'s gradient table: DN15 1299 Pa/m ✗ · DN20 292 Pa/m ✗ · **DN25 94.1 Pa/m ✓** | **DN25**, velocity 0.411 m/s ✓ (limit 1.0) |
 | `HE1.dp` | catalogue default | **20 kPa** (`FromDefault`) |
-| `CV1.kv` | branch drop excl. valve = 25 m × 94.1 Pa/m + 20 kPa = 2.35 + 20 = **22.35 kPa**; authority 0.5 → valve drop 22.35 kPa = 0.2235 bar; Kv = 0.8669 m³/h ÷ √0.2235 = 1.834 | round **down** to catalogue **Kv 1.6** |
-| `PU1.head` | valve drop at Kv 1.6 = (0.8669/1.6)² bar = **29.36 kPa**; loop drop = 2.35 + 20 + 29.36 = **51.71 kPa**; ÷ (998.2 × 9.81) | **5.28 m** at 0.241 l/s |
+| `CV1.kv` | branch drop excl. valve = 25 m × 94.1 Pa/m + 20 kPa = 2.35 + 20 = **22.35 kPa**; authority 0.5 → valve drop 22.35 kPa = 0.2235 bar; Kv = 0.8664 m³/h ÷ √0.2235 = 1.833 | round **down** to catalogue **Kv 1.6** |
+| `PU1.head` | valve drop at Kv 1.6 = (0.8664/1.6)² bar = **29.32 kPa**; loop drop = 2.35 + 20 + 29.32 = **51.67 kPa**; ÷ (998.2 × 9.81) | **5.28 m** at 0.241 l/s |
 
-**Step 4 — solve.** The flow comes back at 0.2394 kg/s — unchanged, because `HE1`'s three stated
+**The head conversion uses the density at the pump's own inlet state, not the loop mean.** Here that
+is 998.2 kg/m³ at 20 °C, while the gradient table two rows above uses the loop's 35 °C mean of
+994 kg/m³. The switch is deliberate and must be stated, because it is otherwise read as an error: a
+pump develops head against the fluid actually entering it, and the same 51.71 kPa expressed at
+994 kg/m³ would read 5.30 m. The gap is 0.4 % here and grows with the loop's temperature spread, so
+an implementation that silently picks the loop mean will disagree with this worked example by more
+than rounding while looking correct.
+
+**Step 4 — solve.** The flow comes back at 0.2392 kg/s — unchanged, because `HE1`'s three stated
 parameters pin it through the energy balance. What the solve determines here is the pressure field, not
 the flow.
 
@@ -397,7 +405,7 @@ passes** — one to size, one to confirm.
 
 Two things this shows, and the second is the one worth internalising.
 
-**Discreteness stabilises the loop.** Kv rounds from 1.834 down to 1.6 and stays there; DN25 is DN25.
+**Discreteness stabilises the loop.** Kv rounds from 1.833 down to 1.6 and stays there; DN25 is DN25.
 Once the catalogue values settle, the only thing that can still move is the pump head, and it moves
 only if the flow does.
 
@@ -417,7 +425,7 @@ HE1  dp    20 kPa   default "20 kPa at 0.241 l/s — default"
 ```
 
 Note the achieved authority is **0.57**, not the 0.5 target: rounding Kv down raises the valve's share
-of the loop drop (29.36 of 51.71 kPa), which is the safe direction and is exactly what step 4 of the
+of the loop drop (29.32 of 51.67 kPa), which is the safe direction and is exactly what step 4 of the
 valve rule claims. A report showing an achieved authority *below* the target after rounding down would
 mean the rounding went the wrong way.
 

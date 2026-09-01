@@ -21,6 +21,7 @@ Read the relevant document before working in that area; update it when you learn
 | Repository layout, build props, project boundaries | `plan/00-foundation/03-repository-layout.md` |
 | Coding-standard routing, XML docs, frontend lint | `plan/00-foundation/04-engineering-standards.md` |
 | Milestones and their exit criteria | `plan/00-foundation/05-milestones-and-acceptance.md` |
+| Work-package order inside a milestone, and why | `plan/00-foundation/08-implementation-sequence.md` |
 | Performance, scale, accuracy, execution isolation, stop, accessibility | `plan/00-foundation/07-quality-attributes.md` |
 | The script language: grammar, units, expressions, binding, diagnostics, printer | `plan/10-language/` |
 | Fluids, components, topology, sizing, catalogue, model contract | `plan/20-core-domain/` |
@@ -64,7 +65,7 @@ files — TypeScript, CSS, Markdown, `.fluid` scripts, config — which is most 
 ```bash
 dotnet build                              # zero warnings, or it fails (TreatWarningsAsErrors)
 dotnet test                               # everything
-dotnet test --filter Category=Unit        # under 2 s — run it constantly
+dotnet test --filter-trait Category=Unit  # under 2 s — run it constantly
 cd frontend && npm run dev                # Vite dev server, proxies /api and /ws
 ```
 

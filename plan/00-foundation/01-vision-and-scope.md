@@ -311,14 +311,14 @@ computed from the stated duty and temperatures alone, so they are checkable with
 
 | Quantity | Value | Derivation |
 |---|---|---|
-| Secondary flow (through `PU1`, `HE1`) | **0.2394 kg/s** | 30 000 W ÷ (h₅₀ − h₂₀) = 30 000 ÷ 125 333 |
-| Mixing fraction at `N2` (primary share) | **0.681** | (h₅₀ − h₂₀) ÷ (h₅₀ − h₆) = 125 333 ÷ 184 140 |
-| Primary flow (`N1 → N2`, `3WV.c → P1 → N3`) | **0.1629 kg/s** | 0.681 × 0.2394 |
-| Recirculation flow (`3WV.b → N2`) | **0.0764 kg/s** | 0.2394 − 0.1629 |
-| Primary-side duty check | **30 000 W** | 0.1629 × (h₅₀ − h₆) = 0.1629 × 184 140 |
+| Secondary flow (through `PU1`, `HE1`) | **0.2392 kg/s** | 30 000 W ÷ (h₅₀ − h₂₀) = 30 000 ÷ 125 411 |
+| Mixing fraction at `N2` (primary share) | **0.681** | (h₅₀ − h₂₀) ÷ (h₅₀ − h₆) = 125 411 ÷ 184 094 |
+| Primary flow (`N1 → N2`, `3WV.c → P1 → N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
+| Recirculation flow (`3WV.b → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
+| Primary-side duty check | **30 000 W** | 0.1630 × (h₅₀ − h₆) = 0.1630 × 184 094 |
 | `P1` sized diameter | **DN20** | 0.1649 l/s at 50 °C → 138 Pa/m, 0.45 m/s |
 
-with h₆ = 25 200, h₂₀ = 84 007, h₅₀ = 209 340 J/kg
+with h₆ = 25 324, h₂₀ = 84 007, h₅₀ = 209 418 J/kg
 ([`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md)).
 
 Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 50 °C · `3WV__P1` 50 °C ·
@@ -353,7 +353,7 @@ N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
 
 One closed series loop: four nodes, four components, one flow. No node states a pressure, so the graph
 picks a datum and says so (`FS2201`). Because `HE1` states `power`, `in` and `out`, the flow is fixed
-by the energy balance at **0.2394 kg/s** — the same figure as above — which is what makes every sizing
+by the energy balance at **0.2392 kg/s** — the same figure as above — which is what makes every sizing
 step checkable by hand ([`24-auto-sizing`](../20-core-domain/24-auto-sizing.md)).
 
 #### The substation — two-sided exchanger reference
@@ -515,18 +515,18 @@ references rather than quantities, and a disturbance is one line under a `schedu
 adds a statement kind ([`12-grammar`](../10-language/12-grammar.md)).
 
 **Transport figures.** These are the numbers every transient and controller document must reproduce.
-`PB` carries the **recirculation** flow of **0.0764 kg/s** at 50 °C — not the secondary 0.2394 kg/s,
+`PB` carries the **recirculation** flow of **0.0763 kg/s** at 50 °C — not the secondary 0.2392 kg/s,
 which is the mistake to avoid, since `PB` is on the branch that returns to `N2` rather than the one that
 leaves through `3WV.c`.
 
 | Quantity | Value | Derivation |
 |---|---|---|
 | `PB` bore | **21.7 mm** | DN20, EN 10255 — 26.9 mm OD less 2 × 2.6 mm wall |
-| Velocity in `PB` | **0.209 m/s** | 0.0764 / 988 = 7.73 × 10⁻⁵ m³/s over 3.699 × 10⁻⁴ m² |
+| Velocity in `PB` | **0.209 m/s** | 0.0763 / 988 = 7.72 × 10⁻⁵ m³/s over 3.699 × 10⁻⁴ m² |
 | Thermal-cell volume (2 m equivalent length) | **0.740 l** | π/4 × 0.0217² × 2 |
-| Thermal-cell residence time τ | **9.6 s** | 0.740 × 0.988 / 0.0764 |
+| Thermal-cell residence time τ | **9.58 s** | 0.740 × 0.988 / 0.0763 |
 | Dead time, `HE1` → `N2` | **≈ 38 s** | four pipe cells in series |
-| CFL step limit | **8.6 s** | 0.9 × 9.6, set by the smallest control volume |
+| CFL step limit | **8.62 s** | 0.9 × 9.58, set by the smallest control volume |
 
 Every figure uses the **inside** diameter, never the DN number. At 21.7 mm rather than 20 mm the
 segment volume is 18 % larger and every transport time in the model moves with it

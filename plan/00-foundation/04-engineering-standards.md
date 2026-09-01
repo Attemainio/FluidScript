@@ -134,5 +134,7 @@ will be written with the opposite sign and the loop closure equation will look c
 ## Open questions
 
 None. A test in `FluidScript.Core.Tests` inspects project/assembly references and fails `dotnet test`
-when Core reaches UI, ASP.NET, or transport packages. Shared JSON Schemas generate C# and TypeScript
-REST/realtime DTOs; OpenAPI documents REST only and cannot become a competing source (`D-30`).
+when Core reaches UI, ASP.NET, or transport packages. Under `D-46` Core's model and realtime types are
+hand-written and authoritative, the JSON Schemas are emitted from them and drift-checked in CI, and the
+TypeScript DTOs and the Api `Contracts/` mirror are generated from the committed schema; OpenAPI
+documents REST only and cannot become a competing source (`D-30`).

@@ -68,7 +68,7 @@ V ρ dh/dt = ṁ (h_upstream − h) + Q̇
 
 The time constant is `τ = Vρ/ṁ` — the residence time. A DN20 pipe cell representing 2 m holds **0.740
 litres** — the 21.7 mm bore, not the 20 mm designation ([`02-glossary`](../00-foundation/02-glossary.md))
-— so at the demand-step loop's recirculation flow of 0.0764 kg/s that is **9.6 seconds**. A front
+— so at the demand-step loop's recirculation flow of 0.0763 kg/s that is **9.58 seconds**. A front
 entering the segment appears at its outlet nine seconds later, which is precisely the observable
 behaviour M4's exit criteria demand. Sizing the volume from the DN number instead gives 0.628 l and
 8.1 s: a **16 % error in every transport time in the model**, from a number that is not a diameter.
@@ -148,7 +148,7 @@ interface flow. A stagnant layer contributes no limit. `FS3101` names `T1.layer2
 limiting control volume.
 
 A DN20 pipe with 21.7 mm bore, `nodes=20`, length 5 m, water density 988 kg/m³, and flow
-0.0764 kg/s has 0.25 m pipe cells: each holds 0.0925 l and has residence time 1.20 s, forcing
+0.0763 kg/s has 0.25 m pipe cells: each holds 0.0925 l and has residence time 1.20 s, forcing
 Δt ≤ 1.08 s. These are the demand-step reference pipe's diameter, density, and recirculation flow.
 This is the mechanism by which a user's choice of `nodes` sets the cost of the whole run, and it must be
 surfaced: `FS3101` reports the limiting component when the step is constrained, so the user can see
@@ -305,19 +305,19 @@ rather than `P1`'s own primary flow compounds the error. `PB` is on the recircul
 the path a front from `HE1` actually takes to reach `N2`.
 
 **Time constants.** Every one uses `PB`'s **inside** diameter (21.7 mm) and the **recirculation** flow
-(0.0764 kg/s at 50 °C, ρ = 988), both from `01`'s solved state:
+(0.0763 kg/s at 50 °C, ρ = 988), both from `01`'s solved state:
 
 | Quantity | Value | Reason |
 |---|---|---|
-| Secondary-loop residence time | 4.5 l × 0.988 / 0.2394 = **18.6 s** | One circulation of the pump loop |
-| Pipe cell (2 m of DN20, 21.7 mm bore) | 0.740 l × 0.988 / 0.0764 = **9.6 s** | Per internal node |
+| Secondary-loop residence time | 4.5 l × 0.988 / 0.2392 = **18.6 s** | One circulation of the pump loop |
+| Pipe cell (2 m of DN20, 21.7 mm bore) | 0.740 l × 0.988 / 0.0763 = **9.58 s** | Per internal node |
 | Dead time `HE1` → `N2` | 4 × 9.6 = **38.3 s** | The four pipe cells in series |
 | CFL step limit | 0.9 × 9.6 = **8.6 s** | Set by the smallest volume |
 | Frame interval | 1.0 s | Interpolated between steps |
 
 **Response.** At t = 60 s the duty rises 50 %. The heat exchanger has no capacitance in v1, so its
 outlet enthalpy jumps within one step — **to 65.0 °C**. At the instant of the step the flow has not
-changed, so the rise is 45 000 W ÷ (0.2394 kg/s × 4178 J/(kg·K)) = 45.0 K above the 20 °C inlet.
+changed, so the rise is 45 000 W ÷ (0.2392 kg/s × 4178 J/(kg·K)) = 45.0 K above the 20 °C inlet.
 
 That jump reaches `3WV.a` immediately: there is no volume between `HE1` and the valve. It reaches the
 **measured** node `N2` only after crossing `PB`, and that is the transport this document exists to

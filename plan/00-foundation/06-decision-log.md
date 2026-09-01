@@ -1677,6 +1677,161 @@ exactly the dense diagrams where legibility matters most.
 
 ---
 
+## D-45 · A quality harness installs at M0; its baseline is recorded by the milestone that first produces the artifact
+
+**Accepted · 2026-09-01**
+
+`05`'s M0 gate asks for benchmark fixtures with baselines for "200 declarations, 200 solver unknowns,
+800-unknown refusal/support behavior, and a 200-component render", and for accessibility automation
+plus keyboard and screen-reader harnesses running in CI. Three of those measure artifacts that do not
+exist at M0: there is no solver until M2a and no renderer, and nothing accessible, until M3.
+
+**The two are separated.** M0 installs the **machinery** — the benchmark project, the trait
+categories, Verify, Vitest, Playwright, axe, and a recorded `benchmarks/reference-environment.json`
+— and proves it executes end to end on a trivial subject. The **baseline** for each budget in `07` is
+recorded by the milestone that first produces the artifact that budget measures, and becomes an exit
+criterion of that milestone: solver-scale baselines at M2a, render, editor-response and accessibility
+baselines at M3, transient throughput, stop latency and retention baselines at M4.
+
+**Why.** A gate that cannot be met has exactly two outcomes, and both are worse than moving it. Either
+M0 never exits, or it exits on a fiction — someone records a "200-component render baseline" against a
+default Vite page, and from then on the number is a decoration nobody trusts. `07`'s budgets are
+release gates, and a release gate that everyone has learned to wave through has already failed.
+
+Installing the harness early is still the right instinct and is kept: the expensive part of an
+accessibility or performance harness is wiring it into CI, and a harness added at M3 arrives after the
+UI it was supposed to shape. What M0 cannot do is measure something that is not there yet.
+
+**Rejected.**
+- *Leave the criteria as written and interpret them loosely at review.* No document changes. Cost: the
+  interpretation is unwritten, so it is re-argued at every milestone, and the first person to record a
+  placeholder number establishes that placeholders are acceptable.
+- *Move the whole item — harness and baseline — to the milestone that needs it.* Honest, and simpler
+  than a split. Cost: the harnesses arrive after the code they exist to constrain. Accessibility
+  retrofitted onto a finished canvas is the specific failure `R-42` is trying to avoid, and a
+  performance harness first run at M3 has no earlier number to compare against.
+- *Drop the M0 benchmark item and rely on `07`'s budgets alone.* Cost: `07` states budgets and names no
+  point at which anyone measures them, so nothing would be measured until a release that missed them.
+
+**Constrains.** [`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
+[`07-quality-attributes`](07-quality-attributes.md),
+[`08-implementation-sequence`](08-implementation-sequence.md),
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md),
+[`63-ci-and-repo-hygiene`](../60-docs-and-devex/63-ci-and-repo-hygiene.md).
+
+---
+
+## D-46 · Core's model types are authoritative; the schema and every other shape are generated from them
+
+**Accepted · 2026-09-01**
+
+Two documents pointed in opposite directions. [`04-engineering-standards`](04-engineering-standards.md)
+said shared JSON Schemas *generate* the C# and TypeScript REST/realtime DTOs;
+[`26-model-contract`](../20-core-domain/26-model-contract.md) puts `ModelContract` in Core with
+hand-written XML documentation, and [`41-api-architecture`](../40-api/41-api-architecture.md)'s
+invariant 1 forbids a `Contracts/` type from exposing a Core type — which requires an Api mirror that
+nobody had costed.
+
+**The direction is fixed as Core → schema → everything else.**
+
+1. Core's `ModelContract` and the realtime frame types are **hand-written C#** with the unit and
+   sign-convention XML documentation `04` requires, and carry no serialization attribute or package
+   (`03`).
+2. A build step **emits** the JSON Schema from those types. The emitted schema is committed, and CI
+   fails when a build's emitted schema differs from the committed one. That check is the anti-drift
+   mechanism the M0 criterion was reaching for.
+3. The TypeScript DTOs **and** the Api `Contracts/` mirror are generated from the committed schema, so
+   the mirror cannot drift from Core and `41`'s invariant 1 survives without hand maintenance.
+4. Every schema property carries a `description`, because the generators emit it as the `<summary>` a
+   generated public C# member needs to satisfy `TreatWarningsAsErrors` plus `GenerateDocumentationFile`.
+
+**Why.** The deciding constraint is `04`'s invariant 3 — every public dimensioned member states its
+unit and sign convention. That documentation is written by a person who understands why a pump reports
+its head as a negative pressure drop, and a code generator cannot produce it from a schema that never
+contained it. Making the schema authoritative would either lose that documentation or move it into the
+schema, where it would be maintained by whoever edits JSON rather than by whoever writes the physics.
+Losing it is not cosmetic: `04`'s own worked example exists because, without the sign convention on the
+member, half the components get written with the opposite sign and loop closure looks correct in
+isolation.
+
+**Rejected.**
+- *Schema-first for all three shapes.* One file to change, drift impossible by construction. Cost: as
+  above — generated Core types cannot carry the `<value>` unit and sign documentation, and Core would
+  need serialization attributes, breaking `03`'s no-serialization-on-Core's-public-surface rule.
+- *Core's `ModelContract` is the wire DTO; drop the Api mirror.* Least code by a wide margin. Cost:
+  deletes `41`'s invariant 1, and a Core record change then silently reshapes the public API — the
+  exact failure `03` introduced the mirror to prevent.
+- *Hand-write Core, the Api mirror and the TypeScript DTOs, with tests asserting they agree.* No
+  generator to build. Cost: three-way drift, and the drift is silent because each side's tests are
+  written against its own shape. Cross-shape agreement tests are the thing people delete when they go
+  red on a Friday.
+- *Emit the schema but generate only TypeScript, hand-writing the Api mirror.* Smaller generator. Cost:
+  the mirror is the shape most likely to drift, since it is the one nobody reads — it exists only to
+  satisfy an architecture rule.
+
+**Constrains.** [`04-engineering-standards`](04-engineering-standards.md),
+[`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`41-api-architecture`](../40-api/41-api-architecture.md),
+[`42-rest-contract`](../40-api/42-rest-contract.md),
+[`43-realtime-contract`](../40-api/43-realtime-contract.md),
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md), and `D-30`.
+
+---
+
+## D-47 · Core's serialization rule constrains Core's own code, not its transitive package graph
+
+**Accepted · 2026-09-01**
+
+`63-ci-and-repo-hygiene`'s architecture table asserts that Core references no ASP.NET, UI, or
+serialization package. The M0 spike (P1.1) found that **SharpProp 9.0.0 declares `Newtonsoft.Json`
+and `UnitsNet.Serialization.JsonNet` as direct dependencies**, so both reach Core and ship in every
+consumer's output. `ExcludeAssets` does not remove them: it severs Core's *compile* surface while
+SharpProp's own dependency edge puts the assemblies back in the closure, which is worse than doing
+nothing because it looks like a guard.
+
+**The rule is restated as a rule about Core's own code**, and gains the two assertions that make it
+checkable:
+
+1. No source file under `src/FluidScript.Core` references a serialization namespace — no
+   `Newtonsoft.Json`, no `System.Text.Json`, no `System.Runtime.Serialization`.
+2. No public member of Core exposes a serialization type, and Core's own *assembly* references none.
+3. A package Core takes deliberately still may not be a serialization, UI, hosting or transport
+   package. Only what a third-party dependency drags behind it is exempt, and only while no Core code
+   touches it.
+
+**Why.** What the original rule was protecting is that Core must not shape its model contract around a
+serializer, and that `D-46`'s hand-written types stay hand-written. Newtonsoft riding along inside the
+property backend threatens neither: no Core type can see it under assertion 1, and nothing in the
+model contract knows it exists. Stating the rule as "Core's package closure contains no serializer"
+made it a claim about SharpProp's packaging decisions, which the project does not control and cannot
+enforce — and an unenforceable invariant is the kind that gets quietly reinterpreted the first time it
+fails, taking the enforceable part with it.
+
+The cost is real and is accepted with open eyes: roughly 700 KB and a CVE surface in every consumer's
+output for an assembly the project never calls.
+
+**Rejected.**
+- *Exclude the assets and keep the original wording.* Tried first, and it compiles. Cost: it does not
+  work — the assemblies are still in the build output — so the repository would carry an exclusion
+  that reads as protection and provides none. Discovered by inspecting `bin/`, which is the only way
+  it would ever have been discovered.
+- *Isolate SharpProp in its own project so Core's graph is genuinely clean.* Architecturally the
+  best answer, and it is what `21`'s package-risk rationale is really asking for: Core would declare
+  `ISubstance` and nothing else, and the adapter would be swappable by construction. Cost: a new
+  project, an amendment to `03`, and `21`'s substance registry becomes host-injected rather than
+  self-composed — real design work for a benefit that assertion 1 already delivers on the axis that
+  matters. Worth revisiting if Core ever needs a second property backend, which is the change that
+  would make the project earn its keep.
+- *Drop SharpProp for a hand-rolled property library.* Cost: `R-07` exists because correlations are
+  where a plant model silently goes wrong. Writing IAPWS-95 to 0.1 % is not a package-hygiene task.
+
+**Constrains.** [`03-repository-layout`](03-repository-layout.md),
+[`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md),
+[`63-ci-and-repo-hygiene`](../60-docs-and-devex/63-ci-and-repo-hygiene.md), and `R-16`.
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

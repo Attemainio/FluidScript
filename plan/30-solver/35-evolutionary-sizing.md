@@ -278,7 +278,7 @@ Space size: 6 × 12 = 72 discrete combinations before the continuous dimensions 
 the optimizer's value here is the sensitivity table rather than the search.
 
 **Baseline (rule-based):** pump 5.28 m at 0.241 l/s, shaft power 17.7 W, using
-`ṁ·g·head/η = 0.2394 × 9.81 × 5.28 / 0.7`, and therefore 70.8 kWh/year. This hand calculation is the
+`ṁ·g·head/η = 0.2392 × 9.81 × 5.28 / 0.7`, and therefore 70.8 kWh/year. This hand calculation is the
 objective oracle.
 
 The rule-based design is generation zero. Every candidate must solve and satisfy velocity, valve

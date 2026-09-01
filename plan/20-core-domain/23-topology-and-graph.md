@@ -582,7 +582,7 @@ which only the pump head can deliver. Remove either constraint and both the equa
 disappear together — which is the check that the counting scheme is the right one.
 
 Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md): secondary flow
-0.2394 kg/s, primary 0.1629 kg/s, recirculation 0.0764 kg/s.
+0.2392 kg/s, primary 0.1630 kg/s, recirculation 0.0763 kg/s.
 
 ## Acceptance criteria
 

@@ -275,7 +275,7 @@ HE1.dp ───► PU1.head        (deferred — dp is solved, not declared)
 
 **Phase B.** The circuit is the **simple loop**
 ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)), where `HE1` states `power`, `in`
-and `out` — so the flow is pinned by the energy balance at 0.2394 kg/s and does **not** move with the
+and `out` — so the flow is pinned by the energy balance at 0.2392 kg/s and does **not** move with the
 pump head. `HE1.dp` therefore depends on the head only through the small effect of pressure on density,
 which is what makes this reference converge rather than collapse.
 
@@ -308,7 +308,7 @@ directly.
 - [ ] `let` bindings evaluate in dependency order regardless of source order.
 - [ ] A static cycle reports every participant, in cycle order, exactly once.
 - [ ] `mdot` in the worked example evaluates to 0.2392 kg/s ± 1e-4. This is deliberately *not* the
-      0.2394 kg/s that [`22-component-model`](../20-core-domain/22-component-model.md) computes for the
+      0.2392 kg/s that [`22-component-model`](../20-core-domain/22-component-model.md) computes for the
       same duty: the script states `cp = 4.18 kJ/(kg*K)` and the property backend gives 4178 J/(kg·K).
       An expression uses the number the user wrote.
 - [ ] The fixed-point loop converges on the worked example in ≤ 3 iterations.

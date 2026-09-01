@@ -710,13 +710,13 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | Sized | `dp` (no value given), `flow` (implied, not sized) |
 | cp at mean 35 °C | 4178 J/(kg·K) |
 | h_in at (p, 293.15 K) | 84 007 J/kg |
-| h_out at (p, 323.15 K) | 209 340 J/kg |
-| Δh | 125 333 J/kg |
-| Energy balance ṁ = Q̇/Δh | 30 000 / 125 333 = **0.2394 kg/s** |
-| Volume flow | 0.2394 / 994 = 0.241 l/s |
+| h_out at (p, 323.15 K) | 209 418 J/kg |
+| Δh | 125 411 J/kg |
+| Energy balance ṁ = Q̇/Δh | 30 000 / 125 411 = **0.2392 kg/s** |
+| Volume flow | 0.2392 / 994 = 0.241 l/s |
 
-Cross-check against the cp shortcut ṁ = Q̇/(cp·ΔT) = 30 000/(4178 × 30) = 0.2394 kg/s — agreement to
-four figures, as expected for liquid water where cp is nearly constant. The enthalpy form is used
+Cross-check against the cp shortcut ṁ = Q̇/(cp·ΔT) = 30 000/(4178 × 30) = 0.2394 kg/s against the
+enthalpy form's 0.2392 — agreement to three figures, as expected for liquid water where cp is nearly constant. The enthalpy form is used
 because it stays correct where the shortcut does not: near saturation, across a phase change, and for
 humid air.
 
@@ -736,7 +736,7 @@ such row.
 ## Acceptance criteria
 
 - [ ] Every component's governing equation has a test with hand-checked numbers, independent of the solver.
-- [ ] The worked example yields 0.2394 kg/s ± 1e-4 through the component's own residual.
+- [ ] The worked example yields 0.2392 kg/s ± 1e-4 through the component's own residual.
 - [ ] The pump curve is tested at n = 1, n = 0.5 and n = 0. At n = 0.5 the head is `0.25·H₀ − k·ṁ²`,
       **not** `0.25·H₀ − 4k·ṁ²`; at n = 0 the residual is finite.
 - [ ] The valve law is tested against a hand-computed case in both the Kv units and the SI form, and

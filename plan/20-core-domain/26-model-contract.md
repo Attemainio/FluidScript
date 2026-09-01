@@ -110,7 +110,7 @@ converting there costs one pass and removes a whole class of consumer bug.
       },
 
       "state": {                        // solved values; null when unsolved
-        "flow":   { "value": 0.2394, "unit": "kg/s" },
+        "flow":   { "value": 0.2392, "unit": "kg/s" },
         "tIn":    { "value": 20.0,   "unit": "C" },
         "tOut":   { "value": 50.0,   "unit": "C" },
         "dp":     { "value": 20.0,   "unit": "kPa" },
@@ -140,7 +140,7 @@ converting there costs one pass and removes a whole class of consumer bug.
     { "id": "c0", "from": { "component": "PU1__HE1", "port": null },
                   "to":   { "component": "HE1", "port": "in" },
       "flow": "forward",
-      "state": { "flow": { "value": 0.2394, "unit": "kg/s" } } }
+      "state": { "flow": { "value": 0.2392, "unit": "kg/s" } } }
   ],
 
   "layout": {
