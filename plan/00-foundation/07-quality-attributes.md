@@ -40,7 +40,10 @@ reviewed baseline update, not silent threshold relaxation.
 | Attribute | Release gate |
 |---|---|
 | Editor response | Key input, selection, pan, zoom, and hover schedule their visible response within one 16.7 ms frame at p95. No application task on the UI thread exceeds 50 ms. |
-| Draft compile | After the 300 ms idle debounce, a 200-declaration script returns parse/bind diagnostics within 150 ms p95 on the reference environment. A slower solve may finish asynchronously and cannot stall editing. |
+| **Keystroke to diagnostic** | **The normative interactive gate** (`D-48`). From the last keystroke of an edit to that edit's diagnostic decoration being visible: **250 ms p95** for the M1 syntax tour, **400 ms p95** for the 200-declaration reference script. The debounce and draft-compile figures below are components of this, not gates in their own right. |
+| Draft compile | A component of the gate above. A 200-declaration script returns parse/bind diagnostics within 150 ms p95 on the reference environment, measured from request receipt to response written. A slower solve may finish asynchronously and cannot stall editing. |
+| Idle debounce | A component of the gate above, and a **measured** value rather than a constant (`D-49`). Floored by typing cadence — never short enough to fire inside an average typist's inter-key interval, about 200 ms at 40 wpm — and ceilinged by what the gate above leaves after the measured compile. Set once per environment and recorded; it does not adapt at runtime. |
+| Model contract payload | The compile response for the 200-component reference model is at most 512 KiB uncompressed, and server serialization plus client parse together stay within 50 ms p95, counted inside the gate above. Measured separately from compute: a loopback request with a trivial body answers in 0.31 ms p95, and that number says nothing about a response carrying the whole model. |
 | Static rendering | Pan and zoom sustain 50 fps p95 for the supported 200-component post-collapse reference model; a frame commit gets an 8 ms main-thread budget and no symbols overlap. Geometry work occurs outside the UI thread. Over-limit/degraded scenes are excluded from this gate and must be labelled as specified by `53`. |
 | Transient playback | The 200-declaration demand-step benchmark streams and prepares at least 10 simulation frames/s while the UI remains within the input and long-task budgets. Rendering may coalesce old frames; simulation frames are never reordered. |
 | Cancellation/stop | User Stop, client disconnect, or a stop condition reaches the solver cancellation boundary within one produced frame or 250 ms, whichever is longer; no worker continues afterwards. |
@@ -52,6 +55,13 @@ reviewed baseline update, not silent threshold relaxation.
 | Determinism | Identical source bytes, language major, catalogue pin, property-backend version, solver settings, and platform produce the same graph ordering and diagnostic order. Numeric values meet the tolerance matrix; cross-platform bit identity is not promised. |
 | Availability | A malformed or temporarily incomplete draft returns diagnostics and retains the last good static render. It does not terminate the editor session. |
 | Accessibility | All v1 workflows meet WCAG 2.2 AA and pass automated checks plus keyboard-only and screen-reader acceptance tests. Canvas information has a structured accessible equivalent. |
+
+**The end-to-end gate governs when it and a component disagree.** Components exist to localise a
+regression, not to authorise one: a build whose debounce, compile and payload rows are each green
+while keystroke-to-diagnostic is 500 ms has failed, and the fix is not to widen the end-to-end row.
+The reverse also holds — a component may be missed if the sum still lands inside the gate, because
+what a user experiences is the sum and nothing else. This is `D-48`, and it exists because the
+component figures this document already carried composed to 450 ms p95 that no document ever added up.
 
 The 200-declaration workload represents the interactive target; 800 unknowns is the hard v1 solver
 limit, not a promise of interactive latency. An explicit Solve may take longer above the interactive

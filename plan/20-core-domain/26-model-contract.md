@@ -314,7 +314,7 @@ public interface IModelSerializer
 }
 ```
 
-**Serializing an unsolved circuit is a first-class case, not a degraded one.** The 300 ms debounce path
+**Serializing an unsolved circuit is a first-class case, not a degraded one.** The debounce path
 (`R-21`) frequently has a parseable script that does not yet solve — half-written, or under-specified.
 The canvas must draw the topology anyway. A contract that requires a solution would make the editor
 blank the diagram constantly.
@@ -366,7 +366,9 @@ The contract carries diagnostics rather than producing them. Two serialization-l
 
 `FS2502` matters for a pipe discretized into 100 nodes across a 50-component circuit: several thousand
 components, each with a state block. A size cap with a documented degradation is better than a 20 MB
-payload arriving every 300 ms.
+payload arriving once per debounce interval. `07` budgets that payload at 512 KiB uncompressed for
+the 200-component reference model, with serialization and client parse inside the end-to-end gate
+(`D-48`).
 
 ## Worked example
 

@@ -16,7 +16,7 @@ last_review_pass: 2
 
 `FluidScript.Api` is a thin host: it accepts script text, runs Core's pipeline, and returns the model
 contract. Its design problems are not about HTTP — they are about lifetime and cancellation. A user
-typing produces a request every 300 ms, each superseding the last, while a transient run may be
+typing produces one request per debounce interval, each superseding the last, while a transient run may be
 streaming in the background. Getting that wrong burns CPU on results nobody will see.
 
 ## Responsibilities
@@ -94,7 +94,9 @@ that a server restart is invisible to the user.
 
 ## Cancellation — the load-bearing part
 
-The debounce path produces a request every 300 ms while the user types, and each supersedes the last.
+The debounce path produces one request per debounce interval while the user types, and each
+supersedes the last. The interval is a measured value, not a constant (`D-49`); this design holds
+at any value it takes, which is what makes shortening it safe.
 
 **On every compile/solve request:**
 
@@ -203,6 +205,7 @@ The debounce path, one keystroke:
 ```
 t=0ms     User types 'v' in "kv=12.4"
 t=300ms   Debounce fires. POST /api/compile { sessionId, script }
+          (300 ms is the recorded default here, not a fixed constant -- see D-49.)
 t=301ms   Handler cancels the in-flight solve from the previous keystroke.
 t=302ms   Parse → bind → lower.  Topology hash matches the session's → warm start available.
 t=305ms   Sizing: 1 pass (sizes barely moved).

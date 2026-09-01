@@ -219,8 +219,10 @@ From the compile response ([`44`](../40-api/44-diagnostics-contract.md)):
 **Diagnostics are applied as a decoration set replaced wholesale per compile**, not incrementally
 patched. Simpler, and it cannot leave a stale squiggle behind — which is the failure users notice.
 
-**Squiggles persist across the debounce gap.** A stale squiggle for 300 ms is much better than
-flickering them off and on with every keystroke.
+**Squiggles persist across the debounce gap.** A stale squiggle for one debounce interval is much
+better than flickering them off and on with every keystroke. `D-49` leans on this: because flicker
+is already handled here, flicker is not what bounds how short the debounce may be — the bound is
+that a half-typed token must not be reported as wrong.
 
 ## Hover
 

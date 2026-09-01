@@ -1832,6 +1832,102 @@ output for an assembly the project never calls.
 
 ---
 
+## D-48 · Interactive latency is budgeted end to end, from keystroke to visible diagnostic
+
+**Accepted · 2026-09-01**
+
+[`07-quality-attributes`](07-quality-attributes.md) gains one normative interactive gate: the time
+from the last keystroke of an edit to that edit's diagnostic being on screen. Two values, by script
+size — 250 ms p95 for the M1 syntax tour, 400 ms p95 for the 200-declaration reference script.
+
+The debounce and draft-compile figures become **components** of that gate and stop being
+independently normative. A component may be missed while the end-to-end gate is met; meeting every
+component while missing the end-to-end gate is a failure.
+
+**Why.** The two figures the plan already stated compose to 450 ms p95 — a 300 ms debounce plus a
+150 ms compile — and no document stated the sum, which is the only latency a user ever experiences.
+Measurement makes the split stark: a loopback request to the running host answers in 0.31 ms median
+and 0.44 ms p95, and [`41`](../40-api/41-api-architecture.md)'s own worked example puts a full
+compile, size, solve and serialize at 14 ms. Over 95 % of what a user waits for is a timer we chose
+rather than work we do, and nothing was gating that.
+
+A budget expressed only in components is also the shape that hides a regression: every component
+stays green while the sum drifts, because no test computes the sum.
+
+**Rejected.**
+- *Keep component budgets only.* Nothing new to maintain. Cost: this is the state that let 450 ms sit
+  unnoticed through six review passes.
+- *One number regardless of script size.* Simplest to state and to test. Cost: either unachievable at
+  200 declarations or slack at 30 — and a gate that is slack at the size users spend most of their
+  time at is not a gate.
+- *Budget the round trip instead of the keystroke.* Measurable server-side with no browser harness.
+  Cost: it excludes the debounce, which measurement says is the dominant term. It would budget the
+  5 % and ignore the 95 %.
+
+**Constrains.** [`07-quality-attributes`](07-quality-attributes.md),
+[`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`51-frontend-architecture`](../50-frontend/51-frontend-architecture.md),
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md).
+
+---
+
+## D-49 · The debounce is a measured value with a typing-cadence floor, not a constant and not a control loop
+
+**Accepted · 2026-09-01**
+
+The idle debounce stops being a constant chosen in advance. It is set from measurement on the
+reference environment, recorded as a baseline like every other budget, and bounded at both ends:
+
+- **Floor — typing cadence, not server load.** It may not be short enough to fire inside an average
+  typist's inter-key interval, about 200 ms at 40 wpm. Below that it is per-keystroke behaviour under
+  another name, and it reports half-typed tokens: *a heat_exchanger has no 'pow'* while the user is
+  still writing `power`.
+- **Ceiling — whatever `D-48` leaves** after the measured compile time for that script size.
+
+It is set once per environment and recorded. It does **not** adapt at runtime.
+
+**Why.** [`51`](../50-frontend/51-frontend-architecture.md) already said the value should be measured,
+and scheduled nothing, so the default would have shipped by default. The two usual objections to
+shortening it do not apply here: server load is handled, because
+[`41`](../40-api/41-api-architecture.md) cancels a superseded compile within one solver iteration,
+and squiggle flicker is handled, because [`52`](../50-frontend/52-editor.md) keeps diagnostics across
+the debounce gap. What actually bounds the debounce is neither — it is that someone pausing mid-word
+should not be told their unfinished token is wrong.
+
+**Runtime adaptation is rejected rather than deferred**, and it was the first design proposed here.
+Latency that varies with recent load is worse than latency that is consistently longer: a user
+calibrates to a rhythm, and a rhythm that moves reads as the tool being erratic rather than as the
+tool being fast. It also makes a report unreproducible, because the reporter cannot say what the
+debounce was when they saw the problem.
+
+**This does not change `R-21`**, whose substance is that the diagram updates on an idle debounce
+rather than on every keystroke, and whose figure is written "~300 ms". A measured value that departs
+from 300 ms by more than a factor of two is a requirement conversation, not a benchmark result.
+
+**It does not change `D-06` either.** The draft path stays request/response; a shorter idle gap makes
+it no less cacheable, curl-able or testable.
+
+**Rejected.**
+- *Keep 300 ms fixed.* No work, and defensible right up until it is measured. Cost: `41`'s worked
+  example already shows a 14 ms compile, so it spends 95 % of the user's wait on a number nobody has
+  justified.
+- *Adapt at runtime from the rolling compile p95.* Tracks the machine it actually runs on. Cost:
+  unpredictable latency and unreproducible bug reports, as above.
+- *Drop the debounce and rely on supersession.* Lowest possible latency, and the load argument no
+  longer forbids it. Cost: diagnostics about half-typed tokens, and it contradicts `R-21`.
+
+**Constrains.** [`51-frontend-architecture`](../50-frontend/51-frontend-architecture.md),
+[`52-editor`](../50-frontend/52-editor.md),
+[`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
+[`07-quality-attributes`](07-quality-attributes.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`31-solver-architecture`](../30-solver/31-solver-architecture.md),
+[`32-steady-state-newton`](../30-solver/32-steady-state-newton.md),
+[`41-api-architecture`](../40-api/41-api-architecture.md).
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

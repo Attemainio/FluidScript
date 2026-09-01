@@ -16,7 +16,7 @@ last_review_pass: 2
 
 The shape of the React application: how the script gets to the server, how the model gets back, and
 where each piece of state lives. The organising constraint is `R-21`'s debounce loop — everything the
-user sees is downstream of one pipeline that runs every 300 ms, and the architecture is mostly about
+user sees is downstream of one pipeline that runs once per debounce interval, and the architecture is mostly about
 making that pipeline correct under interruption.
 
 ## Responsibilities
@@ -101,14 +101,15 @@ subscription.
 
 ## The debounce pipeline
 
-`R-21`'s 300 ms, and the reason for most of this document.
+`R-21`'s idle debounce, and the reason for most of this document. Its value is measured rather than
+fixed (`D-49`).
 
 ```
 keystroke
    │
    ├─► CodeMirror updates its document          (immediate, always)
    │
-   └─► debounce 300 ms
+   └─► debounce (measured, D-49)
           │
           ├─► abort the in-flight request (AbortController)
           ├─► POST /api/v1/compile { sessionId, script }
@@ -125,16 +126,36 @@ arrive out of order and a stale response overwrites a newer one — the model fl
 state for no visible reason. This is the classic race in any debounced editor and it is invisible
 until it happens on a slow connection.
 
-**300 ms is a starting value, not a law.** It should be measured: if a compile round-trips in 15 ms
-(which [`41`](../40-api/41-api-architecture.md)'s worked example suggests), a shorter debounce may feel
-better. The value lives in one constant and is worth an experiment.
+**The debounce is measured, not chosen** (`D-49`). It lives in one constant, but that constant is set
+from a benchmark on the reference environment and recorded as a baseline — it is not a number picked
+in advance and left alone. Two bounds fix the range it may take:
+
+- **Floor: typing cadence.** It may never be short enough to fire inside an average typist's inter-key
+  interval, about 200 ms at 40 wpm. Below that it is per-keystroke behaviour wearing a debounce's
+  name, and it starts reporting half-typed tokens — *a heat_exchanger has no 'pow'* while `power` is
+  still being typed. Note what does **not** set this floor: server load, which
+  [`41`](../40-api/41-api-architecture.md) already handles by cancelling a superseded compile within
+  one solver iteration, and squiggle flicker, which [`52`](52-editor.md) already handles by keeping
+  diagnostics across the gap. Both of the obvious objections to a shorter debounce are answered
+  elsewhere; the one that survives is about half-written words.
+- **Ceiling: whatever `D-48`'s end-to-end gate leaves** once the compile for that script size has been
+  measured. At the 14 ms round trip [`41`](../40-api/41-api-architecture.md)'s worked example
+  describes, the 250 ms syntax-tour gate leaves well over 200 ms of debounce; at the 150 ms p95
+  budgeted for 200 declarations, the 400 ms gate leaves about 250 ms.
+
+**It does not adapt at runtime**, and that was the first design proposed. Latency that moves with
+recent load is worse than latency that is consistently longer — a user calibrates to a rhythm, and one
+that shifts reads as the tool being erratic rather than as the tool being quick. It also makes a bug
+report unreproducible, since the reporter cannot say what the debounce was at the time. The adaptive
+`POST /validate` phase below is a different mechanism and is unaffected: it adds a *phase* under
+sustained slowness, it does not move the debounce.
 
 ### Two-phase feedback
 
 Syntax errors are known in ~2 ms; a solve takes ~15 ms. For a large script the gap grows.
 
 - **Immediate (0 ms):** client-side lexical highlighting — no round trip.
-- **Debounced (300 ms):** `POST /compile` for diagnostics and the model.
+- **Debounced (one debounce interval):** `POST /compile` for diagnostics and the model.
 
 The client enables the 100 ms `POST /validate` phase when the rolling p95 of the last 20 completed
 `/compile` requests exceeds 100 ms. It disables the phase after 50 consecutive compiles below 75 ms,
@@ -274,6 +295,7 @@ A user types `4` in `power=3` → `power=34`, with a transient run already strea
 t=0ms     CodeMirror inserts '4'. Lexical highlighting updates. No network.
 t=0ms     The canvas keeps rendering simulation frames — unaffected.
 t=300ms   Debounce fires. Previous request aborted (none in flight). POST /compile.
+          (300 ms is the recorded default here, not a fixed constant -- see D-49.)
 t=315ms   200 with the new model. modelStore.set().
           Canvas mode is `simulation`, so the canvas ignores it.
           The editor's squiggles update. The log shows the new diagnostics.

@@ -854,7 +854,9 @@ and `HE1`. I3 therefore adds only the two terminating nodes for `PU1`. Final com
 - [ ] `Origin` round-trips: every component with `DeclarationSpan == null` has an inferred origin.
 - [ ] An architecture test asserts no tier-20 type is referenced from the binder's assembly namespace.
 - [ ] Every `FS15xx` code has a triggering test.
-- [ ] Binding a script of 10 000 statements completes within the editor's debounce budget (300 ms).
+- [ ] Binding a script at the 10 000-statement input limit completes within one debounce interval
+      (`D-49`), so a compile is never still running when the next one is due. The debounce is idle
+      time, not a compute allowance; the compute budget is `07`'s draft-compile row.
 
 ## Open questions
 

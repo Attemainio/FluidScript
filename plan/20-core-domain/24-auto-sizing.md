@@ -38,7 +38,7 @@ does not search. This distinction matters because the two are constantly conflat
 
 | | Auto-sizing (this document) | Evolutionary sizing (`35`) |
 |---|---|---|
-| Runs | Every compile, inside the 300 ms budget | On request, seconds to minutes |
+| Runs | Every compile, inside `07`'s draft-compile budget | On request, seconds to minutes |
 | Method | Rules and lookup tables | Population search over a fitness function |
 | Answer | Deterministic, reproducible | Stochastic, near-optimal |
 | Question | "What size is standard practice here?" | "What sizes minimise cost subject to constraints?" |

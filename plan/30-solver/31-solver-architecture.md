@@ -126,8 +126,9 @@ public sealed record ResidualReport(
 
 **`initialGuess` from the previous solution is what makes the editor feel alive.** A one-character
 edit changes one coefficient; starting Newton from the previous solution converges in two or three
-iterations instead of eight. This is the difference between a 300 ms debounce feeling instant and
-feeling sluggish, and it is free.
+iterations instead of eight. This is the difference between the debounce path feeling instant and
+feeling sluggish, and it is free. It also buys headroom for a shorter debounce, since `D-49` sets
+that from measured compile time.
 
 ## System assembly
 

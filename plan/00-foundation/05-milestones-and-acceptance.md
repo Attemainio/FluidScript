@@ -163,6 +163,9 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       `Neutral` role plus an info diagnostic rather than an error (`D-35`).
 - [ ] The solver-scale baselines deferred from M0 by `D-45` are recorded on the reference
       environment: 200 solver unknowns, and the 800-unknown limit's refusal/support behaviour.
+- [ ] The model contract payload for the 200-component reference model is recorded: uncompressed
+      bytes and server serialization time, against `07`'s 512 KiB budget. The client-side half of that
+      budget belongs to M3, which is where a client exists to measure it (`D-45`).
 
 ## M2b — Coupled thermal rating
 
@@ -203,7 +206,9 @@ accessibility, and SVG/PNG export.
 
 **Exit criteria**
 
-- [ ] Typing in the editor updates the diagram after ~300 ms idle, and *not* on every keystroke (`R-21`).
+- [ ] Typing in the editor updates the diagram after an idle debounce, and *not* on every keystroke
+      (`R-21`). The debounce is the value measured and recorded under `D-49`, read from one constant;
+      the criterion is the behaviour and the recorded provenance, not a particular number.
 - [ ] A syntax error draws a squiggle at the right span and does not blank the diagram — the last good
       render persists.
 - [ ] The canvas zooms and pans; the origin shows a red X axis and a green Y axis (`R-22`).
@@ -242,6 +247,11 @@ accessibility, and SVG/PNG export.
 - [ ] The render, editor-response and accessibility baselines deferred from M0 by `D-45` are recorded
       on the reference environment: the 200-component render, the editor-response and static-render
       budgets in `07`, and the automated accessibility results the M0 harness was wired to produce.
+- [ ] Keystroke to visible diagnostic meets `D-48` and is recorded as a baseline: 250 ms p95 on the
+      M1 syntax tour and 400 ms p95 on the 200-declaration reference script. This is the gate; the
+      debounce, compile and payload figures are components of it and do not substitute for it.
+- [ ] The debounce constant's recorded value sits inside `D-49`'s bounds — at or above the typing-
+      cadence floor, and at or below what the gate above leaves after the measured compile.
 
 ## M4 — Make it move
 

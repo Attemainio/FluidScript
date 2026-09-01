@@ -51,8 +51,8 @@ bottom — terminal convention, and it means the interesting line is where the e
 | Component | The component name, clickable — selects it on canvas and in the editor |
 | Message | The diagnostic text |
 
-**No timestamps, no severity words, no codes by default.** A timestamp on a log that regenerates every
-300 ms is noise. The code appears on hover and in the expanded view, where an agent or a support
+**No timestamps, no severity words, no codes by default.** A timestamp on a log that regenerates once per
+debounce interval is noise. The code appears on hover and in the expanded view, where an agent or a support
 conversation needs it (`R-29`).
 
 **The component name is the primary affordance.** Clicking it selects the component in both panes
@@ -61,7 +61,7 @@ complaints into navigation.
 
 ## Lifecycle — the hard part
 
-The log's content is regenerated on every compile, i.e. every 300 ms while typing. Treating it as an
+The log's content is regenerated on every compile, i.e. once per debounce interval while typing. Treating it as an
 append-only terminal produces thousands of duplicate entries; clearing and refilling it makes it flash
 on every keystroke and lose scroll position.
 

@@ -29,7 +29,7 @@ transient streaming ([`43-realtime-contract`](43-realtime-contract.md)), hosting
 
 | Method | Path | Purpose | Typical caller |
 |---|---|---|---|
-| `POST` | `/api/v1/compile` | Parse, bind, lower, size, solve. **The debounce path.** | Editor, every 300 ms |
+| `POST` | `/api/v1/compile` | Parse, bind, lower, size, solve. **The debounce path.** | Editor, once per debounce interval |
 | `POST` | `/api/v1/validate` | Parse and bind only — diagnostics, no physics | Editor, for fast feedback on large scripts |
 | `POST` | `/api/v1/solve` | Explicit solve, stricter than compile | The Solve button |
 | `POST` | `/api/v1/edit` | Apply a canvas edit, returning text edits | Canvas write-back (`R-25`) |

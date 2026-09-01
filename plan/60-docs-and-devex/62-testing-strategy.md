@@ -216,6 +216,17 @@ which is where a parser actually breaks.
 | Visual | Playwright screenshots | Canvas rendering, both themes |
 | End to end | Playwright | Type a script → see a diagram → edit on canvas → see the script change |
 
+**Keystroke to visible diagnostic is a Playwright measurement, not a server-side one** (`D-48`). It is
+the normative interactive gate in `07`, and it is the one budget that cannot be measured from either
+end alone: a server-side timer misses the debounce, which measurement says is the dominant term, and a
+client-side timer around `fetch` misses the decoration commit. The benchmark drives a real keypress,
+waits for the diagnostic decoration for that edit to be present in the DOM, and records the interval —
+against the M1 syntax tour and the 200-declaration reference script, both recorded as baselines.
+
+Three component figures are recorded alongside it, because a regression in the sum is unactionable
+without them: the debounce actually in force, the server's compile time, and the payload's
+serialize-plus-parse cost. They are diagnostic, not gates — `07` states which one governs.
+
 **The layout engine is unit-testable and must be**: given hints, assert placements. It is the most
 algorithmically complex frontend code and the least suited to visual-only testing.
 
@@ -366,6 +377,9 @@ prove one of the three.
 - [ ] `dotnet test --filter-trait Category=Unit` runs in under two seconds of execution, measured
       against a same-session empty-filter run rather than as raw wall clock.
 - [ ] `dotnet test` runs everything with no arguments (`R-17`).
+- [ ] Keystroke to visible diagnostic is measured through the browser and meets `D-48` on both the
+      syntax tour and the 200-declaration reference script, with the debounce, compile and payload
+      components recorded beside it.
 - [ ] V1–V17 are present and pass against the applicable real backend and independent oracle.
 - [ ] Every governing equation has a hand-checked unit test.
 - [ ] Every diagnostic code has a triggering test.

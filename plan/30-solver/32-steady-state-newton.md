@@ -258,7 +258,8 @@ for a pressure residual and a mass residual.
 - [ ] No trial point outside `ValidRange` reaches the property backend, asserted with a counting fake.
 - [ ] The same input produces a bit-identical iterate sequence across 100 runs.
 - [ ] A closed valve (zero-flow branch) does not produce a singular Jacobian.
-- [ ] A 200-unknown circuit solves within the 300 ms debounce budget.
+- [ ] A 200-unknown circuit solves within `07`'s draft-compile budget, and within one debounce
+      interval (`D-49`) so consecutive compiles cannot overlap.
 
 ## Open questions
 
