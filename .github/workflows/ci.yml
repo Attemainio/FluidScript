@@ -90,7 +90,7 @@ jobs:
           global-json-file: global.json
       # Run separately from `test` so a boundary breach is legible in the checks list rather than
       # buried in a run of everything.
-      - run: dotnet test tests/FluidScript.Core.Tests --filter-trait "Category=Unit"
+      - run: dotnet test --project tests/FluidScript.Core.Tests --filter-trait "Category=Unit"
 
   docs-gate:
     name: docs gate
@@ -102,8 +102,12 @@ jobs:
         with:
           global-json-file: global.json
       # The gate walks the component registry, the statement-introducing reserved words and the
-      # diagnostic table, and fails on anything without a /docs page. It is a test rather than a
+      # diagnostic registry, and fails on anything without a /docs page. It is a test rather than a
       # script so the failure names what is missing, and because 03-repository-layout allows no .cs
-      # outside src/ and tests/. It passes over empty registries today and starts doing real work the
-      # first time one of them gains an entry -- which is the point of wiring it this early.
-      - run: dotnet test tests/FluidScript.Core.Tests --filter-trait "Category=Docs"
+      # outside src/ and tests/.
+      #
+      # The diagnostic half is live: the code table in docs/functions/diagnostics.md is rendered from
+      # the registry and compared, so a code with no documented meaning fails here. The component and
+      # reserved-word registries are still empty and start doing real work the first time one of them
+      # gains an entry -- which is the point of wiring the gate this early.
+      - run: dotnet test --project tests/FluidScript.Core.Tests --filter-trait "Category=Docs"

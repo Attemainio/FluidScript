@@ -10,16 +10,14 @@ namespace FluidScript.Core.Tests.Documentation;
 /// <remarks>
 /// <para>
 /// It is a test rather than a shell script for the same reason the architecture assertions are, and
-/// it is wired at M0 rather than when there is something to document. Today all three registries are
-/// empty, so the coverage assertions pass over nothing; the day the first component kind is
-/// registered in P2.6 this test starts failing until its page exists. A gate added after the first
-/// three features have shipped is a gate that is first met by writing three pages nobody wanted to
-/// write, which is how documentation gates come to be disabled.
+/// it was wired at M0 rather than when there was something to document. The diagnostic half now does
+/// real work: the code table on the reference page is rendered from the registry and compared, so a
+/// code added without a documented meaning fails here. The component and reserved-word registries are
+/// still empty, and start failing the day their first entry is registered.
 /// </para>
 /// <para>
-/// The registries are represented as empty sequences here rather than being read from Core, because
-/// the types that will own them do not exist yet. P2.6 replaces each with the real registry, and the
-/// assertions do not change.
+/// A gate added after the first three features have shipped is a gate first met by writing three
+/// pages nobody wanted to write, which is how documentation gates come to be disabled.
 /// </para>
 /// </remarks>
 public sealed class DocumentationGateTests
@@ -43,13 +41,6 @@ public sealed class DocumentationGateTests
     /// registry would have passed all five undocumented. Empty until the grammar lands in P2.4.
     /// </remarks>
     private static IReadOnlyCollection<string> StatementReservedWords => [];
-
-    /// <summary>Diagnostic codes that are reachable, each of which needs a generated entry.</summary>
-    /// <remarks>
-    /// Retired codes are exempt and must be, or the gate demands a page for <c>FS1509</c>. Empty until
-    /// the diagnostic registry lands in P2.1.
-    /// </remarks>
-    private static IReadOnlyCollection<string> ReachableDiagnosticCodes => [];
 
     private static bool HasPage(string slug) =>
         RequiredCategories.Any(category =>
@@ -92,12 +83,31 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
-    public void EveryReachableDiagnosticCodeHasItsEntry()
+    public void TheDiagnosticsPageIsGeneratedFromTheRegistry()
     {
-        var undocumented = ReachableDiagnosticCodes.Where(code => !HasPage(code)).ToArray();
-
+        var path = Path.Combine(DocsRoot, "functions", "diagnostics.md");
         Assert.True(
-            undocumented.Length == 0,
-            $"R-28: every reachable diagnostic code has a generated entry. Missing: {string.Join(", ", undocumented)}");
+            File.Exists(path),
+            $"R-28: the diagnostic reference page is missing. Expected {RepositoryLayout.ToRelative(path)}.");
+
+        var committed = File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
+        var current = DiagnosticsPage.WriteRegion(
+            committed, DiagnosticsPage.CodesRegion, DiagnosticsPage.RenderCodes());
+        current = DiagnosticsPage.WriteRegion(
+            current, DiagnosticsPage.RetiredRegion, DiagnosticsPage.RenderRetired());
+
+        if (string.Equals(committed, current, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // Rewriting the page here is deliberate: locally the next run passes and the diff is in the
+        // working tree to review, and in CI the failure plus a dirty tree is exactly the signal that
+        // a generated page was committed stale. The alternative -- printing several hundred lines of
+        // expected markdown into an assertion message -- is a diff nobody reads.
+        File.WriteAllText(path, current);
+        Assert.Fail(
+            $"R-28: {RepositoryLayout.ToRelative(path)} did not match the diagnostic registry and has "
+            + "been regenerated in place. Review the change and run the tests again.");
     }
 }

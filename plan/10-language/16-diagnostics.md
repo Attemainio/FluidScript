@@ -66,6 +66,11 @@ inside it as `FS43xx`, which reads as one. They are `FS45xx` instead, leaving `F
 design-warning family. A reader who sees `FS4` should be able to assume "something about the design"
 without checking.
 
+**The range is not metadata beside the code; it is derived from it.** A descriptor's owning stage is
+computed from the code's first two digits, so a code cannot be filed under a stage it does not belong
+to, and a code in an unallocated range — `FS41xx`, inside the design-warning block but not assigned —
+fails at construction rather than being silently accepted. Adding a range means adding a stage.
+
 **Codes are permanent.** A code is never reused for a different meaning and never renumbered, because
 scripts, tests, `/docs` pages, and agent prompts all reference them. A retired code is marked retired
 in the registry and left unallocated.
@@ -133,6 +138,8 @@ public sealed record Diagnostic
     public required DiagnosticSeverity Severity { get; init; }
 
     /// <summary>The rendered message, already formatted with its arguments.</summary>
+    /// <remarks>Rendered from the descriptor's template by name, never assembled at the call
+    /// site — see below.</remarks>
     public required string Message { get; init; }
 
     /// <summary>Where in the source this is about.</summary>
@@ -164,6 +171,18 @@ public sealed record Suggestion(string Title, TextSpan Span, string Replacement)
 `Related` matters more than it looks. A dependency cycle (`FS1402`) with four participants is
 unactionable when the diagnostic points at one of them; with all four as related locations the editor
 can highlight the whole loop.
+
+## Rendering a message
+
+The registry holds the template; the emit site supplies named values for its placeholders. Nothing
+formats a message by interpolating at the call site, and the reason is not tidiness: the template in
+the registry is what `/docs` publishes and what the style tests are run over, so a message assembled
+somewhere else is a message no gate ever sees. Arguments are matched **by name**, so rewording a
+sentence cannot silently swap two values, and a placeholder with no argument renders as itself —
+`{name}`, visibly wrong — rather than throwing inside a stage while the user is mid-keystroke.
+
+Values arrive already formatted, because only the emit site knows the unit the user actually wrote
+(rule 8 below).
 
 ## Message style rules
 
@@ -217,10 +236,33 @@ plan documents and shipped in Core:
 ```csharp
 public static class DiagnosticRegistry
 {
-    /// <summary>Every defined code, with its severity, owning stage, and message template.</summary>
-    public static ImmutableDictionary<string, DiagnosticDescriptor> All { get; }
+    /// <summary>Every live code, ordered by code.</summary>
+    public static ImmutableArray<DiagnosticDescriptor> All { get; }
+
+    /// <summary>Every code that was allocated and is no longer emitted, ordered by code.</summary>
+    public static ImmutableArray<RetiredDiagnostic> Retired { get; }
+
+    public static bool TryGet(string code, out DiagnosticDescriptor? descriptor);
+    public static DiagnosticDescriptor Get(string code);
+    public static bool IsRetired(string code);
 }
 ```
+
+**`All` is an ordered array rather than a dictionary**, with lookup through `TryGet` over a
+`FrozenDictionary` behind it. Both consumers want order — the generated page lists codes in code
+order, and an assertion message that lists them in hash order is a diff that changes for no reason.
+
+**A retired code is a separate type, not a descriptor with its fields left blank.** A descriptor
+carries a severity and a message template; a retired code has neither, and modelling it as a
+descriptor would put an unemittable value into the path of every consumer that iterates `All`. The
+split also makes the distinction the registry exists to preserve mechanical: `TryGet` misses on both
+an unknown code and a retired one, and `IsRetired` is what separates a typo from a reference to a
+rule that changed.
+
+**The registry is populated one work package at a time, not from this document in one pass.**
+Registering every code the plan names up front would leave the second half of invariant 1 — every
+registry entry is emitted by some code path — unsatisfiable until the last stage exists, and a test
+that cannot pass yet is a test that gets disabled. Each stage adds its own descriptors as it lands.
 
 Two things depend on this existing rather than being implied by scattered string literals: `/docs` has
 a generated page listing every diagnostic (`R-29` — an agent that can look up `FS1302` can correct its

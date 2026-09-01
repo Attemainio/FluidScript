@@ -113,7 +113,7 @@ Order matters more here than anywhere else in the project.
 
 | # | Package | Why here |
 |---|---|---|
-| P2.1 | Diagnostics, spans, the never-throw result type ([`16`](../10-language/16-diagnostics.md)) | Every stage downstream returns these. Added later, every signature changes. |
+| P2.1 | Diagnostics, spans, the code registry ([`16`](../10-language/16-diagnostics.md)) | Every stage downstream returns these. Added later, every signature changes. |
 | P2.2 | Dimensions, units, `Quantity` ([`13`](../10-language/13-type-and-unit-system.md)) | Pure, hand-checkable, zero dependencies. `Temperature` and `TemperatureDelta` as separate dimensions is a type-system decision that cannot be retrofitted cheaply. |
 | P2.3 | Lexer with trivia attached ([`12`](../10-language/12-grammar.md)) | Losslessness is a property of the lexer and the AST. Assert `concat(tokens including trivia) == source` here, where it is one line. |
 | P2.4 | Parser, AST, error recovery ([`12`](../10-language/12-grammar.md)) | Enforce [`11`](../10-language/11-language-overview.md)'s invariant 7 as a test: one token of lookahead classifies every statement. |
@@ -121,6 +121,14 @@ Order matters more here than anywhere else in the project.
 | P2.6 | Component registry, kind resolution ([`15`](../10-language/15-semantic-model.md)) | Data, not code. The docs gate reads it, so it must exist before a kind can be added. |
 | P2.7 | Binder steps 0–5, expressions ([`15`](../10-language/15-semantic-model.md), [`14`](../10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
 | P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, validation, tags last. |
+
+**P2.1 delivers no shared result type, and the row said otherwise until it was built.** Every stage
+does return its output alongside `ImmutableArray<Diagnostic>`, but the plan states that shape as a
+*named record per stage* — `ParseResult`, `BindResult`, `CompatibilityResult` — each with a payload
+property named after what it carries. A generic `StageResult<T>` would either duplicate those or
+rename `Root` to `Value`, and nothing consumes stages uniformly enough to pay for it. What is
+genuinely shared, and therefore what P2.1 ships, is `Diagnostic` and the registry behind it. Whether
+a stage throws is a property asserted by that stage's own fuzz test, not a property a type can carry.
 
 **P2.5 is deliberately fifth, not last.** `05` lists the printer last in M1's prose, and building it
 there would be a mistake with a delayed invoice. The printer does not create losslessness; it
@@ -245,7 +253,7 @@ Where the M1 packages land for one line of the syntax reference — `3WV three_w
 
 | Package | What it contributes | Observable after it |
 |---|---|---|
-| P2.1 | `Diagnostic`, severity, span | Nothing yet; the type every later package returns |
+| P2.1 | `Diagnostic`, severity, span, the registry | Nothing for this line yet; the type every later package returns, and the generated diagnostic page it is checked against |
 | P2.2 | `Quantity`, dimensions | Nothing for this line — it has no values |
 | P2.3 | `ident(3WV)`, `ident(three_way_valve)`, trailing trivia | Tokens concatenate back to the source line |
 | P2.4 | `ComponentDeclarationSyntax`, zero parameters | The AST node, with `3WV` as an identifier despite the leading digit |
