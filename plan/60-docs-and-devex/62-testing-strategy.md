@@ -63,14 +63,25 @@ Traits, so a fast subset can run constantly and the whole suite before a commit.
 
 | Trait | Target | Contains | Runs |
 |---|---|---|---|
-| `Category=Unit` | < 2 s total | Everything with a fake property backend | Constantly |
+| `Category=Unit` | < 2 s executing | Everything with a fake property backend | Constantly |
 | `Category=Property` | < 20 s | Real SharpProp property accuracy | Pre-commit |
 | `Category=Validation` | < 60 s | Physical validation cases | Pre-commit |
 | `Category=Golden` | < 10 s | Parser, printer, model-contract snapshots | Pre-commit |
 | `Category=Api` | < 30 s | Endpoint and contract tests | Pre-commit |
 | `Category=Docs` | < 5 s | The documentation gate: registry, reserved words and diagnostic codes against `/docs` | Pre-commit, and its own CI check |
 
-`dotnet test --filter-trait Category=Unit` must stay under two seconds. (The flag is
+**The budget is execution time, not what `dotnet test` prints.** Measured on the reference
+environment, a run matching *no* tests still reports between 0.6 s and 1.3 s: that is host start,
+JIT and Microsoft.Testing.Platform discovery, and it varies by more than the entire budget from run
+to run. A criterion asserting the printed figure would therefore be measuring the runner, and would
+fail on a cold cache with nothing wrong. Subtract the empty-run floor, measured on the same machine
+in the same session, before comparing.
+
+The floor also puts a hard bound on what the tier can ever be worth: no subset of a .NET test suite
+runs in less than about half a second, so "run it after every edit" means one to three seconds in
+practice, not zero.
+
+`dotnet test --filter-trait Category=Unit` must stay under two seconds of execution. (The flag is
 `--filter-trait` rather than `--filter`: .NET 10 drives xunit v3 through Microsoft.Testing
 Platform, opted into by the repository's `global.json`, and VSTest's `--filter` is gone.) That is what makes tests something
 run after every edit rather than before every commit, and it is achievable only because of the fake
@@ -250,7 +261,8 @@ and if it works, most of the system works.
 
 ## Invariants
 
-1. `Category=Unit` completes in under two seconds.
+1. `Category=Unit` completes in under two seconds of execution — the reported duration minus the
+   empty-run floor measured on the same machine.
 2. Every governing equation has a unit test with hand-computed values.
 3. Every validation case V1–V17 runs against the real property backend where applicable; V4, V5,
    V13, V14, V15, and V17 use an independent published, analytic, or separately tabulated oracle,
@@ -351,7 +363,8 @@ prove one of the three.
 
 ## Acceptance criteria
 
-- [ ] `dotnet test --filter-trait Category=Unit` runs in under two seconds.
+- [ ] `dotnet test --filter-trait Category=Unit` runs in under two seconds of execution, measured
+      against a same-session empty-filter run rather than as raw wall clock.
 - [ ] `dotnet test` runs everything with no arguments (`R-17`).
 - [ ] V1–V17 are present and pass against the applicable real backend and independent oracle.
 - [ ] Every governing equation has a hand-checked unit test.

@@ -42,8 +42,9 @@ GitHub Actions. One workflow on push and pull request.
    ▼             ▼             ▼                 ▼
 ┌────────┐  ┌─────────┐  ┌───────────┐  ┌──────────────┐
 │ test   │  │ lint    │  │ docs gate │  │ arch tests   │
-│ dotnet │  │ eslint  │  │ (below)   │  │ (below)      │
-│ vitest │  │ tsc     │  │           │  │              │
+│ dotnet │  │ oxlint  │  │ (below)   │  │ (below)      │
+│ vitest │  │ prettier│  │           │  │              │
+│        │  │ tsc -b  │  │           │  │              │
 └────┬───┘  └────┬────┘  └─────┬─────┘  └──────┬───────┘
      └───────────┴─────────────┴───────────────┘
                  ▼

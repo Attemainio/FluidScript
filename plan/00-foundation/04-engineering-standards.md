@@ -73,7 +73,15 @@ member carries an XML doc or the build breaks**. Beyond mere presence:
 No plugin covers TypeScript here, so these are stated rather than routed:
 
 - **TypeScript strict mode on.** `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
-- **ESLint + Prettier**, with formatting delegated entirely to Prettier so it is never a review topic.
+  The Vite template ships **none** of the three, and their absence is invisible — a non-strict build
+  passes — so this is checked by CI running `tsc -b`, not `tsc --noEmit`. The root config has
+  `"files": []` and only project references, which non-build mode ignores: `tsc --noEmit` there
+  checks zero files and exits 0 on a genuine type error.
+- **oxlint + Prettier**, with formatting delegated entirely to Prettier so it is never a review
+  topic. oxlint rather than ESLint because it is what the current Vite template ships and it is
+  substantially faster; nothing here depends on an ESLint-only plugin, and if something ever does,
+  that is the moment to reconsider rather than now. Prettier is separate and non-negotiable —
+  oxlint does not format, so without it the formatting rule has no implementation.
 - **No `any`** on any exported surface. Wire types are generated from the API contract, not hand-written.
 - **Components are function components with typed props.** No class components, no `React.FC`.
 - **Feature-folder layout** (`features/editor`, `features/canvas`, …), not type-folder. A feature owns

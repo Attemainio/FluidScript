@@ -13,6 +13,13 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Type strictness. plan/00-foundation/04-engineering-standards.md requires all three; the
+       Vite template ships none of them, and their absence is invisible because a non-strict
+       build still passes. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -257,7 +257,10 @@ works.
 1. Every registered component kind, directive, and diagnostic code has a page or generated entry.
 2. Every `fluidscript` code block in `/docs` compiles, or is annotated with the diagnostic it produces.
 3. Generated pages match what the code would generate.
-4. Every function page has every template section, in order.
+4. Every **hand-written** function page has every template section, in order. A generated page —
+   `tags`, `units`, `properties`, `diagnostics`, `catalogs` — and `functions/index.md` are exempt:
+   they have no ports, parameters or sizing to document, and applying the template to them would
+   force empty headings whose only effect is to make the gate pass.
 5. No `/docs` page references a `plan/` document, a C# type, or an open question.
 6. No tutorial page uses a concept introduced later.
 7. Every dimensioned value in `/docs` states its unit.
@@ -271,7 +274,7 @@ Failures are build failures, not runtime ones:
 | Component kind with no page | Build fails, naming the kind |
 | Code block that does not compile | Build fails, with the diagnostic |
 | Generated page out of date | Build fails, showing the diff |
-| Function page missing a section | Build fails, naming the section |
+| Hand-written function page missing a section | Build fails, naming the section |
 | Forward reference in the tutorial | Build fails, naming the concept and both pages |
 
 ## Worked example
@@ -361,7 +364,7 @@ basis, two working examples, and the errors it might hit. That is what `R-29` as
 - [ ] Every component kind, directive, and diagnostic code has a page or generated entry; CI enforces it.
 - [ ] Every `fluidscript` block in `/docs` compiles, or produces its annotated diagnostic.
 - [ ] Generated pages regenerate identically; a stale one fails the build.
-- [ ] Every function page has every template section in order.
+- [ ] Every hand-written function page has every template section in order.
 - [ ] The tutorial has no forward references.
 - [ ] Every number in the tutorial is produced by running its script.
 - [ ] An agent given only `functions/index.md` and the pages it links can author a valid circuit —

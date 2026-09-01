@@ -76,7 +76,14 @@ jobs:
         working-directory: frontend
       - run: npm run lint
         working-directory: frontend
-      - run: npx tsc --noEmit
+      # Formatting is delegated entirely to Prettier so it is never a review topic; that only holds
+      # if CI enforces it. oxlint does not format, so this is a separate step, not a lint rule.
+      - run: npm run format:check
+        working-directory: frontend
+      # `tsc --noEmit` against the root config checks NOTHING: it has "files": [] and only project
+      # references, which non-build mode ignores, so it exited 0 even on a real type error. Build
+      # mode follows the references. Verified by introducing an error and watching this fail.
+      - run: npx tsc -b
         working-directory: frontend
 
   architecture:
