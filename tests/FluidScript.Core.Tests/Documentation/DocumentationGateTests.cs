@@ -83,18 +83,31 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
-    public void TheDiagnosticsPageIsGeneratedFromTheRegistry()
+    public void TheDiagnosticsPageIsGeneratedFromTheRegistry() =>
+        AssertGenerated(
+            "diagnostics.md",
+            (DiagnosticsPage.CodesRegion, DiagnosticsPage.RenderCodes()),
+            (DiagnosticsPage.RetiredRegion, DiagnosticsPage.RenderRetired()));
+
+    [Fact]
+    [Trait("Category", "Docs")]
+    public void TheUnitsPageIsGeneratedFromTheUnitTable() =>
+        AssertGenerated(
+            "units.md",
+            (UnitsPage.DimensionsRegion, UnitsPage.Render()),
+            (UnitsPage.SymbolsRegion, UnitsPage.RenderSymbols()));
+
+    private static void AssertGenerated(string page, params (string Region, string Content)[] regions)
     {
-        var path = Path.Combine(DocsRoot, "functions", "diagnostics.md");
+        var path = Path.Combine(DocsRoot, "functions", page);
         Assert.True(
             File.Exists(path),
-            $"R-28: the diagnostic reference page is missing. Expected {RepositoryLayout.ToRelative(path)}.");
+            $"R-28: {page} is missing. Expected {RepositoryLayout.ToRelative(path)}.");
 
         var committed = File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal);
-        var current = DiagnosticsPage.WriteRegion(
-            committed, DiagnosticsPage.CodesRegion, DiagnosticsPage.RenderCodes());
-        current = DiagnosticsPage.WriteRegion(
-            current, DiagnosticsPage.RetiredRegion, DiagnosticsPage.RenderRetired());
+        var current = regions.Aggregate(
+            committed,
+            static (document, region) => GeneratedRegion.Write(document, region.Region, region.Content));
 
         if (string.Equals(committed, current, StringComparison.Ordinal))
         {
@@ -107,7 +120,7 @@ public sealed class DocumentationGateTests
         // expected markdown into an assertion message -- is a diff nobody reads.
         File.WriteAllText(path, current);
         Assert.Fail(
-            $"R-28: {RepositoryLayout.ToRelative(path)} did not match the diagnostic registry and has "
+            $"R-28: {RepositoryLayout.ToRelative(path)} did not match what the code generates and has "
             + "been regenerated in place. Review the change and run the tests again.");
     }
 }

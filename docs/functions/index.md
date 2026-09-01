@@ -16,3 +16,4 @@ _Nothing here yet._
 | Page | What it lists |
 |---|---|
 | [Diagnostics](diagnostics.md) | Every message FluidScript can show, with its code and severity |
+| [Units](units.md) | What a bare number means, and every unit you can write |

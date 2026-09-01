@@ -76,53 +76,6 @@ public static class DiagnosticsPage
         return builder.ToString().TrimEnd();
     }
 
-    /// <summary>Reads the current content of one generated region.</summary>
-    /// <param name="document">The whole page.</param>
-    /// <param name="region">The region identifier, as it appears in the marker comments.</param>
-    /// <returns>The text between the markers, trimmed of the blank lines that surround it.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// The page is missing one of the markers. That is a page that can never be regenerated, so it
-    /// fails loudly rather than being silently skipped.
-    /// </exception>
-    public static string ReadRegion(string document, string region)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        var (start, end) = Bounds(document, region);
-        return document[start..end].Trim('\n', '\r');
-    }
-
-    /// <summary>Replaces the content of one generated region.</summary>
-    /// <param name="document">The whole page.</param>
-    /// <param name="region">The region identifier, as it appears in the marker comments.</param>
-    /// <param name="content">The rendered replacement, without surrounding blank lines.</param>
-    /// <returns>The page with that region's content replaced and the markers left in place.</returns>
-    /// <exception cref="InvalidOperationException">The page is missing one of the markers.</exception>
-    public static string WriteRegion(string document, string region, string content)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        var (start, end) = Bounds(document, region);
-        return document[..start] + "\n" + content + "\n" + document[end..];
-    }
-
-    private static (int Start, int End) Bounds(string document, string region)
-    {
-        var open = $"<!-- BEGIN GENERATED: {region} -->";
-        var close = $"<!-- END GENERATED: {region} -->";
-
-        var openIndex = document.IndexOf(open, StringComparison.Ordinal);
-        var closeIndex = document.IndexOf(close, StringComparison.Ordinal);
-
-        if (openIndex < 0 || closeIndex < openIndex)
-        {
-            throw new InvalidOperationException(
-                $"docs/functions/diagnostics.md has no '{region}' generated region. It needs both "
-                + $"'{open}' and '{close}'.");
-        }
-
-        return (openIndex + open.Length, closeIndex);
-    }
 
     private static string Cell(string text) => text.Replace("|", @"\|", StringComparison.Ordinal);
 

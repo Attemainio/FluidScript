@@ -1928,6 +1928,54 @@ it no less cacheable, curl-able or testable.
 
 ---
 
+## D-50 · One spelling, one meaning: `Head` is bare-only and `-` is not a unit symbol
+
+**Accepted · 2026-09-01**
+
+Two corrections to [`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md)'s unit
+symbol table, found by checking the table against itself and against
+[`12-grammar`](../10-language/12-grammar.md) before implementing it.
+
+**`Head` takes no unit symbol.** It joins `Kv` as bare-only; `mH2O` belongs to `Pressure` and
+`PressureDelta` alone. The table as written gave `mH2O` to all three, and `13`'s own acceptance
+criterion — no symbol maps to two dimensions outside the documented pressure/delta pair — failed
+against it.
+
+**`-` is removed from `Dimensionless`, which keeps `%`.**
+
+**Why.** Head and pressure are not the same quantity. Head is metres of the *pumped fluid*; `mH2O` is
+metres of *water column*, a pressure of 9806.65 Pa per metre. They coincide only for water, so a
+circuit carrying glycol would read `head=15 mH2O` as a value that is wrong by the density ratio and
+plausible on the diagram. A bare number in `head=` already means metres of the pumped fluid, from the
+parameter's declared dimension (`D-07`), so nothing is lost by refusing the explicit spelling — and
+`13`'s criterion already anticipates a dimension "explicitly marked as bare-only", which is what `Kv`
+is.
+
+`-` is worse, because it breaks parsing rather than arithmetic. `13`'s rule is that a known unit
+symbol is recognised when it follows a number token, optionally separated by whitespace, and is not
+followed by `=`. In `let x = 5 - 3` the `-` follows a number and is not followed by `=`, so it lexes
+as the dimensionless unit and `3` is stranded. `13`'s own quoted line `let Tret = Tflow - dTdesign`
+survives only because `Tflow` is an identifier rather than a number. Separating the two cases needs
+lookahead past the following token, which `12`'s invariant 5 forbids. A bare number is already
+dimensionless, so the symbol carried no information in exchange.
+
+**Rejected.**
+- *Give `Head` its own spelling (`mfluid`, `mhead`).* Keeps an explicit unit writable. Cost: a symbol
+  no engineer writes and no other tool recognises, invented to fill a hole nobody had fallen into.
+- *Resolve `mH2O` by the target parameter, as `Pressure`/`PressureDelta` already are.* Consistent with
+  an exception that exists. Cost: much larger than it looks — those two share an SI base unit and
+  differ only in affine meaning, whereas Head and Pressure have different base units, so a quantity
+  would have no `SiValue` until its destination were known. That breaks "parse converts to SI once"
+  and makes `Quantity` non-self-describing.
+- *Keep `-` with a lexer special case, or only when unspaced.* Preserves the engineering `[-]`
+  convention. Cost: neither works. `5-3` stays ambiguous with subtraction under both, so the collision
+  becomes rarer and harder to diagnose rather than resolved.
+
+**Constrains.** [`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md),
+[`12-grammar`](../10-language/12-grammar.md).
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

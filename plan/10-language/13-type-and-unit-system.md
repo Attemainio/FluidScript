@@ -143,9 +143,9 @@ Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for mult
 | Enthalpy | `J/kg`, `kJ/kg` |
 | Area | `m2`, `mm2`, `cm2` |
 | Volume | `m3`, `l`, `dm3`, `ml` |
-| Head | `mH2O` **only** — see below |
+| Head | *(none: `head=15` is a bare number)* — see below (`D-50`) |
 | Kv | *(none: `kv=1.6` is a bare number)* |
-| Dimensionless | `%`, `-` |
+| Dimensionless | `%` (`-` is not a symbol — `D-50`) |
 | Pixels | `px` |
 
 **`Head` has no bare `m` symbol, and that is a correction to an earlier draft of this table.** Head and
@@ -153,7 +153,18 @@ Length are separate dimensions with the same SI base unit, so letting both accep
 invariant 3 twice over — one symbol, two dimensions, with no positional rule to separate them, and
 `length=25` on a pipe next to `head=15` on a pump would be indistinguishable to the lexer. A bare
 number in a `head=` parameter means metres of the pumped fluid, from the parameter's declared dimension
-(`D-07`); an explicit unit must be written `mH2O`. Length keeps `m`.
+(`D-07`). Length keeps `m`.
+
+**`Head` takes no symbol at all** (`D-50`). An earlier draft gave it `mH2O`, which `Pressure` and
+`PressureDelta` already own, and that is the same violation one row further along: head is metres of
+the *pumped fluid* while `mH2O` is metres of *water column*, a pressure of 9806.65 Pa per metre. The
+two coincide only for water, so `head=15 mH2O` in a glycol circuit is wrong by the density ratio and
+entirely plausible on the diagram. `Head` is therefore bare-only, as `Kv` is.
+
+**`Dimensionless` keeps `%` and does not accept `-`** (`D-50`). A bare number is already
+dimensionless, so the symbol carried nothing, and it collided with subtraction: under the
+whitespace rule below, the `-` in `let x = 5 - 3` follows a number and is not followed by `=`, so it
+would lex as a unit and strand the `3`.
 
 ### A unit symbol may be separated from its number by a space
 
@@ -314,14 +325,18 @@ generated record equality, which is a trap; `Quantity` therefore overrides `Equa
    exists between them.
 3. A unit symbol maps to one dimension, except pressure spellings shared by `Pressure` and
    `PressureDelta`, whose target parameter supplies that affine distinction. Temperature has no such
-   exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head.
+   exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head, and `Head` accepts no
+   symbol at all (`D-50`).
 4. Converting a value to a unit and back yields the original within 1e-12 relative.
 5. No `double` representing a dimensioned value appears on a public Core signature.
 6. The unit symbol table is append-only across releases: removing or repurposing a symbol changes the
    meaning of existing scripts silently.
 7. **The canonical script unit is a function of the dimension alone.** Two parameters of the same
    dimension interpret a bare number identically, whatever component they belong to.
-8. **The canonical script unit equals the SI base unit except on the four rows marked *exception*.**
+8. **The canonical script unit equals the SI base unit except on the five rows marked *exception*.**
+   Five rows, four distinct units: `Pressure` and `PressureDelta` both take `kPa`. Counting rows and
+   counting units gives different answers and an earlier draft of this invariant said "four rows",
+   which no implementation could satisfy. `dK` is not among them — it changes type, not scale.
    Adding another exception requires a decision-log entry amending `D-14`/`D-32`.
 9. A unit symbol separated from its number by horizontal whitespace lexes as part of the quantity,
    unless the symbol is immediately followed by `=`.
@@ -370,8 +385,10 @@ drawn a diagram.
 - [ ] Every parameter of the same dimension resolves a bare number identically — asserted by a test
       that walks [`22-component-model`](../20-core-domain/22-component-model.md)'s registry and groups
       by dimension (invariant 7).
-- [ ] Exactly four dimensions have a canonical script unit differing from their SI base unit, and
-      each is the one named here (invariant 8); the `dK` spelling changes type, not scale.
+- [ ] Exactly five dimensions have a canonical script unit whose *conversion* differs from their SI
+      base unit — `Temperature`, `Pressure`, `PressureDelta`, `Power`, `Volume` — spelling the four
+      units named here (invariant 8). The test compares factor and offset, not spelling, so the `dK`
+      row is correctly excluded: it changes type, not scale.
 - [ ] `power=30 in=20` lexes as two parameters, **not** as thirty inches — the `=`-lookahead clause
       has a test of its own, because it is the whole safety of the whitespace rule.
 - [ ] `let dT = 30 dK` and `let cp = 4.18 kJ/(kg*K)` both lex as one quantity each.
