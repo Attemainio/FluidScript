@@ -44,7 +44,7 @@ marker, not a block: there are no braces and no `end`.
 
 ```ebnf
 token          = keyword | identifier | quantity | number | string
-               | "=" | "-" | "." | ".." | "," | "(" | ")" | "+" | "*" | "/" | "%" | "@" ;
+               | "=" | "-" | "." | ".." | "," | "(" | ")" | "+" | "*" | "/" | "@" ;
 
 trivia         = whitespace | line-comment | newline ;
 line-comment   = "#" , { any-char - newline } ;
@@ -55,11 +55,27 @@ letter         = "A".."Z" | "a".."z" ;
 word-char      = letter | digit | "_" ;
 
 word           = word-char , { word-char } ;      (* classified below *)
-number         = digit , { digit } , [ "." , { digit } ] , [ ("e"|"E") , ["+"|"-"] , digit , {digit} ] ;
+number         = digit , { digit } , [ "." , digit , { digit } ] , [ ("e"|"E") , ["+"|"-"] , digit , {digit} ] ;
 quantity       = number , [ whitespace ] , unit-symbol ;   (* see the whitespace rule below *)
 unit-symbol    = ? longest matching entry of the unit-symbol table ? ;   (* see below *)
 string         = '"' , { any-char - '"' } , '"' ;
 ```
+
+### `%` is a unit, never an operator, and a `.` needs a digit after it
+
+Two spellings were each doing two jobs, and `D-51` gave each one job.
+
+`%` is a unit symbol for `Dimensionless` and is **not** in the token set above:
+[`14-expressions-and-references`](14-expressions-and-references.md) has no modulo operator. A unit
+symbol is recognised after a number, so `10 % 3` would otherwise lex as the quantity `10 %` followed
+by a stranded `3` — `D-50`'s `-` collision with the sides reversed, and separating the readings needs
+lookahead past the following token, which invariant 5 forbids.
+
+**A `.` joins a number only when a digit follows it.** `30.5` is one number; `30.` is the number `30`
+followed by a `.` token; `30..60` is `30`, `..`, `60`. Without the restriction, maximal munch takes
+`30.` and leaves `.60`, so the range production sees one dot where it needs two and an unspaced
+`over 30..60` does not parse. Every range written in this specification happens to space its `..`,
+which is why the two productions contradicted each other for six review passes.
 
 ### Comments
 
@@ -120,6 +136,19 @@ of lookahead is enough to tell them apart, and it is the only lookahead in the l
 with the suggestion to rename (`K3` works). It is a genuine wart. The alternative — requiring a space
 before every unit — costs the brief's `2px` and `20C` forms, which is worse. The permissive rule and
 identifier collision diagnostic are therefore fixed for v1.
+
+### Rules 1--4 classify a *word*, and a number is not always one
+
+`word-char` is `letter | digit | "_"`, so `4.18` and `1e+5` are not words: they hold characters a name
+cannot. The classifier therefore scans the number first, maximally, and only then asks what follows:
+
+> If word characters follow the number and no unit symbol matches, the number and that run are **one
+> identifier** — but only when the number is itself spellable inside a name. A number holding a decimal
+> point or an exponent sign is not, so it stands alone and the word after it lexes separately.
+
+`3WV` and `3E1x` are one identifier each; `1.5x` is the number `1.5` followed by the name `x`, because
+no name can contain a `.`. Both readings are errors further up, and the rule exists so that they are
+the *same* error every time rather than depending on which of rules 1--4 was consulted first.
 
 ### `unit-symbol` is a table lookup, not a sub-grammar
 
@@ -256,7 +285,7 @@ section), `connections`, and `schedule`. There are no braces and no `end`.
 |---|---|---|---|
 | Directives, `let` | ✓ | `FS1103` | `FS1103` |
 | `project`, `spacing` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` |
-| `circuit-header` | ✓ | `FS1103` | `FS1103` |
+| `circuit-header` | ✓ | ✓ — ends the section (`D-52`) | ✓ — ends the section (`D-52`) |
 | `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` |
 | `component-decl` | ✓ | ✓ | `FS1103` |
 | `control-binding` | ✓ | ✓ | `FS1103` |
@@ -265,9 +294,14 @@ section), `connections`, and `schedule`. There are no braces and no `end`.
 
 `attachment` and `control-binding` follow `component-decl` in being legal in both the declaration and
 connection sections, for the same reason: both name components, and a user writing topology naturally
-writes what attaches to what next to the connections it attaches through. A `circuit` header below
-`connections` is refused instead — it would begin a new circuit inside another circuit's topology,
-which has no reading at all.
+writes what attaches to what next to the connections it attaches through.
+
+**The three sections are scoped to a circuit, not to the file** (`D-52`). A `circuit` header is legal
+in any of the three columns: it ends whatever section the previous circuit was in and opens the new
+circuit's declaration section. So each circuit may carry its own `connections` and its own `schedule`,
+and a file-wide count of either is not a rule the parser has. This is what the header being "a section
+marker in effect" means, and it is what lets the distribution-header reference circuit write three
+circuits as three readable blocks rather than one declaration wall followed by one topology wall.
 
 **A component declaration is legal after the `connections` header, and that is the change that makes
 the reference circuits parse.** Both write their boundary conditions below the topology:
@@ -324,7 +358,9 @@ means exactly what it meant before this production existed (`D-33`).
 **A script may hold several circuit headers.** Each one begins a circuit; every declaration and
 connection that follows belongs to it until the next header. That makes the header a section marker
 in effect while remaining a directive in form — no braces, no `end`, consistent with the three
-existing section markers.
+existing section markers. It follows that a header also *ends* the section the previous circuit was
+in, wherever that header appears (`D-52`), which is why `connections` and `schedule` are counted per
+circuit rather than per file.
 
 The name doubles as the circuit's **role**, resolved through a registry rather than a keyword
 (`D-35`). `circuit AHU 101` is not a reserved word `AHU`; it is an identifier the binder looks up.
@@ -441,7 +477,13 @@ deliberately.
 
 `catalog steel_en10255` selects the one catalogue auto-sizing draws from
 ([`27-component-catalog`](../20-core-domain/27-component-catalog.md));
-`catalog steel_en10255@2026.1` pins its exact version. The version is optional so a draft may track
+`catalog steel_en10255@2026.1` pins its exact version.
+
+**`2026.1` reaches the parser as one number token, not as `2026`, `.`, `1`.** The lexer's number rule
+consumes a `.` followed by a digit, and it has no context to do otherwise — recognising a version only
+after an `@` would make the lexer position-sensitive, which invariant 5 exists to prevent. The parser
+therefore splits `CatalogVersionSyntax`'s major and minor out of the number's *source text* rather than
+its value, which is also the only way `@2026.10` stays distinguishable from `@2026.1`. The version is optional so a draft may track
 the shipped version of a named catalogue, but a durable reproducible design should pin it. v1 has no
 catalogue preference list: a second identifier is `FS1101`. With no directive, the shipped default
 applies and `FS2606` reports its exact id and version.
@@ -659,14 +701,18 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
    byte. This is asserted by a test over the whole `samples/` corpus.
 2. `Parse` never throws, for any byte sequence, including invalid UTF-8 and a 100 MB single line.
 3. Every `SyntaxNode.Span` is within the source bounds, and a parent's span contains every child's.
-4. Exactly one `ConnectionsHeaderSyntax` and at most one `ScheduleHeaderSyntax` may appear; a second
-   of either produces `FS1101` and is treated as trivia.
+4. At most one `ConnectionsHeaderSyntax` and at most one `ScheduleHeaderSyntax` **per circuit**
+   (`D-52`); a second of either within the same circuit produces `FS1101` and is treated as trivia.
+   A file with several circuits therefore holds several of each, and a circuit with no topology of
+   its own holds neither.
 5. A statement is classified by its first token, its section, and **at most one token of lookahead**.
    Unbounded lookahead is never used.
 6. No token spans a newline. (Strings therefore cannot contain newlines; accepted, since the only
    current use is a label.)
-7. `#` appears in exactly one role: the start of a line comment. It is never an operator and never
-   part of a token, so a `#` anywhere on a line makes the remainder trivia.
+7. `#` appears in exactly one role: the start of a line comment. It is never an operator, so a `#`
+   makes the remainder of its line trivia — **except inside a string literal**, which is what makes
+   `D-13`'s quoted hex colour, `style "#2f6f9f"`, a colour rather than a comment. A string is scanned
+   as one token from its opening quote, so a `#` between quotes was never at a token boundary.
 
 ## Error cases
 
@@ -676,7 +722,7 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1002` | Unrecognised character | Error | `'{ch}' is not valid here.` |
 | `FS1003` | Identifier that parses as a quantity | Error | `'{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'.` |
 | `FS1004` | Reserved word used as an identifier | Error | `'{word}' is reserved. Choose another name.` |
-| `FS1101` | Second `connections` or `schedule` header | Warning | `Only the first '{section}' section is used.` |
+| `FS1101` | Second `connections` or `schedule` header in one circuit (`D-52`) | Warning | `Only the first '{section}' section is used.` |
 | `FS1102` | Connection outside the `connections` section | Error | `Connections must come after the 'connections' line.` |
 | `FS1103` | Directive, `let`, or declaration in a section that does not accept it | Error | `A {statement} cannot appear after the '{section}' line.` |
 | `FS1104` | Statement cannot be classified | Error | `Cannot read this line. Expected a component declaration or a connection.` |
@@ -773,6 +819,9 @@ the previous rules the second line was `FS1104` and the first reference circuit 
       its tokens — the same characters, classified by whether a number precedes them.
 - [ ] `power=30 in=20` lexes as two parameters and never as thirty inches (rule 5's `=` clause).
 - [ ] Maximal munch: with both `kJ/kg` and `kJ/(kg*K)` in the table, the longer wins where it fits.
+- [ ] `50 %` is one quantity and `10 % 3` is a quantity followed by a number — `%` never lexes as an
+      operator, because there is no modulo operator to lex it as (`D-51`).
+- [ ] `30.5` is one number, `30.` is a number and a `.`, and `30..60` is `30`, `..`, `60` (`D-51`).
 - [ ] `--`, `..` and `-.` each recombine to exactly one style pattern token, and `..` in a `schedule`
       line lexes as a range token instead.
 - [ ] `#` anywhere on a line makes the remainder trivia, including inside a `style` directive, and
@@ -780,6 +829,8 @@ the previous rules the second line was `FS1104` and the first reference circuit 
 - [ ] `3-way-valve` in kind position produces `FS1108` suggesting `3_way_valve`, and never a node
       named `3-way-valve`.
 - [ ] A `schedule` section under `fluid static` parses and produces exactly one `FS1107`.
+- [ ] The distribution-header reference circuit parses: three `circuit` headers, the second and
+      third below a `connections` section, each opening its own declaration section (`D-52`).
 - [ ] Deleting each character of each sample in turn never throws and always yields a tree.
 - [ ] A fuzz corpus of 10 000 random mutations produces no exception and no span outside bounds.
 - [ ] Every code `FS1xxx` above has a test that triggers exactly it.

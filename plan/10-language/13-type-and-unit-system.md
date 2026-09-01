@@ -161,7 +161,8 @@ the *pumped fluid* while `mH2O` is metres of *water column*, a pressure of 9806.
 two coincide only for water, so `head=15 mH2O` in a glycol circuit is wrong by the density ratio and
 entirely plausible on the diagram. `Head` is therefore bare-only, as `Kv` is.
 
-**`Dimensionless` keeps `%` and does not accept `-`** (`D-50`). A bare number is already
+**`Dimensionless` keeps `%` and does not accept `-`** (`D-50`), and `%` is a unit symbol only —
+the language has no modulo operator (`D-51`). A bare number is already
 dimensionless, so the symbol carried nothing, and it collided with subtraction: under the
 whitespace rule below, the `-` in `let x = 5 - 3` follows a number and is not followed by `=`, so it
 would lex as a unit and strand the `3`.

@@ -1,0 +1,110 @@
+# Every production in plan/10-language/12-grammar.md, in one file.
+#
+# It exists to be lexed, parsed and printed -- not to be solved. The circuits here are shaped to
+# exercise syntax, so several are deliberately incomplete as plant. The nine-diagnostic count belongs
+# to samples/m1-syntax-reference.fluid, which holds the syntax reference on its own; this file has a
+# baseline of its own and no fixed count.
+#
+# Written before the lexer, per plan/00-foundation/08-implementation-sequence.md: this file is the
+# specification the lexer is built against, not an artifact of having built it.
+#
+# `project dynamic|static` is exercised by the distribution-header reference circuit rather than here.
+# Stating a file-wide mode makes every circuit that states its own mode disagree with it (D-37), and
+# this file states all three `fluid` forms on purpose.
+
+fluidscript 1
+project plant_01
+spacing 20
+
+# ---------------------------------------------------------------------------------------------
+# The syntax reference, verbatim.
+# ---------------------------------------------------------------------------------------------
+
+circuit coolingLoop                       # R-01: declarative block
+fluid dynamic water                       # R-12: `dynamic` selects the transient model
+style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
+
+HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+3WV three_way_valve                       # R-02: no parameters at all — size it
+PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
+
+connections
+N1 - N2                                   # R-06: N1 and N2 are never declared; they are inferred
+N2 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - N3                                  # R-06: N3 is an open port; it gets a terminating node
+
+# ---------------------------------------------------------------------------------------------
+# Expressions, units, and the productions the reference does not reach. The header below sits under
+# a `connections` section and ends it: sections are scoped to a circuit (D-52).
+# ---------------------------------------------------------------------------------------------
+
+circuit expressions 200
+fluid water                               # no mode stated: the project's default decides (D-37)
+catalog steel_en10255                     # the shipped series, version unpinned
+style gray 1px sharp -                    # a lone `-` is the solid pattern
+show temperature pressure 0..40           # two properties and an explicit scale range
+
+let dT     = 30 dK                        # a unit may be separated from its number (rule 5)
+let cp     = 4.18 kJ/(kg*K)               # one atomic unit symbol, never four tokens
+let Q      = 30 kW
+let mdot   = Q / (cp * dT)                # the same `/` and `*`, now operators: no number precedes
+let peak   = max(Q, 24 kW)                # a call, and the only comma in the language
+let margin = peak + 2 kW
+let droop  = -2 dK                        # unary minus
+let share  = 50 %                         # `%` is a unit symbol and never an operator (D-51)
+let scale  = 1.2e3                        # exponent form, and a bare number
+let bore   = 27.3 mm                      # DN25 steel bore: a designation is not a diameter
+
+HE2 duty in=50 out=30 power=Q             # a parameter whose value is a reference to a `let`
+TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
+PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
+NB1 node t=6 p=300                        # nor is `node` — this one is a boundary
+NB2 node p=280
+
+connections
+NB1 - HE2 - PB1 - NB2                     # a chain desugars to three connections (I6)
+TV2.b - NB2                               # a port-qualified endpoint
+
+# ---------------------------------------------------------------------------------------------
+# A subcircuit: attachment to the parent, a controller, and a control binding.
+# ---------------------------------------------------------------------------------------------
+
+circuit ahu 300
+fluid static water                        # solved as an equilibrium, whatever the file says
+catalog steel_en10255@2026.1              # a pinned catalogue version
+style "#2f6f9f" 1.5px round ..            # a hex colour must be quoted (D-13); dotted pattern
+show pressure
+
+HE3  duty in=50 out=30 power=24 kW
+TV3  three_way_valve
+PU3  pump
+PID3 pid kp=3                             # a controller is an ordinary declaration (D-40)
+
+supply NB1                                # takes flow from the parent circuit at NB1
+return NB2                                # and returns it at NB2
+
+control actuate=TV3.position measure=NB2.t by=PID3 setpoint=20
+
+# ---------------------------------------------------------------------------------------------
+# A transient circuit, for the schedule section.
+# ---------------------------------------------------------------------------------------------
+
+circuit demandStep 400
+fluid dynamic water
+style green 1px sharp -.                  # the dash-dot pattern
+
+HE4 duty in=50 out=30 power=30 kW
+TV4 three_way_valve
+PU4 pump
+NC1 node t=6 p=300 flow=0.24
+
+connections
+NC1 - PU4 - HE4 - TV4
+TV4 - NC1
+
+schedule
+at 60 s              HE4.power = 45       # a step
+over 60 s .. 120 s   HE4.power = 30 .. 45 # a linear ramp between two values
+at 300 s             TV4.position = 0.3   # any settable parameter

@@ -99,10 +99,10 @@ public static class DiagnosticRegistry
 
     /// <summary>Collects the descriptors each stage owns.</summary>
     /// <remarks>
-    /// One entry per work package, added by that package. Nothing is registered yet because no stage
-    /// emits a diagnostic yet: the lexer's codes arrive with the lexer, the binder's with the binder.
+    /// One entry per work package, added by that package: the lexer's codes arrived with the lexer,
+    /// and the parser's arrive with the parser.
     /// </remarks>
-    private static IEnumerable<DiagnosticDescriptor> Stages() => [];
+    private static IEnumerable<DiagnosticDescriptor> Stages() => [.. LexerDiagnostics.All];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>
     private static IEnumerable<RetiredDiagnostic> RetiredCodes() =>

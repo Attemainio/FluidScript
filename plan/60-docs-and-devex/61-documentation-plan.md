@@ -75,6 +75,8 @@ docs/
 │
 ├── functions/                   reference. one page per thing. exhaustive.
 │   ├── index.md                 the complete list — the agent's entry point
+│   ├── syntax.md                [part generated] how a line is read: comments, names,
+│   │                            numbers and units, text, the reserved-word list
 │   ├── fluidscript.md           ─┐ directives
 │   ├── circuit.md                │
 │   ├── project.md                │

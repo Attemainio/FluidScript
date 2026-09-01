@@ -104,8 +104,16 @@ same reasoning applies to the docs gate, which walks an empty registry today and
 day a component kind is registered without its page.
 
 P1.2 also creates `samples/`, `docs/` and `benchmarks/`, and writes `samples/m1-syntax-tour.fluid`
-**before the lexer exists** — that file is the specification the lexer is built against, not an
-artifact of having built it.
+and `samples/m1-syntax-reference.fluid` **before the lexer exists** — those files are the
+specification the lexer is built against, not artifacts of having built it. Both were in fact written
+in P2.3, one package late; the lexer's losslessness test is the first thing that needed them, which
+is exactly the pressure that was supposed to be absent when they were written.
+
+**They are two files because one cannot do both jobs.** The reference holds the syntax example from
+[`01-vision-and-scope`](01-vision-and-scope.md) byte for byte and nothing else, so the nine-diagnostic
+count that document fixes is assertable against it. The tour exercises every production, which means
+more components, more inferred nodes and therefore a different diagnostic set — a single file
+satisfying both would have to be the reference, and then it would exercise a third of the grammar.
 
 ### P2 — M1: the language spine
 
@@ -140,8 +148,9 @@ onward the corpus-mutation round-trip fuzz is a standing test, not a milestone c
 
 Through all of P2 there is no reference to `Core.Fluids`, `Core.Components` or `Core.Solvers`, and
 P1.3's tier-10 architecture assertion guarantees it. P2 closes with the M1 `/docs` pages and
-`samples/m1-syntax-tour.fluid` meeting every M1 criterion, including the nine-diagnostic count the
-syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes.
+`samples/m1-syntax-tour.fluid` meeting every M1 criterion, and with the nine-diagnostic count the
+syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes asserted against
+`samples/m1-syntax-reference.fluid`.
 
 ### P3 — M2a: the hydraulic core
 

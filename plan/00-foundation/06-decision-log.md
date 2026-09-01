@@ -1974,6 +1974,112 @@ dimensionless, so the symbol carried no information in exchange.
 **Constrains.** [`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md),
 [`12-grammar`](../10-language/12-grammar.md).
 
+## D-51 · Two lexical collisions: `%` is a unit and not an operator, and `.` joins a number only before a digit
+
+**Accepted · 2026-09-01**
+
+Two collisions in [`12-grammar`](../10-language/12-grammar.md)'s lexical rules, found by checking that
+document against [`14-expressions-and-references`](../10-language/14-expressions-and-references.md)
+and against itself before implementing the lexer. Both are the failure `D-50` names for `-`: one
+spelling with two readings, separable only by lookahead that invariant 5 forbids.
+
+**`%` is removed from the operator set.** It stays a unit symbol for `Dimensionless`, as `D-50` left
+it, and `14`'s `multiplicative` production loses it: `multiplicative = unary , { ("*" | "/") , unary }`.
+There is no modulo operator in the language.
+
+**A `.` is part of a number only when a digit follows it.** `number` no longer admits a trailing dot,
+so `30.` lexes as the number `30` followed by a `.` token, and `30..60` lexes as `30`, `..`, `60`.
+
+**Why.** `%` is `D-50`'s `-` with the sides reversed. `13`'s rule is that a known unit symbol is
+recognised when it follows a number token, optionally separated by whitespace, and is not followed by
+`=`; in `let x = 10 % 3` the `%` follows a number and is not followed by `=`, so it lexes as the
+dimensionless unit and `3` is stranded. `D-50` resolved the identical case for `-` by dropping the
+unit, because a bare number is already dimensionless and the symbol carried no information. `%` is
+not that: it carries a factor of 0.01, and `position=50 %` and `efficiency=72 %` are how engineers
+write the two dimensionless parameters that occur most. The operator is the side with nothing behind
+it — a declarative language with no loops, no indices and no branching (`D-01`) has no use for a
+remainder, no example in `plan/` or `/docs` uses one, and the closed function set in `14` does not
+include one either.
+
+The dot is a contradiction inside one document rather than between two. `12`'s `number` production
+ends `[ "." , { digit } ]`, which admits `30.`, while its `range` production is `expression , ".." ,
+expression`. Maximal munch resolves `30..60` in the number's favour: `30.` then `.` then `60`, one dot
+where the range needs two, and the schedule line does not parse. Every range in the specification is
+written with spaces around the `..`, which is why the contradiction survived six review passes — but
+`over 30..60 HE1.power = 45` is what a user types, and the printer must round-trip whatever they
+typed. Requiring a digit costs a literal nobody writes.
+
+**Rejected.**
+- *Keep both `%` readings and let the parser report the stranded number.* Costs nothing to implement:
+  `10 % 3` becomes two tokens the parser cannot join, so it is `FS1104` rather than a wrong number.
+  Cost: the diagnostic names neither `%` nor the unit, and points at a line that is valid arithmetic
+  in every language the user knows. A confusing error is cheaper than a wrong answer and dearer than
+  no error, and the next reader re-derives this entire analysis from scratch.
+- *Drop the `%` unit and keep modulo, the way `D-50` went for `-`.* Symmetric with the precedent.
+  Cost: it trades the one dimensionless spelling engineers actually write for an operator no script
+  in this repository, this plan, or this specification's own examples uses.
+- *Recognise `%` as a unit only when unspaced (`50%`) and as an operator when spaced.* Preserves both.
+  Cost: `D-50` rejected exactly this for `-` and the reason holds here — whitespace is trivia
+  everywhere else in the language, so making it significant in one position means a script's meaning
+  changes when a formatter touches it, and `50 %` is the spelling `13`'s own examples use.
+- *Let the number production keep its trailing dot and require spaces around `..`.* Keeps the EBNF as
+  written. Cost: it makes whitespace significant to disambiguate two productions, the same trade
+  rejected above, and it turns a typo into a silent reinterpretation rather than an error.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`14-expressions-and-references`](../10-language/14-expressions-and-references.md),
+[`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md).
+
+## D-52 · Sections are scoped to a circuit, not to the file
+
+**Accepted · 2026-09-01**
+
+A `circuit` header is legal anywhere a statement is legal. It ends whatever section the previous
+circuit was in and starts the new circuit's declaration section, so `connections` and `schedule` are
+**at most one each per circuit** rather than one each per file
+([`12-grammar`](../10-language/12-grammar.md)'s invariant 4, restated).
+
+**Why.** The distribution-header reference circuit in
+[`01-vision-and-scope`](01-vision-and-scope.md) does not parse without it, and that circuit is
+binding under `D-11`. It writes `heating`'s declarations, then `connections`, then its topology, then
+`circuit AHU 101` and `circuit radiators 102` with their own declarations and attachments — which
+`12`'s section table refused, on the reasoning that a circuit header below `connections` "would begin
+a new circuit inside another circuit's topology, which has no reading at all". It has exactly one
+reading, and it is the one `12` states two sections earlier: a circuit header begins a circuit, and
+every declaration and connection that follows belongs to it until the next header. The header is a
+section marker in effect, so it ends a section as well as beginning one. The table encoded the file
+as the unit of sectioning; the prose encoded the circuit. The prose was right.
+
+The same defect was found and fixed once before, in `D-13`'s pass: `12`'s acceptance criteria record
+that "both reference circuits previously failed to parse under this document while every acceptance
+criterion here passed", which is why a corpus test over the specification's own examples is an
+acceptance criterion. That test does not exist yet — it lands with the parser — and this is the
+second instance it would have caught.
+
+Nothing else moves. `FS1101` still fires on a second `connections` or `schedule` within **one**
+circuit; `FS1103` still fires on a directive or `let` below `connections` in the same circuit;
+`project` and `spacing` still precede the first `circuit` header, which is what makes them file-wide
+(`D-37`). One token of lookahead still classifies every statement, because `circuit` is a reserved
+word and falls in the disambiguation rule's first clause.
+
+**Rejected.**
+- *Rewrite the distribution header to put all three circuit blocks before one `connections` section.*
+  Keeps `12`'s table. Cost: it separates each subcircuit's `supply`/`return` from the header nodes
+  they attach to, turns three readable blocks into one declaration wall followed by one topology
+  wall, and contradicts `D-33`'s design, in which a circuit is a contiguous block a reader can scan.
+  It also does not generalise: a two-circuit file where both circuits have connections cannot be
+  written at all under one file-wide connection section.
+- *Give each circuit its own explicit `end`, or brace its body.* Makes the scoping unambiguous
+  without touching the section rules. Cost: `12`'s shape-of-the-language section forbids exactly this
+  — no braces, no `end` — and it costs a line per circuit to state what the next header already says.
+- *Keep one `connections` per file and attribute each connection to a circuit by the components it
+  names.* Requires no grammar change. Cost: attribution becomes a binder inference that can fail or
+  straddle two circuits, and a connection naming components of two circuits would be silently
+  assigned to one of them. Attachment (`supply`/`return`) exists precisely so that cross-circuit
+  topology is written rather than inferred.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md).
+
 ---
 
 ## Adding an entry

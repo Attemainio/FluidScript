@@ -35,6 +35,12 @@ public static class UnitTable
     private static readonly FrozenDictionary<string, ImmutableArray<UnitSymbol>> ByText;
     private static readonly FrozenDictionary<string, ImmutableArray<UnitSymbol>> ByLowercase;
 
+    private static readonly FrozenDictionary<string, ImmutableArray<UnitSymbol>>
+        .AlternateLookup<ReadOnlySpan<char>> ByTextSlice;
+
+    private static readonly FrozenDictionary<string, ImmutableArray<UnitSymbol>>
+        .AlternateLookup<ReadOnlySpan<char>> ByLowercaseSlice;
+
     static UnitTable()
     {
         All = [.. Build()];
@@ -53,6 +59,10 @@ public static class UnitTable
                 static group => group.Key,
                 static group => group.ToImmutableArray(),
                 StringComparer.Ordinal);
+
+        ByTextSlice = ByText.GetAlternateLookup<ReadOnlySpan<char>>();
+        ByLowercaseSlice = ByLowercase.GetAlternateLookup<ReadOnlySpan<char>>();
+        LongestSymbolLength = All.Max(static symbol => symbol.Text.Length);
     }
 
     /// <summary>Gets every accepted spelling, in declaration order.</summary>
@@ -61,6 +71,42 @@ public static class UnitTable
     /// of distinct spellings.
     /// </value>
     public static ImmutableArray<UnitSymbol> All { get; }
+
+    /// <summary>Gets the length of the longest accepted spelling.</summary>
+    /// <value>
+    /// The bound on how far the lexer must look ahead for a unit symbol. Nine today, for
+    /// <c>kJ/(kg*K)</c>. Derived from the table rather than declared, so adding a longer spelling
+    /// cannot leave the lexer matching a prefix of it.
+    /// </value>
+    public static int LongestSymbolLength { get; }
+
+    /// <summary>Determines whether a slice of text is an accepted spelling, exactly.</summary>
+    /// <param name="text">The candidate, which is compared whole rather than as a prefix.</param>
+    /// <returns><see langword="true"/> when the table holds this spelling.</returns>
+    /// <remarks>
+    /// The span overload exists for the lexer, which probes every length from
+    /// <see cref="LongestSymbolLength"/> downwards at each position that follows a number. Taking a
+    /// <see cref="string"/> would allocate one per probe, on the path that runs on every keystroke.
+    /// </remarks>
+    public static bool IsSymbol(ReadOnlySpan<char> text)
+    {
+        if (text.IsEmpty || text.Length > LongestSymbolLength)
+        {
+            return false;
+        }
+
+        if (ByTextSlice.ContainsKey(text))
+        {
+            return true;
+        }
+
+        // Case folding is a fallback and reaches only the spellings flagged for it, for the reason
+        // Candidates gives: 'mm' and 'Mm' differ by a factor of a billion. The length is bounded
+        // above, so the buffer is small and the stack is the right place for it.
+        Span<char> folded = stackalloc char[LongestSymbolLength];
+        var written = text.ToLowerInvariant(folded);
+        return written >= 0 && ByLowercaseSlice.ContainsKey(folded[..written]);
+    }
 
     /// <summary>Finds every dimension a spelling could denote.</summary>
     /// <param name="text">The symbol as written in the script.</param>

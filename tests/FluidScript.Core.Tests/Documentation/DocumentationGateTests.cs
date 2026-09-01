@@ -91,6 +91,11 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
+    public void TheSyntaxPageListsEveryReservedWord() =>
+        AssertGenerated("syntax.md", (SyntaxPage.ReservedWordsRegion, SyntaxPage.Render()));
+
+    [Fact]
+    [Trait("Category", "Docs")]
     public void TheUnitsPageIsGeneratedFromTheUnitTable() =>
         AssertGenerated(
             "units.md",

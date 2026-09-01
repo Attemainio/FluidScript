@@ -78,8 +78,10 @@ risk fixtures before the language can parse a `.fluid` script.
 Lexer, parser, AST, binder, unit system, expressions, diagnostics, printer. **No physics whatsoever** —
 a component is a name, a kind, and a bag of typed parameters at this stage.
 
-**Demo script:** `samples/m1-syntax-tour.fluid` — exercises every grammar production, including the
-brief's original example verbatim.
+**Demo script:** `samples/m1-syntax-tour.fluid` — exercises every grammar production, and opens with
+the brief's original example verbatim. `samples/m1-syntax-reference.fluid` holds that example alone,
+which is what the nine-diagnostic count below is asserted against: the tour declares more components
+and infers more nodes, so it cannot carry that count as well.
 
 **Exit criteria**
 

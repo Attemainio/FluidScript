@@ -42,7 +42,10 @@ plausible readings means no suggestion, and a message that explains the choice i
 ## Codes
 
 <!-- BEGIN GENERATED: diagnostic-codes -->
-_No codes yet: this page fills in as each part of FluidScript starts reporting._
+| Code | Severity | Reported by | Message |
+|---|---|---|---|
+| `FS1001` | Error | Lexer | Unterminated string; add a closing quote. |
+| `FS1002` | Error | Lexer | '{ch}' is not valid here. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

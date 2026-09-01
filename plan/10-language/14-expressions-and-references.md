@@ -4,7 +4,7 @@ title: Expressions and references
 tier: 10-language
 status: reviewed
 owns: [expression grammar, operator set and precedence, let bindings, member references, dependency graph, evaluation order]
-depends_on: [12-grammar, 13-type-and-unit-system]
+depends_on: [06-decision-log, 12-grammar, 13-type-and-unit-system]
 traces_to: [R-03, R-02]
 open_questions: 0
 last_review_pass: 2
@@ -33,18 +33,29 @@ the solve itself (tier 30).
 ```ebnf
 expression   = additive ;
 additive     = multiplicative , { ("+" | "-") , multiplicative } ;
-multiplicative = unary , { ("*" | "/" | "%") , unary } ;
+multiplicative = unary , { ("*" | "/") , unary } ;
 unary        = [ "-" ] , primary ;
 primary      = quantity | number | reference | "(" , expression , ")" | call ;
 reference    = identifier , { "." , identifier } ;
 call         = identifier , "(" , [ expression , { "," , expression } ] , ")" ;
 ```
 
-Precedence, tightest first: unary minus, then `* / %`, then `+ -`. Left-associative. Parentheses group.
+Precedence, tightest first: unary minus, then `* /`, then `+ -`. Left-associative. Parentheses group.
 No exponentiation operator — `pow(x, 2)` is a call, because `^` and `**` both have a constituency and
 picking one violates P6 for no gain.
 
 **No boolean operators, no comparisons, no ternary.** There is nothing to branch on (`D-01`).
+
+### There is no modulo operator
+
+`%` is a unit symbol and nothing else (`D-51`). A unit symbol is recognised when it follows a number,
+so `10 % 3` lexes as the quantity `10 %` followed by a stranded `3`, and telling that apart from a
+remainder needs lookahead past the following token — which
+[`12-grammar`](12-grammar.md)'s invariant 5 forbids. `D-50` met the identical collision for `-` and
+resolved it by dropping the unit, because a bare number is already dimensionless; `%` goes the other
+way because it carries a factor of 0.01 and `position=50 %` is how the dimensionless parameters that
+actually occur are written. A remainder has no use in a language with no loops, no indices and no
+branching (`D-01`), and the closed function set below does not offer one either.
 
 ### The `-` ambiguity
 

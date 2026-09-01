@@ -3,6 +3,12 @@
 Every part of the script language, one page each. Start with the
 [tutorial](../tutorial/) if you have not written a FluidScript circuit before.
 
+## The language
+
+| Page | What it covers |
+|---|---|
+| [The shape of a line](syntax.md) | Comments, names, numbers and units, text, reserved words |
+
 ## Directives
 
 _Nothing here yet._

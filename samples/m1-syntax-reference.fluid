@@ -1,0 +1,22 @@
+# The syntax reference from plan/00-foundation/01-vision-and-scope.md, verbatim.
+#
+# It is NOT a solvable circuit, and that is the point: PU1 appears in no connection, and N1 and N3
+# are dead-end stubs with no boundary condition. Its diagnostic set is fixed at nine -- one FS1507,
+# two FS2107 and six FS1510 -- and any document or test stating a different count is wrong.
+# Keep this file byte-identical to the block in 01; the tour next door is where new syntax goes.
+
+fluidscript 1
+circuit coolingLoop                       # R-01: declarative block
+fluid dynamic water                       # R-12: `dynamic` selects the transient model
+style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
+
+HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+3WV three_way_valve                       # R-02: no parameters at all — size it
+PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
+
+connections
+N1 - N2                                   # R-06: N1 and N2 are never declared; they are inferred
+N2 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - N3                                  # R-06: N3 is an open port; it gets a terminating node
