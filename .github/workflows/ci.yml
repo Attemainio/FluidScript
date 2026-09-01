@@ -1,0 +1,109 @@
+# The pipeline from plan/60-docs-and-devex/63-ci-and-repo-hygiene.md.
+#
+# Build once, then fan out, so a failure surfaces in the shortest possible time. Target: under five
+# minutes for everything but e2e -- a pipeline slower than that stops being read.
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # TreatWarningsAsErrors plus GenerateDocumentationFile means a missing XML doc on a public
+      # member fails here, which is how R-28 is enforced on the C# side.
+      - run: dotnet build --configuration Release
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  test:
+    name: test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # global.json selects Microsoft.Testing.Platform; .NET 10 no longer drives VSTest.
+      - run: dotnet test --configuration Release
+      - run: npm ci
+        working-directory: frontend
+      # Vitest arrives with the first frontend code it has something to test; until then this step
+      # exists so its absence is visible rather than assumed.
+      - run: npm run test --if-present
+        working-directory: frontend
+
+  lint:
+    name: lint
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npx tsc --noEmit
+        working-directory: frontend
+
+  architecture:
+    name: architecture tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      # Run separately from `test` so a boundary breach is legible in the checks list rather than
+      # buried in a run of everything.
+      - run: dotnet test tests/FluidScript.Core.Tests --filter-trait "Category=Unit"
+
+  docs-gate:
+    name: docs gate
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      # The gate walks the component registry, the statement-introducing reserved words and the
+      # diagnostic table, and fails on anything without a /docs page. It is a test rather than a
+      # script so the failure names what is missing, and because 03-repository-layout allows no .cs
+      # outside src/ and tests/. It passes over empty registries today and starts doing real work the
+      # first time one of them gains an entry -- which is the point of wiring it this early.
+      - run: dotnet test tests/FluidScript.Core.Tests --filter-trait "Category=Docs"

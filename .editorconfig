@@ -1,0 +1,44 @@
+# FluidScript analyzer and formatting rules.
+#
+# Near-empty by design. The analyzer defaults selected by <AnalysisLevel>latest-recommended</AnalysisLevel>
+# are the standard; this file exists to set encoding and indentation, not to curate a ruleset.
+#
+# Every suppression added here must carry its reasoning in the same edit that adds it.
+# A file full of silenced rules is a standard nobody follows -- see
+# plan/00-foundation/03-repository-layout.md and 04-engineering-standards.md.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{json,yml,yaml,md,ts,tsx,js,jsx,css,html}]
+indent_size = 2
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# .fluid scripts: script tests compare text spans by offset, so nothing may rewrite them.
+[*.fluid]
+indent_size = 2
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+# ---------------------------------------------------------------------------
+# Suppressions. Each states its reasoning here, per this file's header.
+# ---------------------------------------------------------------------------
+
+[tests/**.cs]
+# CA1707 (no underscores in member names) targets public API surface, and test methods are not that.
+# The plugin's testing.md -- routed to by plan/00-foundation/04-engineering-standards.md -- mandates
+# Method_Scenario_ExpectedResult naming, so the two rules are in direct conflict here and only here.
+# The naming standard wins: a failing build names the scenario that broke, which is the whole point.
+dotnet_diagnostic.CA1707.severity = none

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <!-- .NET 10 dropped the VSTest bridge; this is the opt-in that keeps a bare
+         `dotnet test` working (03-repository-layout invariant 5). -->
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+    <!-- Test assemblies are not a public API surface: XML docs on test members would be noise. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Verify.XunitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/FluidScript.Core/FluidScript.Core.csproj" />
+    <ProjectReference Include="../FluidScript.Fixtures/FluidScript.Fixtures.csproj" />
+  </ItemGroup>
+
+</Project>

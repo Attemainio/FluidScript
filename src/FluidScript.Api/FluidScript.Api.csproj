@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!--
+      The Web SDK derives RazorLangVersion from LangVersion, and Directory.Build.props sets that
+      to `latest`, which resolves to a C# version Razor does not accept (RZ3600). The host serves
+      the built frontend as static files and compiles no Razor, so pinning this is the whole fix.
+    -->
+    <RazorLangVersion>Latest</RazorLangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../FluidScript.Core/FluidScript.Core.csproj" />
+  </ItemGroup>
+
+</Project>

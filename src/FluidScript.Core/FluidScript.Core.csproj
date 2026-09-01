@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The language and physics library. R-16: no UI dependency, no ASP.NET, no hosting, and no
+    ProjectReference at all. An architecture test in FluidScript.Core.Tests asserts this, because
+    review alone eventually misses it. See plan/00-foundation/03-repository-layout.md.
+  -->
+  <ItemGroup>
+    <PackageReference Include="SharpProp" />
+    <PackageReference Include="UnitsNet" />
+  </ItemGroup>
+
+</Project>

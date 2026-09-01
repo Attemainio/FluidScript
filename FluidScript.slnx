@@ -1,3 +1,11 @@
 <Solution>
-  <Project Path="FluidScript.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/FluidScript.Core/FluidScript.Core.csproj" />
+    <Project Path="src/FluidScript.Api/FluidScript.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FluidScript.Core.Tests/FluidScript.Core.Tests.csproj" />
+    <Project Path="tests/FluidScript.Api.Tests/FluidScript.Api.Tests.csproj" />
+    <Project Path="tests/FluidScript.Fixtures/FluidScript.Fixtures.csproj" />
+  </Folder>
 </Solution>

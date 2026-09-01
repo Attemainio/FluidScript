@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared sample scripts and independently computed expected outputs. Referenced by both test
+    projects. It is not itself a test project: it carries no test framework and discovers nothing.
+  -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,48 @@
+{
+  "$comment": [
+    "The reference environment every performance result in plan/00-foundation/07-quality-attributes.md",
+    "is measured against. Recorded at M0 per D-45: M0 installs the harness and records the environment;",
+    "each budget's baseline is recorded by the milestone that first produces the artifact it measures.",
+    "Changing the hardware class requires a reviewed baseline update, not a silently relaxed threshold."
+  ],
+  "recordedUtc": "2026-08-31T23:29:03+00:00",
+  "applicationCommit": "db7a6375067c77da9600eda0964aefe2baea369a",
+  "os": {
+    "description": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "note": "WSL2 on Windows. A native Windows or Linux runner will differ; CI records its own."
+  },
+  "runtime": {
+    "dotnetSdk": "10.0.111",
+    "node": "v22.19.0",
+    "npm": "10.9.3"
+  },
+  "hardware": {
+    "logicalCpuCount": 32,
+    "totalMemoryMiB": 31940,
+    "architecture": "x86_64",
+    "powerMode": "unknown - record explicitly on a laptop runner"
+  },
+  "protocol": {
+    "warmupCount": 3,
+    "sampleCount": 20,
+    "reported": [
+      "p50",
+      "p95",
+      "max"
+    ],
+    "note": "Every result also records its sample file and the model counts it was measured on."
+  },
+  "baselines": {
+    "$comment": "Empty by design at M0. Each milestone adds the rows for the artifact it first produces.",
+    "m1_draftCompile_200Declarations": null,
+    "m2a_solverUnknowns_200": null,
+    "m2a_solverUnknowns_800_refusal": null,
+    "m3_render_200Components": null,
+    "m3_editorResponse": null,
+    "m3_accessibility": null,
+    "m4_transientPlayback": null,
+    "m4_cancellationStop": null,
+    "m4_retentionMemory": null
+  }
+}

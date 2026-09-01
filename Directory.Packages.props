@@ -1,0 +1,33 @@
+<Project>
+
+  <!--
+    Central package management. Every version in the repository appears exactly once, here.
+    A csproj that pins a version inline fails the build with NU1008, which is the point.
+    Adding a package to Core adds it to every consumer of Core: state the reason in review.
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      Transitive pinning is deliberately OFF. Turning it on pins every transitive package as a
+      direct reference, and with xunit v3 that drops the compile assets of
+      xunit.v3.extensibility.core: the build then fails with CS0246 on [Fact], which reads as a
+      missing package rather than as a pinning side effect. Central versioning is what the
+      repository wants; pinning the transitive closure is not.
+    -->
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup Label="Core">
+    <!-- R-07: fluid properties. Exactly one type in the repository references this. -->
+    <PackageVersion Include="SharpProp" Version="9.0.0" />
+    <!-- SharpProp returns UnitsNet quantities, so adopting it avoids a second conversion
+         vocabulary at the adapter boundary. Confirmed by the M0 spike (P1.1). -->
+    <PackageVersion Include="UnitsNet" Version="5.75.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Tests">
+    <PackageVersion Include="xunit.v3" Version="4.0.0" />
+    <PackageVersion Include="Verify.XunitV3" Version="32.0.0" />
+  </ItemGroup>
+
+</Project>
