@@ -621,22 +621,36 @@ N1 node p=250
 
 circuit AHU 101
 
-HE_AHU  duty in=50 out=30 power=24 kW
+HE_AHU  heat_exchanger in=50 out=30 power=24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
+
+connections
+PU_AHU - HE_AHU - TV_AHU                       # the branch, open at both ends
 
 supply N3
 return N5
 
 circuit radiators 102
 
-HE_RAD  duty in=50 out=30 power=30 kW
+HE_RAD  heat_exchanger in=50 out=30 power=30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
+
+connections
+PU_RAD - HE_RAD - TV_RAD
 
 supply N4
 return N6
 ```
+
+**Each subcircuit is open at both ends, and that is what the attachment joins.**
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) lowers `supply N3` to a
+connection from the parent's `N3` to the subcircuit's *first unconnected inlet* and `return N5` to one
+from its *last unconnected outlet* — so the branch has to leave both free. `PU_AHU - HE_AHU - TV_AHU`
+leaves `PU_AHU.in` and `TV_AHU.b`, which is the flow path the header figures below are computed over.
+Without the `connections` lines this fixture has no path from supply to return at all, and the three
+flows `05` requires of it are unreachable (`F-11`).
 
 **Three circuits, three numbers, one of them resolved.** `heating` states 100, `AHU` states 101,
 `radiators` states 102. Had any been omitted it would have resolved to the next unused multiple of

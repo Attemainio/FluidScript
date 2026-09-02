@@ -1,0 +1,11 @@
+fluidscript 1
+circuit simpleLoop
+fluid water
+
+HE1 heat_exchanger power=30 in=20 out=50
+CV1 valve
+PU1 pump
+P1  pipe length=25
+
+connections
+N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1

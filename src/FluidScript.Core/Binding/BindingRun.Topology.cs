@@ -1008,6 +1008,16 @@ internal sealed partial class BindingRun
 
     private void ReportDeadEnds()
     {
+        // A node a subcircuit attaches to is not a dead end, however few connections were written on
+        // it: `23` lowers `supply N3` to a connection from `N3` to the subcircuit's first unconnected
+        // inlet, so the second edge exists — one stage later than this one runs. The distribution
+        // header is where it shows, and both ends of both its headers were warned about (`F-12`).
+        var attached = _circuits
+            .SelectMany(static circuit => new[] { circuit.Supply, circuit.Return })
+            .Where(static attachment => attachment is not null)
+            .Select(static attachment => attachment!.ParentComponentName)
+            .ToHashSet(StringComparer.Ordinal);
+
         foreach (var node in _components)
         {
             // A node with one connection and no boundary parameter is a dead end: nothing sets its
@@ -1016,6 +1026,7 @@ internal sealed partial class BindingRun
             if (node.Kind?.HasUnlimitedPorts != true
                 || node.Origin is Origin.Inferred { Rule: "I3" }
                 || _degrees.GetValueOrDefault(node.Name) != 1
+                || attached.Contains(node.Name)
                 || IsBoundary(node))
             {
                 continue;

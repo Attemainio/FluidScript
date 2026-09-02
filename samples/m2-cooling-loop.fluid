@@ -1,0 +1,22 @@
+fluidscript 1
+circuit coolingLoop
+fluid water
+style blue 2px fillet --
+show temperature
+
+HE1 heat_exchanger power=30 in=20 out=50
+3WV three_way_valve
+PU1 pump
+P1  pipe length=25
+
+connections
+N1 - N2                      # primary supply into the mixing node
+N2 - PU1                     # the secondary pump drives the loop
+PU1 - HE1
+HE1 - 3WV
+3WV - N2                     # recirculation branch — closes the secondary loop
+3WV - P1
+P1 - N3                      # primary return
+
+N1 node t=6 p=300            # primary-side boundary
+N3 node p=280

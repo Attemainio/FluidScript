@@ -1,0 +1,40 @@
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=54 in=40 out=60    # the plant-side source
+PU_MAIN pump
+
+connections
+N1 - HS1 - N2 - PU_MAIN - N3
+N3 - N4                                        # supply header
+N6 - N5
+N5 - N1                                        # return header
+
+N1 node p=250
+
+circuit AHU 101
+
+HE_AHU  heat_exchanger in=50 out=30 power=24 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+
+connections
+PU_AHU - HE_AHU - TV_AHU                       # the branch, open at both ends
+
+supply N3
+return N5
+
+circuit radiators 102
+
+HE_RAD  heat_exchanger in=50 out=30 power=30 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+
+connections
+PU_RAD - HE_RAD - TV_RAD
+
+supply N4
+return N6
