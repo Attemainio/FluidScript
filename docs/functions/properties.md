@@ -64,6 +64,9 @@ instance — is reported rather than silently zero.
 | `tank` | `layers` | — | as written |
 | `tank` | `stored_energy` | `J` | after the solve |
 | `tank` | `volume` | `dm3` | as written |
+| `t_sensor` | `t` | `°C` | after the solve |
+| `p_sensor` | `p` | `kPa` | after the solve |
+| `flow_sensor` | `flow` | `kg/s` | after the solve |
 <!-- END GENERATED: component-properties -->
 
 ## See also

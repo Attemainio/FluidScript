@@ -23,6 +23,9 @@ the six pieces of equipment a reader is looking for.
 | `pump` | `PU` | `400PU01` |
 | `tank` | `S` | `400S01` |
 | `controller` | `PID` | `400PID01` |
+| `t_sensor` | `TE` | `400TE01` |
+| `p_sensor` | `PE` | `400PE01` |
+| `flow_sensor` | `FE` | `400FE01` |
 <!-- END GENERATED: tag-codes -->
 
 A code is a house convention rather than a published standard. It is registry data, so a site that

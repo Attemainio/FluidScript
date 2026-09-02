@@ -15,6 +15,24 @@
 fluidscript 1
 project plant_01
 spacing 20
+design tout=-26                           # D-58: the condition the plant is sized for
+
+# ---------------------------------------------------------------------------------------------
+# Curves: named tables, read by any circuit below (D-57). File-wide, so they come before the
+# first `circuit`. A curve of time is where a clock time -- and its colons -- reach the lexer.
+# ---------------------------------------------------------------------------------------------
+
+curve outdoor time format="dd/MM/yyyy HH:mm:ss"
+01/01/2026 00:00:00  -1
+01/01/2026 01:00:00  -3
+
+curve heating outdoor extrapolated        # beyond the ends, continue the slope
+-26  50
+ 20   0
+
+curve cooling outdoor                     # no modifier: the ends hold
+-26  10
+ 32  14
 
 # ---------------------------------------------------------------------------------------------
 # The syntax reference, verbatim.

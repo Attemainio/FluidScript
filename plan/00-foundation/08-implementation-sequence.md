@@ -49,7 +49,7 @@ start. A **work package** is one branch, one pull request, one squash merge.
 | P0 | pre-M0 | 3 | Plan self-consistency |
 | P1 | M0 | 4 | SharpProp native packaging |
 | P2 | M1 | 9 | The lossless trivia model |
-| P3 | M2a | 7 | The sizing/solve outer loop |
+| P3 | M2a | 9 | The sizing/solve outer loop |
 | P4 | M2b | 3 | Two datums in one circuit |
 | P5 | M3 | 11 | The layout engine |
 | P6 | M4 | 7 | Run isolation under `D-22` |
@@ -188,6 +188,7 @@ syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes assert
 
 | # | Package | Why here |
 |---|---|---|
+| P3.0 | **Sensors and the actuated-parameter marker** ([`22`](../20-core-domain/22-component-model.md), `D-61`) | Before P3.3, not after. P3.3 builds six component kinds; adding a seventh family and a per-kind registry marker afterwards is six rewrites instead of one addition. Language-only — no physics, so it does not wait on P3.1. |
 | P3.1 | `ISubstance`, `FluidState`, the single SharpProp adapter, **both** fakes | The constant-property fake buys test speed; the linear-in-temperature fake is what catches a component that only works with constant properties. One without the other is a false sense of coverage. |
 | P3.2 | Property-accuracy tier — V4, V5 | Wrong physics at the source invalidates everything above it, so it is proved before anything is built on it. |
 | P3.3 | Component model, six kinds in duty mode ([`22`](../20-core-domain/22-component-model.md)) | The zero-allocation `EvaluateResiduals` test is written **in this package**. Retrofitting it across six component types later is a rewrite. |
@@ -195,6 +196,13 @@ syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes assert
 | P3.5 | Catalogue ([`27`](../20-core-domain/27-component-catalog.md)) | Sizing cannot be written against a catalogue that does not exist. V12 closes it. |
 | P3.6 | Scaling, then Newton ([`36`](../30-solver/36-numerics-and-convergence.md), [`32`](../30-solver/32-steady-state-newton.md)) | **Scaling first.** An unscaled residual norm measures the pressure equation and nothing else; Newton built first is tuned against a meaningless number, and the tolerances then have to be redone. |
 | P3.7 | Sizing and the single outer loop ([`24`](../20-core-domain/24-auto-sizing.md), [`31`](../30-solver/31-solver-architecture.md)) | One loop, one convergence test, one cap. Building sizing before the solve exists produces a second loop by default, which is exactly what `31` forbids. |
+| P3.8 | **Curves, the design point, and timestamps** ([`12`](../10-language/12-grammar.md), [`15`](../10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The grammar half could be built earlier; the half that matters cannot. |
+
+**P3.0 and P3.8 are new work from `D-57`–`D-61`, and their positions are the whole content of the
+decision to split them.** Sensors are a component-model change and must precede P3.3, which builds the
+six kinds; curves are a language change whose meaning depends on a design point, and a design point
+means nothing before there is something to size. Putting them at opposite ends of P3 is not
+convenience — building either at the other's position costs a rewrite.
 
 ### P4 — M2b: coupled thermal rating
 

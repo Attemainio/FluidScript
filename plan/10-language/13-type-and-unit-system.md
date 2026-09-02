@@ -319,6 +319,28 @@ generated record equality, which is a trap; `Quantity` therefore overrides `Equa
 - **Never compare temperatures for equality.** The API offers `IsCloseTo(other, tolerance)` and no
   `==` on `Temperature`-dimensioned quantities in test helpers.
 
+## Timestamps
+
+A timestamp is a lexical unit, not a quantity, and it exists only inside a `curve` section whose
+driver is `time` (`D-60`). It is **not** a dimension: it never takes part in arithmetic, never carries
+a unit, and converts to seconds on the SI side like everything else.
+
+Two forms need no declaration — ISO 8601 (`2026-01-01T00:00:00`) and a bare number of Unix seconds.
+Anything else is stated on the curve:
+
+```fluidscript
+curve outdoor time format="dd/MM/yyyy HH:mm:ss"
+```
+
+The format string is .NET's, **and its case carries meaning**: `MM` is the month and `mm` the minute,
+`HH` is the 24-hour clock and `hh` the 12-hour. `dd/mm/yyyy hh:mm:ss` — the shape most people write
+from memory — is literally day / minute / year, 12-hour : minute : second, and would parse without
+complaint. The format is therefore validated when the curve binds: a string naming no month, or no
+day, or using `hh` with no designator, is a diagnostic rather than a silent misparse.
+
+Culture-inferred parsing is rejected outright and `D-60` records why with the example that settled it.
+A format that depends on the reader's locale means one file means two things on two machines.
+
 ## Invariants
 
 1. Every `Quantity` crossing a public Core boundary is in SI base units.

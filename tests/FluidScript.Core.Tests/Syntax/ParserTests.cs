@@ -127,6 +127,9 @@ public sealed class ParserTests
         ConnectionSyntax => StatementKind.Connection,
         DisturbanceSyntax => StatementKind.Disturbance,
         ComponentDeclarationSyntax => StatementKind.Declaration,
+        CurveHeaderSyntax => StatementKind.CurveHeader,
+        CurveRowSyntax => StatementKind.CurveRow,
+        DesignDirectiveSyntax => StatementKind.Design,
         _ => StatementKind.Unclassifiable,
     };
 
@@ -426,6 +429,23 @@ public sealed class ParserTests
     [Trait("Category", "Unit")]
     public void FS1114_TextAfterACompleteStatement() =>
         OnlyDiagnostic("catalog steel_en10255 copper_en1057", "FS1114");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1115_CurveRowOutsideACurveSection() => OnlyDiagnostic("-26 50", "FS1115");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1116_CurveWithNoDriver() => OnlyDiagnostic("curve heating", "FS1116");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1117_CurveRowThatIsNotAPair() =>
+        OnlyDiagnostic("curve heating tout\n-26", "FS1117");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1118_DesignWithNoValues() => OnlyDiagnostic("design", "FS1118");
 
     [Fact]
     [Trait("Category", "Unit")]

@@ -38,6 +38,17 @@ public enum ScriptSection
 
     /// <summary>After a <c>schedule</c> line.</summary>
     Schedule,
+
+    /// <summary>
+    /// After a <c>curve</c> line, holding that curve's rows and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// The one section that is <strong>file-wide</strong> rather than circuit-scoped: a curve is shared
+    /// by every circuit that reads it, so <c>D-52</c> does not apply and it is declared with the other
+    /// file-wide statements, before the first <c>circuit</c>. It is ended by the next <c>curve</c>
+    /// header or the first <c>circuit</c>, and nothing else closes it.
+    /// </remarks>
+    Curve,
 }
 
 /// <summary>What a line was classified as, before it was parsed.</summary>
@@ -105,6 +116,20 @@ public enum StatementKind
     /// <summary>A component declaration.</summary>
     Declaration,
 
-    /// <summary>A line that starts with a word that cannot start a statement.</summary>
+    /// <summary>A <c>design</c> line, giving each driver a value (<c>D-58</c>).</summary>
+    Design,
+
+    /// <summary>A <c>curve</c> line, which names a table and opens its section (<c>D-57</c>).</summary>
+    CurveHeader,
+
+    /// <summary>One <c>x y</c> row inside a curve section.</summary>
+    /// <remarks>
+    /// Classified by section rather than by shape. Two bare values are a statement nowhere else in the
+    /// language, so outside a curve section this is <c>FS1115</c> — a message that can say what the
+    /// line is, rather than that it did not parse.
+    /// </remarks>
+    CurveRow,
+
+    /// <summary>A line that could not be classified.</summary>
     Unclassifiable,
 }

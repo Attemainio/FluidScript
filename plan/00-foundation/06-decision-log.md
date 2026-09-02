@@ -2294,6 +2294,259 @@ declaration is two identifiers, and a name cannot contain a dot.
 
 **Constrains.** [`12-grammar`](../10-language/12-grammar.md).
 
+## D-57 · A curve is a named two-column table of bare numbers, declared positionally
+
+**Accepted · 2026-09-02**
+
+A **curve** is a file-wide declaration naming a table of `x y` pairs, linearly interpolated between
+them. It is a new statement, not an extension of the `schedule` section.
+
+```fluidscript
+curve outdoor time format="dd/MM/yyyy HH:mm:ss"
+01/01/2026 00:00:00  -1
+01/01/2026 00:01:00  -3
+
+curve heating outdoor extrapolated
+-26  50
+-10  40
+ 20   0
+```
+
+**Its body is a section.** `curve <name>` opens one exactly as `connections` does, and it is closed by
+the next statement that opens another section or a circuit. Every other statement inside it is
+`FS1103`. This is the only structure in the language that could hold the rows: a curve body is a
+multi-line construct, and the parser is line-granular with no construct spanning lines — recovery
+depends on that. A section is how the language already says "a header opens a region whose statements
+are classified by position", so the rows cost no new parser concept.
+
+**The three positions are fixed: keyword, name, driver.** `curve heating outdoor extrapolated` names
+the curve `heating` and drives it from `outdoor`; anything after the driver is a modifier or a named
+argument. There is no preposition, because the rest of the language has none — `HE1 heat_exchanger`,
+`circuit ahu 300` and `fluid dynamic water` are all keyword-or-name followed by fixed positional slots,
+and a single `of` would have been the only preposition in the grammar.
+
+**The positions are not symmetrical, which is what makes them safe to transpose.** Position 2 must
+*not* already be declared, or it is `FS1501`; position 3 must already be a curve, a registered role, or
+`time`, or the name does not resolve. Writing `curve outdoor heating` when `curve heating outdoor` was
+meant is therefore caught by the binder in every case where both names exist, which is the ordinary
+one. This is the property `D-40` and `D-43` were denied — `actuate=` and `measure=` both accept a
+property reference, so nothing about the values distinguishes them and only a name can.
+
+**Both columns are bare numbers, and no curve has a dimension.** `heating` maps −26 to 50. What 50
+*is* comes from the consumer: `HX1 heat_exchanger power=heating` makes it 50 kW, because `D-14`'s
+bare-number rule reinterprets a bare result in the parameter's canonical unit at assignment. This is
+not new machinery — it is the same path that already makes `power=30` and `power=30 kW` one quantity,
+and it is the reason a curve can drive a power, a percentage, and a temperature without being told.
+
+**A driver is `time` or another curve, and the chain is numeric throughout.** `outdoor` maps a
+timestamp to −1; `heating` maps −1 to 43.6; the assignment makes 43.6 kW. No dimension is needed
+anywhere inside the chain, which is what lets one curve drive another.
+
+**Ends clamp unless the curve says `extrapolated`.** Below the first `x` or above the last, a clamped
+curve returns the nearest end's `y`; an extrapolated one continues the slope of the last two points.
+Clamping is the default because it is the answer that cannot produce a nonsense number: extrapolating
+a heating curve to −60 °C invents a duty from two points nobody validated at that temperature.
+
+**Why not `schedule`.** The proposal used `schedule` for both this and the existing transient section,
+which are different things: a reusable named table against a timeline of events for one run. Sharing a
+word would have required two-token classification, and a mistyped name would silently change a
+statement's kind — `schedule heating` opening a curve rather than the section. `curve` is also the
+domain's own word: an HVAC engineer calls this a heating curve or a compensation curve, and reserves
+"schedule" for a time program. The existing `schedule` section is unchanged.
+
+**Rejected.**
+- *One `schedule` keyword for both, disambiguated by whether a name follows.* Keeps the proposer's
+  preferred word. Cost: `schedule` alone and `schedule x` become different statements, so a typo in
+  the section header silently opens a curve; and `at`/`over` rows and `x y` rows have to coexist under
+  one section kind, which makes `FS1103`'s message unable to say what it expected.
+- *Unify them — make `at 60 s HE4.power = 45` sugar for an anonymous time-driven curve.* Genuinely one
+  concept, and tempting. Cost: `at` steps and a curve interpolates, so the unified form needs an
+  interpolation mode on every schedule; it rewrites working code and its tests for no new capability;
+  and it makes the common case (a one-line disturbance) carry the syntax of the rare one.
+- *Give a curve an explicit dimension (`curve heating : power`).* Catches a °C/°F mismatch between a
+  curve and its driver. Cost: it contradicts the feature's premise — a curve is reusable precisely
+  because it is unitless — and it duplicates what the consuming parameter already declares. The
+  mismatch it would catch is real and is accepted as a known risk; `D-59`'s role registry narrows it
+  where a driver is a known quantity.
+- *Write the driver behind a preposition: `curve heating of outdoor`.* Self-describing, and immune to
+  transposition without needing the binder to catch it. Cost: it is the only preposition in the
+  language, so it is a shape a reader has to learn once for one statement; and `of` would be a fourth
+  position-classified word carrying no information the position does not already carry. The
+  asymmetry above closes most of the safety gap for free.
+- *Inline the pairs on one line: `curve heating -26:50 -10:40`.* No section, no multi-line construct.
+  Cost: a year of hourly weather data is 8,760 pairs. The format has to be readable for the data it
+  will actually hold.
+
+---
+
+## D-58 · `design` supplies the sizing point, and is the operating point in a static solve
+
+**Accepted · 2026-09-02**
+
+A file-wide `design` directive gives each driver a value:
+
+```fluidscript
+design tout=-26
+```
+
+**It does two different jobs, and separating them is the point.** In every mode it is the **sizing
+point**: components are sized for the design condition, which is what makes automatic sizing mean
+anything. In a **static** solve it is additionally the **operating point** — every curve is evaluated
+once against it and its result is a constant, so the whole model is fixed numbers again. In a
+**dynamic** solve, curves are live functions of time and `design` sizes but does not operate.
+
+This is ordinary engineering practice — size for the design day, simulate the year — and it is the
+answer to a question the curve proposal did not have one for: `power=heating` in a `fluid static`
+circuit has no value, because a static circuit has no time and therefore no outdoor temperature.
+
+**A `design` value short-circuits the curve of the same driver.** With `design tout=-26`, the chain
+`time → outdoor → heating` is not walked; `heating` is evaluated at −26 directly. This is what makes a
+file that carries a full year of weather data still solvable statically.
+
+**A curve whose driver has neither a `design` value nor a time is an error, not a default.** Guessing
+zero, or the table's first row, would put a number in front of an engineer that nothing chose.
+
+**Rejected.**
+- *Make a curve-driven parameter force its circuit dynamic.* No new statement at all. Cost: a user who
+  wanted one number gets a transient run and a time axis they never asked for, and sizing — which is
+  inherently a single-point question — has no point to be evaluated at.
+- *Per-circuit design points.* A plant with two climates. Cost: there is no such plant; outdoor
+  temperature is a site property. It can be added later without changing anything written here.
+- *Reuse `project` (`project design tout=-26`).* One fewer statement. Cost: `D-37` settled that
+  `project` carries file-wide *settings*; a design point is an input to the physics, and mixing the two
+  is how `spacing` nearly ended up in `ProjectSettings`.
+
+---
+
+## D-59 · A curve driver resolves through a role registry, exactly as a circuit name does
+
+**Accepted · 2026-09-02**
+
+`tout` means the outdoor temperature. It is not a reserved word and not a special case in the binder:
+it is an entry in a **schedule-role registry**, resolved by `D-15`'s three stages — normalise, exact
+match, similarity — with an info diagnostic when nothing matches and the `Neutral` outcome that
+`D-35` already established for circuit roles.
+
+This buys `tout`, `t_out`, `outdoor` and `outdoorTemperature` as one role for free, and it keeps the
+set extensible without touching the grammar. A name matching no role is not an error: a plant is full
+of drivers nobody registered, and refusing to bind one would make the language useless for the plant
+it describes.
+
+**A role may declare a dimension, and that is the only place a curve meets one.** The role is what
+makes `design tout=-26` checkable — the argument is validated against `Temperature`, so `design
+tout=-26 C` and `design tout=-26` agree and `design tout=3 bar` is caught. The curve's own table stays
+bare, per `D-57`.
+
+**Rejected.**
+- *Reserve `tout` as a keyword.* Unambiguous. Cost: `18` is explicit that adding a reserved word is a
+  *removal* requiring a new language major, and it buys nothing a registry entry does not — while
+  making `tout` unusable as any other identifier forever.
+- *A magic name hard-coded in the binder.* Cheapest to write. Cost: the one thing the registry exists
+  to prevent, and it puts a domain fact in the stage least able to document it.
+
+---
+
+## D-60 · Timestamps are ISO 8601 or Unix seconds, and any other format is stated explicitly
+
+**Accepted · 2026-09-02**
+
+A `time`-driven curve reads `2026-01-01T00:00:00` or a bare number of Unix seconds. Any other layout
+is declared on the curve:
+
+```fluidscript
+curve outdoor time format="dd/MM/yyyy HH:mm:ss"
+```
+
+**Culture-inferred timestamps are rejected outright, and the proposal's own example is the argument.**
+It read
+
+```
+1.1.2026 00:00:00 -1
+1.1.2026 00:01:00 -3
+1.2.2026 00:02:00 -2
+```
+
+with the times one minute apart and the date going `1.1` → `1.1` → `1.2`. Whether the third point is a
+day later or a month later cannot be recovered from the text, and neither reading is unreasonable. A
+format that depends on the reader's locale means the same file means different things on two machines,
+which is a correctness bug in a file format, not a convenience.
+
+**The format string is .NET's, and its case matters.** `MM` is the month and `mm` the minute; `HH` is
+the 24-hour clock and `hh` the 12-hour. The proposal wrote `dd/mm/yyyy hh:mm:ss`, which taken literally
+is day / minute / year, 12-hour : minute : second. The format is validated when the curve is bound, and
+a string with no month or no day is a diagnostic rather than a silent misparse.
+
+**This needs a lexer token.** Under `D-51` a `.` joins a number only before a digit, so `1.1.2026`
+already lexes as `1.1`, `.`, `2026`, and `2026-01-01T00:00:00` lexes as six tokens and an identifier.
+A timestamp is a single lexical unit, recognised only inside a curve body.
+
+**Rejected.**
+- *Infer from the current culture.* What the proposal asked for. Cost: above.
+- *Infer from the data — scan every row and pick the layout that fits.* Deterministic, no declaration.
+  Cost: it fits until a file's days all happen to be ≤ 12, at which point the inference flips on a
+  dataset the user did not change. A rule that works on most data and silently reverses on some is
+  worse than one that asks.
+- *Epoch seconds only.* One format, no ambiguity, no lexer change. Cost: nobody has weather data in
+  epoch seconds, and a file that cannot be read by the person who wrote it is not a source format.
+
+---
+
+## D-61 · A sensor is a placed observer, and one actuated parameter per kind makes `.position` optional
+
+**Accepted · 2026-09-02** · amends `D-43`
+
+**A measurement is a component.** `TE1 t_sensor at N2` places a temperature sensor on a node. Control
+reads a sensor, never a node's solved state, because the two are different claims: `in=50` on a heat
+exchanger is a *specification* — what the design asks for — and `TE1` is a *measurement* — what the
+model produced. `measure=NB2.t` blurred them, and the blur is the actual defect the proposal found.
+
+**A sensor attaches to a node; it does not sit in the flow path.** `TE1 t_sensor at N2`, never
+`HX1 - TE1 - TV1`. A pass-through sensor would add two ports, gain an inserted node from rule I2, and
+contribute equations that are all identities — a hundred sensors would double the solve to compute
+nothing. Attachment keeps it out of the hydraulic graph entirely.
+
+**`in=` and `out=` stay on the heat exchanger.** The proposal would have removed them, leaving
+`HX1 heat_exchanger power=20`. They are not sensors: they are the design constraints `D-19`'s
+duty/rated/coupled derivation reads, and `22`'s parameter set and every reference circuit rest on them.
+A sensor tells you what the exchanger *did*; `in=`/`out=` tell it what to do.
+
+**Each kind names at most one actuated parameter, and one measured property.** A valve's is `position`,
+a pump's is `speed`, a temperature sensor measures `t`. When exactly one exists, the qualification is
+optional:
+
+```fluidscript
+control TV1 with TE1 by PID1 setpoint=21
+```
+
+**This amends `D-43`, which was right about parameters and wrong about actuators.** `D-43` refused a
+bare `actuate=TV1` on the grounds that "a valve has more than one thing that could move" — but of
+`position`, `kvs` and `authority`, only `position` moves at runtime; `kvs` is a sizing parameter and
+`authority` a design property. Where the registry names exactly one, the bare form is unambiguous *by
+construction*. Where it names none, or a future kind names two, the bare form is an error listing the
+candidates and the qualified form is required. `control TV1.position with TE1.t ...` stays legal
+everywhere.
+
+**`with` and `by` are not reserved.** They are classified by position, exactly as `at` and `over`
+already are inside a `schedule` section. `18` is explicit that adding a reserved word is a
+removal — a script naming a component `by` would stop parsing — and position-classification costs
+nothing here because no other statement has a keyword in that slot.
+
+**Rejected.**
+- *Remove `in=`/`out=`/`dt=` from the heat exchanger, as proposed.* Makes the exchanger a pure block
+  and the sensor the only source of temperature. Cost: `D-19`'s mode derivation reads exactly that
+  evidence, so Rated and Coupled designs become inexpressible; `22`'s tables, every reference circuit,
+  both samples and the registry-comparison test all change; and a user loses the ability to state a
+  design intent without also modelling the instrumentation.
+- *Keep `measure=NB2.t` and skip sensors.* No new kind, no new statement. Cost: it keeps the confusion
+  between specified and measured, and it makes the model unable to say where an instrument is — which
+  is the first thing a P&I diagram shows.
+- *One `sensor` kind with `measures=t`.* One registry entry instead of three. Cost: two tokens where
+  one would do, and it throws away the natural tag codes — TE, PE, FE are what an instrument index
+  calls these, and a kind per instrument gets them for free.
+- *Keep `D-43` as written and always require `.position`.* No amendment, no registry change. Cost: the
+  verbosity is real and buys nothing where only one parameter can move, and `D-43`'s own justification
+  does not survive contact with the registry it was written before.
+
 ---
 
 ## Adding an entry

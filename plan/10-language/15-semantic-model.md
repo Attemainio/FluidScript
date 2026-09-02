@@ -612,6 +612,13 @@ expects `AirHandlingUnit` to find `ahu`.
    Circuit numbers are assigned here — stated ones kept, omitted ones filled with the lowest unused
    multiple of 100 in declaration order — and a collision is `FS1524`. Roles resolve through the role
    registry (`FS1519`), and each circuit's `Mode` is settled by `D-37`'s precedence (`FS1517`).
+0b. **Collect curves and the design point** (`D-57`, `D-58`). Each `curve` header and its rows become
+   a `CurveSymbol`: a sorted table of `(x, y)` bare doubles, an end rule (clamped or extrapolated), and
+   a driver name. Rows arriving out of order are sorted by `x`; two rows with the same `x` are
+   `FS1529`, information rather than an error, and the later row wins — a step is a legitimate thing
+   to write. Drivers resolve in step 4 with everything else, because a curve may name a curve declared
+   below it. `design` binds into `ProjectSettings`, one file-wide home, per `D-37`'s "one value, one
+   path".
 1. **Collect declarations.** Every `ComponentDeclarationSyntax` and `LetBindingSyntax` enters the
    symbol table. The table is one per model, not one per circuit (`D-41`), and its circuit is recorded
    on the symbol. Duplicates → `FS1501` / `FS1401`.
@@ -625,8 +632,20 @@ expects `AirHandlingUnit` to find `ahu`.
    according to `ParameterInfo.ValueKind`: a quantity is evaluated, a symbol is matched against
    `AcceptedSymbols` (`FS1514`), and a reference is recorded unevaluated (`FS1515`) for a later stage
    to resolve — under `D-23`, a controller's direct `measure=N2.t` names a property that does not exist until the solve.
-4. **Build the dependency graph** over bindings, parameters, and referenced properties.
-5. **Evaluate** in topological order; defer what depends on solved values.
+4. **Build the dependency graph** over bindings, parameters, referenced properties, and curves. A
+   curve is a node like any other: `power=heating` depends on `heating`, which depends on its driver,
+   which may be another curve. A cycle among curves is `FS1402`, the same code and the same
+   depth-first sort that already reports one among `let` bindings.
+5. **Evaluate** in topological order; defer what depends on solved values. **A curve reference is an
+   ordinary value source**, which is the whole reason the feature costs so little here: `heating`
+   resolves through `IValueScope.Lookup` exactly as a `let` does, yields a **bare** number, and
+   `D-14`'s rule reinterprets it in the target parameter's canonical unit at assignment. That is what
+   makes one curve drive a power, a percentage and a temperature without being told which.
+
+   What a curve evaluates *at* is `D-58`: in a static circuit, the `design` value for its driver, with
+   the driver's own curve short-circuited; in a dynamic circuit, the current time, deferred like a
+   solved property. A curve whose driver has neither is `FS1528` — an error naming the driver, never a
+   default, because guessing zero puts a number in front of an engineer that nothing chose.
 6. **Materialize indexed ports.** A tank starts with `in1` and `out1`. A qualified endpoint or an
    elevation parameter creates the named port after validating its 1…16 index. Ports not evidenced by
    source do not exist in the bound model or model contract.
@@ -795,6 +814,11 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
 | `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
 | `FS1526` | A subcircuit's `supply` and `return` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
+| `FS1527` | A curve's driver names no curve, role or `time` | Error | `'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.` |
+| `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
+| `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
+| `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
+| `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role} to use here. Write it out, such as '{example}'.` |
 
 **`FS1509` is retired, not redefined, and the distinction matters.** It meant "more than one `circuit`
 header", a condition `D-33` makes legal. The tempting move is to keep the number for the nearest

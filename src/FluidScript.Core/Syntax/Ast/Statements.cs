@@ -268,18 +268,55 @@ public sealed record ControlBindingSyntax(
     Token Keyword,
     ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax
 {
+    /// <summary>Gets what the loop drives, in the short form (<c>D-61</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> for the named form. The port half is optional: where a kind names
+    /// exactly one actuated parameter, <c>TV1</c> is unambiguous by construction.
+    /// </value>
+    public EndpointSyntax? Actuator { get; init; }
+
+    /// <summary>Gets the <c>with</c> word, retained so the line prints back byte for byte.</summary>
+    public Token? WithKeyword { get; init; }
+
+    /// <summary>Gets what the loop reads, in the short form.</summary>
+    public EndpointSyntax? Sensor { get; init; }
+
+    /// <summary>Gets the <c>by</c> word.</summary>
+    public Token? ByKeyword { get; init; }
+
+    /// <summary>Gets the controller, in the short form.</summary>
+    public IdentifierSyntax? Controller { get; init; }
+
+    /// <summary>Gets whether this line was written in the short form.</summary>
+    public bool IsShortForm => Actuator is not null;
+
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>
-        [Keyword, .. Arguments.SelectMany(static argument => argument.Tokens)];
+    [
+        Keyword,
+        .. Actuator?.Tokens ?? [],
+        .. WithKeyword is { } with ? new[] { with } : [],
+        .. Sensor?.Tokens ?? [],
+        .. ByKeyword is { } by ? new[] { by } : [],
+        .. Controller?.Tokens ?? [],
+        .. Arguments.SelectMany(static argument => argument.Tokens),
+    ];
 }
 
 /// <summary>Declares a component: a name, a kind, and a bag of parameters.</summary>
 /// <param name="Name">The component's name, unique across the whole model (<c>D-41</c>).</param>
 /// <param name="Kind">The kind, resolved against the component registry at bind time.</param>
+/// <param name="AtKeyword">The <c>at</c> word, or <see langword="null"/> when there is no attachment.</param>
+/// <param name="AttachedTo">
+/// The node an observer is placed on (<c>D-61</c>), or <see langword="null"/>. Only an instrument
+/// kind accepts one; the parser records it wherever it is written and the binder decides.
+/// </param>
 /// <param name="Parameters">The stated parameters. An omitted one is absence, never null.</param>
 public sealed record ComponentDeclarationSyntax(
     IdentifierSyntax Name,
     IdentifierSyntax Kind,
+    Token? AtKeyword,
+    IdentifierSyntax? AttachedTo,
     ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax
 {
     /// <inheritdoc/>
@@ -287,8 +324,80 @@ public sealed record ComponentDeclarationSyntax(
     [
         .. Name.Tokens,
         .. Kind.Tokens,
+        .. AtKeyword is { } at && AttachedTo is { } node
+            ? new[] { at }.Concat(node.Tokens)
+            : [],
         .. Parameters.SelectMany(static parameter => parameter.Tokens),
     ];
+}
+
+/// <summary>Declares a named interpolated table and opens its section (<c>D-57</c>).</summary>
+/// <param name="Keyword">The <c>curve</c> word.</param>
+/// <param name="Name">The curve's name, unique across the model like every other identifier.</param>
+/// <param name="Driver">
+/// What the curve's <c>x</c> axis is: <c>time</c>, another curve, or a registered driver role. There
+/// is no preposition before it — the language has none anywhere, and the two positions are asymmetric
+/// enough that the binder catches a transposition (a name that already exists is <c>FS1501</c>, and a
+/// driver that does not is <c>FS1527</c>).
+/// </param>
+/// <param name="Modifiers">
+/// Positional words after the driver. <c>extrapolated</c> is the only one v1 reads; clamping is the
+/// default because it cannot invent a number beyond the data.
+/// </param>
+/// <param name="Arguments">Named arguments, such as <c>format=</c>.</param>
+public sealed record CurveHeaderSyntax(
+    Token Keyword,
+    IdentifierSyntax Name,
+    IdentifierSyntax? Driver,
+    ImmutableArray<IdentifierSyntax> Modifiers,
+    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax
+{
+    /// <inheritdoc/>
+    public override ImmutableArray<Token> Tokens =>
+    [
+        Keyword,
+        .. Name.Tokens,
+        .. Driver?.Tokens ?? [],
+        .. Modifiers.SelectMany(static modifier => modifier.Tokens),
+        .. Arguments.SelectMany(static argument => argument.Tokens),
+    ];
+}
+
+/// <summary>One <c>x y</c> row of a curve.</summary>
+/// <param name="Parts">Every token on the line, in order.</param>
+/// <remarks>
+/// <para>
+/// The row keeps its tokens rather than a parsed pair, and the split into <c>x</c> and <c>y</c> is the
+/// binder's. The reason is <c>x</c>: a timestamp is not one token. <c>2026-01-01T00:00:00</c> lexes as
+/// six tokens and an identifier, and <c>01/01/2026</c> as five — there is no context-free way to lex
+/// either as a unit, because <c>2026-01-01</c> is also a perfectly good subtraction.
+/// </para>
+/// <para>
+/// So the binder reads the row's <em>text</em> and splits it at the last run of whitespace: everything
+/// before is <c>x</c>, parsed by the curve's format; the rest is <c>y</c>. Holding the tokens is what
+/// keeps the printer exact, since it reproduces them without knowing what they meant.
+/// </para>
+/// </remarks>
+public sealed record CurveRowSyntax(ImmutableArray<Token> Parts) : StatementSyntax
+{
+    /// <inheritdoc/>
+    public override ImmutableArray<Token> Tokens => Parts;
+}
+
+/// <summary>Gives each curve driver its design value (<c>D-58</c>).</summary>
+/// <param name="Keyword">The <c>design</c> word.</param>
+/// <param name="Arguments">One <c>driver=value</c> per driver, order-independent.</param>
+/// <remarks>
+/// File-wide, like <c>project</c> and <c>spacing</c>, and for the same reason: an outdoor temperature
+/// is a property of the site, not of one circuit.
+/// </remarks>
+public sealed record DesignDirectiveSyntax(
+    Token Keyword,
+    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax
+{
+    /// <inheritdoc/>
+    public override ImmutableArray<Token> Tokens =>
+        [Keyword, .. Arguments.SelectMany(static argument => argument.Tokens)];
 }
 
 /// <summary>One <c>name=value</c> pair.</summary>

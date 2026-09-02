@@ -20,7 +20,7 @@ public sealed class ComponentRegistryTests
         // Building runs every self-check: duplicate spellings, aliases that are reserved words,
         // duplicate tag codes, and tag codes that would lex as quantities. A throw here is the data
         // being wrong, which is why the constructor does the work rather than a test repeating it.
-        Assert.Equal(8, Registry.Kinds.Length);
+        Assert.Equal(11, Registry.Kinds.Length);
         Assert.NotNull(Registry.ByKeyword("three_way_valve"));
     }
 

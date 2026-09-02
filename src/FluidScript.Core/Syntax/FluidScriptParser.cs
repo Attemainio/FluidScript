@@ -91,6 +91,8 @@ public static class FluidScriptParser
                 ReservedWord.Schedule => StatementKind.ScheduleHeader,
                 ReservedWord.Supply or ReservedWord.Return => StatementKind.Attachment,
                 ReservedWord.Control => StatementKind.Control,
+                ReservedWord.Curve => StatementKind.CurveHeader,
+                ReservedWord.Design => StatementKind.Design,
 
                 // `dynamic` and `static` qualify another directive and introduce nothing.
                 _ => StatementKind.Unclassifiable,
@@ -100,6 +102,22 @@ public static class FluidScriptParser
         if (section == ScriptSection.Schedule)
         {
             return StatementKind.Disturbance;
+        }
+
+        // Every non-keyword line inside a curve section is one of its rows. Classified by section
+        // A curve row is recognised by its own first token, in every section rather than only inside a
+        // curve. Nothing else in the language begins with a number or a minus — an identifier may start
+        // with a digit (`3WV`), but the lexer classifies that as an identifier, not a number — so this
+        // costs no lookahead and stays inside invariant 7.
+        //
+        // Classifying by shape rather than by section is what lets both messages be specific: a row
+        // outside a curve is FS1115 and says what the line is, and a declaration *inside* one is
+        // FS1103 and says where it is. Reading every line in a curve section as a row would turn a
+        // forgotten `circuit` header into a file of malformed rows, and a curve section sits at the
+        // top of the file, so everything after it would be swallowed.
+        if (first.Kind is TokenKind.NumberLiteral or TokenKind.Minus)
+        {
+            return StatementKind.CurveRow;
         }
 
         // `-` for `N1 - N2`; `.` for a port-qualified first endpoint, `3WV.b - N3` (D-56). Nothing

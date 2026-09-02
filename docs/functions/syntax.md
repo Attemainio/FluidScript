@@ -121,6 +121,8 @@ is legal.
 | `supply` | where a subcircuit takes flow from its parent |
 | `return` | where a subcircuit gives that flow back |
 | `control` | which controller drives what, measuring what |
+| `curve` | a named table of values, interpolated between its rows |
+| `design` | the conditions the plant is sized for |
 <!-- END GENERATED: reserved-words -->
 
 `|` is not used for anything, and is deliberately kept free.

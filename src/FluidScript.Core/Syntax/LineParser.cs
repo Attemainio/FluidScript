@@ -56,6 +56,9 @@ internal sealed class LineParser(
             StatementKind.Connection => ParseConnection(),
             StatementKind.Disturbance => ParseDisturbance(),
             StatementKind.Declaration => ParseDeclaration(),
+            StatementKind.CurveHeader => ParseCurveHeader(state),
+            StatementKind.CurveRow => ParseCurveRow(),
+            StatementKind.Design => ParseDesign(state),
             _ => Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan),
         };
 
@@ -94,24 +97,40 @@ internal sealed class LineParser(
             // A `schedule` header is legal in both of the sections that can precede it, and a second
             // one is FS1101 from the header parser rather than FS1103, so neither header is in the
             // list below on its own account (D-56).
+            // A curve row belongs to exactly one section and is a statement nowhere else, so it gets
+            // its own code rather than the generic wrong-section one: the message can say what the
+            // line is, instead of only where it may not be.
+            case StatementKind.CurveRow when section != ScriptSection.Curve:
+                Report(ParserDiagnostics.CurveRowOutsideSection, LineSpan);
+                return;
+
             case StatementKind.Declaration or StatementKind.Attachment or StatementKind.Control
-                when section == ScriptSection.Schedule:
+                when section is ScriptSection.Schedule or ScriptSection.Curve:
+            case StatementKind.ConnectionsHeader or StatementKind.ScheduleHeader
+                when section == ScriptSection.Curve:
             case StatementKind.ConnectionsHeader when section == ScriptSection.Schedule:
             case StatementKind.Version or StatementKind.Project or StatementKind.Spacing
                 or StatementKind.Fluid or StatementKind.Catalog or StatementKind.Style
-                or StatementKind.Show or StatementKind.Let
+                or StatementKind.Show or StatementKind.Let or StatementKind.Design
                 when section != ScriptSection.Declaration:
                 Report(
                     ParserDiagnostics.StatementInWrongSection,
                     LineSpan,
                     new DiagnosticArgument("statement", NameOf(kind)),
-                    new DiagnosticArgument("section", section == ScriptSection.Schedule ? "schedule" : "connections"));
+                    new DiagnosticArgument("section", SectionName(section)));
                 return;
 
             default:
                 return;
         }
     }
+
+    private static string SectionName(ScriptSection section) => section switch
+    {
+        ScriptSection.Schedule => "schedule",
+        ScriptSection.Curve => "curve",
+        _ => "connections",
+    };
 
     private static string NameOf(StatementKind kind) => kind switch
     {
@@ -128,6 +147,9 @@ internal sealed class LineParser(
         StatementKind.Attachment => "supply or return line",
         StatementKind.Control => "control line",
         StatementKind.Declaration => "component declaration",
+        StatementKind.CurveHeader => "curve line",
+        StatementKind.CurveRow => "curve row",
+        StatementKind.Design => "design directive",
         _ => "statement",
     };
 
@@ -431,6 +453,116 @@ internal sealed class LineParser(
         return connections ? new ConnectionsHeaderSyntax(keyword) : new ScheduleHeaderSyntax(keyword);
     }
 
+    /// <summary>Parses a <c>curve</c> header and opens its section (<c>D-57</c>).</summary>
+    /// <remarks>
+    /// Three fixed positions — keyword, name, driver — then modifiers and named arguments. There is no
+    /// preposition because the language has none anywhere; the positions are asymmetric enough that a
+    /// transposition is caught downstream, where a name that already exists is <c>FS1501</c> and a
+    /// driver that does not is <c>FS1527</c>.
+    /// </remarks>
+    private StatementSyntax ParseCurveHeader(FluidScriptParser.ScriptState state)
+    {
+        var keyword = Advance();
+
+        // File-wide, unlike every other section (`D-52` does not apply): a curve is read by every
+        // circuit that names it, so it is declared with the other file-wide statements.
+        if (state.SeenCircuit)
+        {
+            Report(
+                ParserDiagnostics.GlobalDirectiveOutOfPlace,
+                keyword.Span,
+                new DiagnosticArgument("word", keyword.Text));
+        }
+
+        var name = TakeIdentifier();
+        if (name is null)
+        {
+            return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
+        }
+
+        // Opened before the driver is checked, so the rows below a header that is missing one still
+        // land in a curve section rather than each becoming its own FS1115.
+        state.Section = ScriptSection.Curve;
+
+        IdentifierSyntax? driver = null;
+        if (Current is { Kind: TokenKind.Identifier }
+            && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+        {
+            driver = new IdentifierSyntax(Advance());
+        }
+
+        if (driver is null)
+        {
+            Report(
+                ParserDiagnostics.CurveWithoutDriver,
+                LineSpan,
+                new DiagnosticArgument("name", name.Text));
+        }
+
+        var modifiers = ImmutableArray.CreateBuilder<IdentifierSyntax>();
+        while (Current is { Kind: TokenKind.Identifier }
+            && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+        {
+            modifiers.Add(new IdentifierSyntax(Advance()));
+        }
+
+        var arguments = ParseParameters(out var failed);
+
+        return failed
+            ? Malformed()
+            : new CurveHeaderSyntax(keyword, name, driver, modifiers.ToImmutable(), arguments);
+    }
+
+    /// <summary>Takes one <c>x y</c> row whole, without interpreting either column.</summary>
+    /// <remarks>
+    /// The split is the binder's, because <c>x</c> may be a timestamp and a timestamp is not one
+    /// token: <c>2026-01-01T00:00:00</c> lexes as six tokens and an identifier, and there is no
+    /// context-free way to lex it as a unit, since <c>2026-01-01</c> is also a valid subtraction. The
+    /// parser's job here is to keep every token on the line so the printer stays exact.
+    /// </remarks>
+    private StatementSyntax ParseCurveRow()
+    {
+        // Counted in whitespace-separated parts, not tokens, because that is how the binder splits the
+        // row: `-26` is two tokens and one value, and `01/01/2026 00:00:00 -1` is many tokens and
+        // three parts, of which the first two are one timestamp.
+        if (source.ToString(LineSpan).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length < 2)
+        {
+            return Fail(ParserDiagnostics.MalformedCurveRow, LineSpan);
+        }
+
+        _index = tokens.Length;
+        return new CurveRowSyntax(tokens);
+    }
+
+    /// <summary>Parses a <c>design</c> directive (<c>D-58</c>).</summary>
+    private StatementSyntax ParseDesign(FluidScriptParser.ScriptState state)
+    {
+        var keyword = Advance();
+
+        if (state.SeenCircuit)
+        {
+            Report(
+                ParserDiagnostics.GlobalDirectiveOutOfPlace,
+                keyword.Span,
+                new DiagnosticArgument("word", keyword.Text));
+        }
+
+        var arguments = ParseParameters(out var failed);
+        if (failed)
+        {
+            return Malformed();
+        }
+
+        // Unlike `project` and `spacing`, a second `design` line is legal: one driver per line reads
+        // better than a long one, and the binder merges them.
+        if (arguments.IsEmpty)
+        {
+            return Fail(ParserDiagnostics.MalformedDesignDirective, LineSpan);
+        }
+
+        return new DesignDirectiveSyntax(keyword, arguments);
+    }
+
     private StatementSyntax ParseAttachment(FluidScriptParser.ScriptState state)
     {
         var keyword = Advance();
@@ -466,6 +598,15 @@ internal sealed class LineParser(
     private StatementSyntax ParseControl()
     {
         var keyword = Advance();
+
+        // `control TV1 with TE1 by PID1 setpoint=21` (`D-61`). The two forms are told apart on the
+        // token after `control`: a named argument is followed by `=`, and an actuator is not.
+        if (Current is { Kind: TokenKind.Identifier }
+            && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+        {
+            return ParseShortControl(keyword);
+        }
+
         var arguments = ParseParameters(out var failed);
 
         if (failed)
@@ -481,6 +622,44 @@ internal sealed class LineParser(
 
         return new ControlBindingSyntax(keyword, arguments);
     }
+
+    private StatementSyntax ParseShortControl(Token keyword)
+    {
+        var actuator = TakeEndpoint();
+        var with = TakeWord("with");
+        var sensor = with is null ? null : TakeEndpoint();
+        var by = sensor is null ? null : TakeWord("by");
+        var controller = by is null ? null : TakeIdentifier();
+
+        if (controller is null)
+        {
+            // One code for the whole shape. Reporting which of `with` or `by` was missing would need a
+            // message per position for a line the user will rewrite whole anyway.
+            Report(ParserDiagnostics.MalformedControlBinding, LineSpan);
+            return Malformed();
+        }
+
+        var arguments = ParseParameters(out var failed);
+
+        return failed
+            ? Malformed()
+            : new ControlBindingSyntax(keyword, arguments)
+            {
+                Actuator = actuator,
+                WithKeyword = with,
+                Sensor = sensor,
+                ByKeyword = by,
+                Controller = controller,
+            };
+    }
+
+    /// <summary>Takes one position-classified word, such as <c>with</c> or <c>by</c>.</summary>
+    /// <remarks>
+    /// Neither is reserved. Each is an ordinary identifier whose position inside a statement the first
+    /// token already identified gives it meaning — the same trade `at` and `over` make.
+    /// </remarks>
+    private Token? TakeWord(string text) =>
+        Current is { Kind: TokenKind.Identifier } token && token.Text == text ? Advance() : null;
 
     private StatementSyntax ParseConnection()
     {
@@ -583,15 +762,28 @@ internal sealed class LineParser(
 
             return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
         }
-
         var kind = new IdentifierSyntax(Advance());
+
+        // `TE1 t_sensor at N2` places an observer on a node (`D-61`). `at` is position-classified, not
+        // reserved: it is already an ordinary identifier inside a schedule section, and reserving a
+        // common English word to buy nothing is the trade `P6` refuses.
+        Token? atKeyword = null;
+        IdentifierSyntax? attachedTo = null;
+
+        if (Current is { Kind: TokenKind.Identifier, Text: "at" }
+            && tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Identifier })
+        {
+            atKeyword = Advance();
+            attachedTo = new IdentifierSyntax(Advance());
+        }
+
         var parameters = ParseParameters(out var failed);
         if (failed)
         {
             return Malformed();
         }
 
-        return new ComponentDeclarationSyntax(name, kind, parameters);
+        return new ComponentDeclarationSyntax(name, kind, atKeyword, attachedTo, parameters);
     }
 
     // ---- pieces -----------------------------------------------------------------------------

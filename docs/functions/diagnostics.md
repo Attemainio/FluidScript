@@ -62,6 +62,10 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1112` | Error | Parser | '{word}' applies to the whole file and must come before the first 'circuit' line. |
 | `FS1113` | Error | Parser | Spacing is in world units, so write 'spacing {n}' with no unit. |
 | `FS1114` | Error | Parser | '{extra}' is more than this line can hold. |
+| `FS1115` | Error | Parser | Put this pair under a 'curve' line. |
+| `FS1116` | Error | Parser | 'curve {name}' needs what it depends on, such as 'curve {name} tout'. |
+| `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
+| `FS1118` | Error | Parser | A 'design' line needs named values, such as 'design tout=-26'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
 | `FS1302` | Error | Units | Cannot add two {dimension}s. To offset by a difference, write '{example}'. |
 | `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |

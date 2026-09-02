@@ -80,6 +80,42 @@ public sealed record ComponentKindInfo
     /// back.
     /// </remarks>
     public required ImmutableDictionary<string, PropertyInfo> Properties { get; init; }
+
+    /// <summary>Gets the one parameter a controller may move at runtime (<c>D-61</c>).</summary>
+    /// <value>
+    /// <c>position</c> for a valve, <c>speed</c> for a pump, <see langword="null"/> for a kind nothing
+    /// actuates. Always a key of <see cref="Parameters"/> when it is not null.
+    /// </value>
+    /// <remarks>
+    /// This is what makes <c>control TV1 with TE1 by PID1</c> unambiguous without writing
+    /// <c>.position</c>. <c>D-43</c> refused a bare actuator because "a valve has more than one thing
+    /// that could move", which was right about parameters and wrong about actuators: of
+    /// <c>position</c>, <c>kv</c> and <c>authority</c>, only <c>position</c> moves during a solve.
+    /// Where the registry names exactly one, the bare form is safe by construction; where it names
+    /// none, the bare form is <c>FS1531</c> and the qualified form is required.
+    /// </remarks>
+    public string? ActuatedParameter { get; init; }
+
+    /// <summary>Gets the one property an instrument reads (<c>D-61</c>).</summary>
+    /// <value>
+    /// <c>t</c> for a temperature sensor, <see langword="null"/> for a kind that is not an instrument.
+    /// Always a key of <see cref="Properties"/> when it is not null.
+    /// </value>
+    /// <remarks>
+    /// The measurement half of the same rule: a sensor measures exactly one quantity, so <c>TE1</c>
+    /// alone is unambiguous and <c>.t</c> never needs writing.
+    /// </remarks>
+    public string? MeasuredProperty { get; init; }
+
+    /// <summary>Gets whether this kind observes a node rather than carrying flow.</summary>
+    /// <value><see langword="true"/> for the three instrument kinds.</value>
+    /// <remarks>
+    /// An observer is attached with <c>at</c> and stays out of the hydraulic graph entirely. A
+    /// pass-through instrument would carry two ports, gain an inserted node from rule I2, and
+    /// contribute equations that are all identities — a hundred sensors would double the solve to
+    /// compute nothing.
+    /// </remarks>
+    public bool IsObserver { get; init; }
 }
 
 /// <summary>One parameter a component kind accepts.</summary>

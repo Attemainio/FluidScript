@@ -50,6 +50,8 @@ public static class SyntaxPage
         ReservedWord.Supply => "where a subcircuit takes flow from its parent",
         ReservedWord.Return => "where a subcircuit gives that flow back",
         ReservedWord.Control => "which controller drives what, measuring what",
+        ReservedWord.Curve => "a named table of values, interpolated between its rows",
+        ReservedWord.Design => "the conditions the plant is sized for",
         _ => throw new ArgumentOutOfRangeException(nameof(word), word, "Every reserved word needs a description."),
     };
 }

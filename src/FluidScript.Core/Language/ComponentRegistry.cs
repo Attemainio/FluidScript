@@ -198,6 +198,30 @@ public sealed class ComponentRegistry : IComponentRegistry
             }
         }
 
+        // A marker naming a parameter or property the kind does not have would make the short control
+        // form resolve to nothing at bind time, with a message about a name the registry itself
+        // invented. Asserted here, where the fix is one row away.
+        foreach (var kind in kinds)
+        {
+            if (kind.ActuatedParameter is { } actuated && !kind.Parameters.ContainsKey(actuated))
+            {
+                throw new InvalidOperationException(
+                    $"'{kind.Keyword}' actuates '{actuated}', which is not one of its parameters.");
+            }
+
+            if (kind.MeasuredProperty is { } measured && !kind.Properties.ContainsKey(measured))
+            {
+                throw new InvalidOperationException(
+                    $"'{kind.Keyword}' measures '{measured}', which is not one of its properties.");
+            }
+
+            if (kind.IsObserver && !kind.Ports.IsEmpty)
+            {
+                throw new InvalidOperationException(
+                    $"'{kind.Keyword}' observes a node, so it may carry no ports.");
+            }
+        }
+
         if (index.Count < kinds.Length)
         {
             throw new InvalidOperationException("Every kind must be reachable by at least its keyword.");
@@ -214,6 +238,9 @@ public sealed class ComponentRegistry : IComponentRegistry
         Pump(),
         Tank(),
         Controller(),
+        Sensor("t_sensor", ["temperature_sensor", "te"], "TE", "t", Dimension.Temperature),
+        Sensor("p_sensor", ["pressure_sensor", "pe"], "PE", "p", Dimension.Pressure),
+        Sensor("flow_sensor", ["flow_meter", "fe"], "FE", "flow", Dimension.MassFlow),
     ];
 
     private static ComponentKindInfo Node() => new()
@@ -331,6 +358,7 @@ public sealed class ComponentRegistry : IComponentRegistry
         IndexedParameterFamilies = [],
         DrivesFlow = false,
         TagCode = "V",
+        ActuatedParameter = "position",
         Parameters = ValveParameters(),
         Properties = ValveProperties(),
     };
@@ -354,6 +382,7 @@ public sealed class ComponentRegistry : IComponentRegistry
         IndexedParameterFamilies = [],
         DrivesFlow = false,
         TagCode = "TV",
+        ActuatedParameter = "position",
         Parameters = ValveParameters(),
         Properties = ValveProperties(),
     };
@@ -367,6 +396,7 @@ public sealed class ComponentRegistry : IComponentRegistry
         IndexedParameterFamilies = [],
         DrivesFlow = true,
         TagCode = "PU",
+        ActuatedParameter = "speed",
         Parameters = Parameters(
             Sized("head", Dimension.Head, 0.1, 500, precision: 2),
             Sized("dp", Dimension.PressureDelta, 1, 5000, precision: 1),
@@ -463,6 +493,35 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("ki", Dimension.Dimensionless, -1e6, 1e6, precision: 6),
             Sized("kd", Dimension.Dimensionless, -1e6, 1e6, precision: 4)),
         Properties = Properties(),
+    };
+
+    /// <summary>Builds one instrument kind: a placed observer with a single measured property.</summary>
+    /// <remarks>
+    /// One kind per instrument rather than one <c>sensor</c> kind with a <c>measures=</c> parameter,
+    /// because the tag then falls out of the kind for free: TE, PE and FE are what an instrument index
+    /// already calls a temperature, pressure and flow element.
+    /// </remarks>
+    private static ComponentKindInfo Sensor(
+        string keyword,
+        ImmutableArray<string> aliases,
+        string tagCode,
+        string property,
+        Dimension dimension) => new()
+    {
+        Keyword = keyword,
+        Aliases = aliases,
+
+        // No ports, like a controller and for a stronger reason: an instrument is attached to a node
+        // with `at`, reads that node's state, and holds none of its own. It writes no residuals.
+        Ports = [],
+        PortFamilies = [],
+        IndexedParameterFamilies = [],
+        DrivesFlow = false,
+        TagCode = tagCode,
+        IsObserver = true,
+        MeasuredProperty = property,
+        Parameters = Parameters(),
+        Properties = Properties(Solved(property, dimension)),
     };
 
     private static ImmutableDictionary<string, ParameterInfo> ValveParameters() => Parameters(

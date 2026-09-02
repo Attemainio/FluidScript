@@ -137,6 +137,9 @@ public sealed partial class RegistryMatchesTheComponentModelTests
             ["three_way_valve"] = "TV",
             ["tank"] = "S",
             ["controller"] = "PID",
+            ["t_sensor"] = "TE",
+            ["p_sensor"] = "PE",
+            ["flow_sensor"] = "FE",
             ["node"] = null,
             ["pipe"] = null,
         };
@@ -155,7 +158,8 @@ public sealed partial class RegistryMatchesTheComponentModelTests
         var documented = ReadComponentModel();
 
         Assert.Equal(
-            ["heat_exchanger", "node", "pipe", "pump", "tank", "three_way_valve", "valve"],
+            ["flow_sensor", "heat_exchanger", "node", "p_sensor", "pipe", "pump", "t_sensor", "tank",
+             "three_way_valve", "valve"],
             documented.Keys.Order(StringComparer.Ordinal));
 
         Assert.Contains("power", documented["heat_exchanger"].Parameters);

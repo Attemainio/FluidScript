@@ -69,4 +69,10 @@ public enum ReservedWord
 
     /// <summary>Binds a controller to what it actuates and what it measures (<c>D-40</c>).</summary>
     Control,
+
+    /// <summary>Declares a named interpolated table and opens its section (<c>D-57</c>).</summary>
+    Curve,
+
+    /// <summary>Gives a curve driver its sizing, and static-solve operating, value (<c>D-58</c>).</summary>
+    Design,
 }

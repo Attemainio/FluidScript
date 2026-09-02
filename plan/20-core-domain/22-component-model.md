@@ -628,6 +628,39 @@ parameters and validation data rather than defaults disguised as physics.
 
 ---
 
+## 7 · `t_sensor` / `p_sensor` / `flow_sensor` — placed observers
+
+An instrument is a component, and a controller reads one (`D-61`). This is the distinction the model
+lacked: `in=50` on a heat exchanger is a **specification** — what the design asks for — and `TE1` is a
+**measurement** — what the model produced. `measure=NB2.t` blurred the two, and a plant drawing shows
+where its instruments are.
+
+```fluidscript
+TE1 t_sensor at N2
+```
+
+| Kind | `TagCode` | Measures | Property |
+|---|---|---|---|
+| `t_sensor` (aliases `temperature_sensor`, `te`) | `TE` | temperature | `t` |
+| `p_sensor` (aliases `pressure_sensor`, `pe`) | `PE` | pressure | `p` |
+| `flow_sensor` (aliases `flow_meter`, `fe`) | `FE` | mass flow | `flow` |
+
+**A sensor attaches to a node; it never sits in the flow path.** `TE1 t_sensor at N2`, never
+`HX1 - TE1 - TV1`. A pass-through instrument would carry two ports, gain an inserted node from rule
+I2, and contribute equations that are all identities — a hundred sensors would double the size of the
+solve to compute nothing. Attachment keeps them out of the hydraulic graph entirely, which is also why
+they have no ports, no `DrivesFlow`, and no residuals: `EvaluateResiduals` on a sensor writes nothing
+and is never called.
+
+**A sensor reads the node it is attached to and holds no state of its own.** `TE1.t` is `N2.t`. It
+exists so that the *script* can name a measurement point, and so that a diagram can draw one; it is
+not a filter, a lag, or a source of error. Instrument dynamics are post-v1 and would be parameters on
+this kind, not a different one.
+
+**Its measured property is registry data (`MeasuredProperty`)**, which is what lets `control TV1 with
+TE1 by PID1` resolve without a `.t`. A kind naming exactly one measured property makes the bare form
+unambiguous by construction; a kind naming none makes it `FS1531`.
+
 ## Parameter registry
 
 Every table above is data, read by the binder ([`15-semantic-model`](../10-language/15-semantic-model.md)) and by
@@ -638,6 +671,25 @@ registration — not duplicated into the binder.
 A test asserts the registry's parameter set matches this document's tables. Without it, the two
 diverge on the first component change and the divergence is invisible until a user writes a parameter
 that the docs promise and the binder rejects.
+
+### The actuated parameter
+
+Each kind names at most one `ActuatedParameter` — the single parameter a controller may move at
+runtime (`D-61`):
+
+| Kind | `ActuatedParameter` |
+|---|---|
+| `valve`, `three_way_valve` | `position` |
+| `pump` | `speed` |
+| everything else | *none* |
+
+This is what makes `control TV1 with TE1 by PID1` unambiguous without writing `.position`. `D-43`
+refused a bare actuator on the grounds that "a valve has more than one thing that could move", and it
+was right about parameters and wrong about actuators: of `position`, `kvs` and `authority`, only
+`position` moves at runtime — `kvs` is a sizing parameter and `authority` a design property. Where the
+registry names exactly one, the bare form is safe **by construction**; where it names none, the bare
+form is `FS1531` and the qualified form is required. `control TV1.position …` stays legal everywhere,
+and is the only form for a kind that ever gains a second actuator.
 
 ### Tag codes
 
@@ -651,7 +703,14 @@ Each kind also registers a `TagCode` — the letters in its equipment tag (`D-34
 | `three_way_valve` | `TV` | `400TV01` |
 | `tank` | `S` | `400S01` |
 | `controller` (aliases `pi`, `pid`, `p`) | `PID` | `400PID01` |
+| `t_sensor` | `TE` | `400TE01` |
+| `p_sensor` | `PE` | `400PE01` |
+| `flow_sensor` | `FE` | `400FE01` |
 | `node`, `pipe` | *none* | untagged |
+
+The three instrument codes are the ones an instrument index already uses — TE, PE and FE are
+temperature, pressure and flow *element* — which is the argument for a kind per instrument rather than
+one `sensor` kind with a `measures=` parameter: the tag falls out of the kind for free.
 
 `node` and `pipe` are deliberately untagged. Both are mostly inferred, both outnumber every other kind
 in a lowered graph, and no plant schedule tags them — a diagram labelling forty `400PI` nodes would

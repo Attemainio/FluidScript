@@ -157,8 +157,46 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "'{extra}' is more than this line can hold.");
 
+    /// <summary>A curve row written outside a <c>curve</c> section.</summary>
+    /// <value><c>FS1115</c>, an error.</value>
+    /// <remarks>
+    /// The counterpart of <see cref="ConnectionOutsideSection"/> and
+    /// <see cref="DisturbanceOutsideSchedule"/>. Two bare values are a statement nowhere else in the
+    /// language, so the message can say what the line is rather than that it did not parse.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveRowOutsideSection { get; } = new(
+        "FS1115",
+        DiagnosticSeverity.Error,
+        "Put this pair under a 'curve' line.");
+
+    /// <summary>A <c>curve</c> header naming no driver.</summary>
+    /// <value><c>FS1116</c>, an error.</value>
+    /// <remarks>
+    /// A curve with no <c>x</c> axis is a table nothing can look a value up in. The driver is required
+    /// rather than defaulted for the same reason a bare <c>actuate=</c> is refused: there is no
+    /// candidate a guess could be right about.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveWithoutDriver { get; } = new(
+        "FS1116",
+        DiagnosticSeverity.Error,
+        "'curve {name}' needs what it depends on, such as 'curve {name} tout'.");
+
+    /// <summary>A curve row that is not one x and one y.</summary>
+    /// <value><c>FS1117</c>, an error.</value>
+    public static DiagnosticDescriptor MalformedCurveRow { get; } = new(
+        "FS1117",
+        DiagnosticSeverity.Error,
+        "A curve row is one x and one y, such as '-26 50'.");
+
+    /// <summary>A <c>design</c> line with no named values.</summary>
+    /// <value><c>FS1118</c>, an error.</value>
+    public static DiagnosticDescriptor MalformedDesignDirective { get; } = new(
+        "FS1118",
+        DiagnosticSeverity.Error,
+        "A 'design' line needs named values, such as 'design tout=-26'.");
+
     /// <summary>Gets every code the parser emits, for the registry to collect.</summary>
-    /// <value>Sixteen descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Twenty descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         NameReadsAsQuantity,
@@ -176,6 +214,10 @@ public static class ParserDiagnostics
         GlobalDirectiveOutOfPlace,
         SpacingTakesABareNumber,
         ExtraTextOnLine,
+        CurveRowOutsideSection,
+        CurveWithoutDriver,
+        MalformedCurveRow,
+        MalformedDesignDirective,
         BareHexColour,
     ];
 }

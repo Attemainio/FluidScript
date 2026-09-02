@@ -63,6 +63,15 @@ public enum TokenKind
     /// <summary>An <c>@</c>, which occurs only before a catalogue version.</summary>
     At,
 
+    /// <summary>A colon, which separates the fields of a clock time.</summary>
+    /// <remarks>
+    /// It has no meaning in any expression and appears in no production. It exists so that a curve
+    /// row's timestamp <em>lexes</em> — a row keeps its raw tokens and the binder reads the text
+    /// (<c>D-60</c>), so all the lexer has to do is not reject the character. Anywhere else a colon
+    /// reaches a parser with no place for it, and the line is <c>FS1114</c>.
+    /// </remarks>
+    Colon,
+
     /// <summary>A character the language does not use.</summary>
     /// <remarks>
     /// Carried as a token rather than dropped, because dropping it would break losslessness: the

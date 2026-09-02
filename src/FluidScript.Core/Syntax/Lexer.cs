@@ -184,6 +184,7 @@ public static class Lexer
                 '(' => TokenKind.OpenParenthesis,
                 ')' => TokenKind.CloseParenthesis,
                 '@' => TokenKind.At,
+                ':' => TokenKind.Colon,
                 _ => TokenKind.Unknown,
             };
 

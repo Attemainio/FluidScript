@@ -182,11 +182,15 @@ append-only-with-review, and a test asserts that no sample script's identifiers 
 ### Reserved words
 
 `fluidscript` · `project` · `circuit` · `fluid` · `dynamic` · `static` · `spacing` · `style` · `show` · `let` ·
-`catalog` · `connections` · `schedule` · `supply` · `return` · `control`
+`catalog` · `connections` · `schedule` · `supply` · `return` · `control` · `curve` · `design`
 
-Five words were added for `D-33`, `D-37` and `D-40`: `project`, `spacing`, `supply`, `return` and `control`.
-Each introduces a statement, so each must be recognisable from the first token — the same standard the
-original eleven meet.
+Seven words were added for `D-33`, `D-37`, `D-40`, `D-57` and `D-58`: `project`, `spacing`, `supply`,
+`return`, `control`, `curve` and `design`. Each introduces a statement, so each must be recognisable
+from the first token — the same standard the original eleven meet.
+
+`with`, `by`, `at`, `over` and `extrapolated` are **not** reserved. Each is classified by its position
+inside a statement whose first token already identified it, which is the trade `P6` exists to make:
+reserving a common English word to buy nothing costs every user who wanted it as a name.
 
 **Adding a reserved word is a breaking language change**, because a word that was a legal identifier
 stops being one ([`18-script-compatibility`](18-script-compatibility.md)). These five ship inside
@@ -232,18 +236,23 @@ impossible, and only the hyphen needs a diagnostic.
 
 ```ebnf
 script          = version-directive , { statement } ;
-statement       = project-directive | spacing-directive
+statement       = project-directive | spacing-directive | design-directive
                 | circuit-header | attachment | fluid-directive | catalog-directive | style-directive
                 | show-directive | let-binding | component-decl | control-binding
                 | connections-header | connection
-                | schedule-header | disturbance ;
+                | schedule-header | disturbance
+                | curve-header | curve-row ;
 
 version-directive   = "fluidscript" , unsigned-integer ;
 project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
 spacing-directive   = "spacing" , number ;
+design-directive    = "design" , parameter , { parameter } ;   (* driver=value, per D-58 *)
 circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
 attachment          = ( "supply" | "return" ) , endpoint ;
-control-binding     = "control" , parameter , { parameter } ;
+control-binding     = "control" , ( control-short | parameter , { parameter } ) ;
+control-short       = endpoint , "with" , endpoint , "by" , identifier , { parameter } ;
+                      (* D-61: the port half of each endpoint is optional where the registry
+                         names exactly one actuated parameter or measured property *)
 fluid-directive     = "fluid" , [ "dynamic" | "static" ] , identifier ;
 catalog-directive   = "catalog" , identifier , [ "@" , catalog-version ] ;
 catalog-version     = unsigned-integer , "." , unsigned-integer ;
@@ -254,7 +263,16 @@ let-binding         = "let" , identifier , "=" , expression ;
 connections-header  = "connections" ;
 schedule-header     = "schedule" ;
 
-component-decl      = identifier , kind-name , { parameter } ;
+(* D-57. Three fixed positions -- keyword, name, driver -- then modifiers and named arguments.
+   There is no preposition: the rest of the language has none, and the positions are asymmetric
+   enough that the binder catches a transposition. *)
+curve-header        = "curve" , identifier , curve-driver , { curve-modifier } , { parameter } ;
+curve-driver        = identifier ;   (* "time", another curve, or a registered role -- see 15 *)
+curve-modifier      = identifier ;   (* "extrapolated"; clamped is the default *)
+curve-row           = ( number | timestamp ) , number ;
+
+component-decl      = identifier , kind-name , [ "at" , identifier ] , { parameter } ;
+                      (* the `at` clause places an observer on a node -- D-61 *)
 kind-name           = identifier ;                  (* resolved against the registry at bind time *)
 parameter           = identifier , "=" , parameter-value ;
 parameter-value     = expression | reference | symbol ;   (* by the parameter's declared kind — see 15 *)
@@ -270,6 +288,8 @@ range               = expression , ".." , expression ;
 expression          = (* see 14-expressions-and-references *) ;
 style-token         = identifier | quantity | number | string | "-" | "--" | ".." | "-." ;
 unsigned-integer    = digit , { digit } ;
+timestamp           = (* one lexical unit; ISO 8601 or Unix seconds unless `format=` says
+                         otherwise, and recognised only inside a curve section -- D-60 *) ;
 ```
 
 The version directive must be the first non-trivia line. For an unsaved editor draft only, a missing
@@ -278,21 +298,43 @@ owns durable-file and migration behavior.
 
 ### Sections
 
-Three section markers, each introducing the statements that follow it: none (the declaration
-section), `connections`, and `schedule`. There are no braces and no `end`.
+Four section markers, each introducing the statements that follow it: none (the declaration
+section), `connections`, `schedule`, and `curve`. There are no braces and no `end`.
 
-| Statement | Declaration section | After `connections` | After `schedule` |
-|---|---|---|---|
-| Directives, `let` | ✓ | `FS1103` | `FS1103` |
-| `project`, `spacing` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` |
-| `circuit-header` | ✓ | ✓ — ends the section (`D-52`) | ✓ — ends the section (`D-52`) |
-| `connections-header` | ✓ | `FS1101` | `FS1103` (`D-56`) |
-| `schedule-header` | ✓ | ✓ — the usual position (`D-56`) | `FS1101` |
-| `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` |
-| `component-decl` | ✓ | ✓ | `FS1103` |
-| `control-binding` | ✓ | ✓ | `FS1103` |
-| `connection` | `FS1102` | ✓ | `FS1102` |
-| `disturbance` | `FS1106` | `FS1106` | ✓ |
+`curve` is the odd one and is deliberately shaped like the others. A curve body is the only multi-line
+construct in the language, and the parser is line-granular with no construct spanning lines — recovery
+rests on that. A section is how the language already says "a header opens a region whose statements are
+classified by position", so the rows cost no new parser concept. Unlike the other three, a curve
+section is **file-wide** rather than circuit-scoped (`D-52` does not apply): a heating curve is shared
+by every circuit that reads it, so it is declared with the other file-wide directives, before the
+first `circuit`.
+
+| Statement | Declaration section | After `connections` | After `schedule` | After `curve` |
+|---|---|---|---|---|
+| Directives, `let` | ✓ | `FS1103` | `FS1103` | `FS1103` |
+| `project`, `spacing`, `design` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` | `FS1103` |
+| `circuit-header` | ✓ | ✓ — ends the section (`D-52`) | ✓ — ends the section (`D-52`) | ✓ — ends the section |
+| `connections-header` | ✓ | `FS1101` | `FS1103` (`D-56`) | `FS1103` |
+| `schedule-header` | ✓ | ✓ — the usual position (`D-56`) | `FS1101` | `FS1103` |
+| `curve-header` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` | ✓ — ends the previous curve |
+| `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` | `FS1103` |
+| `component-decl` | ✓ | ✓ | `FS1103` | `FS1103` |
+| `control-binding` | ✓ | ✓ | `FS1103` | `FS1103` |
+| `connection` | `FS1102` | ✓ | `FS1102` | `FS1102` |
+| `disturbance` | `FS1106` | `FS1106` | ✓ | `FS1106` |
+| `curve-row` | `FS1115` | `FS1115` | `FS1115` | ✓ |
+
+A curve section is ended by the next `curve` header or the first `circuit` — nothing else closes it,
+which is why every other statement inside one is `FS1103` rather than an implicit end.
+
+**A row is recognised by its own first token, not by the section it sits in.** Nothing else in the
+language begins with a number or a minus: an identifier may *start* with a digit (`3WV`), but the
+lexer classifies that as an identifier rather than a number, so this costs no lookahead and stays
+inside invariant 7. Classifying by shape is what lets both messages be specific — a row outside a
+curve is `FS1115` and says what the line is, and a declaration *inside* one is `FS1103` and says where
+it is. Reading every line in a curve section as a row instead would turn a forgotten `circuit` header
+into a file of malformed rows, and a curve section sits at the top of the file, so everything below it
+would be swallowed.
 
 `attachment` and `control-binding` follow `component-decl` in being legal in both the declaration and
 connection sections, for the same reason: both name components, and a user writing topology naturally
@@ -813,9 +855,13 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'supply {node}' or 'return {node}'.` |
 | `FS1110` | `supply` or `return` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
 | `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.` |
-| `FS1112` | `project` or `spacing` after the first `circuit` header, or a second of either | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
+| `FS1112` | A file-wide statement (`project`, `spacing`, `design`, `curve`) after the first `circuit` header, or a second `project` or `spacing` | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
 | `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
 | `FS1114` | Text after a statement that is already complete | Error | `'{extra}' is more than this line can hold.` |
+| `FS1115` | A curve row outside a `curve` section | Error | `Put this pair under a 'curve' line.` |
+| `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on, such as 'curve {name} tout'.` |
+| `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
+| `FS1118` | `design` with no arguments, or an argument with no `=` | Error | `A 'design' line needs named values, such as 'design tout=-26'.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
