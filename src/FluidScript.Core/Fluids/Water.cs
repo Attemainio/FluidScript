@@ -148,10 +148,12 @@ public sealed class Water : SubstanceBase
 
         var measured = PropertyBackend.WaterFromPressureTemperature(absolute, kelvin);
 
-        // On the saturation line pressure and temperature are not independent, and the backend refuses
+        // On a phase boundary pressure and temperature are not independent, and the backend refuses
         // rather than choosing a side. That is `FS2002` and not a range failure: the state exists, and
-        // this pair simply cannot say which of the two phases is meant.
-        if (measured is null && OnTheSaturationLine(kelvin, absolute))
+        // this pair simply cannot say which of the two phases is meant. Both boundaries of the liquid
+        // domain do it, and the *lower* one is the surprise: `07` states 0 °C as an endpoint of water's
+        // domain, and 0 °C is the melting line, so the endpoint it claims is not itself a state (`F-14`).
+        if (measured is null && (OnTheSaturationLine(kelvin, absolute) || OnTheMeltingLine(kelvin)))
         {
             return Result.Failure<FluidState>(ResultError.From(
                 FluidDiagnostics.PairDoesNotFixAState,
@@ -175,6 +177,16 @@ public sealed class Water : SubstanceBase
     private static bool OnTheSaturationLine(double temperature, double absolutePressure) =>
         PropertyBackend.WaterSaturationTemperature(absolutePressure) is { } boiling
         && Math.Abs(temperature - boiling) < 1e-3;
+
+    /// <summary>Determines whether a state sits on the melting line, where liquid water meets ice.</summary>
+    /// <param name="temperature">K.</param>
+    /// <returns><see langword="true"/> when the temperature is water's melting point.</returns>
+    /// <remarks>
+    /// Fixed at 273.15 K rather than measured, for the reason <see cref="FreezingPoint"/> gives: the
+    /// melting line moves about 0.0074 K per bar, so over this whole domain it stays well inside the
+    /// tolerance below. The backend has no melting-line query to ask instead.
+    /// </remarks>
+    private static bool OnTheMeltingLine(double temperature) => Math.Abs(temperature - 273.15) < 1e-3;
 
     /// <inheritdoc/>
     public override Result<FluidState> FromPressureEnthalpy(Quantity gaugePressure, Quantity enthalpy)

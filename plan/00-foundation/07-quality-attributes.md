@@ -92,6 +92,13 @@ rectangle and is vapour, and the property backend returns it without complaint a
 liquid's ~950. The domain is the rectangle **intersected with** the liquid region, and the
 implementation enforces it by rejecting any state whose phase is not liquid (`F-13`).
 
+**Both endpoints of the temperature range are phase boundaries, not states.** 0 °C is the melting
+line just as 99.61 °C at atmospheric is the boiling line, and on either one a pressure and a
+temperature are the same constraint rather than two — so the backend refuses the pair instead of
+choosing a side, and the implementation reports `FS2002` (`F-14`). The row's lower bound is therefore
+attainable only as a limit: 0.01 °C is a state, 0 °C exactly is not. This is a property of the domain
+and not a defect to fix; it is written down so a reader does not take an endpoint for a test case.
+
 These are software-verification bounds against stated equations and independent reference data, not
 approval-grade equipment-selection guarantees. Unsupported fluids, two-phase states, cavitation,
 compressible networks, condensation, and extrapolation outside the table produce diagnostics.

@@ -29,6 +29,7 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-13 | [`07`](../00-foundation/07-quality-attributes.md), [`21`](21-fluid-and-state.md) | The humid-air row bounds the **state** at 0–50 °C, and is read as bounding every property on it — but a derived property leaves that box while the state stays inside it | Measured: air at 5 °C and 30 % RH is a perfectly ordinary winter state and its dew point is −9.9 °C, nine degrees below the validated minimum. Nothing is wrong with the number; what was wrong is a claim that appeared to cover it. No code change — `HumidAirState` carries the dew point as a derived property and never re-fixes a state at it, so no diagnostic is owed — and `FS2003` correctly refuses only a caller who *does* re-fix there. [`fluid`](../../docs/functions/fluid.md) now says so with this example. Found by a validation test that cooled a state to its own dew point to check saturation. |
 | C-10 | [`21`](21-fluid-and-state.md) | `ISubstance`'s pressure parameter is named `absolutePressure`, which contradicts the same document's "the single adapter adds the model's recorded atmosphere" and [`13`](../10-language/13-type-and-unit-system.md)'s definition of `Dimension.Pressure` as **gauge** | If the interface took absolute, the caller would have converted and "exactly one adapter converts" would be false. Renamed `gaugePressure`: every pressure the model carries is gauge, and `SubstanceBase.Absolute` adds the atmosphere once, immediately before a measurement. |
 | C-11 | [`21`](21-fluid-and-state.md) | `FS2002` was recorded as unraisable — "both pairs shipped here are always independent for a single-phase liquid" | False, and measured: on the boiling line pressure and temperature are one constraint, and the backend refuses with "Saturation pressure [101325 Pa] corresponding to T [373.124 K] is within 1e-4 % of given p". Water's own validated domain contains that line, so the pair a script is most likely to write is the one that fails. Registered and raised. |
 | C-12 | [`21`](21-fluid-and-state.md) | `FluidState`'s derived properties are specified as "computed on demand and cached" | Computed once when the state is built instead, which is stronger — no first access slower than the rest, and no cache to invalidate. Measured why: fixing a state costs 321–388 µs depending on the pair and reading a property off the result costs 0.003 µs, so there is nothing worth deferring. The same measurement makes `21`'s per-solve cache a requirement rather than an optimisation. |
@@ -91,3 +92,21 @@ it.
 look into using the IF97 (industrial formulation) backend", alongside a tabular one. Neither is used;
 recorded here because `P3.6` is where the property call count becomes a budget and this is the first
 lever to reach for after caching.
+
+**Only one of the four water properties has a numeric oracle across the range.** `62`'s rule 3 forbids
+production-backend output as expected data, and of density, specific heat, viscosity and thermal
+conductivity, only density has a published closed form simple enough to transcribe — Kell's 1975
+equation, which pins six states to 0.1 %. The other three are checked at `21`'s single published state
+and otherwise only *behaviourally*: viscosity falls with temperature, conductivity rises, specific
+heat has its minimum near 35 °C. That is a real check — it fails against a constant-property or a
+transposed table — and it is weaker than density's, so `V4` should not be read as four properties
+validated alike. Closing the gap needs a second tabulated source, which is a sourcing task rather than
+a testing one.
+
+**The property-accuracy tier found no defect in the code it was written to check.** Every failure in
+its first run was either the test asking for a state on a phase boundary (`F-14`), an arithmetic slip
+in the test's own gauge-to-absolute conversion, or a derived property outside the validated box
+(`C-13`). Worth recording because it is the first tier where that has been true: `P2.x` found defects
+in the *documents* at roughly the rate it wrote tests, and `P3.1`'s own suite passed on the first run
+too. The property layer is small, has one external dependency and no user input, which is the profile
+of code that a validation tier confirms rather than corrects.
