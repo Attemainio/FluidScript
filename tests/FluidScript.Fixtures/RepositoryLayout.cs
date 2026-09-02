@@ -39,6 +39,13 @@ public static class RepositoryLayout
     /// <value>The <c>samples</c> directory holding the demo scripts every milestone is checked against.</value>
     public static string Samples => Path.Combine(Root, "samples");
 
+    /// <summary>Gets the directory measurement reports are written to.</summary>
+    /// <value>
+    /// <c>diagnostics/</c>. Its contents are machine-specific and are not committed; the folder's own
+    /// <c>README.md</c> is, and says what writes into it.
+    /// </value>
+    public static string Diagnostics => Path.Combine(Root, "diagnostics");
+
     /// <summary>Enumerates every C# source file tracked in the repository.</summary>
     /// <returns>
     /// Absolute paths, excluding build output, so a rule about "every source file" is not defeated by

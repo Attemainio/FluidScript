@@ -133,3 +133,30 @@ it does.
 tag codes for free. The C# reading is registry-driven (`ComponentKindInfo.MeasuredProperty`), so three
 near-identical classes would have bought nothing. A test asserts every observer kind in the registry
 has a reading, which is what keeps the shortcut honest when a fourth instrument appears.
+
+**The fakes are about a thousand times faster than the backend, not ten.** First run of
+`StateTimingDiagnostics` on this machine (Debug, WSL, 32 cores): `Water` fixes a state from `(p, T)`
+in a median 204 µs, `ConstantPropertyWater` and `LinearPropertyWater` in 0.22 µs each. That ratio is
+the whole argument for `ISubstance`, and it is three orders of magnitude rather than the one an
+earlier note implied — a component suite making a few thousand property calls is the difference
+between a second and a millisecond. The two fakes are indistinguishable from each other, which is
+worth knowing: the linear one costs nothing extra, so there is no speed reason to reach for the
+constant one when the non-constant one is the stronger check.
+
+**CoolProp's documented pair ordering shows up cleanly once the JIT is out of the way.** Water
+`(p, h)` is 425 µs against `(p, T)`'s 204 — the "much slower" the documentation promises for a pair
+where neither T nor ρ is given, at almost exactly 2×. `SaturationPressure` at 266 µs is a surprise
+worth carrying into `P3.6`: it costs as much as a full state fix, so a cavitation check per iteration
+is not the free guard it looks like.
+
+**Cold calls are 5–10× the steady-state cost, and they are not the same number twice.** Saturation's
+first call was 2245 µs and `(p, h)`'s 1400 µs against steady-state 266 and 425. That is the cost the
+first keystroke after an edit pays, which is why the report keeps it in its own column rather than
+warming it away.
+
+**Water `(p, T)` is the one row whose mean should not be quoted.** Median 204 µs, minimum 182,
+maximum 304, standard deviation 51 — and raising the warm-up from 20 to 200 calls, past tiered
+compilation's promotion threshold, did not narrow it. Whatever the spread is, it is not the JIT. Every
+other row on the same run has a deviation under 5 % of its median, so it is specific to that pair
+rather than to the machine being noisy.
+

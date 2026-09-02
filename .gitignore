@@ -364,3 +364,7 @@ FodyWeavers.xsd
 
 # Local reference drawings — not redistributed (see plan/ for the layout conventions they informed)
 pictures/
+
+# Measurement reports: machine-specific, regenerated on demand (diagnostics/README.md)
+/diagnostics/*
+!/diagnostics/README.md
