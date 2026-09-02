@@ -128,7 +128,7 @@ Order matters more here than anywhere else in the project.
 | P2.5 | **Printer and the round-trip fuzz** ([`17`](../10-language/17-formatting-and-round-trip.md)) | **The one placement worth arguing about.** See below. |
 | P2.6 | Component registry, kind resolution ([`15`](../10-language/15-semantic-model.md)) | Data, not code. The docs gate reads it, so it must exist before a kind can be added. |
 | P2.7 | Binder steps 0–5, expressions ([`15`](../10-language/15-semantic-model.md), [`14`](../10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
-| P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, validation, tags last. |
+| P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, the schedule, validation, tags last. Closes M1: `01`'s nine-diagnostic count on the syntax reference is asserted here. |
 
 **P2.1 delivers no shared result type, and the row said otherwise until it was built.** Every stage
 does return its output alongside `ImmutableArray<Diagnostic>`, but the plan states that shape as a

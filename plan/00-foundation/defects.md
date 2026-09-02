@@ -14,8 +14,6 @@ are in [`08-implementation-sequence`](08-implementation-sequence.md).
 
 | # | Document | What | Why it is still open |
 |---|---|---|---|
-| F-1 | [`05`](05-milestones-and-acceptance.md) | Four M1 exit criteria remain unasserted | P2.7 closed the rest: `let dT = 30 dK` with `out=20C+dT` gives 323.15 K, `power=30`/`30 kW`/`30000 W` are one quantity, the cyclic reference is one diagnostic naming both, three circuits number 100/200/300, and `3WV three_way_valve` binds with zero parameters. What is left needs topology: `supply`/`return` binding, the `control` line's four arguments, recovery leaving a bound model for every unaffected statement, and the nine-diagnostic count. P2.8. |
-| F-2 | [`01`](01-vision-and-scope.md) | The nine-diagnostic count on the syntax reference is unasserted | `08` says P2 closes with it. Same dependency as F-1. See also `10-language/defects.md` L-5. |
 | F-3 | [`07`](07-quality-attributes.md) | No latency budget is measured | `D-48`/`D-49` budget interactive latency end to end and derive the debounce, and nothing measures any of it yet. The first honest measurement needs a pipeline that binds, so P2.8 at the earliest; `05` ties the real gate to M3. |
 | F-4 | [`03`](03-repository-layout.md) | The nine-file list for a component is unexercised | No component exists. P3.3 is the first package that has to satisfy it, and it is the moment to check the list is still right. |
 
@@ -27,6 +25,7 @@ are in [`08-implementation-sequence`](08-implementation-sequence.md).
 | F-6 | [`08`](08-implementation-sequence.md) | **The formatter had no work package at all.** `17` owns it and `52` binds it to `Shift+Alt+F`, but `08` scheduled only the printer (P2.5) | Assigned to P5.5, with the editor command that invokes it rather than beside the printer it must not become. Found in P2.5 only because the phase's scope was checked against the owning document. |
 | F-7 | [`08`](08-implementation-sequence.md) | Invariant 3 — the unit tier under two seconds — was being violated at 3.1 s, and had been for some packages | Not the tests: 2.4 s of it was `RepositoryLayout` walking the whole repository, `node_modules` included, five times, filtering build output *after* enumerating it. Pruned during the walk and walked once: 1.0 s. |
 | F-8 | [`06`](06-decision-log.md) | — | Six decisions were needed during P2.2–P2.6 (`D-51`…`D-56`), every one from cross-checking documents *before* writing the code they governed. Not a defect in `06`; recorded because the rate is information. |
+| F-9 | [`05`](05-milestones-and-acceptance.md), [`01`](01-vision-and-scope.md) | The last four M1 exit criteria and the nine-diagnostic count were unasserted | P2.8 closed all five: `supply`/`return` bind and resolve a `ParentCircuit`, the `control` line binds its four named arguments (and rejects a bare `actuate=TV1` per `D-43`), a malformed line leaves every other statement bound, and `samples/m1-syntax-reference.fluid` produces exactly one `FS1507`, two `FS2107` and six `FS1510` — asserted from the sample file, not from a copy. |
 
 ## Observations
 
@@ -48,3 +47,7 @@ should say which it was measured on.
 P2.6 registered eight component kinds and immediately owed eight pages; it also owed thirteen more,
 because the reserved-word half of the gate had been left dead since P2.4. A gate wired but returning
 an empty collection is indistinguishable from a gate that passes.
+
+**Invariant 3 held through P2.8 without being re-fixed.** The unit tier is 1.9 s over 551 tests after
+adding three binder files and thirty-three tests, which says F-7's fix was the enumeration and not the
+test count. It is still only measured by running it; see the observation above.

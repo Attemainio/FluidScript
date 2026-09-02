@@ -33,6 +33,18 @@ public sealed record SemanticModel
     /// <summary>Gets the presentation values Core carries and never interprets.</summary>
     public required StyleSettings Style { get; init; }
 
+    /// <summary>Gets every connection, in source order.</summary>
+    public required ImmutableArray<ConnectionSymbol> Connections { get; init; }
+
+    /// <summary>Gets the controller bindings, in declaration order (<c>D-40</c>).</summary>
+    public required ImmutableArray<ControlBindingSymbol> ControlBindings { get; init; }
+
+    /// <summary>Gets every scheduled change, in declaration order.</summary>
+    public required ImmutableArray<DisturbanceSymbol> Disturbances { get; init; }
+
+    /// <summary>Gets the map from a source position to the symbol it names.</summary>
+    public required ISymbolMap SymbolMap { get; init; }
+
     /// <summary>Gets the expressions held until sizing or solving supplies their inputs.</summary>
     /// <value>
     /// Empty for a script whose every value is computable from literals, bindings and declared
@@ -76,6 +88,19 @@ public sealed record CircuitSymbol
     /// <summary>Gets the circuit's role, resolved from its name (<c>D-35</c>).</summary>
     /// <value>Neutral when the name matches no role — never an error.</value>
     public required CircuitRole Role { get; init; }
+
+    /// <summary>Gets the circuit both attachments resolve into, or <see langword="null"/> when this one stands alone.</summary>
+    /// <remarks>
+    /// Derived, not written: it is the circuit owning <see cref="Supply"/>'s and <see cref="Return"/>'s
+    /// resolved components, which must be the same one (<c>FS1526</c>).
+    /// </remarks>
+    public string? ParentCircuit { get; init; }
+
+    /// <summary>Gets where this circuit takes flow from its parent (<c>D-33</c>).</summary>
+    public AttachmentSymbol? Supply { get; init; }
+
+    /// <summary>Gets where this circuit returns that flow.</summary>
+    public AttachmentSymbol? Return { get; init; }
 
     /// <summary>Gets where the header sits in the source.</summary>
     /// <value>The whole file's span for the implicit circuit a headerless script gets.</value>
@@ -184,6 +209,25 @@ public sealed record ComponentSymbol
 
     /// <summary>Gets the name of the circuit this component was declared in (<c>D-33</c>).</summary>
     public required string CircuitName { get; init; }
+
+    /// <summary>Gets the ports that exist on this component.</summary>
+    /// <value>
+    /// The kind's fixed ports, plus any indexed port a qualified endpoint or an elevation parameter
+    /// evidenced. A port nothing named does not exist here or in the model contract: a tank has
+    /// sixteen possible inlets and however many the script actually used.
+    /// </value>
+    public ImmutableArray<string> Ports { get; init; } = [];
+
+    /// <summary>Gets the derived equipment tag, such as <c>400PU01</c> (<c>D-34</c>).</summary>
+    /// <value><see langword="null"/> for an inferred component, or a kind with no tag code.</value>
+    /// <remarks>
+    /// <strong>Metadata, never identity.</strong> <see cref="Name"/> is what every consumer keys on —
+    /// selection, diagnostics, write-back, export. A tag changes whenever a declaration is inserted
+    /// above this one; a name does not, and that difference is the whole content of <c>D-34</c>.
+    /// Nothing may index by this field, and no binder stage may read it: it is computed last, from the
+    /// finished declaration set, so a stage that read one would make identity circular.
+    /// </remarks>
+    public string? Tag { get; init; }
 }
 
 /// <summary>A parameter the user supplied. Its mere presence is a constraint (<c>D-02</c>).</summary>

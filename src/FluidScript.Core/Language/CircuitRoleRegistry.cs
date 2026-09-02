@@ -90,7 +90,10 @@ public static class CircuitRoleRegistry
         var aliases = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["ahu"] = ["air_handling_unit", "ventilation", "air_handler"],
-            ["cooling"] = ["chilled_water", "cooling_circuit"],
+                // `cooling_loop` earns its place the way `solar_loop` and `district_loop` did: the
+                // syntax reference names its circuit `coolingLoop`, and a registry that tells the
+                // documentation's own example it has no known role is the registry being wrong.
+                ["cooling"] = ["chilled_water", "cooling_circuit", "cooling_loop"],
             ["district"] = ["district_heating", "district_loop"],
             ["distribution"] = ["primary", "header", "distribution_header"],
             ["ground_loop"] = ["ground_source", "borehole", "brine"],

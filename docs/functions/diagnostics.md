@@ -77,16 +77,29 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1501` | Error | Binder | '{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits. |
 | `FS1502` | Error | Binder | There is no '{kind}'. |
 | `FS1503` | Error | Binder | A {kind} has no '{parameter}'. It accepts: {available}. |
+| `FS1504` | Error | Binder | '{name}' is a value, not a component. |
+| `FS1505` | Error | Binder | A {kind} has no port '{port}'. Ports: {available}. |
+| `FS1506` | Error | Binder | Port '{port}' of '{name}' is already connected at line {line}. |
+| `FS1507` | Warning | Binder | '{name}' is not connected to anything. |
 | `FS1508` | Warning | Binder | No circuit name; using '{name}'. |
+| `FS1510` | Info | Binder | Added {kind} '{name}' ({rule}). |
+| `FS1511` | Warning | Binder | '{name}' and {count} others are not connected to the rest of the circuit. |
 | `FS1512` | Info | Binder | Read '{written}' as '{canonical}'. |
 | `FS1513` | Error | Binder | '{written}' could be '{first}' or '{second}'. Write one of them. |
 | `FS1514` | Error | Binder | '{parameter}' accepts {available}; '{written}' is none of them. |
 | `FS1515` | Error | Binder | '{parameter}' names a component property, like 'N2.t'. |
 | `FS1516` | Error | Binder | '{written}' is outside {kind}'s supported {min}…{max} range. |
 | `FS1517` | Warning | Binder | '{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used. |
+| `FS1518` | Error | Binder | '{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit. |
 | `FS1519` | Info | Binder | '{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}. |
+| `FS1520` | Warning | Binder | '{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both. |
+| `FS1521` | Error | Binder | A 'control' line needs {list}. Missing: {missing}. |
+| `FS1522` | Error | Binder | '{param}' of '{component}' cannot be controlled. |
+| `FS1523` | Error | Binder | '{name}' is a {kind}, not a controller. |
 | `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
 | `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
+| `FS1526` | Error | Binder | '{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection. |
+| `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

@@ -20,10 +20,10 @@ public sealed record BindResult(SemanticModel Model, ImmutableArray<Diagnostic> 
 /// <remarks>
 /// <para>
 /// This runs <c>15</c>'s binding steps 0 through 5 — partition into circuits, collect declarations,
-/// resolve kinds, bind parameters, build the dependency graph, evaluate. Steps 6 through 11 are
-/// topology, inference, attachments, control bindings, validation and tags; they are P2.8 and have no
-/// notion of expressions, exactly as steps 0–5 have no notion of topology. The split is what keeps
-/// each half testable alone.
+/// resolve kinds, bind parameters, build the dependency graph, evaluate. Steps 6 through 11 — ports,
+/// connections, inference, attachments, control bindings, the schedule, validation and tags — are in
+/// <c>BindingRun.Topology.cs</c> and have no notion of expressions, exactly as steps 0–5 have no
+/// notion of topology. The split is what keeps each half testable alone.
 /// </para>
 /// <para>
 /// Like every stage, it never throws on user input. A script under editing is malformed most of the
@@ -62,7 +62,7 @@ public sealed class Binder
 }
 
 /// <summary>One run of the binder over one parse. Not reusable, and not shared between threads.</summary>
-internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse, string documentName)
+internal sealed partial class BindingRun(IComponentRegistry registry, ParseResult parse, string documentName)
     : IValueScope
 {
     private readonly ImmutableArray<Diagnostic>.Builder _diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
@@ -85,6 +85,7 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
 
         CollectDeclarations(circuits);
         Evaluate();
+        BindTopology(circuits);
 
         var model = new SemanticModel
         {
@@ -93,6 +94,10 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
             Components = [.. _components],
             Bindings = [.. _bindings],
             Style = new StyleSettings([.. _styleTokens], _spacing),
+            Connections = [.. _connections],
+            ControlBindings = [.. _controlBindings],
+            Disturbances = [.. _disturbances],
+            SymbolMap = _symbolMap,
             Deferred = [.. _deferred],
         };
 
@@ -358,7 +363,7 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
                 BinderDiagnostics.DuplicateComponent,
                 declaration.Span,
                 ("name", name),
-                ("line", LineOf(existing.Symbol.DeclarationSpan ?? declaration.Span)));
+                ("line", LineOf(_components[existing.Index].DeclarationSpan ?? declaration.Span)));
             return;
         }
 
@@ -377,7 +382,7 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
         };
 
         _components.Add(symbol);
-        _componentsByName[name] = new ComponentSlot(symbol, declaration);
+        _componentsByName[name] = new ComponentSlot(_components.Count - 1, declaration);
     }
 
     private ComponentKindInfo? ResolveKind(ComponentDeclarationSyntax declaration)
@@ -767,12 +772,13 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
 
         var property = reference.Parts[^1].Name.Token.Text;
 
-        if (!_componentsByName.TryGetValue(head, out var component))
+        if (!_componentsByName.TryGetValue(head, out var slot))
         {
             return new ScopeLookup.UnknownName(ClosestName(head));
         }
 
-        var kind = component.Symbol.Kind;
+        var component = _components[slot.Index];
+        var kind = component.Kind;
         if (kind is null)
         {
             return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property));
@@ -791,7 +797,7 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
         // symbol's is what makes it work during evaluation, before anything has been published.
         var parameterId = new ValueId.ComponentParameter(head, property);
 
-        if (component.Symbol.Parameters.ContainsKey(property))
+        if (component.Parameters.ContainsKey(property))
         {
             return _pending.TryGetValue(parameterId, out var stated) && stated.Value is { } value
                 ? new ScopeLookup.Value(value, IsBare: false, parameterId)
@@ -858,7 +864,13 @@ internal sealed class BindingRun(IComponentRegistry registry, ParseResult parse,
 
     private sealed record BindingSlot(LetBindingSyntax Declaration, ValueId Id);
 
-    private sealed record ComponentSlot(ComponentSymbol Symbol, ComponentDeclarationSyntax Declaration);
+    /// <summary>Where a component lives in <c>_components</c>, which is the one place it lives.</summary>
+    /// <remarks>
+    /// An index rather than the symbol itself: a <see cref="ComponentSymbol"/> is a record, and steps
+    /// 6 and 11 replace it with a modified copy. A slot holding its own copy would be handing out a
+    /// component whose ports and tag had been assigned to a different object.
+    /// </remarks>
+    private sealed record ComponentSlot(int Index, ComponentDeclarationSyntax? Declaration);
 
     private sealed record ParameterTarget(ComponentKindInfo Kind, ParameterInfo Info);
 

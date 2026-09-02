@@ -346,6 +346,9 @@ public sealed record SemanticModel
 
     /// <summary>Controller bindings, in declaration order (`D-40`).</summary>
     public required ImmutableArray<ControlBindingSymbol> ControlBindings { get; init; }
+
+    /// <summary>Every scheduled change, in declaration order.</summary>
+    public required ImmutableArray<DisturbanceSymbol> Disturbances { get; init; }
     public required ImmutableArray<ComponentSymbol> Components { get; init; }
     public required ImmutableArray<ConnectionSymbol> Connections { get; init; }
     public required ImmutableArray<BindingSymbol> Bindings { get; init; }
@@ -633,7 +636,7 @@ expects `AirHandlingUnit` to find `ahu`.
    is where the inference rules fire.
 8. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
    has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
-9. **Bind attachments and control bindings.** Each `supply`/`return` endpoint resolves against the
+9. **Bind attachments, control bindings, and the schedule.** Each `supply`/`return` endpoint resolves against the
    the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
    the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
    final. A lone `supply` or `return` is `FS1520`. **Both must resolve into the same circuit**, which
@@ -642,15 +645,26 @@ expects `AirHandlingUnit` to find `ahu`.
    topology the user should state as connections rather than as an attachment. Each `control` line resolves its
    named arguments — `by=` to a controller component (`FS1523`), `actuate=` to a settable parameter
    (`FS1522`), `measure=` to a property reference, `setpoint=` to a quantity — with a missing required
-   argument reported as `FS1521`.
-10. **Validate.** Port over-subscription, connections to unknown components, orphaned components.
+   argument reported as `FS1521`. Each `schedule` entry resolves its `component.parameter` target the
+   same way `actuate=` does, and evaluates its times against `Time` and its values against the
+   target parameter's dimension, so `at 60 s HE4.power = 45` is forty-five kilowatts by `D-14`'s
+   bare-number rule exactly as `power=45` would be.
+10. **Validate.** A declared component in no connection is `FS1507`; a *cluster* of two or more
+    connected to each other and to nothing else in their circuit is `FS1511`. The two partition one
+    mistake and never both fire for one component, so connectivity is judged on the connections the
+    **user wrote**, before inference — after I3 nothing is unconnected and neither code could fire
+    again. A degree-one node with no `t`, `p` or `flow` is `FS2107` (owned by
+    [`22-component-model`](../20-core-domain/22-component-model.md), raised here because the binder is
+    the first stage that can count a degree), **except one inferred by I3**, which *is* the boundary
+    that rule created and therefore terminates a port rather than dead-ending on one.
 11. **Assign tags.** Per the derivation above, after every declaration is known and ordered. Tags are
     computed last because an ordinal depends on the complete declaration set of its circuit, and
     because nothing in binding may depend on a tag — a stage that read one would make identity
     circular.
 
-Steps 1–5 have no notion of topology and steps 6–10 have no notion of expressions; the split keeps each
-half testable alone. Step 0 knows about neither, which is what lets circuit partitioning be tested
+Steps 1–5 have no notion of topology, and steps 6–10 have no notion of expressions with two narrow
+exceptions: a `setpoint=` and a schedule's times and values are quantities, and step 9 evaluates them
+rather than a third pass existing for four expressions. The split keeps each half testable alone. Step 0 knows about neither, which is what lets circuit partitioning be tested
 against a syntax tree with no registry at all.
 
 **Step 11 is last, and its position is a contract rather than a convenience.** A tag is derived from
@@ -774,7 +788,7 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1517` | A circuit's `fluid` mode contradicts the project default | Warning | `'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.` |
 | `FS1518` | An attachment names a component no circuit declares | Error | `'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.` |
 | `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
-| `FS1520` | A subcircuit declares `supply` without `return`, or the reverse | Warning | `'{circuit}' takes flow at '{node}' and never returns it. Add the matching '{other}' line.` |
+| `FS1520` | A subcircuit declares `supply` without `return`, or the reverse | Warning | `'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.` |
 | `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
 | `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |

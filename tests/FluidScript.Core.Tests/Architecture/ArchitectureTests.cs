@@ -154,4 +154,31 @@ public sealed class ArchitectureTests
             offenders.Length == 0,
             $"Versions belong in Directory.Packages.props. Pinned inline by: {string.Join(", ", offenders)}");
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void NoBinderStageReadsAComponentTag()
+    {
+        // `15`'s step 11 is a contract, not a convenience. A tag is derived from the finished
+        // declaration set, so a stage that resolved anything by one would reintroduce exactly the
+        // identity `D-34` removed — and would do it silently, because the tag is usually right.
+        //
+        // Asserted on the text rather than on a call graph: `Tag` is a property of a record the
+        // binder constructs, so every read is a `.Tag` in one of these files, and a reference test
+        // could not tell a read apart from the assignment that step 11 makes.
+        var read = new Regex(
+            @"\.Tag\b\s*(?![=,)]|\s*=[^=])", RegexOptions.None, TimeSpan.FromSeconds(1));
+
+        var offenders = RepositoryLayout.EnumerateSourceFiles()
+            .Where(static path => RepositoryLayout.ToRelative(path)
+                .StartsWith("src/FluidScript.Core/Binding/", StringComparison.Ordinal))
+            .Where(path => read.IsMatch(File.ReadAllText(path)))
+            .Select(RepositoryLayout.ToRelative)
+            .ToArray();
+
+        Assert.True(
+            offenders.Length == 0,
+            "Nothing in binding may read ComponentSymbol.Tag; step 11 only writes it. "
+            + $"Read by: {string.Join(", ", offenders)}");
+    }
 }

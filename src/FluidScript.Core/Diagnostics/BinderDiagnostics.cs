@@ -244,8 +244,132 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}' is already a circuit at line {line}.");
 
+    /// <summary>An endpoint naming a declared value rather than a component.</summary>
+    /// <value><c>FS1504</c>, an error.</value>
+    /// <remarks>
+    /// The narrow half of "endpoint names an unknown component": the wide half is inference rule I1,
+    /// which turns an unknown name into a node. A name that is already a <c>let</c> binding cannot
+    /// become one, because the model would then hold two different things under one identifier.
+    /// </remarks>
+    public static DiagnosticDescriptor ValueUsedAsComponent { get; } = new(
+        "FS1504",
+        DiagnosticSeverity.Error,
+        "'{name}' is a value, not a component.");
+
+    /// <summary>A qualified endpoint naming a port the kind does not have.</summary>
+    /// <value><c>FS1505</c>, an error.</value>
+    public static DiagnosticDescriptor UnknownPort { get; } = new(
+        "FS1505",
+        DiagnosticSeverity.Error,
+        "A {kind} has no port '{port}'. Ports: {available}.");
+
+    /// <summary>A second connection to a port that already has one.</summary>
+    /// <value><c>FS1506</c>, an error.</value>
+    /// <remarks>
+    /// One port, one connection. A junction of three streams is a node, which is the one kind whose
+    /// ports are unlimited — so this never fires on the shape that legitimately needs it.
+    /// </remarks>
+    public static DiagnosticDescriptor PortAlreadyConnected { get; } = new(
+        "FS1506",
+        DiagnosticSeverity.Error,
+        "Port '{port}' of '{name}' is already connected at line {line}.");
+
+    /// <summary>A declared component that appears in no connection.</summary>
+    /// <value><c>FS1507</c>, a warning.</value>
+    /// <remarks>
+    /// A warning rather than an error because a half-written script is the normal editing state, and
+    /// erroring would blank the diagram on every keystroke. The API escalates it for an explicit solve.
+    /// </remarks>
+    public static DiagnosticDescriptor NotConnected { get; } = new(
+        "FS1507",
+        DiagnosticSeverity.Warning,
+        "'{name}' is not connected to anything.");
+
+    /// <summary>A component the language created rather than the user.</summary>
+    /// <value><c>FS1510</c>, informational.</value>
+    /// <remarks>
+    /// Off by default in the log, because on a large script one per inferred node would drown
+    /// everything else — but never suppressed at the source, or the inference is invisible magic.
+    /// </remarks>
+    public static DiagnosticDescriptor ComponentInferred { get; } = new(
+        "FS1510",
+        DiagnosticSeverity.Info,
+        "Added {kind} '{name}' ({rule}).");
+
+    /// <summary>A group of connected components joined to nothing else in the circuit.</summary>
+    /// <value><c>FS1511</c>, a warning.</value>
+    /// <remarks>
+    /// Distinct from <see cref="NotConnected"/>, and the two never both fire for one component: a
+    /// component in no connection at all is <c>FS1507</c>, and this is a cluster of two or more that
+    /// are connected to each other and to nothing beyond.
+    /// </remarks>
+    public static DiagnosticDescriptor DisconnectedGraph { get; } = new(
+        "FS1511",
+        DiagnosticSeverity.Warning,
+        "'{name}' and {count} others are not connected to the rest of the circuit.");
+
+    /// <summary>A <c>supply</c> or <c>return</c> naming something no circuit declares.</summary>
+    /// <value><c>FS1518</c>, an error.</value>
+    public static DiagnosticDescriptor AttachmentNotDeclared { get; } = new(
+        "FS1518",
+        DiagnosticSeverity.Error,
+        "'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.");
+
+    /// <summary>A circuit with one attachment and not the other.</summary>
+    /// <value><c>FS1520</c>, a warning.</value>
+    /// <remarks>
+    /// The message is direction-neutral. <c>15</c>'s original shape — "takes flow at '{node}' and never
+    /// returns it" — is false for the half of the trigger where <c>return</c> is the line that was
+    /// written, and a message that is wrong half the time is worse than a plainer one.
+    /// </remarks>
+    public static DiagnosticDescriptor LoneAttachment { get; } = new(
+        "FS1520",
+        DiagnosticSeverity.Warning,
+        "'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.");
+
+    /// <summary>A <c>control</c> line missing one of its four named arguments.</summary>
+    /// <value><c>FS1521</c>, an error.</value>
+    public static DiagnosticDescriptor ControlMissingArgument { get; } = new(
+        "FS1521",
+        DiagnosticSeverity.Error,
+        "A 'control' line needs {list}. Missing: {missing}.");
+
+    /// <summary>An <c>actuate=</c> naming something the controller cannot move.</summary>
+    /// <value><c>FS1522</c>, an error.</value>
+    public static DiagnosticDescriptor ParameterNotControllable { get; } = new(
+        "FS1522",
+        DiagnosticSeverity.Error,
+        "'{param}' of '{component}' cannot be controlled.");
+
+    /// <summary>A <c>by=</c> naming something that is not a controller.</summary>
+    /// <value><c>FS1523</c>, an error.</value>
+    public static DiagnosticDescriptor NotAController { get; } = new(
+        "FS1523",
+        DiagnosticSeverity.Error,
+        "'{name}' is a {kind}, not a controller.");
+
+    /// <summary>A subcircuit whose two attachments land in two different circuits.</summary>
+    /// <value><c>FS1526</c>, an error.</value>
+    public static DiagnosticDescriptor AttachmentsDisagree { get; } = new(
+        "FS1526",
+        DiagnosticSeverity.Error,
+        "'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one "
+        + "parent; write the second link as a connection.");
+
+    /// <summary>A node with one connection and nothing to fix its state.</summary>
+    /// <value><c>FS2107</c>, a warning.</value>
+    /// <remarks>
+    /// The code belongs to the component model's range because a node is its subject (<c>D-53</c>),
+    /// and the binder is the first stage that can count a degree. A node inferred by I3 is exempt: it
+    /// <em>is</em> the boundary that rule created, so it terminates a port rather than dead-ending.
+    /// </remarks>
+    public static DiagnosticDescriptor DeadEndNode { get; } = new(
+        "FS2107",
+        DiagnosticSeverity.Warning,
+        "'{name}' is a dead end. Set t, p or flow to make it a boundary.");
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Twenty-two descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Thirty-eight descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScheduleWithoutTime,
@@ -263,15 +387,28 @@ public static class BinderDiagnostics
         DuplicateComponent,
         UnknownKind,
         UnknownParameter,
+        ValueUsedAsComponent,
+        UnknownPort,
+        PortAlreadyConnected,
+        NotConnected,
         NoCircuitHeader,
+        ComponentInferred,
+        DisconnectedGraph,
         ResolvedBySimilarity,
         AmbiguousKind,
         UnacceptedSymbol,
         ExpectedReference,
         IndexOutsideFamily,
         ModeContradictsProject,
+        AttachmentNotDeclared,
         UnknownCircuitRole,
+        LoneAttachment,
+        ControlMissingArgument,
+        ParameterNotControllable,
+        NotAController,
         DuplicateCircuitNumber,
         DuplicateCircuitName,
+        AttachmentsDisagree,
+        DeadEndNode,
     ];
 }
