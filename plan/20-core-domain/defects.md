@@ -199,3 +199,41 @@ used SharpProp's `FractionMin`/`FractionMax`, and produced a census claiming all
 impossible, which is an argument for making a probe report its whole population rather than only the
 rows it sampled.
 
+**A node is a state point, and nothing in `22`'s interface let it read its own state.** `SolveContext`
+as first written carried port states and flows, which is everything a pipe or a valve needs — but a
+node's pressure and enthalpy are its *own* unknowns, and the states on its ports belong to what is
+attached to it. Added `Unknowns`, a span of the component's own declared unknowns in declaration
+order. Found by writing the node, not by reading the document; `22` describes the node's equations
+fully and says nothing about where `h_node` comes from.
+
+**A residual needs viscosity, and the property set was chosen before anything needed one.** `PortState`
+started with pressure, enthalpy, temperature, density and specific heat — the five an energy balance
+wants. A pipe cannot form a Reynolds number without dynamic viscosity, so the set is now the seven
+`FluidState` itself carries. Cheap to fix here and expensive later: the whole point of forbidding a
+backend call inside `EvaluateResiduals` is that a component reaching for a missing property has no
+other way to get it.
+
+**Serghide's approximation holds to 0.01 % where `22` asks it to.** Checked against the implicit
+Colebrook–White equation iterated in the test, which shares no code with it, at seven points spanning
+Re = 4×10³ to 10⁸ and ε/D = 0 to 0.05. Worth recording as a *pass*: it is the acceptance criterion most
+likely to have been optimistic, and it was not.
+
+**`f = 64/Re` cannot be written literally in a residual.** At rest the factor diverges and the term it
+multiplies vanishes, so evaluating it gives `∞ × 0` and a `NaN` that poisons the entire Newton step —
+not just the pipe's own row. Substituting Re back gives `32·μ·L·v/D²`, which is linear in velocity,
+exactly zero at rest and has a finite derivative there. The two are algebraically identical and only
+one of them can be evaluated.
+
+**A zero-allocation test that allocates its own fixture is worse than no test.** The first run reported
+21 600 bytes, every one of them from collection expressions in the test's own arguments rather than
+from the components. It fails for a reason the code under test cannot fix, which is the shape of an
+assertion that gets suppressed rather than investigated. Buffers are built once, outside the measured
+region.
+
+**C¹ continuity cannot be checked by comparing neighbouring finite differences.** The first attempt
+required successive numerical slopes across the upwinding band to stay close, and they are not meant
+to: the true derivative sweeps from 0 to 3.75 × 10⁷ J/kg per kg/s across a band 2 g/s wide, so the
+differences are legitimately far apart and the test failed on correct code. What C¹ actually claims is
+that the *one-sided* derivative at each join is zero, so the test now probes the edge with a shrinking
+step and requires the measured slope to shrink with it. A corner would hold it constant.
+

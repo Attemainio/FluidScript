@@ -39,6 +39,21 @@ public readonly record struct PortState
     /// <summary>Gets the specific heat at the port.</summary>
     /// <value>J/(kg·K).</value>
     public required double SpecificHeat { get; init; }
+
+    /// <summary>Gets the dynamic viscosity at the port.</summary>
+    /// <value>Pa·s.</value>
+    /// <remarks>A pipe cannot form a Reynolds number without it, so it is carried rather than fetched.</remarks>
+    public required double DynamicViscosity { get; init; }
+
+    /// <summary>Gets the thermal conductivity at the port.</summary>
+    /// <value>W/(m·K).</value>
+    /// <remarks>
+    /// Unused by any v1 residual: an exchanger given <c>ua</c> needs no transport property, and one
+    /// sized from geometry is <c>P3.5</c>'s. It is carried because the set a port offers should be the
+    /// set <see cref="FluidState"/> holds — a component reaching for the seventh property and finding
+    /// six would have no way to get it, this type being the only thing it may read.
+    /// </remarks>
+    public required double ThermalConductivity { get; init; }
 }
 
 /// <summary>What a flow component sees when it evaluates its residuals.</summary>
@@ -67,6 +82,9 @@ public readonly ref struct SolveContext
     /// <param name="substance">The circuit's working fluid.</param>
     /// <param name="ports">One entry per port, in the component's declared port order.</param>
     /// <param name="flows">Mass flow at each port, kg/s, positive into the component.</param>
+    /// <param name="unknowns">
+    /// The component's own unknowns at this iterate, in the order <c>DeclareUnknowns</c> gave them.
+    /// </param>
     /// <exception cref="ArgumentException">
     /// <paramref name="ports"/> is non-empty and differs in length from <paramref name="flows"/>.
     /// </exception>
@@ -77,7 +95,11 @@ public readonly ref struct SolveContext
     /// data the assertion depends on. Passing no states is therefore legal and means exactly that;
     /// passing some means passing all.
     /// </remarks>
-    public SolveContext(ISubstance substance, ReadOnlySpan<PortState> ports, ReadOnlySpan<double> flows)
+    public SolveContext(
+        ISubstance substance,
+        ReadOnlySpan<PortState> ports,
+        ReadOnlySpan<double> flows,
+        ReadOnlySpan<double> unknowns = default)
     {
         ArgumentNullException.ThrowIfNull(substance);
 
@@ -91,6 +113,7 @@ public readonly ref struct SolveContext
         Substance = substance;
         Ports = ports;
         Flows = flows;
+        Unknowns = unknowns;
     }
 
     /// <summary>Gets the working fluid of the circuit this component sits in.</summary>
@@ -107,12 +130,20 @@ public readonly ref struct SolveContext
     /// </value>
     public ReadOnlySpan<double> Flows { get; }
 
+    /// <summary>Gets this component's own unknowns at the current iterate.</summary>
+    /// <value>
+    /// SI, in the order <c>DeclareUnknowns</c> declared them. A node's pressure and enthalpy live here
+    /// rather than in <see cref="Ports"/>: a node <em>is</em> a state point, and the states its ports
+    /// carry belong to what is attached to it, not to it.
+    /// </value>
+    public ReadOnlySpan<double> Unknowns { get; }
+
     /// <summary>Gets the number of ports.</summary>
     public int PortCount => Flows.Length;
 
     /// <summary>Gets whether this context carries evaluated port states.</summary>
     /// <value>
-    /// <see langword="false"/> for a context built by <see cref="ForSingleComponent"/>. A component
+    /// <see langword="false"/> for a context built by <c>ForSingleComponent</c>. A component
     /// that reads <see cref="Ports"/> should check this rather than indexing an empty span.
     /// </value>
     public bool HasPortStates => !Ports.IsEmpty;
@@ -136,4 +167,13 @@ public readonly ref struct SolveContext
     /// </remarks>
     public static SolveContext ForSingleComponent(ISubstance substance, ReadOnlySpan<double> flows) =>
         new(substance, [], flows);
+
+    /// <summary>Builds a context for a component tested on its own, with its own unknowns.</summary>
+    /// <param name="substance">The substance, normally one of the fakes.</param>
+    /// <param name="flows">The mass flow at each port, kg/s.</param>
+    /// <param name="unknowns">The component's own unknowns, in declaration order.</param>
+    /// <returns>A context carrying those flows and unknowns, and no port states.</returns>
+    public static SolveContext ForSingleComponent(
+        ISubstance substance, ReadOnlySpan<double> flows, ReadOnlySpan<double> unknowns) =>
+        new(substance, [], flows, unknowns);
 }
