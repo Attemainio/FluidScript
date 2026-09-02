@@ -428,8 +428,9 @@ public sealed record ProjectSettings(
 /// <summary>A controller bound to what it drives and what it reads (`D-40`).</summary>
 /// <remarks>
 /// Every field is resolved from a named argument, so a transposition is a binding error rather than
-/// a silent reversal. <see cref="Setpoint"/> lives here rather than on a sensor because `D-23`
-/// defers persistent sensor components.
+/// a silent reversal. <see cref="Setpoint"/> lives on the control line rather than on the controller
+/// or the sensor so that one tuning can serve several loops; a sensor holds no state at all
+/// (`D-61`).
 /// </remarks>
 public sealed record ControlBindingSymbol
 {
@@ -580,7 +581,8 @@ visible — writing the return line first gives the return the lower ordinal.
 
 The optional `.NN` branch extension (`100TE01.02`) appends a header branch ordinal. The format is
 fixed now so it will not change later, and v1 emits it only for devices, because the case that
-motivates it — a supply and a return sensor per branch — needs the sensors `D-23` defers.
+motivates it — a supply and a return sensor per branch — is expressible from `D-61` onward, and v1
+still emits the extension only for devices.
 
 **A tag must never lex as a quantity.** `400PU01` is safe because rule 3 of
 [`12-grammar`](12-grammar.md) matches a whole word against `number , unit-symbol` and `PU01` is not a
@@ -631,7 +633,9 @@ expects `AirHandlingUnit` to find `ahu`.
    Unknown → `FS1503` listing the accepted names/patterns. The value binds
    according to `ParameterInfo.ValueKind`: a quantity is evaluated, a symbol is matched against
    `AcceptedSymbols` (`FS1514`), and a reference is recorded unevaluated (`FS1515`) for a later stage
-   to resolve — under `D-23`, a controller's direct `measure=N2.t` names a property that does not exist until the solve.
+   to resolve, because `measure=N2.t` and `measure=TE1.t` alike name a property that does not exist
+   until the solve. An instrument resolves to the node it is placed on (`D-61`: `TE1.t` *is* `N2.t`),
+   which is what makes the two spellings one evaluation.
 4. **Build the dependency graph** over bindings, parameters, referenced properties, and curves. A
    curve is a node like any other: `power=heating` depends on `heating`, which depends on its driver,
    which may be another curve. A cycle among curves is `FS1402`, the same code and the same

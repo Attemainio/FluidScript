@@ -3,7 +3,7 @@
 A pressure sensor. It sits on a node and reports what is there.
 
 ```fluidscript
-TE1 p_sensor at N2
+PE1 p_sensor at N2
 ```
 
 ## Why you place one
@@ -15,7 +15,7 @@ That distinction matters more than it looks:
 
 ```fluidscript
 HX1 heat_exchanger in=50 out=30      # what the design asks for
-TE1 p_sensor at N2                      # what the model produced
+PE1 p_sensor at N2                      # what the model produced
 ```
 
 The first is a **specification**. The second is a **measurement**. They are different claims about
@@ -31,11 +31,11 @@ An instrument with dynamics — a lag, an offset, an error band — is not in v1
 ## Reading it
 
 ```fluidscript
-control TV1 with TE1 by PID1 setpoint=312
+control TV1 with PE1 by PID1 setpoint=312
 ```
 
-Just `TE1`. A pressure sensor measures one thing, so there is nothing to disambiguate. Writing
-`TE1.p` is also fine.
+Just `PE1`. A pressure sensor measures one thing, so there is nothing to disambiguate. Writing
+`PE1.p` is also fine.
 
 Its reading is in kPa.
 

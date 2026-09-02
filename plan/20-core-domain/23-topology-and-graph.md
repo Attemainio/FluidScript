@@ -162,8 +162,9 @@ consequential structural decision in tier 20 for solver performance.
 
 The semantic model arrives with inference already applied. Lowering does five things:
 
-1. **Instantiate components.** Each `ComponentSymbol` becomes an `IComponent` via the registry, with
-   its stated parameters converted to SI.
+1. **Instantiate components.** Each `ComponentSymbol` that carries flow becomes an `IComponent` via
+   the registry, with its stated parameters converted to SI. **An observer is not one of them** — see
+   below.
    Indexed tank ports have already been materialized by the binder; lowering maps each normalized
    elevation to exactly one bottom-to-top layer and does not create ports absent from source (`D-32`).
 2. **Materialise pipe internals.** A `pipe` with `nodes=n` expands into n internal thermodynamic nodes
@@ -179,6 +180,26 @@ The semantic model arrives with inference already applied. Lowering does five th
 Lowering is where the semantic model's names stop mattering and the graph's structure starts. After
 this point nothing knows a script existed, which is what makes the solver testable from a
 hand-constructed graph.
+
+### Observers are lowered past the graph, not into it
+
+`D-61`'s instruments — `t_sensor`, `p_sensor`, `flow_sensor` — have no ports, no `DrivesFlow` and no
+residuals, and **nothing about them reaches `CircuitGraph`**. A pass-through instrument would carry
+two ports, gain an inserted node from rule I2 and contribute equations that are all identities; a
+hundred sensors would double the size of the solve to compute nothing. Attachment is what keeps them
+out.
+
+They are still part of the model: `ModelObservers.Collect` builds them from the semantic model
+alongside lowering, and each holds the *name* of the node it is placed on. That name is resolved
+against the lowered graph when a result is reported or a controller reads one, which is the only
+coupling between the two. An instrument whose node is absent — because it was never declared, or
+because the `at` clause named something that is not a node — was already `FS1533` or `FS1532` at bind
+time and is dropped here rather than reported again (`C-15`).
+
+The consequence for this document's own counting is that **an observer changes no invariant below**.
+It adds no node, no branch, no loop, no unknown and no equation, and invariant 5's unknown/equation
+balance is unaffected by how many instruments a script places. That is the property worth testing
+directly: the same circuit with and without a dozen sensors lowers to an identical graph.
 
 ### Loops are not equations
 
@@ -477,6 +498,9 @@ individually reasonable and the interaction is invisible.
 8. A tank with K materialized ports contributes K−1 independent pressure relations and contributes a
    mass balance exactly when it is a junction/terminal. Normalized elevation never enters a hydraulic
    pressure equation.
+9. No observer appears in the graph, and adding or removing observers leaves the graph byte-identical.
+   Invariant 4 is about components with ports and an observer has none, so it is satisfied vacuously
+   rather than by exemption.
 
 ## Error cases
 

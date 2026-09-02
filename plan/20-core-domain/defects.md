@@ -29,6 +29,8 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-14 | [`22`](22-component-model.md), `D-61` | **What a flow sensor reads was never defined at a junction.** §7 says only "a sensor reads the node it is attached to" — which names one number on a two-branch node and two or three on a tee | Unnoticed because the ambiguous case does not arise until something has to return a value: a temperature or a pressure sensor has no such problem, since a node carries one of each. Settled as the **sum of the flows entering the node**, which equals the through-flow wherever that exists and is well defined everywhere else. The alternatives are not academic — at a mixing junction they differ by a factor of two, and every one of them looks like a plausible meter reading. `22` §7 and [`flow_sensor`](../../docs/functions/flow-sensor.md) now say so. |
+| C-15 | [`23`](23-topology-and-graph.md) | **The lowering document never mentions observers**, and its step 1 says "each `ComponentSymbol` becomes an `IComponent`" | `D-61` added a component family that must be kept *out* of `CircuitGraph`, and the document that owns lowering was not updated — so `P3.4` would have read it as instructions to instantiate sensors into the graph, which is exactly the hundred-identity-equations outcome `D-61` exists to prevent. Same shape as `L-42`: the amendment reached the specifying document and not the presupposing one. `23` gains a lowering section, and invariant 9 — adding observers leaves the graph byte-identical — which is the property a test can actually hold. |
 | C-13 | [`07`](../00-foundation/07-quality-attributes.md), [`21`](21-fluid-and-state.md) | The humid-air row bounds the **state** at 0–50 °C, and is read as bounding every property on it — but a derived property leaves that box while the state stays inside it | Measured: air at 5 °C and 30 % RH is a perfectly ordinary winter state and its dew point is −9.9 °C, nine degrees below the validated minimum. Nothing is wrong with the number; what was wrong is a claim that appeared to cover it. No code change — `HumidAirState` carries the dew point as a derived property and never re-fixes a state at it, so no diagnostic is owed — and `FS2003` correctly refuses only a caller who *does* re-fix there. [`fluid`](../../docs/functions/fluid.md) now says so with this example. Found by a validation test that cooled a state to its own dew point to check saturation. |
 | C-10 | [`21`](21-fluid-and-state.md) | `ISubstance`'s pressure parameter is named `absolutePressure`, which contradicts the same document's "the single adapter adds the model's recorded atmosphere" and [`13`](../10-language/13-type-and-unit-system.md)'s definition of `Dimension.Pressure` as **gauge** | If the interface took absolute, the caller would have converted and "exactly one adapter converts" would be false. Renamed `gaugePressure`: every pressure the model carries is gauge, and `SubstanceBase.Absolute` adds the atmosphere once, immediately before a measurement. |
 | C-11 | [`21`](21-fluid-and-state.md) | `FS2002` was recorded as unraisable — "both pairs shipped here are always independent for a single-phase liquid" | False, and measured: on the boiling line pressure and temperature are one constraint, and the backend refuses with "Saturation pressure [101325 Pa] corresponding to T [373.124 K] is within 1e-4 % of given p". Water's own validated domain contains that line, so the pair a script is most likely to write is the one that fails. Registered and raised. |
@@ -110,3 +112,24 @@ in the test's own gauge-to-absolute conversion, or a derived property outside th
 in the *documents* at roughly the rate it wrote tests, and `P3.1`'s own suite passed on the first run
 too. The property layer is small, has one external dependency and no user input, which is the profile
 of code that a validation tier confirms rather than corrects.
+
+**Two documents presupposed a decision that had been reversed, and neither was found by review.**
+`L-42` and `C-15` are the same defect in two tiers: `D-61` was applied everywhere sensors are
+*specified* and nowhere they are merely *assumed*, and six months of `plan-review` passes did not
+notice, because a paragraph reading "the sensors `D-23` defers" is internally consistent and only
+wrong against a decision made elsewhere. A grep for the *superseded* decision's number is the check
+that would have found all four in seconds; the decision log records what amends what, so the sweep is
+mechanical. Worth doing whenever a `D-` entry amends another.
+
+**The observer family cost about a tenth of what a flow component will.** `IComponent`, `IObserver`,
+`IController`, `NodeObservation`, one `PlacedSensor` and the model step come to roughly 250 lines and
+14 tests, because an observer has no ports, no residuals, no sizing and no state — its `Read` is a
+three-case projection. That asymmetry is the argument `08` makes for building it first, and it holds:
+nothing here needed a decision the solver has not made yet, so nothing here has to be revisited when
+it does.
+
+**One class serves all three instruments, and `D-61` does not forbid it.** The decision rejected one
+`sensor` keyword with `measures=t` — a statement about the *script*, where three keywords buy three
+tag codes for free. The C# reading is registry-driven (`ComponentKindInfo.MeasuredProperty`), so three
+near-identical classes would have bought nothing. A test asserts every observer kind in the registry
+has a reading, which is what keeps the shortcut honest when a fourth instrument appears.

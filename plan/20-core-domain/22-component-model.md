@@ -85,10 +85,30 @@ public interface IFlowComponent : IComponent
     int EquationCount { get; }
 }
 
+/// <summary>A node's solved state, as an instrument attached to it sees it.</summary>
+/// <remarks>Deliberately narrower than `SolveContext`: a sensor has no ports, so port states and
+/// branch flows are not its business.</remarks>
+public readonly record struct NodeObservation
+{
+    public required FluidState State { get; init; }
+    /// <summary>kg/s, the sum of the flows *entering* the node — see "What a flow sensor reads".</summary>
+    public required Quantity MassFlow { get; init; }
+}
+
 /// <summary>A non-flow model participant that reads state and contributes no equations.</summary>
 public interface IObserver : IComponent
 {
-    IReadOnlyList<PropertyReference> ObservedProperties { get; }
+    /// <summary>The node the `at` clause placed this instrument on.</summary>
+    string AttachedNode { get; }
+
+    /// <summary>What this observer reads, naming the NODE rather than the instrument (`D-61`).</summary>
+    ImmutableArray<PropertyReference> ObservedProperties { get; }
+
+    /// <summary>Reads the measurement from a node's solved state.</summary>
+    /// <remarks>A projection, not a computation: a sensor is not a filter, a lag, or a source of
+    /// error. Declaring what is observed without being able to read it would leave the family a data
+    /// bag, and the reading is the half of `D-61` that is physics rather than language.</remarks>
+    Quantity Read(in NodeObservation observation);
 }
 
 /// <summary>An observer that also drives one actuator during a transient.</summary>
@@ -108,9 +128,16 @@ public sealed record Port
 }
 ```
 
-Persistent sensor components are absent from v1 by `D-23`; controllers remain observers that read
-properties directly. The symbol schema becomes a delivery gate with the M3 renderer under `D-24`, not
-with M2 physics.
+**`D-23` deferred persistent sensor components and `D-61` reversed it**: `t_sensor`, `p_sensor` and
+`flow_sensor` are real components in v1, and a controller reads one rather than reading a node's
+solved state directly (§7). What `D-23` still governs is instrument *dynamics* — a lag, an offset, an
+error band — which remain post-v1. The symbol schema becomes a delivery gate with the M3 renderer
+under `D-24`, not with M2 physics.
+
+**`IFlowComponent` and `IObserver` do not arrive together.** The observer half is built first
+(`P3.0`), before the six flow kinds, because a seventh family added afterwards is six rewrites and one
+addition before them is none. `IObserver` is therefore stated against types that already exist, and
+`IFlowComponent` waits for tier 30 to fix the shape of `SolveContext` and `UnknownDeclaration`.
 
 **`EvaluateResiduals` writes into a caller-owned span and returns nothing.** The solver assembles one
 residual vector for the whole system; per-component allocation inside a Newton iteration is the
@@ -656,6 +683,13 @@ and is never called.
 exists so that the *script* can name a measurement point, and so that a diagram can draw one; it is
 not a filter, a lag, or a source of error. Instrument dynamics are post-v1 and would be parameters on
 this kind, not a different one.
+
+**What a flow sensor reads is the sum of the flows entering its node.** On a node with one inlet and
+one outlet that is the through-flow and the definition is invisible, which is why it went unstated
+until an implementation had to pick one (`C-14`). At a tee it is the only reading that is well
+defined: "the flow at this node" otherwise names two or three different numbers, and the plausible
+alternatives differ from each other by a factor of two at a mixing junction. A temperature or pressure
+sensor has no such ambiguity — a node carries one of each.
 
 **Its measured property is registry data (`MeasuredProperty`)**, which is what lets `control TV1 with
 TE1 by PID1` resolve without a `.t`. A kind naming exactly one measured property makes the bare form
