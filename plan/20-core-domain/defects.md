@@ -29,6 +29,9 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-10 | [`21`](21-fluid-and-state.md) | `ISubstance`'s pressure parameter is named `absolutePressure`, which contradicts the same document's "the single adapter adds the model's recorded atmosphere" and [`13`](../10-language/13-type-and-unit-system.md)'s definition of `Dimension.Pressure` as **gauge** | If the interface took absolute, the caller would have converted and "exactly one adapter converts" would be false. Renamed `gaugePressure`: every pressure the model carries is gauge, and `SubstanceBase.Absolute` adds the atmosphere once, immediately before a measurement. |
+| C-11 | [`21`](21-fluid-and-state.md) | `FS2002` was recorded as unraisable — "both pairs shipped here are always independent for a single-phase liquid" | False, and measured: on the boiling line pressure and temperature are one constraint, and the backend refuses with "Saturation pressure [101325 Pa] corresponding to T [373.124 K] is within 1e-4 % of given p". Water's own validated domain contains that line, so the pair a script is most likely to write is the one that fails. Registered and raised. |
+| C-12 | [`21`](21-fluid-and-state.md) | `FluidState`'s derived properties are specified as "computed on demand and cached" | Computed once when the state is built instead, which is stronger — no first access slower than the rest, and no cache to invalidate. Measured why: fixing a state costs 321–388 µs depending on the pair and reading a property off the result costs 0.003 µs, so there is nothing worth deferring. The same measurement makes `21`'s per-solve cache a requirement rather than an optimisation. |
 | C-5 | [`22`](22-component-model.md) | Convention 5 requires every parameter to declare a display precision, and **no table carries one** | `ParameterInfo.DisplayPrecision` is the authority, and `22` now says so. A column of precisions in the document would be a second place to keep in step, for a formatting decision with no bearing on the physics. |
 | C-6 | [`22`](22-component-model.md) | The ranges are written in the "bare number means" unit, and nothing said so | Stated, with the failure it prevents: transcribing a temperature range of −50 … 300 as SI by hand gives −50 K, and every plausible temperature then falls outside its own range. The registry converts at build time instead. |
 | C-9 | [`22`](22-component-model.md) | The optional flag on a port had never been exercised | It is what keeps a heat exchanger with no secondary side from growing an inferred circuit: I3 terminates `in`/`out` and leaves `in2`/`out2` alone, and the three-way valve's `c` the same way. `22` marked them optional before anything read the flag; P2.8 is the first thing that did, and the reference circuit's inferred-component count is the assertion. |
@@ -60,3 +63,31 @@ identifier, since it is the whole tag that must not read as a number and a unit.
 
 **`node` and `pipe` carry no tag code deliberately**, and the registry test asserts exactly that pair.
 A future kind added without a code should have to justify itself against this, not inherit silence.
+
+**CoolProp's native pair is (T, ρ), not (p, T), and no pair is free.** Its documentation says so —
+"the equations of state are based on T and ρ as state variables, so T, ρ will always be the fastest
+inputs", and "P,T will be a bit slower (3-10 times), followed by input pairs where neither T nor ρ are
+specified, like P,H; these will be much slower." Measured through SharpProp on a debug build, sharing
+one instance: (T, ρ) 321 µs, (p, T) 336 µs, (p, h) 388 µs. The ratios CoolProp describes are about the
+flash and are nearly hidden here by the ~320 µs SharpProp charges per `WithState` whatever the pair —
+so the lever for `P3.6` is the number of calls, not the choice of pair.
+
+**(T, h) is not a supported pair at all.** `This pair of inputs [HmassT_INPUTS] is not yet supported`.
+Worth knowing before a component is written that would want it; `(p, h)` is what `21` chose and what
+exists.
+
+**Constructing a `Fluid` per call cost more than the measurement.** 535 µs on a fresh instance against
+336 µs on a shared one — the constructor was 37 % of the call. The M0 spike had already proved
+`WithState` on a shared instance is thread-safe, so one static instance is both correct and the
+cheaper half of the two options.
+
+**The architecture test wanted the type renamed, and was right.** It searches `src/` for the string
+`SharpProp`, so a wrapper called `SharpPropBackend` put the package's name into every file that called
+it and tripped the one-file rule it was built to satisfy. `PropertyBackend` says what it does rather
+than what it wraps; if one file is meant to own a dependency, no other file should have reason to name
+it.
+
+**CoolProp offers an IF97 water backend.** "If you are only interested in Water properties, you can
+look into using the IF97 (industrial formulation) backend", alongside a tabular one. Neither is used;
+recorded here because `P3.6` is where the property call count becomes a budget and this is the first
+lever to reach for after caching.

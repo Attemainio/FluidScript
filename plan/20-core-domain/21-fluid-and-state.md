@@ -123,7 +123,7 @@ public interface ISubstance
 
     /// <summary>Fixes a state from pressure and temperature.</summary>
     /// <returns>The state, or a failure describing why the pair is invalid or out of range.</returns>
-    Result<FluidState> FromPressureTemperature(Quantity absolutePressure, Quantity temperature);
+    Result<FluidState> FromPressureTemperature(Quantity gaugePressure, Quantity temperature);
 
     /// <summary>Fixes a state from pressure and specific enthalpy.</summary>
     /// <remarks>
@@ -131,7 +131,7 @@ public interface ISubstance
     /// temperature would require inverting cp — which is exactly what the property backend does
     /// correctly and a hand-rolled inversion does not.
     /// </remarks>
-    Result<FluidState> FromPressureEnthalpy(Quantity absolutePressure, Quantity enthalpy);
+    Result<FluidState> FromPressureEnthalpy(Quantity gaugePressure, Quantity enthalpy);
 
     /// <summary>Freezing point at the given pressure.</summary>
     /// <value>K. Backs the FS4001 warning.</value>
@@ -265,7 +265,7 @@ before the real backend and freezing-basis behavior are validated would overstat
 |---|---|---|---|
 | `FS2001` | Unknown substance name | Error | `There is no fluid called '{name}'. Available: {list}.` |
 | `FS2002` | Property pair does not determine a state | Error | `Cannot fix a state from {a} and {b} — they are not independent here.` |
-| `FS2003` | A **converged or stated** state outside the substance's valid range | Error | `{name} data covers {lo}–{hi}; this state is at {value}.` |
+| `FS2003` | A **converged or stated** state outside the substance's valid range, *including a state above its boiling line* | Error | `{name} data covers {lo} to {hi}; this state is at {value}.` |
 | `FS2004` | Property backend returned a non-finite value | Error | `Could not evaluate {property} for {name} at {state}.` |
 | `FS2005` | Glycol concentration outside 0–60 % | Error | `Glycol concentration must be between 0 and 60 %.` |
 | `FS2006` | Relative humidity outside 0–100 % | Error | `Relative humidity must be between 0 and 100 %.` |

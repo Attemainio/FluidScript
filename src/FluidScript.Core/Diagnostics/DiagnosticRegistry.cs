@@ -109,6 +109,7 @@ public static class DiagnosticRegistry
         .. ParserDiagnostics.All,
         .. BinderDiagnostics.All,
         .. CompatibilityDiagnostics.All,
+        .. FluidDiagnostics.All,
     ];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>

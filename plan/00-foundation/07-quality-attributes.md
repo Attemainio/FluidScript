@@ -75,7 +75,7 @@ assertions. The release claim is:
 
 | Capability | Validated v1 domain | Maximum error against independent reference |
 |---|---|---|
-| Water properties | Liquid water, 0–120 °C and 100–1000 kPa absolute | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
+| Water properties | Liquid water, 0–120 °C and 100–1000 kPa absolute, **below the boiling line at that pressure** | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
 | Humid-air properties | 0–50 °C dry bulb, 10–90% RH, 80–110 kPa absolute; no condensation circuit | humidity ratio 0.5%; enthalpy 0.5%; dew point 0.1 K |
 | Conservation | Every converged supported circuit | mass residual ≤ max(1e-8 kg/s, 1e-6 of circuit flow); energy residual ≤ max(0.1 W, 1e-6 of circuit duty) |
 | Pressure drop | Single-phase water, Darcy–Weisbach correlations and catalogue geometry declared by the model | 1% against the same published correlation evaluated independently |
@@ -83,6 +83,14 @@ assertions. The release claim is:
 | Auto-sizing | Version-pinned catalogue and stated design constraints | selects the smallest row satisfying every constraint; zero missed constraints in boundary fixtures |
 | Transient transport | Single-phase plug-flow/lumped segments within the CFL rule | step arrival within one accepted time step; steady endpoint meets the steady-state matrix |
 | Stratified tank (`D-32`) | Single-phase liquid water; 1–100 equal-volume mixed layers; normalized port elevations; adiabatic vessel | mass/enthalpy conservation meets the conservation row; analytic mixed-tank temperature within 0.1 K; layer-refinement error decreases monotonically against the plug-displacement reference |
+
+**The water row is not a rectangle, and reading it as one claims states that are steam.** The
+temperature and pressure bounds are independent only where the two together stay liquid: measured,
+water boils at 99.61 °C at 100 kPa absolute, 120.21 °C at 200 kPa and 179.88 °C at 1000 kPa. So the
+corner above the boiling line — 100 kPa absolute and 110 °C, for instance — is inside the stated
+rectangle and is vapour, and the property backend returns it without complaint at 0.573 kg/m³ against
+liquid's ~950. The domain is the rectangle **intersected with** the liquid region, and the
+implementation enforces it by rejecting any state whose phase is not liquid (`F-13`).
 
 These are software-verification bounds against stated equations and independent reference data, not
 approval-grade equipment-selection guarantees. Unsupported fluids, two-phase states, cavitation,

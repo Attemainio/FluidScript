@@ -113,6 +113,11 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
+| `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
+| `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
+| `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |
+| `FS2004` | Error | Substances | Could not evaluate {property} for {name} at {state}. |
+| `FS2006` | Error | Substances | Relative humidity must be between 0 and 100 %. |
 | `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
 <!-- END GENERATED: diagnostic-codes -->
 
