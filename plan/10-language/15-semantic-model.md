@@ -73,6 +73,14 @@ public sealed record ComponentKindInfo
     /// <remarks>Explicit registry metadata; never inferred from residual implementation (`D-30`).</remarks>
     public required bool DrivesFlow { get; init; }
 
+    /// <summary>Whether this kind accepts any number of unnamed connections.</summary>
+    /// <remarks>
+    /// True for <c>node</c> and nothing else. Without it the binder has to know that the kind spelled
+    /// <c>node</c> is special, which is the one thing the registry exists to prevent: a second
+    /// unlimited-port kind could not then be added without editing the binder.
+    /// </remarks>
+    public bool HasUnlimitedPorts { get; init; }
+
     /// <summary>Letter code used in this kind's equipment tag — <c>PU</c>, <c>HE</c>, <c>TV</c> (`D-34`).</summary>
     /// <value>
     /// Null for a kind that carries no tag. <c>node</c> and <c>pipe</c> are null deliberately: they
@@ -273,15 +281,29 @@ An input that matches nothing exactly is scored against every normalised keyword
 | Score | `1 − damerau_levenshtein(a, b) / max(len(a), len(b))` | Normalised edit distance with transposition, because `pmup` for `pump` is one keystroke, not two |
 | Threshold | **0.70** | `pmp`→`pump` scores 0.75 and must resolve; `valve`→`pipe` scores 0.20 and must not |
 | Ambiguity margin | **0.05** | If the runner-up is within this of the winner, nothing resolves |
+| Suggestion floor | **0.60** | Below this a failed match carries no suggestion at all |
 | Tie-break | none — ambiguity is reported | See below |
 
 **The ambiguity margin is not optional, and it is the part that makes this specifiable at all.**
-`valv` scores 0.80 against `valve` and 0.78 against a normalised `3_way_valve` prefix; picking the
-higher of two near-equal candidates is a coin flip that produces a silently wrong circuit. Below the
-margin the input is `FS1513` with both candidates ranked, which is a question the user answers in one
-keystroke. Without the margin the rule is "resolve to the best match", which is not deterministic in
+`4_way_valve` — a real device this version does not model — normalises to `4wayvalve`, which is
+exactly one substitution from both `2wayvalve` and `3wayvalve` and therefore scores **0.889 against
+`valve` and 0.889 against `three_way_valve`**. Picking the higher of two equal candidates is a coin
+flip that produces a silently wrong circuit. Below the margin the input is `FS1513` with both
+candidates ranked, which is a question the user answers in one keystroke.
+
+*(This example previously read "`valv` scores 0.80 against `valve` and 0.78 against a normalised
+`3_way_valve` prefix". No prefix is computed anywhere: under the formula above, `valv` scores 0.80
+against `valve` and 0.44 against `3wayvalve`, so it resolves cleanly and was never the ambiguous
+case. The margin is still needed — `4_way_valve` is what needs it.)* Without the margin the rule is "resolve to the best match", which is not deterministic in
 any useful sense — it depends on the alias list's contents, so adding an alias for one component could
 silently change how a *different* script resolves.
+
+**A failed match below the suggestion floor carries no suggestion, and `FS1502` has a second message
+for that.** The floor exists because `fan` is two edits from `tank` in four characters and scores
+exactly 0.50: `D-28` wants an air-side kind to fail clearly rather than be nudged toward a hydronic
+one, and *"There is no 'fan'. Did you mean 'tank'?"* is worse than saying only that there is no `fan`.
+Above the floor a suggestion still earns its place — `exchan` scores 0.67 against `exchanger`, too far
+to act on and plainly aimed at it.
 
 **Every stage-3 resolution emits `FS1512`, always, and it is info rather than warning.** The user gets
 their circuit and a line in the log saying what was read. Suppressing it would make the feature invisible
@@ -733,7 +755,8 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1501` | Duplicate component name anywhere in the script | Error | `'{name}' is already declared at line {n}{inCircuit}. Names are unique across the whole file; tags are what distinguish circuits.` |
-| `FS1502` | Unknown component kind | Error | `There is no '{kind}'. Did you mean '{suggestion}'?` |
+| `FS1502` | Unknown component kind, closest candidate above the suggestion floor | Error | `There is no '{kind}'. Did you mean '{suggestion}'?` |
+| `FS1502` | Unknown component kind, nothing close enough to suggest | Error | `There is no '{kind}'.` |
 | `FS1503` | Unknown parameter for the kind | Error | `A {kind} has no '{param}'. It accepts: {list}.` |
 | `FS1504` | Endpoint names an unknown component | Error | Handled by I1 unless the name is a declared non-component symbol, then: `'{name}' is a value, not a component.` |
 | `FS1505` | Unknown port | Error | `A {kind} has no port '{port}'. Ports: {list}.` |

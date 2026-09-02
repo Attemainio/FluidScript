@@ -137,10 +137,16 @@ per component for a speedup nobody has measured a need for.
    `volume=300 dm3`, `layers=5`, and mid-height port elevations are explicit visible defaults because
    the graph cannot infer them (`D-32`).
 5. **Every parameter declares a dimension, a plausible range (for `FS1306`), and a display
-   precision** (for write-back formatting). It does **not** declare a unit: the canonical unit
+   precision** (for write-back formatting). The tables below carry the first two; **the display
+   precision lives only in the registry**, because it is a formatting decision with no bearing on the
+   physics and a column of it here would be a second place to keep in step. `ParameterInfo.DisplayPrecision`
+   is the authority. It does **not** declare a unit: the canonical unit
    follows the dimension (`D-14`, [`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md)).
    The "bare number means" column below is copied from there for reading convenience and is never the
    authority — a table here disagreeing with `13` is a review finding, and three of them did.
+   **Ranges are written in that column's unit, not in SI**: a temperature range of −50 … 300 is °C, and
+   the registry converts it when it is built. Transcribing these as SI numbers by hand is how −50 °C
+   becomes −50 K and every plausible temperature falls outside its own range.
 
 ---
 

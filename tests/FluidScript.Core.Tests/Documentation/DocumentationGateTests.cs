@@ -1,3 +1,5 @@
+using FluidScript.Core.Language;
+using FluidScript.Core.Syntax;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Documentation;
@@ -28,8 +30,8 @@ public sealed class DocumentationGateTests
     private static string DocsRoot => Path.Combine(RepositoryLayout.Root, "docs");
 
     /// <summary>Component kinds the registry has registered, each of which needs a function page.</summary>
-    /// <remarks>Empty until the component registry lands in P2.6.</remarks>
-    private static IReadOnlyCollection<string> RegisteredComponentKinds => [];
+    private static IReadOnlyCollection<string> RegisteredComponentKinds =>
+        [.. ComponentRegistry.Default.Kinds.Select(static kind => kind.Keyword)];
 
     /// <summary>
     /// Reserved words that introduce a statement, which the gate must cover as well as the component
@@ -38,13 +40,28 @@ public sealed class DocumentationGateTests
     /// <remarks>
     /// Enumerating these matters as much as enumerating the kinds: <c>D-33</c>, <c>D-37</c> and
     /// <c>D-40</c> added five statements that are not component kinds, and a gate walking only the
-    /// registry would have passed all five undocumented. Empty until the grammar lands in P2.4.
+    /// registry would have passed all five undocumented. <c>dynamic</c> and <c>static</c> are absent
+    /// because they qualify another directive and introduce nothing — they are documented on the page
+    /// of the directive they qualify, which is where a reader meets them.
     /// </remarks>
-    private static IReadOnlyCollection<string> StatementReservedWords => [];
+    private static IReadOnlyCollection<string> StatementReservedWords =>
+        [.. Enum.GetValues<ReservedWord>()
+            .Where(static word => word is not (ReservedWord.None or ReservedWord.Dynamic or ReservedWord.Static))
+            .Select(ReservedWords.TextOf)];
 
-    private static bool HasPage(string slug) =>
-        RequiredCategories.Any(category =>
+    // `heat_exchanger` is documented at `heat-exchanger.md`: the file names use hyphens, because a URL
+    // does. `supply` and `return` share one page, since neither is meaningful without the other.
+    private static bool HasPage(string name)
+    {
+        var slug = name switch
+        {
+            "supply" or "return" => "supply-return",
+            _ => name.Replace('_', '-'),
+        };
+
+        return RequiredCategories.Any(category =>
             File.Exists(Path.Combine(DocsRoot, category, $"{slug}.md")));
+    }
 
     [Fact]
     [Trait("Category", "Docs")]
@@ -101,6 +118,16 @@ public sealed class DocumentationGateTests
             "units.md",
             (UnitsPage.DimensionsRegion, UnitsPage.Render()),
             (UnitsPage.SymbolsRegion, UnitsPage.RenderSymbols()));
+
+    [Fact]
+    [Trait("Category", "Docs")]
+    public void ThePropertiesPageIsGeneratedFromTheRegistry() =>
+        AssertGenerated("properties.md", (RegistryPages.PropertiesRegion, RegistryPages.RenderProperties()));
+
+    [Fact]
+    [Trait("Category", "Docs")]
+    public void TheTagsPageIsGeneratedFromTheRegistry() =>
+        AssertGenerated("tags.md", (RegistryPages.TagsRegion, RegistryPages.RenderTags()));
 
     private static void AssertGenerated(string page, params (string Region, string Content)[] regions)
     {
