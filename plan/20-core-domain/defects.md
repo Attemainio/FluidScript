@@ -160,3 +160,40 @@ compilation's promotion threshold, did not narrow it. Whatever the spread is, it
 other row on the same run has a deviation under 5 % of its median, so it is specific to that pair
 rather than to the machine being noisy.
 
+**A mixture costs 550 times what a pure fluid does, and one pair never comes back.** `BackendPairDiagnostics`
+over all five fluid families. Water-ethanol 60/40 fixes `(T, p)` in 34.8 ms against pure water's 63 µs;
+`(T, d)` takes 786 ms, `(T, s)` 517 ms, `(p, s)` 288 ms and `(p, h)` 267 ms. `(p, d)` is refused
+outright — *"DP_flash not ready for mixtures"* — and **`(h, s)` does not return at all**, iterating
+without converging and without a limit of its own. Everything above is the argument for `D-28`
+deferring mixtures, now with numbers: a Newton iteration that fixed one mixture state per residual
+evaluation would take minutes per solve, and one unlucky pair would hang the process.
+
+**`(T, h)` is unsupported on every family, not just on water.** Pure, pseudo-pure, both incompressible
+kinds and the mixture all answer `HmassT_INPUTS is not yet supported`. The `P3.1` observation
+generalises, and `21`'s choice of `(p, h)` is the only enthalpy pair there is.
+
+**The incompressible backend supports four pairs out of ten, and is ten times faster than HEOS.**
+`(T, p)`, `(p, h)`, `(p, s)` and `(p, d)` work at 6–10 µs; `(T, s)`, `(T, d)`, `(h, s)`, `(h, d)` and
+`(s, d)` are all refused. Both halves matter for glycol: it would be **cheaper** than water, not dearer
+— 48 of SharpProp's 120 INCOMP fluids are solutions taking a concentration — but a component wanting a
+state from a temperature and a density could not have one. Worth knowing before `D-28` is revisited.
+
+**Humid air's property *reads* cost more than its state fix, which is the reverse of pure water.**
+Fixing `(p, T, RH)` and reading one property is 1.2 µs; `HumidAirSubstance` fixing the same state and
+reading ten is ~100 µs. So a humid-air property read is roughly 10 µs, and `C-12`'s "eager is free"
+argument — measured on water, where a read was 0.003 µs — does not transfer to it.
+
+**Two measurements of the same thing disagree, and it is not yet resolved.** Water `(T, p)` reading one
+property is 63 µs here; through `ISubstance`, building a full `FluidState` with seven properties, it is
+204 µs. That implies ~20 µs per read on a pure fluid, against the 0.003 µs the M0 spike recorded and
+`PropertyBackend` still documents. One of the two is measuring something other than what it says.
+**This is open**, and it should be settled before `P3.6` designs the per-solve cache, because `C-12`
+rests on the smaller number.
+
+**A metadata field that looks like a discriminator was not one.** The first version of the family split
+used SharpProp's `FractionMin`/`FractionMax`, and produced a census claiming all 305 HEOS fluids and all
+120 INCOMP ones take a concentration — pure water included. The range defaults to 0–1 on everything;
+`Pure()` is the flag that discriminates. Caught only because the census printed a number obviously
+impossible, which is an argument for making a probe report its whole population rather than only the
+rows it sampled.
+

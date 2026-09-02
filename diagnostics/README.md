@@ -8,7 +8,9 @@ timing invites it to be quoted without them.
 
 | Report | Written by | Answers |
 |---|---|---|
-| `fluid-state-timings.md` | `StateTimingDiagnostics` | What it costs to fix a fluid state, per substance and per property pair — cold call, median, mean, standard deviation, min and max over 10 samples of 20 calls |
+| `fluid-state-timings.md` | `StateTimingDiagnostics` | What it costs to fix a fluid state through `ISubstance`, per substance and per property pair — cold call, median, mean, standard deviation, min and max over 10 samples of 20 calls |
+| `backend-pair-matrix.md` | `BackendPairDiagnostics` | Which of the ten (T, p, h, s, d) input pairs each fluid *family* supports — pure, pseudo-pure, incompressible substance, incompressible solution, HEOS mixture and humid air — the backend's refusal message for the rest, and what each supported pair costs |
+| `backend-pair-log.md` | `BackendPairDiagnostics` | Its running log, appended and flushed before and after every call |
 
 ## Running them
 
@@ -22,6 +24,19 @@ ordinary tests otherwise, and `dotnet test` with no filter runs them.
 
 Add `-c Release` for a number worth quoting. A debug build is materially slower, and the report says
 so in its header rather than leaving you to remember.
+
+## When one never finishes
+
+`BackendPairDiagnostics` writes `backend-pair-log.md` as it goes, one line before each call and one
+after, flushed every time. That is not tidiness: **some CoolProp flashes never return.** `(h, s)` on a
+water-ethanol mixture iterates without converging and without a limit of its own, and a run that never
+finishes writes no report — the log is the only thing that names the call it is stuck in.
+
+Each call now runs under a five-second cut-off on a background thread. The call itself cannot be
+cancelled, being native with no token to pass it; what the cut-off does is stop *waiting*, record the
+timeout, and move on.
+
+If a run does hang anyway, read the log: **a line with no result under it is the culprit.**
 
 ## What these are not
 
