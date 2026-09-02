@@ -27,6 +27,8 @@ reads as though it was always right, so without this file there is no record tha
 | L-32 | [`15`](15-semantic-model.md) | `FS1507` skips a kind with no ports at all, and skips `node` | A controller appears in no connection by design — it is bound by a `control` line, not by topology — so warning about it would put an amber squiggle on the one script that uses `D-40` correctly. A declared `node` is skipped for the weaker reason that a subcircuit's attachment target may legitimately be its only mention; that one is a judgement, not a derivation, and `15` states neither. It needs a sentence in step 10 or a decision that a lone declared node *is* worth a warning. |
 | L-35 | [`14`](14-expressions-and-references.md), `D-57` | **`power=heating kW` — a curve reference with an explicit unit — is unimplemented** | The bare-number half works: `power=heating` takes the parameter's canonical unit through `D-14`, which is the common case and the one the feature was asked for. Overriding it needs an expression form the grammar does not have — a *reference* followed by a unit symbol, where today only a number may carry one. That is a `14` change and its own AST node, so it is deferred rather than smuggled in; the `curve` page does not promise it. Wanted explicitly in the proposal that produced `D-57`, so it is scheduled, not dropped. |
 | L-36 | [`13`](13-type-and-unit-system.md), `D-60` | A timestamp is documented as a lexical unit and implemented as a **line**-level one | `13` says "a timestamp is a lexical unit". It is not, and cannot be: `2026-01-01` is also a valid subtraction, so no context-free lexer can tell them apart. What ships instead is narrower and works — a curve row keeps its raw tokens, and the binder splits the row's *text* at its last run of whitespace. The lexer's only part is a `Colon` token so a clock time does not raise `FS1002`. `13` needs correcting to say that. |
+| L-39 | [`15`](15-semantic-model.md), `D-59` | The schedule-role registry has no documented entries | The exact twin of L-20, one document later. `D-59` names `tout` and nothing else, and `FS1527` tells a user to "name a known driver" without a list anywhere. `ScheduleRoleRegistry` defines seven as **implementation-defined**, recorded there in as many words. It needs a home in `15` before a script depends on the exact set. |
+| L-40 | [`15`](15-semantic-model.md), `D-60` | A `format=` that is not a quoted string is silently ignored, and every row then fails | `D-60` says the format is validated when the curve is bound and that "a string with no month or no day is a diagnostic rather than a silent misparse". Neither check exists. What happens instead is that each unreadable row reports `FS1117` on its own line — honest, and correct as far as it goes, but a year of hourly data is 8 760 diagnostics for one mistake on the header. It needs a code on the header and a cap on the cascade. |
 | L-21 | [`14`](14-expressions-and-references.md) | `FS1405` is unregistered | The fixed point cannot fail to converge before there is a loop to iterate. P3.7. |
 | L-3 | [`17`](17-formatting-and-round-trip.md) | The mutation API and the formatter are unimplemented | By design: `IScriptEditor` is P7.1 and the formatter is P5.5 (see `08`). P2.5 delivered the printer only. Invariants 2–8 and 10 of `17` are therefore unasserted. |
 | L-4 | [`13`](13-type-and-unit-system.md) | `Head`'s canonical unit is metres *of the pumped fluid*, and nothing converts it yet | The registry declares `pump.head` as `Head`, but turning metres into pressure needs a density, which needs a fluid. P3.1. |
@@ -58,6 +60,9 @@ reads as though it was always right, so without this file there is no record tha
 | L-31 | [`06`](../00-foundation/06-decision-log.md) `D-35`, `CircuitRoleRegistry` | `circuit coolingLoop` — the name in the syntax reference, `12`'s example, and `52`'s — resolved to no role, so the documentation's own flagship script emitted `FS1519` about itself | `cooling_loop` registered as an alias of `cooling`, alongside the `solar_loop` and `district_loop` that were already there. Found by asserting `01`'s nine-diagnostic count, which came back as ten. |
 | L-33 | [`18`](18-script-compatibility.md) | `FS1705` and `FS1112` were two codes for one trigger | `FS1705` was "version or catalogue directive is misplaced or duplicated", which is exactly what `FS1112` already says and already raises. A misplaced line is a grammar error, and `D-53` puts a code in the range naming its *subject*. `FS1705` narrowed to what only the gate can judge — a file whose directives name **different majors**, from which no semantics can be selected. Not the redefinition `16`'s invariant 7 forbids: `FS1705` had never been registered, and `18`'s table was its only reference. |
 | L-34 | [`18`](18-script-compatibility.md) | Nothing said how `Inspect` finds the directive without parsing, though invariant 2 requires exactly that | It cannot ask the parser which major to parse under without asking the question it exists to answer. Stated: it scans the raw text past a BOM, blank lines and comments, and matches `fluidscript` plus one unsigned decimal — a prefix fixed across majors by construction, since a major that changed its own version line's spelling could not be detected by an application that did not already know its version. |
+| L-37 | [`14`](14-expressions-and-references.md), [`13`](13-type-and-unit-system.md) | **A unit spelling shared by two dimensions evaluated as a bare number, so `p=2 bar` bound as two kilopascals** | The evaluator resolved a literal with the overload that *refuses* an ambiguous spelling, and fell through to "bare" on refusal — under a comment asserting that reaching there would be a lexer defect. `kPa` survived by accident, being the canonical spelling of both pressure dimensions; `bar`, `Pa`, `MPa`, `mbar`, `psi` and `mH2O` did not. `UnitTable.Resolve(text, expected)` added, and the evaluator now carries the dimension its result is being assigned to. Found by a design value in the wrong dimension not raising `FS1304`. |
+| L-38 | [`13`](13-type-and-unit-system.md) | **A negative temperature could not be written with a unit anywhere in the language** | `13`'s unary table makes `−Temperature` an error, and the evaluator applied it to `-26 C` — so `design tout=-26 C`, which is `D-59`'s own worked example, did not bind, and neither did `NB1 node t=-5 C`. The bare `-26` worked, which is what made it a trap rather than an inconvenience. `D-62`: a sign directly on a quantity literal is part of the literal. `-(26 C)` is still a negation and still an error. |
+| L-41 | [`12`](12-grammar.md), [`15`](15-semantic-model.md) | The classification rule meant a malformed curve row is often not a row | `nonsense here` inside a curve section classifies on its first token as a *declaration*, so it is `FS1103` and never reaches the row reader. `FS1117` from the binder covers only a line that starts like a row and fails to read — `12 34 56`, or a timestamp the stated format does not fit. That is the right split and it is not written down anywhere: a test asserting `FS1117` for `nonsense here` was written and failed. |
 
 ## Observations
 
@@ -108,3 +113,30 @@ reads `16`'s range table with a regex; a pattern that matched nothing would make
 assertions pass while checking nothing at all. It asserts a floor on the row count and one known row
 first. Every check in this repository that reads the plan has this failure mode, and this is the only
 one that currently guards against it.
+
+**A curve is a node of the dependency graph, and that is the whole of step 0b's cost.** Making
+`ValueId.Curve` an ordinary id bought the topological order for free, so a curve that drives another
+is already evaluated when the second is reached, and a cycle among curves is the same `FS1402` and the
+same depth-first sort that already reported one among `let` bindings. The alternative — a second
+ordering pass over curves alone — is the shape that drifts.
+
+**The design point is tried before the driver chain, and the order is the feature.** `D-58`'s worked
+example only works that way: with `design tout=-26`, `time → outdoor → heating` is not walked at all.
+Reversing it would make a file carrying a year of weather data unsolvable statically, which is the
+case the design point exists for.
+
+**A driver's role is resolved even when the driver is a curve.** `curve heating outdoor` is driven by
+the curve `outdoor`, and `design tout=-26` still reaches it, because the role is the design point's
+*key* rather than the driver's kind. Resolving the role only in the `Role` branch is the obvious
+implementation and it breaks `D-58`'s example silently — the curve chain is walked instead, and the
+number that comes out is plausible.
+
+**An observer needed no exemption from `FS1507`, `FS1511` or `FS2107`.** All three are already
+conditioned on ports or on appearing in a connection, and an instrument has neither. The registry's
+`IsObserver` earns its place elsewhere — it is what makes `at` on a pump `FS1532` — but the validation
+half came out free, which is worth knowing before someone adds a fourth check that hard-codes a list
+of instrument kinds.
+
+**`design` values evaluate through the same pending/graph machinery as everything else**, with two
+extra fields on `PendingValue` rather than a parallel path. That is what makes `design tout=baseTemp`
+work without anything being written for it, and what makes the dimension check reuse `FS1304`.

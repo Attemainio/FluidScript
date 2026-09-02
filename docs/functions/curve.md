@@ -28,6 +28,31 @@ curve heating tout extrapolated
 
 Anything after those is a setting, and there is only one: `extrapolated`.
 
+The two names are not interchangeable, which is what protects you from writing them the wrong way
+round. The second must be **new**; the third must be something that already exists. So
+`curve outdoor heating` when you meant `curve heating outdoor` is reported rather than bound.
+
+## Known drivers
+
+A driver name is matched the same forgiving way a component kind is: `tout`, `t_out`, `outdoor` and
+`outdoorTemperature` are all the outdoor temperature, and all reach the same `design tout=-26`.
+
+The drivers FluidScript knows are `tout`, `troom`, `tground`, `humidity`, `wind`, `solar` and
+`demand`. Knowing one buys two things: the spellings above, and a check on the design value — `design
+tout=3 bar` is caught, because the outdoor temperature is a temperature.
+
+You are not limited to them. Any name works as long as something gives it a number:
+
+```fluidscript
+design flueTemp=180
+curve recovery flueTemp
+100   5
+200  20
+```
+
+A driver that names no curve, no known driver, no `design` line and is not `time` is an error — not
+because the name is unregistered, but because nothing anywhere can say what it is.
+
 ## Beyond the ends
 
 By default a curve **holds** at its ends. The table above returns 50 for anything colder than −26,

@@ -814,11 +814,27 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
 | `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
 | `FS1526` | A subcircuit's `supply` and `return` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
-| `FS1527` | A curve's driver names no curve, role or `time` | Error | `'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.` |
+| `FS1527` | A curve's driver names no curve, registered role, `design` entry or `time` | Error | `'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.` |
 | `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
 | `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
 | `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role} to use here. Write it out, such as '{example}'.` |
+| `FS1532` | An `at` clause on a kind that carries flow rather than observing it | Error | `'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.` |
+| `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
+
+**`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
+matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`
+says a driver naming nothing is one. Both hold, because a driver has to *supply a number* and there
+are exactly three things that can: another curve, the clock, or a `design` line. The registry
+decides only what **name** a design value may be written under — it is what makes `design tout=-26`
+reach `curve heating outdoor`. So `curve recovery flueTemp` with `design flueTemp=180` binds, and
+`curve recovery flueTemp` with nothing behind the name is `FS1527`.
+
+**`FS1532` and `FS1533` were not in this table and are additions, not corrections.** `D-61` settles
+what `at` means and says nothing about writing it on a pump, or about an instrument that states no
+`at` at all. Both are ordinary user mistakes with no code, and the second is the one that mattered:
+an observer is exempt from `FS1507` because it is never connected to anything, so without a code of
+its own an unplaced sensor bound in silence.
 
 **`FS1509` is retired, not redefined, and the distinction matters.** It meant "more than one `circuit`
 header", a condition `D-33` makes legal. The tempting move is to keep the number for the nearest

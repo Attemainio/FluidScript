@@ -34,6 +34,10 @@ curve cooling outdoor                     # no modifier: the ends hold
 -26  10
  32  14
 
+curve supplyTemp outdoor                  # a compensated supply temperature, in degrees Celsius
+-26  60
+ 20  20
+
 # ---------------------------------------------------------------------------------------------
 # The syntax reference, verbatim.
 # ---------------------------------------------------------------------------------------------
@@ -126,3 +130,23 @@ schedule
 at 60 s              HE4.power = 45       # a step
 over 60 s .. 120 s   HE4.power = 30 .. 45 # a linear ramp between two values
 at 300 s             TV4.position = 0.3   # any settable parameter
+
+# ---------------------------------------------------------------------------------------------
+# Instruments, the short control form (D-61), and a curve read at the design point (D-58). This
+# circuit has no clock, so `design tout=-26` is both what it is sized for and what it runs at.
+# ---------------------------------------------------------------------------------------------
+
+circuit radiators 500
+fluid static water
+
+HE5  heat_exchanger in=50 out=30 power=heating   # the curve's -26 row: 50 kW, by D-14's bare rule
+TV5  valve
+PU5  pump
+PID5 pid kp=2
+TE5  t_sensor at NR2                      # an observer: placed with `at`, never in the flow path
+
+connections
+NR1 - PU5 - HE5 - TV5 - NR2
+NR2 - NR1
+
+control TV5 with TE5 by PID5 setpoint=supplyTemp   # 60 °C at the design day, from a curve

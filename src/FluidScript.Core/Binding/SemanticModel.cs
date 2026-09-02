@@ -52,6 +52,13 @@ public sealed record SemanticModel
     /// the deferral exists to support.
     /// </value>
     public required ImmutableArray<DeferredExpression> Deferred { get; init; }
+
+    /// <summary>Gets every <c>curve</c> declared in the file, in declaration order (<c>D-57</c>).</summary>
+    /// <value>
+    /// File-wide rather than per circuit, which is the one place <c>D-52</c> does not apply: a curve is
+    /// a named table, and every circuit that names it reads the same one.
+    /// </value>
+    public ImmutableArray<CurveSymbol> Curves { get; init; } = [];
 }
 
 /// <summary>One circuit and everything settled about it before topology.</summary>
@@ -144,7 +151,22 @@ public enum ThermalStageRole
 /// Spacing is deliberately not here. <c>D-37</c> puts it in <see cref="StyleSettings"/>, and a second
 /// home would create two paths for one value: the one that gets serialized and the one that does not.
 /// </remarks>
-public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode);
+public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode)
+{
+    /// <summary>Gets each driver's value at the design condition (<c>D-58</c>).</summary>
+    /// <value>
+    /// Keyed by canonical driver name, so <c>design tout=-26</c> and <c>design outdoor=-26</c> land in
+    /// one entry. Empty for a file that states no design point, which is every file that solves in
+    /// time and reads no curve.
+    /// </value>
+    /// <remarks>
+    /// It sits here rather than beside the curves because it is an input to the physics that outlives
+    /// them: <c>D-58</c> makes it the <em>sizing</em> point in every mode, and the operating point as
+    /// well only in a static solve.
+    /// </remarks>
+    public ImmutableDictionary<string, DesignValue> Design { get; init; } =
+        ImmutableDictionary<string, DesignValue>.Empty;
+}
 
 /// <summary>Presentation values Core carries and never interprets.</summary>
 /// <param name="Tokens">The <c>style</c> directives' positional tokens, verbatim and in order.</param>
@@ -209,6 +231,15 @@ public sealed record ComponentSymbol
 
     /// <summary>Gets the name of the circuit this component was declared in (<c>D-33</c>).</summary>
     public required string CircuitName { get; init; }
+
+    /// <summary>Gets the node this component observes, from its <c>at</c> clause (<c>D-61</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> for everything that carries flow, which is everything but an instrument.
+    /// An observer attaches to a node and stays out of the hydraulic graph entirely: a pass-through
+    /// sensor would carry two ports, gain an inserted node from rule I2, and contribute equations that
+    /// are all identities.
+    /// </value>
+    public string? AttachedTo { get; init; }
 
     /// <summary>Gets the ports that exist on this component.</summary>
     /// <value>

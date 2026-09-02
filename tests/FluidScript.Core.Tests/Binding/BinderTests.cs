@@ -318,6 +318,66 @@ public sealed class BinderTests
         Assert.Equal(30000, watts.Components[0].Parameters["power"].Value!.Value.SiValue, 6);
     }
 
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("p=2 bar", 200_000)]
+    [InlineData("p=200 kPa", 200_000)]
+    [InlineData("p=200000 Pa", 200_000)]
+    [InlineData("p=200", 200_000)]
+    public void ASharedPressureSpellingIsReadAgainstTheParameterItIsAssignedTo(
+        string parameter, double expected)
+    {
+        // `L-37`. A spelling that denotes two dimensions used to fall through to "bare", so `p=2 bar`
+        // bound as two kilopascals — silently, and wrong by a factor of a hundred. `kPa` survived by
+        // accident, being the canonical spelling of both pressure dimensions.
+        var model = Model($"fluidscript 1\nNB1 node {parameter}\n");
+
+        Assert.Equal(expected, model.Components[0].Parameters["p"].Value!.Value.SiValue, 3);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void OneSpellingReadsAsAReadingOrADifferenceByWhereItIsWritten()
+    {
+        // The reason the ambiguity exists at all: `bar` is a pressure and a pressure difference, and
+        // which one is meant belongs to the destination.
+        var model = Model("fluidscript 1\nNB1 node p=2 bar\nPU1 pump dp=0.005 bar\n");
+
+        var reading = Assert.Single(model.Components, c => c.Name == "NB1").Parameters["p"].Value!.Value;
+        var difference = Assert.Single(model.Components, c => c.Name == "PU1").Parameters["dp"].Value!.Value;
+
+        Assert.Equal(Dimension.Pressure, reading.Dimension);
+        Assert.Equal(200_000, reading.SiValue, 3);
+
+        Assert.Equal(Dimension.PressureDelta, difference.Dimension);
+        Assert.Equal(500, difference.SiValue, 3);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASignWrittenOnALiteralIsPartOfIt()
+    {
+        // `D-62`. `13`'s rule that an absolute temperature is never negated is about negating a
+        // temperature-valued *expression*; applying it to the literal left a negative Celsius value
+        // unwritable anywhere, including `design tout=-26 C`.
+        var bare = Model("fluidscript 1\nNB1 node t=-5\n");
+        var stated = Model("fluidscript 1\nNB1 node t=-5 C\n");
+
+        Assert.Equal(268.15, bare.Components[0].Parameters["t"].Value!.Value.SiValue, 6);
+        Assert.Equal(268.15, stated.Components[0].Parameters["t"].Value!.Value.SiValue, 6);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void NegatingATemperatureValuedExpressionIsStillRefused()
+    {
+        // The narrowness of `D-62` is the point: only a sign directly on a literal is part of it.
+        Assert.Contains(
+            "FS1305",
+            Bind("fluidscript 1\nlet t0 = 20 C\nNB1 node t=-t0\n")
+                .Diagnostics.Select(static d => d.Code));
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void ATemperatureDifferenceAddsToATemperature()

@@ -76,6 +76,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly List<DeferredExpression> _deferred = [];
     private readonly List<StyleTokenSyntax> _styleTokens = [];
 
+    // Where each `let` was written, which is the only thing that can say whether a curve it reads is
+    // read in a static circuit or a dynamic one.
+    private readonly Dictionary<string, string> _bindingCircuits = new(StringComparer.Ordinal);
+
     private ProjectSettings _project = new(null, null);
     private double? _spacing;
 
@@ -83,14 +87,16 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     {
         var circuits = Partition();
 
+        CollectCurves();
         CollectDeclarations(circuits);
         Evaluate();
+        ReviewCurveReferences();
         BindTopology(circuits);
 
         var model = new SemanticModel
         {
             Circuits = [.. _circuits],
-            Project = _project,
+            Project = _project with { Design = PublishDesign() },
             Components = [.. _components],
             Bindings = [.. _bindings],
             Style = new StyleSettings([.. _styleTokens], _spacing),
@@ -99,6 +105,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Disturbances = [.. _disturbances],
             SymbolMap = _symbolMap,
             Deferred = [.. _deferred],
+            Curves = [.. _curves],
         };
 
         return new BindResult(model, [.. _diagnostics.OrderBy(static d => d.Span?.Start ?? 0)]);
@@ -137,6 +144,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 case VersionDirectiveSyntax:
                 case CatalogDirectiveSyntax:
                 case ShowDirectiveSyntax:
+
+                // Step 0b reads these instead, and it walks the whole file rather than one circuit's
+                // block: a curve and a design point belong to no circuit (`D-57`, `D-58`).
+                case CurveHeaderSyntax:
+                case CurveRowSyntax:
+                case DesignDirectiveSyntax:
                 case MalformedStatementSyntax:
                     break;
 
@@ -319,7 +332,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 switch (statement)
                 {
                     case LetBindingSyntax let:
-                        DeclareBinding(let);
+                        DeclareBinding(let, block.Circuit!.Name);
                         break;
 
                     case ComponentDeclarationSyntax declaration:
@@ -333,7 +346,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         }
     }
 
-    private void DeclareBinding(LetBindingSyntax let)
+    private void DeclareBinding(LetBindingSyntax let, string circuitName)
     {
         var name = let.Name.Token.Text;
 
@@ -346,6 +359,8 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 ("line", LineOf(existing.Declaration.Span)));
             return;
         }
+
+        _bindingCircuits[name] = circuitName;
 
         var id = new ValueId.Let(name);
         _bindingsByName[name] = new BindingSlot(let, id);
@@ -368,6 +383,23 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         }
 
         var kind = ResolveKind(declaration);
+
+        // `D-61`: `at` places an observer on a node, and only an observer. A component that carried
+        // flow and claimed to observe a node at the same time is a shape no later stage represents,
+        // and an instrument nothing placed observes nothing at all.
+        if (declaration.AttachedTo is not null && kind is { IsObserver: false })
+        {
+            Report(
+                BinderDiagnostics.NotAnObserver,
+                declaration.Span,
+                ("name", name),
+                ("kind", kind.Keyword));
+        }
+        else if (declaration.AttachedTo is null && kind is { IsObserver: true })
+        {
+            Report(BinderDiagnostics.ObserverNotPlaced, declaration.Span, ("name", name));
+        }
+
         var parameters = BindParameters(declaration, kind, name);
 
         var symbol = new ComponentSymbol
@@ -379,6 +411,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Parameters = parameters,
             DeclarationSpan = declaration.Span,
             CircuitName = circuitName,
+            AttachedTo = declaration.AttachedTo?.Text,
         };
 
         _components.Add(symbol);
@@ -615,8 +648,17 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         // it yet.
         foreach (var pending in _pending.Values)
         {
-            var evaluator = new ExpressionEvaluator(this, parse.Source, ImmutableArray.CreateBuilder<Diagnostic>());
+            var evaluator = new ExpressionEvaluator(
+                this,
+                parse.Source,
+                ImmutableArray.CreateBuilder<Diagnostic>(),
+                pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
             evaluator.Evaluate(pending.Expression);
+
+            // Kept on the pending value as well, so a later pass can ask what an expression read
+            // without evaluating it a third time. That is how a curve reference is found again at the
+            // site that made it, which is where reading one has to be reported.
+            pending.Dependencies = evaluator.Dependencies;
 
             foreach (var dependency in evaluator.Dependencies)
             {
@@ -634,12 +676,25 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var id in order)
         {
+            // A curve is evaluated here rather than in step 0b, because the order it needs is the one
+            // the graph gives: a curve driving another has already been read by the time this reaches
+            // the second (`D-57`).
+            if (id is ValueId.Curve curve)
+            {
+                EvaluateCurve(curve);
+                continue;
+            }
+
             if (!_pending.TryGetValue(id, out var pending))
             {
                 continue;
             }
 
-            var evaluator = new ExpressionEvaluator(this, parse.Source, _diagnostics);
+            var evaluator = new ExpressionEvaluator(
+                this,
+                parse.Source,
+                _diagnostics,
+                pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
 
             switch (evaluator.Evaluate(pending.Expression))
             {
@@ -662,6 +717,35 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private void Store(PendingValue pending, EvaluationResult.Value value)
     {
         var quantity = value.Quantity;
+
+        // A design value is not a parameter, and its driver's role is what checks it (`D-59`). The
+        // role's dimension makes `design tout=-26` and `design tout=-26 C` the same point, and
+        // `design tout=3 bar` a mismatch rather than a silent reinterpretation; a role with no
+        // dimension takes its value bare and checks nothing.
+        if (pending.IsDesign)
+        {
+            if (pending.DesignRole?.Dimension is { } dimension)
+            {
+                if (value.IsBare)
+                {
+                    quantity = Quantity.FromBareNumber(quantity.SiValue, dimension);
+                }
+                else if (quantity.Dimension != dimension)
+                {
+                    Report(
+                        BinderDiagnostics.ParameterDimensionMismatch,
+                        pending.Span,
+                        ("parameter", pending.DesignRole.CanonicalName),
+                        ("expected", dimension.Name.ToLowerInvariant()),
+                        ("value", parse.Source.ToString(pending.Expression.Span).Trim()),
+                        ("actual", quantity.Dimension.Name.ToLowerInvariant()));
+                    return;
+                }
+            }
+
+            pending.Value = quantity;
+            return;
+        }
 
         if (pending.Target is { } target)
         {
@@ -762,6 +846,21 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         {
             if (!_bindingsByName.TryGetValue(head, out var binding))
             {
+                // A curve reference is an ordinary value source, which is the whole reason the feature
+                // costs so little here: it resolves exactly as a `let` does and yields a *bare*
+                // number, so `D-14`'s rule reinterprets it in the target parameter's canonical unit at
+                // assignment. That is what lets one curve drive a power, a percentage and a
+                // temperature without being told which.
+                if (_curvesByName.ContainsKey(head))
+                {
+                    var curve = new ValueId.Curve(head);
+
+                    return _curveValues.GetValueOrDefault(head) is { } y
+                        ? new ScopeLookup.Value(
+                            Quantity.FromSi(y, Dimension.Dimensionless), IsBare: true, curve)
+                        : new ScopeLookup.Deferred(curve);
+                }
+
                 return new ScopeLookup.UnknownName(ClosestName(head));
             }
 
@@ -878,6 +977,15 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         ExpressionSyntax Expression, ValueId Id, TextSpan Span, ParameterTarget? Target)
     {
         public Quantity? Value { get; set; }
+
+        /// <summary>Everything the expression read, from the pass that recorded the graph's edges.</summary>
+        public ImmutableHashSet<ValueId> Dependencies { get; set; } = [];
+
+        /// <summary>The driver this is the design value of, when it is one and the name resolved.</summary>
+        public ScheduleRole? DesignRole { get; init; }
+
+        /// <summary>Whether this is a <c>design</c> value rather than a parameter or a binding.</summary>
+        public bool IsDesign { get; init; }
     }
 }
 

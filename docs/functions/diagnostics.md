@@ -103,6 +103,13 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
 | `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
 | `FS1526` | Error | Binder | '{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection. |
+| `FS1527` | Error | Binder | '{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'. |
+| `FS1528` | Error | Binder | '{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=...' or solve in time. |
+| `FS1529` | Info | Binder | '{curve}' has two rows at {x}; the later one is used. |
+| `FS1530` | Error | Binder | '{curve}' needs at least two rows to interpolate between. |
+| `FS1531` | Error | Binder | A {kind} has no single {role} to use here. Write it out, such as '{example}'. |
+| `FS1532` | Error | Binder | '{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead. |
+| `FS1533` | Warning | Binder | '{name}' observes nothing. Place it with 'at' and the name of a node. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |

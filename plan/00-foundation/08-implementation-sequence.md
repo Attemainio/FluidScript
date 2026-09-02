@@ -140,6 +140,7 @@ Order matters more here than anywhere else in the project.
 | P2.7 | Binder steps 0–5, expressions ([`15`](../10-language/15-semantic-model.md), [`14`](../10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
 | P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, the schedule, validation, tags last. Closes M1: `01`'s nine-diagnostic count on the syntax reference is asserted here. |
 | P2.9 | **Version detection and the compatibility gate** ([`18`](../10-language/18-script-compatibility.md)) | `18`'s invariant 2 — semantics are selected *before* parse and bind — is an ordering constraint, not a preference. See below. |
+| P2.10 | **The language half of `D-57`–`D-62`** ([`12`](../10-language/12-grammar.md), [`15`](../10-language/15-semantic-model.md), [`13`](../10-language/13-type-and-unit-system.md)) | `curve`, `design`, the `at` clause and the short `control` form are grammar and binding, and every one of them is a *language* change that P3 would otherwise have to make underneath six component kinds. See below. |
 
 **P2.1 delivers no shared result type, and the row said otherwise until it was built.** Every stage
 does return its output alongside `ImmutableArray<Diagnostic>`, but the plan states that shape as a
@@ -156,6 +157,28 @@ information is a cheap AST change. Written eighth, it is a change underneath the
 registry and every golden file. `05` already states that M5 depends on this and that it is much
 cheaper now than retrofitted; this document names the position that makes that true. From P2.5
 onward the corpus-mutation round-trip fuzz is a standing test, not a milestone check.
+
+**P2.10 pulls the language half of P3.0 and P3.8 forward, and leaves the physics half where it was.**
+The split those two packages were built on is between *language* and *physics*, not between sensors
+and curves: a `curve` that parses, binds, sorts, interpolates and resolves its driver needs no fluid,
+no catalogue and no solver, while the same feature's meaning at the design point is a sizing question.
+Building the language half in P2 costs nothing it would not cost later; building it in P3 means adding
+statements, diagnostics and a registry marker underneath the six component kinds P3.3 has by then
+built. What P2.10 delivered:
+
+- `curve` and its rows, `design`, the `at` clause, the short `control` form, and their printing
+  (`D-57`–`D-61`).
+- Binding step 0b, curve evaluation at the design point, the clamped and extrapolated end rules, the
+  schedule-role registry, timestamps, and `FS1527`–`FS1533`.
+- `D-62`, and the `L-37` unit-resolution defect it was found alongside.
+
+What is left, and stays where `08` put it:
+
+- **P3.0** keeps the *physics* of an instrument — an observer's reading is a solved property, and
+  nothing solves yet. The registry markers and the placement rule are done.
+- **P3.8** keeps the half that needs sizing: `design` as the sizing point (`D-58`'s first job), and a
+  curve as a live function of time in a transient run. Today the binder computes the design-point
+  value and records the dynamic reference as deferred; the stage that consumes either does not exist.
 
 **P2.9 exists because `18-script-compatibility` had no work package at all**, and M1's first exit
 criterion depends on one: an unversioned draft must get `FS1701` and must not be durably saveable.
@@ -188,7 +211,7 @@ syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes assert
 
 | # | Package | Why here |
 |---|---|---|
-| P3.0 | **Sensors and the actuated-parameter marker** ([`22`](../20-core-domain/22-component-model.md), `D-61`) | Before P3.3, not after. P3.3 builds six component kinds; adding a seventh family and a per-kind registry marker afterwards is six rewrites instead of one addition. Language-only — no physics, so it does not wait on P3.1. |
+| P3.0 | **Sensors as solved observers** ([`22`](../20-core-domain/22-component-model.md), `D-61`) | Before P3.3, not after. P3.3 builds six component kinds; adding a seventh family afterwards is six rewrites instead of one addition. The language half — the kinds, the `at` clause, the actuated-parameter marker — shipped in P2.10; what is left is what an instrument *reads*, which is a solved property. |
 | P3.1 | `ISubstance`, `FluidState`, the single SharpProp adapter, **both** fakes | The constant-property fake buys test speed; the linear-in-temperature fake is what catches a component that only works with constant properties. One without the other is a false sense of coverage. |
 | P3.2 | Property-accuracy tier — V4, V5 | Wrong physics at the source invalidates everything above it, so it is proved before anything is built on it. |
 | P3.3 | Component model, six kinds in duty mode ([`22`](../20-core-domain/22-component-model.md)) | The zero-allocation `EvaluateResiduals` test is written **in this package**. Retrofitting it across six component types later is a rewrite. |
@@ -196,13 +219,14 @@ syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes assert
 | P3.5 | Catalogue ([`27`](../20-core-domain/27-component-catalog.md)) | Sizing cannot be written against a catalogue that does not exist. V12 closes it. |
 | P3.6 | Scaling, then Newton ([`36`](../30-solver/36-numerics-and-convergence.md), [`32`](../30-solver/32-steady-state-newton.md)) | **Scaling first.** An unscaled residual norm measures the pressure equation and nothing else; Newton built first is tuned against a meaningless number, and the tolerances then have to be redone. |
 | P3.7 | Sizing and the single outer loop ([`24`](../20-core-domain/24-auto-sizing.md), [`31`](../30-solver/31-solver-architecture.md)) | One loop, one convergence test, one cap. Building sizing before the solve exists produces a second loop by default, which is exactly what `31` forbids. |
-| P3.8 | **Curves, the design point, and timestamps** ([`12`](../10-language/12-grammar.md), [`15`](../10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The grammar half could be built earlier; the half that matters cannot. |
+| P3.8 | **The design point as the sizing point** ([`24`](../20-core-domain/24-auto-sizing.md), [`15`](../10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The language half shipped in P2.10 and is not repeated here; this is sizing reading `ProjectSettings.Design`, and a transient run re-reading a curve it was handed as deferred. |
 
 **P3.0 and P3.8 are new work from `D-57`–`D-61`, and their positions are the whole content of the
 decision to split them.** Sensors are a component-model change and must precede P3.3, which builds the
-six kinds; curves are a language change whose meaning depends on a design point, and a design point
-means nothing before there is something to size. Putting them at opposite ends of P3 is not
-convenience — building either at the other's position costs a rewrite.
+six kinds; curves have a meaning that depends on a design point, and a design point means nothing
+before there is something to size. Putting them at opposite ends of P3 is not convenience — building
+either at the other's position costs a rewrite. **Both rows narrowed when P2.10 took the language half
+of each**, which is what the two packages had in common and the one part neither needed P3 for.
 
 ### P4 — M2b: coupled thermal rating
 

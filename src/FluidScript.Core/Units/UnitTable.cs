@@ -157,6 +157,43 @@ public static class UnitTable
         return symbol is not null;
     }
 
+    /// <summary>Resolves a spelling, preferring the dimension the value is being read into.</summary>
+    /// <param name="text">The symbol as written in the script.</param>
+    /// <param name="expected">
+    /// The dimension the value is being assigned to, or <see langword="null"/> where nothing states
+    /// one — inside an expression whose result has no declared destination.
+    /// </param>
+    /// <returns>The unit, or <see langword="null"/> when the spelling is not a unit at all.</returns>
+    /// <remarks>
+    /// A shared spelling resolves to <paramref name="expected"/> where it can and to the first
+    /// candidate otherwise. That is the difference from the two-argument
+    /// <see cref="TryResolve(string, out UnitSymbol?)"/>, which refuses an ambiguous spelling: a
+    /// caller with nowhere to go from a refusal ends up treating <c>2 bar</c> as the bare number two,
+    /// and returning a candidate instead keeps the mismatch reportable against a real dimension.
+    /// </remarks>
+    public static UnitSymbol? Resolve(string text, Dimension? expected)
+    {
+        var candidates = Candidates(text);
+
+        if (candidates.IsEmpty)
+        {
+            return null;
+        }
+
+        if (expected is { } wanted)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (candidate.Dimension == wanted)
+                {
+                    return candidate;
+                }
+            }
+        }
+
+        return candidates[0];
+    }
+
     /// <summary>Gets the unit a bare number means for a dimension.</summary>
     /// <param name="dimension">The dimension the destination declares.</param>
     /// <returns>

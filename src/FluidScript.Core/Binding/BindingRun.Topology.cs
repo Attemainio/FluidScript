@@ -43,6 +43,7 @@ internal sealed partial class BindingRun
         _sourceConnections.AddRange(_connections);
 
         ApplyInference();
+        BindObservers();
         BindAttachments(blocks);
         BindControlBindings(blocks);
         BindSchedule(blocks);
@@ -566,9 +567,43 @@ internal sealed partial class BindingRun
         }
     }
 
+    /// <summary>Places every instrument that stated an <c>at</c> clause (<c>D-61</c>).</summary>
+    /// <remarks>
+    /// After inference rather than with the declaration, because the node an instrument observes is
+    /// very often one rule I1 created: <c>N2</c> exists because a connection named it, not because
+    /// anybody declared it. Whether the clause belongs on the kind at all was settled at declaration
+    /// time; all that is left here is whether the node exists.
+    /// </remarks>
+    private void BindObservers()
+    {
+        foreach (var component in _components)
+        {
+            if (component.AttachedTo is not { } node || _componentsByName.ContainsKey(node))
+            {
+                continue;
+            }
+
+            Report(
+                BinderDiagnostics.UnknownName,
+                component.DeclarationSpan ?? default,
+                ("name", node));
+        }
+    }
+
     private void BindControl(ControlBindingSyntax statement)
     {
         var arguments = new Dictionary<string, ParameterSyntax>(StringComparer.Ordinal);
+
+        foreach (var argument in statement.Arguments)
+        {
+            arguments[argument.Name.Token.Text] = argument;
+        }
+
+        if (statement.IsShortForm)
+        {
+            BindShortControl(statement, arguments);
+            return;
+        }
 
         foreach (var argument in statement.Arguments)
         {
@@ -638,6 +673,106 @@ internal sealed partial class BindingRun
             Setpoint = Value(arguments["setpoint"].Value, DimensionOf(measurement)),
             Span = statement.Span,
         });
+    }
+
+    /// <summary>Binds <c>control TV1 with TE1 by PID1 setpoint=21</c> (<c>D-61</c>).</summary>
+    /// <remarks>
+    /// The same three resolutions as the long form, reached from positions instead of names. Only
+    /// <c>setpoint=</c> survives as a named argument, because it is the one value no position can
+    /// carry: the other three are components, and a setpoint is a quantity.
+    /// </remarks>
+    private void BindShortControl(
+        ControlBindingSyntax statement, Dictionary<string, ParameterSyntax> arguments)
+    {
+        if (!arguments.TryGetValue("setpoint", out var setpoint))
+        {
+            Report(
+                BinderDiagnostics.ControlMissingArgument,
+                statement.Span,
+                ("list", "setpoint"),
+                ("missing", "setpoint"));
+            return;
+        }
+
+        if (Endpoint(statement.Actuator!, actuated: true) is not { } actuator
+            || Endpoint(statement.Sensor!, actuated: false) is not { } measurement)
+        {
+            return;
+        }
+
+        var controllerName = statement.Controller!.Text;
+        var controller = _componentsByName.TryGetValue(controllerName, out var slot)
+            ? _components[slot.Index]
+            : null;
+
+        if (controller?.Kind?.Keyword is not "controller")
+        {
+            Report(
+                BinderDiagnostics.NotAController,
+                statement.Controller.Span,
+                ("name", controllerName),
+                ("kind", controller?.Kind?.Keyword ?? controller?.WrittenKind ?? "value"));
+            return;
+        }
+
+        _controlBindings.Add(new ControlBindingSymbol
+        {
+            Controller = controller,
+            Actuator = actuator,
+            Measurement = measurement,
+            Setpoint = Value(setpoint.Value, DimensionOf(measurement)),
+            Span = statement.Span,
+        });
+    }
+
+    /// <summary>Resolves one bare or qualified endpoint of a short <c>control</c> line.</summary>
+    /// <param name="endpoint">The endpoint as written, with or without its <c>.</c> half.</param>
+    /// <param name="actuated">
+    /// <see langword="true"/> for the thing the loop drives, <see langword="false"/> for what it reads.
+    /// </param>
+    /// <returns>The property reference, or <see langword="null"/> when it has been reported.</returns>
+    /// <remarks>
+    /// <c>D-61</c> amends <c>D-43</c>, which was right about parameters and wrong about actuators: of a
+    /// valve's <c>position</c>, <c>kv</c> and <c>authority</c>, only <c>position</c> moves during a
+    /// solve, so where the registry names exactly one the bare form is unambiguous <em>by
+    /// construction</em>. Where it names none, this is <c>FS1531</c> and the qualified form is
+    /// required — which stays legal everywhere.
+    /// </remarks>
+    private PropertyReference? Endpoint(EndpointSyntax endpoint, bool actuated)
+    {
+        var name = endpoint.Component.Text;
+
+        if (endpoint.Port is { } port)
+        {
+            return new PropertyReference(name, port.Text);
+        }
+
+        if (!_componentsByName.TryGetValue(name, out var slot))
+        {
+            Report(BinderDiagnostics.UnknownName, endpoint.Span, ("name", name));
+            return null;
+        }
+
+        var kind = _components[slot.Index].Kind;
+        var single = actuated ? kind?.ActuatedParameter : kind?.MeasuredProperty;
+
+        if (single is not null)
+        {
+            return new PropertyReference(name, single);
+        }
+
+        var candidates = actuated
+            ? kind?.Parameters.Keys.Order(StringComparer.Ordinal)
+            : kind?.Properties.Keys.Order(StringComparer.Ordinal);
+
+        Report(
+            BinderDiagnostics.NoSingleEndpoint,
+            endpoint.Span,
+            ("kind", kind?.Keyword ?? _components[slot.Index].WrittenKind),
+            ("role", actuated ? "parameter to move" : "property to read"),
+            ("example", $"{name}.{candidates?.FirstOrDefault() ?? (actuated ? "position" : "t")}"));
+
+        return null;
     }
 
     /// <summary>Reads the dimension of the property a controller measures, for its setpoint.</summary>

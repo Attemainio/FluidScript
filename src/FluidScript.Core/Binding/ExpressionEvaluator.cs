@@ -92,16 +92,24 @@ public sealed class ExpressionEvaluator
     private readonly SourceText _source;
     private readonly ImmutableArray<Diagnostic>.Builder _diagnostics;
     private readonly HashSet<ValueId> _dependencies = [];
+    private readonly Dimension? _expected;
 
     /// <summary>Creates an evaluator over one scope.</summary>
     /// <param name="scope">Where names are looked up.</param>
     /// <param name="source">The text, for quoting an expression in a message.</param>
     /// <param name="diagnostics">Where failures are reported.</param>
+    /// <param name="expected">
+    /// The dimension the result is being assigned to, or <see langword="null"/> where nothing states
+    /// one. It settles nothing about the arithmetic and only picks between the dimensions a shared
+    /// unit spelling can denote — <c>kPa</c> and <c>bar</c> are each both a pressure and a pressure
+    /// difference, and which is meant is a property of the destination.
+    /// </param>
     /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
     public ExpressionEvaluator(
         IValueScope scope,
         SourceText source,
-        ImmutableArray<Diagnostic>.Builder diagnostics)
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        Dimension? expected = null)
     {
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(source);
@@ -110,6 +118,7 @@ public sealed class ExpressionEvaluator
         _scope = scope;
         _source = source;
         _diagnostics = diagnostics;
+        _expected = expected;
     }
 
     /// <summary>Gets every value the last evaluation read.</summary>
@@ -152,20 +161,27 @@ public sealed class ExpressionEvaluator
             Quantity.FromSi(number.Token.Value ?? 0, Dimension.Dimensionless),
             IsBare: true);
 
-    private static EvaluationResult.Value Literal(QuantityLiteralSyntax quantity)
+    /// <summary>Reads one quantity literal, with an optional sign written on it.</summary>
+    /// <param name="quantity">The literal.</param>
+    /// <param name="sign">−1 when a minus sits directly in front of it, otherwise 1.</param>
+    private EvaluationResult.Value Literal(QuantityLiteralSyntax quantity, double sign = 1)
     {
         var token = quantity.Token;
 
-        if (token.Unit is null || !UnitTable.TryResolve(token.Unit, out var unit))
+        // Resolved against the dimension the value is being read into, because one spelling may
+        // denote two: `kPa` and `bar` are both a pressure and a pressure difference, and which is
+        // meant belongs to the destination rather than to the literal. The earlier fallback to a bare
+        // number here read `p=2 bar` as two kilopascals — silently, and wrong by a factor of a
+        // hundred, which is the worst failure this stage can have.
+        if (token.Unit is not { } written || UnitTable.Resolve(written, _expected) is not { } unit)
         {
-            // The lexer only produces a quantity token when the unit matched the table, so an
-            // unresolvable one here would be a lexer defect rather than a user error.
             return new EvaluationResult.Value(
-                Quantity.FromSi(token.Value ?? 0, Dimension.Dimensionless),
+                Quantity.FromSi(sign * (token.Value ?? 0), Dimension.Dimensionless),
                 IsBare: true);
         }
 
-        return new EvaluationResult.Value(Quantity.FromUnit(token.Value ?? 0, unit), IsBare: false);
+        return new EvaluationResult.Value(
+            Quantity.FromUnit(sign * (token.Value ?? 0), unit), IsBare: false);
     }
 
     private EvaluationResult Reference(ReferenceSyntax reference)
@@ -210,6 +226,15 @@ public sealed class ExpressionEvaluator
 
     private EvaluationResult Unary(UnaryExpressionSyntax unary)
     {
+        // A sign written directly on a literal is part of the literal, not an operation on it
+        // (`D-62`). `-26 C` is a −26 °C design day; `13`'s rule that an absolute temperature is never
+        // meant to be negated is about negating a temperature-valued *expression*, and reading it as
+        // covering the literal too left a negative Celsius value unwritable anywhere in the language.
+        if (unary.OperatorToken.Kind == TokenKind.Minus && unary.Operand is QuantityLiteralSyntax literal)
+        {
+            return Literal(literal, sign: -1);
+        }
+
         if (Visit(unary.Operand) is not EvaluationResult.Value operand)
         {
             return Visit(unary.Operand);

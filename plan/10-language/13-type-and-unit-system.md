@@ -110,6 +110,13 @@ Rules:
 | `TemperatureDelta ÷ Dimensionless` | `TemperatureDelta` | |
 | `−TemperatureDelta` (unary) | `TemperatureDelta` | |
 | `−Temperature` (unary) | **error `FS1302`** | Negating an absolute temperature is never meant |
+| `−26 C` (a signed literal) | `Temperature` | A sign written on a literal is part of it, not an operation (`D-62`) |
+
+**The last two rows are not in tension, and `D-62` says why.** `−Temperature` is about negating a
+temperature-valued *expression*: `-HE1.out` is meaningless whatever `HE1.out` turns out to be.
+`-26 C` is a literal that happens to be written with a sign, and reading the rule as covering it
+too left a negative Celsius value unwritable anywhere in the language — including `design
+tout=-26 C`, which `D-59` gives as a worked example.
 
 **Both binary `Temperature` rows are asymmetric on purpose.** `Temperature − TemperatureDelta` is a
 temperature and `TemperatureDelta − Temperature` is an error, because subtraction is not commutative

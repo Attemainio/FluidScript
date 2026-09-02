@@ -2549,6 +2549,42 @@ nothing here because no other statement has a keyword in that slot.
 
 ---
 
+## D-62 · A sign written on a literal is part of the literal, not an operation on it
+
+**Accepted · 2026-09-02** · amends `13`'s unary table
+
+`-26 C` is a temperature of minus twenty-six degrees Celsius. It is **not** a negation applied to a
+temperature, and `13`'s rule that an absolute temperature is never meant to be negated does not reach
+it.
+
+**The rule it amends is right about what it is about.** `-HE1.out` is meaningless whatever `HE1.out`
+turns out to be: an absolute temperature has a zero the user did not choose, so flipping its sign
+produces a number with no referent. That is a statement about negating a temperature-valued
+*expression*.
+
+**Reading it as covering the literal made a negative Celsius value unwritable anywhere.** `design
+tout=-26 C` is `D-59`'s own worked example and did not bind; nor did `NB1 node t=-5 C`, on a plant
+where an outdoor coil sits below freezing for four months of the year. The bare form `t=-5` worked,
+which made the trap worse rather than better: two spellings the language says are the same, one of
+which is an error, and an error message reading "cannot negate a temperature and a temperature".
+
+**The rule is lexical, and deliberately narrow.** A `-` **directly** in front of a quantity literal is
+part of that literal. `-(26 C)` is still a negation and still an error, and so is `-x` where `x` is a
+binding holding a temperature. Nothing about the dimension algebra changes.
+
+**Rejected.**
+- *Leave it and drop `-26 C` from `D-59`.* No code change, and the bare form already works. Cost: the
+  trap stays, and it is on the path a user walks the first time they write a design day. A file format
+  where `-5` and `-5 C` mean different things is a defect however it is documented.
+- *Let the lexer take the sign into the number token.* Fixes it one stage earlier, and every language
+  that has this problem solves it here. Cost: `a-5` and `a - 5` would stop being subtraction, and
+  `D-51`'s rule that a `-` joins a number only in a curve row is what keeps the lexer able to tell a
+  timestamp from an expression. The evaluator is where the operand's shape is already known.
+- *Allow negating an absolute temperature outright.* One fewer rule. Cost: it throws away the
+  invariant the whole type system exists for, to fix a case that is not a negation.
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

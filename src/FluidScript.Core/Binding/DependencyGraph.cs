@@ -37,6 +37,26 @@ public abstract record ValueId
         /// <inheritdoc/>
         public override string ToString() => $"{Component}.{Property}";
     }
+
+    /// <summary>A curve, read at its driver's design value (<c>D-57</c>).</summary>
+    /// <param name="Name">The curve's name.</param>
+    /// <remarks>
+    /// A node like any other, which is what makes a cycle among curves the same <c>FS1402</c> a cycle
+    /// among <c>let</c> bindings already was, reported by the same depth-first sort.
+    /// </remarks>
+    public sealed record Curve(string Name) : ValueId
+    {
+        /// <inheritdoc/>
+        public override string ToString() => Name;
+    }
+
+    /// <summary>One driver's value at the design condition (<c>D-58</c>).</summary>
+    /// <param name="Driver">The canonical driver name the <c>design</c> line was keyed under.</param>
+    public sealed record Design(string Driver) : ValueId
+    {
+        /// <inheritdoc/>
+        public override string ToString() => $"design {Driver}";
+    }
 }
 
 /// <summary>An expression held until sizing or solving supplies all of its inputs.</summary>

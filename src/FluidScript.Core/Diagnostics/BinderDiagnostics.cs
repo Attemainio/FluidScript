@@ -368,8 +368,95 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' is a dead end. Set t, p or flow to make it a boundary.");
 
+    /// <summary>A curve driver that names nothing at all.</summary>
+    /// <value><c>FS1527</c>, an error.</value>
+    /// <remarks>
+    /// <para>
+    /// A driver has to supply a number, and there are exactly three things that can: another curve,
+    /// the clock, or a <c>design</c> line. <c>D-59</c>'s registry decides only what <em>name</em> a
+    /// design value may be written under, so an unregistered driver with a design value behind it is
+    /// fine and this fires for a name with nothing behind it anywhere.
+    /// </para>
+    /// <para>
+    /// <c>D-57</c> leans on this: the three positions of a curve header are not symmetrical, and
+    /// writing <c>curve outdoor heating</c> for <c>curve heating outdoor</c> is caught here in every
+    /// case where both names exist, which is the ordinary one.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor UnknownCurveDriver { get; } = new(
+        "FS1527",
+        DiagnosticSeverity.Error,
+        "'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.");
+
+    /// <summary>A curve read in a static circuit whose driver has no design value.</summary>
+    /// <value><c>FS1528</c>, an error.</value>
+    /// <remarks>
+    /// An error rather than a default, per <c>D-58</c>: guessing zero, or the table's first row, would
+    /// put a number in front of an engineer that nothing chose. The curve and driver named are the one
+    /// the expression referenced and its own driver, not the far end of the chain, so the suggested
+    /// <c>design</c> line is one the user can write as it stands.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveWithoutDesignPoint { get; } = new(
+        "FS1528",
+        DiagnosticSeverity.Error,
+        "'{curve}' depends on '{driver}', which has no value here. "
+        + "Add 'design {driver}=...' or solve in time.");
+
+    /// <summary>Two rows of one curve at the same <c>x</c>.</summary>
+    /// <value><c>FS1529</c>, informational.</value>
+    /// <remarks>Information rather than an error: a step is a legitimate thing to write.</remarks>
+    public static DiagnosticDescriptor DuplicateCurveRow { get; } = new(
+        "FS1529",
+        DiagnosticSeverity.Info,
+        "'{curve}' has two rows at {x}; the later one is used.");
+
+    /// <summary>A curve with nothing to interpolate between.</summary>
+    /// <value><c>FS1530</c>, an error.</value>
+    public static DiagnosticDescriptor CurveTooShort { get; } = new(
+        "FS1530",
+        DiagnosticSeverity.Error,
+        "'{curve}' needs at least two rows to interpolate between.");
+
+    /// <summary>A bare <c>control</c> endpoint whose kind names no single parameter or property.</summary>
+    /// <value><c>FS1531</c>, an error.</value>
+    /// <remarks>
+    /// The other half of <c>D-61</c>'s amendment to <c>D-43</c>. Where the registry names exactly one
+    /// actuated parameter or measured property, the bare form is unambiguous by construction; where it
+    /// names none, the qualified form is required and this says so with an example of it.
+    /// </remarks>
+    public static DiagnosticDescriptor NoSingleEndpoint { get; } = new(
+        "FS1531",
+        DiagnosticSeverity.Error,
+        "A {kind} has no single {role} to use here. Write it out, such as '{example}'.");
+
+    /// <summary>An <c>at</c> clause on a kind that carries flow rather than observing it.</summary>
+    /// <value><c>FS1532</c>, an error.</value>
+    /// <remarks>
+    /// <c>D-61</c> settles what <c>at</c> means — a sensor attaches to a node and stays out of the
+    /// hydraulic graph — and says nothing about writing it on a pump. Accepting it silently would let
+    /// a component claim to observe a node and carry flow at the same time, which no later stage has a
+    /// way to represent. Recorded in <c>plan/10-language/defects.md</c> as a gap this filled.
+    /// </remarks>
+    public static DiagnosticDescriptor NotAnObserver { get; } = new(
+        "FS1532",
+        DiagnosticSeverity.Error,
+        "'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.");
+
+    /// <summary>An instrument that was declared and never placed.</summary>
+    /// <value><c>FS1533</c>, a warning.</value>
+    /// <remarks>
+    /// A warning, not an error: an unplaced sensor is the ordinary state of a line half typed, and the
+    /// model binds around it. It exists because an observer is exempt from <c>FS1507</c> — a sensor is
+    /// not connected to anything and never will be — so without it an instrument attached to nothing
+    /// would bind in silence.
+    /// </remarks>
+    public static DiagnosticDescriptor ObserverNotPlaced { get; } = new(
+        "FS1533",
+        DiagnosticSeverity.Warning,
+        "'{name}' observes nothing. Place it with 'at' and the name of a node.");
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Thirty-eight descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Forty-five descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScheduleWithoutTime,
@@ -409,6 +496,13 @@ public static class BinderDiagnostics
         DuplicateCircuitNumber,
         DuplicateCircuitName,
         AttachmentsDisagree,
+        UnknownCurveDriver,
+        CurveWithoutDesignPoint,
+        DuplicateCurveRow,
+        CurveTooShort,
+        NoSingleEndpoint,
+        NotAnObserver,
+        ObserverNotPlaced,
         DeadEndNode,
     ];
 }
