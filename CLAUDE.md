@@ -17,6 +17,7 @@ Read the relevant document before working in that area; update it when you learn
 |---|---|
 | Why the project exists, the requirement register (`R-xx`), non-goals, phases | `plan/00-foundation/01-vision-and-scope.md` |
 | Decisions already settled and why — **binding** | `plan/00-foundation/06-decision-log.md` |
+| What implementing a tier actually found — defects, deferrals, traps | `plan/<tier>/defects.md` |
 | Canonical term for every concept, casing conventions | `plan/00-foundation/02-glossary.md` |
 | Repository layout, build props, project boundaries | `plan/00-foundation/03-repository-layout.md` |
 | Coding-standard routing, XML docs, frontend lint | `plan/00-foundation/04-engineering-standards.md` |
@@ -47,6 +48,9 @@ Read the relevant document before working in that area; update it when you learn
 - **Every dimensioned public member states its unit and sign convention** in its XML docs.
 - **A change that alters a settled decision adds a new `D-` entry** to the decision log; it never edits
   the old one.
+- **Implementing a phase records what it found** in the `defects.md` of every `plan/` tier whose
+  documents it worked against — defects, their fixes, and observations worth keeping. See
+  `plan/00-foundation/08-implementation-sequence.md`.
 - **No pipeline stage throws on user input.** A script under editing is malformed most of the time;
   malformed input is a return value.
 

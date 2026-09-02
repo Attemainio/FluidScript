@@ -240,6 +240,30 @@ skipped as slow.
 Two packages, because P2.5 did the hard part. If the printer tidies while printing, this is the
 phase where the project stalls, and the fix is upstream in the AST rather than here.
 
+## Every package writes down what it found
+
+**A package that implements against a tier's documents records what it found in that tier's
+`defects.md`, in the same commit.** One file per tier folder, named `defects.md` everywhere — a second
+permitted name means half the findings land in the file nobody greps.
+
+The rule is one line long and the reason is not: implementing a specification is the only review that
+executes it, and it has found something in every package so far. Those findings are worth more later
+than they are on the day. A session six weeks from now needs to know that `FS1107` is absent
+deliberately rather than forgotten, that a threshold was chosen rather than derived, and that a
+document's worked example is wrong — none of which is visible from the code, the git history, or the
+document itself, because a document that has been corrected no longer records that it was ever wrong.
+
+Which folder: the tier whose documents the finding is *about*, not the tier the code landed in. P2.6
+implemented a registry into `Core/Language` and found two defects in
+[`22-component-model`](../20-core-domain/22-component-model.md); those belong to
+`20-core-domain/defects.md`.
+
+Each entry states what was found, whether it is closed or still open, and — for a closed one — what
+was changed. An entry that was fixed by amending the document says so, because the document now reads
+as though it was always right. Entries that are neither defects nor fixes go under **Observations**:
+a constant chosen with no specification behind it, a deliberate omission, a trap the next
+implementation will otherwise re-derive.
+
 ## Invariants
 
 1. A work package is one branch, one pull request, one squash merge, and `main` is green after it.
@@ -251,6 +275,8 @@ phase where the project stalls, and the fix is upstream in the AST rather than h
 5. A package that changes a settled decision adds a `D-` entry in the same pull request.
 6. No package is started while an earlier package in the same phase is unmerged, except P1.1 and
    P1.2, which are independent by construction.
+7. A package that implements against a tier's documents updates that tier's `defects.md` in the same
+   commit, or states in the commit that it found nothing.
 
 ## Error cases
 
