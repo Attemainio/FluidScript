@@ -48,7 +48,7 @@ start. A **work package** is one branch, one pull request, one squash merge.
 |---|---|---|---|
 | P0 | pre-M0 | 3 | Plan self-consistency |
 | P1 | M0 | 4 | SharpProp native packaging |
-| P2 | M1 | 8 | The lossless trivia model |
+| P2 | M1 | 9 | The lossless trivia model |
 | P3 | M2a | 7 | The sizing/solve outer loop |
 | P4 | M2b | 3 | Two datums in one circuit |
 | P5 | M3 | 11 | The layout engine |
@@ -58,6 +58,16 @@ start. A **work package** is one branch, one pull request, one squash merge.
 
 P8 is deliberately empty. `05` defines M6's contents as separately justified before entry, so a
 package list here would invent the requirements that justification is supposed to produce.
+[`35-evolutionary-sizing`](../30-solver/35-evolutionary-sizing.md) is the one tier-10-to-50 document
+that lands here rather than in a package, and it is named so that the coverage check below can tell a
+document deferred on purpose from one nobody scheduled.
+
+**Every document in tiers 10 through 50 is named somewhere in this file, and a test asserts it.**
+Two have now turned out to be unscheduled — the formatter (`F-6`) and script compatibility (`F-10`) —
+and both were found by working backwards from a milestone criterion rather than by reading this
+document, because its package tables are a good plan and a poor inventory. Nothing in the structure
+notices a file that no row names. Tier 00 is this plan's own foundation, tier 60 is process, and tier
+70 is explicitly future, so the check covers the contracts that get implemented and nothing else.
 
 ### P0 — Prerequisites
 
@@ -129,6 +139,7 @@ Order matters more here than anywhere else in the project.
 | P2.6 | Component registry, kind resolution ([`15`](../10-language/15-semantic-model.md)) | Data, not code. The docs gate reads it, so it must exist before a kind can be added. |
 | P2.7 | Binder steps 0–5, expressions ([`15`](../10-language/15-semantic-model.md), [`14`](../10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
 | P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, the schedule, validation, tags last. Closes M1: `01`'s nine-diagnostic count on the syntax reference is asserted here. |
+| P2.9 | **Version detection and the compatibility gate** ([`18`](../10-language/18-script-compatibility.md)) | `18`'s invariant 2 — semantics are selected *before* parse and bind — is an ordering constraint, not a preference. See below. |
 
 **P2.1 delivers no shared result type, and the row said otherwise until it was built.** Every stage
 does return its output alongside `ImmutableArray<Diagnostic>`, but the plan states that shape as a
@@ -145,6 +156,27 @@ information is a cheap AST change. Written eighth, it is a change underneath the
 registry and every golden file. `05` already states that M5 depends on this and that it is much
 cheaper now than retrofitted; this document names the position that makes that true. From P2.5
 onward the corpus-mutation round-trip fuzz is a standing test, not a milestone check.
+
+**P2.9 exists because `18-script-compatibility` had no work package at all**, and M1's first exit
+criterion depends on one: an unversioned draft must get `FS1701` and must not be durably saveable.
+This is the same defect as the formatter's (see the foundation's `F-6`) and was found the same way —
+by checking a milestone's criteria against the packages that were supposed to deliver them.
+
+`18` does not fit in one package, and splitting it is what makes P2.9 small:
+
+- **P2.9 ships `Inspect` only** — detect the major, classify the disposition, gate the allowed
+  actions, and raise `FS1701`, `FS1702` and `FS1705`. It runs *before* the parser, because `18`'s
+  invariant 2 says semantics are selected before parse and bind. A gate placed after the binder has
+  already committed to current semantics, which is the one thing `D-27` exists to prevent.
+- **P3.5 owns `FS1703`** (a pinned catalogue that is absent or unsupported). There is no catalogue to
+  be absent from until then.
+- **P5.9 owns the other half of `FS1701`** — Core withholds the `Save` action, and
+  [`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md) is what disables the button and offers to
+  insert the directive. A diagnostic nobody acts on is not a gate.
+- **Migration — `PreviewMigration`, `ApplyMigration` and `FS1704` — is deferred with a stated
+  trigger: the day a language major 2 exists.** It cannot be written or tested before then, since a
+  migration from 1 to nothing has no target and no fixture. This is recorded here rather than left
+  unscheduled, which is precisely the mistake this package was created to correct.
 
 Through all of P2 there is no reference to `Core.Fluids`, `Core.Components` or `Core.Solvers`, and
 P1.3's tier-10 architecture assertion guarantees it. P2 closes with the M1 `/docs` pages and
@@ -302,6 +334,7 @@ Where the M1 packages land for one line of the syntax reference — `3WV three_w
 | P2.6 | `three_way_valve` resolves to a registered kind | An unknown kind would be `FS1502` with an `Unknown` kind, not a crash |
 | P2.7 | `ComponentSymbol` with **zero** parameters present | `R-02`: absence is representable and distinct from a default |
 | P2.8 | Three ports materialized, connections bound, tag `101TV01` assigned last | The M1 criterion "binds with zero parameters and no diagnostic" |
+| P2.9 | Nothing for this line — the gate reads the `fluidscript 1` above it | Its disposition is `Current`, so every action including `Save` is allowed |
 
 Eight packages for one line, and each is observable on its own. That is what makes a package
 reviewable: the criterion it closes is checkable without the next one existing.

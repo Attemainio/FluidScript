@@ -77,6 +77,13 @@ MigrationPreview PreviewMigration(SourceText source, LanguageMajor target);
 SourceText ApplyMigration(SourceText source, MigrationId id, SourceHash expectedHash);
 ```
 
+**`Inspect` reads the text, not a syntax tree.** Invariant 2 puts version selection before parse and
+bind, so it cannot ask the parser which major to parse under without asking the question it exists to
+answer. It scans past a BOM, blank lines and comments to the first line that says anything, and
+matches `fluidscript` followed by one unsigned decimal — a prefix that is fixed across majors by
+construction, since a major that changed how its own version line is spelled could not be detected by
+any application that did not already know its version.
+
 `MigrationId` is created by `PreviewMigration` and returned as `MigrationPreview.MigrationId`; it is
 valid only for that preview's source hash and target major. `ApplyMigration` rejects an unknown id or
 an `expectedHash` different from the preview and never searches for a compatible preview implicitly.
@@ -142,7 +149,19 @@ without changing existing binding remains backward compatible.
 | `FS1702` | Unsupported newer/older major | Error; read-only text, no compile or overwrite |
 | `FS1703` | Pinned catalogue is absent or unsupported | Error; no sizing or solve |
 | `FS1704` | Source changed after migration preview | Error; discard preview and recompute |
-| `FS1705` | Version/catalogue directive is misplaced or duplicated | Error at directive; recover remaining syntax without guessing precedence |
+| `FS1705` | The file states more than one language **major** | Error; disposition is unsupported, and only `SaveAsBytes` is allowed |
+
+**`FS1705` was two codes for one trigger, and is now narrower.** It was specified as "version or
+catalogue directive is misplaced or duplicated" — which is exactly [`12-grammar`](12-grammar.md)'s
+`FS1112`, "a file-wide directive after the first `circuit`, or a second of either", already registered
+and already firing. A misplaced line is a *grammar* error: the statement is in the wrong place, and
+`D-53` puts a code in the range that names its subject. What only compatibility can judge is a file
+whose directives name **different majors** — the parser sees two well-formed statements, and the gate
+cannot select semantics from them. That is `FS1705`'s trigger. Two directives naming the *same* major
+is an ordinary duplicate and stays `FS1112`.
+
+The narrowing is not a redefinition of the kind [`16-diagnostics`](16-diagnostics.md)'s invariant 7
+forbids: `FS1705` had never been registered or raised, and this table was its only reference.
 
 The policy implements `D-27`: version selection precedes parsing, opening never rewrites, and every
 migration remains explicit and previewable.

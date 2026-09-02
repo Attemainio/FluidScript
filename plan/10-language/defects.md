@@ -54,6 +54,8 @@ reads as though it was always right, so without this file there is no record tha
 | L-29 | [`15`](15-semantic-model.md) | Nothing distinguished `FS1507` from `FS1511`, and on the syntax reference both would have fired for `PU1` | They partition one mistake: `FS1507` is a component in no connection, `FS1511` a cluster of two or more joined only to each other. Judged on the connections the user wrote — after I3 nothing is unconnected, and neither code could fire again. Written into step 10. |
 | L-30 | [`15`](15-semantic-model.md) | `FS2107` would have fired on every I3 boundary node, making the syntax reference's fixed nine eleven | An I3 node *is* the boundary that rule created. Exempted, and stated in step 10 — see L-26 for what still has to hold for that to stay true. |
 | L-31 | [`06`](../00-foundation/06-decision-log.md) `D-35`, `CircuitRoleRegistry` | `circuit coolingLoop` — the name in the syntax reference, `12`'s example, and `52`'s — resolved to no role, so the documentation's own flagship script emitted `FS1519` about itself | `cooling_loop` registered as an alias of `cooling`, alongside the `solar_loop` and `district_loop` that were already there. Found by asserting `01`'s nine-diagnostic count, which came back as ten. |
+| L-33 | [`18`](18-script-compatibility.md) | `FS1705` and `FS1112` were two codes for one trigger | `FS1705` was "version or catalogue directive is misplaced or duplicated", which is exactly what `FS1112` already says and already raises. A misplaced line is a grammar error, and `D-53` puts a code in the range naming its *subject*. `FS1705` narrowed to what only the gate can judge — a file whose directives name **different majors**, from which no semantics can be selected. Not the redefinition `16`'s invariant 7 forbids: `FS1705` had never been registered, and `18`'s table was its only reference. |
+| L-34 | [`18`](18-script-compatibility.md) | Nothing said how `Inspect` finds the directive without parsing, though invariant 2 requires exactly that | It cannot ask the parser which major to parse under without asking the question it exists to answer. Stated: it scans the raw text past a BOM, blank lines and comments, and matches `fluidscript` plus one unsigned decimal — a prefix fixed across majors by construction, since a major that changed its own version line's spelling could not be detected by an application that did not already know its version. |
 
 ## Observations
 
@@ -98,3 +100,9 @@ name→slot dictionary *and* in an ordered list; step 6 rewrites a component's p
 tag, both by `with`, so the dictionary's copy went stale the moment a port was materialized. The slot
 now holds an index. A record's structural equality makes this class of bug silent: the stale copy
 compares equal to nothing, and reads perfectly.
+
+**A drift check that parses a document must assert it parsed something.** `CodeRangeOwnershipTests`
+reads `16`'s range table with a regex; a pattern that matched nothing would make both of its
+assertions pass while checking nothing at all. It asserts a floor on the row count and one known row
+first. Every check in this repository that reads the plan has this failure mode, and this is the only
+one that currently guards against it.

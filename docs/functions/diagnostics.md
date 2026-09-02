@@ -99,6 +99,9 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
 | `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
 | `FS1526` | Error | Binder | '{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection. |
+| `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
+| `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
+| `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
 | `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
 <!-- END GENERATED: diagnostic-codes -->
 

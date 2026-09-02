@@ -26,6 +26,7 @@ are in [`08-implementation-sequence`](08-implementation-sequence.md).
 | F-7 | [`08`](08-implementation-sequence.md) | Invariant 3 — the unit tier under two seconds — was being violated at 3.1 s, and had been for some packages | Not the tests: 2.4 s of it was `RepositoryLayout` walking the whole repository, `node_modules` included, five times, filtering build output *after* enumerating it. Pruned during the walk and walked once: 1.0 s. |
 | F-8 | [`06`](06-decision-log.md) | — | Six decisions were needed during P2.2–P2.6 (`D-51`…`D-56`), every one from cross-checking documents *before* writing the code they governed. Not a defect in `06`; recorded because the rate is information. |
 | F-9 | [`05`](05-milestones-and-acceptance.md), [`01`](01-vision-and-scope.md) | The last four M1 exit criteria and the nine-diagnostic count were unasserted | P2.8 closed all five: `supply`/`return` bind and resolve a `ParentCircuit`, the `control` line binds its four named arguments (and rejects a bare `actuate=TV1` per `D-43`), a malformed line leaves every other statement bound, and `samples/m1-syntax-reference.fluid` produces exactly one `FS1507`, two `FS2107` and six `FS1510` — asserted from the sample file, not from a copy. |
+| F-10 | [`08`](08-implementation-sequence.md) | **[`18-script-compatibility`](../10-language/18-script-compatibility.md) had no work package anywhere in the sequence** | The second occurrence of `F-6`'s defect, and found the same way: by checking a milestone's criteria against the packages meant to deliver them. M1's *first* exit criterion needs `FS1701`, and no row mentioned the document. `18` does not fit one package, so it was split — P2.9 ships `Inspect` and the gate, P3.5 owns `FS1703`, P5.9 owns the save-blocking half of `FS1701`, and migration is deferred with a stated trigger (a language major 2) rather than left unscheduled. |
 
 ## Observations
 
@@ -51,3 +52,10 @@ an empty collection is indistinguishable from a gate that passes.
 **Invariant 3 held through P2.8 without being re-fixed.** The unit tier is 1.9 s over 551 tests after
 adding three binder files and thirty-three tests, which says F-7's fix was the enumeration and not the
 test count. It is still only measured by running it; see the observation above.
+
+**Two documents have now turned out to be unscheduled, and both were found by the same question.**
+`F-6` (the formatter) and `F-10` (script compatibility) were each caught by asking "which package
+delivers this milestone criterion?" rather than by reading `08` for completeness. `08`'s package
+tables are a good plan and a poor inventory: nothing in the document's own structure notices that a
+tier-10 file is named by no row. A check that every `plan/` document is named by at least one work
+package would be cheap, and would have found both.

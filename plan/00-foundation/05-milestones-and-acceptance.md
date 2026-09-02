@@ -85,33 +85,43 @@ and infers more nodes, so it cannot carry that count as well.
 
 **Exit criteria**
 
-- [ ] The current example, beginning `fluidscript 1`, parses with zero unexpected diagnostics; an
+- [x] The current example, beginning `fluidscript 1`, parses with zero unexpected diagnostics; an
       unversioned unsaved draft gets `FS1701` and cannot be durably saved until fixed.
-- [ ] `3WV` (leading digit) binds as an identifier; `style blue 2px fillet --` parses as positional
-      style arguments.
-- [ ] `let dT = 30 dK` followed by `out=20C+dT` evaluates to 50 °C, stored as 323.15 K.
-- [ ] `power=30` and `power=30 kW` and `power=30000 W` produce the same internal quantity.
-- [ ] A cyclic reference (`A.x = B.y`, `B.y = A.x`) produces one diagnostic naming both, not a stack
-      overflow.
-- [ ] Deleting a random character from the demo script still yields a bound model for every unaffected
-      statement, plus exactly one error (parser recovery, `R-05`).
-- [ ] Printing a parsed script reproduces the input **byte for byte**, comments and blank lines
-      included. Then: print(parse(print(parse(x)))) == print(parse(x)) for every sample.
-- [ ] Every diagnostic code emitted appears in [`16-diagnostics`](../10-language/16-diagnostics.md)'s
-      table.
-- [ ] A script with three `circuit` headers binds three circuits; a header with no number resolves to
-      100, 200, 300 in declaration order, and a stated number is kept verbatim (`D-33`).
-- [ ] `supply N3` / `return N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
+      — `ParserPropertyTests` over the corpus,
+      `ScriptCompatibilityTests.AnUnversionedDraftCompilesAndSolvesButCannotBeSaved`
+- [x] `3WV` (leading digit) binds as an identifier; `style blue 2px fillet --` parses as positional
+      style arguments. — `BinderTests.ADeclarationWithNoParametersBindsWithNone`, `ParserTests`
+- [x] `let dT = 30 dK` followed by `out=20C+dT` evaluates to 50 °C, stored as 323.15 K. — `BinderTests`
+- [x] `power=30` and `power=30 kW` and `power=30000 W` produce the same internal quantity. —
+      `BinderTests`, and `D-14`'s bare-number rule applied at assignment
+- [x] A cyclic reference (`A.x = B.y`, `B.y = A.x`) produces one diagnostic naming both, not a stack
+      overflow. — `BinderTests`; the topological sort is depth-first so the cycle is on the stack
+- [x] Deleting a random character from the demo script still yields a bound model for every unaffected
+      statement, plus exactly one error (parser recovery, `R-05`). —
+      `TopologyBindingTests.OneBadLineLeavesEveryOtherStatementBound`, and the corpus mutation fuzz
+- [x] Printing a parsed script reproduces the input **byte for byte**, comments and blank lines
+      included. Then: print(parse(print(parse(x)))) == print(parse(x)) for every sample. —
+      `PrinterTests`, over the samples and every fenced block
+- [x] Every diagnostic code emitted appears in [`16-diagnostics`](../10-language/16-diagnostics.md)'s
+      table. — `CodeRangeOwnershipTests`, in both directions: every code falls in a documented range,
+      **and** the document that range names actually mentions it
+- [x] A script with three `circuit` headers binds three circuits; a header with no number resolves to
+      100, 200, 300 in declaration order, and a stated number is kept verbatim (`D-33`). — `BinderTests`
+- [x] `supply N3` / `return N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
       instead produces a diagnostic naming `supply`, and **never** a component named `in` of kind `N3`
-      — a test asserts the old silent misparse is gone.
-- [ ] `project dynamic plant_01` sets the default mode for every circuit; a circuit stating
+      — a test asserts the old silent misparse is gone. —
+      `TopologyBindingTests.ASubcircuitsAttachmentsResolveIntoItsParent`, `ParserTests` (`FS1109`)
+- [x] `project dynamic plant_01` sets the default mode for every circuit; a circuit stating
       `fluid static` overrides it locally and a differing pair produces a warning, not a silent
-      resolution (`D-37`).
-- [ ] `spacing 20` binds into style settings and is absent from every Core layout structure (`D-37`).
-- [ ] `PID1 pid kp=3` binds through the registry with no new grammar, and `control
+      resolution (`D-37`). — `BinderTests.TheProjectSetsTheDefaultModeAndACircuitOverridesIt` (`FS1517`)
+- [x] `spacing 20` binds into style settings and is absent from every Core layout structure (`D-37`).
+      — `BinderTests.SpacingBindsIntoStyleAndNotIntoProject`
+- [x] `PID1 pid kp=3` binds through the registry with no new grammar, and `control
       actuate=TV1.position measure=N2.t by=PID1 setpoint=20` binds its four named arguments. Transposing two arguments
-      changes the binding, not merely the order (`D-40`). A bare `actuate=TV1` is rejected (`D-43`).
-- [ ] Printing a script containing every new statement reproduces it byte for byte.
+      changes the binding, not merely the order (`D-40`). A bare `actuate=TV1` is rejected (`D-43`). —
+      `TopologyBindingTests.AControlLineBindsItsFourNamedArguments`, `.ABareComponentNameIsNotAnActuator`
+- [x] Printing a script containing every new statement reproduces it byte for byte. — `PrinterTests`
+      over `samples/m1-syntax-tour.fluid`, which exercises every production in `12`
 
 The byte-for-byte round trip is the criterion that makes M5 possible. It is much cheaper to get right
 now than to retrofit once the printer has been written loosely.
