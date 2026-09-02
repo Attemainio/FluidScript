@@ -20,8 +20,11 @@ reads as though it was always right, so without this file there is no record tha
 
 | # | Document | What | Why it is still open |
 |---|---|---|---|
-| L-1 | [`16`](16-diagnostics.md) | `FS1107`, `FS1201`, `FS1202` are registered nowhere | All three need a bound model. `FS1107` fires on a `schedule` under a circuit solved as a steady state, and which mode a circuit ends up in is `D-37`'s resolution of the circuit's directive against the project's; `FS1201`/`FS1202` classify a `style` token as a colour or a corner treatment, which needs registries that do not exist. **They land with the binder in P2.7/P2.8.** Absent deliberately, not forgotten. |
-| L-2 | [`15`](15-semantic-model.md) | `FS1503`'s parameter suggestion is unimplemented | The scoring engine exists (`NameResolution`, shared by kinds, parameters, properties and symbol values) but nothing calls it for parameters yet. P2.7. |
+| L-1 | [`16`](16-diagnostics.md) | `FS1201` and `FS1202` are registered nowhere | Both classify a `style` token as a colour or a corner treatment, which needs registries that do not exist yet. Absent deliberately, not forgotten. (`FS1107` was here too and is now raised by the binder, which is the first stage that knows a circuit's mode.) |
+| L-2 | [`15`](15-semantic-model.md) | Binder steps 6–11 are unimplemented | Connections, inference I1/I2/I3, attachments, control bindings, validation and tags. P2.8. `FS1504`–`FS1507`, `FS1510`, `FS1511`, `FS1518`, `FS1520`–`FS1523` and `FS1526` are therefore unregistered: a code on the documentation page that nothing can raise is worse than one that is missing. |
+| L-20 | [`15`](15-semantic-model.md) | The circuit-role registry has no documented entries | Step 0 resolves a circuit's name through it and `FS1519` lists "known roles", but `D-35` names only four examples and no document enumerates the set or its role→stage mapping. `CircuitRoleRegistry` defines twelve roles as **implementation-defined**, which is recorded there in as many words. It needs a home in `15` or [`25`](../20-core-domain/25-layout-hints.md) before anything depends on the exact list. |
+| L-21 | [`14`](14-expressions-and-references.md) | `FS1405` is unregistered | The fixed point cannot fail to converge before there is a loop to iterate. P3.7. |
+| L-24 | [`15`](15-semantic-model.md) | **No binding step binds the schedule.** Steps 0–11 cover directives, declarations, kinds, parameters, expressions, ports, connections, inference, attachments, control bindings, validation and tags — and never mention a disturbance | The parser produces `DisturbanceSyntax` and nothing consumes it. It needs a step of its own, presumably between 9 and 10, resolving each target to a settable parameter and each time to a quantity. P2.8 has to add it to the list as well as implement it. |
 | L-3 | [`17`](17-formatting-and-round-trip.md) | The mutation API and the formatter are unimplemented | By design: `IScriptEditor` is P7.1 and the formatter is P5.5 (see `08`). P2.5 delivered the printer only. Invariants 2–8 and 10 of `17` are therefore unasserted. |
 | L-4 | [`13`](13-type-and-unit-system.md) | `Head`'s canonical unit is metres *of the pumped fluid*, and nothing converts it yet | The registry declares `pump.head` as `Head`, but turning metres into pressure needs a density, which needs a fluid. P3.1. |
 | L-5 | [`11`](11-language-overview.md) | The nine-diagnostic count on `samples/m1-syntax-reference.fluid` is not asserted | `08` says P2 closes with it. It needs the binder, since most of the nine are binder diagnostics. P2.8. |
@@ -44,6 +47,8 @@ reads as though it was always right, so without this file there is no record tha
 | L-17 | [`15`](15-semantic-model.md) | The ambiguity margin's worked example does not follow from the formula above it. `valv` scores 0.80 against `valve` and **0.44** — not 0.78 — against `3wayvalve`; the "normalised prefix" it cited is computed nowhere | Replaced with `4_way_valve`, which is exactly one substitution from both `2_way_valve` and `3_way_valve` and scores 0.889 against each. The margin was right; the example was not. |
 | L-18 | [`15`](15-semantic-model.md) | `FS1502`'s message offers a suggestion, and nothing said when a suggestion stops being worth making | Suggestion floor of 0.60, and a second `FS1502` message for having nothing to suggest. |
 | L-19 | [`15`](15-semantic-model.md) | `ComponentKindInfo` had no way to say that a node accepts any number of connections | `HasUnlimitedPorts`. Without it the binder has to know that the kind spelled `node` is special, which is the one thing the registry exists to prevent. |
+| L-22 | [`15`](15-semantic-model.md), [`14`](14-expressions-and-references.md) | `FS1502` and `FS1404`'s message shapes end in an optional "Did you mean '{suggestion}'?" clause, which [`16`](16-diagnostics.md)'s style rules reject: a template ending in a clause that is sometimes empty is not a sentence | Both messages are now sentences, and the suggestion rides on `Diagnostic.Suggestion` — the structured field that already existed, which an editor can offer as a fix rather than prose to parse back out. `15`'s two-row table for `FS1502` is one row again. |
+| L-23 | [`22`](../20-core-domain/22-component-model.md) | `samples/m1-syntax-tour.fluid` declared three components of kind `duty` | There is no such kind: Duty is a heat-exchanger *mode*, computed at lowering from what the script states, and `22` says outright that there is no script `mode=` parameter. The binder is the first stage that could notice, and did, on its first run over the samples. Changed to `heat_exchanger`. |
 
 ## Observations
 
@@ -63,6 +68,16 @@ before someone "fixes" the classifier by reserving them.
 
 **A statement's tokens never include the newline that ends its line.** Anything computing an edit
 span over a statement has to add its own line break. See L-15.
+
+**A bare number is reinterpreted at assignment, not at evaluation.** The evaluator reports whether a
+unit took part anywhere in an expression; the binder converts a bare result into the parameter's
+canonical unit (`D-14`). Doing it the other way — handing the evaluator the target's dimension —
+would make the same expression mean different things in different places, and `let x = 30` would have
+no meaning at all.
+
+**A stated parameter is readable immediately whatever its property's availability says.** A
+`heat_exchanger`'s `power` property is registered as `Sized`, but a user who wrote `power=30 kW` can
+read `HE1.power` at once. Availability describes where a value comes from when nobody stated one.
 
 **`Print` reconstructs from tokens and must never slice the source.** A slice over `FullSpan` would
 reproduce the file no matter what the tree had lost, which makes the round-trip test pass while

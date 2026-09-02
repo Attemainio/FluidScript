@@ -14,7 +14,7 @@ are in [`08-implementation-sequence`](08-implementation-sequence.md).
 
 | # | Document | What | Why it is still open |
 |---|---|---|---|
-| F-1 | [`05`](05-milestones-and-acceptance.md) | Most M1 exit criteria are unasserted | They need the binder: `let dT = 30 dK` evaluating to 50 °C, `power=30` and `power=30 kW` producing one quantity, the cyclic-reference diagnostic, three circuits numbering 100/200/300, `supply`/`return` binding. P2.7 and P2.8. |
+| F-1 | [`05`](05-milestones-and-acceptance.md) | Four M1 exit criteria remain unasserted | P2.7 closed the rest: `let dT = 30 dK` with `out=20C+dT` gives 323.15 K, `power=30`/`30 kW`/`30000 W` are one quantity, the cyclic reference is one diagnostic naming both, three circuits number 100/200/300, and `3WV three_way_valve` binds with zero parameters. What is left needs topology: `supply`/`return` binding, the `control` line's four arguments, recovery leaving a bound model for every unaffected statement, and the nine-diagnostic count. P2.8. |
 | F-2 | [`01`](01-vision-and-scope.md) | The nine-diagnostic count on the syntax reference is unasserted | `08` says P2 closes with it. Same dependency as F-1. See also `10-language/defects.md` L-5. |
 | F-3 | [`07`](07-quality-attributes.md) | No latency budget is measured | `D-48`/`D-49` budget interactive latency end to end and derive the debounce, and nothing measures any of it yet. The first honest measurement needs a pipeline that binds, so P2.8 at the earliest; `05` ties the real gate to M3. |
 | F-4 | [`03`](03-repository-layout.md) | The nine-file list for a component is unexercised | No component exists. P3.3 is the first package that has to satisfy it, and it is the moment to check the list is still right. |

@@ -54,6 +54,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1104` | Error | Parser | Cannot read this line. Expected a component declaration or a connection. |
 | `FS1105` | Error | Parser | '{token}' looks like a parameter but has no value. Write '{token}=…'. |
 | `FS1106` | Error | Parser | Put this under a 'schedule' line. |
+| `FS1107` | Warning | Parser | '{circuit}' is solved as a steady state, so its schedule does not run. Write 'fluid dynamic' to solve it in time. |
 | `FS1108` | Error | Parser | '{text}' — a name cannot contain '-'. Write '{underscored}'. |
 | `FS1109` | Error | Parser | '{word}' is not an attachment. Write 'supply {node}' or 'return {node}'. |
 | `FS1110` | Error | Parser | '{word}' needs one node of the parent circuit, and may appear once per circuit. |
@@ -62,6 +63,30 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1113` | Error | Parser | Spacing is in world units, so write 'spacing {n}' with no unit. |
 | `FS1114` | Error | Parser | '{extra}' is more than this line can hold. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
+| `FS1302` | Error | Units | Cannot add two {dimension}s. To offset by a difference, write '{example}'. |
+| `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |
+| `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |
+| `FS1306` | Warning | Units | {parameter} = {value} is outside the usual range ({low}–{high}). Check the unit. |
+| `FS1401` | Error | Expressions | '{name}' is already defined at line {line}. |
+| `FS1402` | Error | Expressions | '{name}' depends on itself: {cycle}. |
+| `FS1403` | Error | Expressions | Dividing by zero here. '{expression}' is zero. |
+| `FS1404` | Error | Expressions | Nothing named '{name}'. |
+| `FS1406` | Error | Expressions | A {kind} has no '{property}'. It has: {available}. |
+| `FS1408` | Error | Expressions | No function '{name}'. Available: {available}. |
+| `FS1409` | Error | Expressions | '{function}' takes {expected} arguments. |
+| `FS1501` | Error | Binder | '{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits. |
+| `FS1502` | Error | Binder | There is no '{kind}'. |
+| `FS1503` | Error | Binder | A {kind} has no '{parameter}'. It accepts: {available}. |
+| `FS1508` | Warning | Binder | No circuit name; using '{name}'. |
+| `FS1512` | Info | Binder | Read '{written}' as '{canonical}'. |
+| `FS1513` | Error | Binder | '{written}' could be '{first}' or '{second}'. Write one of them. |
+| `FS1514` | Error | Binder | '{parameter}' accepts {available}; '{written}' is none of them. |
+| `FS1515` | Error | Binder | '{parameter}' names a component property, like 'N2.t'. |
+| `FS1516` | Error | Binder | '{written}' is outside {kind}'s supported {min}…{max} range. |
+| `FS1517` | Warning | Binder | '{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used. |
+| `FS1519` | Info | Binder | '{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}. |
+| `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
+| `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

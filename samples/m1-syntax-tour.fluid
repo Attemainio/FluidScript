@@ -57,7 +57,7 @@ let share  = 50 %                         # `%` is a unit symbol and never an op
 let scale  = 1.2e3                        # exponent form, and a bare number
 let bore   = 27.3 mm                      # DN25 steel bore: a designation is not a diameter
 
-HE2 duty in=50 out=30 power=Q             # a parameter whose value is a reference to a `let`
+HE2 heat_exchanger in=50 out=30 power=Q             # a parameter whose value is a reference to a `let`
 TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
 PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
 NB1 node t=6 p=300                        # nor is `node` — this one is a boundary
@@ -77,7 +77,7 @@ catalog steel_en10255@2026.1              # a pinned catalogue version
 style "#2f6f9f" 1.5px round ..            # a hex colour must be quoted (D-13); dotted pattern
 show pressure
 
-HE3  duty in=50 out=30 power=24 kW
+HE3  heat_exchanger in=50 out=30 power=24 kW
 TV3  three_way_valve
 PU3  pump
 PID3 pid kp=3                             # a controller is an ordinary declaration (D-40)
@@ -95,7 +95,7 @@ circuit demandStep 400
 fluid dynamic water
 style green 1px sharp -.                  # the dash-dot pattern
 
-HE4 duty in=50 out=30 power=30 kW
+HE4 heat_exchanger in=50 out=30 power=30 kW
 TV4 three_way_valve
 PU4 pump
 NC1 node t=6 p=300 flow=0.24

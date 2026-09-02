@@ -104,7 +104,7 @@ public static class DiagnosticRegistry
     /// not always the area its code belongs to (<c>D-53</c>).
     /// </remarks>
     private static IEnumerable<DiagnosticDescriptor> Areas() =>
-        [.. LexerDiagnostics.All, .. ParserDiagnostics.All];
+        [.. LexerDiagnostics.All, .. ParserDiagnostics.All, .. BinderDiagnostics.All];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>
     private static IEnumerable<RetiredDiagnostic> RetiredCodes() =>
