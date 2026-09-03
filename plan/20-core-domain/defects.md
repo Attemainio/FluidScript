@@ -29,6 +29,7 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-19 | [`62`](../60-docs-and-devex/62-testing-strategy.md), [`22`](22-component-model.md) | **`62`'s worked example cannot evaluate the relation it claims to.** It builds `SolveContext.ForSingleComponent(FakeWater.Instance, massFlow: 0.2391)` — a substance and a flow, no port states — and calls `EvaluateResiduals` on a duty exchanger | `22`'s energy relation is `Q̇ = ṁ(h_out − h_in)` over the *solved* port enthalpies, and a context with no port states has no enthalpies to difference. The example's own constructor, `HeatExchanger(power:, inlet:, outlet:)`, implies the other reading: a duty from stated terminal temperatures and a `cp`. That is a real relation and it is the `FS2101` one — what three stated values imply about the fourth — so it ships as `HeatExchanger.ImpliedFlow`, a reported property rather than a residual. The test asserts both, and asserts they agree. `SolveContext.ForSingleComponent`, added on the strength of the example, was removed the same day: nothing could use it. |
 | C-18 | [`22`](22-component-model.md) | **A closed equal-percentage valve is not shut**, and nothing says so | `φ = R^(x−1)` with R = 50 gives `φ(0) = 0.02`, so a valve at position 0 still passes 2 % of its rated Kv. That is what the characteristic *means* — a real valve's shut-off comes from its seat, which is a leakage class and not part of the curve — so forcing `φ(0) = 0` would be inventing a seat. But `22` states the characteristic and never states the consequence, and the consequence is that a bypass closed by an equal-percentage valve keeps flowing. No code change; asserted in a test named for it, so the next reader meets it deliberately rather than while debugging a bypass. |
 | C-16 | [`22`](22-component-model.md) | **`EvaluateResiduals` cannot call `ISubstance` and also allocate nothing**, and `22` asks for both | The signature's own remarks say it "must not call the property backend more than necessary", which reads as a budget. It is not one: `FluidState` is a `sealed record`, so *any* state fix inside a residual evaluation allocates, N+1 times per Newton iteration. The two requirements are only compatible if the answer is **none**. Resolved by giving `SolveContext` per-port properties that are already evaluated — pressure, enthalpy, temperature, density, specific heat — so a residual is arithmetic by construction rather than by discipline. This is also what `21`'s per-solve cache was always implying. |
 | C-17 | [`22`](22-component-model.md), [`31`](../30-solver/31-solver-architecture.md), [`62`](../60-docs-and-devex/62-testing-strategy.md) | **`SolveContext` is named by three documents and defined by none** | `22` declares `EvaluateResiduals(in SolveContext, Span<double>)` and `62`'s worked example calls `SolveContext.ForSingleComponent(...)`, while `31` — which owns the unknown and equation registry, and writes out `UnknownDeclaration`, `EquationDeclaration`, `StateVector` and `ScalingVector` in full — stops short of this one. It cannot be deferred to `P3.6`, because `08` builds the components first and they cannot be written without it. Given to `22` on the same reasoning as `NodeObservation` in `P3.0`: it describes what a component *reads*, and the component interface is `22`'s. |
@@ -252,4 +253,19 @@ the shut-off *head* ratio with a *flow* ratio. And `ρgH` at 0.5 m is 4894.5 Pa,
 rounded to. That is now three suites running where every first-run failure has been the test rather
 than the code; the pattern is that hand-checked expectations are the least-reviewed line in a test, and
 they are the only line that carries a claim.
+
+**The heat exchanger was the smallest of the six, because `08` had already split it.** `P4.1` owns the
+rated two-sided exchanger with ε-NTU *and* LMTD as separate routes, on the stated grounds that "two
+formulations sharing no code is what makes UA = 12.07 kW/K a validation rather than a regression" — so
+building ε-NTU here would have pre-empted the check it exists for. `P3.3`'s exchanger is duty mode:
+two equations, nine tests. Worth recording because the instinct on reading `22` §3 is that the
+exchanger is the big one; the schedule had already made it the small one, and this is the first package
+where checking `08` before writing changed the answer rather than confirming it.
+
+**Nine tests passed on the first run, which had not happened before in this tier.** The three previous
+component suites each had a first-run failure and every one of them was the test's own arithmetic. The
+difference here is that the exchanger's numbers were taken from the fake's declared constants rather
+than typed from a hand calculation — `ImpliedFlow(SpecificHeat, 30)` instead of `0.239006` written out.
+The one hand-typed figure in the file, 17 448 W, is a residual off the solution, which no comment could
+have got from anywhere else.
 

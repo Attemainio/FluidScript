@@ -140,40 +140,23 @@ public readonly ref struct SolveContext
 
     /// <summary>Gets the number of ports.</summary>
     public int PortCount => Flows.Length;
-
     /// <summary>Gets whether this context carries evaluated port states.</summary>
     /// <value>
-    /// <see langword="false"/> for a context built by <c>ForSingleComponent</c>. A component
-    /// that reads <see cref="Ports"/> should check this rather than indexing an empty span.
+    /// A component that reads <see cref="Ports"/> should check this rather than indexing an empty span.
     /// </value>
-    public bool HasPortStates => !Ports.IsEmpty;
-
-    /// <summary>Builds a context for a component tested on its own, with no ports.</summary>
-    /// <param name="substance">The substance, normally one of the fakes.</param>
-    /// <param name="flows">The mass flow at each port, kg/s — usually one value.</param>
-    /// <returns>A context carrying those flows and no port states.</returns>
     /// <remarks>
     /// <para>
-    /// For a unit test of a component whose residual is written against its own stated parameters and
-    /// the flow through it — <c>62</c>'s worked example is exactly this shape. A component that reads
-    /// <see cref="Ports"/> needs the full constructor and a hand-built state.
+    /// <strong>There is no <c>ForSingleComponent</c> helper, and the attempt to write one is worth
+    /// recording.</strong> <c>62</c>'s worked example builds a context from a substance and a mass flow
+    /// alone and evaluates a duty exchanger's energy balance against it. That cannot work: the relation
+    /// <c>22</c> states is <c>Q̇ = ṁ(h_out − h_in)</c> over the <em>solved</em> port enthalpies, and a
+    /// context carrying no port states has no enthalpies to difference (<c>C-19</c>).
     /// </para>
     /// <para>
-    /// It takes a span rather than a <see langword="double"/> because the caller has to own the
-    /// storage: a span over a by-value parameter cannot outlive the call that made it, and the
-    /// compiler says so rather than letting the context carry a dangling reference. At a call site the
-    /// difference is one pair of brackets — <c>ForSingleComponent(FakeWater.Instance, [0.2391])</c>.
+    /// The reading that example implies — a duty from stated terminal temperatures and a <c>cp</c> — is
+    /// a real relation, but it is the one reporting what three stated values imply about the fourth,
+    /// not a residual. It lives on the component, as <c>HeatExchanger.ImpliedFlow</c>.
     /// </para>
     /// </remarks>
-    public static SolveContext ForSingleComponent(ISubstance substance, ReadOnlySpan<double> flows) =>
-        new(substance, [], flows);
-
-    /// <summary>Builds a context for a component tested on its own, with its own unknowns.</summary>
-    /// <param name="substance">The substance, normally one of the fakes.</param>
-    /// <param name="flows">The mass flow at each port, kg/s.</param>
-    /// <param name="unknowns">The component's own unknowns, in declaration order.</param>
-    /// <returns>A context carrying those flows and unknowns, and no port states.</returns>
-    public static SolveContext ForSingleComponent(
-        ISubstance substance, ReadOnlySpan<double> flows, ReadOnlySpan<double> unknowns) =>
-        new(substance, [], flows, unknowns);
+    public bool HasPortStates => !Ports.IsEmpty;
 }
