@@ -32,6 +32,7 @@ standards themselves ([`04-engineering-standards`](04-engineering-standards.md))
 ```
 FluidScript/
 ├── FluidScript.slnx                 solution: backend projects only
+├── global.json                      the SDK feature band this repository builds with
 ├── Directory.Build.props            shared MSBuild properties for every project
 ├── Directory.Packages.props         central package management — versions live here, not in csproj
 ├── .editorconfig                    analyzer + formatting rules
@@ -107,6 +108,34 @@ it does not compute geometry or add a second layout engine (`D-03`, `D-20`, `D-2
 Scripts use **`.fluid`** (`D-10`). `.fs` collides with F#, `.fsc` with several existing tools.
 
 ## Build configuration
+
+### `global.json`
+
+```json
+{
+  "sdk": { "version": "10.0.100", "rollForward": "latestPatch" },
+  "test": { "runner": "Microsoft.Testing.Platform" }
+}
+```
+
+**`rollForward` is load-bearing, and `latestPatch` is a deliberate narrowing of `latestFeature`.** It
+means: any 10.0.**1**xx SDK, and nothing from another feature band. Two things depend on it.
+
+The first is ordinary. `setup-dotnet` installs from this file, so CI resolves the same band a
+developer does rather than whatever the runner image happens to carry.
+
+The second is not obvious and is why the value is narrow. **Anything that loads this repository's
+projects outside `dotnet build` picks its own SDK, and if it picks a different one the two fight over
+one NuGet assets cache.** The Roslyn-backed tooling a session uses is exactly that: it registers an
+MSBuild, restores with it, and reads `obj/` — so with two SDKs installed and a permissive
+`rollForward`, the tool and the shell can each satisfy the pin with a different band, and whichever
+restored last leaves a cache the other cannot open. The symptom is a workspace that loads with
+missing references and answers questions as though nothing were wrong. Naming one band removes the
+ambiguity at the source instead of pinning anyone's `PATH`.
+
+The cost is stated plainly: a machine with only a 10.0.3xx SDK cannot build this repository until it
+installs a 10.0.1xx one, and gets `SDK not found` rather than a silent roll-forward. That is the
+intended trade — a refusal at the first command beats a degraded answer an hour later.
 
 ### `Directory.Build.props`
 
