@@ -712,7 +712,7 @@ public sealed class WellPosednessTests
         var lowered = Lowering.Lower(
             bound.Model,
             FluidScript.Core.Fluids.ConstantPropertyWater.Instance,
-            new ComponentFactory(new ReferenceBores()));
+            new ComponentFactory(GraphFixture.Bores()));
 
         var table = WellPosedness.Check(lowered.Graph).Counting;
 

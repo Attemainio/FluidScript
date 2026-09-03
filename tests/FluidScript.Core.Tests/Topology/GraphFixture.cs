@@ -1,4 +1,5 @@
 using FluidScript.Core.Binding;
+using FluidScript.Core.Catalogs;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Language;
 using FluidScript.Core.Syntax;
@@ -6,35 +7,6 @@ using FluidScript.Core.Topology;
 
 namespace FluidScript.Core.Tests.Topology;
 
-/// <summary>The four DN sizes this tree's reference circuits use, as a stand-in for the catalogue.</summary>
-/// <remarks>
-/// <para>
-/// <strong>This is a fixture, not a catalogue.</strong> <c>27</c> owns the real table, with two public
-/// sources per row, and it ships in <c>P3.5</c>; lowering exists a package earlier and needs a bore to
-/// build a pipe at all (<c>C-24</c>). Four rows of EN 10220 medium-series steel are enough for every
-/// circuit under test and small enough that nobody mistakes it for the thing it stands in for.
-/// </para>
-/// <para>
-/// The numbers matter even here: <strong>DN25 is a 27.3 mm bore, not 25 mm.</strong> Using the
-/// designation as a diameter is a 16 % area error and roughly a factor of two in pressure gradient,
-/// with nothing in the result looking wrong — which is exactly why a fixture that quietly returned
-/// <c>dn / 1000</c> would be worse than no fixture.
-/// </para>
-/// </remarks>
-public sealed class ReferenceBores : IBoreLookup
-{
-    /// <inheritdoc/>
-    public double? BoreFor(double nominalDiameter) => nominalDiameter switch
-    {
-        15 => 16.1e-3,
-        20 => 21.7e-3,
-        25 => 27.3e-3,
-        32 => 35.9e-3,
-        40 => 41.8e-3,
-        50 => 53.1e-3,
-        _ => null,
-    };
-}
 
 /// <summary>Binds a script and lowers it, which every test in this folder starts with.</summary>
 public static class GraphFixture
@@ -54,6 +26,32 @@ public static class GraphFixture
         return result.Model;
     }
 
+    /// <summary>The shipped catalogue's bores, resolved the way a solve resolves them.</summary>
+    /// <returns>A lookup over the default pipe catalogue.</returns>
+    /// <remarks>
+    /// <para>
+    /// This was a six-row hand-written fixture until <c>P3.5</c> verified the real table, and the two
+    /// disagreed: the fixture gave DN32 a 35.9 mm bore where the catalogue and <c>27</c>'s own gradient
+    /// table give 36.0, and DN40 41.8 against 41.9. Neither number was wrong for the standard it was
+    /// drawn from -- the fixture said EN 10220 and the catalogue is EN 10255 -- but two tables in one
+    /// repository quietly answering the same question differently is how the real one gets doubted
+    /// (<c>C-32</c>).
+    /// </para>
+    /// <para>
+    /// It resolves through <see cref="PipeCatalogs.Resolve"/> rather than reading the instance,
+    /// because that is the path a solve takes and it is the one that enforces provenance. If the
+    /// shipped rows ever stop being verified, every test in this folder says so.
+    /// </para>
+    /// </remarks>
+    public static IBoreLookup Bores()
+    {
+        var resolved = PipeCatalogs.Resolve(pin: null);
+
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+
+        return new CatalogBoreLookup(resolved.Value.Catalog);
+    }
+
     /// <summary>Binds and lowers a script.</summary>
     /// <param name="source">The script.</param>
     /// <returns>The lowering result, graph and all.</returns>
@@ -61,7 +59,7 @@ public static class GraphFixture
         Lowering.Lower(
             Bind(source),
             ConstantPropertyWater.Instance,
-            new ComponentFactory(new ReferenceBores()));
+            new ComponentFactory(Bores()));
 
     /// <summary>The cooling loop <c>23</c> tabulates, and <c>01</c> gives solved values for.</summary>
     /// <remarks>
