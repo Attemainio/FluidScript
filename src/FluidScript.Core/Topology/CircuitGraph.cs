@@ -92,6 +92,19 @@ public sealed record CircuitGraph
     /// </remarks>
     public required ImmutableDictionary<string, string> CircuitOf { get; init; }
 
+    /// <summary>Gets which port each port is joined to.</summary>
+    /// <value>
+    /// Indexed by position in <see cref="Components"/> and then by the component's own port order.
+    /// <para>
+    /// <strong>This is what a branch decomposition alone cannot say.</strong> <see cref="Branch.Path"/>
+    /// gives the order a walk crosses the elements, and the assembler needs the port: a component's
+    /// residual reads <c>Ports[i]</c> as the state at the node port <c>i</c> touches, and a two-port
+    /// pass-through walked from the other end is entered at its outlet. Lowering computes this to
+    /// decompose the branches at all, and used to discard it (<c>S-10</c>).
+    /// </para>
+    /// </value>
+    public required PortAdjacency Adjacency { get; init; }
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

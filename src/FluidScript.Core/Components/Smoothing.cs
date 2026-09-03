@@ -1,3 +1,5 @@
+using FluidScript.Core.Solvers;
+
 namespace FluidScript.Core.Components;
 
 /// <summary>Blends that keep a residual differentiable where the physics switches.</summary>
@@ -18,11 +20,13 @@ internal static class Smoothing
 {
     /// <summary>The signed flow over which upwinding blends between the two sides.</summary>
     /// <value>
-    /// 1 × 10⁻³ kg/s, from <c>36</c>'s <c>upwind.smoothing_band</c>. Deliberately wider than the
-    /// zero-flow tolerance: detecting zero flow wants a tight threshold, and smoothing a derivative
-    /// wants a band a Newton step can actually resolve.
+    /// 1 × 10⁻³ kg/s, positive into the node, read from <see cref="Tolerances.UpwindSmoothingBand"/>
+    /// rather than written here: it is <c>36</c>'s <c>upwind.smoothing_band</c>, and a second copy of
+    /// a table's number is what <c>S-6</c> records. Deliberately wider than the zero-flow tolerance —
+    /// detecting zero flow wants a tight threshold, and smoothing a derivative wants a band a Newton
+    /// step can actually resolve.
     /// </value>
-    public const double UpwindBand = 1e-3;
+    public const double UpwindBand = Tolerances.UpwindSmoothingBand;
 
     /// <summary>Hermite smoothstep, clamped.</summary>
     /// <param name="t">The position across the band.</param>

@@ -1,3 +1,5 @@
+using FluidScript.Core.Solvers;
+
 namespace FluidScript.Core.Components;
 
 /// <summary>How a valve's effective flow coefficient follows its opening.</summary>
@@ -43,10 +45,13 @@ public static class ValveLaw
     public const double WaterDensity = 1000;
 
     /// <summary>The pressure drop below which the √ law is blended.</summary>
-    /// <value>100 Pa, from <c>36</c>'s <c>valve.dp_regularization</c>. 0.001 bar — three orders below
-    /// any meaningful valve drop, so the blended region is never a real design's operating point,
-    /// only somewhere the solver passes through.</value>
-    public const double RegularizationDrop = 100;
+    /// <value>
+    /// 100 Pa, and it is <see cref="Tolerances.ValveRegularizationDrop"/> rather than a literal: this
+    /// number is <c>36</c>'s <c>valve.dp_regularization</c>, transcribed here by hand until <c>S-6</c>
+    /// pointed out that a change to that table reached neither of the two components holding a copy.
+    /// It stays a <see langword="const"/> because <see cref="MassFlow"/> needs it at compile time.
+    /// </value>
+    public const double RegularizationDrop = Tolerances.ValveRegularizationDrop;
 
     /// <summary>The fraction of rated Kv an opening delivers.</summary>
     /// <param name="position">The opening, 0 to 1. 1 is fully open.</param>

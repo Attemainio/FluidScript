@@ -86,6 +86,7 @@ public static partial class Lowering
                 JunctionElements = junctions,
                 Loops = loops,
                 Groups = build.Groups,
+                Adjacency = build.Adjacency,
                 CircuitOf = build.CircuitOf,
             },
             build.Unresolved);

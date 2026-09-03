@@ -53,6 +53,37 @@ public static partial class Lowering
 
         public ImmutableArray<IFlowComponent> Components => [.. _elements];
 
+        /// <summary>The port-to-port table <see cref="Connect"/> built.</summary>
+        /// <value>
+        /// Empty before <see cref="Connect"/> runs. It is the same data the walk in
+        /// <see cref="Decompose"/> reads, published rather than kept private: the solver needs to know
+        /// which node a port touches, and nothing else in the graph records it (<c>S-10</c>).
+        /// </value>
+        public PortAdjacency Adjacency
+        {
+            get
+            {
+                var rows = ImmutableArray.CreateBuilder<ImmutableArray<PortRef>>(_peerElement.Length);
+
+                for (var element = 0; element < _peerElement.Length; element++)
+                {
+                    var row = ImmutableArray.CreateBuilder<PortRef>(_peerElement[element].Length);
+
+                    for (var port = 0; port < _peerElement[element].Length; port++)
+                    {
+                        row.Add(
+                            _peerElement[element][port] < 0
+                                ? PortRef.None
+                                : new PortRef(_peerElement[element][port], _peerPort[element][port]));
+                    }
+
+                    rows.Add(row.MoveToImmutable());
+                }
+
+                return new PortAdjacency(rows.MoveToImmutable());
+            }
+        }
+
         public ImmutableArray<ComponentGroup> Groups => _groups.ToImmutable();
 
         public ImmutableDictionary<string, string> CircuitOf => _circuits.ToImmutable();

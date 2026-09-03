@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using FluidScript.Core.Solvers;
+
 namespace FluidScript.Core.Units;
 
 /// <summary>
@@ -20,7 +22,9 @@ namespace FluidScript.Core.Units;
 /// </remarks>
 public readonly record struct Quantity
 {
-    private const double DefaultRelativeTolerance = 1e-9;
+    // 36's quantity.compare_rel_tol. Comparison, not convergence -- but still one of that table's
+    // rows, so it is read from there rather than kept as a second copy (S-6).
+    private const double DefaultRelativeTolerance = Tolerances.QuantityCompareRelative;
 
     /// <summary>Gets the magnitude in the dimension's SI base unit.</summary>
     /// <value>
