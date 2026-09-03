@@ -48,6 +48,8 @@ public sealed class CircuitNode : IFlowComponent
             }),
         ];
 
+        FlowGroups = [.. Enumerable.Repeat(0, portCount)];
+
         _unknowns =
         [
             new UnknownDeclaration(0, UnknownKind.NodePressure, name, $"{name}.p", "Pa"),
@@ -92,6 +94,14 @@ public sealed class CircuitNode : IFlowComponent
 
     /// <inheritdoc/>
     public ImmutableArray<Port> Ports { get; }
+
+    /// <inheritdoc/>
+    /// <value>
+    /// One group holding every port. A node is where flows meet, so all of them share it however many
+    /// there are — which is what makes a node with three or more connections a junction element and
+    /// one with two interior to a branch.
+    /// </value>
+    public ImmutableArray<int> FlowGroups { get; }
 
     /// <summary>Gets whether this node contributes a mass balance.</summary>
     /// <value>

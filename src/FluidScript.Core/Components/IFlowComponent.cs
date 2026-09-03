@@ -113,6 +113,28 @@ public interface IFlowComponent : IComponent
     /// <remarks>An unqualified connection binds in this order, so it is part of the contract.</remarks>
     ImmutableArray<Port> Ports { get; }
 
+    /// <summary>Gets which flow group each port belongs to, indexed as <see cref="Ports"/> is.</summary>
+    /// <value>
+    /// One entry per port, holding a small group id. Ports sharing an id must carry the same mass
+    /// flow. Ids are dense from zero and their order carries no meaning.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// <strong>This, and never the port count, is what makes a component a junction element</strong>
+    /// — one whose ports carry different flows, so branches must split at it (<c>D-63</c>). A coupled
+    /// heat exchanger has four ports in <em>two</em> groups of two, because nothing flows from side 1
+    /// to side 2; a three-way valve has the same "more than two ports" and one group of three. No
+    /// count separates them, and a port-count test gives the exchanger a mass balance that is false
+    /// whenever the two sides carry different flows — which is always.
+    /// </para>
+    /// <para>
+    /// <strong>The component declares it because only the component knows.</strong> Computing groups
+    /// in lowering from a kind's port names is the kind-specific table <c>D-30</c> exists to prevent,
+    /// and it would put the exchanger's special case in the one file that has to stay general.
+    /// </para>
+    /// </remarks>
+    ImmutableArray<int> FlowGroups { get; }
+
     /// <summary>Gets how many equations this component contributes.</summary>
     /// <remarks>
     /// <strong>Constant for the life of the component.</strong> It may depend on structure fixed at

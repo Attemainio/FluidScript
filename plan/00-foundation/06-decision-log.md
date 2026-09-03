@@ -2585,6 +2585,53 @@ binding holding a temperature. Nothing about the dimension algebra changes.
 
 ---
 
+## D-63 · A component declares how its ports partition into flow groups
+
+**Accepted · 2026-09-03** · amends `22`'s component contract; constrains `23`, `31`
+
+`IFlowComponent` gains `FlowGroups`: one entry per port, holding the id of the set of ports that must
+carry the same mass flow. A component is a **junction element** when one of its groups holds more than
+two ports, and that — never the port count — is what decides whether branches split at it.
+
+**`23` introduced flow groups and assigned the declaration to the component, and `22` never
+mentioned them.** The two documents were written apart and the contract only exists in one of them, so
+this is a change to a shipped interface rather than an addition to an unwritten one.
+
+**Port count is the wrong test, and the case that proves it is real.** A coupled heat exchanger has
+four ports in *two* groups of two: nothing flows from side 1 to side 2. Under a port-count test it is
+a junction, which splits all four of its branches at it and gives it a mass balance it cannot satisfy
+— `Σ ṁᵢ = 0` across all four ports is false whenever the sides carry different flows, which is always.
+A three-way valve has the same "more than two ports" and one group of three, and genuinely is a
+junction. No count separates them; the partition does.
+
+**The component declares it because only the component knows.** `D-30` already forbids inferring
+structural facts from residual code or parameter names, which is why `DrivesFlow` is registry data;
+this is the same rule one level down. A lowering pass that computed groups from a kind's port names
+would hold a table of kind-specific knowledge, and the seventh component kind would be a change to
+lowering rather than a new file.
+
+**A four-port exchanger declares two groups whatever its mode.** `23` tabulates duty mode as one group
+of two, because side 2 does not exist there — but the difference is in what is *connected*, not in how
+the ports partition, and a component that had to know its own mode to answer would need lowering to
+tell it. Declaring `[0,0,1,1]` always and letting connectivity decide is equivalent and keeps mode
+selection where `23` puts it.
+
+**Rejected.**
+- *Derive groups in lowering from the registry's port list.* Leaves `IFlowComponent` untouched, which
+  is worth something a package after it shipped. Cost: it is exactly the kind-specific table `D-30`
+  exists to prevent, and it puts the coupled exchanger's special case in the one file that must stay
+  general.
+- *Registry data, beside `DrivesFlow`.* The precedent is real and the check would be one line in
+  `ComponentRegistry.Verify`. Cost: the registry describes a kind and groups are a property of an
+  *instance* — a tank's group holds every materialized port, and how many there are comes from the
+  script. A registry entry cannot say that without a rule the registry would then have to interpret.
+- *Expose `IsJunctionElement` on the component instead.* Smaller surface, and it is what lowering
+  actually asks. Cost: a terminal is a junction element too and nothing about a component says whether
+  it is one — that is its degree in a graph the component cannot see. Splitting the question in two
+  gives lowering the half it can answer and the component the half it can.
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

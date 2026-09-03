@@ -87,6 +87,37 @@ public sealed class ArchitectureTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void TheGraphNamesNoTier10Type()
+    {
+        // 23's invariant 7, and the reason it is worth a test rather than a convention: the graph is
+        // what the solver runs on, and a solver testable only through a parser is a solver whose
+        // failures all look like language failures. Names in the graph are strings precisely so it can
+        // be reportable without carrying a symbol -- and a symbol is exactly what a careless `using`
+        // would put back.
+        var graphTypes = new[] { "CircuitGraph.cs", "GraphNode.cs", "Branch.cs" };
+        var tier10 = new[]
+        {
+            "FluidScript.Core.Syntax", "FluidScript.Core.Binding", "FluidScript.Core.Language",
+            "SemanticModel", "ComponentSymbol", "ConnectionSymbol", "TextSpan", "ComponentKindInfo",
+        };
+
+        var breaches = RepositoryLayout.EnumerateSourceFiles()
+            .Where(path => graphTypes.Contains(Path.GetFileName(path), StringComparer.Ordinal))
+            .Where(static path => RepositoryLayout.ToRelative(path)
+                .StartsWith("src/FluidScript.Core/Topology/", StringComparison.Ordinal))
+            .SelectMany(path => tier10
+                .Where(name => File.ReadAllText(path).Contains(name, StringComparison.Ordinal))
+                .Select(name => $"{RepositoryLayout.ToRelative(path)} names {name}"))
+            .ToArray();
+
+        Assert.True(
+            breaches.Length == 0,
+            "23 invariant 7: CircuitGraph holds no reference to any syntax or semantic-model type. "
+            + $"Found: {string.Join(", ", breaches)}");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void Core_HasNoProjectReference()
     {
         var coreProject = Path.Combine(

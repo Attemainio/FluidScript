@@ -79,6 +79,8 @@ public sealed class Tank : IFlowComponent
             .. outlets.Select((elevation, index) => Indexed("out", index, elevation)),
         ];
 
+        FlowGroups = [.. Enumerable.Repeat(0, Ports.Length)];
+
         // K >= 3 is a junction and K == 1 a terminal; at K == 2 the branch-owned flow already makes the
         // row an identity, exactly as for a node interior to a branch.
         CarriesMassBalance = Ports.Length >= 3 || Ports.Length == 1;
@@ -161,6 +163,13 @@ public sealed class Tank : IFlowComponent
     /// connection or an elevation parameter names them.
     /// </remarks>
     public ImmutableArray<Port> Ports { get; }
+
+    /// <inheritdoc/>
+    /// <value>
+    /// One group holding every materialized port. A vessel is a mixed junction: what enters at one
+    /// port may leave at any other, so no two of them are tied to a single shared flow.
+    /// </value>
+    public ImmutableArray<int> FlowGroups { get; }
 
     /// <inheritdoc/>
     /// <value>

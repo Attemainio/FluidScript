@@ -122,6 +122,22 @@ public sealed class HeatExchanger : IFlowComponent
     /// The secondary ports are optional, so inference rule I3 skips them and a duty declaration is
     /// complete without fabricated nodes.
     /// </remarks>
+    /// <inheritdoc/>
+    /// <value>
+    /// <strong>Two groups of two</strong>, <c>{in, out}</c> and <c>{in2, out2}</c>, whatever the mode.
+    /// Nothing flows from one side to the other, so this is <em>not</em> a junction element despite
+    /// having four ports — it is interior to a branch on each side. Giving it one group would assert
+    /// that fluid crosses between the sides and hand it a mass balance that is false whenever the two
+    /// carry different flows.
+    /// </value>
+    /// <remarks>
+    /// <c>23</c> tabulates duty mode as one group of two, because side 2 does not exist there. The
+    /// difference is in what is <em>connected</em>, not in how the ports partition, and a component
+    /// that had to know its own mode to answer would need lowering to tell it (<c>D-63</c>).
+    /// </remarks>
+    public ImmutableArray<int> FlowGroups { get; } = [0, 0, 1, 1];
+
+    /// <inheritdoc/>
     public ImmutableArray<Port> Ports { get; } =
     [
         new Port { Name = "in", Role = PortRole.Inlet, IsOptional = false },

@@ -86,6 +86,10 @@ public sealed class Valve : IFlowComponent
     ];
 
     /// <inheritdoc/>
+    /// <value>One group of two.</value>
+    public ImmutableArray<int> FlowGroups { get; } = [0, 0];
+
+    /// <inheritdoc/>
     /// <value>One: the Kv relation.</value>
     public int EquationCount => 1;
 
@@ -198,6 +202,13 @@ public sealed class ThreeWayValve : IFlowComponent
         new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
         new Port { Name = "c", Role = PortRole.Bidirectional, IsOptional = true },
     ];
+
+    /// <inheritdoc/>
+    /// <value>
+    /// <strong>One group of three</strong>, which is what makes this a junction element. The flow
+    /// divides here, so its three ports carry three different flows and no branch may pass through it.
+    /// </value>
+    public ImmutableArray<int> FlowGroups { get; } = [0, 0, 0];
 
     /// <inheritdoc/>
     /// <value>Three: a mass balance and one Kv relation per path.</value>

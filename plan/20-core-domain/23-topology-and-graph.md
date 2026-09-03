@@ -125,8 +125,9 @@ public sealed record BranchEnd
 
 ### Flow groups
 
-Each component declares how its ports partition into sets that must carry the same flow. This is the
-test everything structural is built on, and port count alone is not it.
+Each component declares how its ports partition into sets that must carry the same flow (`D-63`:
+`IFlowComponent.FlowGroups`, one entry per port holding that port's group id). This is the test
+everything structural is built on, and port count alone is not it.
 
 | Component | Flow groups | Junction element? |
 |---|---|---|
@@ -164,7 +165,11 @@ The semantic model arrives with inference already applied. Lowering does five th
 
 1. **Instantiate components.** Each `ComponentSymbol` that carries flow becomes an `IComponent` via
    the registry, with its stated parameters converted to SI. **An observer is not one of them** — see
-   below.
+   below. **A node is built after step 3, not here**: a node's ports are unnamed and positional, so
+   nothing but the connection list says how many it has, and that count decides both its port count and
+   whether it carries a mass balance. **A pipe's bore is not a stated parameter either**: the script
+   states `dn`, and the designation becomes a bore through [`27`](27-component-catalog.md), which ships
+   a package later — lowering takes the mapping as an injected lookup (`C-24`).
    Indexed tank ports have already been materialized by the binder; lowering maps each normalized
    elevation to exactly one bottom-to-top layer and does not create ports absent from source (`D-32`).
 2. **Materialise pipe internals.** A `pipe` with `nodes=n` expands into n internal thermodynamic nodes
@@ -399,8 +404,10 @@ can never detect an over- or under-specified circuit, so it cannot be what `FS22
 raised from. The real count has to include the things a user actually varies: boundary conditions, and
 the parameters a stated constraint promotes into unknowns.
 
-**Vocabulary.** A **junction element** is either a terminal or a component with at least one flow
-group containing three or more ports. Port count alone is never the test: a four-port coupled
+**Vocabulary.** A **junction element** is a component with a flow group that does **not** hold exactly
+two ports. A group of three or more is a split, and a group of one is a terminal — so the two halves
+of the rule are one test on data the component already declares (`D-63`), rather than a port-group
+test plus a degree the component cannot see. Port count alone is never the test: a four-port coupled
 exchanger has two flow groups of two and is not a junction element, while a three-way valve has one
 group of three and is. A **branch** runs between two junction elements and carries one flow. Nodes
 *interior* to a branch (degree two) still carry pressure and enthalpy unknowns, but contribute no

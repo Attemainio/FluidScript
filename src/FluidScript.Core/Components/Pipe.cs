@@ -130,6 +130,10 @@ public sealed class Pipe : IFlowComponent
     ];
 
     /// <inheritdoc/>
+    /// <value>One group of two: everything entering a pipe leaves it.</value>
+    public ImmutableArray<int> FlowGroups { get; } = [0, 0];
+
+    /// <inheritdoc/>
     /// <value>One: the momentum equation.</value>
     public int EquationCount => 1;
 

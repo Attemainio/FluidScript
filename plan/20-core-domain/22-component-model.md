@@ -66,6 +66,15 @@ public interface IFlowComponent : IComponent
     /// <summary>Ports, in declaration order. Unqualified connections bind in this order.</summary>
     IReadOnlyList<Port> Ports { get; }
 
+    /// <summary>Which flow group each port belongs to, indexed as <see cref="Ports"/> is (D-63).</summary>
+    /// <remarks>
+    /// Ports sharing a group must carry the same mass flow. A component is a junction element when
+    /// one group holds more than two ports — never when its port count does. A coupled exchanger is
+    /// [0,0,1,1], two groups of two; a three-way valve is [0,0,0]; a tank is one group of every
+    /// materialized port. See <see href="23-topology-and-graph.md"/>.
+    /// </remarks>
+    IReadOnlyList<int> FlowGroups { get; }
+
     /// <summary>Declares the unknowns this component adds to the system.</summary>
     /// <returns>One entry per scalar the solver may vary. Empty for a component that only
     /// constrains state its ports already carry.</returns>
@@ -133,6 +142,11 @@ public sealed record Port
 solved state directly (§7). What `D-23` still governs is instrument *dynamics* — a lag, an offset, an
 error band — which remain post-v1. The symbol schema becomes a delivery gate with the M3 renderer
 under `D-24`, not with M2 physics.
+
+**A four-port exchanger declares two groups whatever its mode.** [`23`](23-topology-and-graph.md)
+tabulates duty mode as one group of two, because side 2 does not exist there — but the difference is
+in what is *connected*, not in how the ports partition, and a component that had to know its own mode
+to answer would need lowering to tell it. `[0,0,1,1]` always, and connectivity decides (`D-63`).
 
 **`IFlowComponent` and `IObserver` do not arrive together.** The observer half is built first
 (`P3.0`), before the six flow kinds, because a seventh family added afterwards is six rewrites and one

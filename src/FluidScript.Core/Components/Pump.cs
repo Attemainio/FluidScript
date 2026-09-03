@@ -129,6 +129,10 @@ public sealed class Pump : IFlowComponent
     ];
 
     /// <inheritdoc/>
+    /// <value>One group of two.</value>
+    public ImmutableArray<int> FlowGroups { get; } = [0, 0];
+
+    /// <inheritdoc/>
     /// <value>One: the curve.</value>
     public int EquationCount => 1;
 
