@@ -34,6 +34,12 @@ owns them would not have seen them. The entries below are that backlog, written 
 | S-7 | [`31`](31-solver-architecture.md) | **The residual-row-to-component mapping is built and consumed by nothing** | `31` makes the point that this mapping exists only at the component layer — "HX1 energy balance off by 4.2 kW" is actionable and "residual[17] = 4200" is not — and that if that layer does not carry it, no later one can recover it. `P3.3` implemented `DeclareEquations`, which names every row with its owner and its residual unit, and a test asserts each component declares exactly as many as it writes. Nothing reads it yet. Recorded because the first assembler is where it gets dropped: the rows are contiguous and the temptation to index them by integer alone is strongest exactly there. |
 | S-9 | [`31`](31-solver-architecture.md) | **Nothing consumes the counting table, so its terms are asserted against a document rather than against an assembly** | `WellPosedness.CountingTable` says the cooling loop has 20 unknowns and 20 equations, and that number is checked against `23`'s hand-tabulated table. When `32` assembles the real system, the row and column counts of the Jacobian are the same two numbers computed a second way — and if they disagree, one of the two is wrong with nothing to say which. The assembly should be built to *consume* this table (size its buffers from it, and assert its own totals against it) rather than to re-derive the counts, which is the only way the agreement means anything. |
 
+## Closed
+
+| # | Document | What was wrong | What changed |
+|---|---|---|---|
+| S-8 | [`36`](36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md) | **`FS2211` (under-specified) appeared to be unreachable from any script**, so half of the well-posedness count was untested against real input | It was reachable, and the reason nothing reached it was a missing row rather than a dead code path: the count had no **enthalpy datum** (`C-30`, `D-65`). A closed, steady circuit coupled to nothing has one enthalpy its own relations cannot determine, and a script that states no temperature anywhere in such a circuit is genuinely under-specified by exactly one. `P3.4c` counts it, and `Understated` now names a temperature ahead of a pressure — the one candidate the graph could not have picked for itself, since a datum covers the pressure case before it can reach this code. The original entry guessed at the two possibilities correctly and picked neither: the equation set *was* missing a row, and `FS2211` is not dead. |
+
 ## Observations
 
 **The nodal formulation's consequences are now structural, not just stated.** `23` argues that loop
@@ -108,9 +114,3 @@ ends where the graph does" path produces an end that is not a vertex — and `Cy
 directly. `KeyNotFoundException` on a script that is merely incomplete, which no stage may do. Found by
 a test written to reach `FS2211`, which is the second time this package a test written for one reason
 found something else.
-
-## Closed
-
-| # | Document | What was wrong | What changed |
-|---|---|---|---|
-| S-8 | [`36`](36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md) | **`FS2211` (under-specified) appeared to be unreachable from any script**, so half of the well-posedness count was untested against real input | It was reachable, and the reason nothing reached it was a missing row rather than a dead code path: the count had no **enthalpy datum** (`C-30`, `D-65`). A closed, steady circuit coupled to nothing has one enthalpy its own relations cannot determine, and a script that states no temperature anywhere in such a circuit is genuinely under-specified by exactly one. `P3.4c` counts it, and `Understated` now names a temperature ahead of a pressure — the one candidate the graph could not have picked for itself, since a datum covers the pressure case before it can reach this code. The original entry guessed at the two possibilities correctly and picked neither: the equation set *was* missing a row, and `FS2211` is not dead. |
