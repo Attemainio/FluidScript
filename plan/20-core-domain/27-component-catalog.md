@@ -188,6 +188,22 @@ public sealed record PipeSpec
 }
 ```
 
+**Roughness is provenanced differently from a dimension (`D-68`).** It is in no pipe standard, no
+manufacturer's table carries it, and its published tolerance is ±30 % to ±50 %; it is a Moody-chart
+literature value. `MaterialRoughness` carries the value, the material, the **condition**, a citation
+and its sources, and needs one source rather than two — the two-source rule catches a transcription
+error in a number read off an object, and there is no object here. Every v1 value is for **new** pipe
+and says so. This is the same line this document already draws for the plate Nusselt constants.
+
+**The condition matters far more than the citation.** At DN25 and Re 15 450, ±50 % on the textbook
+value is worth about 4.5 % on the gradient; ageing to 0.3 mm is worth about 39 %. A script wanting
+aged pipe writes `roughness=0.3 mm`.
+
+**A `dn` value means different things in different catalogues, and that is stated per series.** Steel's
+`dn=15` is a designation whose bore is 16.1 mm; copper's is a 15 mm tube whose bore is 13.6 mm — 24 %
+apart, from the same script text. `PipeSpec.DesignationBasis` is `NominalSize` or `OutsideDiameter`
+(`C-38`).
+
 **Metres as `double`, not `Quantity`.** These were written as `Quantity` and the derivation above does
 not compile: `Quantity` has no arithmetic operators, only `TryAdd`/`TrySubtract`, because unit
 arithmetic can fail and a silent operator would hide it. Plain metres also matches `Pipe`, which is the
@@ -304,7 +320,7 @@ A circuit picks catalogues from the `fluid`/`style` context or from defaults:
 
 | Catalogue | Default | Why |
 |---|---|---|
-| Pipes | `pipes-steel-en10255` | The common European hydronic default |
+| Pipes | `steel_en10255` | The common European hydronic default. `copper_en1057` also ships, unverified (`C-38`) |
 | Valves | `valves-kv` | Generic, manufacturer-neutral |
 | Pumps | `pumps-generic` | The quadratic default curve ([`22`](22-component-model.md)) |
 

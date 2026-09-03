@@ -28,9 +28,27 @@ public static class SteelEn10255
     /// <summary>The catalogue id a script pins.</summary>
     public const string Id = "steel_en10255";
 
+    /// <summary>Absolute roughness of commercial steel, and the condition it describes.</summary>
+    /// <remarks>
+    /// Declared above <see cref="Instance"/> for the same reason <c>Sources</c> is: static
+    /// initialisers run in textual order, and a basis written after the catalogue that reads it is
+    /// null in every row.
+    /// </remarks>
+    public static MaterialRoughness RoughnessBasis { get; } = new(
+        45e-6,
+        "commercial steel",
+        "new",
+        "Moody (1944); Colebrook (1939); Crane Technical Paper 410",
+        [
+            new SourceReference(
+                "SimuPipe", "https://simupipe.com/resources/pipe-roughness", new DateOnly(2026, 9, 3)),
+            new SourceReference(
+                "EngineerExcel", "https://engineerexcel.com/pipe-roughness/", new DateOnly(2026, 9, 3)),
+        ]);
+
     /// <summary>Absolute roughness of commercial steel.</summary>
     /// <value>m. 0.045 mm, matching <see cref="Components.Pipe"/>'s default.</value>
-    public const double Roughness = 45e-6;
+    public static double Roughness => RoughnessBasis.Value;
 
     private const string Series = "steel, EN 10255 medium";
 
@@ -137,6 +155,7 @@ public static class SteelEn10255
             Spec = new PipeSpec
             {
                 NominalDiameter = row.Dn,
+                DesignationBasis = DesignationBasis.NominalSize,
                 OutsideDiameter = row.OdMm / 1000,
                 WallThickness = row.WallMm / 1000,
                 Roughness = Roughness,
@@ -145,23 +164,6 @@ public static class SteelEn10255
 
             Provenance = Sources,
         }),
-        Plausible,
+        PipeSpec.Fault,
         static spec => spec.OutsideDiameter);
-
-    /// <summary>What is wrong with one row, or <see langword="null"/>.</summary>
-    /// <param name="spec">The row to check.</param>
-    /// <returns>The fault, phrased to complete "'DN25' ...".</returns>
-    /// <remarks>
-    /// <c>27</c>'s invariant 7, and the cheapest guard there is against the realistic failure mode of
-    /// hand-curated data. A wall thickness transcribed as 32 instead of 3.2 gives a negative bore,
-    /// which is caught here; one transcribed as 3.6 instead of 3.2 gives a plausible bore, which is
-    /// what the two-source rule is for.
-    /// </remarks>
-    private static string? Plausible(PipeSpec spec) => spec switch
-    {
-        { WallThickness: <= 0 } => "has a non-positive wall thickness",
-        { Roughness: <= 0 } => "has a non-positive roughness",
-        _ when spec.OutsideDiameter <= 2 * spec.WallThickness => "has no bore left after its wall",
-        _ => null,
-    };
 }

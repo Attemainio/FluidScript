@@ -38,7 +38,7 @@ public static class PipeCatalogs
     public static ImmutableDictionary<string, ICatalog<PipeSpec>> All { get; } =
         ImmutableDictionary.CreateRange(
             StringComparer.Ordinal,
-            new[] { SteelEn10255.Instance }.Select(
+            new[] { SteelEn10255.Instance, CopperEn1057.Instance }.Select(
                 static catalog => KeyValuePair.Create(catalog.Name, catalog)));
 
     /// <summary>Resolves the catalogue a script asked for.</summary>

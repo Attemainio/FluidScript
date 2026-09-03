@@ -2838,6 +2838,58 @@ series will also have.
 **Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md), and its
 `Catalogs/SOURCES.md`.
 
+## D-68 · Roughness is a literature value with a stated condition, and v1 sizes on new pipe
+
+**Accepted · 2026-09-03** · constrains `27`, `24`; resolves `C-37`
+
+**Absolute roughness is not a dimension and is not provenanced as one.** An outside diameter is a fact
+about a physical object, checkable against two manufacturers' tables. A roughness appears in no pipe
+standard, no manufacturer's dimension table carries it, and its published tolerance is ±30 % to ±50 %.
+It is a representative value from the Moody-chart literature — Moody (1944), Colebrook (1939), Crane
+Technical Paper 410 — and what defends it is a **citation and a stated condition**, not two suppliers
+agreeing. `27` already draws this line for the plate Nusselt constants; this is the same line, and the
+catalogue was on the wrong side of it.
+
+`MaterialRoughness` therefore carries the value, the material, the **condition**, the citation and its
+sources, and needs one source rather than two. The two-source rule exists to catch a transcription
+error in a number read off an object, and there is no object here to read.
+
+**Every v1 value is for new pipe, and the script says so.** Commercial steel 0.045 mm, drawn copper
+0.0015 mm. Ageing depends on water chemistry, oxygen ingress and treatment, none of which the model
+has, so an aged default would be a fabricated number wearing a citation.
+
+**The arithmetic says which uncertainty actually matters, and it is not the one it looks like.** At
+DN25 and Re 15 450:
+
+| ε | ε/D | f | vs baseline |
+|---|---|---|---|
+| 0.045 mm — new steel | 0.00165 | 0.0305 | — |
+| 0.0675 mm — +50 %, the published tolerance | 0.00247 | 0.0319 | **+4.5 %** |
+| 0.3 mm — scaled or corroded | 0.0110 | 0.0425 | **+39 %** |
+
+So the ±50 % band on the textbook value is worth about 5 % on the gradient, and the new-versus-aged
+question is worth about 40 %. **Arguing about which table to copy is arguing about the small term.**
+The decision that matters is the condition, which is why the condition is a field.
+
+**A script that wants aged pipe writes `roughness=0.3 mm`**, which is the constraint mechanism `D-02`
+already gives every parameter. What v1 does not do is pretend to know the number.
+
+**Rejected.**
+
+- *An aged default, or a design margin on roughness.* Closer to how a real plant runs after ten years,
+  and `24` already has `pump.margin` as the precedent. Cost: the margin would have to be invented,
+  since nothing in the model knows the water or the age, and a fabricated factor baked into every
+  circuit is worse than a stated new-pipe basis a user can override deliberately.
+- *Two sources per roughness, as for a dimension.* Consistent, and cheap to satisfy. Cost: it is
+  consistency without meaning — two secondary tables quoting Moody are one source, and treating them
+  as two would make the rule look satisfied while checking nothing.
+- *No default at all, so every script states its roughness.* Most honest about the uncertainty. Cost:
+  it makes the common case unwritable, and `D-02` exists precisely so that an omitted parameter is
+  sized or defaulted rather than demanded.
+
+**Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md),
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md), and `Catalogs/SOURCES.md`.
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

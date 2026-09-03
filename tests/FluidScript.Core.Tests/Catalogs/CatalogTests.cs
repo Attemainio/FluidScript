@@ -29,6 +29,7 @@ public sealed class CatalogTests
         Spec = new PipeSpec
         {
             NominalDiameter = dn,
+            DesignationBasis = DesignationBasis.NominalSize,
             OutsideDiameter = odMm / 1000,
             WallThickness = wallMm / 1000,
             Roughness = 45e-6,
@@ -85,6 +86,71 @@ public sealed class CatalogTests
                 - (dn150.InsideDiameter * dn150.InsideDiameter));
 
         Assert.Equal(19.7, area * steelDensity, 0.2);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheCopperCatalogueIsNotVerifiedYet()
+    {
+        // DELETE THIS TEST when Catalogs/SOURCES.md's copper section is filled in. Copper was harder
+        // to source than steel for a structural reason (C-38): EN 1057 permits several walls per
+        // outside diameter, the market ships more than one, and the public tables carrying the whole
+        // series are copies of the standard, which this project does not use.
+        Assert.Single(CopperEn1057.Instance.Validate(), static fault => fault.Code == "FS2605");
+
+        Assert.False(PipeCatalogs.Resolve(new CatalogPin(CopperEn1057.Id, null)).IsSuccess);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheSameDnMeansADifferentPipeInEachCatalogue()
+    {
+        // The trap the DesignationBasis field exists to state. `dn=15` is a *designation* in steel,
+        // whose bore is larger than the number; in copper it is the outside diameter itself, whose
+        // bore is smaller. Nothing about a script says which -- only the catalogue it resolved.
+        var steel = new CatalogBoreLookup(SteelEn10255.Instance).BoreFor(15)!.Value;
+        var copper = new CatalogBoreLookup(CopperEn1057.Instance).BoreFor(15)!.Value;
+
+        Assert.Equal(0.0161, steel, 6);
+        Assert.Equal(0.0136, copper, 6);
+
+        // 24 % in bore, which is about 55 % in area and roughly a factor of two in gradient.
+        Assert.True((steel - copper) / copper > 0.15, $"{steel} vs {copper}");
+
+        Assert.Equal(
+            DesignationBasis.NominalSize,
+            SteelEn10255.Instance.Entries[0].Spec.DesignationBasis);
+        Assert.Equal(
+            DesignationBasis.OutsideDiameter,
+            CopperEn1057.Instance.Entries[0].Spec.DesignationBasis);
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [MemberData(nameof(RoughnessBases))]
+    public void EveryShippedRoughnessCarriesItsConditionAndCitation(MaterialRoughness basis)
+    {
+        // C-37. A roughness is not a dimension: it is in no pipe standard, no manufacturer's table
+        // carries it, and its published tolerance is +/-30 % to +/-50 %. What defends it is the
+        // citation and the stated condition, not two suppliers agreeing -- so it is provenanced
+        // differently on purpose (D-68).
+        Assert.True(basis.IsUsable, basis.Material);
+        Assert.Equal("new", basis.Condition);
+        Assert.Contains("Moody", basis.Citation, StringComparison.Ordinal);
+    }
+
+    /// <summary>The roughness basis of every shipped pipe catalogue.</summary>
+    public static TheoryData<MaterialRoughness> RoughnessBases =>
+        [SteelEn10255.RoughnessBasis, CopperEn1057.RoughnessBasis];
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void CopperIsThirtyTimesSmootherThanSteel()
+    {
+        // Not a rounding difference. At the same bore and flow it is a materially lower friction
+        // factor, so a circuit modelled in the wrong material is wrong in exactly the direction the
+        // material was chosen for.
+        Assert.Equal(30.0, SteelEn10255.RoughnessBasis.Value / CopperEn1057.RoughnessBasis.Value, 1);
     }
 
     [Fact]
