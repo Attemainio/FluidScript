@@ -141,8 +141,15 @@ public static partial class Lowering
 
         foreach (var branch in branches)
         {
-            var from = index[branch.From.Element];
-            var to = index[branch.To.Element];
+            // A branch can end somewhere that is not a vertex: Decompose stops where the graph does
+            // when a component the factory could not build took its connections with it. Such a stub is
+            // in no cycle, and indexing it would throw on a script that is merely incomplete -- which no
+            // stage may do, since a script under editing is malformed most of the time.
+            if (!index.TryGetValue(branch.From.Element, out var from)
+                || !index.TryGetValue(branch.To.Element, out var to))
+            {
+                continue;
+            }
 
             adjacency[from].Add((to, branch));
             adjacency[to].Add((from, branch));
@@ -191,15 +198,18 @@ public static partial class Lowering
 
         foreach (var branch in branches)
         {
-            if (tree.Contains(branch))
+            // A dangling stub took no tree edge either, so it reaches here as well: the same guard,
+            // for the same reason.
+            if (tree.Contains(branch)
+                || !index.TryGetValue(branch.To.Element, out var to)
+                || !index.TryGetValue(branch.From.Element, out var from))
             {
                 continue;
             }
 
             loops.Add(new CircuitLoop
             {
-                Branches = [branch, .. PathBetween(
-                    index[branch.To.Element], index[branch.From.Element], parent, parentBranch, depth)],
+                Branches = [branch, .. PathBetween(to, from, parent, parentBranch, depth)],
             });
         }
 

@@ -192,13 +192,26 @@ public sealed class ReferenceCircuitTests
     [Trait("Category", "Unit")]
     public void EachBranchIsOpenAtBothEndsForItsAttachmentToJoin()
     {
-        // `23`: `supply` lowers to a connection from the parent's node to the subcircuit's *first
-        // unconnected inlet*, and `return` from its last unconnected outlet. The branch has to leave
-        // both free, and the I3 nodes standing at them are what lowering replaces.
+        // `23`: `supply` becomes a connection from the parent's node to the subcircuit's *first
+        // unconnected inlet*, and `return` one from its last unconnected outlet. Both ends must be open
+        // for that, and the four dead-leg nodes I3 used to stand at them are exactly what these four
+        // connections replace -- so the branch closing is the same fact as I3 having nothing left to do.
         var model = Model("m2-distribution-header.fluid");
 
+        Assert.Empty(Named(model, "I3"));
+
         Assert.Equal(
-            ["TV_AHU__b", "PU_AHU__in", "TV_RAD__b", "PU_RAD__in"],
-            Named(model, "I3"));
+            ["N3->PU_AHU.in", "TV_AHU.b->N5", "N4->PU_RAD.in", "TV_RAD.b->N6"],
+            model.Connections
+                .Where(static connection => connection.From.Component.StartsWith('N')
+                    || connection.To.Component.StartsWith('N'))
+                .Select(static connection =>
+                    $"{Label(connection.From)}->{Label(connection.To)}")
+                .Where(static label => label.Contains("_AHU", StringComparison.Ordinal)
+                    || label.Contains("_RAD", StringComparison.Ordinal))
+                .ToArray());
     }
+
+    private static string Label(EndpointSymbol endpoint) =>
+        endpoint.Port.Length == 0 ? endpoint.Component : $"{endpoint.Component}.{endpoint.Port}";
 }

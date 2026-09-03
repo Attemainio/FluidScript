@@ -1,0 +1,24 @@
+# The storage header reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# Two source boundaries, a stratified tank, and two consumer boundaries. The tank materializes four
+# indexed ports from the qualified endpoints and is the one junction element in the model, so the
+# four branches all meet at it: three independent pressure relations (K-1) and one mass balance.
+#
+# S1 supplies the one pressure datum. Normalized elevations map 30% to layer 2 and 90% to layer 5.
+
+fluidscript 1
+circuit storageHeader
+fluid dynamic water
+show temperature
+
+S1 node t=60 p=300 flow=0.12
+S2 node t=45 flow=0.08
+T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_elevation=90% in2_elevation=30% out1_elevation=90% out2_elevation=30%
+RAD_NETWORK node flow=0.12
+AHU_NETWORK node flow=0.08
+
+connections
+S1 - T1.in1
+S2 - T1.in2
+T1.out1 - RAD_NETWORK
+T1.out2 - AHU_NETWORK

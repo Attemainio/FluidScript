@@ -95,6 +95,12 @@ public static partial class Lowering
         /// is then dropped too, which disconnects the graph; that is honest rather than convenient, and
         /// well-posedness has the disconnection to report.
         /// </para>
+        /// <para>
+        /// <strong>A node is built here rather than by the factory, and still carries what the script
+        /// stated.</strong> Its <c>p</c>, <c>t</c> and <c>flow</c> are the model's boundary conditions,
+        /// and well-posedness cannot tell a boundary from a bare junction without them — nor a stated
+        /// pressure, which supplies a datum and admits an external mass flux, from an absent one.
+        /// </para>
         /// </remarks>
         public void CreateComponents()
         {
@@ -113,7 +119,10 @@ public static partial class Lowering
                     // Degree 3+ is a junction and degree 1 a terminal; at degree 2 the branch's own
                     // flow already makes the balance an identity.
                     Add(
-                        new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1),
+                        new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1)
+                        {
+                            StatedParameters = ComponentFactory.Stated(symbol),
+                        },
                         symbol.CircuitName,
                         symbol.Origin is Origin.Declared ? NodeOrigin.Declared : NodeOrigin.Inferred);
                     continue;
@@ -216,8 +225,151 @@ public static partial class Lowering
         }
 
         /// <summary>The vertices of the branch graph, in element order.</summary>
-        public ImmutableArray<IFlowComponent> JunctionElements() =>
-            [.. _elements.Where(CircuitGraph.IsJunctionElement)];
+        /// <returns>Every junction element, and one cut vertex per component that has none.</returns>
+        /// <remarks>
+        /// <para>
+        /// <strong>A ring of pass-throughs has no vertex of its own</strong>, and a branch graph with no
+        /// vertices has no branches — so <c>N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1</c>, which is
+        /// the whole of <c>samples/m2-simple-loop.fluid</c>, would otherwise lower to a graph with no
+        /// flow unknown at all and no loop for <c>FS2214</c> to name. Every node on such a ring has
+        /// degree two, and <see cref="CircuitGraph.IsJunctionElement"/> is right that none of them is a
+        /// junction; what is wrong is concluding from that there is nothing to solve.
+        /// </para>
+        /// <para>
+        /// The ring is cut at one node, which becomes a vertex with a branch leaving and re-entering it.
+        /// <c>B − V + 1 = 1 − 1 + 1</c> is then the one loop the user wrote. Where the cut falls changes
+        /// no unknown and no equation — the branch and the cycle are the same wherever it is — so it only
+        /// has to be deterministic, and the lowest-indexed node of the component is that.
+        /// </para>
+        /// <para>
+        /// The cut node keeps the <c>carriesMassBalance: false</c> its degree of two gave it, which is
+        /// correct rather than an oversight: the branch's single flow already makes that balance an
+        /// identity, and a closed ring is exactly the case where an auto-picked datum supplies the
+        /// equation the redundant balance would have.
+        /// </para>
+        /// </remarks>
+        public ImmutableArray<IFlowComponent> JunctionElements()
+        {
+            var isVertex = new bool[_elements.Count];
+            var visited = new bool[_elements.Count][];
+
+            for (var element = 0; element < _elements.Count; element++)
+            {
+                visited[element] = new bool[_elements[element].Ports.Length];
+                isVertex[element] = CircuitGraph.IsJunctionElement(_elements[element]);
+            }
+
+            for (var element = 0; element < _elements.Count; element++)
+            {
+                if (isVertex[element])
+                {
+                    Spread(element, port: -1, visited, members: null);
+                }
+            }
+
+            // A slot at a time, not an element at a time. Seeding every port of a component would
+            // enter both flow groups of a coupled exchanger at once and spread across it, merging the
+            // two circuits it separates into one -- and one cut vertex would then serve a ring that is
+            // really two. A port with no peer is skipped: a duty exchanger's unwired second side is not
+            // a hydraulic component waiting for a vertex.
+            for (var element = 0; element < _elements.Count; element++)
+            {
+                for (var port = 0; port < visited[element].Length; port++)
+                {
+                    if (visited[element][port] || _peerElement[element][port] < 0)
+                    {
+                        continue;
+                    }
+
+                    var members = new List<int>();
+                    Spread(element, port, visited, members);
+                    members.Sort();
+
+                    var cut = members.FirstOrDefault(member => _elements[member] is CircuitNode, -1);
+                    isVertex[cut < 0 ? members[0] : cut] = true;
+                }
+            }
+
+            var junctions = ImmutableArray.CreateBuilder<IFlowComponent>();
+
+            for (var element = 0; element < _elements.Count; element++)
+            {
+                if (isVertex[element])
+                {
+                    junctions.Add(_elements[element]);
+                }
+            }
+
+            return junctions.ToImmutable();
+        }
+
+        /// <summary>Marks every port slot flow reaches from one, and optionally lists the elements.</summary>
+        /// <param name="element">Where to start.</param>
+        /// <param name="port">The slot to enter, or a negative number to enter every slot.</param>
+        /// <param name="visited">Slot marks, read and written.</param>
+        /// <param name="members">Collects the elements reached, or <see langword="null"/> for marks alone.</param>
+        /// <remarks>
+        /// <strong>Slots rather than elements, because one component can belong to two hydraulic
+        /// components.</strong> A coupled exchanger's side-1 ports are reachable from one circuit and its
+        /// side-2 ports from the other; marking the exchanger itself would make the second side look
+        /// already covered, and the substation's secondary would vanish. That is the case <c>D-17</c>
+        /// exists for, and the reason this walks a port at a time — including at the seed, where
+        /// entering every port of a two-sided component would join the very things it separates.
+        /// </remarks>
+        private void Spread(int element, int port, bool[][] visited, List<int>? members)
+        {
+            var queue = new Queue<(int Element, int Port)>();
+
+            for (var slot = 0; slot < visited[element].Length; slot++)
+            {
+                if ((port >= 0 && slot != port) || visited[element][slot])
+                {
+                    continue;
+                }
+
+                visited[element][slot] = true;
+                queue.Enqueue((element, slot));
+            }
+
+            members?.Add(element);
+
+            members?.Add(element);
+
+            while (queue.Count > 0)
+            {
+                var (current, slot) = queue.Dequeue();
+                var groups = _elements[current].FlowGroups;
+
+                // Across the component, but only within this port's flow group: fluid crosses a pump
+                // from inlet to outlet and never crosses an exchanger from one side to the other.
+                for (var other = 0; other < groups.Length; other++)
+                {
+                    if (other != slot && groups[other] == groups[slot] && !visited[current][other])
+                    {
+                        visited[current][other] = true;
+                        queue.Enqueue((current, other));
+                    }
+                }
+
+                var peer = _peerElement[current][slot];
+
+                if (peer < 0)
+                {
+                    continue;
+                }
+
+                var peerPort = _peerPort[current][slot];
+
+                if (visited[peer][peerPort])
+                {
+                    continue;
+                }
+
+                visited[peer][peerPort] = true;
+                members?.Add(peer);
+                queue.Enqueue((peer, peerPort));
+            }
+        }
 
         /// <summary>Walks every maximal path between junction elements.</summary>
         /// <param name="junctions">The vertices, as <see cref="JunctionElements"/> found them.</param>

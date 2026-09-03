@@ -77,24 +77,102 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             return null;
         }
 
+        var stated = Stated(symbol);
+        var defaults = Defaults(symbol, kind);
+
         return kind.Keyword switch
         {
-            "pipe" => Pipe(symbol),
+            "pipe" => Pipe(symbol, stated, defaults),
             "valve" => new Valve(
                 symbol.Name,
                 Value(symbol, kind, "kv") ?? 1,
                 Value(symbol, kind, "position") ?? 1,
-                Characteristic(symbol)),
+                Characteristic(symbol))
+            {
+                StatedParameters = stated,
+                DefaultParameters = defaults,
+            },
             "three_way_valve" => new ThreeWayValve(
                 symbol.Name,
                 Value(symbol, kind, "kv") ?? 1,
                 Value(symbol, kind, "position") ?? 1,
-                Characteristic(symbol)),
-            "pump" => Pump(symbol, kind),
-            "heat_exchanger" => new HeatExchanger(symbol.Name, Value(symbol, kind, "power") ?? 0),
-            "tank" => Tank(symbol, kind),
+                Characteristic(symbol))
+            {
+                StatedParameters = stated,
+                DefaultParameters = defaults,
+            },
+            "pump" => Pump(symbol, kind, stated, defaults),
+            "heat_exchanger" => new HeatExchanger(symbol.Name, Value(symbol, kind, "power") ?? 0)
+            {
+                StatedParameters = stated,
+                DefaultParameters = defaults,
+            },
+            "tank" => Tank(symbol, kind, stated, defaults),
             _ => null,
         };
+    }
+
+    /// <summary>Every parameter the script stated, in SI.</summary>
+    /// <param name="symbol">The bound component.</param>
+    /// <returns>Canonical parameter name to value; empty when the script stated none.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>What separates a constraint from a coefficient is that the user wrote it</strong>
+    /// (<c>D-02</c>), and no downstream pass can recover that from the value: a stated
+    /// <c>position=1</c> and the registry's own <c>position</c> default are the same number and mean
+    /// opposite things to well-posedness. Carrying the distinction is the whole reason
+    /// <see cref="IComponent.StatedParameters"/> is separate from
+    /// <see cref="IComponent.DefaultParameters"/>.
+    /// </para>
+    /// <para>
+    /// A parameter holding a symbol rather than a quantity — <c>characteristic=linear</c> — is absent
+    /// here. It selects a mode and constrains no unknown, and a dimensionless placeholder standing in
+    /// for it would be counted as a constraint by everything that walks this map.
+    /// </para>
+    /// </remarks>
+    internal static ImmutableDictionary<string, Quantity> Stated(ComponentSymbol symbol)
+    {
+        var stated = ImmutableDictionary.CreateBuilder<string, Quantity>(StringComparer.Ordinal);
+
+        foreach (var (name, parameter) in symbol.Parameters)
+        {
+            if (parameter.Value is { } quantity)
+            {
+                stated[name] = quantity;
+            }
+        }
+
+        return stated.ToImmutable();
+    }
+
+    /// <summary>Every parameter the script omitted that the registry decides a visible default for.</summary>
+    /// <param name="symbol">The bound component.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <returns>Canonical parameter name to the default's value in SI.</returns>
+    /// <remarks>
+    /// Only the <c>Default</c> omission policy appears. A parameter sizing chooses is absent from all
+    /// three maps until <c>24</c>'s outer loop has run and filled
+    /// <see cref="IComponent.SizedParameters"/> — which is exactly what makes it promotable
+    /// (<c>D-02</c>): well-posedness looks for a parameter no map claims.
+    /// </remarks>
+    private static ImmutableDictionary<string, Quantity> Defaults(
+        ComponentSymbol symbol, ComponentKindInfo kind)
+    {
+        var defaults = ImmutableDictionary.CreateBuilder<string, Quantity>(StringComparer.Ordinal);
+
+        foreach (var (name, info) in kind.Parameters)
+        {
+            if (symbol.Parameters.ContainsKey(name)
+                || info is not { OmissionBehavior: ParameterOmissionBehavior.Default, DefaultLiteral: { } literal }
+                || DefaultOf(literal, info.Dimension) is not { } value)
+            {
+                continue;
+            }
+
+            defaults[name] = Quantity.FromSi(value, info.Dimension);
+        }
+
+        return defaults.ToImmutable();
     }
 
     /// <summary>The SI value of a parameter, from the script or from the kind's visible default.</summary>
@@ -157,7 +235,10 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             }
             : ValveCharacteristic.EqualPercentage;
 
-    private Pipe? Pipe(ComponentSymbol symbol)
+    private Pipe? Pipe(
+        ComponentSymbol symbol,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> defaults)
     {
         var kind = symbol.Kind!;
         var length = Value(symbol, kind, "length");
@@ -174,10 +255,18 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             bore,
             Value(symbol, kind, "roughness") ?? 0.045e-3,
             Value(symbol, kind, "minor_loss") ?? 0,
-            Value(symbol, kind, "elevation") ?? 0);
+            Value(symbol, kind, "elevation") ?? 0)
+        {
+            StatedParameters = stated,
+            DefaultParameters = defaults,
+        };
     }
 
-    private static Pump Pump(ComponentSymbol symbol, ComponentKindInfo kind)
+    private static Pump Pump(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> defaults)
     {
         var head = Value(symbol, kind, "head");
         var flow = Value(symbol, kind, "flow");
@@ -185,12 +274,22 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
 
         // A duty point gives the default quadratic its curvature; a head with no flow beside it is a
         // shut-off head and nothing more, which is the flat curve a pump with one stated number has.
-        return head is { } metres && flow is { } duty and > 0
-            ? Components.Pump.FromDutyPoint(symbol.Name, metres, duty, efficiency: efficiency)
-            : new Pump(symbol.Name, head ?? 0, curvature: 0, efficiency: efficiency);
+        var (shutOff, curvature) = head is { } metres && flow is { } duty and > 0
+            ? Components.Pump.CurveThrough(metres, duty)
+            : (head ?? 0, 0d);
+
+        return new Pump(symbol.Name, shutOff, curvature, efficiency: efficiency)
+        {
+            StatedParameters = stated,
+            DefaultParameters = defaults,
+        };
     }
 
-    private static Tank Tank(ComponentSymbol symbol, ComponentKindInfo kind)
+    private static Tank Tank(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> defaults)
     {
         var layers = Value(symbol, kind, "layers") ?? Components.Tank.DefaultLayers;
 
@@ -199,7 +298,11 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             Elevations(symbol, kind, "in"),
             Elevations(symbol, kind, "out"),
             Value(symbol, kind, "volume") ?? Components.Tank.DefaultVolume,
-            (int)layers);
+            (int)layers)
+        {
+            StatedParameters = stated,
+            DefaultParameters = defaults,
+        };
     }
 
     /// <summary>The normalized heights of one of a tank's port families, in port order.</summary>

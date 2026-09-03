@@ -1,0 +1,35 @@
+# The substation reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# Two hydraulic circuits coupled only through HX1: heat crosses, fluid does not. The primary is open
+# and states both its pressures; the secondary is a closed loop and gets an auto-picked datum
+# (FS2201). Sharing HX1 is what stops either side being reported as an isolated subgraph -- D-17.
+#
+# `dn` is stated on every pipe because the catalogue that would supply it lands in P3.5.
+
+fluidscript 1
+circuit substation
+fluid water
+show temperature
+
+# --- district-heating primary, 85/45 -------------------------------
+NPS node t=85 p=600
+NPR node p=350
+PCV valve
+PP  pipe length=12 dn=25
+
+# --- heating secondary, 40/60 --------------------------------------
+SP   pump
+SS   pipe length=30 dn=32
+SR   pipe length=30 dn=32
+LOAD heat_exchanger power=-150 dt=20
+
+# --- the exchanger between them ------------------------------------
+HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
+
+connections
+NPS - PCV - PP - HX1.in2
+HX1.out2 - NPR
+
+HX1.out - SS - NSUP
+NSUP - LOAD - NRET
+NRET - SR - SP - HX1.in

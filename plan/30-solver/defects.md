@@ -32,6 +32,8 @@ owns them would not have seen them. The entries below are that backlog, written 
 | S-5 | [`36`](36-numerics-and-convergence.md) | **"Continuous in value and first derivative" does not say how to check it, and the obvious check fails on correct code** | The natural test — take finite differences either side of a blend join and assert they are close — is not what C¹ promises. C¹ says the *one-sided derivatives agree at the join*, not that the derivative varies slowly near it, and across the valve's 100 Pa regularisation band the true derivative sweeps from 0 to 3.75 × 10⁷. The test failed on a correct implementation and was rewritten to probe the one-sided derivative at each join with a shrinking step. `36` asks for the property in one line and every implementer will write the wrong test first; the working form belongs in the document. |
 | S-6 | [`36`](36-numerics-and-convergence.md) | **The smoothing constants are `36`'s numbers living in tier 20's code, with no shared source** | `valve.dp_regularization` = 100 Pa is `ValveLaw.RegularizationDrop` and `upwind.smoothing_band` = 1e-3 kg/s is `Smoothing.UpwindBand`. Both were transcribed by hand from `36`'s table into two unrelated files, and a change to the table reaches neither. They are numerical-method parameters that happen to be evaluated inside a component, which is exactly the shape that drifts. Whether they become a settings object the solver hands down, or stay constants with a test asserting them against the document, is tier 30's call — but the current arrangement has nothing holding the two together. |
 | S-7 | [`31`](31-solver-architecture.md) | **The residual-row-to-component mapping is built and consumed by nothing** | `31` makes the point that this mapping exists only at the component layer — "HX1 energy balance off by 4.2 kW" is actionable and "residual[17] = 4200" is not — and that if that layer does not carry it, no later one can recover it. `P3.3` implemented `DeclareEquations`, which names every row with its owner and its residual unit, and a test asserts each component declares exactly as many as it writes. Nothing reads it yet. Recorded because the first assembler is where it gets dropped: the rows are contiguous and the temptation to index them by integer alone is strongest exactly there. |
+| S-8 | [`36`](36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md) | **`FS2211` (under-specified) appears to be unreachable from any script**, so half of the well-posedness count is untested against real input | With the equation set `23` specifies, the structural terms cancel identically: for every graph tried, `C + M + N + D − B − 2N` is zero and `StatedPressures − ExternalFluxes` is zero, so the only source of imbalance is a constraint with nothing to promote — which is always *positive*. P3.4b reached `FS2210` from four different scripts and `FS2211` from none, including the cases that looked most promising (a component the catalogue cannot resolve, a terminal with no boundary, a pressure stated mid-branch). The code is implemented and its arithmetic is asserted from a hand-built table. Open because one of two things is true and it matters which: either the equation set is missing a row that a real script can omit, or `FS2211` is dead and should be retired rather than documented as something a user can hit. |
+| S-9 | [`31`](31-solver-architecture.md) | **Nothing consumes the counting table, so its terms are asserted against a document rather than against an assembly** | `WellPosedness.CountingTable` says the cooling loop has 20 unknowns and 20 equations, and that number is checked against `23`'s hand-tabulated table. When `32` assembles the real system, the row and column counts of the Jacobian are the same two numbers computed a second way — and if they disagree, one of the two is wrong with nothing to say which. The assembly should be built to *consume* this table (size its buffers from it, and assert its own totals against it) rather than to re-derive the counts, which is the only way the agreement means anything. |
 
 ## Observations
 
@@ -71,6 +73,25 @@ them.** `08` said to write that test with the components rather than retrofit it
 that was right for a reason worth keeping: the first version of the test measured 21 600 bytes, all of
 it the test's own collection expressions inside the measured region. Retrofitted later, that number
 would have been read as a real allocation in the component.
+
+**Well-posedness runs on the graph alone, and that is what makes it testable.** Nothing in the pass
+reaches back into the semantic model; it reads `IComponent.StatedParameters`, which lowering now fills
+from the bound symbol. So a solver test can build a graph by hand, ask whether it is square, and get
+the same answer the pipeline would — and `23`'s invariant 7 stays true without an exemption.
+
+**Stated-ness is the whole input, and it was being thrown away.** `IComponent.StatedParameters`,
+`SizedParameters` and `DefaultParameters` have existed since `P3.3` and were empty on every component
+lowering built. Nothing downstream can recover the distinction from the value: a stated `position=1`
+and the registry's own default are the same number and mean opposite things to the count. Filling them
+was the precondition for promotion existing at all, and it is `D-02` made observable rather than a
+convenience.
+
+**A dropped component leaves a branch ending nowhere, and the cycle basis threw on it.** A pipe whose
+bore no catalogue resolves is not built and its connections go with it, so `Decompose`'s "the branch
+ends where the graph does" path produces an end that is not a vertex — and `CycleBasis` indexed it
+directly. `KeyNotFoundException` on a script that is merely incomplete, which no stage may do. Found by
+a test written to reach `FS2211`, which is the second time this package a test written for one reason
+found something else.
 
 ## Closed
 

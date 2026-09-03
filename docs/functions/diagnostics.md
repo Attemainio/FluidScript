@@ -127,6 +127,16 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top). |
+| `FS2201` | Info | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
+| `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
+| `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}. |
+| `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
+| `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |
+| `FS2213` | Error | Topology | '{list}' are not connected to the rest of the circuit. |
+| `FS2214` | Warning | Topology | Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg? |
+| `FS2215` | Error | Topology | {substance} cannot be at {state}. |
+| `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
+| `FS2217` | Error | Topology | '{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

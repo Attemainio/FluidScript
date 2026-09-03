@@ -60,6 +60,30 @@ public sealed class Pump : IFlowComponent
         _equations = [new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} curve", "Pa")];
     }
 
+    /// <summary>The default quadratic through a duty point: its shut-off head and its curvature.</summary>
+    /// <param name="dutyHead">m, the head at the duty flow.</param>
+    /// <param name="dutyFlow">kg/s, the duty flow.</param>
+    /// <returns>H₀ in m, and k in m/(kg/s)².</returns>
+    /// <remarks>
+    /// H₀ is <see cref="DefaultShutOffFactor"/> × the duty head, and k follows from the curve passing
+    /// through the duty point: <c>k = (H₀ − H_duty) / ṁ_duty²</c>.
+    /// <para>
+    /// Separate from <see cref="FromDutyPoint"/> because a caller that must construct the pump itself
+    /// cannot take one back from a static factory. Lowering is that caller: it attaches the parameter
+    /// maps in an object initializer, which only a <c>new</c> expression accepts. Sharing the curve
+    /// rather than the construction is what stops a second copy of this arithmetic existing.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="dutyFlow"/> is not positive.</exception>
+    public static (double ShutOffHead, double Curvature) CurveThrough(double dutyHead, double dutyFlow)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dutyFlow);
+
+        var shutOff = DefaultShutOffFactor * dutyHead;
+
+        return (shutOff, (shutOff - dutyHead) / (dutyFlow * dutyFlow));
+    }
+
     /// <summary>Builds a pump's default quadratic curve through a duty point.</summary>
     /// <param name="name">The user's identifier.</param>
     /// <param name="dutyHead">m, the head at the duty flow.</param>
@@ -67,18 +91,12 @@ public sealed class Pump : IFlowComponent
     /// <param name="speed">The relative speed n.</param>
     /// <param name="efficiency">The hydraulic efficiency.</param>
     /// <returns>A pump whose curve passes through the duty point.</returns>
-    /// <remarks>
-    /// H₀ is <see cref="DefaultShutOffFactor"/> × the duty head, and k follows from the curve passing
-    /// through the duty point: <c>k = (H₀ − H_duty) / ṁ_duty²</c>.
-    /// </remarks>
     public static Pump FromDutyPoint(
         string name, double dutyHead, double dutyFlow, double speed = 1, double efficiency = 0.7)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(dutyFlow);
+        var (shutOff, curvature) = CurveThrough(dutyHead, dutyFlow);
 
-        var shutOff = DefaultShutOffFactor * dutyHead;
-
-        return new Pump(name, shutOff, (shutOff - dutyHead) / (dutyFlow * dutyFlow), speed, efficiency);
+        return new Pump(name, shutOff, curvature, speed, efficiency);
     }
 
     /// <inheritdoc/>
