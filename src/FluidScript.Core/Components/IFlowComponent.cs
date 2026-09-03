@@ -1,19 +1,9 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Language;
+
 namespace FluidScript.Core.Components;
 
-/// <summary>What a port does in the nominal flow direction.</summary>
-public enum PortRole
-{
-    /// <summary>Fluid nominally enters here.</summary>
-    Inlet,
-
-    /// <summary>Fluid nominally leaves here.</summary>
-    Outlet,
-
-    /// <summary>Either, and a node's ports are all of these.</summary>
-    Bidirectional,
-}
 
 /// <summary>What a solver unknown stands for.</summary>
 /// <remarks>Transcribed from <c>31</c>, which specifies it. Tier 30 owns the meaning.</remarks>

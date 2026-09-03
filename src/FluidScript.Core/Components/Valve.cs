@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Language;
 using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Components;
@@ -70,10 +71,18 @@ public sealed class Valve : IFlowComponent
     public ValveCharacteristic Characteristic { get; }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// <strong>Inlet and outlet, not bidirectional</strong> — unlike <see cref="ThreeWayValve"/>. The
+    /// three-way valve's ports are bidirectional because mixing and diverting are two real arrangements
+    /// and which one a valve is comes from the topology. A two-way valve has no such ambiguity, and the
+    /// role is <em>nominal</em> in any case: a negative solved flow through it stays a legal answer
+    /// (convention 2). Generalising the three-way's roles to this one was caught by the registry
+    /// cross-check within the hour (<c>C-20</c>).
+    /// </remarks>
     public ImmutableArray<Port> Ports { get; } =
     [
-        new Port { Name = "in", Role = PortRole.Bidirectional, IsOptional = false },
-        new Port { Name = "out", Role = PortRole.Bidirectional, IsOptional = false },
+        new Port { Name = "in", Role = PortRole.Inlet, IsOptional = false },
+        new Port { Name = "out", Role = PortRole.Outlet, IsOptional = false },
     ];
 
     /// <inheritdoc/>

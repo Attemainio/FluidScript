@@ -29,6 +29,7 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-20 | [`22`](22-component-model.md) | **Every port list is written down twice**, and the two copies disagreed within an hour | `22` says a kind's registry entry is "built by each component's static registration" so the list exists once. The registry shipped in `P2.6`, a phase before any component existed, so `P3.3`'s classes declare their ports again — and the binder binds an unqualified connection against one copy while the solver indexes `SolveContext.Ports` against the other. A disagreement wires a script's second connection to the wrong port and produces confidently wrong numbers with no exception and no diagnostic. A cross-check test was written and **immediately caught one**: the two-way `valve` was given bidirectional ports, over-generalised from §4's three-way paragraph, where the registry correctly has inlet/outlet. Inverting the dependency so the component feeds the registry is a change to how the binder is fed and is not `P3.3`'s; the test is the seam until then. |
 | C-19 | [`62`](../60-docs-and-devex/62-testing-strategy.md), [`22`](22-component-model.md) | **`62`'s worked example cannot evaluate the relation it claims to.** It builds `SolveContext.ForSingleComponent(FakeWater.Instance, massFlow: 0.2391)` — a substance and a flow, no port states — and calls `EvaluateResiduals` on a duty exchanger | `22`'s energy relation is `Q̇ = ṁ(h_out − h_in)` over the *solved* port enthalpies, and a context with no port states has no enthalpies to difference. The example's own constructor, `HeatExchanger(power:, inlet:, outlet:)`, implies the other reading: a duty from stated terminal temperatures and a `cp`. That is a real relation and it is the `FS2101` one — what three stated values imply about the fourth — so it ships as `HeatExchanger.ImpliedFlow`, a reported property rather than a residual. The test asserts both, and asserts they agree. `SolveContext.ForSingleComponent`, added on the strength of the example, was removed the same day: nothing could use it. |
 | C-18 | [`22`](22-component-model.md) | **A closed equal-percentage valve is not shut**, and nothing says so | `φ = R^(x−1)` with R = 50 gives `φ(0) = 0.02`, so a valve at position 0 still passes 2 % of its rated Kv. That is what the characteristic *means* — a real valve's shut-off comes from its seat, which is a leakage class and not part of the curve — so forcing `φ(0) = 0` would be inventing a seat. But `22` states the characteristic and never states the consequence, and the consequence is that a bypass closed by an equal-percentage valve keeps flowing. No code change; asserted in a test named for it, so the next reader meets it deliberately rather than while debugging a bypass. |
 | C-16 | [`22`](22-component-model.md) | **`EvaluateResiduals` cannot call `ISubstance` and also allocate nothing**, and `22` asks for both | The signature's own remarks say it "must not call the property backend more than necessary", which reads as a budget. It is not one: `FluidState` is a `sealed record`, so *any* state fix inside a residual evaluation allocates, N+1 times per Newton iteration. The two requirements are only compatible if the answer is **none**. Resolved by giving `SolveContext` per-port properties that are already evaluated — pressure, enthalpy, temperature, density, specific heat — so a residual is arithmetic by construction rather than by discipline. This is also what `21`'s per-solve cache was always implying. |
@@ -268,4 +269,21 @@ difference here is that the exchanger's numbers were taken from the fake's decla
 than typed from a hand calculation — `ImpliedFlow(SpecificHeat, 30)` instead of `0.239006` written out.
 The one hand-typed figure in the file, 17 448 W, is a residual off the solution, which no comment could
 have got from anywhere else.
+
+**Two `PortRole` enums existed for about twenty minutes, and the compiler was happy with both.**
+`Language.PortRole` had shipped with the registry in `P2.6`; `P3.3` declared an identical one in
+`Components` because `22` lists `PortRole` beside `Port` in the component-model interface. Different
+namespaces, no file using both, so nothing failed — the build stayed clean and the duplicate would have
+survived until the first file that needed to convert between them. Deleted in favour of the registry's,
+which was also the better-documented one. The general shape is worth naming: a duplicated *type* is
+invisible to every check this repository runs, unlike a duplicated *value*, which the registry
+cross-check does catch.
+
+**The tank was the quietest of the six.** Fifteen tests, no first-run failures, and nothing in `22` §6
+turned out to be wrong or ambiguous — the layer-boundary rule is written as an explicit formula
+precisely so two implementations cannot round it differently, and it transcribed without a decision.
+Recorded because the pattern across `P3.3` is that the sections which stop to explain *why* the obvious
+implementation is wrong (the pump's affinity laws, the valve's regularisation) produced no defects,
+while the sections that state a result plainly are where the gaps were — `SolveContext` undefined,
+`h_node` unsourced, viscosity missing from the port state.
 
