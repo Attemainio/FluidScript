@@ -122,6 +122,7 @@ public static partial class Lowering
                         new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1)
                         {
                             StatedParameters = ComponentFactory.Stated(symbol),
+                            Boundary = Role(kind),
                         },
                         symbol.CircuitName,
                         symbol.Origin is Origin.Declared ? NodeOrigin.Declared : NodeOrigin.Inferred);
@@ -137,6 +138,22 @@ public static partial class Lowering
                 Add(component, symbol.CircuitName, origin: null);
             }
         }
+
+        /// <summary>Which end of an open circuit a node kind declares itself to be.</summary>
+        /// <param name="kind">The registry entry the script named.</param>
+        /// <returns>The role, or <see cref="BoundaryRole.Interior"/> for a plain node.</returns>
+        /// <remarks>
+        /// Read from the keyword because that is the only place it exists: a <c>return</c> and a bare
+        /// terminal <c>node</c> have identical parameters and opposite mass balances (<c>D-64</c>). This
+        /// is the one point where lowering reads a kind's spelling, and it reads it from the registry
+        /// entry rather than from the script, so an alias resolves before it gets here.
+        /// </remarks>
+        private static BoundaryRole Role(Language.ComponentKindInfo kind) => kind.Keyword switch
+        {
+            "supply" => BoundaryRole.Supply,
+            "return" => BoundaryRole.Return,
+            _ => BoundaryRole.Interior,
+        };
 
         /// <summary>Turns each connection into a link between two port slots.</summary>
         /// <remarks>

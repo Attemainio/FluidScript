@@ -57,6 +57,11 @@ public sealed class ReferenceCircuitTests
             .Where(component => component.Origin is Origin.Inferred inferred && inferred.Rule == rule)
             .Select(static component => component.Name)];
 
+    private static string[] Kinded(SemanticModel model, string keyword) =>
+        [.. model.Components
+            .Where(component => component.Kind?.Keyword == keyword)
+            .Select(static component => component.Name)];
+
     // ---- the cooling loop — topology reference ------------------------------------------------
 
     [Fact]
@@ -76,7 +81,13 @@ public sealed class ReferenceCircuitTests
         Assert.Empty(Named(model, "I3"));
 
         Assert.Equal(10, model.Components.Length);
-        Assert.Equal(6, model.Components.Count(static c => c.Kind?.Keyword == "node"));
+
+        // Four of the six are `node`. The two boundaries declare their roles instead, which is the
+        // whole of D-64: `supply` and `return` in kind position are state points that say which way
+        // fluid crosses them, and the inference inventory is unchanged by the spelling.
+        Assert.Equal(4, model.Components.Count(static c => c.Kind?.Keyword == "node"));
+        Assert.Equal(["N1"], Kinded(model, "supply"));
+        Assert.Equal(["N3"], Kinded(model, "return"));
     }
 
     [Fact]
@@ -110,15 +121,18 @@ public sealed class ReferenceCircuitTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheSimpleLoopIsFourComponentsAndFourNodes()
+    public void TheSimpleLoopIsFiveComponentsAndFiveNodes()
     {
         var model = Model("m2-simple-loop.fluid");
 
         Assert.Equal(
-            ["HE1", "CV1", "PU1", "P1"],
+            ["HE1", "LOAD", "CV1", "PU1", "P1"],
             model.Components.Where(static c => c.Origin is Origin.Declared).Select(static c => c.Name));
 
-        Assert.Equal(["N1", "N2", "N3", "N4"], Named(model, "I1"));
+        // LOAD is what makes the ring solvable rather than merely square: a closed circuit whose duties
+        // do not sum to zero has no steady state, and this one used to ask for 30 kW with nowhere to
+        // put it (FS2203).
+        Assert.Equal(["N1", "N2", "N3", "N4", "N5"], Named(model, "I1"));
 
         // One closed series loop: every node joins exactly two components, so nothing is a dead end
         // and no port needed terminating.

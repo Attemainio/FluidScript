@@ -140,7 +140,11 @@ public sealed partial class RegistryMatchesTheComponentModelTests
             ["t_sensor"] = "TE",
             ["p_sensor"] = "PE",
             ["flow_sensor"] = "FE",
+            // A tag names a piece of equipment (`D-34`), and a state point is not one. A boundary is a
+            // node, so it carries no tag either.
             ["node"] = null,
+            ["supply"] = null,
+            ["return"] = null,
             ["pipe"] = null,
         };
 
@@ -158,8 +162,8 @@ public sealed partial class RegistryMatchesTheComponentModelTests
         var documented = ReadComponentModel();
 
         Assert.Equal(
-            ["flow_sensor", "heat_exchanger", "node", "p_sensor", "pipe", "pump", "t_sensor", "tank",
-             "three_way_valve", "valve"],
+            ["flow_sensor", "heat_exchanger", "node", "p_sensor", "pipe", "pump", "return", "supply",
+             "t_sensor", "tank", "three_way_valve", "valve"],
             documented.Keys.Order(StringComparer.Ordinal));
 
         Assert.Contains("power", documented["heat_exchanger"].Parameters);

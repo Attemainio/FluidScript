@@ -81,16 +81,25 @@ back. P0 closes both before any code exists.
 | P0.3 | Independently reproduce every asserted reference number | The M2 arithmetic gates |
 
 **P0.3 is not ceremony.** `05`, `01`, `07` and `62` assert hand-computed figures — 0.2392 kg/s,
-0.0763 kg/s, 0.1630 kg/s, 5.28 m, DN20, 0.2871/0.3589/0.6460 kg/s, 39 plates, UA 12.07 kW/K,
+0.0763 kg/s, 0.1630 kg/s, 5.28 m, DN20, 0.2871/0.3589 kg/s and 0.4306 through the header,
+39 plates, UA 12.07 kW/K,
 `dT2/dt = 0.020 K/s` — and those figures are the acceptance tests for P3, P4 and P6. Reproducing
 them from an independent calculation costs a day. Discovering during P3 that a published figure was
 wrong costs considerably more than a day, because the first assumption is always that the solver is
 broken, and the solver is the thing least able to defend itself.
 
-It paid for itself on the first pass. All 71 derived figures reproduced, but the *inputs* did not:
+It paid for itself twice. All 71 derived figures reproduced on the first pass, but the *inputs* did
+not:
 P1.1 found `h(6 °C)` stated as 25 200 J/kg against CoolProp's 25 324, and the humid-air enthalpy row
 stated as an ASHRAE ideal-gas value rather than what the backend returns. Both are corrected in the
 documents that own them, and the derived flows moved with them — 0.2394 → 0.2392, 0.0764 → 0.0763.
+
+The second time was `P3.4c`, and it was a figure that reproduced its own arithmetic while describing
+the wrong circuit: the header's 0.6460 kg/s is the sum of the two subcircuit *loop* flows, which is
+what the source would carry only if the header ran 40/60 °C. It runs 30/60, because both loads return
+30 °C, so the source carries 0.4306 kg/s (`F-16`). A hand-check reproduces a number; only a hand-check
+against the circuit reproduces the *right* number, and the way this one surfaced was the well-posedness
+count reporting the fixture over-specified by one.
 
 ### P1 — M0: scaffold and the one real risk gate
 
@@ -215,11 +224,19 @@ syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes assert
 | P3.1 | `ISubstance`, `FluidState`, the single SharpProp adapter, **both** fakes | The constant-property fake buys test speed; the linear-in-temperature fake is what catches a component that only works with constant properties. One without the other is a false sense of coverage. |
 | P3.2 | Property-accuracy tier — V4, V5, and the two basis cases V13 and V14 | Wrong physics at the source invalidates everything above it, so it is proved before anything is built on it. V13 and V14 belong here rather than later because they are about *this* layer's conventions — gauge against absolute, and per kg of dry air against per kg of mixture — and both are silent when wrong. `62`'s rule 3 costs real sourcing effort: only density has a published closed form to check against across the range, so the other three properties are pinned at one state and otherwise checked behaviourally. |
 | P3.3 | Component model, six kinds in duty mode ([`22`](../20-core-domain/22-component-model.md)) | The zero-allocation `EvaluateResiduals` test is written **in this package**. Retrofitting it across six component types later is a rewrite. |
-| P3.4 | Lowering, `CircuitGraph`, boundaries, well-posedness ([`23`](../20-core-domain/23-topology-and-graph.md)) | The "no syntax type in `CircuitGraph`" assertion goes live here. |
+| P3.4 | Lowering, `CircuitGraph`, boundaries, well-posedness ([`23`](../20-core-domain/23-topology-and-graph.md)) | The "no syntax type in `CircuitGraph`" assertion goes live here. Ran as three: **a** the graph, **b** boundaries, counting and promotion, **c** the boundary kinds and the two consistency codes. |
 | P3.5 | Catalogue ([`27`](../20-core-domain/27-component-catalog.md)) | Sizing cannot be written against a catalogue that does not exist. V12 closes it. |
 | P3.6 | Scaling, then Newton ([`36`](../30-solver/36-numerics-and-convergence.md), [`32`](../30-solver/32-steady-state-newton.md)) | **Scaling first.** An unscaled residual norm measures the pressure equation and nothing else; Newton built first is tuned against a meaningless number, and the tolerances then have to be redone. |
 | P3.7 | Sizing and the single outer loop ([`24`](../20-core-domain/24-auto-sizing.md), [`31`](../30-solver/31-solver-architecture.md)) | One loop, one convergence test, one cap. Building sizing before the solve exists produces a second loop by default, which is exactly what `31` forbids. |
 | P3.8 | **The design point as the sizing point** ([`24`](../20-core-domain/24-auto-sizing.md), [`15`](../10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The language half shipped in P2.10 and is not repeated here; this is sizing reading `ProjectSettings.Design`, and a transient run re-reading a curve it was handed as deferred. |
+
+**P3.4c was not planned, and the shape of why is worth keeping.** It began as a change to what a
+boundary declaration means (`D-64`) and turned into two corrections to the counting argument itself —
+a stated `flow` is not an equation (`C-26`), and a closed circuit has an enthalpy datum nothing had
+counted (`C-30`, `D-65`) — plus two reference circuits that had no solution (`F-15`, `F-16`). None of
+those were reachable from `23`'s worked example, which balances at 20 = 20 on an open circuit. The
+package that finds a defect is very often the one that tries to *use* the thing rather than the one
+that builds it, and the trigger here was a user asking for a sample script to be corrected.
 
 **P3.0 and P3.8 are new work from `D-57`–`D-61`, and their positions are the whole content of the
 decision to split them.** Sensors are a component-model change and must precede P3.3, which builds the

@@ -29,10 +29,10 @@ That is information, not a warning. Every pressure in the result is then relativ
 shows them that way. The node chosen is the one with the most connections, so it does not move when
 you edit an unrelated line.
 
-**Two stated pressures are normal.** The cooling loop states `N1 p=300` and `N3 p=280`, and it must:
-those two are what push water through its primary side. What is *not* normal is two pressures with
-nothing between them that could make them differ — two nodes wired straight together, where the
-second is not a boundary at all but a second, contradictory datum:
+**Two stated pressures are normal.** The cooling loop states `N1 supply t=6 p=300` and
+`N3 return p=280`, and it must: those two are what push water through its primary side. What is *not*
+normal is two pressures with nothing between them that could make them differ — two nodes wired
+straight together, where the second is not a boundary at all but a second, contradictory datum:
 
 ```
 FS2212  'N1' and 'N2' both set a pressure on the same closed loop, with no path
@@ -85,13 +85,57 @@ number in the model can deliver:
 FS2210  This circuit is over-specified by 1. Remove one of: HE1.in.
 ```
 
-The most common cause is a genuinely impossible circuit rather than a typo. A closed loop with a heat
-source and no sink is the clearest one: the water comes back to the exchanger inlet at whatever
-temperature it left, so asking for `in=20` while `out=50` cannot be satisfied by any valve, pump or
-pipe — and the message names `HE1.in` because that is the statement to remove or the sink to add.
+Three exchangers each demanding a mixed inlet temperature, with only two mixing valves to meet them,
+is the usual shape of it. The message names every demand that found nothing to move, because the fix
+is to delete one of them or to add the freedom it was asking for.
 
-If you have three exchangers each demanding a mixed inlet temperature and only two mixing valves, you
-get the same message for the same reason.
+## The temperature level, which nothing can pick for you
+
+A closed circuit needs one more thing, and it is the mirror of the pressure datum.
+
+Every thermal relation in a circuit is a *difference*: an exchanger raises the water by so much, a
+pipe changes it by nothing. Go all the way round a closed loop and the differences cancel, which
+leaves the whole temperature field free to slide up or down together. Something has to say where it
+sits.
+
+For pressure the tool picks a node itself, because a pressure measured from an arbitrary zero is
+still a correct answer. For temperature it cannot: 20 °C and 60 °C are different physics. So a closed
+circuit must state one temperature somewhere — an exchanger's `in` or `out`, or a plain `N1 node
+t=20` — and if it states none you get:
+
+```
+FS2211  This circuit is under-specified by 1. Add one of: a temperature on N1, …
+```
+
+An **open** circuit needs nothing of the sort. Fluid arrives through its `supply` carrying a
+temperature, and that is the level.
+
+## Square is not the same as solvable
+
+The count can come out exactly right on a circuit that has no answer at all. Two checks catch what no
+amount of counting can.
+
+**Heat has to go somewhere.** Add up the duties around a closed circuit and they must come to zero —
+a source of 30 kW with no sink is not a warm circuit, it is a circuit with no steady state:
+
+```
+FS2203  'simpleLoop' is closed and its heat does not balance: 30 kW with nowhere
+        to go. Add a load, a source, or a boundary.
+```
+
+The count for that circuit balances perfectly. Summing its energy equations gives `Σ Q̇ = 0` against
+duties that do not, which is a contradiction between equations rather than a shortage of them. The
+same circuit in a `dynamic` model is fine, and is exactly what a warm-up study looks like: the water
+heats up, and the stored energy is where the 30 kW goes.
+
+**So does mass.** A `supply` with no `return` injects fluid the circuit cannot get rid of:
+
+```
+FS2204  'branch1' has a supply and no return. Fluid must both enter and leave,
+        or neither.
+```
+
+A closed loop trips neither: it needs no boundary, and its duties are checked against zero.
 
 ## When one circuit is really two
 
@@ -112,8 +156,10 @@ FS2213  'HE_RAD, TV_RAD, PU_RAD' are not connected to the rest of the circuit.
 |---|---|---|
 | `FS2201` | A datum was picked for you | Nothing. Read pressures as relative |
 | `FS2202` | A port was left unconnected, and closed | Connect it, or leave the stub if it is deliberate |
+| `FS2203` | A closed circuit's duties do not sum to zero | Add the load or source it is missing, or open it with a boundary |
+| `FS2204` | Fluid can enter and not leave, or the reverse | Add the missing `supply` or `return` |
 | `FS2210` | More demands than freedoms | Remove one of the named statements, or add what could absorb it |
-| `FS2211` | Fewer demands than freedoms | Add one of the named boundary conditions |
+| `FS2211` | Fewer demands than freedoms | Add one of the named boundary conditions. On a closed circuit it is usually a temperature |
 | `FS2212` | Two pressures forced equal, set differently | Remove one, or put something between them |
 | `FS2213` | A part connected to nothing | Connect it, or move it to its own file |
 | `FS2214` | A loop with no pump | Check whether a pump is on the wrong leg. The loop will carry no flow |
@@ -138,4 +184,5 @@ diagram keeps drawing what you have so far.
 
 - [How a script becomes a circuit](how-a-script-becomes-a-circuit.md) — the graph these checks run on
 - [`node`](../functions/node.md) — `p`, `t` and `flow`, the three boundary conditions
+- [`supply` and `return`](../functions/supply-return.md) — declaring which way fluid crosses an edge of the model
 - [`heat-exchanger`](../functions/heat-exchanger.md) — `in`, `out` and `power`, and which combinations fix a flow

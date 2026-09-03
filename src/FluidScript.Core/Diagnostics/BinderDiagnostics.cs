@@ -463,6 +463,31 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top).");
 
+    /// <summary>A parameter whose absence the kind has no answer for.</summary>
+    /// <value><c>FS2117</c>, an error.</value>
+    /// <remarks>
+    /// <strong>The third omission policy, and the rarest</strong> (<c>D-64</c>). Almost every parameter
+    /// is sized or defaulted, because almost every parameter has a defensible substitute. This fires
+    /// only where there is none: a boundary with no temperature has no state to give the fluid entering
+    /// there, and inventing one yields a solved circuit whose every downstream temperature is wrong.
+    /// </remarks>
+    public static DiagnosticDescriptor MissingRequiredParameter { get; } = new(
+        "FS2117",
+        DiagnosticSeverity.Error,
+        "'{name}': a {kind} must state {parameter}.");
+
+    /// <summary>A parameter group with too few of its members stated to determine it.</summary>
+    /// <value><c>FS2118</c>, an error.</value>
+    /// <remarks>
+    /// The lower bound to <see cref="OverDetermined"/>'s upper one. A <c>supply</c> states exactly one
+    /// of <c>flow</c> and <c>p</c> — <c>FS2101</c> catches both, this catches neither. Neither member is
+    /// individually required, so this cannot be expressed as a policy on either of them.
+    /// </remarks>
+    public static DiagnosticDescriptor UnderDetermined { get; } = new(
+        "FS2118",
+        DiagnosticSeverity.Error,
+        "'{name}': a {kind} must state {count} of {parameters}.");
+
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>
     /// <remarks>
@@ -607,5 +632,7 @@ public static class BinderDiagnostics
         MixedTankTemperatures,
         InvalidLayerCount,
         ElevationOutsideRange,
+        MissingRequiredParameter,
+        UnderDetermined,
     ];
 }

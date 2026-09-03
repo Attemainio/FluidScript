@@ -49,6 +49,10 @@ public static class WellPosedness
     /// <summary>A heat exchanger's statements that pin a flow, in the order they are matched.</summary>
     private static readonly string[] FlowPins = ["out", "out2", "dt", "dt2"];
 
+    /// <summary>A heat exchanger's statements that fix an absolute temperature rather than a difference.</summary>
+    /// <remarks><c>dt</c> is deliberately absent: it is the difference the level is free of.</remarks>
+    private static readonly string[] Terminals = ["in", "out", "in2", "out2"];
+
     /// <summary>Checks a lowered graph.</summary>
     /// <param name="graph">The graph to check.</param>
     /// <returns>The counting table, the hydraulic partition, and the diagnostics.</returns>
@@ -70,12 +74,14 @@ public static class WellPosedness
         ReportDriverlessLoops(graph, diagnostics);
         ReportStates(graph, diagnostics);
         ReportOwnership(graph, hydraulics, diagnostics);
+        ReportClosure(graph, hydraulics, diagnostics);
+        ReportBoundaries(graph, hydraulics, diagnostics);
 
         var constraints = Constraints(graph, hydraulics);
         var promotions = Promote(graph, hydraulics, constraints);
         var counting = Count(graph, hydraulics, constraints, promotions);
 
-        ReportBalance(graph, counting, promotions, diagnostics);
+        ReportBalance(graph, hydraulics, counting, promotions, diagnostics);
 
         return new WellPosednessResult(counting, hydraulics, diagnostics.ToImmutable());
     }
@@ -100,9 +106,15 @@ public static class WellPosedness
         }
 
         var datums = 0;
+        var levels = 0;
 
         foreach (var hydraulic in hydraulics)
         {
+            if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic))
+            {
+                levels++;
+            }
+
             // The datum equation and the redundant mass balance answer two different questions, and
             // conflating them is wrong on a circuit whose only stated pressure sits mid-branch. The
             // datum fixes the pressure level, and is needed exactly when no pressure is stated.
@@ -111,12 +123,11 @@ public static class WellPosedness
                 datums++;
             }
 
-            // The redundancy is about mass, not pressure: with no unknown external flux, summing the
-            // balances gives 0 = 0 and one of them is implied by the rest. A pressure stated on a node
-            // that carries no mass balance admits no flux, so it leaves the component closed in exactly
-            // this sense however emphatically it was written.
-            if (!hydraulic.StatedPressures.Any(static node => node.Component.CarriesMassBalance)
-                && Balances(hydraulic) > 0)
+            // The redundancy is about mass, not pressure: with every external flux known, summing the
+            // balances gives an identity and one of them is implied by the rest. A pressure stated on a
+            // node that carries no mass balance admits no flux, so it leaves the component closed in
+            // exactly this sense however emphatically it was written.
+            if (!hydraulic.HasUnknownFlux && Balances(hydraulic) > 0)
             {
                 balances--;
             }
@@ -127,21 +138,32 @@ public static class WellPosedness
 
         foreach (var node in graph.Nodes)
         {
-            if (HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is null)
+            var stated = HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null;
+
+            if (stated)
             {
-                continue;
+                pressures++;
             }
 
-            pressures++;
-
             // A node interior to a branch carries no mass balance, so there is nowhere for an external
-            // flux to enter. Its stated pressure is then an equation with no unknown to absorb it,
-            // which is exactly the over-specification a mid-branch `p=` really is.
-            if (node.Component.CarriesMassBalance)
+            // flux to enter. A stated pressure there is an equation with no unknown to absorb it, which
+            // is exactly the over-specification a mid-branch `p=` really is.
+            //
+            // A `return` brings the same unknown with no equation of its own, and that is the point of
+            // it: the flow leaving is whatever the circuit delivers. A bare terminal node brings
+            // neither -- its flux is zero, which is a dead leg (`D-64`).
+            //
+            // A stated `flow` names the flux outright, so there is no unknown left to declare. It is
+            // not an equation either: counting it as one and keeping the unknown gives the same total
+            // and a table that reads as though the circuit had to work to meet it.
+            if (node.Component.CarriesMassBalance
+                && HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is null
+                && (stated || node.Component.Boundary is BoundaryRole.Return))
             {
                 fluxes++;
             }
         }
+
 
         return new CountingTable
         {
@@ -156,6 +178,7 @@ public static class WellPosedness
             StatedPressures = pressures,
             Constraints = constraints,
             Datums = datums,
+            EnthalpyLevels = levels,
         };
     }
 
@@ -356,6 +379,75 @@ public static class WellPosedness
         }
 
         return sides > 1;
+    }
+
+    /// <summary>Whether a component's energy block leaves its own temperature level free.</summary>
+    /// <param name="graph">The graph, which is what says whether time is being integrated.</param>
+    /// <param name="hydraulics">The hydraulic partition.</param>
+    /// <param name="hydraulic">The component to classify.</param>
+    /// <returns><see langword="true"/> when the level is an unknown nothing in the block determines.</returns>
+    /// <remarks>
+    /// <para>
+    /// Three conditions, and each one removes the freedom for a different reason. <strong>Closed</strong>:
+    /// external mass arrives carrying an enthalpy, and that enthalpy is the level. <strong>Steady</strong>:
+    /// a transient starts from an initial state, which fixes the level before the first step.
+    /// <strong>Uncoupled</strong>: a two-sided exchanger's duty reads absolute temperatures on both
+    /// sides, so a uniform offset on one side alone no longer satisfies its relation.
+    /// </para>
+    /// <para>
+    /// <strong>Whether the circuit's duties balance does not enter into it.</strong> An unbalanced closed
+    /// loop has the same rank deficiency and the same square count — and no solution, which is
+    /// <c>FS2203</c>'s subject and not this one's.
+    /// </para>
+    /// </remarks>
+    private static bool NeedsEnthalpyLevel(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, HydraulicComponent hydraulic)
+    {
+        if (graph.Mode is not SolveMode.Steady || !hydraulic.IsClosed)
+        {
+            return false;
+        }
+
+        foreach (var element in hydraulic.Elements)
+        {
+            if (IsCoupled(hydraulics, element))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether anything in a component states the temperature its relations leave free.</summary>
+    /// <param name="hydraulic">The component to search.</param>
+    /// <returns><see langword="true"/> when a node temperature or an exchanger terminal is stated.</returns>
+    /// <remarks>
+    /// Used only to word <c>FS2211</c>: the count is the same either way, and this decides whether the
+    /// message may sensibly ask for a temperature the script has already given.
+    /// </remarks>
+    private static bool FixesEnthalpyLevel(HydraulicComponent hydraulic)
+    {
+        foreach (var node in hydraulic.Nodes)
+        {
+            if (HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature) is not null)
+            {
+                return true;
+            }
+        }
+
+        foreach (var element in hydraulic.Elements)
+        {
+            foreach (var parameter in Terminals)
+            {
+                if (HydraulicPartition.Stated(element, parameter) is not null)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Matches each constraint to the sized parameter that can absorb it.</summary>
@@ -817,6 +909,210 @@ public static class WellPosedness
             ? graph.CircuitOf.GetValueOrDefault(hydraulic.Elements[0].Name, hydraulic.Index.ToString(CultureInfo.InvariantCulture))
             : hydraulic.Index.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Reports a closed circuit whose stated duties cannot sum to zero (<c>FS2203</c>).</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="hydraulics">Its hydraulic partition.</param>
+    /// <param name="diagnostics">Where to report.</param>
+    /// <remarks>
+    /// <para>
+    /// <strong>Consistency is a different question from squareness.</strong> A closed ring with a 30 kW
+    /// source and no sink has exactly as many equations as unknowns and no solution, because summing its
+    /// energy balances gives <c>Σ Q̇ = 0</c> against stated duties that do not. The counting pass cannot
+    /// see it and no amount of promotion will, so it is checked here.
+    /// </para>
+    /// <para>
+    /// <strong>Steady mode only.</strong> The same circuit in a transient is a warm-up study: the water
+    /// heats up, which is what the storage term is for.
+    /// </para>
+    /// </remarks>
+    private static void ReportClosure(
+        CircuitGraph graph,
+        ImmutableArray<HydraulicComponent> hydraulics,
+        ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        if (graph.Mode is not SolveMode.Steady)
+        {
+            return;
+        }
+
+        foreach (var hydraulic in hydraulics)
+        {
+            if (!hydraulic.IsClosed || Imbalance(hydraulics, hydraulic) is not { } imbalance)
+            {
+                continue;
+            }
+
+            diagnostics.Add(Diagnostic.Create(
+                TopologyDiagnostics.UnbalancedClosedCircuit,
+                span: null,
+                new DiagnosticArgument("circuit", Name(graph, hydraulic)),
+                new DiagnosticArgument(
+                    "power",
+                    (imbalance / 1000).ToString("0.###", CultureInfo.InvariantCulture) + " kW")));
+        }
+    }
+
+    /// <summary>The heat a closed circuit's stated duties leave with nowhere to go.</summary>
+    /// <param name="hydraulics">The hydraulic partition, which is what says whether a side is wired.</param>
+    /// <param name="hydraulic">The closed component to sum.</param>
+    /// <returns>
+    /// The signed imbalance in W, positive when heat is added; or <see langword="null"/> when the
+    /// circuit can balance, when a duty is still to be sized, or when the sign search is too wide to
+    /// mean anything.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>An unstated duty ends the sum rather than contributing zero</strong> (<c>D-02</c>). A duty
+    /// the script never wrote is one sizing may still choose, and a total missing a term says nothing
+    /// about the total.
+    /// </para>
+    /// <para>
+    /// <strong>A coupled exchanger's sign is not readable from the graph.</strong> <c>power</c> is
+    /// positive when side 1 gains, and which side is in <em>this</em> component is a fact about ports
+    /// that the branch decomposition does not carry — a branch records its ends' ports and an exchanger
+    /// is interior to a branch on each side. So every assignment is tried and the circuit is reported
+    /// only when none of them balances, which is the reading that cannot produce a false error: the
+    /// substation's closed secondary balances under exactly one of its two.
+    /// </para>
+    /// <para>
+    /// A pump contributes nothing here. It writes a pressure relation and no energy row, so a closed
+    /// loop of pumps and pipes balances at exactly zero rather than nearly zero.
+    /// </para>
+    /// </remarks>
+    private static double? Imbalance(
+        ImmutableArray<HydraulicComponent> hydraulics, HydraulicComponent hydraulic)
+    {
+        // Four couplings is sixteen assignments; past that a balance found by search says more about
+        // arithmetic luck than about the circuit, so the check stands down instead of reporting one.
+        const int searchLimit = 4;
+
+        var known = 0d;
+        var scale = 0d;
+        var coupled = new List<double>();
+
+        foreach (var element in hydraulic.Elements)
+        {
+            if (!string.Equals(element.Kind, "heat_exchanger", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (HydraulicPartition.Stated(element, "power") is not { } power)
+            {
+                return null;
+            }
+
+            scale += Math.Abs(power);
+
+            if (IsCoupled(hydraulics, element))
+            {
+                coupled.Add(power);
+            }
+            else
+            {
+                known += power;
+            }
+        }
+
+        if (coupled.Count > searchLimit)
+        {
+            return null;
+        }
+
+        var smallest = double.PositiveInfinity;
+        var imbalance = 0d;
+
+        for (var assignment = 0; assignment < 1 << coupled.Count; assignment++)
+        {
+            var total = known;
+
+            for (var i = 0; i < coupled.Count; i++)
+            {
+                total += (assignment & (1 << i)) == 0 ? coupled[i] : -coupled[i];
+            }
+
+            if (Math.Abs(total) < smallest)
+            {
+                smallest = Math.Abs(total);
+                imbalance = total;
+            }
+        }
+
+        // Stated duties are exact to the digit the script wrote, so the only slack the sum needs is the
+        // rounding of adding them together.
+        return smallest > 1e-9 * Math.Max(scale, 1) ? imbalance : null;
+    }
+
+    /// <summary>Reports fluid that can enter a circuit and not leave it, or the reverse (<c>FS2204</c>).</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="hydraulics">Its hydraulic partition.</param>
+    /// <param name="diagnostics">Where to report.</param>
+    /// <remarks>
+    /// <para>
+    /// The mass analogue of <see cref="ReportClosure"/>, and invisible to the count for the same reason:
+    /// a stated <c>flow</c> is a known injection, so a circuit that injects mass with nowhere to put it
+    /// is square and inconsistent.
+    /// </para>
+    /// <para>
+    /// <strong>A stated pressure is a way in and a way out</strong> as surely as a boundary kind is —
+    /// mass crosses there to hold the number — so a <c>supply</c> paired with a pressure-driven outlet is
+    /// not reported. What a pressure cannot do is stand in for the boundary it sits <em>on</em>: a
+    /// <c>supply p=300</c> is one node, and a circuit whose only flux is at that node passes none.
+    /// </para>
+    /// <para>
+    /// <strong>A circuit with neither boundary kind is never reported here.</strong> A closed loop needs
+    /// neither (<c>D-64</c>), and the cooling loop's two stated pressures are a complete pair of
+    /// boundary conditions written the older way.
+    /// </para>
+    /// </remarks>
+    private static void ReportBoundaries(
+        CircuitGraph graph,
+        ImmutableArray<HydraulicComponent> hydraulics,
+        ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        foreach (var hydraulic in hydraulics)
+        {
+            var supplied = hydraulic.Boundaries.Any(
+                static node => node.Component.Boundary is BoundaryRole.Supply);
+            var returned = hydraulic.Boundaries.Any(
+                static node => node.Component.Boundary is BoundaryRole.Return);
+
+            var exits = hydraulic.Nodes.Any(static node =>
+                node.Component.Boundary is BoundaryRole.Return
+                || (node.Component.Boundary is not BoundaryRole.Supply
+                    && HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null));
+
+            var entries = hydraulic.Nodes.Any(static node =>
+                node.Component.Boundary is BoundaryRole.Supply
+                || (node.Component.Boundary is not BoundaryRole.Return
+                    && (HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null
+                        || HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is not null)));
+
+            string present;
+            string missing;
+
+            if (supplied && !exits)
+            {
+                (present, missing) = ("supply", "return");
+            }
+            else if (returned && !entries)
+            {
+                (present, missing) = ("return", "supply");
+            }
+            else
+            {
+                continue;
+            }
+
+            diagnostics.Add(Diagnostic.Create(
+                TopologyDiagnostics.UnpairedBoundary,
+                span: null,
+                new DiagnosticArgument("circuit", Name(graph, hydraulic)),
+                new DiagnosticArgument("present", present),
+                new DiagnosticArgument("missing", missing)));
+        }
+    }
+
     /// <summary>Reports a system that is not square, naming what would square it.</summary>
     /// <remarks>
     /// <strong>The list is the whole value of the message.</strong> "Over-specified by 1" is a puzzle;
@@ -825,6 +1121,7 @@ public static class WellPosedness
     /// </remarks>
     private static void ReportBalance(
         CircuitGraph graph,
+        ImmutableArray<HydraulicComponent> hydraulics,
         CountingTable counting,
         ImmutableArray<Promotion> promotions,
         ImmutableArray<Diagnostic>.Builder diagnostics)
@@ -856,7 +1153,7 @@ public static class WellPosedness
             TopologyDiagnostics.UnderSpecified,
             span: null,
             new DiagnosticArgument("n", (-counting.Excess).ToString(CultureInfo.InvariantCulture)),
-            new DiagnosticArgument("list", string.Join(", ", Understated(graph)))));
+            new DiagnosticArgument("list", string.Join(", ", Understated(graph, hydraulics)))));
     }
 
     /// <summary>What could be removed when no constraint is the culprit.</summary>
@@ -873,15 +1170,34 @@ public static class WellPosedness
             .Select(static node => $"{node.Name}.p");
 
     /// <summary>What could be added to square an under-specified circuit.</summary>
-    private static string[] Understated(CircuitGraph graph)
+    /// <param name="graph">The graph.</param>
+    /// <param name="hydraulics">Its hydraulic partition, which is what knows a level is unfilled.</param>
+    /// <returns>The candidates, the thermal ones first.</returns>
+    /// <remarks>
+    /// <strong>A missing temperature is named ahead of a missing pressure</strong>, because it is the one
+    /// the graph could not have picked for itself. A circuit that states no pressure gets a datum and an
+    /// <c>FS2201</c>, so it never arrives here short of one; a circuit whose temperature level nothing
+    /// fixes has no such fallback.
+    /// </remarks>
+    private static string[] Understated(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics)
     {
-        var candidates = graph.Nodes
+        var candidates = new List<string>();
+
+        foreach (var hydraulic in hydraulics)
+        {
+            if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic) && !FixesEnthalpyLevel(hydraulic))
+            {
+                candidates.AddRange(hydraulic.Nodes.Select(static node => $"a temperature on {node.Name}"));
+            }
+        }
+
+        candidates.AddRange(graph.Nodes
             .Where(static node =>
                 node.Component.CarriesMassBalance
                 && HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is null)
-            .Select(static node => $"a pressure on {node.Name}")
-            .ToArray();
+            .Select(static node => $"a pressure on {node.Name}"));
 
-        return candidates.Length > 0 ? candidates : ["a boundary condition"];
+        return candidates.Count > 0 ? [.. candidates] : ["a boundary condition"];
     }
 }

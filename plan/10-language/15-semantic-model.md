@@ -127,7 +127,7 @@ public sealed record ParameterInfo
     /// <value>Empty for the other kinds. Resolved by the same normalisation as a kind name.</value>
     public ImmutableArray<string> AcceptedSymbols { get; init; }
 
-    /// <summary>What omission means: size the value, or apply an explicit visible default.</summary>
+    /// <summary>What omission means: size the value, apply a visible default, or report it.</summary>
     public required ParameterOmissionBehavior OmissionBehavior { get; init; }
 
     /// <summary>Canonical source literal for a Default parameter; null for Size.</summary>
@@ -142,7 +142,7 @@ public sealed record ParameterInfo
 }
 
 public enum ParameterValueKind { Quantity, Symbol, Reference }
-public enum ParameterOmissionBehavior { Size, Default }
+public enum ParameterOmissionBehavior { Size, Default, Require }   // Require: D-64
 
 public sealed record PortInfo
 {
@@ -549,8 +549,20 @@ public sealed record ParameterValue
 **`Parameters` uses absence, not a nullable value, to mean unresolved.** This is worth stating as an
 implementation rule because the natural C# instinct is a `Quantity?` property per parameter, and that
 loses the distinction the moment a component gains a legitimately-null parameter. Absence from the
-dictionary is unambiguous; the kind registry then selects sizing or a binding visible default under
-its omission policy (`D-02`, `D-32`).
+dictionary is unambiguous; the kind registry then selects sizing, a binding visible default, or a
+diagnostic under its omission policy (`D-02`, `D-32`, `D-64`).
+
+**`Require` is the third policy, and it is deliberately rare** (`D-64`). Absence is a diagnostic
+(`FS2117`) rather than a value, and it is right only where every possible substitute would be a guess
+about the *plant* rather than about the model — a `supply`'s temperature is the whole of the current
+list. Sizing can choose a pipe bore because a bore is a consequence of the model; nothing can choose
+the temperature of water arriving from outside it. A `Require` parameter has no `DefaultLiteral` and
+no `DefaultBasis`, exactly as `Size` does not.
+
+**A group may also have a lower bound.** `ParameterGroupInfo.Freedoms` caps how many of a related set
+may be stated (`FS2101`); `Minimum` requires how few (`FS2118`), and today only a boundary's
+`flow`/`p` pair has one. The two halves are the same rule read from both ends, which is why they are
+one registry object rather than a group and a separate requirement list.
 
 **`Origin` is on every component.** The canvas must show which components the user wrote and which the
 language created (`R-23`, and principle P3's justification), diagnostics must not point at a span an
@@ -767,8 +779,10 @@ the language test suite must run in milliseconds, and property lookups are not m
 11. Every materialized indexed port has an index in its family's closed range, and no unevidenced
     indexed port appears in `ComponentSymbol` or the model contract.
 12. A registry entry with `OmissionBehavior.Default` has a parseable `DefaultLiteral` and non-empty
-    basis; one with `Size` has neither. Defaults never appear in `ComponentSymbol.Parameters`, whose
-    presence continues to mean the user wrote the parameter.
+    basis; one with `Size` or `Require` has neither. Defaults never appear in
+    `ComponentSymbol.Parameters`, whose presence continues to mean the user wrote the parameter.
+12a. A `ParameterGroupInfo` with a non-zero `Minimum` carries a descriptor to report it with, and one
+    with a zero `Minimum` carries none — a bound with no message is a check that cannot fire.
 
 13. Every `CircuitSymbol.Number` is unique within the model, and every resolved one is a multiple of
     100 that was unused when it was assigned.

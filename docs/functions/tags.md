@@ -16,6 +16,8 @@ the six pieces of equipment a reader is looking for.
 | Kind | Code | Tag in circuit 400 |
 |---|---|---|
 | `node` | *none* | untagged |
+| `supply` | *none* | untagged |
+| `return` | *none* | untagged |
 | `pipe` | *none* | untagged |
 | `heat_exchanger` | `HE` | `400HE01` |
 | `valve` | `V` | `400V01` |

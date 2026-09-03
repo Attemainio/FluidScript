@@ -1,3 +1,9 @@
+# The cooling loop reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# `dn` is stated on P1 because the catalogue that would size it lands in P3.5; without it the pipe
+# cannot be built, and a dropped pipe cuts the primary in two. Remove it when the catalogue lands --
+# 01's block is the canonical form and does not carry it.
+
 fluidscript 1
 circuit coolingLoop
 fluid water
@@ -7,7 +13,7 @@ show temperature
 HE1 heat_exchanger power=30 in=20 out=50
 3WV three_way_valve
 PU1 pump
-P1  pipe length=25
+P1  pipe length=25 dn=25
 
 connections
 N1 - N2                      # primary supply into the mixing node
@@ -18,5 +24,5 @@ HE1 - 3WV
 3WV - P1
 P1 - N3                      # primary return
 
-N1 node t=6 p=300            # primary-side boundary
-N3 node p=280
+N1 supply t=6 p=300          # primary-side boundary: fluid enters here (D-64)
+N3 return p=280              # and leaves here

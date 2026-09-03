@@ -16,11 +16,17 @@ namespace FluidScript.Core.Tests.Topology;
 /// reference circuit is counted here and not just the one.
 /// </para>
 /// <para>
-/// <strong>Two of the reference circuits do not balance, and that is the finding rather than the
-/// bug.</strong> The simple loop is a closed adiabatic ring with a 30 kW source and no sink, and the
-/// distribution header states three mixed inlet temperatures with two mixing valves to meet them. Both
-/// come out over-specified by exactly one, each naming the statement nothing can satisfy — which is
-/// what the check is for.
+/// <strong>Every reference circuit balances now, and two of them did not.</strong> The simple loop was
+/// a closed adiabatic ring with a 30 kW source and no sink, and the distribution header asked its
+/// source for a 40 °C return from two loads that both return 30 °C. Finding those is what this pass is
+/// for; <c>P3.4c</c> fixed the circuits and both are asserted here at zero.
+/// </para>
+/// <para>
+/// <strong>Squareness is not consistency, and <c>FS2203</c> and <c>FS2204</c> are the difference.</strong>
+/// A closed loop with a source and no sink counts 0 = 0 and has no solution, because summing its
+/// energy balances gives <c>Σ Q̇ = 0</c> against duties that do not. No arrangement of the counting
+/// argument reaches that, which is why both codes are checked separately and tested against a square
+/// circuit rather than a lopsided one.
 /// </para>
 /// </remarks>
 [Trait("Category", "Unit")]
@@ -156,6 +162,8 @@ public sealed class WellPosednessTests
 
         connections
         N1 - PU1 - N2 - P1 - N1
+
+        N1 node t=60
         """;
 
     // ---- the substation: two hydraulic components, coupled by heat -------------------------------
@@ -250,9 +258,16 @@ public sealed class WellPosednessTests
         // contributes a mass balance because it is a junction element.
         Assert.Equal(3, result.Counting.PressureRelations);
         Assert.True(CircuitGraph.IsJunctionElement(tank));
-        Assert.Equal(5, result.Counting.MassBalances);
+
+        // Four of the five balances, because every boundary states the flow crossing it: with no
+        // external flux left unknown, summing them gives an identity and one is implied by the rest.
+        Assert.Equal(4, result.Counting.MassBalances);
+        Assert.False(result.Hydraulics[0].HasUnknownFlux);
         Assert.Equal(0, result.Counting.Excess);
-        Assert.Empty(result.Diagnostics);
+
+        // No pressure is stated anywhere -- every boundary states a flow instead -- so the datum is
+        // picked and said so, and that one informational line is the whole diagnostic set.
+        Assert.Equal(["FS2201"], Codes(result));
     }
 
     private const string StorageHeader = """
@@ -260,11 +275,11 @@ public sealed class WellPosednessTests
         circuit storageHeader
         fluid dynamic water
 
-        S1 node t=60 p=300 flow=0.12
-        S2 node t=45 flow=0.08
+        S1 supply t=60 flow=0.12
+        S2 supply t=45 flow=0.08
         T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_elevation=90% in2_elevation=30% out1_elevation=90% out2_elevation=30%
-        RAD_NETWORK node flow=0.12
-        AHU_NETWORK node flow=0.08
+        RAD_NETWORK return flow=0.12
+        AHU_NETWORK return flow=0.08
 
         connections
         S1 - T1.in1
@@ -278,23 +293,13 @@ public sealed class WellPosednessTests
     [Fact]
     public void AConstraintWithNothingToPromoteIsAnOverSpecificationThatNamesIt()
     {
-        // The simple loop: a closed ring with a 30 kW source and no sink. Continuity forces its inlet
-        // and outlet enthalpies equal, so no parameter anywhere can make the inlet 20 degrees while the
-        // outlet is 50 -- and there is no mixing valve for `in` to promote. Letting it fall back to the
-        // valve's kv would square the count and report a circuit with no solution as solvable.
-        var result = Check("""
-            fluidscript 1
-            circuit simpleLoop
-            fluid water
-
-            HE1 heat_exchanger power=30 in=20 out=50
-            CV1 valve
-            PU1 pump
-            P1  pipe length=25 dn=25
-
-            connections
-            N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
-            """);
+        // The balanced ring with one temperature too many. `HE1 in=20` is its enthalpy datum -- the one
+        // absolute value a closed circuit's difference relations cannot supply -- and `N1 t=20` demands
+        // the same level a second time. Nothing is free to meet it: there is no mixing valve for either
+        // to promote, and letting one fall back to the valve's kv would square the count by moving a
+        // parameter that changes no temperature.
+        var result = Check(BalancedRing.Replace(
+            "circuit ring", "circuit simpleLoop", StringComparison.Ordinal) + "\nN1 node t=20\n");
 
         Assert.Equal(1, result.Counting.Excess);
         Assert.False(result.CanSolve);
@@ -302,15 +307,16 @@ public sealed class WellPosednessTests
         var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
         Assert.Contains("over-specified by 1", reported.Message, StringComparison.Ordinal);
         Assert.Contains("HE1.in", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("N1.t", reported.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void AnUnderSpecifiedTableCountsAsOneEvenThoughNoScriptReachesIt()
     {
-        // Hand-built, because with the equation set 23 specifies the structural terms cancel identically
-        // for every graph tried, and no script has been found that under-specifies -- S-8 in
-        // plan/30-solver/defects.md, which is a finding about 23 rather than about this code. The
-        // arithmetic still has to be right in both directions, and the sign is what picks the code.
+        // Hand-built, to check the arithmetic in both directions at a magnitude no script produces. A
+        // script does reach FS2211 now -- a closed circuit whose temperature level nothing fixes, which
+        // is a test of its own below -- but only ever by one, since the enthalpy datum is one per
+        // component.
         var table = new CountingTable
         {
             BranchFlows = 1,
@@ -326,6 +332,7 @@ public sealed class WellPosednessTests
             StatedPressures = 0,
             Constraints = [],
             Datums = 0,
+            EnthalpyLevels = 0,
         };
 
         Assert.Equal(6, table.Unknowns);
@@ -398,11 +405,184 @@ public sealed class WellPosednessTests
 
             connections
             N1 - P1 - N2 - P2 - N1
+
+            N1 node t=60
             """);
 
         Assert.Contains("FS2214", Codes(result));
         Assert.True(result.CanSolve);
     }
+
+    // ---- FS2203 and FS2204: consistency, which no count can see -----------------------------------
+
+    /// <summary>A closed ring with a 30 kW source and no sink.</summary>
+    private const string SourceRing = """
+        fluidscript 1
+        circuit ring
+        fluid water
+
+        HE1 heat_exchanger power=30 in=20 out=50
+        CV1 valve
+        PU1 pump
+        P1  pipe length=25 dn=25
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+        """;
+
+    /// <summary>The same ring with the load it was missing.</summary>
+    private const string BalancedRing = """
+        fluidscript 1
+        circuit ring
+        fluid water
+
+        HE1  heat_exchanger power=30 in=20 out=50
+        LOAD heat_exchanger power=-30
+        CV1  valve
+        PU1  pump
+        P1   pipe length=25 dn=25
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+        """;
+
+    [Fact]
+    public void AClosedCircuitWhoseHeatDoesNotBalanceIsReported()
+    {
+        var result = Check(SourceRing);
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2203");
+
+        Assert.Equal(DiagnosticSeverity.Error, reported.Severity);
+        Assert.Contains("30 kW", reported.Message, StringComparison.Ordinal);
+
+        // The whole reason the code exists: the system is square and has no solution, so nothing in the
+        // counting argument could have found this and no promotion would have helped.
+        Assert.Equal(0, result.Counting.Excess);
+    }
+
+    [Fact]
+    public void TheSameRingWithItsLoadIsAccepted()
+    {
+        var result = Check(BalancedRing);
+
+        Assert.DoesNotContain("FS2203", Codes(result));
+        Assert.Equal(0, result.Counting.Excess);
+        Assert.True(result.CanSolve);
+    }
+
+    [Fact]
+    public void ATransientIsNotHeldToTheSteadyBalance() =>
+        // The same circuit warming up, which is what the storage term is for. A check that fired here
+        // would reject every warm-up study there is.
+        Assert.DoesNotContain(
+            "FS2203",
+            Codes(Check(SourceRing.Replace("fluid water", "fluid dynamic water", StringComparison.Ordinal))));
+
+    [Fact]
+    public void ACoupledExchangerIsAHeatPathOutOfAClosedCircuit() =>
+        // The substation's secondary is closed and holds HX1 and a load of equal and opposite duty. The
+        // sign of a coupled duty is not readable from the graph, so both readings are tried and one of
+        // them balances -- which is what stops this reporting the project's own reference circuit.
+        Assert.DoesNotContain("FS2203", Codes(Check(Substation)));
+
+    [Fact]
+    public void ASupplyWithNothingToReturnThroughIsReported()
+    {
+        var reported = Check("""
+            fluidscript 1
+            circuit probe
+            fluid water
+
+            S1  supply t=60 flow=0.2
+            HE1 heat_exchanger power=-30
+            PU1 pump
+
+            connections
+            S1 - PU1 - N2 - HE1 - N3
+            """).Diagnostics.Single(static d => d.Code == "FS2204");
+
+        Assert.Contains("supply", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("return", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ASupplyPairedWithAReturnIsNotReported()
+    {
+        var result = Check("""
+            fluidscript 1
+            circuit probe
+            fluid water
+
+            S1  supply t=60 flow=0.2
+            R1  return
+            HE1 heat_exchanger power=-30
+            PU1 pump
+
+            connections
+            S1 - PU1 - N2 - HE1 - N3 - R1
+            """);
+
+        Assert.DoesNotContain("FS2204", Codes(result));
+        Assert.Equal(0, result.Counting.Excess);
+    }
+
+    [Fact]
+    public void TwoStatedPressuresAreACompletePairAndNeedNoBoundaryKind() =>
+        // A circuit with neither kind is never reported: a closed loop needs neither, and the cooling
+        // loop's two pressures are a complete pair of boundary conditions written the older way.
+        Assert.DoesNotContain("FS2204", Codes(Check(Documented)));
+
+    // ---- the enthalpy datum ----------------------------------------------------------------------
+
+    [Fact]
+    public void AClosedCircuitCarriesOneEnthalpyLevelItCannotDetermine()
+    {
+        // The temperature analogue of the pressure datum, and the reason it is counted rather than
+        // picked: every relation in a closed circuit is a difference, so one absolute value is missing
+        // and only the script can supply it.
+        var result = Check(BalancedRing);
+
+        Assert.Equal(1, result.Counting.EnthalpyLevels);
+        Assert.Equal(0, result.Counting.Excess);
+    }
+
+    [Fact]
+    public void AClosedCircuitWithNoTemperatureAnywhereIsUnderSpecified()
+    {
+        // S-8's missing case. With every stated temperature gone the difference relations are all that
+        // is left and the level floats -- which the count now sees, and reports as the thing to add
+        // rather than as a pressure.
+        var result = Check("""
+            fluidscript 1
+            circuit ring
+            fluid water
+
+            PU1 pump head=6 flow=0.24
+            P1  pipe length=10 dn=25
+
+            connections
+            N1 - PU1 - N2 - P1 - N1
+            """);
+
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2211");
+
+        Assert.Equal(-1, result.Counting.Excess);
+        Assert.Contains("a temperature on N1", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnOpenCircuitHasNoSuchLevel() =>
+        // Mass arrives carrying an enthalpy, and that enthalpy is the level. Nothing has to be stated
+        // for it, which is why the cooling loop states no temperature outside its supply.
+        Assert.Equal(0, Check(Documented).Counting.EnthalpyLevels);
+
+    [Fact]
+    public void ATransientNeedsNoEnthalpyDatumEither() =>
+        // It starts from an initial state, which fixes the level before the first step.
+        Assert.Equal(
+            0,
+            Check(BalancedRing.Replace("fluid water", "fluid dynamic water", StringComparison.Ordinal))
+                .Counting.EnthalpyLevels);
 
     [Fact]
     public void ALoopWithAPumpOnItIsNotReported() =>
@@ -487,10 +667,10 @@ public sealed class WellPosednessTests
     [Fact]
     public void EverySampleIsCountedAndTheOnesThatDoNotBalanceAreTheKnownOnes()
     {
-        // 23 asks that the counting check pass for every sample. Three cannot be counted at all yet and
-        // two do not balance, and every one of those five is a finding about the sample or about the
-        // package order rather than about the check -- F-8, F-9 and C-24. Recording the whole sweep
-        // rather than the exceptions is what makes a sixth one visible the day it appears.
+        // 23 asks that the counting check pass for every sample, and every M2 and M4 one now does. The
+        // two that do not are the syntax files, which are not plant: one is deliberately unsolvable and
+        // says so in its own header, and the other is a tour of productions. Recording the whole sweep
+        // rather than the exceptions is what makes a third one visible the day it appears.
         var outcomes = FluidScript.Fixtures.ScriptCorpus.Samples()
             .ToDictionary(
                 static sample => Path.GetFileName(sample.Name),
@@ -505,15 +685,13 @@ public sealed class WellPosednessTests
                 ["m1-syntax-reference.fluid"] = "1",
 
                 // A pipe with no `dn` cannot be built until the catalogue lands in P3.5 (C-24), and
-                // dropping it takes its connections with it. Three samples wait on that.
+                // dropping it takes its connections with it. The M2 samples state `dn` and say why in
+                // their own headers; the tour is a syntax file and states none.
                 ["m1-syntax-tour.fluid"] = "unresolved PB1",
-                ["m2-cooling-loop.fluid"] = "unresolved P1",
-                ["m2-simple-loop.fluid"] = "unresolved P1",
 
-                // Three exchangers each demanding a mixed inlet temperature, two mixing valves to meet
-                // them, and a return temperature of 40 C from two loads that both return 30 C (F-9).
-                ["m2-distribution-header.fluid"] = "1",
-
+                ["m2-cooling-loop.fluid"] = "0",
+                ["m2-simple-loop.fluid"] = "0",
+                ["m2-distribution-header.fluid"] = "0",
                 ["m2-substation.fluid"] = "0",
                 ["m4-storage-header.fluid"] = "0",
             },

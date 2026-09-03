@@ -2632,6 +2632,121 @@ selection where `23` puts it.
 
 ---
 
+## D-64 · A boundary is its own kind, and states what a boundary needs
+
+**Accepted · 2026-09-03** · amends `D-02`'s omission model; constrains `15`, `22`, `23`
+
+Two kinds join the registry, both resolving to nodes:
+
+- **`supply`** — where fluid enters the model. It requires `t`, and exactly one of `flow` or `p`.
+- **`return`** — where fluid leaves. It requires nothing, and its external mass flux is an unknown.
+
+`node` is unchanged and stays the interior junction, the inferred connector, and a legal way to write
+a pressure boundary.
+
+**A boundary that states nothing makes every number downstream of it wrong, silently.** A terminal
+`node` with no parameters is legal today and means *zero flow* — a dead leg. That is the right reading
+for a stub a user has not finished wiring and the wrong one for the inlet of an open circuit, and
+nothing in the script distinguishes them. The consequence is not an error message; it is a solved
+circuit carrying no flow, with plausible temperatures everywhere.
+
+**Requiring arguments needs a third omission policy, which `D-02` does not have.** `D-02` says a
+missing parameter is *absence, never null*, resolved by the kind's policy: sized, or a visible decided
+default. A boundary needs a third — **required**, where absence is a diagnostic rather than a value.
+This is an amendment to `D-02` rather than a new rule beside it, because the whole force of `D-02` is
+that the policy set is closed and every parameter falls in it.
+
+**`t` plus exactly one of `flow` or `p` is what an inlet condition is.** A stream is fixed by its
+thermal state and one hydraulic condition; which one depends on what feeds it. A pumped feed states
+`flow` and the pressure is solved; a district-heating connection states `p` and the flow is solved.
+Stating both over-specifies the boundary, and stating neither leaves it undetermined — the two errors
+this exists to name. The upper bound is `22`'s existing parameter-group rule; the lower bound is new.
+
+**`return` requires nothing and is not therefore the same as `node`.** It carries intent that no
+parameter can: *mass leaves here*. That is what gives its mass balance an unknown external flux
+instead of a zero-flow closure, and it is what lets a circuit with a `supply` and no `return` be
+reported rather than solved with nowhere for the water to go. A `return` may still state `p`, which
+makes it a pressure boundary as well.
+
+**Reusing the attachment keywords is deliberate.** `supply N3` and `return N5` already name where a
+subcircuit is fed from and drains to (`D-33`). The two forms are distinguished by whether the line
+starts with an identifier, and they mean the same thing at two scales — where fluid enters, and where
+fluid leaves. The parser change this needs is to accept a keyword token in a declaration's kind
+position and let the binder decide whether it names a kind, which keeps the parser free of spellings.
+
+**Rejected.**
+- *Leave `node` as the only boundary and catch the problem by counting.* No new kinds, no new policy,
+  no grammar change. Cost: the count cannot see it. A terminal with nothing stated is square either
+  way — zero flow is as valid an answer as any — so the check would have to guess which terminals the
+  user *meant* as boundaries, which is exactly the inference `P3` forbids.
+- *A `boundary` parameter on `node`, as in `N1 node boundary=supply t=5`.* No new kinds and no grammar
+  change. Cost: a parameter that changes which other parameters are required is a mode selector
+  wearing a parameter's clothes, and `D-19` already rejected `mode=` for the exchanger on exactly that
+  ground.
+- *New words `source` and `sink`.* Every occurrence unambiguous at a glance, and the attachment
+  keywords stay single-purpose. Cost: two more reserved words for a distinction the model does not
+  make — an attachment *is* a supply, one level up — and `sink` reads wrongly for something whose
+  defining property is that it requires nothing.
+- *`inlet` and `outlet`.* Conventional on a drawing. Cost: both already name component **ports**
+  (`HX1.in`, `T1.out1`), so one word would mean a port in one position and a boundary in another.
+
+---
+
+## D-65 · A closed circuit has an enthalpy datum, and only the script can supply it
+
+**Accepted · 2026-09-03** · constrains `23`, `24`, `32`; the temperature analogue of `D-25`'s datum
+
+The counting argument gains one unknown per hydraulic component that is **closed**, solved **steady**,
+and **coupled to nothing**: the enthalpy level its own energy relations cannot determine. A stated
+temperature fills it. A closed circuit that states none is under-determined and reports `FS2211`.
+
+**Every energy relation in the model is a difference.** The nodal formulation writes one energy
+balance per node, and each is of the form `h_out = h_in + Q̇/ṁ`. Add the same offset to every enthalpy
+in a closed circuit and every one of them is still satisfied, so the block is rank-deficient by
+exactly one and the temperature field is fixed only up to a constant. This is the same shape as the
+pressure datum and was missed for the same reason it is easy to miss: the structural terms cancel — N
+enthalpies against N energy balances — so the deficiency is invisible to a count that stops there.
+
+**It was found by a circuit that could not be made well-posed.** `01`'s simple loop is a closed ring
+with a 30 kW source; adding the sink it was missing (`F-15`) left it still reported over-specified by
+one, naming `HE1.in`. That reading was wrong: `in=20` is the one absolute temperature the loop has,
+and without it the loop is a family of solutions differing by a constant. Every closed heating circuit
+that states one temperature was being reported over-specified, which is most of them.
+
+**The graph must not pick this datum, though it picks the pressure one.** Every pressure being
+relative to an arbitrary node leaves every result correct — that is what `FS2201` says and why it is
+information rather than a warning. Every temperature being relative to an arbitrary one is not: 20 °C
+and 60 °C are different physics, every property call reads the absolute value, and a picked
+temperature would be a fabricated boundary condition presented as an answer. So the two datums are
+counted the same way and reported oppositely.
+
+**The three conditions each remove the freedom for a different reason.** *Closed*: external mass
+arrives carrying an enthalpy, and that enthalpy is the level. *Steady*: a transient starts from an
+initial state, which fixes the level before the first step, which is also why a warm-up study of an
+unbalanced ring is valid. *Coupled to nothing*: a two-sided exchanger's duty reads absolute
+temperatures on both sides, so a uniform offset on one side alone no longer satisfies its relation —
+which is why the substation's closed secondary needs no stated temperature of its own.
+
+**Rejected.**
+- *Leave the count as it was and treat the reports as noise.* No change at all. Cost: `FS2210` fires
+  on every correct closed circuit that states a temperature, which is the common case, and the fix a
+  user would apply — deleting the temperature — makes the model genuinely unsolvable. A check that is
+  wrong on the common case trains its reader to ignore it.
+- *Subtract an energy balance instead of adding an unknown.* Arithmetically identical and one fewer
+  row in the table. Cost: it reads as though a node lost its balance, which is not what happens. Every
+  node still has one; what is missing is a value they collectively cannot reach, and pairing that with
+  the statement that supplies it is what makes the table explain itself — the same pairing
+  `ExternalFluxes` and `StatedPressures` already have.
+- *Auto-pick a temperature datum the way the pressure datum is picked, and report it as info.* Every
+  circuit becomes solvable and no user ever sees `FS2211`. Cost: the number picked would be physics.
+  There is no temperature that changes no result.
+- *Require every closed circuit to declare a boundary instead.* One rule instead of two, and it
+  reuses `D-64`. Cost: it makes the ordinary closed loop — a heat source, a load, and a stated design
+  temperature — illegal, and `D-64` says in as many words that a closed circuit needs neither
+  boundary kind.
+
+---
+
 ## Adding an entry
 
 1. Append with the next `D-` number. Never renumber, never delete — supersede.

@@ -297,12 +297,32 @@ public sealed record ParameterGroupInfo
     /// <summary>Gets how many of them may be stated before the group is over-determined.</summary>
     public required int Freedoms { get; init; }
 
+    /// <summary>Gets how many of them must be stated for the group to be determined at all.</summary>
+    /// <value>
+    /// Zero for a group that is optional as a whole, which is every group but a boundary's. A
+    /// <c>supply</c> states exactly one of <c>flow</c> and <c>p</c>: <see cref="Freedoms"/> is what
+    /// stops it stating both, and this is what stops it stating neither (<c>D-64</c>).
+    /// </value>
+    /// <remarks>
+    /// Separate from a <see cref="ParameterOmissionBehavior.Require"/> on each member, because the
+    /// requirement is on the <em>set</em>: neither <c>flow</c> nor <c>p</c> is individually required and
+    /// a rule that made them so would reject every valid boundary there is.
+    /// </remarks>
+    public int Minimum { get; init; }
+
     /// <summary>Gets the code raised when more than <see cref="Freedoms"/> of them are stated.</summary>
     /// <value>
     /// Rendered with <c>name</c>, <c>parameters</c> and <c>count</c>, plus every stated member's value
     /// under its own parameter name.
     /// </value>
     public required DiagnosticDescriptor Descriptor { get; init; }
+
+    /// <summary>Gets the code raised when fewer than <see cref="Minimum"/> of them are stated.</summary>
+    /// <value>
+    /// <see langword="null"/> when <see cref="Minimum"/> is zero, and required when it is not.
+    /// Rendered with <c>name</c> and <c>parameters</c>.
+    /// </value>
+    public DiagnosticDescriptor? MinimumDescriptor { get; init; }
 }
 
 /// <summary>What shape of value a parameter accepts.</summary>
@@ -319,6 +339,11 @@ public enum ParameterValueKind
 }
 
 /// <summary>What the absence of a parameter means (<c>D-02</c>).</summary>
+/// <remarks>
+/// <strong>The set is closed, which is the whole force of <c>D-02</c>.</strong> Every parameter falls
+/// into exactly one of these, so "what happens if I leave it out" always has an answer the registry
+/// states rather than the code implies.
+/// </remarks>
 public enum ParameterOmissionBehavior
 {
     /// <summary>Sizing decides the value, and reports what it decided.</summary>
@@ -326,6 +351,15 @@ public enum ParameterOmissionBehavior
 
     /// <summary>An explicit, visible default applies, with a stated basis.</summary>
     Default,
+
+    /// <summary>There is no answer without it, and its absence is a diagnostic (<c>D-64</c>).</summary>
+    /// <remarks>
+    /// Added for boundaries, and deliberately rare. A required parameter is one where every possible
+    /// substitute would be a guess about the plant rather than about the model: a <c>supply</c> with no
+    /// temperature has no state to give the fluid entering there, and inventing one produces a solved
+    /// circuit whose every downstream temperature is wrong with nothing to show for it.
+    /// </remarks>
+    Require,
 }
 
 /// <summary>One named port of a component kind.</summary>

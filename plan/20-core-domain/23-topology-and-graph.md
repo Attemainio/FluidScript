@@ -253,6 +253,13 @@ loop, which is the common case — gets an auto-picked datum instead.
 | **Temperature boundary** | `t` on a node, or a heat exchanger's `in`/`out` | The energy datum |
 | **Flow boundary** | `flow` on a node | A known injection or extraction |
 
+**A boundary declares itself** (`D-64`). `supply` and `return` are node kinds that say which end of an
+open circuit they are: a `supply` requires `t` and exactly one of `flow` or `p`, and a `return`
+requires nothing but gives its mass balance an unknown external flux instead of the zero-flow closure
+a bare terminal `node` gets. That distinction is not derivable from parameters — a terminal with
+nothing stated is a legitimate dead leg — so it is stated rather than inferred, which is what `P3`
+requires of it. A closed circuit needs neither.
+
 ### Several circuits are one graph, not several graphs
 
 `D-33` lets a script declare several circuits. **This does not multiply `CircuitGraph`.** The model is
@@ -389,6 +396,8 @@ than in the linear algebra.
 |---|---|---|
 | Equation count equals unknown count | Over- or under-determined | `FS2210` / `FS2211` |
 | A pressure datum exists per connected component | None stated → auto-picked (info) | `FS2201` |
+| A closed circuit's stated duties sum to zero | Heat with nowhere to go | `FS2203` |
+| Fluid that enters a circuit can leave it | A boundary with no counterpart | `FS2204` |
 | Two stated pressures in one loop with no through-flow path between them | A second, contradictory datum | `FS2212` |
 | Every branch is reachable from the pressure datum | Isolated subgraph | `FS2213` |
 | No node has exactly one connection without a boundary condition | Dead end | `FS2107` |
@@ -419,9 +428,10 @@ a single flow unknown.
 | Branch flows | B |
 | Node pressures | N |
 | Node enthalpies | N |
-| External mass flux, one per node with a stated `p` | X<sub>p</sub> |
+| External mass flux, one per node that admits one and does not state its `flow` | X |
+| Enthalpy level, one per closed steady circuit that couples to nothing | L |
 | Sized parameters promoted to unknowns (below) | P |
-| **Total** | 2N + B + X<sub>p</sub> + P |
+| **Total** | 2N + B + X + L + P |
 
 | Equations | Count |
 |---|---|
@@ -429,20 +439,59 @@ a single flow unknown.
 | Mass balance, one per junction element and terminal (**not** per interior node) | M |
 | Energy balance, one per node | N |
 | Stated pressure boundaries | X<sub>p</sub> |
-| Stated `flow` boundaries | X<sub>f</sub> |
 | Component constraints beyond the component's own governing equation | K |
 | Pressure datum, **only when no `p` is stated** in that connected component | D |
-| **Total** | C + M + N + X<sub>p</sub> + X<sub>f</sub> + K + D |
+| less the redundant mass balance, **only when no external flux is unknown** | −R |
+| **Total** | C + M + N + X<sub>p</sub> + K + D − R |
 
-**The mass-balance redundancy and the datum are the same equation seen twice.** In a fully closed
-circuit with no external flux, summing every mass balance gives 0 = 0, so one is redundant and the
-auto-picked datum replaces it. In an open circuit the same sum gives Σ ṁ_ext = 0, which is a real
-equation in real unknowns, so nothing is redundant — and a stated pressure has already supplied the
-datum. Exactly one of the two mechanisms applies, never both and never neither.
+**A node admits an external flux when it is a `supply`, a `return`, or states a pressure** — and when
+it carries a mass balance at all, since a node interior to a branch has nowhere for external mass to
+enter. A bare terminal admits none: its flux is zero, which is a dead leg (`D-64`).
 
-**The implementation must drop the redundant mass balance explicitly** in the closed case, not rely on
-the linear solver to cope. A singular-by-construction Jacobian handed to a factorisation is undefined
-behaviour dressed as an algorithm.
+**A stated `flow` is not an equation.** It names the flux outright, so the unknown never appears and
+there is nothing for an equation to fix. Counting it as a row *and* keeping the unknown gives the same
+total and a table that reads as though the circuit had to work to meet it; an earlier version of this
+document did exactly that, as `X`<sub>f</sub>. The storage header is where it shows: every one of its
+four boundaries states a flow, so it has no unknown flux at all.
+
+**The datum and the redundant mass balance are two mechanisms, not one.** An earlier version of this
+document said they were the same equation seen twice, and they are not: the datum fixes the *pressure
+level* and is needed exactly when no pressure is stated, while the redundancy is about *mass* and
+appears exactly when no external flux is unknown. A circuit whose only stated pressure sits mid-branch
+has a datum and no redundancy; the storage header, whose four boundaries all state flows, has a
+redundancy and an auto-picked datum. Both conditions are tested separately.
+
+**The implementation must drop the redundant mass balance explicitly**, not rely on the linear solver
+to cope. A singular-by-construction Jacobian handed to a factorisation is undefined behaviour dressed
+as an algorithm.
+
+### The enthalpy level is the temperature's datum, and only the script can supply it
+
+Every energy relation in the model is a difference: `h_out = h_in + Q̇/ṁ` at each node, and nothing
+else. Add the same offset to every enthalpy in a closed circuit and all of them are still satisfied,
+so its energy block is rank-deficient by exactly one and the temperature field is determined only up
+to a constant. That is the `L` row, and it is the exact mirror of the pressure datum (`D-65`).
+
+**What fills it is a stated temperature** — a node's `t`, or an exchanger's `in` or `out`. Those are
+already counted as constraints, so the row and the statement cancel and the count stays square, in the
+same way `X` and `X`<sub>p</sub> do. A closed circuit that states no temperature anywhere is genuinely
+under-determined and reports `FS2211` naming a temperature to add, which is the only script-reachable
+route to that code found so far.
+
+**The graph must not pick this datum for itself.** An arbitrary pressure zero leaves every result
+correct; an arbitrary temperature zero does not, because 20 °C and 60 °C are different physics and
+every property call reads the absolute value. So there is no `FS2201` for temperature.
+
+Three conditions, each removing the freedom for a different reason:
+
+| Condition | Why it removes the freedom |
+|---|---|
+| **Closed** | External mass arrives carrying an enthalpy, and that enthalpy *is* the level |
+| **Steady** | A transient starts from an initial state, which fixes the level before the first step |
+| **Coupled to nothing** | A two-sided exchanger's duty reads absolute temperatures on both sides, so a uniform offset on one side alone no longer satisfies its relation |
+
+The substation's secondary is closed and needs no stated temperature of its own, because `HX1` is in
+both hydraulic components. The simple loop is closed and uncoupled, and `HE1 in=20` is its level.
 
 ### Promotion: a stated constraint turns a sized parameter into an unknown
 
@@ -515,6 +564,8 @@ individually reasonable and the interaction is invisible.
 |---|---|---|---|
 | `FS2201` | No pressure stated anywhere in a connected component | Info | `Using '{node}' as the pressure datum. Pressures are relative to it.` |
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
+| `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
+| `FS2204` | A hydraulic component with a `supply` and no `return`, or the reverse | Error | `'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.` |
 | `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}.` |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
@@ -528,6 +579,18 @@ individually reasonable and the interaction is invisible.
 mistake the cooling loop's own history records ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) —
 and its consequence is silent: the loop simply carries no flow, and every temperature downstream of it
 is wrong in a way that still looks like a solved circuit. It was info; that was too quiet.
+
+**`FS2203` and `FS2204` are consistency, not squareness, and the counting argument cannot see
+either.** A closed loop with a 30 kW source and no sink has exactly as many equations as unknowns and
+no solution: summing its energy balances gives `Σ Q̇ = 0`, and the stated duties do not. The mass
+analogue is the same shape — a stated `flow` is a known injection, so a circuit that injects mass with
+no `return` to take it is square and inconsistent. Both are cheap to check and impossible to reach by
+counting, which is why they are listed here rather than folded into `FS2210`.
+
+**`FS2203` fires in steady mode only.** The same circuit solved in time is perfectly valid: the water
+heats up, which is what the storage term is for. A pump adds no heat in this model — it contributes a
+pressure relation and no energy row — so a closed loop of pumps and pipes balances at exactly zero
+rather than nearly zero, and the check needs no tolerance argument.
 
 `FS2210` and `FS2211` **must name candidates**. "Under-specified by 1" is a puzzle; "add a pressure to
 one of N1, N2, N3, or a flow to HE1" is a fix. Generating that list means tracking which unknowns are
@@ -548,8 +611,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3
 
-N1 node t=6 p=300
-N3 node p=280
+N1 supply t=6 p=300
+N3 return p=280
 ```
 
 **Nodes**: `N1` and `N3` are declared (they carry boundary conditions), `N2` comes from I1, and
@@ -592,8 +655,9 @@ recirculation flow non-zero and the whole circuit work; `FS2214` fires if it doe
 | **Total** | **20** | **Total** | **20** ✓ |
 
 `HE1 power=30` and `N1 t=6` add no equations — they supply known coefficients, to the energy balance at
-`HE1__3WV` and at `N1` respectively. No datum equation appears, because `N1` states a pressure; and no
-mass balance is redundant, because the external fluxes make their sum a real equation.
+`HE1__3WV` and at `N1` respectively. No datum equation appears, because `N1` states a pressure; no
+mass balance is redundant, because the external fluxes are unknown and make their sum a real equation;
+and no enthalpy level appears, because the circuit is open and the fluid arrives carrying one.
 
 **Where a component's duty enters, since the table shows no row for it.** There are N energy
 equations for N enthalpy unknowns, one per node, and a heat exchanger's `Q̇ = ṁ(h_out − h_in)` is not
@@ -622,7 +686,19 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 - [ ] The counting check passes for every sample in `samples/`.
 - [ ] A closed loop with no stated pressure produces `FS2201` and solves.
 - [ ] The cooling loop's two stated pressures (`N1 p=300`, `N3 p=280`) produce **no** diagnostic —
-      they are boundary conditions on an open primary, not competing datums.
+      they are boundary conditions on an open primary, not competing datums. Nor does the `supply`
+      and `return` pair carrying them produce `FS2204`.
+- [ ] A closed circuit whose stated duties do not sum to zero produces `FS2203` **and a square count**
+      — the check is worthless if the circuit it fires on is one `FS2210` would have caught anyway.
+- [ ] The same circuit in a `dynamic` model produces no `FS2203`.
+- [ ] The substation's closed secondary produces no `FS2203`, although it holds a coupled exchanger
+      whose duty sign the graph cannot read.
+- [ ] A circuit with a `supply` and no `return` produces `FS2204`; one with both produces none, and so
+      does a closed circuit with neither.
+- [ ] A `supply` states `t` and exactly one of `flow` and `p`; the missing one produces `FS2117` or
+      `FS2118` and both together `FS2101`. A `return` requires nothing.
+- [ ] A closed steady circuit carries exactly one enthalpy level, and one that states no temperature
+      anywhere produces `FS2211` naming a temperature rather than a pressure.
 - [ ] Two stated pressures on one closed loop with no path between them produce `FS2212`.
 - [ ] The counting scheme is exercised by a deliberately over-specified circuit that produces
       `FS2210`, and an under-specified one that produces `FS2211` — a count that cannot fail is not a
@@ -643,6 +719,8 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
       produce `FS2213`, so the check still catches what it was written for.
 - [ ] The storage header materializes four tank ports, decomposes into four branches meeting at `T1`,
       and assembles one tank mass balance plus three pressure equalities. No hydrostatic term appears.
+      Every one of its four boundaries states a flow, so it has no unknown external flux and one of
+      its five mass balances is dropped as redundant.
 
 ## Open questions
 

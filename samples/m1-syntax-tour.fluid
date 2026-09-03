@@ -84,10 +84,14 @@ TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, 
 PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
 NB1 node t=6 p=300                        # nor is `node` — this one is a boundary
 NB2 node p=280
+SB1 supply t=6 flow=0.24 kg/s             # `supply` in kind position: a boundary that says so (D-64)
+RB1 return                                # and `return`, which needs no arguments at all
 
 connections
 NB1 - HE2 - PB1 - NB2                     # a chain desugars to three connections (I6)
 TV2.b - NB2                               # a port-qualified endpoint
+SB1 - TV2.a                               # the declared supply feeds the valve
+TV2.c - RB1                               # and the declared return takes the fluid away
 
 # ---------------------------------------------------------------------------------------------
 # A subcircuit: attachment to the parent, a controller, and a control binding.
@@ -105,7 +109,8 @@ PU3  pump
 PID3 pid kp=3                             # a controller is an ordinary declaration (D-40)
 
 supply NB1                                # takes flow from the parent circuit at NB1
-return NB2                                # and returns it at NB2
+return NB2                                # and returns it at NB2 — the same two words in statement
+                                          # position, where a name follows rather than precedes (D-64)
 
 control actuate=TV3.position measure=NB2.t by=PID3 setpoint=20
 

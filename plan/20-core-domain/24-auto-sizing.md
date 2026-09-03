@@ -362,18 +362,27 @@ The **simple loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 circuit, one flow, so every step is checkable by hand:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
-CV1 valve
-PU1 pump
-P1  pipe length=25
+HE1  heat_exchanger power=30 in=20 out=50
+LOAD heat_exchanger power=-30
+CV1  valve
+PU1  pump
+P1   pipe length=25
 
 connections
-N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
 ```
 
 **Step 1 — seed.** `HE1` states `power`, `in` and `out`, so the energy balance fixes its flow
 directly: **0.2392 kg/s** (from [`22-component-model`](22-component-model.md)'s worked example), which
 at the loop's 35 °C mean density of 994 kg/m³ is **0.241 l/s**.
+
+**`LOAD` changes none of the arithmetic below, and the circuit has no steady state without it.** A
+closed circuit's duties must sum to zero, so 30 kW entering with no sink is a set of equations with no
+solution rather than a warm loop (`FS2203`), and the count is square either way. It states its duty
+and nothing else: no unknown, no demand, and no stated `dp`, so it adds no pressure drop to size
+against and the head below is unchanged. `HE1 in=20` is then the loop's enthalpy datum (`D-65`) —
+every thermal relation in a closed circuit is a difference, so one absolute temperature has to be
+stated and this is it.
 
 **Step 2 — propagate.** The circuit is one series loop, so that flow is every component's flow. Nothing
 in this circuit is free to move it — which is the point of choosing it for this example.

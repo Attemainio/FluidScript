@@ -210,6 +210,14 @@ introduces a directive, so neither can start a statement, and both occur only in
 unparseable, which is a line in both reference circuits. Every kind now resolves the same way, through
 the registry ([`15-semantic-model`](15-semantic-model.md)).
 
+**A reserved word *may* stand in `kind-name` position, and `supply` and `return` do** (`D-64`). The
+position is what disambiguates, and it always was: a statement whose first token is a reserved word is
+that word's statement, so `supply N3` is an attachment and `S1 supply t=5` is a declaration whose kind
+happens to be spelled with a keyword token. The parser therefore accepts an identifier *or* a keyword
+in second position and hands the spelling to the registry, which keeps the parser free of the list of
+kinds — the same reason `node` and `pipe` were unreserved. Only the second position is relaxed: a name
+is still an identifier, so no script can declare a component *called* `supply`.
+
 ### Hyphens are not part of a name
 
 `word-char` is `letter | digit | "_"`, so `-` never joins two words: `3-way-valve` lexes as
@@ -273,7 +281,8 @@ curve-row           = ( number | timestamp ) , number ;
 
 component-decl      = identifier , kind-name , [ "at" , identifier ] , { parameter } ;
                       (* the `at` clause places an observer on a node -- D-61 *)
-kind-name           = identifier ;                  (* resolved against the registry at bind time *)
+kind-name           = identifier | keyword ;        (* resolved against the registry at bind time;
+                                                       a keyword here is a kind, never a statement -- D-64 *)
 parameter           = identifier , "=" , parameter-value ;
 parameter-value     = expression | reference | symbol ;   (* by the parameter's declared kind — see 15 *)
 symbol              = identifier ;                  (* e.g. equal_percentage; bound, not evaluated *)
@@ -929,6 +938,17 @@ N1 node t=6 p=300         # second token is not  → component declaration, kind
 Both start with `N1`, both sit below `connections`, and one token of lookahead separates them. Under
 the previous rules the second line was `FS1104` and the first reference circuit did not parse.
 
+**A third line, where the kind is a reserved word:**
+
+```fluidscript
+S1 supply t=5 flow=2.3 l/s   # first token is not reserved  → declaration, kind 'supply'
+supply N3                    # first token is reserved      → attachment statement
+```
+
+Neither costs a second token of lookahead, because the rule's first clause already reads the first
+token. The declaration's `supply` is never a statement, and the attachment's is never a kind
+(`D-64`).
+
 ## Acceptance criteria
 
 - [ ] **Every script in `samples/`, and every `fluidscript` block in `plan/` and `/docs`, parses with
@@ -941,6 +961,10 @@ the previous rules the second line was `FS1104` and the first reference circuit 
       produces `FS1003` when used as a component name.
 - [ ] `P1 pipe length=45` and `N1 node t=6 p=300` both parse as component declarations — `node` and
       `pipe` reach `kind-name` position, which reserving them made impossible.
+- [ ] `S1 supply t=5 flow=2.3 l/s` parses as a declaration of kind `supply` and `supply N3` as an
+      attachment, in the same file, with one token of lookahead and no backtracking (`D-64`).
+- [ ] `Print(Parse(x)) == x` for a declaration whose kind is a reserved word — the printer writes the
+      kind from the token, not from a keyword table.
 - [ ] `N1 - N2` and `N1 node t=6` in the same connection section classify differently, by one token of
       lookahead.
 - [ ] `3WV.b - N3` classifies as a connection, not as a component named `3WV` of kind `.` (`D-56`).

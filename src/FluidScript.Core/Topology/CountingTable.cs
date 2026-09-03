@@ -104,9 +104,26 @@ public sealed record CountingTable
     /// <summary>Gets the pressure datums, one per component that states no pressure of its own.</summary>
     public required int Datums { get; init; }
 
+    /// <summary>Gets the enthalpy levels a closed circuit's own relations cannot reach.</summary>
+    /// <value>
+    /// One per hydraulic component that is closed, solved steady, and thermally coupled to nothing.
+    /// Every energy relation in such a component is a difference — <c>h_out = h_in + Q̇/ṁ</c> — so adding
+    /// one offset to every enthalpy satisfies all of them at once, and the level is an unknown the block
+    /// cannot determine. A stated temperature determines it, which is why this row and that constraint
+    /// cancel exactly as <see cref="ExternalFluxes"/> and <see cref="StatedPressures"/> do.
+    /// </value>
+    /// <remarks>
+    /// <strong>The graph cannot pick this datum for itself</strong>, unlike the pressure one. Every
+    /// pressure being relative to an arbitrary node changes no result; every temperature being relative
+    /// to one changes the physics. So a level nothing fills is <c>FS2211</c> and not <c>FS2201</c>. A
+    /// coupled exchanger fills it without being asked: its duty reads absolute temperatures on both
+    /// sides, so a uniform offset no longer satisfies its relation.
+    /// </remarks>
+    public required int EnthalpyLevels { get; init; }
+
     /// <summary>Gets the total number of unknowns.</summary>
     public int Unknowns =>
-        BranchFlows + NodePressures + NodeEnthalpies + ExternalFluxes + Promotions.Length;
+        BranchFlows + NodePressures + NodeEnthalpies + ExternalFluxes + Promotions.Length + EnthalpyLevels;
 
     /// <summary>Gets the total number of equations.</summary>
     public int Equations =>

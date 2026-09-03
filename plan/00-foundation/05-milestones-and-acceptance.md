@@ -157,14 +157,15 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       so. A pump with known flow but no explicit resistance sizes to zero head with `FS2312`.
 - [ ] Test coverage of `src/FluidScript.Core/Components` and `/Solvers` gives every governing equation
       independent hand-checked and regression tests (`R-17`).
-- [ ] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s through the AHU
-      branch, 0.3589 through the radiator branch, and 0.6460 through the source — the branch sum is
-      the criterion no single-circuit reference can test (`D-33`). **The source figure is the mass
-      continuity sum**, asserted to `07`'s conservation row. `HS1` also states `power`, `in` and
-      `out`, which pins its flow through its own energy balance; the two agree exactly only under
-      constant `cp`, and with real properties the energy-balance route lands about 0.046 % lower
-      because `cp` over 40–60 °C exceeds `cp` over 30–50 °C. Continuity governs, and a residual
-      inside the conservation row is not a diagnostic.
+- [ ] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s round the AHU
+      loop, 0.3589 round the radiator loop, and 0.4306 kg/s through the source — which is what the two
+      subcircuits *draw* (0.1914 + 0.2392), not the sum of their loop flows. Each subcircuit mixes its
+      own 30 °C return into the 60 °C header to make the 50 °C its exchanger states, so it draws its
+      duty over the header's 30 K and circulates it over the exchanger's 20 K. **The source figure is
+      the mass continuity sum**, asserted to `07`'s conservation row, and `HS1`'s own 54 kW over the
+      same 30 K reproduces it independently — the two agreeing is the criterion no single-circuit
+      reference can test (`D-33`). `HS1` states `power` and `out` and not `in`: the return header's
+      temperature is an answer, and demanding 40 °C of it was `F-16`.
 - [ ] Every device carries a tag: `100PU01`, `101TV01`, `101PU01`, `102TV01`, `102PU01`. Ordinals
       restart per circuit and follow declaration order; inserting a pump above another renumbers the
       tags and changes **no** component identifier, and a test asserts selection and diagnostic
@@ -204,7 +205,12 @@ The two-sided rated heat exchanger (`R-35`, `D-17`) and two thermally coupled hy
 - [ ] `FS4008` fires on a design below the minimum approach. It was allocated in M1 and dead until now;
       an allocated-but-unreachable code is a specification that never got finished.
 - [ ] An under-determined circuit is reported as such, not solved to garbage; a closed loop with no
-      stated pressure is *not* one of those — it gets an auto-picked datum and solves (`FS2201`).
+      stated pressure is *not* one of those — it gets an auto-picked datum and solves (`FS2201`). A
+      closed loop with no stated *temperature* is, and reports `FS2211` (`D-65`): a pressure datum can
+      be picked and a temperature datum cannot.
+- [ ] A closed circuit whose duties do not sum to zero reports `FS2203` **while counting square**, and
+      a boundary with no counterpart reports `FS2204`. Both are consistency rather than squareness,
+      and a test that reaches them through an unbalanced count is testing the wrong thing.
 
 The "hand-checked numbers" phrasing is deliberate: a test asserting the solver's own output is a
 regression test, not a validation test, and both are needed.

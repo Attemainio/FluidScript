@@ -278,8 +278,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3                      # primary return
 
-N1 node t=6 p=300            # primary-side boundary
-N3 node p=280
+N1 supply t=6 p=300          # primary-side boundary: fluid enters here
+N3 return p=280              # and leaves here
 ```
 
 Changes from the syntax reference, each with a reason: **`PU1` is wired into the secondary loop**,
@@ -290,12 +290,19 @@ has no physical path length;
 than dead ends; and **`fluid water`** rather than `dynamic`, since M2 is the steady-state milestone —
 the transient version is the demand-step loop below.
 
-**The boundary lines are ordinary declarations of kind `node`**, written below the connections by
-convention rather than by rule ([`12-grammar`](../10-language/12-grammar.md)). They read as
-`N1 node t=6 p=300` rather than `N1 t=6 p=300` because the latter is not a statement the grammar has:
-its second token is a parameter name where a kind name belongs. Declaring them also means inference
-rule I1 does not fire for `N1` and `N3` — which is the honest outcome, since a node the user gave a
-boundary condition is a node the user wrote.
+**The boundary lines are ordinary declarations**, written below the connections by convention rather
+than by rule ([`12-grammar`](../10-language/12-grammar.md)). They read as `N1 supply t=6 p=300` rather
+than `N1 t=6 p=300` because the latter is not a statement the grammar has: its second token is a
+parameter name where a kind name belongs. Declaring them also means inference rule I1 does not fire
+for `N1` and `N3` — which is the honest outcome, since a node the user gave a boundary condition is a
+node the user wrote.
+
+**Their kind is `supply` and `return` rather than `node`** (`D-64`). Both are state points and neither
+adds an equation a `node` would not, but the kind says which way fluid crosses the edge of the model,
+and that is not recoverable from the parameters: a stub nobody finished wiring states nothing and so
+does a deliberate dead end. It is also what lets `FS2204` tell a circuit fluid can enter and not leave
+from one that is merely closed. The older spelling stays legal — two stated pressures on two `node`s
+are a complete pair of boundary conditions — but a reference circuit should say what it means.
 
 **The pump's position is the part that is easy to get wrong**, and it is worth stating why rather than
 only stating the answer. Putting `PU1` on the primary branch (`N1 - PU1`, `PU1 - N2`) reads naturally and
@@ -342,19 +349,31 @@ fluidscript 1
 circuit simpleLoop
 fluid water
 
-HE1 heat_exchanger power=30 in=20 out=50
-CV1 valve
-PU1 pump
-P1  pipe length=25
+HE1  heat_exchanger power=30 in=20 out=50
+LOAD heat_exchanger power=-30
+CV1  valve
+PU1  pump
+P1   pipe length=25
 
 connections
-N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
 ```
 
-One closed series loop: four nodes, four components, one flow. No node states a pressure, so the graph
+One closed series loop: five nodes, five components, one flow. No node states a pressure, so the graph
 picks a datum and says so (`FS2201`). Because `HE1` states `power`, `in` and `out`, the flow is fixed
 by the energy balance at **0.2392 kg/s** — the same figure as above — which is what makes every sizing
 step checkable by hand ([`24-auto-sizing`](../20-core-domain/24-auto-sizing.md)).
+
+**`LOAD` is what makes this a circuit and not an impossibility**, and it was missing until `P3.4c`
+(`F-15`). A closed circuit's duties must sum to zero for a steady state to exist: 30 kW entering with
+no sink is not a warm loop, it is a set of equations with no solution, and the count cannot see it
+because the system is square either way (`FS2203`). `LOAD` states its duty and nothing else, so it
+adds no unknown and no demand — the flow is still `HE1`'s to fix.
+
+**`HE1 in=20` is then the loop's enthalpy datum** (`D-65`). Every thermal relation in a closed circuit
+is a difference, so the temperature field is determined only up to a constant and one absolute value
+has to be stated. Unlike the pressure datum the graph cannot pick it: an arbitrary pressure zero is
+still a correct answer and an arbitrary temperature is different physics.
 
 #### The substation — two-sided exchanger reference
 
@@ -365,8 +384,8 @@ fluid water
 show temperature
 
 # --- district-heating primary, 85/45 -------------------------------
-NPS node t=85 p=600
-NPR node p=350
+NPS supply t=85 p=600
+NPR return p=350
 PCV valve
 PP  pipe length=12
 
@@ -388,8 +407,9 @@ NSUP - LOAD - NRET
 NRET - SR - SP - HX1.in
 ```
 
-**Two hydraulic circuits, coupled only through `HX1`.** The primary is open — it enters at `NPS` and
-leaves at `NPR`, both with stated pressures — and the secondary is a closed loop driven by `SP` with an
+**Two hydraulic circuits, coupled only through `HX1`.** The primary is open — it enters at the
+`supply` `NPS` and leaves at the `return` `NPR`, both with stated pressures — and the secondary is a
+closed loop driven by `SP` with an
 auto-picked datum (`FS2201`). They share no node and no flow. `HX1` is the only component in both, and
 it couples them **thermally, not hydraulically**: heat crosses, fluid does not. This is what forces
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) to allow more than one connected
@@ -478,8 +498,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3
 
-N1 node t=6 p=300
-N3 node p=280
+N1 supply t=6 p=300
+N3 return p=280
 
 schedule
 at 60 s   HE1.power = 45
@@ -554,11 +574,11 @@ circuit storageHeader
 fluid dynamic water
 show temperature
 
-S1 node t=60 p=300 flow=0.12
-S2 node t=45 flow=0.08
+S1 supply t=60 flow=0.12
+S2 supply t=45 flow=0.08
 T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_elevation=90% in2_elevation=30% out1_elevation=90% out2_elevation=30%
-RAD_NETWORK node flow=0.12
-AHU_NETWORK node flow=0.08
+RAD_NETWORK return flow=0.12
+AHU_NETWORK return flow=0.08
 
 connections
 S1 - T1.in1
@@ -567,11 +587,15 @@ T1.out1 - RAD_NETWORK
 T1.out2 - AHU_NETWORK
 ```
 
-This reference deliberately terminates the two sources and two heating networks at boundary nodes; it
-tests the storage control volume and whole-plant layout without importing the future heat-pump model.
-At a terminal, positive `flow` follows the nominal connection direction, so `S1` and `S2` inject
-0.20 kg/s in total and the two network boundaries extract the same 0.20 kg/s. `S1` supplies the one
-pressure datum. Bare `volume=300` is 300 dm³ (`D-32`); each of the five layers therefore holds 60 dm³.
+This reference deliberately terminates the two sources and two heating networks at declared
+boundaries; it tests the storage control volume and whole-plant layout without importing the future
+heat-pump model. At a terminal, positive `flow` follows the nominal connection direction, so the two
+`supply` boundaries inject 0.20 kg/s in total and the two `return` boundaries extract the same
+0.20 kg/s. Every one of the four states the flow crossing it, so no external mass flux is a solver
+unknown — which is what makes one of the five mass balances redundant, since summing them all then
+gives an identity. No pressure is stated anywhere, so the datum is picked and reported (`FS2201`);
+before `P3.4c` `S1` carried a `p=300` that served only that purpose, and `supply` takes exactly one of
+`flow` and `p` because stating both fixes what the circuit was to determine. Bare `volume=300` is 300 dm³ (`D-32`); each of the five layers therefore holds 60 dm³.
 
 Layer indices run bottom to top. The normalized elevations map `30%` to layer 2 and `90%` to layer 5.
 At t = 0, `S1` replaces 60 °C water in layer 5 at the same temperature, while `S2` replaces 30 °C
@@ -608,7 +632,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54 in=40 out=60    # the plant-side source
+HS1     heat_exchanger power=54 out=60             # the plant-side source
 PU_MAIN pump
 
 connections
@@ -692,23 +716,47 @@ radiators  30 kW
 source     54 kW      = HS1's stated power
 ```
 
-Each subcircuit takes 50 °C supply and returns 30 °C, so with `cp = 4.18 kJ/(kg·K)` and a 20 K drop:
+Each exchanger takes 50 °C and leaves 30 °C, so with `cp = 4.18 kJ/(kg·K)` its **loop** flow — what
+goes round inside the subcircuit — follows from a 20 K drop:
 
 ```
 ṁ_AHU = 24 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.2871 kg/s
 ṁ_RAD = 30 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.3589 kg/s
-ṁ_100 = 0.2871 + 0.3589                 = 0.6460 kg/s
 ```
 
-and the source's own 20 K rise (40 → 60 °C) carries the same total:
+**The header carries less than that, and this is the part the earlier version of this document had
+wrong** (`F-16`). The header supplies 60 °C and each subcircuit's exchanger wants 50 °C, so the
+three-way valve mixes header water with the subcircuit's own 30 °C return. What the subcircuit draws
+from the header is set by its duty over the *header's* 30 K difference, not the exchanger's 20 K:
 
 ```
-54 kW ÷ (4.18 kJ/(kg·K) × 20 K) = 0.6460 kg/s   ✓
+ṁ_AHU,header = 24 kW ÷ (4.18 kJ/(kg·K) × 30 K) = 0.1914 kg/s
+ṁ_RAD,header = 30 kW ÷ (4.18 kJ/(kg·K) × 30 K) = 0.2392 kg/s
+ṁ_100        = 0.1914 + 0.2392                 = 0.4306 kg/s
 ```
+
+and the source's own rise carries exactly that, which is the check:
+
+```
+54 kW ÷ (4.18 kJ/(kg·K) × 30 K) = 0.4306 kg/s   ✓
+```
+
+`HS1` therefore states `power` and `out` and **not** `in`: the return header's temperature is
+something the circuit produces, and stating it as 40 °C — as this fixture did until `P3.4c` — demands
+a return no arrangement of two mixing valves and two 30 °C loads can deliver. It is also why the two
+figures differ at all; a fixture whose loop and header flows are the same number proves nothing about
+either.
 
 **The header flow sum is the acceptance criterion**, and it is the one thing this fixture proves that
 no single-circuit reference can: flow entering the supply header equals the sum of what the
 subcircuits draw, and the return header carries it back.
+
+**Still open: the recirculation leg is not connected** (`F-16`). The mixing the figures above assume
+needs `TV_AHU.c` wired back to `PU_AHU.in`, and today the third port of each three-way valve is left
+open and terminated (`FS2202`). As connected, each subcircuit is once-through, its exchanger cannot
+see 50 °C on a 60 °C header, and the `in=50` on each is a demand met only by a valve position that
+has nothing to divert. The counting pass is square either way — it promotes each `in` to its valve's
+`position` — which is exactly the kind of agreement `23`'s check is not able to make.
 
 **Layout.** One `DistributionGroup` — parent `heating`, members `AHU` and `radiators` in declaration
 order. `heating`'s supply chain draws as the top rail and its return chain as the bottom; the two

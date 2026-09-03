@@ -1,11 +1,22 @@
+# The simple loop reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# LOAD is what makes the ring solvable: a closed circuit whose duties do not sum to zero has no steady
+# state, however square its count (FS2203). HE1's `in=20` is then the circuit's enthalpy datum, which
+# a closed circuit's own energy relations cannot supply -- they fix every difference and no absolute
+# value (D-65).
+#
+# `dn` is stated on P1 because the catalogue that would size it lands in P3.5. Remove it when the
+# catalogue lands -- 01's block is the canonical form and does not carry it.
+
 fluidscript 1
 circuit simpleLoop
 fluid water
 
-HE1 heat_exchanger power=30 in=20 out=50
-CV1 valve
-PU1 pump
-P1  pipe length=25
+HE1  heat_exchanger power=30 in=20 out=50
+LOAD heat_exchanger power=-30
+CV1  valve
+PU1  pump
+P1   pipe length=25 dn=25
 
 connections
-N1 - PU1 - N2 - HE1 - N3 - CV1 - N4 - P1 - N1
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1

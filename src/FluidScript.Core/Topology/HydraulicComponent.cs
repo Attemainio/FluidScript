@@ -61,6 +61,28 @@ public sealed record HydraulicComponent
     /// competing datum: the cooling loop states two, and must.
     /// </value>
     public required ImmutableArray<GraphNode> StatedPressures { get; init; }
+
+    /// <summary>Gets the nodes the script declared as a <c>supply</c> or a <c>return</c>, in graph order.</summary>
+    /// <value>Empty for a closed circuit, which needs neither (<c>D-64</c>).</value>
+    public required ImmutableArray<GraphNode> Boundaries { get; init; }
+
+    /// <summary>Gets whether no mass crosses this component's boundary at all.</summary>
+    /// <value>
+    /// <see langword="true"/> when nothing in it is a boundary and nothing states a pressure or a flow.
+    /// Stronger than having no datum: a stated <c>flow</c> injects mass as surely as a <c>supply</c>
+    /// does, and a closed circuit is the one whose duties must sum to zero for a steady state to exist.
+    /// </value>
+    public required bool IsClosed { get; init; }
+
+    /// <summary>Gets whether any external mass flux here is a solver unknown.</summary>
+    /// <value>
+    /// <see langword="true"/> when some node that carries a mass balance is a <c>return</c> or states a
+    /// pressure, and does not state the flow crossing it. This is what decides the mass-balance
+    /// redundancy: with every flux known, summing the balances gives an identity and one of them is
+    /// implied by the rest — and a storage header whose every boundary states a flow is that case,
+    /// however many boundaries it has.
+    /// </value>
+    public required bool HasUnknownFlux { get; init; }
 }
 
 /// <summary>Splits a graph into the sets of elements fluid can flow between.</summary>
@@ -212,6 +234,25 @@ public static class HydraulicPartition
             Datum = datum?.Name ?? string.Empty,
             DatumWasStated = stated.Count > 0,
             StatedPressures = stated.ToImmutable(),
+            Boundaries = [.. nodes.Where(static node =>
+                node.Component.Boundary is not BoundaryRole.Interior)],
+
+            // Closed means no external mass at all, which is stronger than having no datum. A stated
+            // `flow` injects mass as surely as a `supply` does, and a stated `p` lets mass in to hold
+            // the pressure -- so any of the three is enough to make the circuit open.
+            IsClosed = !nodes.Any(static node =>
+                node.Component.Boundary is not BoundaryRole.Interior
+                || Stated(node.Component, Pressure) is not null
+                || Stated(node.Component, Flow) is not null),
+
+            // An unknown flux needs somewhere to enter: a node with no mass balance is interior to a
+            // branch, and a branch carries one flow from end to end. A stated `flow` is the flux itself,
+            // so a boundary that states one admits mass without leaving anything to solve for.
+            HasUnknownFlux = nodes.Any(static node =>
+                node.Component.CarriesMassBalance
+                && Stated(node.Component, Flow) is null
+                && (node.Component.Boundary is BoundaryRole.Return
+                    || Stated(node.Component, Pressure) is not null)),
         };
     }
 

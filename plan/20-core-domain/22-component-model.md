@@ -191,7 +191,7 @@ per component for a speedup nobody has measured a need for.
 
 ---
 
-## 1 · `node`
+## 1 · `node` / `supply` / `return`
 
 The primitive. A point in the circuit with a state and no extent.
 
@@ -244,6 +244,36 @@ the valve law uses, for the same reason
 **Every state in the circuit lives on a node.** Pipes, valves, and pumps have states at their ports,
 but those ports are attached to nodes. This is why inference rule I2 exists: two components connected
 directly have no state between them to write an equation about.
+
+### A boundary is a node that states what a boundary needs
+
+`node` says nothing about intent. A terminal one with no parameters is legal and means **zero flow** —
+a dead leg — which is the right reading for a stub someone has not finished wiring and the wrong one
+for the inlet of an open circuit. Nothing in the script distinguishes them, and the consequence is not
+an error message: it is a solved circuit carrying no flow, with plausible temperatures everywhere.
+
+Two kinds carry that intent (`D-64`). Both resolve to nodes and share the table above.
+
+| Kind | Requires | Its external mass flux |
+|---|---|---|
+| `supply` | `t`, and **exactly one** of `flow` or `p` | Known when `flow` is stated; unknown when `p` is |
+| `return` | nothing | **Unknown** — mass leaves here |
+| `node` | nothing | Unknown only where `p` is stated; otherwise zero |
+
+**`supply` needs one thermal and one hydraulic condition, and that is what an inlet condition is.** A
+pumped feed states `flow` and its pressure is solved; a district-heating connection states `p` and its
+flow is solved. Stating both over-specifies the boundary (`FS2101`) and stating neither leaves it
+undetermined (`FS2118`) — two errors that were previously one silent wrong answer.
+
+**`return` requires nothing and is still not a `node`.** What it carries is the one thing no parameter
+can: *mass leaves here*. That is what gives its mass balance an unknown external flux instead of a
+zero-flow closure, and it is what lets a circuit that fills up with no way out be reported rather than
+solved ([`23-topology-and-graph`](23-topology-and-graph.md)'s `FS2204`). A `return` may still state
+`p`, which makes it a pressure boundary as well.
+
+**A closed circuit needs neither**, which is why `node` keeps every meaning it had. The syntax
+reference, the cooling loop's secondary and the simple loop declare no boundary at all and are right
+not to.
 
 **Every connected circuit needs a pressure datum**, or only pressure *differences* are determined and
 the solver has a singular Jacobian. The first stated `p` supplies it; if the user states none,
@@ -812,6 +842,8 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2114` | `layers` is non-integral or outside 1…100 | Error | `{name}: layers must be a whole number from 1 to 100.` |
 | `FS2115` | A tank port elevation is outside 0…1 | Error | `{name}: {parameter} is normalized height and must be between 0 (bottom) and 1 (top).` |
 | `FS2116` | Tank substance is not a supported single-phase liquid | Error | `{name}: stratified tank supports a single-phase liquid; {substance} is outside that model.` |
+| `FS2117` | A required parameter is absent | Error | `'{name}': a {kind} must state {parameter}.` |
+| `FS2118` | A parameter group has too few of its members stated | Error | `'{name}': a {kind} must state {count} of {parameters}.` |
 
 `FS2101` covers both of this kind's relations, which is why its message names the group rather than
 spelling one of them out. **It does not name the implied value.** For `ua`/`area`/`u` it could —
@@ -820,6 +852,13 @@ and a c_p needs a substance. The binder holds a fluid's *name*; the substance be
 at lowering, which is where a message quoting the fourth value belongs (`C-21`).
 
 `FS2105` and `FS2108` name their component, because a script has more than one valve in it.
+
+**`FS2117` and `FS2118` are the two halves of `D-64`'s requirement, and they are not the same
+check.** `FS2117` is a policy on one parameter: a `supply` with no `t` has no state to give the
+fluid entering there. `FS2118` is a property of a *set*: neither `flow` nor `p` is individually
+required — a rule that made either so would reject every valid boundary there is — and what is
+required is that exactly one of them appears. `FS2101` is its upper bound and this is its lower
+one, which is why the group carries two codes.
 
 ## Worked example
 

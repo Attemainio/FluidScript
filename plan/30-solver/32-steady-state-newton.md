@@ -122,8 +122,13 @@ map back to a component and an equation through `EquationSystem`'s declarations,
 The three causes worth naming in that message, in order of how often they occur:
 
 1. **No pressure datum** in a connected component — every pressure is free by a constant.
-2. **A loop with no flow driver** — flow is indeterminate; only the trivial zero-flow answer exists.
-3. **A duplicated equation** from an over-specified component
+2. **No stated temperature in a closed circuit** — every enthalpy is free by a constant, in exactly
+   the same way and for exactly the same reason (`D-65`). The energy block of a closed, steady,
+   uncoupled circuit is rank-deficient by one, and the assembler must expect that: a stated
+   temperature is what makes it full rank, and there is no synthetic row to add in its place, because
+   no temperature the solver could invent leaves the answer unchanged.
+3. **A loop with no flow driver** — flow is indeterminate; only the trivial zero-flow answer exists.
+4. **A duplicated equation** from an over-specified component
    ([`22-component-model`](../20-core-domain/22-component-model.md)'s `FS2101`).
 
 All three are topology problems, which is why

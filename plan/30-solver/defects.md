@@ -32,7 +32,6 @@ owns them would not have seen them. The entries below are that backlog, written 
 | S-5 | [`36`](36-numerics-and-convergence.md) | **"Continuous in value and first derivative" does not say how to check it, and the obvious check fails on correct code** | The natural test — take finite differences either side of a blend join and assert they are close — is not what C¹ promises. C¹ says the *one-sided derivatives agree at the join*, not that the derivative varies slowly near it, and across the valve's 100 Pa regularisation band the true derivative sweeps from 0 to 3.75 × 10⁷. The test failed on a correct implementation and was rewritten to probe the one-sided derivative at each join with a shrinking step. `36` asks for the property in one line and every implementer will write the wrong test first; the working form belongs in the document. |
 | S-6 | [`36`](36-numerics-and-convergence.md) | **The smoothing constants are `36`'s numbers living in tier 20's code, with no shared source** | `valve.dp_regularization` = 100 Pa is `ValveLaw.RegularizationDrop` and `upwind.smoothing_band` = 1e-3 kg/s is `Smoothing.UpwindBand`. Both were transcribed by hand from `36`'s table into two unrelated files, and a change to the table reaches neither. They are numerical-method parameters that happen to be evaluated inside a component, which is exactly the shape that drifts. Whether they become a settings object the solver hands down, or stay constants with a test asserting them against the document, is tier 30's call — but the current arrangement has nothing holding the two together. |
 | S-7 | [`31`](31-solver-architecture.md) | **The residual-row-to-component mapping is built and consumed by nothing** | `31` makes the point that this mapping exists only at the component layer — "HX1 energy balance off by 4.2 kW" is actionable and "residual[17] = 4200" is not — and that if that layer does not carry it, no later one can recover it. `P3.3` implemented `DeclareEquations`, which names every row with its owner and its residual unit, and a test asserts each component declares exactly as many as it writes. Nothing reads it yet. Recorded because the first assembler is where it gets dropped: the rows are contiguous and the temptation to index them by integer alone is strongest exactly there. |
-| S-8 | [`36`](36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md) | **`FS2211` (under-specified) appears to be unreachable from any script**, so half of the well-posedness count is untested against real input | With the equation set `23` specifies, the structural terms cancel identically: for every graph tried, `C + M + N + D − B − 2N` is zero and `StatedPressures − ExternalFluxes` is zero, so the only source of imbalance is a constraint with nothing to promote — which is always *positive*. P3.4b reached `FS2210` from four different scripts and `FS2211` from none, including the cases that looked most promising (a component the catalogue cannot resolve, a terminal with no boundary, a pressure stated mid-branch). The code is implemented and its arithmetic is asserted from a hand-built table. Open because one of two things is true and it matters which: either the equation set is missing a row that a real script can omit, or `FS2211` is dead and should be retired rather than documented as something a user can hit. |
 | S-9 | [`31`](31-solver-architecture.md) | **Nothing consumes the counting table, so its terms are asserted against a document rather than against an assembly** | `WellPosedness.CountingTable` says the cooling loop has 20 unknowns and 20 equations, and that number is checked against `23`'s hand-tabulated table. When `32` assembles the real system, the row and column counts of the Jacobian are the same two numbers computed a second way — and if they disagree, one of the two is wrong with nothing to say which. The assembly should be built to *consume* this table (size its buffers from it, and assert its own totals against it) rather than to re-derive the counts, which is the only way the agreement means anything. |
 
 ## Observations
@@ -74,6 +73,23 @@ that was right for a reason worth keeping: the first version of the test measure
 it the test's own collection expressions inside the measured region. Retrofitted later, that number
 would have been read as a real allocation in the component.
 
+**The energy block's rank deficiency is tier 30's to respect, and no synthetic row fixes it.** A
+closed, steady, uncoupled circuit's energy equations determine every enthalpy *difference* and no
+enthalpy, so the assembled Jacobian is singular by one unless the script states a temperature
+(`D-65`). `32`'s singular-handling list now names it beside the missing pressure datum, and the two
+are not symmetric in what the solver may do about it: a pressure datum can be invented because every
+pressure is relative, and a temperature cannot be, because every property call reads the absolute
+value. An assembler that "helpfully" pins an enthalpy would return a plausible answer to a question
+the user never asked.
+
+**A worked example is a regression test for the case it was written from.** `23`'s counting table
+reproduced term for term on the first run, 20 = 20 with both promotions, which read as strong evidence
+that the counting pass was right. It was evidence about one open circuit. Both of the count's real
+defects — the stated-`flow` flux (`C-26`) and the missing enthalpy level (`C-30`) — are invisible on
+that circuit and were found by running the whole sample corpus and by a user asking for a *different*
+circuit to be fixed. The sweep over every sample, recorded as a dictionary of outcomes rather than as
+a list of exceptions, is what makes the next one visible.
+
 **Well-posedness runs on the graph alone, and that is what makes it testable.** Nothing in the pass
 reaches back into the semantic model; it reads `IComponent.StatedParameters`, which lowering now fills
 from the bound symbol. So a solver test can build a graph by hand, ask whether it is square, and get
@@ -95,4 +111,6 @@ found something else.
 
 ## Closed
 
-*Nothing yet. No document in this tier has been implemented against.*
+| # | Document | What was wrong | What changed |
+|---|---|---|---|
+| S-8 | [`36`](36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md) | **`FS2211` (under-specified) appeared to be unreachable from any script**, so half of the well-posedness count was untested against real input | It was reachable, and the reason nothing reached it was a missing row rather than a dead code path: the count had no **enthalpy datum** (`C-30`, `D-65`). A closed, steady circuit coupled to nothing has one enthalpy its own relations cannot determine, and a script that states no temperature anywhere in such a circuit is genuinely under-specified by exactly one. `P3.4c` counts it, and `Understated` now names a temperature ahead of a pressure — the one candidate the graph could not have picked for itself, since a datum covers the pressure case before it can reach this code. The original entry guessed at the two possibilities correctly and picked neither: the equation set *was* missing a row, and `FS2211` is not dead. |

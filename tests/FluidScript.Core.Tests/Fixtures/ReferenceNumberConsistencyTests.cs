@@ -131,19 +131,46 @@ public sealed class ReferenceNumberConsistencyTests
     [Trait("Category", "Unit")]
     public void DistributionHeader_SourceFlowIsTheBranchSum()
     {
-        var branchSum = ReferenceNumbers.DistributionHeader.AhuBranchFlow
-            + ReferenceNumbers.DistributionHeader.RadiatorBranchFlow;
+        var drawn = ReferenceNumbers.DistributionHeader.AhuHeaderFlow
+            + ReferenceNumbers.DistributionHeader.RadiatorHeaderFlow;
 
-        AssertRelative(ReferenceNumbers.DistributionHeader.SourceFlow, branchSum, QuotedPrecision,
-            "The source carries what the two subcircuits draw");
+        AssertRelative(ReferenceNumbers.DistributionHeader.SourceFlow, drawn, QuotedPrecision,
+            "The source carries what the two subcircuits draw from the header");
 
-        // Both branches run 50/30 C, so their flows must be in the ratio of their stated duties.
+        // And the same number a second way, from HS1 alone: 54 kW over the header's own 60-30 rise.
+        // The two derivations agreeing is the whole of this fixture's design point, and they did not
+        // agree while HS1 demanded a 40 C return the circuit cannot produce (F-16).
+        AssertRelative(
+            ReferenceNumbers.DistributionHeader.SourceFlow,
+            54_000.0 / (4_180.0 * 30.0),
+            QuotedPrecision,
+            "The source's own energy balance carries what the header does");
+
+        // Both branches run 50/30 C, so their flows must be in the ratio of their stated duties, and
+        // the header draws are in that same ratio because they share the header's 30 K.
         AssertRelative(
             30_000.0 / 24_000.0,
             ReferenceNumbers.DistributionHeader.RadiatorBranchFlow
                 / ReferenceNumbers.DistributionHeader.AhuBranchFlow,
             QuotedPrecision,
             "Two branches at the same temperatures split flow in proportion to duty");
+
+        AssertRelative(
+            30_000.0 / 24_000.0,
+            ReferenceNumbers.DistributionHeader.RadiatorHeaderFlow
+                / ReferenceNumbers.DistributionHeader.AhuHeaderFlow,
+            QuotedPrecision,
+            "And so do what they draw");
+
+        // Two thirds of each loop flow comes from the header and one third recirculates: 20 K of the
+        // header's 30 K. A fixture whose loop and header flows were the same number would prove
+        // neither, which is why both are recorded.
+        AssertRelative(
+            20.0 / 30.0,
+            ReferenceNumbers.DistributionHeader.AhuHeaderFlow
+                / ReferenceNumbers.DistributionHeader.AhuBranchFlow,
+            QuotedPrecision,
+            "The header supplies the exchanger's rise over the header's own");
     }
 
     [Fact]

@@ -127,8 +127,12 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top). |
+| `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
+| `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
 | `FS2201` | Info | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
+| `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
+| `FS2204` | Error | Topology | '{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither. |
 | `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}. |
 | `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
 | `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |

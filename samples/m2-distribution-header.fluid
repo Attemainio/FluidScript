@@ -4,7 +4,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54 in=40 out=60    # the plant-side source
+HS1     heat_exchanger power=54 out=60             # the plant-side source
 PU_MAIN pump
 
 connections

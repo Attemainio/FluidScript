@@ -136,6 +136,60 @@ public sealed class ComponentDiagnosticsTests
         Assert.Equal("flow=0.24", source.Substring(span.Start, span.Length));
     }
 
+    // ---- FS2117 and FS2118: what a boundary must state -------------------------------------------
+
+    [Fact]
+    public void FS2117_ASupplyWithNoTemperature()
+    {
+        // D-64's third omission policy. There is no default to fall back on and nothing to size: the
+        // temperature entering a plant is a fact about the plant, and every substitute would be a guess.
+        var diagnostic = Only("S1 supply flow=0.2", "FS2117");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("must state t", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2118_ASupplyThatStatesNeitherFlowNorPressure()
+    {
+        // The lower half of a parameter group, and the only place one has a minimum: a boundary that
+        // says how hot but not how much drives nothing, and every result downstream of it is invented.
+        var diagnostic = Only("S1 supply t=60", "FS2118");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("one of flow, p", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2101_ASupplyThatStatesBoth()
+    {
+        // The upper half of the same group, and the reason it is a group rather than two rules: state
+        // the flow and the pressure follows, state the pressure and the flow does.
+        var diagnostic = Only("S1 supply t=60 p=300 flow=0.2", "FS2101");
+
+        Assert.Contains("flow, p", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("S1 supply t=60 flow=0.2")]
+    [InlineData("S1 supply t=60 p=300")]
+    public void ASupplyWithATemperatureAndExactlyOneOfTheTwoIsAccepted(string body)
+    {
+        None(body, "FS2117");
+        None(body, "FS2118");
+        None(body, "FS2101");
+    }
+
+    [Fact]
+    public void AReturnRequiresNothingAtAll()
+    {
+        // Deliberately asymmetric. A supply states the condition the circuit starts from; a return is
+        // where whatever the circuit delivers leaves, and demanding a number there would be inventing
+        // an answer the solve is meant to produce.
+        None("R1 return", "FS2117");
+        None("R1 return", "FS2118");
+    }
+
     [Fact]
     public void FS2103_KvBesideItsOwnConsequence()
     {

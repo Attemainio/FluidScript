@@ -30,6 +30,11 @@ Every one of them is a boundary condition. A node with none is solved.
 
 Omitting any of them means the solver works it out, which is the normal case.
 
+**A node at the edge of the model is better written as a boundary.** `S1 supply t=60 flow=0.12` says
+fluid enters there and `R1 return` says it leaves, which a bare node with the same parameters cannot:
+a stub nobody finished wiring looks exactly like a deliberate dead end. See
+[`supply` and `return`](supply-return.md).
+
 ## Properties
 
 Readable as `N1.t` and so on, once the circuit has been solved.
@@ -48,4 +53,4 @@ Readable as `N1.t` and so on, once the circuit has been solved.
 
 ## See also
 
-[`pipe`](pipe.md) · [`connections`](connections.md) · [Units](units.md)
+[`pipe`](pipe.md) · [`supply` and `return`](supply-return.md) · [`connections`](connections.md) · [Units](units.md)

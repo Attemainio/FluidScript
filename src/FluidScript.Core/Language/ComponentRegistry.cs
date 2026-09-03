@@ -153,7 +153,6 @@ public sealed class ComponentRegistry : IComponentRegistry
         var claimed = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var kind in kinds)
-        {
             foreach (var spelling in new[] { kind.Keyword }.Concat(kind.Aliases))
             {
                 var normalized = NameResolution.Normalize(spelling);
@@ -166,13 +165,22 @@ public sealed class ComponentRegistry : IComponentRegistry
 
                 claimed[normalized] = kind.Keyword;
 
-                if (ReservedWords.TryMatch(spelling, out _))
+                // A kind's own keyword MAY be a reserved word. It could not be until `D-64` made
+                // `S1 supply t=5` a declaration: statement classification reads the *first* token, so a
+                // reserved word in kind position is unambiguous, and `supply N3` still attaches a
+                // subcircuit because that line starts with the keyword.
+                //
+                // An alias may not, and the difference is worth keeping. An alias is a convenience
+                // spelling, so one that collides with a reserved word buys a second way to write
+                // something already writable and costs a reader the question of which they are looking
+                // at. Only a kind the decision log sanctions should be reachable by a reserved word.
+                if (!string.Equals(spelling, kind.Keyword, StringComparison.Ordinal)
+                    && ReservedWords.TryMatch(spelling, out _))
                 {
                     throw new InvalidOperationException(
-                        $"'{spelling}' is a reserved word, so it can never appear in kind position.");
+                        $"'{spelling}' is a reserved word, so it may not be an alias for '{kind.Keyword}'.");
                 }
             }
-        }
 
         var codes = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -242,6 +250,22 @@ public sealed class ComponentRegistry : IComponentRegistry
                         $"'{kind.Keyword}' has a group of {group.Parameters.Length} with "
                         + $"{group.Freedoms} freedoms, which can never be over-determined.");
                 }
+
+                // A lower bound with no code to raise would reject a script and say nothing, and one
+                // above the freedoms would reject every script including the ones it is there to allow.
+                if (group.Minimum > 0 && group.MinimumDescriptor is null)
+                {
+                    throw new InvalidOperationException(
+                        $"'{kind.Keyword}' has a group with a minimum of {group.Minimum} and no code "
+                        + "to raise when it is not met.");
+                }
+
+                if (group.Minimum < 0 || group.Minimum > group.Freedoms)
+                {
+                    throw new InvalidOperationException(
+                        $"'{kind.Keyword}' has a group needing at least {group.Minimum} of its members "
+                        + $"stated and at most {group.Freedoms}, which nothing can satisfy.");
+                }
             }
 
             // A family whose pattern carries no placeholder matches nothing, and one whose bound names
@@ -273,6 +297,8 @@ public sealed class ComponentRegistry : IComponentRegistry
     private static ImmutableArray<ComponentKindInfo> BuildKinds() =>
     [
         Node(),
+        Supply(),
+        Return(),
         Pipe(),
         HeatExchanger(),
         Valve(),
@@ -289,6 +315,73 @@ public sealed class ComponentRegistry : IComponentRegistry
     {
         Keyword = "node",
         Aliases = ["point", "junction"],
+        Ports = [],
+        HasUnlimitedPorts = true,
+        PortFamilies = [],
+        IndexedParameterFamilies = [],
+        DrivesFlow = false,
+        TagCode = null,
+        Parameters = Parameters(
+            Sized("t", Dimension.Temperature, -50, 300, precision: 1),
+            Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3)),
+        Properties = Properties(
+            Solved("t", Dimension.Temperature),
+            Solved("p", Dimension.Pressure),
+            Solved("h", Dimension.Enthalpy),
+            Solved("flow", Dimension.MassFlow),
+            Solved("rho", Dimension.Density)),
+    };
+
+    /// <summary>Where fluid enters the model (<c>D-64</c>).</summary>
+    /// <remarks>
+    /// A node that states what a boundary has to state: the thermal condition of what arrives, and one
+    /// hydraulic condition. Which hydraulic one depends on what feeds it — a pumped supply states
+    /// <c>flow</c> and its pressure is solved; a district connection states <c>p</c> and its flow is
+    /// solved — so the group has one freedom and one minimum, and stating both or neither is an error.
+    /// </remarks>
+    private static ComponentKindInfo Supply() => new()
+    {
+        Keyword = "supply",
+        Aliases = ["source"],
+        Ports = [],
+        HasUnlimitedPorts = true,
+        PortFamilies = [],
+        IndexedParameterFamilies = [],
+        DrivesFlow = false,
+        TagCode = null,
+        Parameters = Parameters(
+            Required("t", Dimension.Temperature, -50, 300, precision: 1),
+            Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3)),
+        ParameterGroups =
+        [
+            Exactly(
+                BinderDiagnostics.OverDetermined,
+                BinderDiagnostics.UnderDetermined,
+                freedoms: 1,
+                "flow",
+                "p"),
+        ],
+        Properties = Properties(
+            Solved("t", Dimension.Temperature),
+            Solved("p", Dimension.Pressure),
+            Solved("h", Dimension.Enthalpy),
+            Solved("flow", Dimension.MassFlow),
+            Solved("rho", Dimension.Density)),
+    };
+
+    /// <summary>Where fluid leaves the model (<c>D-64</c>).</summary>
+    /// <remarks>
+    /// <strong>It requires nothing, and is still not the same as a bare node.</strong> What it carries is
+    /// intent no parameter can: mass leaves here. That is what gives its balance an unknown external
+    /// flux rather than a zero-flow closure, and what lets a circuit that fills up with no way out be
+    /// reported instead of solved. Stating <c>p</c> on one makes it a pressure boundary as well.
+    /// </remarks>
+    private static ComponentKindInfo Return() => new()
+    {
+        Keyword = "return",
+        Aliases = ["sink"],
         Ports = [],
         HasUnlimitedPorts = true,
         PortFamilies = [],
@@ -723,6 +816,54 @@ public sealed class ComponentRegistry : IComponentRegistry
             Parameters = [.. parameters],
             Freedoms = freedoms,
             Descriptor = descriptor,
+        };
+
+    /// <summary>A relation whose members must be stated a fixed number of times, no more and no fewer.</summary>
+    /// <param name="over">The code raised when too many members are stated.</param>
+    /// <param name="under">The code raised when too few are.</param>
+    /// <param name="freedoms">How many members must be stated.</param>
+    /// <param name="parameters">The canonical parameter names the relation ties together.</param>
+    /// <returns>The group to hang on a kind.</returns>
+    /// <remarks>
+    /// A boundary's <c>flow</c> and <c>p</c> are the case: exactly one, because a stream is fixed by one
+    /// hydraulic condition and over-determined by two. <see cref="Group"/> is the same thing with no
+    /// lower bound, which is what every other relation in the registry wants — an exchanger with none of
+    /// <c>power</c>, <c>in</c>, <c>out</c> and <c>flow</c> stated is a component sizing has yet to reach,
+    /// not an error.
+    /// </remarks>
+    private static ParameterGroupInfo Exactly(
+        DiagnosticDescriptor over,
+        DiagnosticDescriptor under,
+        int freedoms,
+        params ReadOnlySpan<string> parameters) => new()
+        {
+            Parameters = [.. parameters],
+            Freedoms = freedoms,
+            Minimum = freedoms,
+            Descriptor = over,
+            MinimumDescriptor = under,
+        };
+
+    /// <summary>A parameter the kind has no answer without (<c>D-64</c>).</summary>
+    /// <param name="name">The canonical parameter name.</param>
+    /// <param name="dimension">Its dimension.</param>
+    /// <param name="min">The low end of its usual range, in the canonical unit.</param>
+    /// <param name="max">The high end.</param>
+    /// <param name="precision">Decimal places when the value is displayed.</param>
+    /// <returns>The parameter to hang on a kind.</returns>
+    /// <remarks>
+    /// Deliberately rare. Use it only where every substitute would be a guess about the plant rather
+    /// than about the model — which, so far, is a boundary's temperature and nothing else.
+    /// </remarks>
+    private static ParameterInfo Required(
+        string name, Dimension dimension, double min, double max, int precision) => new()
+        {
+            Name = name,
+            ValueKind = ParameterValueKind.Quantity,
+            Dimension = dimension,
+            OmissionBehavior = ParameterOmissionBehavior.Require,
+            UsualRange = SiRange(min, max, dimension),
+            DisplayPrecision = precision,
         };
 
     // Kv and dp are not two constraints: the drop a valve makes follows from its Kv and the flow

@@ -15,8 +15,9 @@ namespace FluidScript.Core.Diagnostics;
 /// pressure to N1, N2 or N3" is actionable; a singular Jacobian is not.
 /// </para>
 /// <para>
-/// Codes this area owns and does not yet raise: <c>FS2203</c>–<c>FS2209</c> are unallocated, and
-/// nothing in the range is deferred — <c>P3.4b</c> raises all ten of <c>23</c>'s error cases.
+/// Codes this area owns and does not yet raise: <c>FS2205</c>–<c>FS2209</c> are unallocated, and
+/// nothing in the range is deferred — <c>P3.4b</c> raises all ten of <c>23</c>'s error cases, and
+/// <c>P3.4c</c> the two consistency codes <c>D-64</c> added beside them.
 /// </para>
 /// </remarks>
 public static class TopologyDiagnostics
@@ -47,6 +48,45 @@ public static class TopologyDiagnostics
         "FS2202",
         DiagnosticSeverity.Warning,
         "'{component}' port '{port}' is not connected; treating it as closed.");
+
+    /// <summary>A closed circuit whose heat does not balance.</summary>
+    /// <value><c>FS2203</c>, an error.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>The counting argument cannot see this, and no amount of promotion will.</strong> A closed
+    /// loop with a 30 kW source and no sink is square: it has as many equations as unknowns and no
+    /// solution, because summing the energy balances around it gives <c>Σ Q̇ = 0</c> and the stated
+    /// duties do not. Consistency is a different question from squareness and needs its own check.
+    /// </para>
+    /// <para>
+    /// <strong>Steady mode only.</strong> The same circuit in a transient is perfectly valid — the water
+    /// heats up, which is what the storage term is for. A check that fired there would reject every
+    /// warm-up study there is.
+    /// </para>
+    /// <para>
+    /// A pump adds no heat in this model: it contributes one pressure relation and no energy row, so a
+    /// closed loop of pumps and pipes balances at exactly zero rather than nearly zero.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor UnbalancedClosedCircuit { get; } = new(
+        "FS2203",
+        DiagnosticSeverity.Error,
+        "'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. "
+        + "Add a load, a source, or a boundary.");
+
+    /// <summary>Fluid that can enter a circuit and not leave it, or the reverse.</summary>
+    /// <value><c>FS2204</c>, an error.</value>
+    /// <remarks>
+    /// The mass analogue of <see cref="UnbalancedClosedCircuit"/>, and invisible to the count for the
+    /// same reason: a stated <c>flow</c> is a known injection, so a circuit that injects mass and has
+    /// nowhere to put it is square and inconsistent. <c>D-64</c>'s <c>return</c> exists to make the
+    /// difference between "fluid leaves here" and "this stub is not finished" something the script says
+    /// rather than something the checker guesses.
+    /// </remarks>
+    public static DiagnosticDescriptor UnpairedBoundary { get; } = new(
+        "FS2204",
+        DiagnosticSeverity.Error,
+        "'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.");
 
     /// <summary>More equations than unknowns.</summary>
     /// <value><c>FS2210</c>, an error.</value>
@@ -159,6 +199,8 @@ public static class TopologyDiagnostics
     [
         DatumChosen,
         OpenPortTerminated,
+        UnbalancedClosedCircuit,
+        UnpairedBoundary,
         OverSpecified,
         UnderSpecified,
         CompetingDatums,

@@ -19,6 +19,16 @@ instance — is reported rather than silently zero.
 | `node` | `p` | `kPa` | after the solve |
 | `node` | `rho` | `kg/m3` | after the solve |
 | `node` | `t` | `°C` | after the solve |
+| `supply` | `flow` | `kg/s` | after the solve |
+| `supply` | `h` | `J/kg` | after the solve |
+| `supply` | `p` | `kPa` | after the solve |
+| `supply` | `rho` | `kg/m3` | after the solve |
+| `supply` | `t` | `°C` | after the solve |
+| `return` | `flow` | `kg/s` | after the solve |
+| `return` | `h` | `J/kg` | after the solve |
+| `return` | `p` | `kPa` | after the solve |
+| `return` | `rho` | `kg/m3` | after the solve |
+| `return` | `t` | `°C` | after the solve |
 | `pipe` | `diameter` | `m` | after sizing |
 | `pipe` | `dn` | — | after sizing |
 | `pipe` | `dp` | `kPa` | after the solve |

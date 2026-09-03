@@ -740,7 +740,12 @@ internal sealed class LineParser(
             return Malformed();
         }
 
-        if (Current is not { Kind: TokenKind.Identifier })
+        // A kind may be a reserved word. `S1 supply t=5 flow=2.3 l/s` declares a boundary (`D-64`), and
+        // `supply` is reserved because `supply N3` attaches a subcircuit -- the two are told apart by
+        // whether the line starts with an identifier, which is decided before this method is reached.
+        // Which keywords name kinds is the registry's business and not the parser's: anything accepted
+        // here that names no kind meets the binder's unknown-kind message, which is the better one.
+        if (Current is not { Kind: TokenKind.Identifier or TokenKind.Keyword })
         {
             // A hyphenated kind name is what a reader coming from HTML, CSS or a /docs filename types.
             if (TryReadHyphenated(out var written, out var underscored))
@@ -762,6 +767,7 @@ internal sealed class LineParser(
 
             return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
         }
+
         var kind = new IdentifierSyntax(Advance());
 
         // `TE1 t_sensor at N2` places an observer on a node (`D-61`). `at` is position-classified, not

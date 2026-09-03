@@ -122,20 +122,34 @@ public static class ReferenceNumbers
     /// <summary>The distribution header — the multi-circuit reference.</summary>
     public static class DistributionHeader
     {
-        /// <summary>Mass flow through the AHU subcircuit, from its stated 24 kW at 50/30 °C.</summary>
-        /// <value>kg/s.</value>
+        /// <summary>Mass flow round the AHU subcircuit's own loop, from its stated 24 kW at 50/30 °C.</summary>
+        /// <value>kg/s. What passes through <c>HE_AHU</c>, which is more than the subcircuit draws.</value>
         public const double AhuBranchFlow = 0.2871;
 
-        /// <summary>Mass flow through the radiator subcircuit, from its stated 30 kW at 50/30 °C.</summary>
-        /// <value>kg/s.</value>
+        /// <summary>Mass flow round the radiator subcircuit's own loop, from its stated 30 kW at 50/30 °C.</summary>
+        /// <value>kg/s. What passes through <c>HE_RAD</c>, which is more than the subcircuit draws.</value>
         public const double RadiatorBranchFlow = 0.3589;
+
+        /// <summary>Mass flow the AHU subcircuit draws from the header.</summary>
+        /// <value>
+        /// kg/s. Its duty over the <em>header's</em> 30 K, not the exchanger's 20 K: the header supplies
+        /// 60 °C and the subcircuit returns 30 °C, and the three-way valve makes up the difference by
+        /// mixing the loop's own return back in.
+        /// </value>
+        public const double AhuHeaderFlow = 0.1914;
+
+        /// <summary>Mass flow the radiator subcircuit draws from the header.</summary>
+        /// <value>kg/s. Its duty over the same 30 K.</value>
+        public const double RadiatorHeaderFlow = 0.2392;
 
         /// <summary>Mass flow through the source, by continuity at the attachment nodes.</summary>
         /// <value>
-        /// kg/s. This is the branch sum. <c>HS1</c>'s own energy balance gives about 0.046 % less,
-        /// because cp over 40–60 °C exceeds cp over 30–50 °C; continuity governs.
+        /// kg/s. The sum of what the two subcircuits <em>draw</em>, and equally <c>HS1</c>'s own 54 kW
+        /// over its 30 K rise — the two agree, which is the point of the fixture. It is not the sum of
+        /// the loop flows: that was <c>F-16</c>, and it required a 40 °C return no arrangement of two
+        /// mixing valves and two 30 °C loads can produce.
         /// </value>
-        public const double SourceFlow = 0.6460;
+        public const double SourceFlow = 0.4306;
     }
 
     /// <summary>The storage header — the stratified tank and thermal-order reference.</summary>

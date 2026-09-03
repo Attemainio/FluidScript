@@ -1,8 +1,12 @@
 # The substation reference from plan/00-foundation/01-vision-and-scope.md.
 #
 # Two hydraulic circuits coupled only through HX1: heat crosses, fluid does not. The primary is open
-# and states both its pressures; the secondary is a closed loop and gets an auto-picked datum
+# and states both its boundary pressures; the secondary is a closed loop and gets an auto-picked datum
 # (FS2201). Sharing HX1 is what stops either side being reported as an isolated subgraph -- D-17.
+#
+# The secondary is closed and its duties balance -- HX1 delivers 150 kW and LOAD takes it away -- so it
+# has a steady state (FS2203). HX1 also fixes its temperature level, which a closed circuit's own
+# energy relations cannot: they determine every difference and no absolute value (D-65).
 #
 # `dn` is stated on every pipe because the catalogue that would supply it lands in P3.5.
 
@@ -12,8 +16,8 @@ fluid water
 show temperature
 
 # --- district-heating primary, 85/45 -------------------------------
-NPS node t=85 p=600
-NPR node p=350
+NPS supply t=85 p=600
+NPR return p=350
 PCV valve
 PP  pipe length=12 dn=25
 

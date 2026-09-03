@@ -20,7 +20,7 @@ public sealed class ComponentRegistryTests
         // Building runs every self-check: duplicate spellings, aliases that are reserved words,
         // duplicate tag codes, and tag codes that would lex as quantities. A throw here is the data
         // being wrong, which is why the constructor does the work rather than a test repeating it.
-        Assert.Equal(11, Registry.Kinds.Length);
+        Assert.Equal(13, Registry.Kinds.Length);
         Assert.NotNull(Registry.ByKeyword("three_way_valve"));
     }
 
@@ -177,13 +177,17 @@ public sealed class ComponentRegistryTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TagCodesAreUniqueAndOnlyNodeAndPipeLackOne()
+    public void TagCodesAreUniqueAndOnlyStatePointsAndPipesLackOne()
     {
         var tagged = Registry.Kinds.Where(static kind => kind.TagCode is not null).ToArray();
         var untagged = Registry.Kinds.Where(static kind => kind.TagCode is null).Select(static k => k.Keyword);
 
         Assert.Equal(tagged.Length, tagged.Select(static kind => kind.TagCode).Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(["node", "pipe"], untagged.Order(StringComparer.Ordinal));
+
+        // A tag names a piece of equipment (`D-34`). A node is a place in the model rather than a thing
+        // on a drawing, and a boundary is a node -- so none of the three carries one, and a pipe is
+        // tagged by its line rather than as equipment.
+        Assert.Equal(["node", "pipe", "return", "supply"], untagged.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -197,11 +201,30 @@ public sealed class ComponentRegistryTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void OnlyTheNodeTakesUnlimitedPorts()
+    public void OnlyStatePointsTakeUnlimitedPorts()
     {
+        // All three are nodes -- a `supply` and a `return` resolve to one (`D-64`) and differ only in
+        // what they require and what their mass balance may do. Nothing with named ports belongs here:
+        // an unlimited-port kind is one whose ports are positional and interchangeable.
         Assert.Equal(
-            ["node"],
+            ["node", "supply", "return"],
             Registry.Kinds.Where(static kind => kind.HasUnlimitedPorts).Select(static kind => kind.Keyword));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void OnlySupplyRequiresAParameter()
+    {
+        // `D-64`'s third omission policy is deliberately rare: absence is a diagnostic only where every
+        // substitute would be a guess about the plant. A boundary with no temperature is the one case.
+        Assert.Equal(
+            ["supply.t"],
+            Registry.Kinds
+                .SelectMany(static kind => kind.Parameters.Values.Select(p => (kind.Keyword, Parameter: p)))
+                .Where(static entry =>
+                    entry.Parameter.OmissionBehavior == ParameterOmissionBehavior.Require)
+                .Select(static entry => $"{entry.Keyword}.{entry.Parameter.Name}")
+                .Order(StringComparer.Ordinal));
     }
 
     [Fact]
