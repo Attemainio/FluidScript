@@ -29,6 +29,7 @@ from this file means nothing has looked, not that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-18 | [`22`](22-component-model.md) | **A closed equal-percentage valve is not shut**, and nothing says so | `φ = R^(x−1)` with R = 50 gives `φ(0) = 0.02`, so a valve at position 0 still passes 2 % of its rated Kv. That is what the characteristic *means* — a real valve's shut-off comes from its seat, which is a leakage class and not part of the curve — so forcing `φ(0) = 0` would be inventing a seat. But `22` states the characteristic and never states the consequence, and the consequence is that a bypass closed by an equal-percentage valve keeps flowing. No code change; asserted in a test named for it, so the next reader meets it deliberately rather than while debugging a bypass. |
 | C-16 | [`22`](22-component-model.md) | **`EvaluateResiduals` cannot call `ISubstance` and also allocate nothing**, and `22` asks for both | The signature's own remarks say it "must not call the property backend more than necessary", which reads as a budget. It is not one: `FluidState` is a `sealed record`, so *any* state fix inside a residual evaluation allocates, N+1 times per Newton iteration. The two requirements are only compatible if the answer is **none**. Resolved by giving `SolveContext` per-port properties that are already evaluated — pressure, enthalpy, temperature, density, specific heat — so a residual is arithmetic by construction rather than by discipline. This is also what `21`'s per-solve cache was always implying. |
 | C-17 | [`22`](22-component-model.md), [`31`](../30-solver/31-solver-architecture.md), [`62`](../60-docs-and-devex/62-testing-strategy.md) | **`SolveContext` is named by three documents and defined by none** | `22` declares `EvaluateResiduals(in SolveContext, Span<double>)` and `62`'s worked example calls `SolveContext.ForSingleComponent(...)`, while `31` — which owns the unknown and equation registry, and writes out `UnknownDeclaration`, `EquationDeclaration`, `StateVector` and `ScalingVector` in full — stops short of this one. It cannot be deferred to `P3.6`, because `08` builds the components first and they cannot be written without it. Given to `22` on the same reasoning as `NodeObservation` in `P3.0`: it describes what a component *reads*, and the component interface is `22`'s. |
 | C-14 | [`22`](22-component-model.md), `D-61` | **What a flow sensor reads was never defined at a junction.** §7 says only "a sensor reads the node it is attached to" — which names one number on a two-branch node and two or three on a tee | Unnoticed because the ambiguous case does not arise until something has to return a value: a temperature or a pressure sensor has no such problem, since a node carries one of each. Settled as the **sum of the flows entering the node**, which equals the through-flow wherever that exists and is well defined everywhere else. The alternatives are not academic — at a mixing junction they differ by a factor of two, and every one of them looks like a plausible meter reading. `22` §7 and [`flow_sensor`](../../docs/functions/flow-sensor.md) now say so. |
@@ -236,4 +237,19 @@ to: the true derivative sweeps from 0 to 3.75 × 10⁷ J/kg per kg/s across a ba
 differences are legitimately far apart and the test failed on correct code. What C¹ actually claims is
 that the *one-sided* derivative at each join is zero, so the test now probes the edge with a shrinking
 step and requires the measured slope to shrink with it. A corner would hold it constant.
+
+**Both of `22`'s trap-shaped acceptance criteria caught nothing, because they were read first.** The
+pump's affinity law and the valve's regularisation are the two places the document stops to explain
+why the obvious implementation is wrong — `n²H₀ − k(ṁ/n)²` leaves a spare `1/n²` that is *silent at
+n = 1*, and a straight line through the origin matches the valve law's value while missing its slope by
+exactly a factor of two. Written from the document, both came out right first time and the tests passed
+on the first run. Worth recording as evidence for the practice: a criterion that names the wrong answer
+is worth more than one that names the right one, and `22` writes several of them that way.
+
+**Both failures in the valve and pump suite were the test's arithmetic again.** A pump's curve reaches
+zero head at `√(H₀/k) = √6 ≈ 2.449` times the duty flow, and the expectation said `√1.2` — confusing
+the shut-off *head* ratio with a *flow* ratio. And `ρgH` at 0.5 m is 4894.5 Pa, not the 4890 the comment
+rounded to. That is now three suites running where every first-run failure has been the test rather
+than the code; the pattern is that hand-checked expectations are the least-reviewed line in a test, and
+they are the only line that carries a claim.
 

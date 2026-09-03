@@ -38,6 +38,20 @@ timeout, and move on.
 
 If a run does hang anyway, read the log: **a line with no result under it is the culprit.**
 
+To kill one, match the apphost by name:
+
+```bash
+pkill -9 -f 'FluidScript\.Core\.Tests'      # the test assembly runs as an apphost
+pgrep -af 'FluidScript|dotnet test'          # verify: no output means clear
+```
+
+**Not `testhost`, and not `*.dll`.** Microsoft.Testing.Platform runs the assembly as an apphost called
+`FluidScript.Core.Tests` — there is no `testhost` process and no `.dll` in the command line, so both
+of the patterns a VSTest habit reaches for match nothing and report success. One stuck run survived
+two such kills and burned a core for **7 h 53 m** before anyone looked at `ps` rather than at the exit
+code. That run is also the proof behind the note above: `(h, s)` on a mixture does not return, in the
+literal sense.
+
 ## What these are not
 
 **They assert no budget.** A wall-clock threshold fails on a loaded CI machine and passes on a fast
