@@ -16,49 +16,86 @@ answered from, and `27-component-catalog.md` is the policy it implements.
 Dimensions are facts about physical objects and are not copyrightable. A standard's particular
 expression of them is. Nothing in this repository reproduces the latter.
 
-## `steel_en10255` — **unverified, and refused by the loader**
+## `steel_en10255` — sourced, **still unverified**, and refused by the loader
 
-**Status: awaiting the one-time human retrieval.** The rows in `SteelEn10255.cs` were authored from
-engineering knowledge of the medium series. They carry `Verified = false` and no sources, so
-`Catalog.Validate()` reports `FS2605` and `PipeCatalogs.Resolve` refuses them. That is the designed
-behaviour: an unverified dimension produces a wrong design silently, and the cost of catching it late
-is far higher than the cost of a refused build.
+**Status: four public sources recorded; one hydraulic decision outstanding.** The retrieval was done
+on **2026-09-03**. `Verified` remains `false`, so `Validate()` reports `FS2605` and
+`PipeCatalogs.Resolve` refuses the catalogue — see "What is still open" below, which is a question for
+a person rather than a missing signature.
 
 `CatalogTests.TheShippedPipeCatalogueIsNotVerifiedYet` asserts the refusal. **That test is meant to be
-deleted** by whoever completes the table below — it is what stops this state from becoming permanent.
+deleted** by whoever closes the question.
 
-### What needs checking
+### The sources
 
-Outside diameter and wall thickness, in millimetres, against two independent public sources. The bore
-is derived, so it needs no separate check; the two numbers below are the whole of it.
+| # | Publisher | URL | Retrieved | What it supports |
+|---|---|---|---|---|
+| 1 | Botop Steel Pipes | <https://www.botopsteelpipes.com/steel-pipe-weight-chart-en-10220/> | 2026-09-03 | EN 10220 Series 1 preferred outside diameters |
+| 2 | Eastern Steel Manufacturing Co., Ltd | <https://www.eastern-steels.com/newsdetail/din-en10220-seamless-steel-pipes.html> | 2026-09-03 | The same sequence, independently |
+| 3 | Durgapur Tubes Pvt Ltd | <https://durgapurtubes.com/en-10255.html> | 2026-09-03 | EN 10255 medium wall thicknesses; the inch column that pins the DN mapping |
+| 4 | Union Steel Industry Co., Ltd | <https://www.union-steels.com/standards/en-10255.html> | 2026-09-03 | The same wall thicknesses, independently |
 
-| Designation | OD (mm) | Wall (mm) | Source 1 | Source 2 | Verified by |
-|---|---|---|---|---|---|
-| DN15 | 21.3 | 2.6 | | | |
-| DN20 | 26.9 | 2.6 | | | |
-| DN25 | 33.7 | 3.2 | | | |
-| DN32 | 42.4 | 3.2 | | | |
-| DN40 | 48.3 | 3.2 | | | |
-| DN50 | 60.3 | 3.6 | | | |
-| DN65 | 76.1 | 3.6 | | | |
-| DN80 | 88.9 | 4.0 | | | |
-| DN100 | 114.3 | 4.5 | | | |
-| DN125 | 139.7 | 5.0 | | | |
-| DN150 | 165.1 | 5.0 | | | |
+**No single source covered both halves correctly**, which is the two-source rule doing exactly what it
+is for rather than a shortcoming of the search.
 
-DN25's 33.7 mm OD and 3.2 mm wall give the 27.3 mm bore that `27`'s worked example and every reference
-circuit depend on. **One wrong wall thickness moves the pump head by several percent** with nothing
-looking wrong, which is why two sources rather than one.
+### What the sources settled
 
-### When the table is filled
+- **The wall thicknesses are confirmed.** Sources 3 and 4 agree with each other and with every value
+  shipped: 2.6, 2.6, 3.2, 3.2, 3.2, 3.6, 3.6, 4.0, 4.5, 5.0, 5.0 for DN15 through DN150.
+- **The DN mapping is confirmed.** Source 3 carries the inch column: ½″ is DN15, 1″ is DN25, 2″ is
+  DN50, 6″ is DN150.
+- **The range is confirmed.** EN 10255 covers DN8–DN150 and no further (`C-31`).
+- **DN150 is 165.1 mm, not 168.3.** Sources 1 and 2 both give the EN 10220 Series 1 sequence as
+  … 114.3, 139.7, **168.3**, 219.1 … with no 165.1 in it. EN 10255's threadable 6″ tube is 165.1 and
+  EN 10220's DN150 is 168.3 — a real divergence between two standards at one size (`C-36`).
 
-1. Add each source to the row's `Provenance.Sources` with publisher, URL, and retrieval date.
-2. Set `Verified = true` on the rows that were actually checked, and only those.
-3. Delete `TheShippedPipeCatalogueIsNotVerifiedYet` and its explanation.
-4. Commit as one reviewed change. The review *is* the attestation.
+### What is still open — `C-35`, and it must be decided before `Verified`
+
+**Every supplier table found lists DN15 at 21.7 mm and DN25 at 34.2 mm**, not 21.3 and 33.7. Those are
+EN 10255's *upper tolerance limits*: threadable tube is specified as an outside-diameter range, because
+the thread has to be cuttable. The 21.3 / 26.9 / 33.7 series shipped here is EN 10220's Series 1
+preferred diameter, which is also what `27`'s worked example computes its 27.3 mm bore and 94.1 Pa/m
+from.
+
+The difference is **about 2 % in bore and 5 % in flow area**, which is roughly 10 % in pressure
+gradient — well inside the range that changes a pump selection. So the question is not clerical:
+
+> Which outside diameter should a hydraulic catalogue carry for a tube whose standard specifies a
+> range: the preferred/nominal value, the mid-tolerance value, or the maximum?
+
+Until that is answered, `Verified` stays false. Answering it may also change `27`'s worked example,
+which is the reason to answer it before anything is sized rather than after.
+
+### A source that was found and deliberately not used
+
+The search surfaced a PDF of BS EN 10255:2004 itself, hosted publicly by a fittings vendor. **It was
+not opened and is not cited.** The standard is a copyrighted document whatever site it sits on, and
+this project's rule is that dimensions are read from manufacturers' own published data and the
+standard is cited by number as the authority. That is the rule costing something rather than being
+free, which is when it is worth having.
+
+### A source that was found and rejected on the evidence
+
+One manufacturer's chart (PandaPipe) carries the correct outside-diameter *values* against **DN labels
+shifted by one size**. It omits DN8 from the head of the series, so everything below it moves up a
+row: DN15 is listed as 17.2 mm, DN20 as 21.3, DN25 as 26.9, and the table ends at DN150 = 139.7 with
+no 165.1 at all.
+
+Read alone it would have produced a catalogue where every pipe is one size too small and every number
+still looks entirely reasonable. DN25's bore would come out at 26.9 − 2×2.6 = **21.7 mm** instead of
+27.3 — a 37 % error in flow area, and nothing in the result would look wrong.
+
+**This is the failure the two-source rule exists to catch, caught on the first attempt.** It is worth
+keeping in mind that a single source was not merely thin here — it was actively wrong, from a
+manufacturer, in a way no plausibility check would have flagged.
+
+### When the table is verified
+
+1. Decide `C-35` and set the outside diameters accordingly.
+2. Set `Verified = true`. The review of that commit *is* the attestation.
+3. Delete `TheShippedPipeCatalogueIsNotVerifiedYet` and this section's status line.
 
 ### Range
 
-EN 10255 covers DN6–DN150. `27`'s open-questions section promises DN15–DN300 from this series, which
-that standard cannot supply; anything above DN150 is a second series with its own sources. Recorded as
-`C-31`.
+EN 10255 covers DN8–DN150. `27` previously promised DN15–DN300 from this series, which it cannot
+supply; DN200 and above are a different series with their own sources (`C-31`).

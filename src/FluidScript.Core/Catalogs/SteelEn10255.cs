@@ -55,6 +55,59 @@ public static class SteelEn10255
         (150, 165.1, 5.0),
     ];
 
+    /// <summary>The public sources these rows were read from, and why they are still not verified.</summary>
+    /// <remarks>
+    /// <para>
+    /// Declared above <see cref="Instance"/> and not below it: static initializers run in textual
+    /// order, so a source list written after the catalogue that reads it is silently null in every row.
+    /// </para>
+    /// <para>
+    /// Shared by every row because every row was read from the same four documents. Two cover the
+    /// outside diameters and two the medium-series wall thicknesses, which is the two-source rule
+    /// satisfied -- and the split is not tidiness: <strong>no single source covered both correctly.</strong>
+    /// </para>
+    /// <para>
+    /// <strong><see cref="Provenance.Verified"/> stays false, and the reason is an open question rather
+    /// than a missing signature.</strong> Every supplier table found lists DN15 at 21.7 mm and DN25 at
+    /// 34.2 mm, which are EN 10255's <em>upper tolerance limits</em>; the 21.3 and 33.7 used here are
+    /// EN 10220's Series 1 preferred diameters, which is also what <c>27</c>'s worked example computes
+    /// from. The two differ by about 2 % in bore and 5 % in area, so the choice is a hydraulic decision
+    /// and belongs to a person. Recorded as <c>C-35</c>.
+    /// </para>
+    /// </remarks>
+    private static Provenance Sources { get; } = new()
+    {
+        Standard = "EN 10255",
+        Sources =
+        [
+            // EN 10220 Series 1 preferred outside diameters. These two agree on the whole sequence, and
+            // both run 139.7 -> 168.3 with no 165.1 in it, which is how the DN150 row below is known to
+            // be EN 10255's diameter rather than EN 10220's (C-36).
+            new SourceReference(
+                "Botop Steel Pipes",
+                "https://www.botopsteelpipes.com/steel-pipe-weight-chart-en-10220/",
+                new DateOnly(2026, 9, 3)),
+            new SourceReference(
+                "Eastern Steel Manufacturing Co., Ltd",
+                "https://www.eastern-steels.com/newsdetail/din-en10220-seamless-steel-pipes.html",
+                new DateOnly(2026, 9, 3)),
+
+            // EN 10255 medium-series wall thicknesses, and the inch column that pins the DN mapping --
+            // half-inch is DN15 and six-inch is DN150. Both agree with every wall thickness below.
+            new SourceReference(
+                "Durgapur Tubes Pvt Ltd",
+                "https://durgapurtubes.com/en-10255.html",
+                new DateOnly(2026, 9, 3)),
+            new SourceReference(
+                "Union Steel Industry Co., Ltd",
+                "https://www.union-steels.com/standards/en-10255.html",
+                new DateOnly(2026, 9, 3)),
+        ],
+
+        // A person decides C-35 first. Sources without the attestation is a row nobody has checked.
+        Verified = false,
+    };
+
     /// <summary>The catalogue, ascending by nominal size.</summary>
     public static ICatalog<PipeSpec> Instance { get; } = new Catalog<PipeSpec>(
         Id,
@@ -72,9 +125,7 @@ public static class SteelEn10255
                 Series = Series,
             },
 
-            // Awaiting the one-time human retrieval described above. Two sources and Verified = true
-            // arrive together or not at all: either alone is a row nobody has actually checked.
-            Provenance = new Provenance { Standard = "EN 10255", Verified = false },
+            Provenance = Sources,
         }),
         Plausible,
         static spec => spec.OutsideDiameter);

@@ -71,6 +71,58 @@ velocity, Reynolds number, friction factor, and pump head — a plausible-lookin
 **Retrieval is a one-time, human-reviewed task**, not an automated pipeline. The data changes on the
 timescale of standards revisions, i.e. years.
 
+## The standards landscape
+
+Which standard governs which pipe is not obvious, and picking the wrong one gives dimensions that are
+plausible and wrong. This is the map, so a future catalogue package starts from a named standard rather
+than from a search. It is scope, not a commitment: v1 ships one series.
+
+**Designation, not dimension.** These define the labels everything else uses.
+
+| Standard | Defines |
+|---|---|
+| **EN ISO 6708** | `DN` — nominal size. The designation this project's glossary insists is not a diameter |
+| **EN 1333** | `PN` — nominal pressure designation |
+
+**Dimensional series.** The tables a catalogue row is actually read from.
+
+| Standard | Covers |
+|---|---|
+| **EN 10220** | Preferred OD, wall thickness and mass for steel tubes — the Series 1 diameters (21.3, 26.9, 33.7 …) |
+| **EN 10255** | Non-alloy steel tube for **welding and threading**; DN8–DN150. Specifies OD as a *range*, not a single value (`C-35`) |
+| **EN 10216 / EN 10217** | Seamless and welded steel tube for pressure purposes |
+| **EN ISO 1127** | Stainless tube dimensions, tolerances and masses |
+| **EN 10312** | Welded stainless pipe for water and aqueous liquids |
+| **EN 1057** | Copper pipe for water, heating and gas |
+| **EN 12735-1 / -2** | Copper tube for refrigeration and air conditioning |
+| **ISO 4200** | International steel OD/thickness series |
+
+**Plastics**, each material with its own standard: PP `EN ISO 15874`, PE-X `EN ISO 15875`, PB
+`EN ISO 15876`, PVC-C `EN ISO 15877`, PE-RT `EN ISO 22391`, multilayer `ISO 21003`, PE pressure pipe
+`EN 12201`, PVC-U pressure pipe `EN ISO 1452`.
+
+**District heating**, which is a Finnish-context necessity rather than a nicety: `EN 253`
+(pre-insulated bonded pipe), `EN 448` (fittings), `EN 488` (valves), `EN 489-1` (joint casings),
+`EN 15632` (flexible pre-insulated systems).
+
+**Fittings, flanges and threads**, wanted by the fitting catalogue this document defers to post-v1:
+`EN 10253` (butt-weld), `EN 10241` (steel threaded), `EN 10242` (malleable iron threaded), `EN 1254`
+(copper), `EN 1092` (flanges), `EN 1514` (gaskets), `EN 10226`/`ISO 7-1` (pressure-tight threads),
+`ISO 228-1` (non-pressure-tight G threads).
+
+**US counterparts**, for reading a datasheet that cites the other family: EN 10220 ↔ ASME B36.10M,
+EN ISO 1127 ↔ ASME B36.19M, EN 1092 ↔ ASME B16.5, EN 10253 ↔ ASME B16.9, EN 1057 ↔ ASTM B88,
+EN 12735 ↔ ASTM B280, PE-X ↔ ASTM F876/F877, EN 13480 ↔ ASME B31.1/B31.3.
+
+**Acquisition order**, if catalogues are added one at a time and the goal is Finnish HVAC coverage:
+EN ISO 6708 → EN 10220 → EN 10255 → EN 10216/10217 → EN ISO 1127 → EN 10312 → EN 1057 → EN 12735 →
+EN ISO 15874 → EN ISO 15875 → EN ISO 22391 → ISO 21003 → EN 12201 → EN 1092 → EN 10253 → EN 1254 →
+EN 13480.
+
+**None of these is acquired, and none needs to be.** They are named as the *authority* a row conforms
+to. The dimensions come from manufacturers' freely published data, which is what makes the sourcing
+policy above lawful and what `Catalogs/SOURCES.md` records.
+
 ## Data model
 
 ```csharp
