@@ -16,15 +16,14 @@ answered from, and `27-component-catalog.md` is the policy it implements.
 Dimensions are facts about physical objects and are not copyrightable. A standard's particular
 expression of them is. Nothing in this repository reproduces the latter.
 
-## `steel_en10255` — sourced, **still unverified**, and refused by the loader
+## `steel_en10255` — **verified 2026-09-03**
 
-**Status: four public sources recorded; one hydraulic decision outstanding.** The retrieval was done
-on **2026-09-03**. `Verified` remains `false`, so `Validate()` reports `FS2605` and
-`PipeCatalogs.Resolve` refuses the catalogue — see "What is still open" below, which is a question for
-a person rather than a missing signature.
+**Status: verified on the nominal preferred diameters (`D-67`).** Five public sources, retrieved
+2026-09-03. `Validate()` is clean and `PipeCatalogs.Resolve` returns the catalogue.
 
-`CatalogTests.TheShippedPipeCatalogueIsNotVerifiedYet` asserts the refusal. **That test is meant to be
-deleted** by whoever closes the question.
+What this attestation covers: the **outside diameter** and **wall thickness** of every row. What it
+does **not** cover is `Roughness` — 0.045 mm is a textbook value for new commercial steel, is in no
+pipe standard, and is `C-37`.
 
 ### The sources
 
@@ -34,6 +33,7 @@ deleted** by whoever closes the question.
 | 2 | Eastern Steel Manufacturing Co., Ltd | <https://www.eastern-steels.com/newsdetail/din-en10220-seamless-steel-pipes.html> | 2026-09-03 | The same sequence, independently |
 | 3 | Durgapur Tubes Pvt Ltd | <https://durgapurtubes.com/en-10255.html> | 2026-09-03 | EN 10255 medium wall thicknesses; the inch column that pins the DN mapping |
 | 4 | Union Steel Industry Co., Ltd | <https://www.union-steels.com/standards/en-10255.html> | 2026-09-03 | The same wall thicknesses, independently |
+| 5 | Integraflow | <https://www.integraflow.co.uk/shop/cs-pip-150-med-gal-pln-dn150-6-nb-medium-wt-en10255-plain-end-galvanised-pipe-10199> | 2026-09-03 | DN150's diameter, via the published mass per metre |
 
 **No single source covered both halves correctly**, which is the two-source rule doing exactly what it
 is for rather than a shortcoming of the search.
@@ -49,22 +49,33 @@ is for rather than a shortcoming of the search.
   … 114.3, 139.7, **168.3**, 219.1 … with no 165.1 in it. EN 10255's threadable 6″ tube is 165.1 and
   EN 10220's DN150 is 168.3 — a real divergence between two standards at one size (`C-36`).
 
-### What is still open — `C-35`, and it must be decided before `Verified`
+### The diameter basis — decided
 
-**Every supplier table found lists DN15 at 21.7 mm and DN25 at 34.2 mm**, not 21.3 and 33.7. Those are
-EN 10255's *upper tolerance limits*: threadable tube is specified as an outside-diameter range, because
-the thread has to be cuttable. The 21.3 / 26.9 / 33.7 series shipped here is EN 10220's Series 1
-preferred diameter, which is also what `27`'s worked example computes its 27.3 mm bore and 94.1 Pa/m
-from.
+**The rows carry the nominal preferred diameter**, which is `D-67`. Every supplier table found lists
+DN15 at 21.7 mm and DN25 at 34.2 mm; those are EN 10255's *upper tolerance limits*, because a threadable
+tube is specified as a range. Sizing on them adds about 2 % to the bore, 5 % to the flow area and 10 %
+to the pressure gradient, always in the direction that flatters the design.
 
-The difference is **about 2 % in bore and 5 % in flow area**, which is roughly 10 % in pressure
-gradient — well inside the range that changes a pump selection. So the question is not clerical:
+The 21.3 / 26.9 / 33.7 series shipped here is EN 10220's Series 1 preferred diameter, which is what a
+manufacturer aims at and what `27`'s worked example already computed its 27.3 mm bore and 94.1 Pa/m
+from — so the decision changes no published figure.
 
-> Which outside diameter should a hydraulic catalogue carry for a tube whose standard specifies a
-> range: the preferred/nominal value, the mid-tolerance value, or the maximum?
+### DN150 — settled by arithmetic
 
-Until that is answered, `Verified` stays false. Answering it may also change `27`'s worked example,
-which is the reason to answer it before anything is sized rather than after.
+The one row where the sources disagreed. EN 10220's series runs 139.7 → **168.3** with no 165.1 in it;
+EN 10255's 6″ tube is **165.1**; and source 5's product page states *both* diameters for the same
+product.
+
+Its published mass does not equivocate. At 7850 kg/m³:
+
+```
+165.1 / 5.0  ->  pi/4 * (165.1^2 - 155.1^2) * 7850e-6  =  19.74 kg/m     <- stated: 19.7
+168.3 / 5.0  ->  pi/4 * (168.3^2 - 158.3^2) * 7850e-6  =  20.14 kg/m
+```
+
+**A mass per metre constrains a diameter and a wall together**, which is what makes it a third source
+rather than a restatement of either. `CatalogTests.Dn150ReproducesItsPublishedMassPerMetre` keeps the
+check, because the next series added will face the same disagreement.
 
 ### A source that was found and deliberately not used
 
@@ -89,11 +100,14 @@ still looks entirely reasonable. DN25's bore would come out at 26.9 − 2×2.6 =
 keeping in mind that a single source was not merely thin here — it was actively wrong, from a
 manufacturer, in a way no plausibility check would have flagged.
 
-### When the table is verified
+### What roughness still needs — `C-37`
 
-1. Decide `C-35` and set the outside diameters accordingly.
-2. Set `Verified = true`. The review of that commit *is* the attestation.
-3. Delete `TheShippedPipeCatalogueIsNotVerifiedYet` and this section's status line.
+`Roughness = 0.045 mm` is shipped and **is not covered by the verification above**. It is not a
+dimension, appears in no pipe standard, and no manufacturer's table carries it; it is a textbook figure
+for pipe that is *new*. A scaled steel heating pipe is nearer 0.15–0.5 mm, and at DN25 that moves the
+friction factor from 0.0305 to about 0.0425 — roughly 40 % on the pressure gradient and on the pump
+head that follows it. It needs a literature citation per material and a decision on whether v1 sizes
+for new or aged pipe.
 
 ### Range
 

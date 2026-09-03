@@ -49,19 +49,42 @@ public sealed class CatalogTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheShippedPipeCatalogueIsNotVerifiedYet()
+    public void TheShippedPipeCatalogueIsVerifiedAndResolves()
     {
-        // DELETE THIS TEST when Catalogs/SOURCES.md is filled in and the rows carry two sources each.
-        // It exists so that "authored but unverified" cannot quietly become permanent: the dimensions
-        // in SteelEn10255 were written from knowledge of the series, and 27's invariant 1 wants two
-        // independent public sources and a person who checked them. Until then the catalogue refuses
-        // to size anything, which is the designed behaviour and not a defect.
-        var faults = SteelEn10255.Instance.Validate();
+        // Attested 2026-09-03 against the sources in Catalogs/SOURCES.md, on the nominal preferred
+        // diameters (D-67). This replaced a test asserting the opposite, which existed so that
+        // "authored but unverified" could not quietly become permanent.
+        Assert.Empty(SteelEn10255.Instance.Validate());
 
-        var unverified = Assert.Single(faults, static fault => fault.Code == "FS2605");
-        Assert.Contains("DN15", unverified.Message, StringComparison.Ordinal);
+        var resolved = PipeCatalogs.Resolve(pin: null);
 
-        Assert.False(PipeCatalogs.Resolve(pin: null).IsSuccess);
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+        Assert.All(
+            resolved.Value.Catalog.Entries,
+            static entry => Assert.True(entry.Provenance.IsUsable, entry.Designation));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Dn150ReproducesItsPublishedMassPerMetre()
+    {
+        // The arithmetic that settled DN150 when the sources disagreed. EN 10220's series runs
+        // 139.7 -> 168.3 with no 165.1 in it, and one merchant's page states both diameters for the
+        // same product -- but only one of them reproduces the 19.7 kg/m it also publishes.
+        //
+        // A mass per metre constrains a diameter and a wall *together*, which is what makes it a third
+        // source rather than a restatement of either. Kept as a test because the next series added will
+        // face the same disagreement, and this is the cheapest way through it.
+        const double steelDensity = 7850;
+
+        var dn150 = SteelEn10255.Instance.Entries.Single(
+            static entry => entry.Spec.NominalDiameter == 150).Spec;
+
+        var area = Math.PI / 4
+            * ((dn150.OutsideDiameter * dn150.OutsideDiameter)
+                - (dn150.InsideDiameter * dn150.InsideDiameter));
+
+        Assert.Equal(19.7, area * steelDensity, 0.2);
     }
 
     [Fact]
@@ -76,6 +99,32 @@ public sealed class CatalogTests
     }
 
     // ---- validation -------------------------------------------------------------------------------
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnUnverifiedRowRefusesTheWholeCatalogue()
+    {
+        // FS2605, asserted on a fixture. It used to be asserted on the shipped table, which was
+        // unverified by design until D-67 settled the diameter basis -- and when that assertion was
+        // deleted the coverage gate caught that nothing else named the code. A diagnostic tied to a
+        // temporary state of real data has nowhere to live once the data is fixed.
+        //
+        // One unchecked row refuses the catalogue it is in rather than being skipped: a sizer takes the
+        // table or it does not, and a table with a hole in it is the shape that gets used anyway.
+        var unchecked_ = Row(25, 33.7, 3.2) with { Provenance = Sourced with { Verified = false } };
+
+        var fault = Assert.Single(Fixture(unchecked_).Validate(), static f => f.Code == "FS2605");
+
+        Assert.Contains("DN25", fault.Message, StringComparison.Ordinal);
+        Assert.False(
+            PipeCatalogs.Resolve(
+                new CatalogPin("fixture", null),
+                new Dictionary<string, ICatalog<PipeSpec>>(StringComparer.Ordinal)
+                {
+                    ["fixture"] = Fixture(unchecked_),
+                },
+                Fixture(unchecked_)).IsSuccess);
+    }
 
     [Fact]
     [Trait("Category", "Unit")]

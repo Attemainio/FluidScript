@@ -2797,6 +2797,47 @@ throws on user input" applied to data this repository ships.
 **Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md), `D-47`, and
 `03-repository-layout`'s tree, which gains `Catalogs/`.
 
+## D-67 · A catalogue carries the nominal preferred diameter, never a tolerance limit
+
+**Accepted · 2026-09-03** · constrains `27` and every catalogue package after it
+
+A tube standard specifies an outside diameter as a **range**, because a threadable tube has to accept
+a thread. `steel_en10255` carries the **nominal preferred** diameter — 21.3, 26.9, 33.7 mm and so on,
+EN 10220's Series 1 — and not the tolerance limits the public tables mostly print.
+
+**This is a hydraulic decision, not a clerical one.** Every supplier table found during P3.5's sourcing
+lists DN15 at 21.7 mm and DN25 at 34.2 mm, which are the upper limits. Sizing against those puts about
+2 % on the bore, 5 % on the flow area and roughly 10 % on the pressure gradient, every time, in the
+direction that flatters the design — a circuit sized on the most generous pipe the standard permits.
+The nominal value is what a manufacturer aims at and what `27`'s worked example computes its 27.3 mm
+bore and 94.1 Pa/m from.
+
+**Where the two families disagree, mass per metre decides.** EN 10220's series runs 139.7 → 168.3 with
+no 165.1 in it, while EN 10255's 6″ tube is 165.1, and one merchant's page states both for the same
+product. Its published 19.7 kg/m does not: at 7850 kg/m³, 165.1/5.0 gives 19.74 and 168.3/5.0 gives
+20.14. **A mass per metre constrains a diameter and a wall together**, which makes it a genuinely third
+source rather than a restatement of either, and it is the cheapest way through a disagreement the next
+series will also have.
+
+**Rejected.**
+
+- *The maximum diameter, as most public tables print it.* It is what a supplier quotes, so it is the
+  easiest to source. Cost: it is the pipe the standard permits rather than the pipe anyone makes, and
+  the error is one-directional — every circuit is sized slightly optimistic, and nothing downstream
+  looks wrong.
+- *The mid-tolerance diameter.* Defensible statistically, and closer to a real population of pipe.
+  Cost: no public table prints it, so every row becomes a computation from limits that themselves need
+  sourcing, and the two-source rule has nothing to check a row against.
+- *Carrying the range and letting the sizer choose.* Most honest, and it makes `PipeSpec` two numbers
+  where one is wanted. Cost: every consumer then decides the same question separately, which is how
+  two parts of a tool end up sizing the same pipe differently.
+
+**Does not extend to roughness.** `Roughness` is not a dimension and appears in no pipe standard;
+0.045 mm is a textbook value for *new* commercial steel. It is provenanced differently and is `C-37`.
+
+**Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md), and its
+`Catalogs/SOURCES.md`.
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

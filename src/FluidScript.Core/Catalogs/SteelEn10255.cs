@@ -67,12 +67,19 @@ public static class SteelEn10255
     /// satisfied -- and the split is not tidiness: <strong>no single source covered both correctly.</strong>
     /// </para>
     /// <para>
-    /// <strong><see cref="Provenance.Verified"/> stays false, and the reason is an open question rather
-    /// than a missing signature.</strong> Every supplier table found lists DN15 at 21.7 mm and DN25 at
-    /// 34.2 mm, which are EN 10255's <em>upper tolerance limits</em>; the 21.3 and 33.7 used here are
-    /// EN 10220's Series 1 preferred diameters, which is also what <c>27</c>'s worked example computes
-    /// from. The two differ by about 2 % in bore and 5 % in area, so the choice is a hydraulic decision
-    /// and belongs to a person. Recorded as <c>C-35</c>.
+    /// <strong>These are the nominal preferred diameters, which is <c>D-67</c>.</strong> Every supplier
+    /// table lists DN15 at 21.7 mm and DN25 at 34.2 mm, which are EN 10255's <em>upper tolerance
+    /// limits</em>; a catalogue that sized against those would quietly design every circuit for the
+    /// most generous pipe the standard permits. The nominal diameter is the one a manufacturer aims at
+    /// and the one <c>27</c>'s worked example computes from.
+    /// </para>
+    /// <para>
+    /// <strong>DN150 was settled by arithmetic rather than by a table.</strong> EN 10220's Series 1
+    /// runs 139.7 to 168.3 with no 165.1 in it, and one merchant's page states both 165.1 and 168.30
+    /// for the same product. Its published mass does not: at 7850 kg/m3,
+    /// <c>pi/4 * (165.1^2 - 155.1^2)</c> is 19.74 kg/m against the 19.7 stated, where 168.3 would give
+    /// 20.14. A mass per metre is a third, independent constraint on a diameter and a wall together,
+    /// and it is worth reaching for whenever two sources disagree (<c>C-36</c>).
     /// </para>
     /// </remarks>
     private static Provenance Sources { get; } = new()
@@ -102,10 +109,21 @@ public static class SteelEn10255
                 "Union Steel Industry Co., Ltd",
                 "https://www.union-steels.com/standards/en-10255.html",
                 new DateOnly(2026, 9, 3)),
+
+            // A merchant's DN150 product listing, whose stated 19.7 kg/m is what discriminates 165.1
+            // from 168.3 -- the one row the two families above disagreed about.
+            new SourceReference(
+                "Integraflow",
+                "https://www.integraflow.co.uk/shop/cs-pip-150-med-gal-pln-dn150-6-nb-medium-wt-en10255-plain-end-galvanised-pipe-10199",
+                new DateOnly(2026, 9, 3)),
         ],
 
-        // A person decides C-35 first. Sources without the attestation is a row nobody has checked.
-        Verified = false,
+        // Attested 2026-09-03. Every row has two independent agreeing sources for its diameter and two
+        // for its wall, and DN150 additionally reproduces its published mass. What is NOT attested here
+        // is `Roughness`: 0.045 mm is a textbook value for new commercial steel, appears in no pipe
+        // standard, and ages -- see C-37, which this flag does not cover and must not be read as
+        // covering.
+        Verified = true,
     };
 
     /// <summary>The catalogue, ascending by nominal size.</summary>
