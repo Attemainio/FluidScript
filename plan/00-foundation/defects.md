@@ -15,7 +15,9 @@ are in [`08-implementation-sequence`](08-implementation-sequence.md).
 | # | Document | What | Why it is still open |
 |---|---|---|---|
 | F-3 | [`07`](07-quality-attributes.md) | No latency budget is measured | `D-48`/`D-49` budget interactive latency end to end and derive the debounce, and nothing measures any of it yet. The first honest measurement needs a pipeline that binds, so P2.8 at the earliest; `05` ties the real gate to M3. |
-| F-4 | [`03`](03-repository-layout.md) | The nine-file list for a component is unexercised | No component exists. P3.3 is the first package that has to satisfy it, and it is the moment to check the list is still right. |
+| F-4 | [`03`](03-repository-layout.md) | **The nine-file list is a definition of "done" that no single package can satisfy**, and P3.3 satisfied four rows of it | P3.3 built six component kinds and produced the component type, the keyword registration, the unit tests and the `/docs` page. It did not produce the sizing rule or its tests (`P3.7` owns sizing and `src/FluidScript.Core/Sizing/` does not exist), the declarative symbol (`D-24` defers `Model/Symbols/` to M3), the renderer coverage (frontend, M3), or the per-component sample script. So the list is right about what a *finished* component has and wrong to read as a checklist for the package that introduces one — which is how it reads, and the document calls it "the definition of done for a component". It needs a column saying which package supplies each row. P3.3 also deviated on naming: the valve and pump share `ValveAndPumpTests.cs` rather than taking a file each, because the pump's curve and the valve's law are tested against the same regularisation. |
+| F-5 | [`08`](08-implementation-sequence.md) | **P3.4 is sequenced before P3.5, and lowering cannot build a pipe without the catalogue** | `23`'s lowering step 1 turns every flow-carrying symbol into a component "with its stated parameters converted to SI", which is true of every kind but one: a pipe needs an inside diameter, a script states `dn`, and DN25 is a 27.3 mm bore rather than 25 mm. That mapping is `27`'s and ships in P3.5. `08`'s row for P3.4 gives its reason as "the no-syntax-type-in-`CircuitGraph` assertion goes live here" and does not mention geometry at all. P3.4a worked around it with an injected `IBoreLookup` and a test fixture, which is the right seam for an unrelated reason — P3.7's outer loop re-instantiates components as sizing chooses values, so lowering has to be re-runnable against changing geometry anyway. What is open is whether `08` should say so, or whether the two packages should swap. Recorded from the other side as `C-24`. |
+| F-6 | [`07`](07-quality-attributes.md) | **The property-call cost the whole latency budget rests on is 20 000× what the M0 spike recorded** | The spike measured 0.003 µs per property read; the diagnostics harness measures ~63 µs for one water (T,p) property and ~204 µs for a seven-property `FluidState`. The spike was almost certainly measuring a cached value rather than a flash. Every downstream decision that assumed the small number is now suspect — `C-12`'s per-solve-cache decision most directly, and `07`'s own interactive budget, since a single Newton iteration on a small circuit costs tens of milliseconds in property evaluation alone (`S-2`). This is not a defect in `07`'s targets; it is a defect in the evidence they were set against, and it stays open until the budget is re-derived from measured numbers. |
 
 ## Closed
 
@@ -63,3 +65,20 @@ delivers this milestone criterion?" rather than by reading `08` for completeness
 tables are a good plan and a poor inventory: nothing in the document's own structure notices that a
 tier-10 file is named by no row. A check that every `plan/` document is named by at least one work
 package would be cheap, and would have found both.
+
+**Adding `D-63` exercised the decision log's own process, and the process held.** `23` introduced flow
+groups and assigned their declaration to the component; `22` owns the component contract and never
+mentioned them. `06`'s rule — a change that alters a settled decision adds a new entry rather than
+editing the old one — made the right call obvious, and the entry's mandatory "rejected alternatives"
+section is what surfaced that a registry-data version could not work, because a tank's flow group holds
+every materialized port and how many there are comes from the script. That argument did not exist
+before the section demanded it.
+
+**The `defects.md` rule was followed for three tiers and silently skipped for a fourth.** `P3.0`
+through `P3.4a` appended to `20-core-domain` every time and to `10-language` when the binder was
+touched, and never created `30-solver/defects.md` at all — although every one of those packages was
+written against `31`'s and `36`'s contracts. The rule in `08` says "every `plan/` tier whose documents
+it worked against", and the failure mode is specific: a tier with *no* defects file reads as a tier
+nothing has touched, which is exactly the wrong signal. A tier's file should be created empty when the
+tier is first read at implementation depth, not when it first has a defect.
+

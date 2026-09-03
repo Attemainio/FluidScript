@@ -322,6 +322,19 @@ implemented a registry into `Core/Language` and found two defects in
 [`22-component-model`](../20-core-domain/22-component-model.md); those belong to
 `20-core-domain/defects.md`.
 
+**"Implements against" includes writing against a tier's contracts without implementing any of
+them**, and this is the reading that gets missed. P3.0 through P3.4a built components whose interface
+[`22`](../20-core-domain/22-component-model.md) says waits on `31` for the shape of `SolveContext`,
+whose residuals carry `36`'s smoothing constants, and whose graph exists for `32` to assemble — and
+created no `30-solver/defects.md` at all, for four packages running. Every finding about that tier
+sat in `20-core-domain/defects.md`, where the tier that owns it would not have looked.
+
+**Create a tier's file the first time the tier is read at implementation depth, not the first time it
+has a defect.** A tier folder with no `defects.md` reads as a tier nothing has touched, which is the
+opposite of the truth in exactly the case that matters. An empty file whose header says which of its
+documents have been read and which have not carries real information; an absent one carries a wrong
+signal for free.
+
 Each entry states what was found, whether it is closed or still open, and — for a closed one — what
 was changed. An entry that was fixed by amending the document says so, because the document now reads
 as though it was always right. Entries that are neither defects nor fixes go under **Observations**:
@@ -340,7 +353,8 @@ implementation will otherwise re-derive.
 6. No package is started while an earlier package in the same phase is unmerged, except P1.1 and
    P1.2, which are independent by construction.
 7. A package that implements against a tier's documents updates that tier's `defects.md` in the same
-   commit, or states in the commit that it found nothing.
+   commit, or states in the commit that it found nothing. A package that writes *against* a tier's
+   contracts without implementing them is covered by this, and creating the file is part of it.
 
 ## Error cases
 
