@@ -49,3 +49,19 @@ gitignored except for its README.** `P3.1`'s harness writes timing reports there
 worth recording only because the obvious alternative — asserting a threshold — would have been wrong:
 property-evaluation cost varies by an order of magnitude across backends and machines, and a threshold
 tight enough to catch a regression fails on somebody's laptop by lunchtime.
+
+**Three tests guard the diagnostic codes and none of them asks whether a code ever fires.**
+`CodeRangeOwnershipTests` checks that every registered code falls in a documented range and is
+mentioned in the document that range names — both directions of the *documentation* claim, and
+neither of the behavioural one. So `FS2202` and `FS2217` shipped in `P3.4b` implemented, reachable,
+and with no test asserting either fires, while every other code in their range had one; the range gate
+was green throughout. This is the same shape as `S-8`, where `FS2211` was implemented and
+*un*reachable for a whole package, and it is worth stating that the two failures are one failure: the
+suite has no notion of a code being exercised.
+
+The gate that would close it is cheap — for each registered code, assert that some test names it —
+but it needs an allow-list, because codes legitimately blocked on later packages exist and are already
+recorded (`L-1`, `L-21`, `C-23`). That allow-list is the actual value: it turns those three defects
+from prose into a machine-checked claim, and a code that quietly becomes reachable stops being
+invisible. `62` should own it. Not built here — `P3.4b`'s two missing tests are written, and the gate
+is a package rather than a fix.

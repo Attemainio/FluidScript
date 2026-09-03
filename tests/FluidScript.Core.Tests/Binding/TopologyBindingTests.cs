@@ -207,6 +207,20 @@ public sealed class TopologyBindingTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void APortI3TerminatedOnAWiredComponentIsReported()
+    {
+        // The other half of the exemption below. A pump wired on one side only is a stub the user has
+        // not finished, and terminating `out` at zero flow keeps the graph solvable -- so the warning
+        // is the only thing separating it from a dead end somebody meant.
+        var result = Bind("fluidscript 1\nPU1 pump\nN1 node\nconnections\nN1 - PU1.in\n");
+
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS2202");
+        Assert.Contains("'PU1'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'out'", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void AnOptionalPortIsNotTerminated()
     {
         // I3 fires on the ports a component must have, not on the ones it may have. A heat exchanger
@@ -257,6 +271,25 @@ public sealed class TopologyBindingTests
 
         Assert.Equal(2, Codes(result).Count(static code => code == "FS1518"));
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASubcircuitAttachingToOneOfItsOwnComponentsIsReported()
+    {
+        // FS2217 and FS1518 partition one mistake and never both fire: FS1518 is the name resolving to
+        // nothing, this is the name resolving to a component of the attaching circuit. The absent
+        // FS1518 is the half of that claim which would rot silently if the split were ever collapsed.
+        var result = Bind(
+            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
+            + "connections\nNB1 - NB2\n\ncircuit ahu 300\nNA1 node\nNA2 node\n"
+            + "connections\nNA1 - NA2\nsupply NA1\nreturn NB2\n");
+
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS2217");
+        Assert.Contains("'ahu'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'NA1'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("FS1518", Codes(result));
+    }
+
 
     [Fact]
     [Trait("Category", "Unit")]
