@@ -118,23 +118,28 @@ public sealed record PipeSpec
     /// </value>
     public required int NominalDiameter { get; init; }
 
-    /// <summary>Outside diameter.</summary><value>m (SI internally); mm in the data file.</value>
-    public required Quantity OutsideDiameter { get; init; }
+    /// <summary>Outside diameter.</summary><value>m.</value>
+    public required double OutsideDiameter { get; init; }
 
     /// <summary>Wall thickness.</summary><value>m.</value>
-    public required Quantity WallThickness { get; init; }
+    public required double WallThickness { get; init; }
 
     /// <summary>Inside diameter — the hydraulically relevant one.</summary>
     /// <value>m. Derived as OD − 2·wall, not stored independently, so the three can never disagree.</value>
-    public Quantity InsideDiameter => OutsideDiameter - 2 * WallThickness;
+    public double InsideDiameter => OutsideDiameter - 2 * WallThickness;
 
     /// <summary>Absolute roughness for this material.</summary><value>m.</value>
-    public required Quantity Roughness { get; init; }
+    public required double Roughness { get; init; }
 
     /// <summary>Material and series, e.g. "steel, EN 10255 medium".</summary>
     public required string Series { get; init; }
 }
 ```
+
+**Metres as `double`, not `Quantity`.** These were written as `Quantity` and the derivation above does
+not compile: `Quantity` has no arithmetic operators, only `TryAdd`/`TrySubtract`, because unit
+arithmetic can fail and a silent operator would hide it. Plain metres also matches `Pipe`, which is the
+only consumer of a bore (`C-33`).
 
 **`InsideDiameter` is computed, never stored.** A catalogue with all three as independent fields will,
 sooner or later, contain a row where they do not agree, and the resulting error is invisible.
@@ -191,7 +196,14 @@ A default correlation ships for a generic 60° chevron so that a plate model wit
 still usable, labelled `default` in the same way `hx.dp_default` is. It is the weakest number in the
 exchanger path and `/docs` must say so.
 
-## Data file format
+## How the data is held
+
+**A compiled C# table, not a data file (`D-66`).** `D-47` forbids any source file in Core from
+reaching a serializer, and P3.5 is the first package that needed to read structured data past it.
+Nothing the JSON was for is lost — the rows are versioned in git, human-readable, curated and shipped
+rather than fetched — and a malformed row becomes a build error rather than an `FS2604` at run time.
+The shape below is retained as the *logical* model: `Provenance` is a record on each entry rather than
+a `sourceIndex` string, and `SOURCES.md` is unchanged.
 
 ```
 src/FluidScript.Core/Catalogs/
@@ -204,8 +216,9 @@ src/FluidScript.Core/Catalogs/
 └── SOURCES.md              human-readable provenance summary, per file
 ```
 
-JSON, human-readable, in millimetres and the units an engineer would write, converted to SI on load.
-Committed to git so a design is reproducible against a known catalog version.
+Millimetres in the table and metres in `PipeSpec`: these are the numbers a manufacturer's catalogue
+prints, and transcribing them in the unit they were read in is what makes a row checkable against its
+source by eye. Committed to git so a design is reproducible against a known catalog version.
 
 ```jsonc
 {
@@ -260,14 +273,24 @@ public interface ICatalog<TSpec>
     IReadOnlyList<CatalogEntry<TSpec>> Entries { get; }
 
     /// <summary>The smallest entry satisfying a predicate.</summary>
-    /// <returns>The entry, or a failure naming the largest available when nothing fits.</returns>
-    Result<CatalogEntry<TSpec>> SmallestSatisfying(Func<TSpec, bool> predicate);
+    /// <returns>The entry and how well it fitted; the largest when nothing satisfies it.</returns>
+    CatalogSelection<TSpec> SmallestSatisfying(Func<TSpec, bool> predicate);
 
     /// <summary>The nearest entry at or below a target — the safe direction for valve Kv
     /// ([`24-auto-sizing`](24-auto-sizing.md)).</summary>
-    Result<CatalogEntry<TSpec>> NearestBelow(Quantity target, Func<TSpec, Quantity> selector);
+    CatalogSelection<TSpec> NearestBelow(double target, Func<TSpec, double> selector);
+
+    /// <summary>Everything wrong with this catalogue, or empty when it is fit to size against.</summary>
+    ImmutableArray<ResultError> Validate();
 }
 ```
+
+**Selection clamps and reports the fit; it does not fail.** These returns were written as a `Result`
+failing when nothing fits, which contradicts this document's own error table — `FS2601` is a *warning*
+that says "using {max}". The table is right: a design needing more than DN150 still gets a number and
+a clear warning, where a refusal would blank the diagram over a circuit that solves. `CatalogFit` is
+`Exact`, `ClampedToLargest` or `ClampedToSmallest`, and the sizer turns the two clamps into `FS2601`
+and `FS2602` (`C-34`).
 
 ## Invariants
 
@@ -294,6 +317,12 @@ mode of hand-curated data.
 | `FS2605` | Entry lacks verified provenance | Error | Startup failure. An unverified row must never reach a user. |
 | `FS2606` | No `catalog` directive; the shipped default was used | Info | `Using catalogue '{name}'. Write 'catalog {name}' to pin it.` |
 | `FS2607` | A correlation was evaluated outside its fitted range | Warning | `'{name}': the {plate} correlation is fitted for Re {lo}–{hi} and this design runs at {re}. The result is an extrapolation.` |
+
+**Three of these are not registered yet, and each waits for a different thing.** `FS2601` and
+`FS2602` name the *component* that was clamped, and the catalogue does not know who is asking — so
+selection returns a `CatalogFit` and the sizing loop that knows the name builds them (`P3.7`).
+`FS2607` needs plates (`P4.1`). `FS2604` shipped with a narrower meaning than the row above states:
+there is no file to fail parsing, so it reports invariant 7's structural faults instead (`D-66`).
 
 `FS2605` failing at startup rather than warning is deliberate: an unverified dimension produces a wrong
 design silently, and the cost of catching it late is far higher than the cost of a failed build.
@@ -348,7 +377,8 @@ Note DN25's ID is 27.3 mm, not 25 mm. DN is a designation, not a dimension, and 
 
 ## Open questions
 
-None. v1 ships one verified pipe series (`steel_en10255`, DN15–DN300) and one generic discrete Kv
+None. v1 ships one verified pipe series (`steel_en10255`, DN15–DN150 — the range EN 10255 covers;
+DN200 and above are a second series with their own sources, `C-31`) and one generic discrete Kv
 series. `catalog steel_en10255@2026.1` pins exactly one version; `catalog steel_en10255` selects the
 shipped version of that named catalogue; absence selects the shipped default. Every resolution records
 the exact id and version. M2a cannot exit until two public manufacturer sources support every row and an independent

@@ -2755,6 +2755,48 @@ which is why the substation's closed secondary needs no stated temperature of it
 4. If it supersedes an entry, edit the old entry's status line to `superseded by D-xx` and leave its
    body intact.
 
+## D-66 · The catalogue is a compiled table, not a data file
+
+**Accepted · 2026-09-03** · constrains `27`; the first package to feel `D-47`'s edge
+
+`27` specifies the catalogue as JSON under `src/FluidScript.Core/Catalogs/`, "converted to SI on
+load". **It cannot be.** `D-47` forbids any source file in Core from reaching a serializer, and an
+architecture test enforces it by scanning source text. P3.5 is the first package that needs the
+difference, and the rows ship as `static readonly` C# records instead.
+
+**Nothing the JSON was for is lost.** The table is still versioned in git, still human-readable, still
+curated and shipped rather than fetched, and `SOURCES.md` still answers a provenance question. What is
+gained is that a malformed row is a **build error** rather than an `FS2604` a user meets at run time,
+and that the row's `Provenance` is a type rather than a `sourceIndex` string nothing checks.
+
+**`FS2604` survives with a narrower meaning.** There is no file to fail parsing, so it now reports
+what `27`'s invariant 7 always wanted: a row whose outside diameter leaves no bore, a non-positive
+roughness, a duplicated designation, or a series that stops ascending. Those are the realistic failure
+mode of hand-curated data, and the ordering one matters more than it looks — `SmallestSatisfying`
+takes the first matching row as the smallest, so a table out of order does not fail, it quietly
+answers with the wrong pipe.
+
+**Validation is carried, not thrown.** A table checked in a static initializer fails as a
+`TypeInitializationException` raised from whatever unrelated line touches the type first. `Validate()`
+returns the faults and `Resolve` refuses on them, which is the same discipline as "no pipeline stage
+throws on user input" applied to data this repository ships.
+
+**Rejected.**
+
+- *Relax the architecture test to match `03`.* `03-repository-layout` says Core has no serializer "on
+  its public surface", which is narrower than the test, and reading a catalogue internally would
+  satisfy the sentence. Cost: it reopens `D-47`, whose point is that the rule binds Core's own code
+  rather than its package closure — and the exemption would be permanent for the sake of one internal
+  file format.
+- *A hand-rolled reader for a simple line format.* This project already hand-rolls a lexer, so the
+  skill is present. Cost: a second parser and its own error handling, to read a file only this
+  repository writes, producing exactly the table the compiler would have produced for free.
+- *Ship the data as an embedded resource with a minimal reader.* Same cost as above plus a build
+  action, and the resource is still unchecked until it is read.
+
+**Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md), `D-47`, and
+`03-repository-layout`'s tree, which gains `Catalogs/`.
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

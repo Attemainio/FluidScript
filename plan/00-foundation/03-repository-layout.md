@@ -50,6 +50,7 @@ FluidScript/
 │   │   ├── Fluids/                  ISubstance and the SharpProp adapter     (tier 20)
 │   │   ├── Components/              Node, Pipe, HeatExchanger, Valve, Pump   (tier 20)
 │   │   ├── Topology/                graph construction and validation        (tier 20)
+│   │   ├── Catalogs/                shipped dimension tables and provenance  (tier 20)
 │   │   ├── Sizing/                  auto-sizing rules and constraints        (tier 20)
 │   │   ├── Solvers/                 ISolver, Newton, transient, controllers  (tier 30)
 │   │   └── Model/                   the serialized model contract            (tier 20)
@@ -95,8 +96,9 @@ FluidScript.Api ──► FluidScript.Core ◄── FluidScript.Export
                             └── FluidScript.Core.Tests
 ```
 
-**Core references nothing of ours.** It has no ASP.NET, no `System.Text.Json` on its public surface,
-no knowledge that a frontend exists (`R-16`). The wire DTOs live in `FluidScript.Api/Contracts` and
+**Core references nothing of ours.** It has no ASP.NET, no serializer anywhere in its own code — not
+merely off its public surface, which is what `D-47` settled and what the architecture test enforces —
+and no knowledge that a frontend exists (`R-16`). The wire DTOs live in `FluidScript.Api/Contracts` and
 are mapped from Core's model types, so a change to a Core record cannot silently reshape the API.
 
 The resolved export boundary is the deliberate exception: M3 SVG/PNG uses frontend placements, while

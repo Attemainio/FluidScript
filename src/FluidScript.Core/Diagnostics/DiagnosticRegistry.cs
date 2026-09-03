@@ -111,6 +111,7 @@ public static class DiagnosticRegistry
         .. CompatibilityDiagnostics.All,
         .. FluidDiagnostics.All,
         .. TopologyDiagnostics.All,
+        .. CatalogDiagnostics.All,
     ];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>
