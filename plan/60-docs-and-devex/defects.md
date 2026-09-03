@@ -59,9 +59,24 @@ was green throughout. This is the same shape as `S-8`, where `FS2211` was implem
 *un*reachable for a whole package, and it is worth stating that the two failures are one failure: the
 suite has no notion of a code being exercised.
 
-The gate that would close it is cheap — for each registered code, assert that some test names it —
-but it needs an allow-list, because codes legitimately blocked on later packages exist and are already
-recorded (`L-1`, `L-21`, `C-23`). That allow-list is the actual value: it turns those three defects
-from prose into a machine-checked claim, and a code that quietly becomes reachable stops being
-invisible. `62` should own it. Not built here — `P3.4b`'s two missing tests are written, and the gate
-is a package rather than a fix.
+`DiagnosticCoverageTests` now closes it: every registered code must be named by a string literal in
+some test, with comments stripped, fixture-constructed descriptors discounted, and the gate's own file
+excluded from its own scan — without which an exemption row would name the code it exempts and cover
+it. It found six more live codes nobody had tested (`FS1512`, `FS1513`, `FS1522`, `FS1526`, `FS2004`,
+`FS2006`), all six now covered. Both directions were falsified before the gate was trusted, because a
+drift check that has never failed is the thing this entry is about.
+
+**The allow-list it was built around turned out to be unnecessary, and the reason is worth more than
+the list would have been.** The claim above — that it would turn `L-1`, `L-21` and `C-23` into
+machine-checked claims — was wrong. Every code those three name is *unregistered*: `FS1201` exists
+only as a fixture literal, `FS1405` nowhere at all, and only ten of `C-23`'s sixteen `FS21xx` codes
+have descriptors. `DiagnosticRegistry`'s remark says why, and it is the correct answer already —
+registering a code before the stage that raises it would make its own "every entry is emitted"
+assertion unsatisfiable, so each package registers its own. A code that cannot fire is therefore never
+registered, and never reaches this gate. The list stays, empty, for the case that policy does not
+cover; it is not the value.
+
+**A text scan is a floor and the file says so.** A code named in a negative assertion counts, and so
+does one in a test asserting something other than that it fires. Proving a code is *raised* needs a
+collector every test routes through, and that is a different gate with a much worse cost. What this
+one catches is precisely what happened three times: a live code no test mentions at all.

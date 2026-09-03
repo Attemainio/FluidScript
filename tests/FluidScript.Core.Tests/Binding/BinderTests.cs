@@ -244,6 +244,32 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void FS1512_AKindOneKeystrokeFromExactlyOneOther()
+    {
+        // `pmp` scores 0.75 against `pump` and nothing else comes near it, so the kind resolves. The
+        // info is the whole of what the user gets told, which is why it names both spellings.
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pmp\n", "FS1512");
+
+        Assert.Contains("'pmp'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'pump'", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1513_AKindTheSameDistanceFromTwo()
+    {
+        // `pide` is one edit from `pipe` and one from `pid`, so both score 0.75 and neither clears the
+        // other by `AmbiguityMargin`. Taking the higher would be a coin flip, and worse, the winner
+        // would depend on the alias list of a kind the script never mentioned.
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nX1 pide\n", "FS1513");
+
+        Assert.Contains("'pide'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'pipe'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'controller'", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void FS1501_ANameDeclaredTwice()
     {
         var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pump\nPU1 valve\n", "FS1501");

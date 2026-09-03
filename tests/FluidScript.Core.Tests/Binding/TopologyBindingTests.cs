@@ -290,6 +290,23 @@ public sealed class TopologyBindingTests
         Assert.DoesNotContain("FS1518", Codes(result));
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASubcircuitDrawingFromOneCircuitAndReturningToAnotherIsReported()
+    {
+        // One parent, or the model cannot carry it. A circuit fed from `primary` and drained into
+        // `secondary` is a real topology and a legal one -- written as connections, which is what the
+        // message says, because it is the attachment pair that cannot express it.
+        var result = Bind(
+            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
+            + "connections\nNB1 - NB2\n\ncircuit secondary 200\nNC1 node t=6 p=300\n"
+            + "NC2 node p=280\nconnections\nNC1 - NC2\n\ncircuit ahu 300\n"
+            + "supply NB1\nreturn NC2\n");
+
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1526");
+        Assert.Contains("'primary'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'secondary'", diagnostic.Message, StringComparison.Ordinal);
+    }
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -346,6 +363,23 @@ public sealed class TopologyBindingTests
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1523");
         Assert.Contains("is a pump", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnActuatorNamingAParameterTheKindLacksIsReported()
+    {
+        // The companion to `ABareComponentNameIsNotAnActuator`: the reference has a property, and the
+        // kind does not have it. `D-61` makes `.position` optional on the one actuated parameter a kind
+        // has, which is exactly why a *wrong* property has to be rejected rather than assumed.
+        var result = Bind(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN2 node t=6 p=300\n"
+            + "connections\nN2 - TV1\n"
+            + "control actuate=TV1.altitude measure=N2.t by=PID1 setpoint=20\n");
+
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1522");
+        Assert.Contains("'altitude'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'TV1'", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]

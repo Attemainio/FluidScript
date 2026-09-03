@@ -102,6 +102,34 @@ public sealed class SubstanceTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnEnthalpyNoTemperatureProducesFailsRatherThanReturningANaN()
+    {
+        // The linear double inverts cp0*x + (b/2)*x^2 = h exactly, and below about -17.5 MJ/kg that
+        // quadratic has no real root at all. A Newton step wanders here; what it must not get back is a
+        // NaN temperature wearing the shape of an answer.
+        var result = LinearPropertyWater.Instance.FromPressureEnthalpy(
+            Gauge(100), Quantity.FromSi(-2e7, Dimension.Enthalpy));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("FS2004", result.Error!.Code);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ARelativeHumidityOutsideZeroToOneIsRefused()
+    {
+        // Humid air's own bound, checked before the backend sees it. It is a fraction and not a
+        // percentage, so a caller that forwards 50 rather than 0.5 has to fail here -- saturating it
+        // silently would put the whole psychrometric result somewhere nobody asked for.
+        var result = HumidAirSubstance.Instance.FromPressureTemperatureRelativeHumidity(
+            Gauge(0), Celsius(20), Quantity.FromSi(1.5, Dimension.Dimensionless));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("FS2006", result.Error!.Code);
+    }
+
     // ---- the gauge boundary -------------------------------------------------------------------
 
     [Fact]
