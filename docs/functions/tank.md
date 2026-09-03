@@ -58,6 +58,11 @@ design, not an edge case.
 
 `volume`, `layers`, `stored_energy`, `t1`…`tN`, and `inN_t` / `outN_t` for every port that exists.
 
+`tN` is the solved temperature of layer N, counted from the bottom, and `inN_t` / `outN_t` are the
+temperatures at the ports. All three are readable in any expression — `let top = T1.t5` — and are
+available after the solve. Reading a layer above the tank's `layers` is not an error at bind time;
+you get no value for it.
+
 ## Also written as
 
 `container`, and `v` for `volume`. Both are kept exactly as you wrote them; nothing rewrites `v` into

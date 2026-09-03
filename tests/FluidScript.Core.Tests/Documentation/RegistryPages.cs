@@ -36,6 +36,21 @@ public static class RegistryPages
                 builder.AppendLine(
                     $"| `{kind.Keyword}` | `{property.Name}` | {Unit(property)} | {Availability(property)} |");
             }
+
+            // An indexed family shows as its pattern, one row rather than sixteen. Leaving them out
+            // made the page say a tank has three readable properties when it has three plus a layer
+            // temperature per layer and a temperature per port (`C-8`).
+            foreach (var family in kind.IndexedPropertyFamilies.OrderBy(
+                static f => f.Pattern, StringComparer.Ordinal))
+            {
+                var bound = family.MaxIndexParameter is { } parameter
+                    ? $"1 to `{parameter}`"
+                    : $"1 to {family.MaxIndex}";
+
+                builder.AppendLine(
+                    $"| `{kind.Keyword}` | `{family.Pattern}`, {bound} | {Unit(family.Element)} "
+                    + $"| {Availability(family.Element)} |");
+            }
         }
 
         return builder.ToString().TrimEnd('\n');

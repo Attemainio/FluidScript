@@ -243,6 +243,25 @@ public sealed class ComponentRegistry : IComponentRegistry
                         + $"{group.Freedoms} freedoms, which can never be over-determined.");
                 }
             }
+
+            // A family whose pattern carries no placeholder matches nothing, and one whose bound names
+            // a parameter the kind lacks has no maximum at all. Both leave a name the registry
+            // advertises and no reference can reach.
+            foreach (var (pattern, bound) in Families(kind))
+            {
+                if (!pattern.Contains("{index}", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"'{kind.Keyword}' has an indexed family '{pattern}' with no '{{index}}' in it.");
+                }
+
+                if (bound is { } parameter && !kind.Parameters.ContainsKey(parameter))
+                {
+                    throw new InvalidOperationException(
+                        $"'{kind.Keyword}' bounds '{pattern}' by '{parameter}', which is not one of its "
+                        + "parameters.");
+                }
+            }
         }
 
         if (index.Count < kinds.Length)
@@ -511,6 +530,16 @@ public sealed class ComponentRegistry : IComponentRegistry
             Declared("volume", Dimension.Volume),
             Declared("layers", Dimension.Dimensionless),
             Solved("stored_energy", Dimension.Energy)),
+
+        // t{index} is on both sides of the registry and means two things: the parameter is an initial
+        // condition, the property is the solved layer temperature. in{index}_t and out{index}_t have
+        // no parameter behind them at all -- a port's temperature is read, never stated.
+        IndexedPropertyFamilies =
+        [
+            PropertyFamily("t{index}", Dimension.Temperature, maxIndexParameter: "layers"),
+            PropertyFamily("in{index}_t", Dimension.Temperature, maxIndex: TankPorts),
+            PropertyFamily("out{index}_t", Dimension.Temperature, maxIndex: TankPorts),
+        ],
     };
 
     private static ComponentKindInfo Controller() => new()
@@ -701,6 +730,42 @@ public sealed class ComponentRegistry : IComponentRegistry
     // freedom and the code is a warning rather than an error.
     private static ImmutableArray<ParameterGroupInfo> ValveGroups() =>
         [Group(BinderDiagnostics.RedundantValveDrop, freedoms: 1, "kv", "dp")];
+
+    /// <summary>The highest index either of a tank's port families materializes.</summary>
+    private const int TankPorts = 16;
+
+    /// <summary>One indexed property family, for a value that exists once per layer or per port.</summary>
+    /// <param name="pattern">The canonical pattern, with one <c>{index}</c> placeholder.</param>
+    /// <param name="dimension">The dimension of the value read back.</param>
+    /// <param name="maxIndex">The fixed highest index, when the family has one.</param>
+    /// <param name="maxIndexParameter">The parameter supplying the highest index instead.</param>
+    /// <returns>The family to hang on a kind.</returns>
+    /// <remarks>
+    /// Always <see cref="PropertyAvailability.Solved"/>. Every indexed property in v1 is a solved
+    /// layer or port state; a <em>stated</em> <c>t3</c> is readable through the parameter path, which
+    /// the property lookup tries first for exactly that reason.
+    /// </remarks>
+    private static IndexedPropertyFamilyInfo PropertyFamily(
+        string pattern,
+        Dimension dimension,
+        int? maxIndex = null,
+        string? maxIndexParameter = null) => new()
+        {
+            Pattern = pattern,
+            MinIndex = 1,
+            MaxIndex = maxIndex,
+            MaxIndexParameter = maxIndexParameter,
+            Element = Solved(pattern, dimension),
+        };
+
+    /// <summary>Every indexed family a kind declares, parameter and property alike.</summary>
+    /// <param name="kind">The kind to enumerate.</param>
+    /// <returns>Each family's pattern and the parameter bounding it, if one does.</returns>
+    private static IEnumerable<(string Pattern, string? MaxIndexParameter)> Families(ComponentKindInfo kind) =>
+        kind.IndexedParameterFamilies
+            .Select(static family => (family.Pattern, family.MaxIndexParameter))
+            .Concat(kind.IndexedPropertyFamilies
+                .Select(static family => (family.Pattern, family.MaxIndexParameter)));
 
     private static ImmutableDictionary<string, ParameterInfo> Parameters(params ParameterInfo[] parameters) =>
         parameters.ToImmutableDictionary(static parameter => parameter.Name, StringComparer.Ordinal);

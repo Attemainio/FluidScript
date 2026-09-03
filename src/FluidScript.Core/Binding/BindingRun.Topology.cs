@@ -783,7 +783,7 @@ internal sealed partial class BindingRun
     private Dimension? DimensionOf(PropertyReference reference) =>
         _componentsByName.TryGetValue(reference.Component, out var slot)
         && _components[slot.Index].Kind is { } kind
-        && kind.Properties.TryGetValue(reference.Property, out var property)
+        && kind.ResolveProperty(reference.Property) is { } property
             ? property.Dimension
             : null;
 

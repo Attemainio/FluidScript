@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Units;
@@ -38,6 +39,18 @@ public sealed record ComponentKindInfo
 
     /// <summary>Gets the patterned parameter families, such as tank layer temperatures and port elevations.</summary>
     public required ImmutableArray<IndexedParameterFamilyInfo> IndexedParameterFamilies { get; init; }
+
+    /// <summary>Gets the patterned property families, such as a tank's per-layer and per-port temperatures.</summary>
+    /// <value>Empty for a kind whose readable properties are all fixed names.</value>
+    /// <remarks>
+    /// <strong>Separate from <see cref="IndexedParameterFamilies"/> for the same reason
+    /// <see cref="Properties"/> is separate from <see cref="Parameters"/>, and the tank shows why.</strong>
+    /// Its <c>t{index}</c> exists on both sides and means two things: as a parameter it is an initial
+    /// condition the script may state, and as a property it is the solved layer temperature. Its
+    /// <c>in{index}_t</c> is a property with no parameter behind it at all, and its
+    /// <c>in{index}_elevation</c> a parameter that is not meaningful to read back.
+    /// </remarks>
+    public ImmutableArray<IndexedPropertyFamilyInfo> IndexedPropertyFamilies { get; init; } = [];
 
     /// <summary>Gets whether this kind can contribute net hydraulic head and satisfy <c>FS2214</c>.</summary>
     /// <value>Explicit registry metadata; never inferred from a residual implementation (<c>D-30</c>).</value>
@@ -111,6 +124,51 @@ public sealed record ComponentKindInfo
     /// alone is unambiguous and <c>.t</c> never needs writing.
     /// </remarks>
     public string? MeasuredProperty { get; init; }
+
+    /// <summary>Resolves a property name against this kind's fixed properties and its indexed families.</summary>
+    /// <param name="written">The property name as the reference wrote it.</param>
+    /// <returns>
+    /// The property, with <see cref="PropertyInfo.Name"/> set to the written name for a family member,
+    /// or <see langword="null"/> when this kind has no such property.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Here rather than in the binder because the binder is not the only reader: the model contract
+    /// reports <c>T1.t3</c> too, and a second copy of this walk is a second place for the fixed and
+    /// the indexed halves to disagree.
+    /// </para>
+    /// <para>
+    /// <strong>An index above the family's bound resolves to nothing.</strong> A family bounded by a
+    /// <em>parameter</em> — a tank's <c>layers</c> — has no fixed maximum to check here at all, so
+    /// <c>T1.t9</c> on a five-layer tank resolves and is caught where the layer count is known.
+    /// </para>
+    /// </remarks>
+    public PropertyInfo? ResolveProperty(string written)
+    {
+        if (Properties.TryGetValue(written, out var exact))
+        {
+            return exact;
+        }
+
+        foreach (var family in IndexedPropertyFamilies)
+        {
+            if (IndexedName.Matches(family.Pattern, written, out var index)
+                && index >= family.MinIndex
+                && (family.MaxIndex is not { } max || index <= max))
+            {
+                return family.Element with { Name = written };
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Gets every name a property reference may write, with each family shown as its pattern.</summary>
+    /// <value>Ordered, for a diagnostic that lists the alternatives.</value>
+    public IEnumerable<string> ReadableNames =>
+        Properties.Keys
+            .Concat(IndexedPropertyFamilies.Select(static family => family.Pattern))
+            .Order(StringComparer.Ordinal);
 
     /// <summary>Gets whether this kind observes a node rather than carrying flow.</summary>
     /// <value><see langword="true"/> for the three instrument kinds.</value>
@@ -341,6 +399,84 @@ public sealed record IndexedParameterFamilyInfo
 
     /// <summary>Gets the shape of one member of the family.</summary>
     public required ParameterInfo Element { get; init; }
+}
+
+/// <summary>A family of indexed properties, such as a tank's solved layer temperatures.</summary>
+/// <remarks>
+/// The same shape as <see cref="IndexedParameterFamilyInfo"/> and deliberately not shared with it: an
+/// element is a <see cref="PropertyInfo"/> here and a <see cref="ParameterInfo"/> there, and the two
+/// carry different things — a property has an availability and a reporting unit, a parameter has an
+/// omission policy and a range. A common base holding only the pattern and the bounds would save four
+/// lines and cost the reader the one distinction that matters.
+/// </remarks>
+public sealed record IndexedPropertyFamilyInfo
+{
+    /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder.</summary>
+    /// <value><c>t{index}</c>, <c>in{index}_t</c>, or <c>out{index}_t</c>.</value>
+    public required string Pattern { get; init; }
+
+    /// <summary>Gets the lowest index the family accepts.</summary>
+    public required int MinIndex { get; init; }
+
+    /// <summary>Gets the fixed maximum index.</summary>
+    /// <value><see langword="null"/> when <see cref="MaxIndexParameter"/> supplies it instead.</value>
+    public int? MaxIndex { get; init; }
+
+    /// <summary>Gets the canonical integer parameter controlling the maximum, such as <c>layers</c>.</summary>
+    /// <value><see langword="null"/> when <see cref="MaxIndex"/> is fixed.</value>
+    public string? MaxIndexParameter { get; init; }
+
+    /// <summary>Gets the shape of one member of the family.</summary>
+    public required PropertyInfo Element { get; init; }
+}
+
+/// <summary>Matches an indexed family pattern such as <c>t{index}</c> against a written name.</summary>
+/// <remarks>
+/// The one implementation of the pattern rule, used by both family kinds and by the binder. It was
+/// the binder's private helper first, which is why the parameter path still reaches it through a
+/// forwarder rather than calling it directly — there is one rule, in one place, either way.
+/// </remarks>
+public static class IndexedName
+{
+    private const string Placeholder = "{index}";
+
+    /// <summary>Tells whether a written name is a member of a pattern's family, and which one.</summary>
+    /// <param name="pattern">The canonical pattern, with one <c>{index}</c> placeholder.</param>
+    /// <param name="written">The name to test.</param>
+    /// <param name="index">The index it carries, or zero when it is not a member.</param>
+    /// <returns><see langword="true"/> when the name matches the pattern.</returns>
+    /// <remarks>
+    /// The index must be digits only: <c>NumberStyles.None</c> rejects <c>t+3</c> and <c>t 3</c>,
+    /// which <see cref="int.TryParse(string, out int)"/>'s default would accept.
+    /// </remarks>
+    public static bool Matches(string pattern, string written, out int index)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+        ArgumentNullException.ThrowIfNull(written);
+
+        index = 0;
+
+        var placeholder = pattern.IndexOf(Placeholder, StringComparison.Ordinal);
+        if (placeholder < 0)
+        {
+            return false;
+        }
+
+        var prefix = pattern[..placeholder];
+        var suffix = pattern[(placeholder + Placeholder.Length)..];
+
+        if (!written.StartsWith(prefix, StringComparison.Ordinal)
+            || !written.EndsWith(suffix, StringComparison.Ordinal)
+            || written.Length <= prefix.Length + suffix.Length)
+        {
+            return false;
+        }
+
+        var digits = written[prefix.Length..(written.Length - suffix.Length)];
+
+        return int.TryParse(
+            digits, NumberStyles.None, CultureInfo.InvariantCulture, out index);
+    }
 }
 
 /// <summary>One property readable as <c>Name.property</c>.</summary>

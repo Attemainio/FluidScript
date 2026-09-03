@@ -960,11 +960,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property));
         }
 
-        if (!kind.Properties.ContainsKey(property))
+        // Through the kind rather than against `Properties` directly, so an indexed family member --
+        // a tank's `t3`, `in2_t` -- resolves like the fixed names beside it.
+        if (kind.ResolveProperty(property) is null)
         {
-            return new ScopeLookup.UnknownProperty(
-                kind.Keyword,
-                [.. kind.Properties.Keys.Order(StringComparer.Ordinal)]);
+            return new ScopeLookup.UnknownProperty(kind.Keyword, [.. kind.ReadableNames]);
         }
 
         // A parameter the user stated is readable at once, whatever the property's availability says:
@@ -1069,29 +1069,17 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 /// <summary>Matches an indexed family pattern such as <c>t{index}</c> against a written name.</summary>
 internal static class Indexed
 {
-    public static bool Matches(string pattern, string written, out int index)
-    {
-        index = 0;
-
-        var placeholder = pattern.IndexOf("{index}", StringComparison.Ordinal);
-        if (placeholder < 0)
-        {
-            return false;
-        }
-
-        var prefix = pattern[..placeholder];
-        var suffix = pattern[(placeholder + "{index}".Length)..];
-
-        if (!written.StartsWith(prefix, StringComparison.Ordinal)
-            || !written.EndsWith(suffix, StringComparison.Ordinal)
-            || written.Length <= prefix.Length + suffix.Length)
-        {
-            return false;
-        }
-
-        var digits = written[prefix.Length..(written.Length - suffix.Length)];
-
-        return int.TryParse(digits, System.Globalization.NumberStyles.None,
-            System.Globalization.CultureInfo.InvariantCulture, out index);
-    }
+    /// <summary>Tells whether a written name is a member of a pattern's family, and which one.</summary>
+    /// <param name="pattern">The canonical pattern, with one <c>{index}</c> placeholder.</param>
+    /// <param name="written">The name to test.</param>
+    /// <param name="index">The index it carries, or zero when it is not a member.</param>
+    /// <returns><see langword="true"/> when the name matches the pattern.</returns>
+    /// <remarks>
+    /// A forwarder, kept because the parameter path reads better calling <c>Indexed.Matches</c> in a
+    /// file about binding. The rule itself moved to the registry when property families needed it
+    /// too: <see cref="ComponentKindInfo.ResolveProperty"/> is read by the model contract as well as
+    /// by this class, and two copies of the pattern rule is one place for the two halves to diverge.
+    /// </remarks>
+    public static bool Matches(string pattern, string written, out int index) =>
+        IndexedName.Matches(pattern, written, out index);
 }
