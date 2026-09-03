@@ -378,7 +378,7 @@ under-specified or is not really a requirement.
 | M3 | R-18, R-20–R-24, R-26–R-31, R-33–R-34, R-37–R-40, R-42, R-44 |
 | M4 | R-09, R-12–R-14, R-19, R-23–R-24, R-27, R-41, R-43, R-45 |
 | M5 | R-25 |
-| M6 deferred | R-15, R-36; later DXF/model-interchange part of R-31 |
+| M6 deferred | R-15, R-36, R-52; later DXF/model-interchange part of R-31 |
 
 `R-28`'s documentation gate applies to every row, not just M3.
 

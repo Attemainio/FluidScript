@@ -5,7 +5,7 @@ tier: 70-future
 status: draft
 owns: [post-M5 scope, deferred features, the criteria for promoting one]
 depends_on: [01-vision-and-scope, 05-milestones-and-acceptance]
-traces_to: [R-09, R-15, R-31, R-36, R-45]
+traces_to: [R-09, R-15, R-31, R-36, R-45, R-52]
 open_questions: 0
 last_review_pass: 0
 ---
@@ -84,7 +84,8 @@ into a proposal to supersede `D-01`, which is a conversation with a much higher 
 | **Hosted demo** | v1 uses screenshots/video and has no hosting/security/cost contract (`D-30`). | Public interest plus an explicit operating budget and abuse/security design. |
 | **Collaboration** | Multi-user editing needs authoritative server state, which [`41`](../40-api/41-api-architecture.md) deliberately avoids. Would reopen that design. | A team asking for it. Very large. |
 | **Cost estimation** | The project does not maintain regional/time-varying prices; M6 cost objectives require supplied data. | A user-supplied versioned cost table and a real selection workflow. |
-| **Report generation** | A PDF with the diagram, the schedule, and the warnings. Mostly assembly once SVG export exists. | Demand from anyone producing design documentation. |
+| **Equipment list** | A per-circuit table of every device and its design-point values, as a side panel and a CSV — the artefact a contractor actually procures from (`R-52`). Requested with a full column layout. Deferred on criterion 2: there is no design-point solve yet to tabulate, and the air-side columns need the physics `D-28` defers to M7. Its electrical column group additionally needs a motor efficiency the pump model does not have, which is a `D-` entry before it is a parameter. | A design-point solve that reproduces the substation reference circuit's water-side columns unaided, plus a decision on what "electricity" means. Specified and gated by [`73-equipment-list`](73-equipment-list.md). |
+| **Report generation** | A PDF with the diagram, the equipment list, and the warnings. Mostly assembly once SVG export and [`73-equipment-list`](73-equipment-list.md) exist. | Demand from anyone producing design documentation. |
 
 ## What is deliberately never planned
 

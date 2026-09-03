@@ -161,6 +161,7 @@ names.
 | **Header layout** | — | The layout mode drawing a distribution circuit as a supply line along the top and a return line along the bottom with its subcircuits stacked between them. The alternative mode is the **loop rectangle** (`D-38`). |
 | **Loop rectangle** | — | The layout mode distributing one closed loop's components around the perimeter of a rectangle. The original and still the default for a circuit with no subcircuits (`D-38`). |
 | **Spacing** | `spacing` | The minimum gap between adjacent component bounding boxes, in world units. A presentation value carried through Core untouched — never a layout hint (`D-37`). |
+| **Equipment list** | `EquipmentList` | The per-circuit table of every device and its design-point values, projected from the model contract and exported for a contractor. **Never "equipment schedule"** — `schedule` is the time-domain block keyword. Post-v1 ([`73-equipment-list`](../70-future/73-equipment-list.md)). |
 | **Active document** | — | The one open document that performs presentation work — layout, colour, DOM. Others retain their state, and a running transient in one keeps receiving and reconstructing frames (`D-39`, `D-42`). |
 
 ## Banned and confusable terms
@@ -172,6 +173,8 @@ names.
 | "temperature drop" for a heat exchanger | **temperature difference** | "Drop" implies a loss; a heat exchanger may raise it. |
 | `Cv` | `Kv` | Different unit systems; see above. |
 | "pressure loss" and "pressure drop" mixed | **pressure drop** | Pick one; this is it. |
+| "equipment schedule" | **equipment list** | `schedule` is the time-domain block keyword ([`12-grammar`](../10-language/12-grammar.md)). Two things called a schedule is one too many. |
+| "primary side" / "secondary side" in Core or on the wire | **side 1** / **side 2** (`in`, `out` and `in2`, `out2`) | Which side is which is a solved outcome, not a declaration (`22`). `primary`/`secondary` are display names in the equipment list and nowhere else. |
 | "pressure reference" | **pressure datum** or **pressure boundary** | Two different things; the word hid the difference and made every open circuit look over-specified. |
 | "simulation" for a steady-state solve | **solve** | Reserve "simulation" for the transient case. |
 | "pinch" for one exchanger's minimum ΔT | **approach** | "Pinch analysis" is a plant-wide network method and is out of scope; using the word for a single exchanger guarantees the two get conflated. |

@@ -123,6 +123,7 @@ rating and coupled circuits), the demand-step loop (transient and control), and 
 |---|---|---|
 | [71-export-formats](70-future/71-export-formats.md) | evidence gate for future DXF/model interchange | reviewed |
 | [72-roadmap](70-future/72-roadmap.md) | scope beyond v1 | draft |
+| [73-equipment-list](70-future/73-equipment-list.md) | the equipment list's rows, columns, provenance, and gate | draft |
 
 ## Review protocol
 

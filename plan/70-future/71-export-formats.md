@@ -43,6 +43,7 @@ A future format is implemented only when all of these are known:
 |---|---|---|
 | DXF | Candidate for M6 | Prefer documented ASCII DXF over proprietary DWG. Promote when a named CAD workflow supplies layer/block conventions and at least two independent import targets. |
 | Versioned JSON model | Candidate for M6 | Promote only for a real programmatic consumer. It is a public compatibility commitment, not merely a download button; the envelope carries language, contract, catalogue, and property-backend versions. |
+| Spreadsheet (`.xlsx`) | Candidate | The equipment list's CSV ([`73-equipment-list`](73-equipment-list.md)) needs no gate — every spreadsheet reads RFC 4180. `.xlsx` is a library dependency, a second compatibility surface, and a versioned format, so it needs one. Promote when a workflow demonstrably cannot use the CSV. |
 | XML | Not promised | Adds an XSD and a second compatibility surface without adding information. Reconsider only when a named consumer cannot use the versioned JSON model. |
 | DWG | Declined | Proprietary and version-specific; use DXF or a proven licensed conversion dependency. |
 | STEP / IFC | Declined | The model has topology and computed 2D diagram placement, not physical 3D routes, elevations, fittings, or equipment solids. Inventing geometry would create a misleading engineering artefact. |

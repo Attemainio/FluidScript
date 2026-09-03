@@ -1319,7 +1319,7 @@ a canvas and testable without a renderer.
   declaration order is a text-editing accident. Moving a line between two circuit blocks would
   renumber equipment on a drawing, which is the property `D-34` is built to avoid.
 - *Ownership by both, with a compound tag.* Loses no information. Cost: `100/400HP01` is not a tag any
-  plant convention uses, and it doubles every equipment schedule row.
+  plant convention uses, and it doubles every equipment list row.
 
 **Constrains.** [`25-layout-hints`](../20-core-domain/25-layout-hints.md),
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
