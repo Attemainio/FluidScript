@@ -55,6 +55,18 @@ Everything except `arrangement` and `fouling` is sized when you omit it.
 error, and so is stating `power`, `in`, `out` and `flow` together — any three of those fix the fourth.
 Plate geometry is a fourth route to the same pair: it derives both `area` and `u`.
 
+### What is checked
+
+| If you write | You get |
+|---|---|
+| All four of `power`, `in`, `out`, `flow` | [`FS2101`](diagnostics.md) |
+| All three of `ua`, `area`, `u` | [`FS2101`](diagnostics.md) |
+| A negative `dt` or `dt2` | [`FS1307`](diagnostics.md) |
+
+**A cooler is written with a negative `power`, never a negative `dt`.** `dt` is how far the
+temperature moves and the duty's sign is which way, so `power=-70 dt=20` takes 70 kW out and leaves
+the outlet 20 K below the inlet. `dt=-20` has no second reading available to it.
+
 ## Properties
 
 `power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `dp`, `dp2`, `dt`,

@@ -782,14 +782,14 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS2101` | Over-determined component | Error | `{name}: power, in, out and flow cannot all be set — any three fix the fourth. With the other three, flow would be {value}.` |
+| `FS2101` | Over-determined component | Error | `'{name}': {parameters} cannot all be set. Any {count} of them fix the rest.` |
 | `FS2102` | Under-determined after sizing | Error | `{name} needs one of: {list}.` |
 | `FS2103` | Both `kv` and `dp` stated | Warning | `{name}: using kv={kv}; dp is implied by it.` |
 | `FS2104` | Both `head` and `dp` stated and inconsistent | Error | `{name}: head={head} m is {implied} kPa, not {dp} kPa.` |
-| `FS2105` | Valve position outside 0–1 | Error | `Valve position must be between 0 and 1.` |
+| `FS2105` | Valve position outside 0–1 | Error | `'{name}': position must be between 0 and 1.` |
 | `FS2106` | Pipe discretization above the cap | Warning | `Using {cap} internal nodes instead of {n}.` |
 | `FS2107` | Node with a single connection and no boundary parameter | Warning | `'{name}' is a dead end. Set t, p or flow to make it a boundary.` |
-| `FS2108` | Efficiency outside 0–1 | Error | `Efficiency must be between 0 and 1.` |
+| `FS2108` | Efficiency outside 0–1 | Error | `'{name}': efficiency must be between 0 and 1.` |
 | `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `{name}: those four temperatures and {power} kW already fix UA at {implied} kW/K. Remove {param}, or let a temperature be solved.` |
 | `FS2110` | A rating parameter stated in Duty mode | Warning | `{name}: '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.` |
 | `FS2111` | Requested duty exceeds what the inlet temperatures allow | Error | `{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.` |
@@ -798,6 +798,14 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2114` | `layers` is non-integral or outside 1…100 | Error | `{name}: layers must be a whole number from 1 to 100.` |
 | `FS2115` | A tank port elevation is outside 0…1 | Error | `{name}: {parameter} is normalized height and must be between 0 (bottom) and 1 (top).` |
 | `FS2116` | Tank substance is not a supported single-phase liquid | Error | `{name}: stratified tank supports a single-phase liquid; {substance} is outside that model.` |
+
+`FS2101` covers both of this kind's relations, which is why its message names the group rather than
+spelling one of them out. **It does not name the implied value.** For `ua`/`area`/`u` it could —
+`u = ua/area` is arithmetic — but for `power`/`in`/`out`/`flow` the implied flow is `Q / (cp · dT)`,
+and a c_p needs a substance. The binder holds a fluid's *name*; the substance behind it is resolved
+at lowering, which is where a message quoting the fourth value belongs (`C-21`).
+
+`FS2105` and `FS2108` name their component, because a script has more than one valve in it.
 
 ## Worked example
 

@@ -71,6 +71,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |
 | `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |
 | `FS1306` | Warning | Units | {parameter} = {value} is outside the usual range ({low}–{high}). Check the unit. |
+| `FS1307` | Error | Units | {parameter} cannot be negative. |
 | `FS1401` | Error | Expressions | '{name}' is already defined at line {line}. |
 | `FS1402` | Error | Expressions | '{name}' depends on itself: {cycle}. |
 | `FS1403` | Error | Expressions | Dividing by zero here. '{expression}' is zero. |
@@ -118,7 +119,14 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |
 | `FS2004` | Error | Substances | Could not evaluate {property} for {name} at {state}. |
 | `FS2006` | Error | Substances | Relative humidity must be between 0 and 100 %. |
+| `FS2101` | Error | Components | '{name}': {parameters} cannot all be set. Any {count} of them fix the rest. |
+| `FS2103` | Warning | Components | '{name}': using kv={kv}; dp is implied by it. |
+| `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |
 | `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
+| `FS2108` | Error | Components | '{name}': efficiency must be between 0 and 1. |
+| `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
+| `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
+| `FS2115` | Error | Components | '{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top). |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

@@ -90,6 +90,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         CollectCurves();
         CollectDeclarations(circuits);
         Evaluate();
+        ReviewComponents();
         ReviewCurveReferences();
         BindTopology(circuits);
 
@@ -626,7 +627,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             {
                 var id = new ValueId.ComponentParameter(componentName, info.Name);
                 _graph.Add(id);
-                _pending[id] = new PendingValue(parameter.Value, id, span, new ParameterTarget(kind, info));
+                _pending[id] = new PendingValue(parameter.Value, id, span, new ParameterTarget(componentName, kind, info));
 
                 return new ParameterValue
                 {
@@ -777,6 +778,14 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private void CheckRange(ParameterTarget target, Quantity quantity, TextSpan span)
     {
+        // Order matters, and it is the order of severity. A value outside a hard bound or with the
+        // wrong sign is already reported as an error, and adding "and it is outside the usual range"
+        // underneath would be two diagnostics for one mistake, the second of them redundant.
+        if (CheckValidity(target, quantity, span) || CheckSign(target, quantity, span))
+        {
+            return;
+        }
+
         if (target.Info.UsualRange is not { } range || range.Contains(quantity.SiValue))
         {
             return;
@@ -794,6 +803,74 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             ("value", Format(shown, unit?.Text)),
             ("low", Format(low, null)),
             ("high", Format(high, unit?.Text)));
+    }
+
+    /// <summary>Reports a value outside the range in which its parameter means anything.</summary>
+    /// <param name="target">The component and parameter the value was written for.</param>
+    /// <param name="quantity">The evaluated value.</param>
+    /// <param name="span">Where the assignment sits in the source.</param>
+    /// <returns><see langword="true"/> when a diagnostic was reported.</returns>
+    /// <remarks>
+    /// Which code is raised comes from the registry rather than from a branch here, so <c>FS2105</c>,
+    /// <c>FS2108</c>, <c>FS2114</c> and <c>FS2115</c> are one check site and four rows.
+    /// </remarks>
+    private bool CheckValidity(ParameterTarget target, Quantity quantity, TextSpan span)
+    {
+        if (target.Info.Validity is not { } validity)
+        {
+            return false;
+        }
+
+        var value = quantity.SiValue;
+
+        if (validity.Range.Contains(value) && (!validity.RequiresWholeNumber || double.IsInteger(value)))
+        {
+            return false;
+        }
+
+        Report(
+            validity.Descriptor,
+            span,
+            ("name", target.Owner),
+            ("parameter", target.Info.Name),
+            ("value", Format(value, null)),
+            ("low", Format(validity.Range.Min, null)),
+            ("high", Format(validity.Range.Max, null)));
+
+        return true;
+    }
+
+    /// <summary>Reports a negative value for a parameter whose declared range starts at or above zero.</summary>
+    /// <param name="target">The component and parameter the value was written for.</param>
+    /// <param name="quantity">The evaluated value.</param>
+    /// <param name="span">Where the assignment sits in the source.</param>
+    /// <returns><see langword="true"/> when a diagnostic was reported.</returns>
+    /// <remarks>
+    /// <para>
+    /// The usual range doubles as the declaration of sign, which is why <c>power</c> (-100 to 100 kW)
+    /// takes a negative and <c>dt</c> (0.1 to 200 K) does not. A duty's direction is <c>power</c>'s
+    /// sign and nothing else's, so <c>power=-70 dt=20</c> is a cooler and <c>dt=-20</c> is an error.
+    /// </para>
+    /// <para>
+    /// <strong>Absolute temperatures are exempt, and the exemption is not a convenience.</strong> A
+    /// temperature parameter's range is stated in °C and held in K, so its lower bound is 223.15 and
+    /// every ordinary value is positive; a value that did reach below zero would be below absolute
+    /// zero, and "t cannot be negative" is the wrong sentence for it when <c>t=-50</c> is legal.
+    /// <c>FS1306</c> reports that case as the out-of-range value it is.
+    /// </para>
+    /// </remarks>
+    private bool CheckSign(ParameterTarget target, Quantity quantity, TextSpan span)
+    {
+        if (quantity.SiValue >= 0
+            || target.Info.Dimension == Dimension.Temperature
+            || target.Info.UsualRange is not { Min: >= 0 })
+        {
+            return false;
+        }
+
+        Report(BinderDiagnostics.NegativeValue, span, ("parameter", target.Info.Name));
+
+        return true;
     }
 
     private void ReportCycle(OrderResult.Cyclic cyclic)
@@ -971,7 +1048,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// </remarks>
     private sealed record ComponentSlot(int Index, ComponentDeclarationSyntax? Declaration);
 
-    private sealed record ParameterTarget(ComponentKindInfo Kind, ParameterInfo Info);
+    private sealed record ParameterTarget(string Owner, ComponentKindInfo Kind, ParameterInfo Info);
 
     private sealed record PendingValue(
         ExpressionSyntax Expression, ValueId Id, TextSpan Span, ParameterTarget? Target)

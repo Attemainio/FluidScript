@@ -28,6 +28,12 @@ is the number you would otherwise have computed by hand to choose one.
 Head is in metres **of the fluid being pumped**, which is what a pump curve is drawn in. It has no
 unit symbol of its own; see [Units](units.md).
 
+### What is checked
+
+An `efficiency` below 0 or above 1 is [`FS2108`](diagnostics.md). Between 0 and 0.1, or above 0.95,
+it binds and produces [`FS1306`](diagnostics.md) instead: unusual for a circulator, but a number a
+real machine could have.
+
 ## Properties
 
 `head`, `dp`, `flow`, `power`, `speed`, `efficiency`.

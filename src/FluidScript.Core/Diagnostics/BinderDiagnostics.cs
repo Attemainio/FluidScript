@@ -21,6 +21,15 @@ namespace FluidScript.Core.Diagnostics;
 /// steps 6–11 and land in P2.8. Registering them before they can fire would put codes on the
 /// documentation page that nothing produces.
 /// </para>
+/// <para>
+/// The binder also raises the component-model codes that are decided by counting and comparing what a
+/// script <em>stated</em> — <c>FS2101</c>, <c>FS2103</c>, <c>FS2105</c>, <c>FS2107</c>, <c>FS2108</c>
+/// and <c>FS2113</c>–<c>FS2115</c>. The rest of that range needs a stage this one is not:
+/// <c>FS2102</c> needs the sizing loop; <c>FS2104</c>, <c>FS2111</c> and <c>FS2116</c> each need a
+/// resolved substance, and the binder holds a fluid's <em>name</em>; <c>FS2106</c> belongs to whatever
+/// actually clamps a pipe's discretization, which is lowering; and <c>FS2109</c>, <c>FS2110</c> and
+/// <c>FS2112</c> are the exchanger's Rated and Coupled modes (<c>C-23</c>).
+/// </para>
 /// </remarks>
 public static class BinderDiagnostics
 {
@@ -368,6 +377,92 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' is a dead end. Set t, p or flow to make it a boundary.");
 
+    /// <summary>A negative value for a parameter whose declared range starts at or above zero.</summary>
+    /// <value><c>FS1307</c>, an error.</value>
+    /// <remarks>
+    /// <para>
+    /// An error rather than another <see cref="ValueOutsideUsualRange"/> warning, because a sign is not
+    /// a plausibility judgement. <c>dt=-20</c> on an exchanger is not an unusual temperature rise; it is
+    /// the wrong parameter for the intent, and the one that expresses it is <c>power</c>, whose sign
+    /// <em>is</em> the direction of the duty. That is what makes <c>power=-70 dt=20</c> a cooler and
+    /// <c>dt=-20</c> a mistake.
+    /// </para>
+    /// <para>
+    /// <strong>Absolute temperatures are exempt.</strong> −50 °C is 223 K, so a parameter whose zero is
+    /// a scale offset has no "negative" worth reporting; a value genuinely below absolute zero falls out
+    /// of the usual range and is reported as that instead.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor NegativeValue { get; } = new(
+        "FS1307",
+        DiagnosticSeverity.Error,
+        "{parameter} cannot be negative.");
+
+    /// <summary>More parameters of one relation stated than the relation has freedoms.</summary>
+    /// <value><c>FS2101</c>, an error.</value>
+    /// <remarks>
+    /// Registry data decides this, not a rule per kind: a group names the parameters and how many of
+    /// them are independent, so an exchanger's <c>power</c>/<c>in</c>/<c>out</c>/<c>flow</c> and its
+    /// <c>ua</c>/<c>area</c>/<c>u</c> are the same check twice rather than two special cases.
+    /// </remarks>
+    public static DiagnosticDescriptor OverDetermined { get; } = new(
+        "FS2101",
+        DiagnosticSeverity.Error,
+        "'{name}': {parameters} cannot all be set. Any {count} of them fix the rest.");
+
+    /// <summary>A valve given both a flow coefficient and a pressure drop.</summary>
+    /// <value><c>FS2103</c>, a warning.</value>
+    /// <remarks>
+    /// A warning rather than an error because the two are not contradictory, only redundant: the drop a
+    /// valve produces follows from its Kv and the flow through it, so the stated <c>dp</c> is a design
+    /// intention the solve will confirm or refute rather than a second constraint.
+    /// </remarks>
+    public static DiagnosticDescriptor RedundantValveDrop { get; } = new(
+        "FS2103",
+        DiagnosticSeverity.Warning,
+        "'{name}': using kv={kv}; dp is implied by it.");
+
+    /// <summary>A valve opening outside 0 to 1.</summary>
+    /// <value><c>FS2105</c>, an error.</value>
+    public static DiagnosticDescriptor PositionOutsideRange { get; } = new(
+        "FS2105",
+        DiagnosticSeverity.Error,
+        "'{name}': position must be between 0 and 1.");
+
+    /// <summary>An efficiency outside 0 to 1.</summary>
+    /// <value><c>FS2108</c>, an error.</value>
+    public static DiagnosticDescriptor EfficiencyOutsideRange { get; } = new(
+        "FS2108",
+        DiagnosticSeverity.Error,
+        "'{name}': efficiency must be between 0 and 1.");
+
+    /// <summary>A tank that mixes its bulk temperature with per-layer ones, or states only some layers.</summary>
+    /// <value><c>FS2113</c>, an error.</value>
+    /// <remarks>
+    /// The two spellings mean different things — one initial state for the whole vessel, or a stated
+    /// profile — and a script holding both leaves no rule for which wins. A partial profile is the same
+    /// error seen from the other side: the layers left out have no value and no default that is not an
+    /// invention.
+    /// </remarks>
+    public static DiagnosticDescriptor MixedTankTemperatures { get; } = new(
+        "FS2113",
+        DiagnosticSeverity.Error,
+        "'{name}': state either t for every layer, or all of t1…t{layers}; do not mix them.");
+
+    /// <summary>A layer count that is not a whole number in range.</summary>
+    /// <value><c>FS2114</c>, an error.</value>
+    public static DiagnosticDescriptor InvalidLayerCount { get; } = new(
+        "FS2114",
+        DiagnosticSeverity.Error,
+        "'{name}': layers must be a whole number from 1 to 100.");
+
+    /// <summary>A tank port height outside the vessel.</summary>
+    /// <value><c>FS2115</c>, an error.</value>
+    public static DiagnosticDescriptor ElevationOutsideRange { get; } = new(
+        "FS2115",
+        DiagnosticSeverity.Error,
+        "'{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top).");
+
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>
     /// <remarks>
@@ -504,5 +599,13 @@ public static class BinderDiagnostics
         NotAnObserver,
         ObserverNotPlaced,
         DeadEndNode,
+        NegativeValue,
+        OverDetermined,
+        RedundantValveDrop,
+        PositionOutsideRange,
+        EfficiencyOutsideRange,
+        MixedTankTemperatures,
+        InvalidLayerCount,
+        ElevationOutsideRange,
     ];
 }

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Syntax;
 using FluidScript.Core.Units;
 
@@ -220,6 +221,28 @@ public sealed class ComponentRegistry : IComponentRegistry
                 throw new InvalidOperationException(
                     $"'{kind.Keyword}' observes a node, so it may carry no ports.");
             }
+
+            // A group naming a parameter the kind does not have would never fill up, so the code it
+            // carries could not fire and nothing would say why. A group with as many freedoms as
+            // members is the same failure spelled differently.
+            foreach (var group in kind.ParameterGroups)
+            {
+                foreach (var parameter in group.Parameters)
+                {
+                    if (!kind.Parameters.ContainsKey(parameter))
+                    {
+                        throw new InvalidOperationException(
+                            $"'{kind.Keyword}' groups '{parameter}', which is not one of its parameters.");
+                    }
+                }
+
+                if (group.Freedoms < 1 || group.Freedoms >= group.Parameters.Length)
+                {
+                    throw new InvalidOperationException(
+                        $"'{kind.Keyword}' has a group of {group.Parameters.Length} with "
+                        + $"{group.Freedoms} freedoms, which can never be over-determined.");
+                }
+            }
         }
 
         if (index.Count < kinds.Length)
@@ -306,6 +329,14 @@ public sealed class ComponentRegistry : IComponentRegistry
         IndexedParameterFamilies = [],
         DrivesFlow = false,
         TagCode = "HE",
+
+        // Two relations, counted rather than solved. Q = m . cp . (out - in) makes any three of
+        // power/in/out/flow fix the fourth, and UA = U . A makes any two of ua/area/u fix the third.
+        ParameterGroups =
+        [
+            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in", "out", "flow"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 2, "ua", "area", "u"),
+        ],
         Parameters = Parameters(
             Sized("power", Dimension.Power, -100000, 100000, precision: 1),
             Sized("in", Dimension.Temperature, -50, 300, precision: 1),
@@ -359,6 +390,7 @@ public sealed class ComponentRegistry : IComponentRegistry
         DrivesFlow = false,
         TagCode = "V",
         ActuatedParameter = "position",
+        ParameterGroups = ValveGroups(),
         Parameters = ValveParameters(),
         Properties = ValveProperties(),
     };
@@ -383,6 +415,7 @@ public sealed class ComponentRegistry : IComponentRegistry
         DrivesFlow = false,
         TagCode = "TV",
         ActuatedParameter = "position",
+        ParameterGroups = ValveGroups(),
         Parameters = ValveParameters(),
         Properties = ValveProperties(),
     };
@@ -402,7 +435,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("dp", Dimension.PressureDelta, 1, 5000, precision: 1),
             Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
             Sized("speed", Dimension.Dimensionless, 0, 1.2, precision: 2),
-            Defaulted("efficiency", Dimension.Dimensionless, 0.1, 0.95, "0.7", "a typical wet-rotor circulator", precision: 2),
+            Defaulted("efficiency", Dimension.Dimensionless, 0.1, 0.95, "0.7", "a typical wet-rotor circulator", precision: 2)
+                with { Validity = Bounded(BinderDiagnostics.EfficiencyOutsideRange, 0, 1) },
             Defaulted("margin", Dimension.Dimensionless, 1, 2, "1.0", "size to the computed duty, with no spare", precision: 2)),
         Properties = Properties(
             Sized("head", Dimension.Head),
@@ -452,7 +486,8 @@ public sealed class ComponentRegistry : IComponentRegistry
                 MinIndex = 1,
                 MaxIndex = 16,
                 Element = Defaulted(
-                    "in_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2),
+                    "in_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
+                    with { Validity = Bounded(BinderDiagnostics.ElevationOutsideRange, 0, 1) },
             },
             new IndexedParameterFamilyInfo
             {
@@ -460,7 +495,8 @@ public sealed class ComponentRegistry : IComponentRegistry
                 MinIndex = 1,
                 MaxIndex = 16,
                 Element = Defaulted(
-                    "out_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2),
+                    "out_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
+                    with { Validity = Bounded(BinderDiagnostics.ElevationOutsideRange, 0, 1) },
             },
         ],
         DrivesFlow = false,
@@ -468,7 +504,8 @@ public sealed class ComponentRegistry : IComponentRegistry
         Parameters = Parameters(
             Defaulted("volume", Dimension.Volume, 1, 1e7, "300 dm3", "a domestic buffer vessel", precision: 1)
                 with { Aliases = ["v"] },
-            Defaulted("layers", Dimension.Dimensionless, 1, 100, "5", "enough to show stratification", precision: 0),
+            Defaulted("layers", Dimension.Dimensionless, 1, 100, "5", "enough to show stratification", precision: 0)
+                with { Validity = Bounded(BinderDiagnostics.InvalidLayerCount, 1, 100, wholeNumber: true) },
             Sized("t", Dimension.Temperature, -50, 300, precision: 1)),
         Properties = Properties(
             Declared("volume", Dimension.Volume),
@@ -526,7 +563,8 @@ public sealed class ComponentRegistry : IComponentRegistry
 
     private static ImmutableDictionary<string, ParameterInfo> ValveParameters() => Parameters(
         Sized("kv", Dimension.Kv, 0.01, 10000, precision: 2),
-        Sized("position", Dimension.Dimensionless, 0, 1, precision: 3),
+        Sized("position", Dimension.Dimensionless, 0, 1, precision: 3)
+            with { Validity = Bounded(BinderDiagnostics.PositionOutsideRange, 0, 1) },
         Symbol(
             "characteristic",
             ["linear", "equal_percentage", "quick_open"],
@@ -625,6 +663,44 @@ public sealed class ComponentRegistry : IComponentRegistry
             Availability = availability,
             CanonicalUnit = UnitTable.CanonicalUnitFor(dimension)?.Text ?? dimension.SiUnit,
         };
+
+    /// <summary>The bounds outside which a parameter's value is an error, with the code that says so.</summary>
+    /// <param name="descriptor">The code raised for a value outside the range.</param>
+    /// <param name="low">The lowest accepted value, in the dimension's canonical unit.</param>
+    /// <param name="high">The highest accepted value, in the dimension's canonical unit.</param>
+    /// <param name="wholeNumber">Whether a fractional value is an error as well.</param>
+    /// <returns>The validity rule to hang on a parameter.</returns>
+    /// <remarks>
+    /// Every bounded parameter in v1 is dimensionless, so no conversion is involved yet. It goes
+    /// through <see cref="SiRange"/> anyway, for the reason that method exists: a bound written the way
+    /// a user writes a value is the only form the tables in <c>22</c> can be checked against by eye.
+    /// </remarks>
+    private static ParameterValidity Bounded(
+        DiagnosticDescriptor descriptor, double low, double high, bool wholeNumber = false) => new()
+        {
+            Range = SiRange(low, high, Dimension.Dimensionless),
+            Descriptor = descriptor,
+            RequiresWholeNumber = wholeNumber,
+        };
+
+    /// <summary>One relation over a kind's parameters, for the over-determination count.</summary>
+    /// <param name="descriptor">The code raised when too many members are stated.</param>
+    /// <param name="freedoms">How many members may be stated before the group is over-determined.</param>
+    /// <param name="parameters">The canonical parameter names the relation ties together.</param>
+    /// <returns>The group to hang on a kind.</returns>
+    private static ParameterGroupInfo Group(
+        DiagnosticDescriptor descriptor, int freedoms, params ReadOnlySpan<string> parameters) => new()
+        {
+            Parameters = [.. parameters],
+            Freedoms = freedoms,
+            Descriptor = descriptor,
+        };
+
+    // Kv and dp are not two constraints: the drop a valve makes follows from its Kv and the flow
+    // through it. Stating both is a design intention beside its own consequence, so the group has one
+    // freedom and the code is a warning rather than an error.
+    private static ImmutableArray<ParameterGroupInfo> ValveGroups() =>
+        [Group(BinderDiagnostics.RedundantValveDrop, freedoms: 1, "kv", "dp")];
 
     private static ImmutableDictionary<string, ParameterInfo> Parameters(params ParameterInfo[] parameters) =>
         parameters.ToImmutableDictionary(static parameter => parameter.Name, StringComparer.Ordinal);

@@ -35,10 +35,24 @@ draws from its layer.
 | `out1_elevation`…`out16_elevation` | — | Normalized outlet height | 0.5, mid height |
 
 **`t` and the indexed `t1`…`tN` are mutually exclusive**, and if you use the indexed form you must
-state every layer. Half a profile is an error rather than a guess.
+state every layer. Half a profile is an error rather than a guess — the layers you left out have no
+value, and no default that would not be an invention. Either mistake is
+[`FS2113`](diagnostics.md), and it counts against the `layers` you stated, or against the five you
+get by default if you stated none.
 
 A port's elevation picks its layer by `min(floor(elevation × layers) + 1, layers)`: 0 is layer 1, 30%
 of a five-layer tank is layer 2, and 1 is the top layer.
+
+### What is checked
+
+| If you write | You get |
+|---|---|
+| `t` beside any `t1`…`tN`, or only some of them | [`FS2113`](diagnostics.md) |
+| `layers` fractional, below 1, or above 100 | [`FS2114`](diagnostics.md) |
+| An elevation below 0 or above 1 | [`FS2115`](diagnostics.md) |
+
+0 and 1 are both inside the range: a port sitting on the floor or at the very top is an ordinary
+design, not an edge case.
 
 ## Properties
 

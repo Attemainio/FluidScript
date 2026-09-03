@@ -277,7 +277,9 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void AnIndexedParameterBindsAgainstItsFamily()
     {
-        var model = Model("fluidscript 1\nT1 tank layers=3 t2=60\n");
+        // Every layer, because a profile that names only some of them is FS2113 and Model asserts a
+        // clean bind. What is under test is that `t2` resolves against the family at all.
+        var model = Model("fluidscript 1\nT1 tank layers=3 t1=50 t2=60 t3=70\n");
 
         Assert.True(model.Components[0].Parameters.ContainsKey("t2"));
     }

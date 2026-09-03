@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Language;
@@ -71,6 +72,10 @@ public sealed record ComponentKindInfo
 
     /// <summary>Gets every parameter this kind accepts, keyed by canonical script name.</summary>
     public required ImmutableDictionary<string, ParameterInfo> Parameters { get; init; }
+
+    /// <summary>Gets the parameter sets one relation ties together, checked for over-determination.</summary>
+    /// <value>Empty for a kind whose parameters constrain each other in no way the binder can count.</value>
+    public ImmutableArray<ParameterGroupInfo> ParameterGroups { get; init; } = [];
 
     /// <summary>Gets the properties referenceable as <c>Name.property</c>.</summary>
     /// <remarks>
@@ -164,12 +169,82 @@ public sealed record ParameterInfo
     /// <value><see langword="null"/> disables the check.</value>
     public Range<double>? UsualRange { get; init; }
 
+    /// <summary>Gets the bounds outside which a value is an error rather than a doubt.</summary>
+    /// <value>
+    /// <see langword="null"/> where the parameter has no hard limit, which is most of them.
+    /// </value>
+    /// <remarks>
+    /// Different in kind from <see cref="UsualRange"/> rather than only in severity. A usual range is a
+    /// judgement about units — 30 000 W where kW was meant is <em>implausible</em>, not impossible — so
+    /// it warns and the value stands. This is the range in which the parameter means anything at all: a
+    /// valve 1.4 open, a pump 130 % efficient, or a port above the top of its own tank has no reading a
+    /// solve could take, so it is an error and the value is dropped.
+    /// </remarks>
+    public ParameterValidity? Validity { get; init; }
+
     /// <summary>Gets the decimal places write-back formats this parameter to.</summary>
     /// <value>
     /// From <c>22</c>'s convention 5: every parameter declares a display precision, so a sized
     /// <c>kv</c> is written back as <c>12.4</c> rather than <c>12.40000000000001</c>.
     /// </value>
     public required int DisplayPrecision { get; init; }
+}
+
+/// <summary>The range a parameter's value must lie in, and the code that says so when it does not.</summary>
+/// <remarks>
+/// <strong>The descriptor travels with the range because each of these codes reads as its own
+/// sentence.</strong> "position must be between 0 and 1" and "layers must be a whole number from 1 to
+/// 100" are not one message with a substitution in it, and flattening them into one would produce the
+/// generic bounds message every parameter already has in <c>FS1306</c>. One check site renders all of
+/// them, so a newly bounded parameter is a registry row and a descriptor rather than another branch in
+/// the binder.
+/// </remarks>
+public sealed record ParameterValidity
+{
+    /// <summary>Gets the inclusive bounds, in SI.</summary>
+    public required Range<double> Range { get; init; }
+
+    /// <summary>Gets the code raised for a value outside the range.</summary>
+    /// <value>
+    /// Rendered with <c>name</c>, <c>parameter</c>, <c>value</c>, <c>low</c> and <c>high</c> available;
+    /// a template uses the ones its sentence needs and the rest are ignored.
+    /// </value>
+    public required DiagnosticDescriptor Descriptor { get; init; }
+
+    /// <summary>Gets whether a fractional value is an error too.</summary>
+    /// <value>
+    /// <see langword="true"/> for a tank's <c>layers</c>, which is a count of things and not a size.
+    /// </value>
+    public bool RequiresWholeNumber { get; init; }
+}
+
+/// <summary>A set of parameters one relation ties together, and how many of them are free.</summary>
+/// <remarks>
+/// <para>
+/// An exchanger's <c>power</c>, <c>in</c>, <c>out</c> and <c>flow</c> satisfy one energy balance, so
+/// any three fix the fourth and stating all four asserts something the physics need not agree with.
+/// <c>ua</c>, <c>area</c> and <c>u</c> are the same shape with one freedom fewer.
+/// </para>
+/// <para>
+/// <strong>Counting is all this supports.</strong> Whether a stated fourth value <em>agrees</em> with
+/// the other three is a different question, and answering it needs a fluid — the implied flow is
+/// <c>Q / (cp · dT)</c>, and neither the registry nor the binder has a cp.
+/// </para>
+/// </remarks>
+public sealed record ParameterGroupInfo
+{
+    /// <summary>Gets the canonical parameter names the relation ties together.</summary>
+    public required ImmutableArray<string> Parameters { get; init; }
+
+    /// <summary>Gets how many of them may be stated before the group is over-determined.</summary>
+    public required int Freedoms { get; init; }
+
+    /// <summary>Gets the code raised when more than <see cref="Freedoms"/> of them are stated.</summary>
+    /// <value>
+    /// Rendered with <c>name</c>, <c>parameters</c> and <c>count</c>, plus every stated member's value
+    /// under its own parameter name.
+    /// </value>
+    public required DiagnosticDescriptor Descriptor { get; init; }
 }
 
 /// <summary>What shape of value a parameter accepts.</summary>

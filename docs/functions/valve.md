@@ -24,6 +24,17 @@ V2 valve authority=0.5 characteristic=equal_percentage
 `kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
 nothing else.
 
+### What is checked
+
+| If you write | You get |
+|---|---|
+| `position` below 0 or above 1 | [`FS2105`](diagnostics.md) |
+| Both `kv` and `dp` | [`FS2103`](diagnostics.md), a warning: the `kv` is used |
+
+`kv` and `dp` do not contradict each other — the drop a valve makes follows from its `kv` and the
+flow through it — so stating both is a design intention written beside its own consequence. The
+solve reports the drop it actually produces, which is how you find out whether the two agreed.
+
 ## Properties
 
 `kv`, `dp`, `position`, `authority`, `flow`.

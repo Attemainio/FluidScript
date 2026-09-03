@@ -383,6 +383,14 @@ A format that depends on the reader's locale means one file means two things on 
 | `FS1306` | Value outside a parameter's physical range | Warning | `{param} = {value} is outside the usual range ({lo}–{hi}). Check the unit.` |
 | `FS1307` | Negative value for a strictly positive parameter | Error | `{param} cannot be negative.` |
 
+**`FS1307` reads a parameter's declared range as its declaration of sign**, and exempts absolute
+temperatures. A parameter whose range starts at or above zero cannot take a negative — `dt` is
+`0.1…200`, so `dt=-20` is an error — while one whose range goes negative can: `power` is
+`-100…100 kW`, and its sign is what makes an exchanger a cooler. A temperature parameter is stated in
+°C and held in K, so its lower bound is already positive and a value that did reach below zero would
+be below absolute zero; "t cannot be negative" is the wrong sentence when `t=-50` is legal, so that
+case stays `FS1306` (`L-43`).
+
 `FS1306` is the one that catches the real-world failure: a user writing `power=30000` meaning watts
 where kW was expected gets a warning that 30 000 kW is a large heat exchanger, rather than a plausible
 diagram of a 30 MW plant. Ranges are declared per parameter in
