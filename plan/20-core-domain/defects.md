@@ -439,3 +439,10 @@ a factor of two in pressure gradient, and the only thing that distinguishes them
 resolved. `PipeSpec.DesignationBasis` now states it per series, which makes it inspectable but does
 not make a script self-explanatory — a reader still cannot tell what `dn=15` means without knowing the
 `catalog` line. That is worth a `/docs` sentence at minimum and possibly a diagnostic.
+
+**A note that names the package which will make it obsolete should name the right one.** Both M2
+samples carried "`dn` is stated because the catalogue lands in P3.5 -- remove it when the catalogue
+lands". P3.5 landed and the notes could not be honoured: the catalogue turns a designation into a
+bore, and *choosing* the designation is sizing (`P3.7`). Lowering still drops a pipe with no `dn`.
+Corrected to name P3.7. Worth recording because the note was written by the package that was blocked,
+which is the package least able to know which later one unblocks it.

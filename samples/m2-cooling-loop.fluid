@@ -1,8 +1,9 @@
 # The cooling loop reference from plan/00-foundation/01-vision-and-scope.md.
 #
-# `dn` is stated on P1 because the catalogue that would size it lands in P3.5; without it the pipe
-# cannot be built, and a dropped pipe cuts the primary in two. Remove it when the catalogue lands --
-# 01's block is the canonical form and does not carry it.
+# `dn` is stated on P1 because nothing chooses a size yet; without it the pipe cannot be built, and a
+# dropped pipe cuts the primary in two. P3.5's catalogue turns a designation into a bore -- it does not
+# pick the designation, which is sizing. Remove it when P3.7 lands: 01's block is the canonical form
+# and does not carry it.
 
 fluidscript 1
 circuit coolingLoop

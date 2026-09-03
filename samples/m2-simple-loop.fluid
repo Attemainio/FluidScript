@@ -5,8 +5,9 @@
 # a closed circuit's own energy relations cannot supply -- they fix every difference and no absolute
 # value (D-65).
 #
-# `dn` is stated on P1 because the catalogue that would size it lands in P3.5. Remove it when the
-# catalogue lands -- 01's block is the canonical form and does not carry it.
+# `dn` is stated on P1 because nothing chooses a size yet. P3.5's catalogue turns a designation into a
+# bore -- it does not pick the designation, which is sizing. Remove it when P3.7 lands: 01's block is
+# the canonical form and does not carry it.
 
 fluidscript 1
 circuit simpleLoop
