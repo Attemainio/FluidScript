@@ -3217,6 +3217,55 @@ enthalpy and its own balance, and `D-32` already commits it to one state per lay
 - [ ] Every document constrained by a decision cites it by id.
 - [ ] No `D-` entry has been edited except to mark it superseded.
 
+## D-75 · A free enthalpy level is a redundant equation, not a missing unknown
+
+**Accepted · 2026-09-04** · constrains `23`, `31`; supersedes the counting rule in `D-65`'s neighbourhood; resolves `S-24`
+
+**A closed, steady, thermally uncoupled hydraulic component cannot determine its own temperature
+level.** Every energy relation in it is a difference — `h_out = h_in + Q̇/ṁ` — so adding one offset to
+every enthalpy satisfies all of them at once. `23` recorded this correctly and then counted it wrongly:
+`CountingTable.EnthalpyLevels` was added to `Unknowns`, matched by the constraint row a stated
+temperature contributes, and the two cancelled.
+
+**They cancelled in the table and not in the system.** No layout allocates a level column, because
+there is nothing for it to be: the offset is a **null direction of the node-enthalpy columns already
+counted**, so a column for it would be a column equal to the sum of others and singular by
+construction. `SystemLayout` did the right thing and its test wrote the subtraction down —
+`counting.Unknowns - counting.EnthalpyLevels` — with a comment saying the shortfall was "in the energy
+block's rank rather than in its width". The comment was right. The arithmetic was not: `m2-simple-loop`
+read `Excess = 0` and assembled **13 rows against 12 columns**, and the solver refused it as
+over-determined on a circuit `23`'s own check called square.
+
+**The true statement is the dual one.** Along any branch the two ends contribute the same upwind
+enthalpy times the same flow with opposite signs — exactly, and through the smoothing band too, since
+`Upwind(f, a, b) + Upwind(−f, b, a) = a + b` for any blend with `σ(f) + σ(−f) = 1`. Summing such a
+component's node energy balances therefore cancels every convective term and leaves the injected
+duties, which sum to zero or `FS2203` has already said the circuit has no steady state. **One energy
+balance is redundant whatever the iterate**, and a stated temperature supplies the row that replaces
+it.
+
+So `EnthalpyLevels` moves from a term added to `Unknowns` to a term subtracted from `Equations`.
+`Excess` is unchanged for every script, `FS2211` still fires on a level nothing fills, and
+`EquationLayout` now drops one energy row per level component the same way and for the same reason it
+already drops one mass balance per closed one — first element in graph order, so an append does not
+move it.
+
+**This is the third instance of one shape and the shape is worth naming.** `S-16` (a control volume's
+state uncounted on both sides), `S-22` (a stated flux counted as needing no unknown and then entering
+no equation), and now this: **a term that cancels inside a total is invisible until something outside
+the total depends on it.** Each was found by holding an *assembled* artefact against the table rather
+than the table against itself, and none would have been found by any check internal to the count.
+
+**Rejected.**
+
+- *Allocate the level column and add it to every node enthalpy in its component.* Keeps the table as
+  written and makes the layout match it. Cost: it is a deliberately redundant parameterization — the
+  new column is the sum of existing ones — so the Jacobian is singular by construction and every solve
+  reports `FS3002`. Fixing the count by making the system unsolvable is not a fix.
+- *Leave the subtraction in `SystemLayout`'s test and move on.* Zero work, and the layouts were already
+  consistent with each other. Cost: the table stops describing the system it is checked against, which
+  is the exact condition `S-16` was, so the next term of this shape gets the same free pass.
+
 ## Open questions
 
 None. This document records decisions that are settled; an unsettled question belongs in the Open

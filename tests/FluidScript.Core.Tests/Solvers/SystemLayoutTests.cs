@@ -29,16 +29,17 @@ public sealed class SystemLayoutTests
 
     [Theory]
     [MemberData(nameof(Samples))]
-    public void TheLayoutHoldsEveryUnknownTheTableCountsExceptTheOneItCannotAllocate(string sample)
+    public void TheLayoutHoldsEveryUnknownTheTableCounts(string sample)
     {
-        // The table's total includes an enthalpy level per closed, steady, thermally isolated component
-        // -- counted so that a script stating no temperature is under-specified by exactly one, and
-        // deliberately not allocated, because the shortfall is in the energy block's rank rather than
-        // in its width. Every other term is a real column, and this is where the two are reconciled.
+        // This used to subtract the table's enthalpy levels, with a comment saying the shortfall was in
+        // the energy block's rank rather than in its width. The comment was right and the arithmetic was
+        // not: a term counted as an unknown that no column exists for is a table that reads square while
+        // the assembled system is a row over, which is what `m2-simple-loop` was (`S-24`, `D-75`). The
+        // level is now a dropped equation, and the two totals reconcile with nothing subtracted.
         var (graph, counting) = Lower(sample);
         var layout = SystemLayout.Build(graph, counting);
 
-        Assert.Equal(counting.Unknowns - counting.EnthalpyLevels, layout.Count);
+        Assert.Equal(counting.Unknowns, layout.Count);
     }
 
     [Theory]

@@ -429,9 +429,8 @@ a single flow unknown.
 | Node pressures | N |
 | Node enthalpies | N |
 | External mass flux, one per node that admits one and does not state its `flow` | X |
-| Enthalpy level, one per closed steady circuit that couples to nothing | L |
 | Sized parameters promoted to unknowns (below) | P |
-| **Total** | 2N + B + X + L + P |
+| **Total** | 2N + B + X + P |
 
 | Equations | Count |
 |---|---|
@@ -442,7 +441,8 @@ a single flow unknown.
 | Component constraints beyond the component's own governing equation | K |
 | Pressure datum, **only when no `p` is stated** in that connected component | D |
 | less the redundant mass balance, **only when no external flux is unknown** | −R |
-| **Total** | C + M + N + X<sub>p</sub> + K + D − R |
+| less the redundant energy balance, one per closed steady circuit that couples to nothing | −L |
+| **Total** | C + M + N + X<sub>p</sub> + K + D − R − L |
 
 **A node admits an external flux when it is a `supply`, a `return`, or states a pressure** — and when
 it carries a mass balance at all, since a node interior to a branch has nowhere for external mass to
@@ -461,9 +461,9 @@ appears exactly when no external flux is unknown. A circuit whose only stated pr
 has a datum and no redundancy; the storage header, whose four boundaries all state flows, has a
 redundancy and an auto-picked datum. Both conditions are tested separately.
 
-**The implementation must drop the redundant mass balance explicitly**, not rely on the linear solver
-to cope. A singular-by-construction Jacobian handed to a factorisation is undefined behaviour dressed
-as an algorithm.
+**The implementation must drop both redundant balances explicitly**, not rely on the linear solver to
+cope. A singular-by-construction Jacobian handed to a factorisation is undefined behaviour dressed as
+an algorithm.
 
 ### The enthalpy level is the temperature's datum, and only the script can supply it
 
@@ -472,9 +472,22 @@ else. Add the same offset to every enthalpy in a closed circuit and all of them 
 so its energy block is rank-deficient by exactly one and the temperature field is determined only up
 to a constant. That is the `L` row, and it is the exact mirror of the pressure datum (`D-65`).
 
+**`L` is subtracted from the equations and is not added to the unknowns, and an earlier version of
+this document had it the other way round** (`D-75`, `S-24`). The offset is a *null direction of the
+node enthalpies already counted*, so there is no column for it to be: a column equal to the sum of
+other columns is singular by construction, and no layout can allocate one. What is actually true is
+the dual statement. Along any branch the two ends contribute the same upwind enthalpy times the same
+flow with opposite signs — exactly, and through the smoothing band, since `Upwind(f, a, b) +
+Upwind(−f, b, a) = a + b` for any blend with `σ(f) + σ(−f) = 1` — so summing such a circuit's node
+energy balances cancels every convective term and leaves the injected duties, which sum to zero or
+`FS2203` has already said the circuit has no steady state. One energy balance is therefore redundant
+whatever the iterate, exactly as one mass balance is, and it is dropped the same way: first element in
+graph order, so appending a component does not move which row went. Counted as an unknown instead, the
+table read square on the simple loop while the assembler produced thirteen rows for twelve columns.
+
 **What fills it is a stated temperature** — a node's `t`, or an exchanger's `in` or `out`. Those are
-already counted as constraints, so the row and the statement cancel and the count stays square, in the
-same way `X` and `X`<sub>p</sub> do. A closed circuit that states no temperature anywhere is genuinely
+already counted as constraints, so the dropped row and the statement cancel and the count stays
+square, in the same way `X` and `X`<sub>p</sub> do. A closed circuit that states no temperature anywhere is genuinely
 under-determined and reports `FS2211` naming a temperature to add, which is the only script-reachable
 route to that code found so far.
 
@@ -684,6 +697,13 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 - [ ] The cooling loop produces exactly the six nodes, four branches and one loop tabulated above,
       and its counting table balances at 20 = 20.
 - [ ] The counting check passes for every sample in `samples/`.
+- [ ] **The assembled system is as square as the table says it is, sample by sample.** The table
+      agreeing with itself is not the property: the simple loop read `Excess = 0` while assembling
+      thirteen rows against twelve columns, because its enthalpy level was counted as an unknown no
+      layout allocates (`S-24`, `D-75`). Held against `SystemLayout` and `EquationLayout`, not
+      against the totals above.
+- [ ] The simple loop, whose one enthalpy level is filled by `HE1 in=20`, drops exactly one energy
+      balance and assembles twelve rows against twelve columns.
 - [ ] A closed loop with no stated pressure produces `FS2201` and solves.
 - [ ] The cooling loop's two stated pressures (`N1 p=300`, `N3 p=280`) produce **no** diagnostic —
       they are boundary conditions on an open primary, not competing datums. Nor does the `supply`

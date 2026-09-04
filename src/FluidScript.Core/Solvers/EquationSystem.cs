@@ -508,9 +508,15 @@ public sealed class EquationSystem
             }
         }
 
+        // A node whose energy balance was dropped as redundant takes no injection and no boundary
+        // stream (`D-75`): its row does not exist, and the duty it would have carried is already in the
+        // rows that remain, since dropping a row that is the negated sum of the others loses nothing.
         for (var node = 0; node < _graph.Nodes.Length; node++)
         {
-            residuals[_energyRow[node]] += _nodeInjection[node];
+            if (_energyRow[node] >= 0)
+            {
+                residuals[_energyRow[node]] += _nodeInjection[node];
+            }
         }
 
         // Mass crossing the circuit's boundary, and the energy it carries with it. The upwind blend is
@@ -526,7 +532,10 @@ public sealed class EquationSystem
                 residuals[massRow] += flux;
             }
 
-            residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
+            if (_energyRow[node] >= 0)
+            {
+                residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
+            }
         }
 
         var assembly = Equations.LinkOffset;

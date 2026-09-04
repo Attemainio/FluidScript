@@ -179,11 +179,20 @@ public sealed record CountingTable
     /// <value>
     /// One per hydraulic component that is closed, solved steady, and thermally coupled to nothing.
     /// Every energy relation in such a component is a difference — <c>h_out = h_in + Q̇/ṁ</c> — so adding
-    /// one offset to every enthalpy satisfies all of them at once, and the level is an unknown the block
-    /// cannot determine. A stated temperature determines it, which is why this row and that constraint
+    /// one offset to every enthalpy satisfies all of them at once, and the level is something the block
+    /// cannot determine. A stated temperature determines it, which is why this term and that constraint
     /// cancel exactly as <see cref="FluxNodes"/> and <see cref="PressureNodes"/> do.
     /// </value>
     /// <remarks>
+    /// <para>
+    /// <strong>A free level is a redundant equation, not a missing unknown</strong> (<c>D-75</c>). The
+    /// offset is not independent of the enthalpies it offsets — it is a null direction of columns
+    /// already counted — so a column for it would equal the sum of others and be singular by
+    /// construction. The true statement is the dual: such a component's node energy balances sum to
+    /// <em>exactly</em> zero, term by cancelling term along every branch, so one of them carries no
+    /// information and is dropped. Counted as an unknown, the table read square while the assembled
+    /// system was a row over on <c>m2-simple-loop</c> (<c>S-24</c>).
+    /// </para>
     /// <strong>The graph cannot pick this datum for itself</strong>, unlike the pressure one. Every
     /// pressure being relative to an arbitrary node changes no result; every temperature being relative
     /// to one changes the physics. So a level nothing fills is <c>FS2211</c> and not <c>FS2201</c>. A
@@ -192,18 +201,18 @@ public sealed record CountingTable
     /// </remarks>
     public required ImmutableArray<HydraulicComponent> LevelComponents { get; init; }
 
-    /// <summary>Gets the number of enthalpy levels nothing else determines.</summary>
+    /// <summary>Gets the number of energy balances dropped because their component's level is free.</summary>
     public int EnthalpyLevels => LevelComponents.Length;
 
     /// <summary>Gets the total number of unknowns.</summary>
     public int Unknowns =>
         BranchFlows + NodePressures + NodeEnthalpies + ComponentUnknowns.Length + ExternalFluxes
-        + Promotions.Length + EnthalpyLevels;
+        + Promotions.Length;
 
     /// <summary>Gets the total number of equations.</summary>
     public int Equations =>
         PressureRelations + MassBalances + EnergyBalances + ControlVolumeBalances + StatedPressures
-        + Constraints.Length + Datums;
+        + Constraints.Length + Datums - EnthalpyLevels;
 
     /// <summary>Gets how far the system is from square.</summary>
     /// <value>

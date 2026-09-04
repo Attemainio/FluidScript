@@ -44,14 +44,18 @@ public sealed class EquationLayoutTests
         // The whole point of both layouts, stated once. It is skipped rather than weakened where the
         // circuit is not square to begin with: an under-specified script is the user's business and
         // FS2211's, and asserting anything about its shape here would be asserting about a diagnostic.
+        //
+        // A free enthalpy level used to be skipped alongside those, which excused the one sample that
+        // had one -- and that sample was exactly the one assembling a row more than it had columns
+        // (`S-24`). The level is a dropped equation now (`D-75`), so there is nothing left to excuse.
         var (graph, posedness) = Lower(sample);
         var counting = posedness.Counting;
         var allowance = RowAllowance.CoupledCrossings(graph);
 
         Assert.SkipWhen(
-            counting.Excess != 0 || counting.EnthalpyLevels != 0 || allowance != 0,
-            $"{sample} is not a square, level-free, fully-modelled circuit: excess {counting.Excess}, "
-            + $"levels {counting.EnthalpyLevels}, rows the table does not model {allowance}.");
+            counting.Excess != 0 || allowance != 0,
+            $"{sample} is not a square, fully-modelled circuit: excess {counting.Excess}, "
+            + $"rows the table does not model {allowance}.");
 
         Assert.Equal(SystemLayout.Build(graph, counting).Count, EquationLayout.Build(graph, posedness).Count);
     }
@@ -113,22 +117,33 @@ public sealed class EquationLayoutTests
 
     [Theory]
     [MemberData(nameof(Samples))]
-    public void OnlyAMassBalanceIsEverDroppedAndOnlyWhereTheComponentIsClosed(string sample)
+    public void OnlyARedundantBalanceIsEverDroppedAndOnlyWhereItsComponentSaysSo(string sample)
     {
+        // Two drops, one argument (`D-75`). A closed hydraulic component's mass balances sum to zero,
+        // so one of them is redundant; a closed, thermally uncoupled one's energy balances sum to zero
+        // for the same reason a branch's two ends cancel, so one of those is too. Nothing else may be
+        // dropped, and neither may be dropped in a component whose partition does not permit it.
         var (graph, posedness) = Lower(sample);
         var layout = EquationLayout.Build(graph, posedness);
+        var levels = posedness.Counting.LevelComponents.Select(static level => level.Index).ToHashSet();
 
         foreach (var rows in layout.Components.Where(static rows => rows.HasDrop))
         {
             var declarations = graph.Components[rows.Component].DeclareEquations();
+            var record = layout.Dropped.Single(record => record.Component == graph.Components[rows.Component].Name);
 
-            Assert.Equal(EquationKind.Mass, declarations[rows.DroppedLocal].Kind);
+            Assert.Contains(declarations[rows.DroppedLocal].Kind, new[] { EquationKind.Mass, EquationKind.Energy });
+
+            if (declarations[rows.DroppedLocal].Kind == EquationKind.Energy)
+            {
+                Assert.Contains(record.Hydraulic, levels);
+            }
         }
 
         var closed = posedness.Hydraulics.Count(static hydraulic => !hydraulic.HasUnknownFlux);
 
         Assert.Equal(layout.Dropped.Length, layout.Components.Count(static rows => rows.HasDrop));
-        Assert.InRange(layout.Dropped.Length, 0, closed);
+        Assert.InRange(layout.Dropped.Length, 0, closed + levels.Count);
     }
 
     [Theory]

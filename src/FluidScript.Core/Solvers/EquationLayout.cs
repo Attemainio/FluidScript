@@ -230,7 +230,7 @@ public sealed class EquationLayout
         _ => "K",
     };
 
-    /// <summary>Chooses the mass balance to drop in each closed hydraulic component.</summary>
+    /// <summary>Chooses the balances that carry no information, one per closed or level-free component.</summary>
     /// <param name="posedness">The partition and its counting table.</param>
     /// <param name="indices">Each component's position in the graph, by reference.</param>
     /// <param name="dropped">Receives one record per drop, for reporting.</param>
@@ -250,6 +250,43 @@ public sealed class EquationLayout
                 continue;
             }
 
+            Drop(hydraulic, EquationKind.Mass, indices, drops, records);
+        }
+
+        // The thermal counterpart, and it is the same argument twice (`D-75`). Along any branch the two
+        // ends contribute the same upwind enthalpy times the same flow with opposite signs, so summing
+        // a closed, thermally uncoupled component's energy balances cancels every term and leaves the
+        // injected duties -- which sum to zero, or `FS2203` already said the circuit has no steady
+        // state. One row is therefore redundant whatever the iterate, exactly as one mass balance is.
+        foreach (var hydraulic in posedness.Counting.LevelComponents)
+        {
+            Drop(hydraulic, EquationKind.Energy, indices, drops, records);
+        }
+
+        dropped = records.ToImmutable();
+
+        return drops;
+    }
+
+    /// <summary>Drops the first residual of one kind in a hydraulic component, in graph order.</summary>
+    /// <param name="hydraulic">The component whose rows are over-determined by one.</param>
+    /// <param name="kind">The kind of balance to drop.</param>
+    /// <param name="indices">Each element's position in the graph, by reference.</param>
+    /// <param name="drops">Component index to dropped local residual, written.</param>
+    /// <param name="records">One record per drop, written, for reporting.</param>
+    /// <remarks>
+    /// <strong>First in graph order rather than any better-conditioned choice</strong>, because the
+    /// choice has to be stable: appending a component to a script must not move which row was dropped,
+    /// or a re-solve of an edited model compares against a differently-shaped system. An element that
+    /// has already given up a row is skipped, so a node cannot lose both of its balances.
+    /// </remarks>
+    private static void Drop(
+        HydraulicComponent hydraulic,
+        EquationKind kind,
+        Dictionary<object, int> indices,
+        Dictionary<int, int> drops,
+        ImmutableArray<DroppedBalance>.Builder records)
+    {
             foreach (var element in hydraulic.Elements)
             {
                 if (!indices.TryGetValue(element, out var index) || drops.ContainsKey(index))
@@ -262,7 +299,7 @@ public sealed class EquationLayout
 
                 for (var position = 0; position < declarations.Length; position++)
                 {
-                    if (declarations[position].Kind == EquationKind.Mass)
+                    if (declarations[position].Kind == kind)
                     {
                         local = position;
                         break;
@@ -278,12 +315,7 @@ public sealed class EquationLayout
                 records.Add(new DroppedBalance(
                     hydraulic.Index, element.Name, declarations[local].Name));
 
-                break;
+                return;
             }
-        }
-
-        dropped = records.ToImmutable();
-
-        return drops;
     }
 }
