@@ -76,8 +76,19 @@ public sealed record CountingTable
     /// <summary>Gets the number of node enthalpies.</summary>
     public required int NodeEnthalpies { get; init; }
 
-    /// <summary>Gets the unknown external mass fluxes, one per pressure-stating node that balances.</summary>
-    public required int ExternalFluxes { get; init; }
+    /// <summary>Gets the nodes carrying an unknown external mass flux.</summary>
+    /// <value>
+    /// One per pressure-stating node that balances, and per <c>return</c> boundary.
+    /// <para>
+    /// <strong>Named rather than counted, because an assembler has to declare these unknowns and a
+    /// count cannot say which nodes get one.</strong> Recomputing the rule on the other side is how the
+    /// two drift apart, and the whole value of the table is that it is a second opinion (<c>S-9</c>).
+    /// </para>
+    /// </value>
+    public required ImmutableArray<GraphNode> FluxNodes { get; init; }
+
+    /// <summary>Gets the number of unknown external mass fluxes.</summary>
+    public int ExternalFluxes => FluxNodes.Length;
 
     /// <summary>Gets the sized parameters stated constraints turned into unknowns.</summary>
     public required ImmutableArray<Promotion> Promotions { get; init; }
@@ -95,22 +106,29 @@ public sealed record CountingTable
     /// <summary>Gets the energy balances, one per node.</summary>
     public required int EnergyBalances { get; init; }
 
-    /// <summary>Gets the stated pressure boundary conditions.</summary>
-    public required int StatedPressures { get; init; }
+    /// <summary>Gets the nodes whose pressure the script states.</summary>
+    public required ImmutableArray<GraphNode> PressureNodes { get; init; }
+
+    /// <summary>Gets the number of stated pressure boundary conditions.</summary>
+    public int StatedPressures => PressureNodes.Length;
 
     /// <summary>Gets the constraints stated parameters place on the circuit.</summary>
     public required ImmutableArray<ComponentConstraint> Constraints { get; init; }
 
-    /// <summary>Gets the pressure datums, one per component that states no pressure of its own.</summary>
-    public required int Datums { get; init; }
+    /// <summary>Gets the hydraulic components needing a pressure datum of their own.</summary>
+    /// <value>One per component that states no pressure anywhere in it.</value>
+    public required ImmutableArray<HydraulicComponent> DatumComponents { get; init; }
 
-    /// <summary>Gets the enthalpy levels a closed circuit's own relations cannot reach.</summary>
+    /// <summary>Gets the number of pressure datums.</summary>
+    public int Datums => DatumComponents.Length;
+
+    /// <summary>Gets the hydraulic components whose enthalpy level their own relations cannot reach.</summary>
     /// <value>
     /// One per hydraulic component that is closed, solved steady, and thermally coupled to nothing.
     /// Every energy relation in such a component is a difference — <c>h_out = h_in + Q̇/ṁ</c> — so adding
     /// one offset to every enthalpy satisfies all of them at once, and the level is an unknown the block
     /// cannot determine. A stated temperature determines it, which is why this row and that constraint
-    /// cancel exactly as <see cref="ExternalFluxes"/> and <see cref="StatedPressures"/> do.
+    /// cancel exactly as <see cref="FluxNodes"/> and <see cref="PressureNodes"/> do.
     /// </value>
     /// <remarks>
     /// <strong>The graph cannot pick this datum for itself</strong>, unlike the pressure one. Every
@@ -119,7 +137,10 @@ public sealed record CountingTable
     /// coupled exchanger fills it without being asked: its duty reads absolute temperatures on both
     /// sides, so a uniform offset no longer satisfies its relation.
     /// </remarks>
-    public required int EnthalpyLevels { get; init; }
+    public required ImmutableArray<HydraulicComponent> LevelComponents { get; init; }
+
+    /// <summary>Gets the number of enthalpy levels nothing else determines.</summary>
+    public int EnthalpyLevels => LevelComponents.Length;
 
     /// <summary>Gets the total number of unknowns.</summary>
     public int Unknowns =>

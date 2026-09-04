@@ -86,6 +86,10 @@ maximum over individually scaled residuals, per-branch scaling needs no change t
 | `optimizer.stagnation_generations` | 25 | Consecutive generations | Stop when the best feasible objective has not improved materially |
 | `optimizer.stagnation_rel_tol` | 1e-4 | Relative best-objective improvement | Unit-independent across kWh, currency, and kPa objectives |
 | `transient.energy_drift_fail` | 5e-2 | Relative, over a run | 5 % stops with `FS3107`; 1 % remains the warning threshold |
+| `scale.pressure` | 1e5 | Pa, every node pressure | ≈ 1 bar, the natural magnitude of a hydronic circuit |
+| `scale.enthalpy` | 1e5 | J/kg, every node enthalpy | A typical liquid-water enthalpy over the working range |
+| `scale.flow_floor` | 1e-3 | kg/s, the floor under a per-branch flow scale | Stops a zero-flow branch dividing by zero, and is where `flow.zero_tol` sits three orders below |
+| `scale.temperature` | 1e1 | K, where a temperature is solved directly | A typical ΔT |
 
 **These are defaults, not user-facing settings.** A user who needs to change a solver tolerance has hit
 a bug in this table.

@@ -322,23 +322,34 @@ public sealed class WellPosednessTests
             BranchFlows = 1,
             NodePressures = 2,
             NodeEnthalpies = 2,
-            ExternalFluxes = 1,
+            FluxNodes = [Dummy("N1")],
             Promotions = [],
 
             // Zero, as a branch whose only component the catalogue could not resolve would leave it.
             PressureRelations = 0,
             MassBalances = 2,
             EnergyBalances = 2,
-            StatedPressures = 0,
+            PressureNodes = [],
             Constraints = [],
-            Datums = 0,
-            EnthalpyLevels = 0,
+            DatumComponents = [],
+            LevelComponents = [],
         };
 
         Assert.Equal(6, table.Unknowns);
         Assert.Equal(4, table.Equations);
         Assert.Equal(-2, table.Excess);
     }
+
+    /// <summary>A node with nothing behind it, for a table built to check arithmetic.</summary>
+    /// <param name="name">The node's name.</param>
+    /// <returns>A node that carries a mass balance and no state worth reading.</returns>
+    private static GraphNode Dummy(string name) => new()
+    {
+        Name = name,
+        Component = new CircuitNode(name, portCount: 1, carriesMassBalance: true),
+        Origin = NodeOrigin.Declared,
+        ThermalVolume = 0,
+    };
 
     [Fact]
     public void AComponentTheCatalogueCannotResolveIsReportedRatherThanThrown()

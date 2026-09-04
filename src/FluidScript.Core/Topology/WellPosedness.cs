@@ -105,14 +105,14 @@ public static class WellPosedness
             }
         }
 
-        var datums = 0;
-        var levels = 0;
+        var datums = ImmutableArray.CreateBuilder<HydraulicComponent>();
+        var levels = ImmutableArray.CreateBuilder<HydraulicComponent>();
 
         foreach (var hydraulic in hydraulics)
         {
             if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic))
             {
-                levels++;
+                levels.Add(hydraulic);
             }
 
             // The datum equation and the redundant mass balance answer two different questions, and
@@ -120,7 +120,7 @@ public static class WellPosedness
             // datum fixes the pressure level, and is needed exactly when no pressure is stated.
             if (!hydraulic.DatumWasStated)
             {
-                datums++;
+                datums.Add(hydraulic);
             }
 
             // The redundancy is about mass, not pressure: with every external flux known, summing the
@@ -133,8 +133,8 @@ public static class WellPosedness
             }
         }
 
-        var fluxes = 0;
-        var pressures = 0;
+        var fluxes = ImmutableArray.CreateBuilder<GraphNode>();
+        var pressures = ImmutableArray.CreateBuilder<GraphNode>();
 
         foreach (var node in graph.Nodes)
         {
@@ -142,7 +142,7 @@ public static class WellPosedness
 
             if (stated)
             {
-                pressures++;
+                pressures.Add(node);
             }
 
             // A node interior to a branch carries no mass balance, so there is nowhere for an external
@@ -160,25 +160,24 @@ public static class WellPosedness
                 && HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is null
                 && (stated || node.Component.Boundary is BoundaryRole.Return))
             {
-                fluxes++;
+                fluxes.Add(node);
             }
         }
-
 
         return new CountingTable
         {
             BranchFlows = graph.Branches.Length,
             NodePressures = graph.Nodes.Length,
             NodeEnthalpies = graph.Nodes.Length,
-            ExternalFluxes = fluxes,
+            FluxNodes = fluxes.ToImmutable(),
             Promotions = promotions,
             PressureRelations = Relations(graph),
             MassBalances = balances,
             EnergyBalances = graph.Nodes.Length,
-            StatedPressures = pressures,
+            PressureNodes = pressures.ToImmutable(),
             Constraints = constraints,
-            Datums = datums,
-            EnthalpyLevels = levels,
+            DatumComponents = datums.ToImmutable(),
+            LevelComponents = levels.ToImmutable(),
         };
     }
 

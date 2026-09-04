@@ -178,4 +178,36 @@ public static class Tolerances
     /// across kWh, currency and kPa objectives.
     /// </value>
     public const double OptimizerStagnationRelative = 1e-4;
+
+    /// <summary>The reference magnitude every node pressure is divided by.</summary>
+    /// <value>
+    /// <c>scale.pressure</c>, pascals. Roughly one bar, the natural magnitude of a hydronic circuit.
+    /// <para>
+    /// A scale is not a tolerance, and it is in this table for the same reason the tolerances are:
+    /// <c>36</c> stated it in prose beside a table it did not key, so nothing checked it and nothing
+    /// could. Keyed, it is covered by the same both-directions document test as every other row.
+    /// </para>
+    /// </value>
+    public const double PressureScale = 1e5;
+
+    /// <summary>The reference magnitude every node enthalpy is divided by.</summary>
+    /// <value><c>scale.enthalpy</c>, J/kg: a typical liquid-water enthalpy over the working range.</value>
+    public const double EnthalpyScale = 1e5;
+
+    /// <summary>The floor under a branch's own flow scale.</summary>
+    /// <value>
+    /// <c>scale.flow_floor</c>, kg/s, applied to a magnitude. Mass flow is scaled <em>per branch</em>
+    /// rather than per circuit, so a bypass at 0.05 kg/s beside a primary at 10 is measured against
+    /// its own size; this stops a branch the seed puts at rest dividing by zero. Three orders above
+    /// <see cref="FlowZero"/>, which detects a branch that is genuinely not flowing.
+    /// </value>
+    public const double FlowScaleFloor = 1e-3;
+
+    /// <summary>The reference magnitude a directly solved temperature is divided by.</summary>
+    /// <value>
+    /// <c>scale.temperature</c>, kelvin: a typical ΔT. Unused while every thermal unknown is an
+    /// enthalpy, and kept because the table is the table (<c>D-69</c> did not change what is solved,
+    /// and a controller that solves a temperature directly will want it).
+    /// </value>
+    public const double TemperatureScale = 1e1;
 }

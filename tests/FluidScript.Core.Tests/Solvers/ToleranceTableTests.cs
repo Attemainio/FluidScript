@@ -52,6 +52,10 @@ public sealed partial class ToleranceTableTests
         ("optimizer.generation_cap", Tolerances.OptimizerGenerationCap),
         ("optimizer.stagnation_generations", Tolerances.OptimizerStagnationGenerations),
         ("optimizer.stagnation_rel_tol", Tolerances.OptimizerStagnationRelative),
+        ("scale.pressure", Tolerances.PressureScale),
+        ("scale.enthalpy", Tolerances.EnthalpyScale),
+        ("scale.flow_floor", Tolerances.FlowScaleFloor),
+        ("scale.temperature", Tolerances.TemperatureScale),
     ];
 
     [GeneratedRegex(@"^\|\s*`([a-z_.]+)`\s*\|([^|]*)\|")]
