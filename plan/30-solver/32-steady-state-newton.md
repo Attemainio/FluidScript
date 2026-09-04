@@ -143,7 +143,7 @@ any amount of damping.
 
 | Situation | Guess |
 |---|---|
-| First solve | From sizing: flows from stated duties, pressures interpolated between references, enthalpies from stated temperatures |
+| First solve | From sizing: flows from stated duties, one pressure level, enthalpies from stated temperatures — and mass-consistent, which is the part that matters (below) |
 | Re-solve after an edit | The previous solution ([`31`](31-solver-architecture.md)) |
 | Transient step | The previous frame |
 | After a failure | Retry once from the sizing seed rather than the last iterate — a diverged iterate is a worse starting point than a rough estimate |
@@ -165,9 +165,32 @@ retry belongs.
 
 Measured on the cooling loop, the second case gave `N2.h` a maximum Jacobian entry of `1e-6` against
 `1` everywhere else; alternating the seeded signs took the matrix non-singular. So the requirement on a
-seed is that it be **roughly mass-consistent**, which is stronger than "close enough", and it is why
+seed is that it be mass-consistent, which is stronger than "close enough", and it is why
 [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) is a hard dependency of a converging solve
 rather than a later refinement.
+
+**"Roughly" was the wrong word, and the exact version is the easier one to build.** A divergence-free
+field on a graph is a particular solution plus the cycle space, and [`23`](../20-core-domain/23-topology-and-graph.md)
+already computes that cycle space for its own reasons — so choosing freely exactly where the freedom
+is, and solving for the rest, costs one spanning forest and reaches every mass-consistent field there
+is. `SolutionSeed` does that: it spans the branch graph, gives each chord its own flow estimate, picks
+boundary fluxes summing to zero per hydraulic component, then solves the tree leaves-inward, each
+branch taking whatever closes its vertex. The final vertex closes identically, and that is the
+construction's whole claim. An approximation would have needed a tolerance, a test that argues about
+it, and a failure mode where a nearly-consistent seed is singular anyway.
+
+**One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
+role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it
+appears in and its column is identically zero (`S-23`). That is the physics: stagnant fluid has no
+steady temperature. It needs a modelling decision — refuse the graph, or close the node against its
+neighbour — and not a different starting point.
+
+Two of the seed's inputs are weaker than they read. Flow estimates come from stated duties and stated
+flows, spread across junctions by magnitude rather than by [`24`](../20-core-domain/24-auto-sizing.md)'s
+exact propagation (`C-44`), and every unstated branch falls back to a nominal 0.1 kg/s. Pressures take
+one level for the whole graph rather than being interpolated between references as the table above
+says, because pressure enters the momentum relations linearly and Newton reaches the true field from
+any level in its first step. Neither is a shortcut worth removing until something measures a cost.
 
 ## Contracts
 

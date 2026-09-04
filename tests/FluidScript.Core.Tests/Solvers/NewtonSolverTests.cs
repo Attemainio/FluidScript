@@ -218,17 +218,18 @@ public sealed class NewtonSolverTests
         Assert.All(result.Solution.Values, static value => Assert.True(double.IsFinite(value)));
     }
 
-    /// <summary>Assembles a script or a sample with a plausible seed.</summary>
-    /// <param name="source">A sample file name, or a script.</param>
-    /// <param name="seed">Receives the starting iterate.</param>
-    /// <returns>The assembled system.</returns>
+    /// <summary>Lowers a script and assembles its system, seeded the way a real solve is.</summary>
     /// <remarks>
-    /// <strong>The flows are seeded away from zero, and they have to be (`S-21`).</strong> A pipe's
-    /// momentum relation is <c>Δp = R·ṁ|ṁ|</c> and a pump curve is <c>H₀ − kṁ²</c>; both have a
-    /// derivative of exactly zero at <c>ṁ = 0</c>, so a zero-flow seed does not merely start Newton in a
-    /// poor place — it starts it at a genuinely singular Jacobian, and every solve from one reports
-    /// <c>FS3002</c> however well-posed the circuit is. This is why <c>32</c>'s initial guess comes from
-    /// sizing rather than from zero.
+    /// <strong>The seed comes from <see cref="SolutionSeed"/> rather than from a constant, and it has
+    /// to (`S-21`).</strong> A pipe's momentum relation is <c>dp = R*m|m|</c> and a pump curve is
+    /// <c>H0 - k*m^2</c>; both have a derivative of exactly zero at <c>m = 0</c>, so a zero-flow start
+    /// is a genuinely singular Jacobian and every solve from one reports FS3002 however well-posed the
+    /// circuit is. Seeding a uniform non-zero flow only moves the singularity: branch orientation is the
+    /// decomposition's choice, so one sign everywhere leaves some node with every port an inflow, and a
+    /// node nothing leaves has a zero enthalpy column.
+    ///
+    /// This helper used to alternate the signs by index, which happened to work on this corpus and is
+    /// not a property of anything. What replaced it satisfies the mass balances outright.
     /// </remarks>
     private static EquationSystem Assemble(string source, out StateVector seed)
     {
@@ -238,34 +239,8 @@ public sealed class NewtonSolverTests
 
         var graph = GraphFixture.Lower(text).Graph;
         var posedness = WellPosedness.Check(graph);
-        var layout = SystemLayout.Build(graph, posedness.Counting);
 
-        var reference = graph.Substance.FromPressureTemperature(
-            Quantity.FromSi(0, Dimension.Pressure), Quantity.FromSi(293.15, Dimension.Temperature));
-
-        Assert.True(reference.IsSuccess, reference.Error?.Message);
-
-        var values = new double[layout.Count];
-
-        for (var index = 0; index < layout.Count; index++)
-        {
-            values[index] = layout.Unknowns[index].Kind switch
-            {
-                UnknownKind.NodeEnthalpy => reference.Value.Enthalpy.SiValue,
-                UnknownKind.NodePressure => 3e5,
-
-                // Alternating signs rather than one value, and the reason is the second half of S-21.
-                // A branch's orientation is the decomposition's choice, so seeding every flow the same
-                // way leaves some node with every port an inflow -- and a node nothing leaves is one
-                // whose own enthalpy enters no equation, which is a zero column and a singular
-                // Jacobian. The seed has to be roughly mass-consistent, not merely non-zero.
-                UnknownKind.BranchFlow => index % 2 == 0 ? 0.1 : -0.1,
-                UnknownKind.ExternalMassFlux => 0.1,
-                _ => 0,
-            };
-        }
-
-        seed = new StateVector([.. values]);
+        seed = SolutionSeed.Build(graph, SystemLayout.Build(graph, posedness.Counting));
 
         return EquationSystem.Build(graph, posedness, seed);
     }

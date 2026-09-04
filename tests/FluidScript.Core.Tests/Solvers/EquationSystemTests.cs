@@ -61,6 +61,11 @@ public sealed class EquationSystemTests
         // anywhere, every mass balance is a sum of zeros and every energy balance is a sum of zeros
         // times enthalpies -- so the only non-zero balance is one a component injects into, which is
         // exactly D-69's claim about where a duty appears.
+        //
+        // A stated boundary flow is the second thing that survives being at rest, and it has to be: it
+        // is a constant the script put in that node's balance, not a term the iterate scales (S-22).
+        // The exemption is narrow on purpose -- AStatedBoundaryFlowReachesTheBalanceItNames asserts the
+        // value the exemption steps over, so nothing here is merely being tolerated.
         var system = Assemble(sample, out _, out var seed);
         var graph = Graph(sample);
         var residuals = new double[system.Rows];
@@ -86,8 +91,62 @@ public sealed class EquationSystemTests
                 continue;
             }
 
+            if (graph.Nodes.Any(node =>
+                node.Name == declaration.OwnerComponentId
+                && HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is not null))
+            {
+                continue;
+            }
+
             Assert.Equal(0, residuals[row], 9);
         }
+    }
+
+    [Fact]
+    public void AStatedBoundaryFlowReachesTheBalanceItNames()
+    {
+        // S-22. `S1 supply t=60 flow=0.12` puts 0.12 kg/s into that node's mass balance whatever the
+        // iterate, and before the fix it entered no equation at all: well-posedness leaves a stated flow
+        // out of FluxNodes because it declares no unknown, and the assembler read only that list. A
+        // header whose every boundary is a stated flow then had a circuit at rest as an exact solution,
+        // and the count was square the whole time -- which is why no other test saw it.
+        //
+        // Every stated boundary is checked rather than one named node, because one of them has no row
+        // to check: a closed hydraulic component drops one redundant mass balance, and here that is S1's.
+        var graph = Graph("m4-storage-header.fluid");
+        var system = Assemble("m4-storage-header.fluid", out _, out var seed);
+        var residuals = new double[system.Rows];
+
+        Assert.True(system.TryEvaluateResiduals(seed.Values.AsSpan(), residuals));
+
+        var checkedRows = 0;
+
+        foreach (var node in graph.Nodes)
+        {
+            if (HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is not { } given)
+            {
+                continue;
+            }
+
+            var row = Array.FindIndex(
+                [.. system.Equations.Rows],
+                declaration => declaration.Kind == EquationKind.Mass
+                    && declaration.OwnerComponentId == node.Name);
+
+            if (row < 0)
+            {
+                continue;
+            }
+
+            checkedRows++;
+
+            Assert.Equal(
+                node.Component.Boundary is BoundaryRole.Return ? -given : given,
+                residuals[row],
+                9);
+        }
+
+        Assert.True(checkedRows >= 3, $"only {checkedRows} stated boundaries carried a mass row");
     }
 
     [Fact]

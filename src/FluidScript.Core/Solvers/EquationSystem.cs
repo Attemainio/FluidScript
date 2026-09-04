@@ -65,7 +65,7 @@ public sealed class EquationSystem
     private readonly int[] _datums;
     private readonly (int From, int To)[] _links;
     private readonly (int Offset, int Count)[] _owned;
-    private readonly (int Node, int MassRow, double Enthalpy, bool Stated)[] _fluxes;
+    private readonly (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] _fluxes;
 
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
@@ -89,7 +89,7 @@ public sealed class EquationSystem
         int[] datums,
         (int From, int To)[] links,
         (int Offset, int Count)[] owned,
-        (int Node, int MassRow, double Enthalpy, bool Stated)[] fluxes)
+        (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] fluxes)
     {
         _graph = graph;
         _ports = ports;
@@ -280,11 +280,25 @@ public sealed class EquationSystem
         // nothing and the Jacobian is singular at it. The enthalpy it carries is settled once, here: a
         // boundary stating a temperature delivers fluid at that temperature, and one that does not is a
         // return, whose stream leaves carrying whatever the node holds.
-        var fluxes = new (int Node, int MassRow, double Enthalpy, bool Stated)[posedness.Counting.FluxNodes.Length];
+        //
+        // A *stated* flow is the same term with no column behind it (`S-22`). Well-posedness leaves it
+        // out of `FluxNodes` because it declares no unknown, which is right for the count and was wrong
+        // for the residuals: the flux then entered no equation at all, so `m4-storage-header` -- whose
+        // every boundary is a stated flow -- had a circuit at rest as its exact solution, and reported
+        // convergence for it.
+        var fluxes = new List<(int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)>(
+            posedness.Counting.FluxNodes.Length);
 
-        for (var index = 0; index < posedness.Counting.FluxNodes.Length; index++)
+        foreach (var boundary in graph.Nodes)
         {
-            var boundary = posedness.Counting.FluxNodes[index];
+            var column = posedness.Counting.FluxNodes.IndexOf(boundary);
+            var given = HydraulicPartition.Stated(boundary.Component, HydraulicPartition.Flow);
+
+            if (column < 0 && (given is null || !boundary.Component.CarriesMassBalance))
+            {
+                continue;
+            }
+
             var element = Array.IndexOf([.. graph.Components], (IFlowComponent)boundary.Component);
             var temperature = HydraulicPartition.Stated(boundary.Component, HydraulicPartition.Temperature);
             var enthalpy = 0.0;
@@ -305,12 +319,18 @@ public sealed class EquationSystem
                 }
             }
 
-            fluxes[index] = (byComponent[boundary.Component], equations.Row(element, 0), enthalpy, known);
+            fluxes.Add((
+                byComponent[boundary.Component],
+                equations.Row(element, 0),
+                column < 0 ? -1 : unknowns.ExternalFluxOffset + column,
+                boundary.Component.Boundary is BoundaryRole.Return ? -(given ?? 0) : given ?? 0,
+                enthalpy,
+                known));
         }
 
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
-            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, fluxes);
+            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, [.. fluxes]);
     }
 
     /// <summary>Evaluates every residual at one iterate, in SI.</summary>
@@ -496,10 +516,9 @@ public sealed class EquationSystem
         // Mass crossing the circuit's boundary, and the energy it carries with it. The upwind blend is
         // the one a node already uses on its ports: an inflow arrives at the stated temperature, an
         // outflow leaves with what the node holds, and the two blend smoothly so a boundary may reverse.
-        for (var index = 0; index < _fluxes.Length; index++)
+        foreach (var (node, massRow, column, magnitude, boundary, known) in _fluxes)
         {
-            var (node, massRow, boundary, known) = _fluxes[index];
-            var flux = x[Unknowns.ExternalFluxOffset + index];
+            var flux = column >= 0 ? x[column] : magnitude;
             var own = x[Unknowns.NodeEnthalpy(node)];
 
             if (massRow >= 0)
