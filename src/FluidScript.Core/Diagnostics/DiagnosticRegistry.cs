@@ -111,6 +111,7 @@ public static class DiagnosticRegistry
         .. CompatibilityDiagnostics.All,
         .. FluidDiagnostics.All,
         .. TopologyDiagnostics.All,
+        .. SolverDiagnostics.All,
         .. CatalogDiagnostics.All,
     ];
 

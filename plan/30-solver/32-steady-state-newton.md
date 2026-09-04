@@ -149,7 +149,25 @@ any amount of damping.
 | After a failure | Retry once from the sizing seed rather than the last iterate — a diverged iterate is a worse starting point than a rough estimate |
 
 The retry-from-seed rule is cheap and rescues a real case: a user edits a value, the warm start is now
-in the wrong basin, and a cold retry converges immediately.
+in the wrong basin, and a cold retry converges immediately. **It cannot live in `NewtonSettings`,
+though, and this document put it there (`S-20`).** `SolveAsync` receives exactly one starting vector,
+and on a re-solve that vector *is* the warm start — so the solver has no second seed to retry from.
+Both seeds exist together only in [`31`](31-solver-architecture.md)'s outer loop, which is where the
+retry belongs.
+
+**A seed is a prerequisite for convergence, not a convenience, and the obvious stand-ins are singular
+(`S-21`).** Two hand-made guesses look reasonable and both produce `FS3002` on a well-posed circuit:
+
+| Seed | Why it is singular |
+|---|---|
+| Zero flow everywhere | `Δp = R·ṁ\|ṁ\|` and `H₀ − kṁ²` both have derivative **exactly** zero at `ṁ = 0`, so every quadratic pressure row contributes a zero |
+| One sign for every branch flow | A branch's orientation is `Decompose`'s choice rather than a direction, so some node ends up with every port an inflow — and a node nothing leaves is one whose own enthalpy enters no equation it owns |
+
+Measured on the cooling loop, the second case gave `N2.h` a maximum Jacobian entry of `1e-6` against
+`1` everywhere else; alternating the seeded signs took the matrix non-singular. So the requirement on a
+seed is that it be **roughly mass-consistent**, which is stronger than "close enough", and it is why
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) is a hard dependency of a converging solve
+rather than a later refinement.
 
 ## Contracts
 
@@ -176,7 +194,6 @@ public sealed record NewtonSettings
     public double StepTolerance { get; init; } = 1e-10;
     public double DivergenceFactor { get; init; } = 10.0;
     public double MinLineSearchStep { get; init; } = 1.0 / 64.0;
-    public bool RetryFromSeedOnFailure { get; init; } = true;
 }
 ```
 

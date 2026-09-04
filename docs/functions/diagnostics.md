@@ -145,6 +145,14 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |
 | `FS2606` | Info | Catalog | Using catalogue '{name}'. Write 'catalog {name}' to pin it. |
+| `FS3001` | Error | Solver | Could not solve in {steps} steps. Furthest off: {component} {equation} by {amount}. |
+| `FS3002` | Error | Solver | The circuit has no unique solution around {component}. Check for a missing pressure datum, a closed circuit with no stated temperature, or a loop with no driver. |
+| `FS3003` | Error | Solver | The solution is moving away from a balance: {residual} after {steps} steps, from {previous}. |
+| `FS3004` | Error | Solver | Stuck at {residual}: {component} {equation} may have conflicting requirements. |
+| `FS3005` | Error | Solver | {solver} cannot solve this: {reason}. |
+| `FS3006` | Info | Solver | Solve cancelled after {steps} steps. |
+| `FS3007` | Error | Solver | {component} produced an impossible value in {equation} after {steps} steps. |
+| `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

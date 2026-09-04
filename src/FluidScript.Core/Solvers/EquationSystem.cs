@@ -65,6 +65,7 @@ public sealed class EquationSystem
     private readonly int[] _datums;
     private readonly (int From, int To)[] _links;
     private readonly (int Offset, int Count)[] _owned;
+    private readonly (int Node, int MassRow, double Enthalpy, bool Stated)[] _fluxes;
 
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
@@ -87,7 +88,8 @@ public sealed class EquationSystem
         (int Node, double Value)[] stated,
         int[] datums,
         (int From, int To)[] links,
-        (int Offset, int Count)[] owned)
+        (int Offset, int Count)[] owned,
+        (int Node, int MassRow, double Enthalpy, bool Stated)[] fluxes)
     {
         _graph = graph;
         _ports = ports;
@@ -98,6 +100,7 @@ public sealed class EquationSystem
         _datums = datums;
         _links = links;
         _owned = owned;
+        _fluxes = fluxes;
 
         Unknowns = unknowns;
         Equations = equations;
@@ -140,6 +143,19 @@ public sealed class EquationSystem
 
     /// <summary>Gets how many equations the system has.</summary>
     public int Rows => Equations.Count;
+
+    /// <summary>Gets whether the graph is solved as an equilibrium or in time.</summary>
+    /// <remarks>
+    /// Carried so a solver can refuse a system it is the wrong kind for before iterating on it, which
+    /// turns a divergence into a sentence.
+    /// </remarks>
+    public SolveMode Mode => _graph.Mode;
+
+    /// <summary>Names a node, for a message about it.</summary>
+    /// <param name="node">The node's index in the graph.</param>
+    /// <returns>Its identifier, or a placeholder when the index names none.</returns>
+    public string NodeName(int node) =>
+        (uint)node < (uint)_graph.Nodes.Length ? _graph.Nodes[node].Name : "the circuit";
 
     /// <summary>Gets the node whose state could not be evaluated, or <c>-1</c>.</summary>
     /// <value>
@@ -260,9 +276,41 @@ public sealed class EquationSystem
             running += count;
         }
 
+        // An external mass flux enters a node's own balances, and until it does the column influences
+        // nothing and the Jacobian is singular at it. The enthalpy it carries is settled once, here: a
+        // boundary stating a temperature delivers fluid at that temperature, and one that does not is a
+        // return, whose stream leaves carrying whatever the node holds.
+        var fluxes = new (int Node, int MassRow, double Enthalpy, bool Stated)[posedness.Counting.FluxNodes.Length];
+
+        for (var index = 0; index < posedness.Counting.FluxNodes.Length; index++)
+        {
+            var boundary = posedness.Counting.FluxNodes[index];
+            var element = Array.IndexOf([.. graph.Components], (IFlowComponent)boundary.Component);
+            var temperature = HydraulicPartition.Stated(boundary.Component, HydraulicPartition.Temperature);
+            var enthalpy = 0.0;
+            var known = false;
+
+            if (temperature is not null)
+            {
+                var state = graph.Substance.FromPressureTemperature(
+                    Quantity.FromSi(
+                        HydraulicPartition.Stated(boundary.Component, HydraulicPartition.Pressure) ?? 0,
+                        Dimension.Pressure),
+                    Quantity.FromSi(temperature.Value, Dimension.Temperature));
+
+                if (state.TryGetValue(out var fluid))
+                {
+                    enthalpy = fluid.Enthalpy.SiValue;
+                    known = true;
+                }
+            }
+
+            fluxes[index] = (byComponent[boundary.Component], equations.Row(element, 0), enthalpy, known);
+        }
+
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
-            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned);
+            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, fluxes);
     }
 
     /// <summary>Evaluates every residual at one iterate, in SI.</summary>
@@ -286,14 +334,113 @@ public sealed class EquationSystem
             throw new ArgumentException($"Expected {Rows} residuals, got {residuals.Length}.", nameof(residuals));
         }
 
-        residuals.Clear();
         OutOfDomainNode = -1;
 
-        if (!Refresh(x))
+        for (var node = 0; node < _graph.Nodes.Length; node++)
         {
+            if (!Refresh(node, x))
+            {
+                return false;
+            }
+        }
+
+        Assemble(x, residuals);
+
+        return true;
+    }
+
+    /// <summary>Evaluates at an iterate that differs from the last full one in a single unknown.</summary>
+    /// <param name="x">The perturbed iterate, <see cref="Columns"/> long.</param>
+    /// <param name="column">The unknown that moved.</param>
+    /// <param name="residuals">Destination, <see cref="Rows"/> long.</param>
+    /// <returns><see langword="false"/> when the perturbed node left the property domain.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The finite-difference Jacobian's whole cost is here.</strong> A forward-difference column
+    /// is one residual evaluation, and the naive one re-fixes every node's state — so an N-column sweep
+    /// costs N² property calls where N of them changed anything. Perturbing a branch flow, an external
+    /// flux, a promoted parameter or a component's own unknown changes <em>no</em> fluid state at all,
+    /// and perturbing a node's pressure or enthalpy changes exactly one.
+    /// </para>
+    /// <para>
+    /// On a 200-component model that is the difference between roughly a second and roughly fifty
+    /// milliseconds per Newton iteration, against <c>07</c>'s whole interactive budget. It is built in
+    /// rather than retrofitted because the shape of the saving decides the shape of the cache, and a
+    /// cache added afterwards is a cache the residual path was not written for (<c>S-2</c>).
+    /// </para>
+    /// <para>
+    /// <strong>It requires the cache to hold the base iterate.</strong> Call
+    /// <see cref="TryEvaluateResiduals"/> at the base point first; this restores the node it touched, so
+    /// columns may be swept in any order without a refresh between them.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException">A span is the wrong length.</exception>
+    public bool TryEvaluateAt(ReadOnlySpan<double> x, int column, Span<double> residuals)
+    {
+        if (x.Length != Columns)
+        {
+            throw new ArgumentException($"Expected {Columns} unknowns, got {x.Length}.", nameof(x));
+        }
+
+        if (residuals.Length != Rows)
+        {
+            throw new ArgumentException($"Expected {Rows} residuals, got {residuals.Length}.", nameof(residuals));
+        }
+
+        OutOfDomainNode = -1;
+
+        var dirty = NodeOfUnknown(column);
+
+        if (dirty < 0)
+        {
+            Assemble(x, residuals);
+
+            return true;
+        }
+
+        var saved = _nodeStates[dirty];
+
+        if (!Refresh(dirty, x))
+        {
+            _nodeStates[dirty] = saved;
+
             return false;
         }
 
+        Assemble(x, residuals);
+        _nodeStates[dirty] = saved;
+
+        return true;
+    }
+
+    /// <summary>Which node's fluid state one unknown decides, or <c>-1</c> when it decides none.</summary>
+    /// <param name="column">The unknown's index in the state vector.</param>
+    /// <returns>The node index, or <c>-1</c>.</returns>
+    /// <remarks>
+    /// A state is fixed from a node's own pressure and enthalpy and from nothing else. A flow, a flux, a
+    /// promoted parameter and a control volume's own enthalpy all enter residuals directly and never a
+    /// property call — which is what makes most Jacobian columns free of the property backend entirely.
+    /// </remarks>
+    public int NodeOfUnknown(int column)
+    {
+        var pressure = column - Unknowns.NodePressureOffset;
+
+        if (pressure >= 0 && pressure < _graph.Nodes.Length)
+        {
+            return pressure;
+        }
+
+        var enthalpy = column - Unknowns.NodeEnthalpyOffset;
+
+        return enthalpy >= 0 && enthalpy < _graph.Nodes.Length ? enthalpy : -1;
+    }
+
+    /// <summary>Writes every residual from the node states the cache currently holds.</summary>
+    /// <param name="x">The iterate.</param>
+    /// <param name="residuals">Destination.</param>
+    private void Assemble(ReadOnlySpan<double> x, Span<double> residuals)
+    {
+        residuals.Clear();
         Array.Clear(_nodeInjection);
 
         for (var element = 0; element < _graph.Components.Length; element++)
@@ -346,6 +493,23 @@ public sealed class EquationSystem
             residuals[_energyRow[node]] += _nodeInjection[node];
         }
 
+        // Mass crossing the circuit's boundary, and the energy it carries with it. The upwind blend is
+        // the one a node already uses on its ports: an inflow arrives at the stated temperature, an
+        // outflow leaves with what the node holds, and the two blend smoothly so a boundary may reverse.
+        for (var index = 0; index < _fluxes.Length; index++)
+        {
+            var (node, massRow, boundary, known) = _fluxes[index];
+            var flux = x[Unknowns.ExternalFluxOffset + index];
+            var own = x[Unknowns.NodeEnthalpy(node)];
+
+            if (massRow >= 0)
+            {
+                residuals[massRow] += flux;
+            }
+
+            residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
+        }
+
         var assembly = Equations.LinkOffset;
 
         // D-25's zero-drop connection: two nodes with nothing between them are one pressure, and no
@@ -364,8 +528,6 @@ public sealed class EquationSystem
         {
             residuals[assembly++] = datum < 0 ? 0 : x[Unknowns.NodePressure(datum)];
         }
-
-        return true;
     }
 
     /// <summary>Evaluates every residual and divides each by its own reference magnitude.</summary>
@@ -383,42 +545,78 @@ public sealed class EquationSystem
             return false;
         }
 
-        for (var row = 0; row < residuals.Length; row++)
-        {
-            residuals[row] /= ResidualScales[row];
-        }
+        Scale(residuals);
 
         return true;
     }
 
-    /// <summary>Re-evaluates every node's fluid state at the current iterate.</summary>
-    /// <param name="x">The iterate.</param>
-    /// <returns><see langword="false"/> when one left the property domain.</returns>
-    private bool Refresh(ReadOnlySpan<double> x)
+    /// <summary>Evaluates scaled at an iterate differing from the last full one in a single unknown.</summary>
+    /// <param name="x">The perturbed iterate, <see cref="Columns"/> long.</param>
+    /// <param name="column">The unknown that moved.</param>
+    /// <param name="residuals">Destination, <see cref="Rows"/> long.</param>
+    /// <returns><see langword="false"/> when the perturbed node left the property domain.</returns>
+    /// <remarks>
+    /// <strong>The scaled pair exists so a Jacobian cannot mix the two.</strong> A forward difference
+    /// takes the base residuals from one call and the perturbed ones from another, and if one is scaled
+    /// and the other is not, every entry is off by that row's reference magnitude — around <c>1e5</c>
+    /// here, which produces a Jacobian of order <c>1e12</c> and a singularity report on a circuit that
+    /// is fine. That is what happened first, and it is why the unscaled overload is not simply reused
+    /// with a division bolted on at the call site.
+    /// </remarks>
+    public bool TryEvaluateScaledAt(ReadOnlySpan<double> x, int column, Span<double> residuals)
     {
-        for (var node = 0; node < _graph.Nodes.Length; node++)
+        if (!TryEvaluateAt(x, column, residuals))
         {
-            var state = _graph.Substance.FromPressureEnthalpy(
-                Quantity.FromSi(x[Unknowns.NodePressure(node)], Dimension.Pressure),
-                Quantity.FromSi(x[Unknowns.NodeEnthalpy(node)], Dimension.Enthalpy));
-
-            if (!state.TryGetValue(out var fluid))
-            {
-                OutOfDomainNode = node;
-                return false;
-            }
-
-            _nodeStates[node] = new PortState
-            {
-                Pressure = fluid.Pressure.SiValue,
-                Enthalpy = fluid.Enthalpy.SiValue,
-                Temperature = fluid.Temperature.SiValue,
-                Density = fluid.Density.SiValue,
-                SpecificHeat = fluid.SpecificHeat.SiValue,
-                DynamicViscosity = fluid.DynamicViscosity.SiValue,
-                ThermalConductivity = fluid.ThermalConductivity.SiValue,
-            };
+            return false;
         }
+
+        Scale(residuals);
+
+        return true;
+    }
+
+    /// <summary>Divides every residual by its own reference magnitude, in place.</summary>
+    /// <param name="residuals">The residuals, in SI.</param>
+    private void Scale(Span<double> residuals)
+    {
+        for (var row = 0; row < residuals.Length; row++)
+        {
+            residuals[row] /= ResidualScales[row];
+        }
+    }
+
+    /// <summary>Re-evaluates one node's fluid state at the current iterate.</summary>
+    /// <param name="node">The node's index in the graph.</param>
+    /// <param name="x">The iterate.</param>
+    /// <returns><see langword="false"/> when it left the property domain.</returns>
+    /// <remarks>
+    /// One node rather than all of them, because that is what a Jacobian column needs
+    /// (<see cref="TryEvaluateAt"/>). This is the only place in a solve that calls the property backend,
+    /// and every microsecond of a solve that is not linear algebra is spent here.
+    /// </remarks>
+    private bool Refresh(int node, ReadOnlySpan<double> x)
+    {
+        var state = _graph.Substance.FromPressureEnthalpy(
+            Quantity.FromSi(x[Unknowns.NodePressure(node)], Dimension.Pressure),
+            Quantity.FromSi(x[Unknowns.NodeEnthalpy(node)], Dimension.Enthalpy));
+
+        if (!state.TryGetValue(out var fluid))
+        {
+            OutOfDomainNode = node;
+
+            return false;
+        }
+
+        _nodeStates[node] = new PortState
+        {
+            Pressure = fluid.Pressure.SiValue,
+            Enthalpy = fluid.Enthalpy.SiValue,
+            Temperature = fluid.Temperature.SiValue,
+            Density = fluid.Density.SiValue,
+            SpecificHeat = fluid.SpecificHeat.SiValue,
+            DynamicViscosity = fluid.DynamicViscosity.SiValue,
+            ThermalConductivity = fluid.ThermalConductivity.SiValue,
+        };
 
         return true;
     }
