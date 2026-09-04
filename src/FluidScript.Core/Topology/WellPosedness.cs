@@ -164,6 +164,8 @@ public static class WellPosedness
             }
         }
 
+        var relations = Relations(graph, out var links);
+
         return new CountingTable
         {
             BranchFlows = graph.Branches.Length,
@@ -171,7 +173,8 @@ public static class WellPosedness
             NodeEnthalpies = graph.Nodes.Length,
             FluxNodes = fluxes.ToImmutable(),
             Promotions = promotions,
-            PressureRelations = Relations(graph),
+            PressureRelations = relations,
+            IdealLinks = links,
             MassBalances = balances,
             EnergyBalances = graph.Nodes.Length,
             PressureNodes = pressures.ToImmutable(),
@@ -191,8 +194,19 @@ public static class WellPosedness
     /// valve; and each bare node-to-node adjacency imposes one, because <c>D-25</c> makes it an ideal
     /// zero-drop link between two <em>separate</em> pressure unknowns.
     /// </remarks>
-    private static int Relations(CircuitGraph graph)
+    /// <param name="links">Receives the bare node-to-node adjacencies, in the order the walk meets them.</param>
+    private static int Relations(CircuitGraph graph, out ImmutableArray<IdealLink> links)
     {
+        // Keyed by object with a reference comparer: a branch path carries the CircuitNode, and an
+        // assembler writing the link's row needs the GraphNode wrapped around it to reach the unknowns.
+        var nodes = new Dictionary<object, GraphNode>(graph.Nodes.Length, ReferenceEqualityComparer.Instance);
+
+        foreach (var node in graph.Nodes)
+        {
+            nodes[node.Component] = node;
+        }
+
+        var ideal = ImmutableArray.CreateBuilder<IdealLink>();
         var relations = 0;
 
         foreach (var branch in graph.Branches)
@@ -206,6 +220,7 @@ public static class WellPosedness
                     if (previous is CircuitNode)
                     {
                         relations++;
+                        Link(nodes, ideal, previous, part);
                     }
                 }
                 else
@@ -219,6 +234,7 @@ public static class WellPosedness
             if (previous is CircuitNode && branch.To.Element is CircuitNode)
             {
                 relations++;
+                Link(nodes, ideal, previous, branch.To.Element);
             }
         }
 
@@ -250,7 +266,32 @@ public static class WellPosedness
             }
         }
 
+        links = ideal.ToImmutable();
+
         return relations;
+    }
+
+    /// <summary>Records one bare node-to-node adjacency as an ideal zero-drop link.</summary>
+    /// <param name="nodes">The graph's nodes, by the component carrying their unknowns.</param>
+    /// <param name="ideal">The links collected so far.</param>
+    /// <param name="from">The node the walk arrives from.</param>
+    /// <param name="to">The node it continues to.</param>
+    /// <remarks>
+    /// A node the graph does not list would be a lowering defect rather than a user error, and the link
+    /// simply goes unnamed: the assembler's row total then disagrees with
+    /// <see cref="CountingTable.Equations"/>, which is a loud failure in the one place built to notice it.
+    /// Throwing here would put that failure in the pass that has to survive a malformed script.
+    /// </remarks>
+    private static void Link(
+        Dictionary<object, GraphNode> nodes,
+        ImmutableArray<IdealLink>.Builder ideal,
+        IFlowComponent from,
+        IFlowComponent to)
+    {
+        if (nodes.TryGetValue(from, out var left) && nodes.TryGetValue(to, out var right))
+        {
+            ideal.Add(new IdealLink(left, right));
+        }
     }
 
     /// <summary>How many mass balances one hydraulic component contributes.</summary>

@@ -327,6 +327,7 @@ public sealed class WellPosednessTests
 
             // Zero, as a branch whose only component the catalogue could not resolve would leave it.
             PressureRelations = 0,
+            IdealLinks = [],
             MassBalances = 2,
             EnergyBalances = 2,
             PressureNodes = [],

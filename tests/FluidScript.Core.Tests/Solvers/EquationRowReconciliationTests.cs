@@ -50,7 +50,12 @@ public sealed class EquationRowReconciliationTests
             .SelectMany(static component => component.DeclareEquations())
             .Count(static row => row.Kind is EquationKind.Pressure or EquationKind.ComponentConstraint);
 
-        Assert.Equal(counting.PressureRelations - CoupledCrossings(graph), declared + IdealLinks(graph));
+        // The links are the table's own now (`S-15`): an assembler has to write those rows, so it has
+        // to be told between which nodes, and a walk here would be the second implementation that
+        // naming them exists to prevent.
+        Assert.Equal(
+            counting.PressureRelations - RowAllowance.CoupledCrossings(graph),
+            declared + counting.IdealLinks.Length);
     }
 
     [Theory]
@@ -88,57 +93,6 @@ public sealed class EquationRowReconciliationTests
                     + "nothing, so I3 did not reach it and its residual reads a state that does not exist.");
             }
         }
-    }
-
-    /// <summary>How many extra pressure relations a multiply-crossed component is counted for.</summary>
-    /// <param name="graph">The graph.</param>
-    /// <returns>The allowance, which is zero for every model without a coupled exchanger.</returns>
-    private static int CoupledCrossings(CircuitGraph graph)
-    {
-        var crossings = new Dictionary<IFlowComponent, int>();
-
-        foreach (var branch in graph.Branches)
-        {
-            foreach (var part in branch.Path)
-            {
-                if (part is not CircuitNode)
-                {
-                    crossings[part] = crossings.GetValueOrDefault(part) + 1;
-                }
-            }
-        }
-
-        return crossings.Values.Sum(static crossed => crossed - 1);
-    }
-
-    /// <summary>The bare node-to-node adjacencies, which `D-25` makes ideal zero-drop links.</summary>
-    /// <param name="graph">The graph.</param>
-    /// <returns>One per adjacency, each of which is a pressure relation nothing declares.</returns>
-    private static int IdealLinks(CircuitGraph graph)
-    {
-        var links = 0;
-
-        foreach (var branch in graph.Branches)
-        {
-            IFlowComponent previous = branch.From.Element;
-
-            foreach (var part in branch.Path)
-            {
-                if (part is CircuitNode && previous is CircuitNode)
-                {
-                    links++;
-                }
-
-                previous = part;
-            }
-
-            if (previous is CircuitNode && branch.To.Element is CircuitNode)
-            {
-                links++;
-            }
-        }
-
-        return links;
     }
 
     private static CircuitGraph Lower(string sample) =>

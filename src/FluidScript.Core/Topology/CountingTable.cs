@@ -48,6 +48,17 @@ public sealed record Promotion(string Component, string Parameter, ComponentCons
     public string Label => $"{Component}.{Parameter}";
 }
 
+/// <summary>A bare connection between two nodes, which <c>D-25</c> makes an ideal zero-drop link.</summary>
+/// <param name="From">The node the branch walk reaches it from.</param>
+/// <param name="To">The node it continues to.</param>
+/// <remarks>
+/// <strong>It is a pressure relation with no component behind it.</strong> <c>A - B</c> written between
+/// two nodes puts nothing in the path, so nothing declares <c>p_A = p_B</c> and the assembler writes the
+/// row itself. Naming the pair is what lets it: a count says how many such rows exist and never which
+/// nodes they join (<c>S-15</c>).
+/// </remarks>
+public sealed record IdealLink(GraphNode From, GraphNode To);
+
 /// <summary>The counting argument: what the solver must find, against what it has to find it with.</summary>
 /// <remarks>
 /// <para>
@@ -99,6 +110,16 @@ public sealed record CountingTable
     /// one per bare node-to-node link, which <c>D-25</c> makes an ideal zero-drop connection.
     /// </value>
     public required int PressureRelations { get; init; }
+
+    /// <summary>Gets the bare node-to-node adjacencies, which <c>D-25</c> makes ideal zero-drop links.</summary>
+    /// <value>
+    /// A subset of <see cref="PressureRelations"/>, named for the same reason <see cref="FluxNodes"/> is:
+    /// <strong>no component declares these rows, so the assembler has to write them, and a count cannot
+    /// say between which nodes.</strong> Every other term in <see cref="PressureRelations"/> is some
+    /// component's own equation and arrives through <c>DeclareEquations</c>; this one belongs to a
+    /// connection with nothing on it, and there is nobody else to ask (<c>S-15</c>).
+    /// </value>
+    public required ImmutableArray<IdealLink> IdealLinks { get; init; }
 
     /// <summary>Gets the independent mass balances, after the redundant one is dropped.</summary>
     public required int MassBalances { get; init; }
