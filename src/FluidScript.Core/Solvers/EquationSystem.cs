@@ -1,0 +1,580 @@
+using System.Collections.Immutable;
+using FluidScript.Core.Components;
+using FluidScript.Core.Fluids;
+using FluidScript.Core.Topology;
+using FluidScript.Core.Units;
+
+namespace FluidScript.Core.Solvers;
+
+/// <summary>One node whose enthalpy can reach a node port, and the port it arrives through.</summary>
+/// <param name="Node">The node the enthalpy is read from.</param>
+/// <param name="Component">The component carrying it across, in graph order.</param>
+/// <param name="Port">The port of that component the flow enters by.</param>
+internal readonly record struct ArrivingSource(int Node, int Component, int Port);
+
+/// <summary>The assembled residual function: everything the solver drives to zero, at one iterate.</summary>
+/// <remarks>
+/// <para>
+/// <strong>It consumes the counting table rather than re-deriving it</strong> (<c>S-9</c>). Both
+/// layouts are built against <see cref="CountingTable"/> and this holds them together: the residual
+/// vector is <see cref="EquationLayout"/> long, the state vector is <see cref="SystemLayout"/> long,
+/// and a disagreement between them is a bug in one of two places rather than a mystery in the solve.
+/// </para>
+/// <para>
+/// <strong>Every port state is evaluated once per iterate, never once per residual</strong>
+/// (<c>S-2</c>). A seven-property state fix is ~204 µs and allocates; a residual runs N+1 times per
+/// Newton iteration for a numerical Jacobian. Fixing states inside <c>EvaluateResiduals</c> would put
+/// a 20-unknown circuit past <c>07</c>'s whole interactive budget before any linear algebra, which is
+/// why <see cref="SolveContext"/> carries evaluated properties and no way to produce them.
+/// </para>
+/// <para>
+/// <strong>Energy is added by the assembler, not claimed by a component</strong> (<c>D-69</c>). A node
+/// writes <c>Σ ṁᵢ h(ṁᵢ)</c> over its own ports and knows nothing about the duty of the exchanger
+/// discharging into it; this collects each component's injection and adds it to the node rows it
+/// reaches. That is what keeps the heat following the flow through a reversal instead of being nailed
+/// to a port.
+/// </para>
+/// </remarks>
+public sealed class EquationSystem
+{
+    private const double MixingFloor = 1e-6;
+
+    /// <summary>The state of a port with nothing on it: zeros, and never read by a residual.</summary>
+    /// <remarks>
+    /// An optional port left open carries no flow, so every term it could enter is multiplied by zero.
+    /// A component that reads it anyway is the defect <c>S-14a</c> was, and the reconciliation test
+    /// that closed it is what keeps this unreachable rather than merely unlikely.
+    /// </remarks>
+    private static readonly PortState Vacant = new()
+    {
+        Pressure = 0,
+        Enthalpy = 0,
+        Temperature = 0,
+        Density = 0,
+        SpecificHeat = 0,
+        DynamicViscosity = 0,
+        ThermalConductivity = 0,
+    };
+
+    private readonly CircuitGraph _graph;
+    private readonly PortMap _ports;
+    private readonly int[] _nodeOf;
+    private readonly int[] _energyRow;
+    private readonly ArrivingSource[][][] _arriving;
+    private readonly (int Node, double Value)[] _stated;
+    private readonly int[] _datums;
+    private readonly (int From, int To)[] _links;
+    private readonly (int Offset, int Count)[] _owned;
+
+    private readonly PortState[] _nodeStates;
+    private readonly double[] _nodeInjection;
+    private readonly PortState[] _portScratch;
+    private readonly double[] _flowScratch;
+    private readonly double[] _ownScratch;
+    private readonly double[] _residualScratch;
+    private readonly double[] _injectionScratch;
+
+    private EquationSystem(
+        CircuitGraph graph,
+        SystemLayout unknowns,
+        EquationLayout equations,
+        PortMap ports,
+        ImmutableArray<double> unknownScales,
+        ImmutableArray<double> residualScales,
+        int[] nodeOf,
+        int[] energyRow,
+        ArrivingSource[][][] arriving,
+        (int Node, double Value)[] stated,
+        int[] datums,
+        (int From, int To)[] links,
+        (int Offset, int Count)[] owned)
+    {
+        _graph = graph;
+        _ports = ports;
+        _nodeOf = nodeOf;
+        _energyRow = energyRow;
+        _arriving = arriving;
+        _stated = stated;
+        _datums = datums;
+        _links = links;
+        _owned = owned;
+
+        Unknowns = unknowns;
+        Equations = equations;
+        UnknownScales = unknownScales;
+        ResidualScales = residualScales;
+
+        var widest = 0;
+        var tallest = 0;
+
+        foreach (var component in graph.Components)
+        {
+            widest = Math.Max(widest, component.Ports.Length);
+            tallest = Math.Max(tallest, component.EquationCount);
+        }
+
+        _nodeStates = new PortState[graph.Nodes.Length];
+        _nodeInjection = new double[graph.Nodes.Length];
+        _portScratch = new PortState[widest];
+        _flowScratch = new double[widest];
+        _injectionScratch = new double[widest];
+        _residualScratch = new double[tallest];
+        _ownScratch = new double[2];
+        OutOfDomainNode = -1;
+    }
+
+    /// <summary>Gets the state vector's layout.</summary>
+    public SystemLayout Unknowns { get; }
+
+    /// <summary>Gets the residual vector's layout.</summary>
+    public EquationLayout Equations { get; }
+
+    /// <summary>Gets the reference magnitude of every unknown, in the state vector's order.</summary>
+    public ImmutableArray<double> UnknownScales { get; }
+
+    /// <summary>Gets the reference magnitude of every residual, in the residual vector's order.</summary>
+    public ImmutableArray<double> ResidualScales { get; }
+
+    /// <summary>Gets how many unknowns the system has.</summary>
+    public int Columns => Unknowns.Count;
+
+    /// <summary>Gets how many equations the system has.</summary>
+    public int Rows => Equations.Count;
+
+    /// <summary>Gets the node whose state could not be evaluated, or <c>-1</c>.</summary>
+    /// <value>
+    /// Set by a failed evaluation and meaningful only then. A Newton step that leaves the property
+    /// domain is an ordinary event on the path to a solution — it is what the line search's domain
+    /// guard exists for — so it is reported rather than thrown.
+    /// </value>
+    public int OutOfDomainNode { get; private set; }
+
+    /// <summary>Gets the rows nothing evaluates yet, with the package that will.</summary>
+    /// <value>
+    /// The promotion pairings. A stated <c>in</c> is met by moving a sized parameter, and <c>P3.7</c>
+    /// is what promotes one for real; until then the row exists — it has to, or the system is not
+    /// square — and its residual is left at zero.
+    /// <para>
+    /// <strong>Named rather than silently zero.</strong> A row of zeros makes a singular Jacobian, and
+    /// a singular Jacobian with no explanation is the single most expensive thing to debug in a solver.
+    /// </para>
+    /// </value>
+    public ImmutableArray<EquationDeclaration> Unevaluated =>
+        [.. Equations.Rows.Skip(Equations.ConstraintOffset)];
+
+    /// <summary>Assembles the system of a lowered graph.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="posedness">The counting table and the hydraulic partition.</param>
+    /// <param name="seed">The starting iterate, whose flow magnitudes set the flow scales.</param>
+    /// <returns>The assembled system.</returns>
+    public static EquationSystem Build(CircuitGraph graph, WellPosednessResult posedness, StateVector seed)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(posedness);
+        ArgumentNullException.ThrowIfNull(seed);
+
+        var unknowns = SystemLayout.Build(graph, posedness.Counting);
+        var equations = EquationLayout.Build(graph, posedness);
+        var ports = PortMap.Build(graph);
+        var unknownScales = FluidScript.Core.Solvers.UnknownScales.Build(unknowns, seed);
+        var residualScales = FluidScript.Core.Solvers.ResidualScales.Build(
+            graph, equations, ports, unknownScales, unknowns);
+
+        var nodeOf = new int[graph.Components.Length];
+        var byComponent = new Dictionary<object, int>(graph.Nodes.Length, ReferenceEqualityComparer.Instance);
+
+        Array.Fill(nodeOf, -1);
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            byComponent[graph.Nodes[node].Component] = node;
+        }
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            if (byComponent.TryGetValue(graph.Components[element], out var node))
+            {
+                nodeOf[element] = node;
+            }
+        }
+
+        var energyRow = new int[graph.Nodes.Length];
+        var arriving = new ArrivingSource[graph.Components.Length][][];
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            if (graph.Components[element] is not CircuitNode node)
+            {
+                arriving[element] = [];
+                continue;
+            }
+
+            energyRow[nodeOf[element]] =
+                equations.Row(element, node.CarriesMassBalance ? 1 : 0);
+
+            arriving[element] = new ArrivingSource[node.Ports.Length][];
+
+            for (var port = 0; port < node.Ports.Length; port++)
+            {
+                arriving[element][port] = Sources(graph, ports, byComponent, element, port);
+            }
+        }
+
+        var stated = new List<(int, double)>(posedness.Counting.PressureNodes.Length);
+
+        foreach (var node in posedness.Counting.PressureNodes)
+        {
+            stated.Add((
+                byComponent[node.Component],
+                HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) ?? 0));
+        }
+
+        var datums = new List<int>(posedness.Counting.DatumComponents.Length);
+
+        foreach (var hydraulic in posedness.Counting.DatumComponents)
+        {
+            var datum = graph.Nodes.FirstOrDefault(candidate => candidate.Name == hydraulic.Datum);
+
+            datums.Add(datum is null ? -1 : byComponent[datum.Component]);
+        }
+
+        var links = posedness.Counting.IdealLinks
+            .Select(link => (byComponent[link.From.Component], byComponent[link.To.Component]))
+            .ToArray();
+
+        // Where each component's own unknowns sit, walked in the order WellPosedness gathered them --
+        // graph order over the non-node components. Two walks of one list, and they have to agree.
+        var owned = new (int Offset, int Count)[graph.Components.Length];
+        var running = 0;
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            if (graph.Components[element] is CircuitNode)
+            {
+                continue;
+            }
+
+            var count = graph.Components[element].DeclareUnknowns().Length;
+
+            owned[element] = (running, count);
+            running += count;
+        }
+
+        return new EquationSystem(
+            graph, unknowns, equations, ports, unknownScales, residualScales,
+            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned);
+    }
+
+    /// <summary>Evaluates every residual at one iterate, in SI.</summary>
+    /// <param name="x">The iterate, <see cref="Columns"/> long.</param>
+    /// <param name="residuals">Destination, <see cref="Rows"/> long.</param>
+    /// <returns>
+    /// <see langword="false"/> when a node's state left the property domain, naming it in
+    /// <see cref="OutOfDomainNode"/>; the residuals are then meaningless and the caller must shorten
+    /// its step rather than read them.
+    /// </returns>
+    /// <exception cref="ArgumentException">A span is the wrong length.</exception>
+    public bool TryEvaluateResiduals(ReadOnlySpan<double> x, Span<double> residuals)
+    {
+        if (x.Length != Columns)
+        {
+            throw new ArgumentException($"Expected {Columns} unknowns, got {x.Length}.", nameof(x));
+        }
+
+        if (residuals.Length != Rows)
+        {
+            throw new ArgumentException($"Expected {Rows} residuals, got {residuals.Length}.", nameof(residuals));
+        }
+
+        residuals.Clear();
+        OutOfDomainNode = -1;
+
+        if (!Refresh(x))
+        {
+            return false;
+        }
+
+        Array.Clear(_nodeInjection);
+
+        for (var element = 0; element < _graph.Components.Length; element++)
+        {
+            var component = _graph.Components[element];
+
+            if (!component.InjectsEnergy)
+            {
+                continue;
+            }
+
+            var ports = Fill(element, x);
+            var injection = _injectionScratch.AsSpan(0, ports);
+
+            component.EvaluateEnergyInjection(Context(element, ports, x), injection);
+
+            for (var port = 0; port < ports; port++)
+            {
+                var node = _ports[element, port].Node;
+
+                if (node >= 0)
+                {
+                    _nodeInjection[node] += injection[port];
+                }
+            }
+        }
+
+        for (var element = 0; element < _graph.Components.Length; element++)
+        {
+            var component = _graph.Components[element];
+            var ports = Fill(element, x);
+            var written = _residualScratch.AsSpan(0, component.EquationCount);
+
+            written.Clear();
+            component.EvaluateResiduals(Context(element, ports, x), written);
+
+            for (var local = 0; local < written.Length; local++)
+            {
+                var row = Equations.Row(element, local);
+
+                if (row >= 0)
+                {
+                    residuals[row] = written[local];
+                }
+            }
+        }
+
+        for (var node = 0; node < _graph.Nodes.Length; node++)
+        {
+            residuals[_energyRow[node]] += _nodeInjection[node];
+        }
+
+        var assembly = Equations.LinkOffset;
+
+        // D-25's zero-drop connection: two nodes with nothing between them are one pressure, and no
+        // component is there to say so.
+        foreach (var (from, to) in _links)
+        {
+            residuals[assembly++] = x[Unknowns.NodePressure(from)] - x[Unknowns.NodePressure(to)];
+        }
+
+        foreach (var (node, value) in _stated)
+        {
+            residuals[assembly++] = x[Unknowns.NodePressure(node)] - value;
+        }
+
+        foreach (var datum in _datums)
+        {
+            residuals[assembly++] = datum < 0 ? 0 : x[Unknowns.NodePressure(datum)];
+        }
+
+        return true;
+    }
+
+    /// <summary>Evaluates every residual and divides each by its own reference magnitude.</summary>
+    /// <param name="x">The iterate, <see cref="Columns"/> long.</param>
+    /// <param name="residuals">Destination, <see cref="Rows"/> long.</param>
+    /// <returns><see langword="false"/> when a node's state left the property domain.</returns>
+    /// <remarks>
+    /// This is the vector a convergence test may take a norm of. The unscaled one is what a message
+    /// quotes — "off by 4.2 kW" is only sayable in watts.
+    /// </remarks>
+    public bool TryEvaluateScaled(ReadOnlySpan<double> x, Span<double> residuals)
+    {
+        if (!TryEvaluateResiduals(x, residuals))
+        {
+            return false;
+        }
+
+        for (var row = 0; row < residuals.Length; row++)
+        {
+            residuals[row] /= ResidualScales[row];
+        }
+
+        return true;
+    }
+
+    /// <summary>Re-evaluates every node's fluid state at the current iterate.</summary>
+    /// <param name="x">The iterate.</param>
+    /// <returns><see langword="false"/> when one left the property domain.</returns>
+    private bool Refresh(ReadOnlySpan<double> x)
+    {
+        for (var node = 0; node < _graph.Nodes.Length; node++)
+        {
+            var state = _graph.Substance.FromPressureEnthalpy(
+                Quantity.FromSi(x[Unknowns.NodePressure(node)], Dimension.Pressure),
+                Quantity.FromSi(x[Unknowns.NodeEnthalpy(node)], Dimension.Enthalpy));
+
+            if (!state.TryGetValue(out var fluid))
+            {
+                OutOfDomainNode = node;
+                return false;
+            }
+
+            _nodeStates[node] = new PortState
+            {
+                Pressure = fluid.Pressure.SiValue,
+                Enthalpy = fluid.Enthalpy.SiValue,
+                Temperature = fluid.Temperature.SiValue,
+                Density = fluid.Density.SiValue,
+                SpecificHeat = fluid.SpecificHeat.SiValue,
+                DynamicViscosity = fluid.DynamicViscosity.SiValue,
+                ThermalConductivity = fluid.ThermalConductivity.SiValue,
+            };
+        }
+
+        return true;
+    }
+
+    /// <summary>Fills the scratch buffers with one component's port states and flows.</summary>
+    /// <param name="element">The component's index in the graph.</param>
+    /// <param name="x">The iterate.</param>
+    /// <returns>How many ports were filled.</returns>
+    private int Fill(int element, ReadOnlySpan<double> x)
+    {
+        var component = _graph.Components[element];
+        var node = _nodeOf[element];
+
+        for (var port = 0; port < component.Ports.Length; port++)
+        {
+            var binding = _ports[element, port];
+
+            _flowScratch[port] = binding.CarriesFlow
+                ? binding.Sign * x[Unknowns.BranchFlow(binding.Branch)]
+                : 0;
+
+            _portScratch[port] = node >= 0
+                ? _nodeStates[node] with { Enthalpy = Arriving(element, port, x, node) }
+                : binding.Node >= 0 ? _nodeStates[binding.Node] : Vacant;
+        }
+
+        if (node >= 0)
+        {
+            _ownScratch[CircuitNode.PressureIndex] = x[Unknowns.NodePressure(node)];
+            _ownScratch[CircuitNode.EnthalpyIndex] = x[Unknowns.NodeEnthalpy(node)];
+        }
+
+        return component.Ports.Length;
+    }
+
+    /// <summary>Builds the context over the buffers <see cref="Fill"/> just wrote.</summary>
+    /// <param name="element">The component's index in the graph.</param>
+    /// <param name="ports">How many ports it has.</param>
+    /// <param name="x">The iterate, which a component's own unknowns are sliced straight out of.</param>
+    /// <returns>The context.</returns>
+    /// <remarks>
+    /// A node's two unknowns are copied into a scratch pair because they are not adjacent in the state
+    /// vector — pressures and enthalpies are separate blocks, which is what gives the Jacobian its
+    /// structure. A component's own unknowns <em>are</em> adjacent, by construction, so they are a slice
+    /// of the iterate and cost nothing to pass (<c>D-74</c>).
+    /// </remarks>
+    private SolveContext Context(int element, int ports, ReadOnlySpan<double> x)
+    {
+        var unknowns = _nodeOf[element] >= 0
+            ? _ownScratch.AsSpan()
+            : x.Slice(Unknowns.ComponentUnknownOffset + _owned[element].Offset, _owned[element].Count);
+
+        return new SolveContext(
+            _graph.Substance, _portScratch.AsSpan(0, ports), _flowScratch.AsSpan(0, ports), unknowns);
+    }
+
+    /// <summary>The enthalpy arriving at one node port from whatever is attached to it.</summary>
+    /// <param name="element">The node's index in the graph.</param>
+    /// <param name="port">The port.</param>
+    /// <param name="x">The iterate.</param>
+    /// <param name="node">The node's own index.</param>
+    /// <returns>J/kg.</returns>
+    /// <remarks>
+    /// <para>
+    /// A node's port states belong to what is attached to it, and a node's energy balance reads them as
+    /// the enthalpy an inflow carries. Crossing a two-port flow group gives that unambiguously — it is
+    /// the node on the component's far side, and 68 of the corpus's 92 node ports are this case. A
+    /// junction element has no single far side, so the arriving enthalpy is the **inflow-weighted mix**
+    /// of the nodes at its other ports, which is what a mixing tee physically does.
+    /// </para>
+    /// <para>
+    /// The weights are <see cref="Smoothing.ForwardShare"/> rather than <c>max(0, ṁ)</c>, so the mix is
+    /// smooth through a reversal as <c>36</c> requires, and a small floor keeps the quotient defined
+    /// when every other port is an outflow — a state the junction's own mass balance forbids at the
+    /// solution but not on the path to it.
+    /// </para>
+    /// </remarks>
+    private double Arriving(int element, int port, ReadOnlySpan<double> x, int node)
+    {
+        var sources = _arriving[element][port];
+
+        if (sources.Length == 0)
+        {
+            return x[Unknowns.NodeEnthalpy(node)];
+        }
+
+        if (sources.Length == 1)
+        {
+            return x[Unknowns.NodeEnthalpy(sources[0].Node)];
+        }
+
+        var numerator = MixingFloor * x[Unknowns.NodeEnthalpy(node)];
+        var denominator = MixingFloor;
+
+        foreach (var source in sources)
+        {
+            var binding = _ports[source.Component, source.Port];
+            var inflow = binding.CarriesFlow
+                ? binding.Sign * x[Unknowns.BranchFlow(binding.Branch)]
+                : 0;
+
+            var weight = Smoothing.ForwardShare(inflow);
+
+            numerator += weight * x[Unknowns.NodeEnthalpy(source.Node)];
+            denominator += weight;
+        }
+
+        return numerator / denominator;
+    }
+
+    /// <summary>Which nodes can deliver enthalpy to one node port.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="ports">The port map.</param>
+    /// <param name="byComponent">Each node's index, by the component carrying its unknowns.</param>
+    /// <param name="element">The node's index in the graph.</param>
+    /// <param name="port">The port.</param>
+    /// <returns>One entry per node that can, empty when nothing is attached.</returns>
+    private static ArrivingSource[] Sources(
+        CircuitGraph graph,
+        PortMap ports,
+        Dictionary<object, int> byComponent,
+        int element,
+        int port)
+    {
+        var peer = graph.Adjacency.Peer(element, port);
+
+        if (!peer.Exists)
+        {
+            return [];
+        }
+
+        var attached = graph.Components[peer.Component];
+
+        if (byComponent.TryGetValue(attached, out var direct))
+        {
+            return [new ArrivingSource(direct, peer.Component, peer.Port)];
+        }
+
+        var groups = attached.FlowGroups;
+        var sources = new List<ArrivingSource>(groups.Length);
+
+        for (var candidate = 0; candidate < groups.Length; candidate++)
+        {
+            if (candidate == peer.Port || groups[candidate] != groups[peer.Port])
+            {
+                continue;
+            }
+
+            var far = ports[peer.Component, candidate].Node;
+
+            if (far >= 0)
+            {
+                sources.Add(new ArrivingSource(far, peer.Component, candidate));
+            }
+        }
+
+        return [.. sources];
+    }
+}

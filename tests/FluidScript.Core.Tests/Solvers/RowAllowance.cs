@@ -41,29 +41,4 @@ public static class RowAllowance
 
         return crossings.Values.Sum(static crossed => crossed - 1);
     }
-
-    /// <summary>How many energy rows a control volume owns that the counting table does not count.</summary>
-    /// <param name="graph">The lowered graph.</param>
-    /// <returns>The allowance, which is zero for every model without a tank (<c>S-16</c>).</returns>
-    /// <remarks>
-    /// <para>
-    /// <c>EnergyBalances</c> is <c>Nodes.Length</c>, so a component that is not a node and carries its own
-    /// enthalpy state is counted on neither side of the table: the tank declares one enthalpy unknown and
-    /// one energy balance, and the two cancel in <c>Excess</c> while both layouts allocate neither.
-    /// </para>
-    /// <para>
-    /// Computed rather than listed, for the same reason <see cref="CoupledCrossings"/> is: it goes to zero
-    /// the day the table models a component-owned unknown, and every test subtracting it fails until this
-    /// method is deleted.
-    /// </para>
-    /// </remarks>
-    public static int ControlVolumeRows(CircuitGraph graph)
-    {
-        ArgumentNullException.ThrowIfNull(graph);
-
-        return graph.Components
-            .Where(static component => component is not CircuitNode)
-            .Sum(static component => component.DeclareEquations()
-                .Count(static row => row.Kind == EquationKind.Energy));
-    }
 }

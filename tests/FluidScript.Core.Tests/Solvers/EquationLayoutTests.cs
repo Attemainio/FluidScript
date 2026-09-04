@@ -34,11 +34,7 @@ public sealed class EquationLayoutTests
         var (graph, posedness) = Lower(sample);
         var layout = EquationLayout.Build(graph, posedness);
 
-        Assert.Equal(
-            posedness.Counting.Equations
-            - RowAllowance.CoupledCrossings(graph)
-            + RowAllowance.ControlVolumeRows(graph),
-            layout.Count);
+        Assert.Equal(posedness.Counting.Equations - RowAllowance.CoupledCrossings(graph), layout.Count);
     }
 
     [Theory]
@@ -50,7 +46,7 @@ public sealed class EquationLayoutTests
         // FS2211's, and asserting anything about its shape here would be asserting about a diagnostic.
         var (graph, posedness) = Lower(sample);
         var counting = posedness.Counting;
-        var allowance = RowAllowance.CoupledCrossings(graph) + RowAllowance.ControlVolumeRows(graph);
+        var allowance = RowAllowance.CoupledCrossings(graph);
 
         Assert.SkipWhen(
             counting.Excess != 0 || counting.EnthalpyLevels != 0 || allowance != 0,

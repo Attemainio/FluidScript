@@ -3150,6 +3150,60 @@ cannot get from a font it may not have.
 [`59-static-export`](../50-frontend/59-static-export.md).
 
 
+## D-74 · A control volume owns its state, and the count models it
+
+**Accepted · 2026-09-04** · constrains `22`, `31`; resolves `S-16`, `C-43`; completes `D-69`
+
+**`IFlowComponent.DeclareUnknowns` shipped with the first component package and nothing ever called
+it.** `22` says a component may declare scalars the solver varies and that their index is "filled in by
+assembly"; four packages later, no assembly existed and the member was surface with nothing behind it.
+
+**Exactly one kind uses it, and the omission cancelled itself.** A tank declares one enthalpy unknown —
+its mixed state — and one energy balance. `CountingTable.EnergyBalances` is `Nodes.Length` and a tank is
+not a node, so the row went uncounted; there was no term for a component-owned scalar, so the column went
+uncounted too. `Excess` read zero, `FS2210` and `FS2211` stayed quiet, and every total agreed with every
+other total because **both sides were short by one**. That is worse than a wrong count: an error that
+cancels inside a number is invisible until something outside the number depends on it.
+
+**What made it visible was an assembler, and what it did was throw.** `Tank.EvaluateResiduals` reads
+`context.Unknowns[EnthalpyIndex]` at its first line. With nothing allocating that unknown the span is
+empty, and `m4-storage-header` — a shipped sample — died with `IndexOutOfRangeException` on the first
+attempt to evaluate it. So this stopped being a deferrable finding: a pipeline stage was throwing on
+legal input, which is the one thing none of them may do.
+
+**A control volume owns its state.** `CountingTable` gains `ComponentUnknowns`, named rather than counted
+for the same reason `FluxNodes` is — the layout has to allocate them and a count cannot say which — and
+`ControlVolumeBalances` on the equation side. `SystemLayout` allocates them immediately after the node
+enthalpies, because the only one v1 has *is* an enthalpy and the energy block stays contiguous.
+
+**The pair cancels by construction, and that is admitted rather than dressed up.** `FluxNodes` against
+`PressureNodes` cancels too, and there the separation earns its place: the two come from different
+conditions, so splitting them is what makes a pressure stated where no flux can enter come out as the
+over-specification it is. These two come from the same component, which is the only authority on what
+state it carries, so there is no second opinion to be had. They are counted because a table that does not
+describe the system it is checked against is worse than one whose terms agree for a dull reason.
+
+**This is not `D-69` reversed.** `D-69` moved *energy transfer* off components that were double-claiming
+a node's balance — an exchanger asserting the same relation as the node it discharges into. A tank is not
+transferring energy through a node; it **is** a node's worth of state that no node holds, with its own
+enthalpy and its own balance, and `D-32` already commits it to one state per layer in transient. Applying
+`D-69`'s treatment here would delete a state `P6.2` has to put back.
+
+**Rejected.**
+
+- *Give the tank `D-69`'s flux treatment: no unknown, no row, energy injected into the nodes it touches.*
+  Removes the term instead of counting it, and keeps the table smaller. Cost: a steady tank's mixed
+  enthalpy stops existing, so `layers=1` has nothing to be the fully mixed answer of, and `D-32`'s
+  stratified model has to reintroduce the state at `P6.2` along with everything built on its absence.
+- *Pass an empty span and let a component read its own stated parameters instead.* No table change at
+  all. Cost: it is what the code already did, and the answer it gives is a mixed enthalpy of zero — a
+  wrong number where a crash at least announced itself.
+
+**Constrains.** [`22-component-model`](../20-core-domain/22-component-model.md),
+[`31-solver-architecture`](../30-solver/31-solver-architecture.md).
+
+
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

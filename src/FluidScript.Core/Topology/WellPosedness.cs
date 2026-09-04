@@ -165,18 +165,43 @@ public static class WellPosedness
         }
 
         var relations = Relations(graph, out var links);
+        var owned = ImmutableArray.CreateBuilder<UnknownDeclaration>();
+        var volumes = 0;
+
+        // A control volume's own state, which only the component can name (`D-74`). Both terms are read
+        // from the component rather than derived, because it is the sole authority on what state it
+        // carries -- there is no independent count of a tank's mixed enthalpy to check this against.
+        foreach (var element in graph.Components)
+        {
+            if (element is CircuitNode)
+            {
+                continue;
+            }
+
+            owned.AddRange(element.DeclareUnknowns());
+
+            foreach (var equation in element.DeclareEquations())
+            {
+                if (equation.Kind is EquationKind.Energy)
+                {
+                    volumes++;
+                }
+            }
+        }
 
         return new CountingTable
         {
             BranchFlows = graph.Branches.Length,
             NodePressures = graph.Nodes.Length,
             NodeEnthalpies = graph.Nodes.Length,
+            ComponentUnknowns = owned.ToImmutable(),
             FluxNodes = fluxes.ToImmutable(),
             Promotions = promotions,
             PressureRelations = relations,
             IdealLinks = links,
             MassBalances = balances,
             EnergyBalances = graph.Nodes.Length,
+            ControlVolumeBalances = volumes,
             PressureNodes = pressures.ToImmutable(),
             Constraints = constraints,
             DatumComponents = datums.ToImmutable(),

@@ -324,6 +324,8 @@ public sealed class WellPosednessTests
             NodeEnthalpies = 2,
             FluxNodes = [Dummy("N1")],
             Promotions = [],
+            ComponentUnknowns = [],
+            ControlVolumeBalances = 0,
 
             // Zero, as a branch whose only component the catalogue could not resolve would leave it.
             PressureRelations = 0,

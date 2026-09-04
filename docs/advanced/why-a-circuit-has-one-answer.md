@@ -48,6 +48,13 @@ Most of the count is structural and you never influence it directly — one flow
 and a temperature per node, a pressure relation per component, a mass balance per junction. Those
 parts always balance. The parts that *don't* are the parts you write.
 
+**A tank counts as a state point of its own.** Everything else in a circuit is either a connection
+between nodes or a relation across one, and its temperature is a node's. A tank holds fluid, so it has
+a temperature nothing else can tell you — one more number to find, and one more energy balance to find
+it with. The two arrive together and the count still balances, exactly as the stated-value pairs below
+do. You do not have to do anything about it; it is here because a hand count of a circuit with a tank
+comes out one short otherwise.
+
 Here is the tutorial's cooling loop, counted in full:
 
 | The solver must find | | It has | |

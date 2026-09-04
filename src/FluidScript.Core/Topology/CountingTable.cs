@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using FluidScript.Core.Components;
 
 namespace FluidScript.Core.Topology;
 
@@ -104,6 +105,37 @@ public sealed record CountingTable
     /// <summary>Gets the sized parameters stated constraints turned into unknowns.</summary>
     public required ImmutableArray<Promotion> Promotions { get; init; }
 
+    /// <summary>Gets the scalars components declare as their own, in graph order.</summary>
+    /// <value>
+    /// A control volume's own state: a tank's mixed enthalpy is one, and in v1 it is the only one.
+    /// <para>
+    /// <strong>Named because the layout has to allocate them and only the component knows what they
+    /// are</strong> (<c>D-74</c>). <see cref="IFlowComponent.DeclareUnknowns"/> existed from the first
+    /// component package and nothing consumed it, so the tank's enthalpy was a column no state vector
+    /// held and a term this table did not count — and its energy balance was a row
+    /// <see cref="EnergyBalances"/> did not count either, because that is <c>Nodes.Length</c> and a tank
+    /// is not a node. The two omissions cancelled, <see cref="Excess"/> read zero, and the storage
+    /// header reported square while being a row and a column short of the system it would assemble
+    /// (<c>S-16</c>).
+    /// </para>
+    /// </value>
+    public required ImmutableArray<UnknownDeclaration> ComponentUnknowns { get; init; }
+
+    /// <summary>Gets the energy balances components own rather than nodes.</summary>
+    /// <value>
+    /// One per energy row a non-node component declares — the other half of <c>D-74</c>.
+    /// <para>
+    /// <strong>This term and <see cref="ComponentUnknowns"/> cancel by construction, and unlike
+    /// <see cref="FluxNodes"/> against <see cref="PressureNodes"/> that buys no diagnostic.</strong>
+    /// Those two come from different conditions, which is what makes their separation detect a pressure
+    /// stated where no flux can enter; these two come from the same component, which is the only
+    /// authority on its own state, so there is no second opinion to be had. They are counted anyway
+    /// because a table that does not describe the system it is checked against is worse than one whose
+    /// terms agree for a dull reason.
+    /// </para>
+    /// </value>
+    public required int ControlVolumeBalances { get; init; }
+
     /// <summary>Gets the pressure relations components impose between node pressures.</summary>
     /// <value>
     /// One per two-port flow group crossed, <c>k − 1</c> at a <c>k</c>-connected junction element, and
@@ -165,11 +197,13 @@ public sealed record CountingTable
 
     /// <summary>Gets the total number of unknowns.</summary>
     public int Unknowns =>
-        BranchFlows + NodePressures + NodeEnthalpies + ExternalFluxes + Promotions.Length + EnthalpyLevels;
+        BranchFlows + NodePressures + NodeEnthalpies + ComponentUnknowns.Length + ExternalFluxes
+        + Promotions.Length + EnthalpyLevels;
 
     /// <summary>Gets the total number of equations.</summary>
     public int Equations =>
-        PressureRelations + MassBalances + EnergyBalances + StatedPressures + Constraints.Length + Datums;
+        PressureRelations + MassBalances + EnergyBalances + ControlVolumeBalances + StatedPressures
+        + Constraints.Length + Datums;
 
     /// <summary>Gets how far the system is from square.</summary>
     /// <value>

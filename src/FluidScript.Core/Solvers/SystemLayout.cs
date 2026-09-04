@@ -36,6 +36,7 @@ public sealed class SystemLayout
         int branchFlowOffset,
         int nodePressureOffset,
         int nodeEnthalpyOffset,
+        int componentUnknownOffset,
         int externalFluxOffset,
         ImmutableArray<GraphNode> fluxNodes)
     {
@@ -43,6 +44,7 @@ public sealed class SystemLayout
         BranchFlowOffset = branchFlowOffset;
         NodePressureOffset = nodePressureOffset;
         NodeEnthalpyOffset = nodeEnthalpyOffset;
+        ComponentUnknownOffset = componentUnknownOffset;
         ExternalFluxOffset = externalFluxOffset;
         FluxNodes = fluxNodes;
     }
@@ -58,6 +60,14 @@ public sealed class SystemLayout
 
     /// <summary>Gets the index of the first node enthalpy.</summary>
     public int NodeEnthalpyOffset { get; }
+
+    /// <summary>Gets the index of the first unknown a component declared as its own.</summary>
+    /// <value>
+    /// Placed immediately after the node enthalpies rather than at the end, because the only one v1 has
+    /// <em>is</em> an enthalpy — a tank's mixed state — and putting it there keeps the energy block
+    /// contiguous, which is the whole reason the unknowns are grouped by kind (<c>D-74</c>).
+    /// </value>
+    public int ComponentUnknownOffset { get; }
 
     /// <summary>Gets the index of the first external mass flux.</summary>
     public int ExternalFluxOffset { get; }
@@ -90,7 +100,7 @@ public sealed class SystemLayout
         ArgumentNullException.ThrowIfNull(counting);
 
         var unknowns = ImmutableArray.CreateBuilder<UnknownDeclaration>(
-            graph.Branches.Length + (2 * graph.Nodes.Length)
+            graph.Branches.Length + (2 * graph.Nodes.Length) + counting.ComponentUnknowns.Length
             + counting.ExternalFluxes + counting.Promotions.Length);
 
         var branchFlows = 0;
@@ -121,6 +131,16 @@ public sealed class SystemLayout
                 unknowns.Count, UnknownKind.NodeEnthalpy, node.Name, $"{node.Name}.h", "J/kg"));
         }
 
+        // A control volume's own state. It has to be allocated by whoever allocates the rest, and only
+        // the component can say what it is -- which is why the table names these rather than counting
+        // them, and why nothing worked until it did (`S-16`, `D-74`).
+        var owned = unknowns.Count;
+
+        foreach (var declaration in counting.ComponentUnknowns)
+        {
+            unknowns.Add(declaration with { Index = unknowns.Count });
+        }
+
         var fluxes = unknowns.Count;
 
         foreach (var node in counting.FluxNodes)
@@ -145,7 +165,7 @@ public sealed class SystemLayout
         }
 
         return new SystemLayout(
-            unknowns.ToImmutable(), branchFlows, pressures, enthalpies, fluxes, counting.FluxNodes);
+            unknowns.ToImmutable(), branchFlows, pressures, enthalpies, owned, fluxes, counting.FluxNodes);
     }
 
     /// <summary>Finds the state-vector index of a branch's flow.</summary>
