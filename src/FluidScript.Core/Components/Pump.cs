@@ -161,6 +161,17 @@ public sealed class Pump : IFlowComponent
     /// <inheritdoc/>
     public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
 
+    /// <summary>The index of the shut-off head among this kind's resolvable parameters.</summary>
+    public const int HeadIndex = 0;
+
+    /// <inheritdoc/>
+    /// <value>
+    /// The shut-off head, named <c>head</c> because that is what the script writes and what a promotion
+    /// reports. A bare <c>head=</c> with no <c>flow=</c> beside it <em>is</em> the shut-off head
+    /// (<c>ComponentFactory</c>), so the two readings agree wherever both exist.
+    /// </value>
+    public ImmutableArray<ResolvedParameter> Resolvable => [new ResolvedParameter("head", ShutOffHead, "m")];
+
     /// <summary>The head this pump develops at a flow and its current speed.</summary>
     /// <param name="massFlow">kg/s.</param>
     /// <returns>m of the pumped fluid; negative past the curve's zero-head flow.</returns>
@@ -178,8 +189,22 @@ public sealed class Pump : IFlowComponent
     /// pump has to evaluate as a pure resistance, not as a non-finite residual.
     /// </para>
     /// </remarks>
-    public double Head(double massFlow) =>
-        (Speed * Speed * ShutOffHead) - (Curvature * massFlow * massFlow);
+    public double Head(double massFlow) => Head(massFlow, ShutOffHead);
+
+    /// <summary>The head this pump develops at a flow, against a shut-off head the solve chose.</summary>
+    /// <param name="massFlow">kg/s.</param>
+    /// <param name="shutOffHead">H₀, m — the promoted or sized value, not necessarily this pump's own.</param>
+    /// <returns>m of the pumped fluid; negative past the curve's zero-head flow.</returns>
+    /// <remarks>
+    /// <strong>The curvature is not scaled with it, and that is deliberate.</strong> Moving H₀ alone
+    /// shifts the curve vertically, which moves the loop's operating flow monotonically — exactly the
+    /// one-dimensional freedom a promoted constraint needs, and the shape a factory that saw a bare
+    /// <c>head=</c> with no <c>flow=</c> beside it built in the first place (a flat curve, k = 0).
+    /// Sizing that has a duty <em>point</em> rebuilds the pump through <see cref="CurveThrough"/>
+    /// instead, because two numbers do not fit through one parameter.
+    /// </remarks>
+    public double Head(double massFlow, double shutOffHead) =>
+        (Speed * Speed * shutOffHead) - (Curvature * massFlow * massFlow);
 
     /// <summary>The shaft power at a flow, given the solved pressure rise.</summary>
     /// <param name="massFlow">kg/s.</param>
@@ -200,6 +225,7 @@ public sealed class Pump : IFlowComponent
         var density = (context.Ports[0].Density + context.Ports[1].Density) / 2;
         var drop = context.Ports[0].Pressure - context.Ports[1].Pressure;
 
-        residuals[0] = drop + (density * Gravity * Head(context.Flows[0]));
+        residuals[0] = drop
+            + (density * Gravity * Head(context.Flows[0], context.Parameter(HeadIndex, ShutOffHead)));
     }
 }

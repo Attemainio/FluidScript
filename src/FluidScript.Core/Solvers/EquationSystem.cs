@@ -66,9 +66,20 @@ public sealed class EquationSystem
     private readonly (int From, int To)[] _links;
     private readonly (int Offset, int Count)[] _owned;
     private readonly (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] _fluxes;
+    private readonly double[][] _parameters;
+    private readonly (int Element, int Slot, int Column)[] _promoted;
+    private readonly Constraint[] _constraints;
 
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
+
+    /// <summary>One stated constraint, resolved to the node states its residual reads.</summary>
+    /// <param name="Row">The row it writes, or the row of one nothing resolved.</param>
+    /// <param name="Node">The node whose temperature it reads, or −1 when nothing resolved it.</param>
+    /// <param name="Reference">The node subtracted from it, or −1 for an absolute temperature.</param>
+    /// <param name="Target">K. An absolute temperature, or the magnitude of a difference.</param>
+    /// <param name="Sign">+1 where the difference is a rise across the component, −1 where it is a drop.</param>
+    private readonly record struct Constraint(int Row, int Node, int Reference, double Target, double Sign);
     private readonly PortState[] _portScratch;
     private readonly double[] _flowScratch;
     private readonly double[] _ownScratch;
@@ -89,7 +100,10 @@ public sealed class EquationSystem
         int[] datums,
         (int From, int To)[] links,
         (int Offset, int Count)[] owned,
-        (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] fluxes)
+        (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] fluxes,
+        double[][] parameters,
+        (int Element, int Slot, int Column)[] promoted,
+        Constraint[] constraints)
     {
         _graph = graph;
         _ports = ports;
@@ -101,6 +115,9 @@ public sealed class EquationSystem
         _links = links;
         _owned = owned;
         _fluxes = fluxes;
+        _parameters = parameters;
+        _promoted = promoted;
+        _constraints = constraints;
 
         Unknowns = unknowns;
         Equations = equations;
@@ -176,7 +193,9 @@ public sealed class EquationSystem
     /// </para>
     /// </value>
     public ImmutableArray<EquationDeclaration> Unevaluated =>
-        [.. Equations.Rows.Skip(Equations.ConstraintOffset)];
+        [.. Equations.Rows
+            .Skip(Equations.ConstraintOffset)
+            .Where((_, index) => _constraints[index].Node < 0)];
 
     /// <summary>Assembles the system of a lowered graph.</summary>
     /// <param name="graph">The lowered graph.</param>
@@ -328,9 +347,159 @@ public sealed class EquationSystem
                 known));
         }
 
+        // Every component gets a parameter buffer whether or not anything promotes into it, holding
+        // what it would have used itself. That is what lets a residual read `context.Parameter` with no
+        // idea whether the number came from the solve or from its own constructor.
+        var parameters = new double[graph.Components.Length][];
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            var resolvable = graph.Components[element].Resolvable;
+
+            parameters[element] = new double[resolvable.Length];
+
+            for (var slot = 0; slot < resolvable.Length; slot++)
+            {
+                parameters[element][slot] = resolvable[slot].Value;
+            }
+        }
+
+        var promoted = new List<(int Element, int Slot, int Column)>(posedness.Counting.Promotions.Length);
+
+        for (var index = 0; index < posedness.Counting.Promotions.Length; index++)
+        {
+            var promotion = posedness.Counting.Promotions[index];
+            var element = Array.FindIndex(
+                [.. graph.Components],
+                candidate => string.Equals(candidate.Name, promotion.Component, StringComparison.Ordinal));
+
+            if (element < 0)
+            {
+                continue;
+            }
+
+            var resolvable = graph.Components[element].Resolvable;
+
+            for (var slot = 0; slot < resolvable.Length; slot++)
+            {
+                if (string.Equals(resolvable[slot].Name, promotion.Parameter, StringComparison.Ordinal))
+                {
+                    promoted.Add((element, slot, unknowns.PromotionOffset + index));
+
+                    break;
+                }
+            }
+        }
+
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
-            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, [.. fluxes]);
+            nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, [.. fluxes],
+            parameters, [.. promoted], Constraints(graph, posedness, equations, ports, byComponent));
+    }
+
+    /// <summary>Resolves each stated constraint to the node states its residual reads.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="posedness">The counting table, whose constraint order the rows follow.</param>
+    /// <param name="equations">The row layout, for the offset the constraint block starts at.</param>
+    /// <param name="ports">Which node each component port attaches to.</param>
+    /// <param name="byComponent">Each node component's index among the graph's nodes.</param>
+    /// <returns>One entry per constraint, in row order; <c>Node</c> is −1 for one nothing resolved.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>Every constraint is a stated temperature, whatever <c>ConstraintKind</c> calls it.</strong>
+    /// The kind names what the statement <em>achieves</em> — <c>power</c> beside <c>out</c> determines a
+    /// flow — and the flow is determined through the node energy balances that already relate the two.
+    /// Writing a second, flow-shaped residual for it would need the duty and both terminal enthalpies as
+    /// constants, and a stated <c>out</c> alone supplies neither.
+    /// </para>
+    /// <para>
+    /// A parameter's name is its port's name (<c>in</c>, <c>out</c>, <c>in2</c>, <c>out2</c>), which is
+    /// why no kind-specific table appears here; <c>dt</c> and <c>dt2</c> are the difference across the
+    /// matching pair. <strong><c>dt</c> is a magnitude and <c>power</c> carries the sign</strong>
+    /// (<c>22</c>), so a consumer's residual reads <c>−(T_out − T_in) − dt</c> and a source's the other
+    /// way round; taking <c>|T_out − T_in|</c> instead would put a kink at the one place the solver
+    /// spends its time.
+    /// </para>
+    /// </remarks>
+    private static Constraint[] Constraints(
+        CircuitGraph graph,
+        WellPosednessResult posedness,
+        EquationLayout equations,
+        PortMap ports,
+        Dictionary<object, int> byComponent)
+    {
+        var resolved = new Constraint[posedness.Counting.Constraints.Length];
+
+        for (var index = 0; index < resolved.Length; index++)
+        {
+            var constraint = posedness.Counting.Constraints[index];
+            var row = equations.ConstraintOffset + index;
+            var target = 0.0;
+            var element = Array.FindIndex(
+                [.. graph.Components],
+                candidate => string.Equals(candidate.Name, constraint.Component, StringComparison.Ordinal));
+
+            resolved[index] = new Constraint(row, -1, -1, 0, 1);
+
+            if (element < 0
+                || HydraulicPartition.Stated(graph.Components[element], constraint.Parameter) is not { } stated)
+            {
+                continue;
+            }
+
+            target = stated;
+
+            if (graph.Components[element] is CircuitNode node)
+            {
+                resolved[index] = new Constraint(row, byComponent[node], -1, target, 1);
+
+                continue;
+            }
+
+            var difference = constraint.Parameter is "dt" or "dt2";
+            var suffix = constraint.Parameter.EndsWith('2') ? "2" : string.Empty;
+            var outlet = Attached(graph, ports, element, "out" + suffix);
+
+            if (!difference)
+            {
+                resolved[index] = new Constraint(
+                    row, Attached(graph, ports, element, constraint.Parameter), -1, target, 1);
+
+                continue;
+            }
+
+            var duty = HydraulicPartition.Stated(graph.Components[element], "power") ?? 0;
+
+            resolved[index] = new Constraint(
+                row,
+                outlet,
+                Attached(graph, ports, element, "in" + suffix),
+                target,
+                duty < 0 ? -1 : 1);
+        }
+
+        return resolved;
+    }
+
+    /// <summary>The node a named port of one component attaches to.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="ports">Which node each component port attaches to.</param>
+    /// <param name="element">The component's index in the graph.</param>
+    /// <param name="name">The port's name.</param>
+    /// <returns>The node's index among the graph's nodes, or −1 when the port has none.</returns>
+    private static int Attached(CircuitGraph graph, PortMap ports, int element, string name)
+    {
+        var declared = graph.Components[element].Ports;
+
+        for (var port = 0; port < declared.Length; port++)
+        {
+            if (string.Equals(declared[port].Name, name, StringComparison.Ordinal))
+            {
+                return ports[element, port].Node;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>Evaluates every residual at one iterate, in SI.</summary>
@@ -463,6 +632,13 @@ public sealed class EquationSystem
         residuals.Clear();
         Array.Clear(_nodeInjection);
 
+        // Promoted parameters, before anything reads one. A component's residual cannot tell a value
+        // the solver is varying from one its constructor chose, which is the point (`D-76`).
+        foreach (var (element, slot, column) in _promoted)
+        {
+            _parameters[element][slot] = x[column];
+        }
+
         for (var element = 0; element < _graph.Components.Length; element++)
         {
             var component = _graph.Components[element];
@@ -536,6 +712,20 @@ public sealed class EquationSystem
             {
                 residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
             }
+        }
+
+        // A stated temperature, held against the node it was stated about. The node states are current:
+        // every one of them was refreshed before this method ran, so this costs no property call.
+        foreach (var (row, node, reference, target, sign) in _constraints)
+        {
+            if (node < 0)
+            {
+                continue;
+            }
+
+            residuals[row] = reference < 0
+                ? _nodeStates[node].Temperature - target
+                : (sign * (_nodeStates[node].Temperature - _nodeStates[reference].Temperature)) - target;
         }
 
         var assembly = Equations.LinkOffset;
@@ -698,7 +888,11 @@ public sealed class EquationSystem
             : x.Slice(Unknowns.ComponentUnknownOffset + _owned[element].Offset, _owned[element].Count);
 
         return new SolveContext(
-            _graph.Substance, _portScratch.AsSpan(0, ports), _flowScratch.AsSpan(0, ports), unknowns);
+            _graph.Substance,
+            _portScratch.AsSpan(0, ports),
+            _flowScratch.AsSpan(0, ports),
+            unknowns,
+            _parameters[element]);
     }
 
     /// <summary>The enthalpy arriving at one node port from whatever is attached to it.</summary>

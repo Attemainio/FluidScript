@@ -73,6 +73,18 @@ public sealed record EquationDeclaration(
     string OwnerComponentId,
     string Name,
     string ResidualSiUnit);
+/// <summary>One parameter a component reads from the solve, and the value it holds now.</summary>
+/// <param name="Name">The canonical parameter name, spelled as the registry and a promotion spell it.</param>
+/// <param name="Value">
+/// What the component uses when nothing supplies one, in SI. The component's own stored value, so that
+/// filling a parameter buffer needs no knowledge of the kind.
+/// </param>
+/// <param name="SiUnit">
+/// The SI unit of the value, so a promoted column can say what its number means. A dimensionless
+/// parameter carries <c>"1"</c>; <c>kv</c> is <c>"m3/h"</c>, which is not SI and says so by being the
+/// one exception — a valve coefficient is defined by a standard's test rig and has no SI form.
+/// </param>
+public readonly record struct ResolvedParameter(string Name, double Value, string SiUnit);
 
 /// <summary>An attachment point carrying a fluid state and a flow.</summary>
 public sealed record Port
@@ -214,4 +226,28 @@ public interface IFlowComponent : IComponent
     /// </para>
     /// </remarks>
     void EvaluateEnergyInjection(in SolveContext context, Span<double> injection) => injection.Clear();
+
+    /// <summary>Gets the parameters this component will take from the solve rather than from itself.</summary>
+    /// <value>
+    /// One entry per parameter something outside the component may decide, in a fixed order that is
+    /// part of the contract — a residual reads them by index. Empty for a kind that decides everything
+    /// it needs, which is most of them. <c>Value</c> is what the component would use if nothing
+    /// supplied one, so a caller can fill a buffer without knowing the kind.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// <strong>Two things resolve these and they are the same mechanism</strong> (<c>D-02</c>). Sizing
+    /// chooses a value once per outer pass and it is a fixed coefficient for that solve; promotion
+    /// makes it a solver unknown that moves per iterate, when the script states a constraint the
+    /// circuit can only satisfy by moving it (<c>23</c>). Both arrive through
+    /// <see cref="SolveContext.Parameters"/>, because from inside a residual they are the same thing:
+    /// a number the component did not choose.
+    /// </para>
+    /// <para>
+    /// <strong>The component declares them because only the component knows</strong>, the same argument
+    /// as <see cref="FlowGroups"/>. Deriving "a pump's head is promotable" from a kind keyword outside
+    /// the component is the kind-specific table <c>D-30</c> exists to prevent.
+    /// </para>
+    /// </remarks>
+    ImmutableArray<ResolvedParameter> Resolvable => [];
 }

@@ -75,6 +75,13 @@ public sealed class SystemLayout
     /// <summary>Gets the nodes carrying an external mass flux, in the order their unknowns appear.</summary>
     public ImmutableArray<GraphNode> FluxNodes { get; }
 
+    /// <summary>Gets the index of the first promoted parameter.</summary>
+    /// <value>
+    /// The end of the flux block, since promotions are allocated last. A promotion's column is this
+    /// plus its position in <c>CountingTable.Promotions</c>.
+    /// </value>
+    public int PromotionOffset => ExternalFluxOffset + FluxNodes.Length;
+
     /// <summary>Gets how many unknowns the system has.</summary>
     public int Count => Unknowns.Length;
 
@@ -151,17 +158,26 @@ public sealed class SystemLayout
 
         foreach (var promotion in counting.Promotions)
         {
+            // The unit is the component's, because the component is the only thing that knows what its
+            // own parameter means (`D-30`). Reaching for the registry's dimension here would be a second
+            // table to keep in step with the first.
+            var owner = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, promotion.Component, StringComparison.Ordinal));
+
+            var unit = owner is null
+                ? string.Empty
+                : owner.Resolvable
+                    .FirstOrDefault(parameter =>
+                        string.Equals(parameter.Name, promotion.Parameter, StringComparison.Ordinal))
+                    .SiUnit ?? string.Empty;
+
             unknowns.Add(new UnknownDeclaration(
                 unknowns.Count,
                 UnknownKind.Parameter,
                 promotion.Component,
                 promotion.Label,
 
-                // A promoted parameter's dimension is the registry's, and the registry is tier 10's.
-                // The layout does not reach for it: this string is what a report prints beside a
-                // number, and an empty one is honest where a wrong unit would not be. P3.7 promotes
-                // these for real and fills it in.
-                string.Empty));
+                unit));
         }
 
         return new SystemLayout(

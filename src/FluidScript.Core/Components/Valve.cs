@@ -100,6 +100,24 @@ public sealed class Valve : IFlowComponent
     /// <inheritdoc/>
     public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
 
+    /// <summary>The index of <c>kv</c> among this kind's resolvable parameters.</summary>
+    public const int KvIndex = 0;
+
+    /// <summary>The index of <c>position</c> among this kind's resolvable parameters.</summary>
+    public const int PositionIndex = 1;
+
+    /// <inheritdoc/>
+    /// <value>
+    /// <c>kv</c>, which sizing chooses from the authority target, and <c>position</c>, which a
+    /// controller sets and which promotion moves when a stated temperature can only be met by
+    /// throttling.
+    /// </value>
+    public ImmutableArray<ResolvedParameter> Resolvable =>
+    [
+        new ResolvedParameter("kv", Kv, "m3/h"),
+        new ResolvedParameter("position", Position, "1"),
+    ];
+
     /// <inheritdoc/>
     public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
@@ -107,7 +125,11 @@ public sealed class Valve : IFlowComponent
         var density = (context.Ports[0].Density + context.Ports[1].Density) / 2;
 
         residuals[0] = context.Flows[0]
-            - ValveLaw.MassFlow(Kv * ValveLaw.Opening(Position, Characteristic), drop, density);
+            - ValveLaw.MassFlow(
+                context.Parameter(KvIndex, Kv)
+                    * ValveLaw.Opening(context.Parameter(PositionIndex, Position), Characteristic),
+                drop,
+                density);
     }
 }
 
@@ -256,6 +278,24 @@ public sealed class ThreeWayValve : IFlowComponent
     /// <inheritdoc/>
     public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
 
+    /// <summary>The index of <c>kv</c> among this kind's resolvable parameters.</summary>
+    public const int KvIndex = 0;
+
+    /// <summary>The index of <c>position</c> among this kind's resolvable parameters.</summary>
+    public const int PositionIndex = 1;
+
+    /// <inheritdoc/>
+    /// <value>
+    /// The same two a two-way valve offers, in the same order. <c>position</c> is the one a mixed
+    /// inlet temperature promotes (<c>23</c>): only the split can move it, and the bypass path reads
+    /// <c>1 - position</c> from the same number, so one unknown moves both legs.
+    /// </value>
+    public ImmutableArray<ResolvedParameter> Resolvable =>
+    [
+        new ResolvedParameter("kv", Kv, "m3/h"),
+        new ResolvedParameter("position", Position, "1"),
+    ];
+
     /// <inheritdoc/>
     /// <remarks>
     /// The bypass path takes the <em>complementary</em> opening: as <c>a-b</c> opens, <c>a-c</c>
@@ -267,8 +307,11 @@ public sealed class ThreeWayValve : IFlowComponent
         var common = context.Ports[0];
         var controlled = context.Ports[1];
 
+        var kv = context.Parameter(KvIndex, Kv);
+        var position = context.Parameter(PositionIndex, Position);
+
         var controlledPath = -context.Flows[1] - ValveLaw.MassFlow(
-            Kv * ValveLaw.Opening(Position, Characteristic),
+            kv * ValveLaw.Opening(position, Characteristic),
             common.Pressure - controlled.Pressure,
             (common.Density + controlled.Density) / 2);
 
@@ -284,7 +327,7 @@ public sealed class ThreeWayValve : IFlowComponent
         residuals[1] = controlledPath;
 
         residuals[2] = -context.Flows[2] - ValveLaw.MassFlow(
-            Kv * ValveLaw.Opening(1 - Position, Characteristic),
+            kv * ValveLaw.Opening(1 - position, Characteristic),
             common.Pressure - bypass.Pressure,
             (common.Density + bypass.Density) / 2);
     }

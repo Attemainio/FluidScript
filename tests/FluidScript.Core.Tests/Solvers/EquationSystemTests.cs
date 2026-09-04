@@ -39,7 +39,14 @@ public sealed class EquationSystemTests
         Assert.Equal(system.Equations.Count, system.Rows);
         Assert.Equal(system.Columns, system.UnknownScales.Length);
         Assert.Equal(system.Rows, system.ResidualScales.Length);
-        Assert.Equal(posedness.Counting.Constraints.Length, system.Unevaluated.Length);
+
+        // Every stated constraint carries a residual now, so nothing is left unevaluated -- and the
+        // assertion is the empty set rather than a count, because a count would keep passing if a
+        // constraint were dropped from the table and from the assembler together.
+        Assert.Empty(system.Unevaluated);
+        Assert.Equal(
+            posedness.Counting.Constraints.Length,
+            system.Rows - system.Equations.ConstraintOffset);
     }
 
     [Theory]

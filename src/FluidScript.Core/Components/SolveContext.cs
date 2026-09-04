@@ -95,11 +95,16 @@ public readonly ref struct SolveContext
     /// data the assertion depends on. Passing no states is therefore legal and means exactly that;
     /// passing some means passing all.
     /// </remarks>
+    /// <param name="parameters">
+    /// This component's resolvable parameter values, indexed as <c>Resolvable</c> declares them. Empty
+    /// where the caller has nothing to supply, which is the ordinary case for a unit test.
+    /// </param>
     public SolveContext(
         ISubstance substance,
         ReadOnlySpan<PortState> ports,
         ReadOnlySpan<double> flows,
-        ReadOnlySpan<double> unknowns = default)
+        ReadOnlySpan<double> unknowns = default,
+        ReadOnlySpan<double> parameters = default)
     {
         ArgumentNullException.ThrowIfNull(substance);
 
@@ -114,6 +119,7 @@ public readonly ref struct SolveContext
         Ports = ports;
         Flows = flows;
         Unknowns = unknowns;
+        Parameters = parameters;
     }
 
     /// <summary>Gets the working fluid of the circuit this component sits in.</summary>
@@ -159,4 +165,30 @@ public readonly ref struct SolveContext
     /// </para>
     /// </remarks>
     public bool HasPortStates => !Ports.IsEmpty;
+
+    /// <summary>Gets the values of the parameters this component reads from outside itself.</summary>
+    /// <value>
+    /// SI, indexed as <c>IFlowComponent.Resolvable</c> declares them, and empty where the caller
+    /// supplied none. Read it through <see cref="Parameter"/> rather than directly.
+    /// </value>
+    /// <remarks>
+    /// <strong>Separate from <see cref="Unknowns"/>, and the two must not be merged.</strong> A
+    /// component's own unknown is state it carries — a tank's mixed enthalpy — and exists whatever the
+    /// script says. A resolvable parameter is a coefficient somebody else decides: sizing, in the outer
+    /// loop, or promotion, per iterate (<c>D-02</c>). Putting a promoted pump head at index 1 of a
+    /// tank's unknowns would make a component's own indices depend on what the user wrote.
+    /// </remarks>
+    public ReadOnlySpan<double> Parameters { get; }
+
+    /// <summary>Reads one resolvable parameter, or the component's own value where none was supplied.</summary>
+    /// <param name="index">Its position in <c>IFlowComponent.Resolvable</c>.</param>
+    /// <param name="own">What to use when the caller supplied nothing — the component's stored value.</param>
+    /// <returns>The value in SI.</returns>
+    /// <remarks>
+    /// The fallback is what lets a residual be tested against a hand-built context with no parameter
+    /// buffer at all, and what lets a component whose parameter nothing promoted keep using its own.
+    /// One bounds check on the iteration path, and no branch a profiler will find.
+    /// </remarks>
+    public double Parameter(int index, double own) =>
+        index < Parameters.Length ? Parameters[index] : own;
 }

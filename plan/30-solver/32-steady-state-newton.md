@@ -143,7 +143,7 @@ any amount of damping.
 
 | Situation | Guess |
 |---|---|
-| First solve | From sizing: flows from stated duties, one pressure level, enthalpies from stated temperatures — and mass-consistent, which is the part that matters (below) |
+| First solve | From sizing: flows from stated duties, a stepped pressure and temperature field, enthalpies from stated temperatures — and mass-consistent, which is the part that matters (below) |
 | Re-solve after an edit | The previous solution ([`31`](31-solver-architecture.md)) |
 | Transient step | The previous frame |
 | After a failure | Retry once from the sizing seed rather than the last iterate — a diverged iterate is a worse starting point than a rough estimate |
@@ -185,12 +185,25 @@ appears in and its column is identically zero (`S-23`). That is the physics: sta
 steady temperature. It needs a modelling decision — refuse the graph, or close the node against its
 neighbour — and not a different starting point.
 
-Two of the seed's inputs are weaker than they read. Flow estimates come from stated duties and stated
-flows, spread across junctions by magnitude rather than by [`24`](../20-core-domain/24-auto-sizing.md)'s
-exact propagation (`C-44`), and every unstated branch falls back to a nominal 0.1 kg/s. Pressures take
-one level for the whole graph rather than being interpolated between references as the table above
-says, because pressure enters the momentum relations linearly and Newton reaches the true field from
-any level in its first step. Neither is a shortcut worth removing until something measures a cost.
+**Every difference a residual reads has to be non-zero, and that is the general form of the rule.**
+`S-21` is the flow case. Two more turned up the moment promoted parameters became real columns, and
+neither is about flow at all:
+
+| Uniform in the seed | What goes singular | Where it was measured |
+|---|---|---|
+| Pressure | `ṁ = Kv·f(x)·√(Δp·ρ)` has derivative zero in **`Kv`** and in **`position`** at `Δp = 0` | The cooling loop's promoted `3WV.position`, a column of zeros beside columns of O(1) |
+| Enthalpy | A node's `ṁ(h_arriving − h_own)` has derivative zero in **flow** at a uniform `h` | The simple loop, rank 11 of 12, null direction along `PU1.head` and the branch flow together |
+
+Both had an argument against them that sounded right and was not. Pressure *does* enter a momentum
+relation linearly, so Newton reaches the pressure field in one step from any level — and that says
+nothing about the columns which multiply `√Δp`. So the seed steps pressure and temperature along each
+branch, wrapped into a band of five steps so that a long branch cannot walk a state out of the fluid's
+validated range while adjacent nodes still differ (`S-25`).
+
+Flow estimates come from stated duties and stated flows, spread across junctions by magnitude rather
+than by [`24`](../20-core-domain/24-auto-sizing.md)'s exact propagation (`C-44`), and every unstated
+branch falls back to a nominal 0.1 kg/s. That one is a genuine weakness and costs iterations rather
+than correctness.
 
 ## Contracts
 

@@ -224,9 +224,17 @@ public sealed class EquationLayout
     /// <summary>The SI unit a stated constraint's residual is measured in.</summary>
     /// <param name="kind">What the constraint asks the circuit to do.</param>
     /// <returns>The unit, for a message that names a miss in the reader's own terms.</returns>
+    /// <remarks>
+    /// <strong>Kelvin for every kind, including <see cref="ConstraintKind.FixedFlow"/>, which read
+    /// kg/s until a residual existed to measure.</strong> That name describes what the constraint
+    /// <em>achieves</em> — <c>power</c> beside <c>out</c> determines a flow — and not what its residual
+    /// is. All three are written the same way, because all three are a stated temperature: the flow is
+    /// determined through the node energy balances that already relate the two, and asserting it a
+    /// second time in kg/s would need the duty and both terminal enthalpies as constants, which a
+    /// stated <c>out</c> alone does not supply.
+    /// </remarks>
     private static string Residual(ConstraintKind kind) => kind switch
     {
-        ConstraintKind.FixedFlow => "kg/s",
         _ => "K",
     };
 

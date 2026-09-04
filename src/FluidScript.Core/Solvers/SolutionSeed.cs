@@ -45,6 +45,30 @@ public static class SolutionSeed
     /// <value>K. 20 °C — room temperature, valid for every substance the catalogue carries.</value>
     public const double ReferenceTemperature = 293.15;
 
+    /// <summary>The pressure step the seed puts between one node and the next along a branch.</summary>
+    /// <value>
+    /// Pa. 10 kPa — a tenth of <c>Tolerances.PressureScale</c>, so a circuit of a dozen nodes stays
+    /// inside a plausible range while no two adjacent nodes agree. The magnitude is not a claim about
+    /// any circuit; being non-zero is the whole of it.
+    /// </value>
+    public const double NominalDrop = 1e4;
+
+    /// <summary>The temperature step the seed puts between one node and the next along a branch.</summary>
+    /// <value>
+    /// K. Two degrees — small enough that <see cref="Band"/> steps stay well inside any fluid's
+    /// validated range, large enough that an enthalpy difference is far from the noise floor of a
+    /// finite-difference derivative.
+    /// </value>
+    public const double NominalRise = 2;
+
+    /// <summary>How many steps the seed takes before wrapping back to the start of its band.</summary>
+    /// <value>
+    /// Five. A cumulative walk down a long branch leaves the fluid's validated range; wrapping bounds
+    /// the excursion at four steps while still giving every pair of adjacent nodes different values,
+    /// which is the only property the seed needs from this.
+    /// </value>
+    public const int Band = 5;
+
     /// <summary>Builds the starting iterate for a graph.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="layout">The state vector's layout, which fixes where each value goes.</param>
@@ -81,12 +105,19 @@ public static class SolutionSeed
     /// <param name="values">The iterate being built, written in place.</param>
     /// <remarks>
     /// <para>
-    /// <strong>One pressure level for the whole graph, and one temperature.</strong> Neither is
-    /// refined by a pressure-drop walk, and the reason is that it would not help: pressure enters the
-    /// momentum relations linearly, so Newton reaches the true field in the first step from any level,
-    /// while a walk needs the flows and the sizes that this seed exists to precede. Where the script
-    /// states a value, that value is used — it is both the better guess and the one the boundary row
-    /// will hold the solution to anyway.
+    /// <strong>One temperature level for the whole graph, and a stepped pressure field rather than a
+    /// level.</strong> The temperature needs no refinement: a stated value is used where the script
+    /// gives one, and nothing else in the seed reads a temperature difference.
+    /// </para>
+    /// <para>
+    /// <strong>A uniform field is a singular Jacobian, in pressure and in temperature alike</strong>
+    /// (<c>S-25</c>). A valve's law is <c>ṁ = Kv·f(x)·√(Δp·ρ)</c>, so at <c>Δp = 0</c> its derivative
+    /// with respect to <c>Kv</c> and to <c>position</c> is zero — the cooling loop's promoted
+    /// <c>3WV.position</c> was measured as a column of zeros. A node's energy balance carries
+    /// <c>ṁ(h_arriving − h_own)</c>, so at a uniform enthalpy its derivative with respect to <em>flow</em>
+    /// is zero, and the simple loop's promoted <c>PU1.head</c> came out of a rank-11 12×12 system for
+    /// that reason. Both are the same lesson as <c>S-21</c> one variable over: the seed must make every
+    /// difference a residual reads non-zero, not merely every value.
     /// </para>
     /// <para>
     /// A component's own state is seeded from its declared SI unit rather than from its kind
@@ -105,13 +136,17 @@ public static class SolutionSeed
 
         var level = pressures.Length > 0 ? pressures.Average() : Tolerances.PressureScale;
         var datum = Datum(graph);
+        var steps = Steps(graph);
 
         for (var index = 0; index < graph.Nodes.Length; index++)
         {
             var node = graph.Nodes[index];
-            var pressure = HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) ?? level;
-            var temperature =
-                HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature) ?? datum;
+
+            var pressure = HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure)
+                ?? level - (NominalDrop * steps[index]);
+
+            var temperature = HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature)
+                ?? datum - (NominalRise * steps[index]);
 
             values[layout.NodePressure(index)] = pressure;
             values[layout.NodeEnthalpy(index)] = Enthalpy(graph.Substance, pressure, temperature);
@@ -127,6 +162,58 @@ public static class SolutionSeed
                 _ => 0,
             };
         }
+    }
+
+    /// <summary>How many steps from its branch's start each node is, wrapped into a narrow band.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <returns>One step index per node, indexed as <c>graph.Nodes</c> is; zero at every branch end.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>What this exists to guarantee is that adjacent nodes differ</strong>, in pressure and in
+    /// temperature alike. Every residual the solver differentiates reads a <em>difference</em> across a
+    /// component — <c>√Δp</c> in a valve law, <c>ṁ(hᵢₙ − hₒᵤₜ)</c> in an energy balance — and a uniform
+    /// field makes the derivative with respect to the <em>other</em> variable vanish. That is how a
+    /// promoted <c>position</c> and a promoted <c>head</c> both came out singular on well-posed circuits
+    /// (<c>S-25</c>), one through pressure and one through enthalpy.
+    /// </para>
+    /// <para>
+    /// <strong>Wrapped rather than cumulative, and the wrap is what keeps it safe.</strong> A long
+    /// branch stepped monotonically would walk a seed out of the fluid's validated range — twenty nodes
+    /// at 10 kPa and 2 K a step is 200 kPa and 40 K from where it started, and either end of that is a
+    /// property call that fails. Consecutive indices still differ, which is the whole requirement, and
+    /// the excursion is bounded by <see cref="Band"/> steps whatever the circuit.
+    /// </para>
+    /// <para>
+    /// A branch end keeps step zero. It belongs to more than one branch and there is no walk position it
+    /// could take that both would agree on; a stated boundary is usually there anyway.
+    /// </para>
+    /// </remarks>
+    private static int[] Steps(CircuitGraph graph)
+    {
+        var steps = new int[graph.Nodes.Length];
+        var index = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            index[graph.Nodes[node].Component] = node;
+        }
+
+        foreach (var branch in graph.Branches)
+        {
+            var step = 0;
+
+            foreach (var part in branch.Path)
+            {
+                if (part is not CircuitNode || !index.TryGetValue(part, out var node))
+                {
+                    continue;
+                }
+
+                steps[node] = ++step % Band;
+            }
+        }
+
+        return steps;
     }
 
     /// <summary>The temperature every unstated node is seeded at.</summary>

@@ -3266,6 +3266,56 @@ than the table against itself, and none would have been found by any check inter
   consistent with each other. Cost: the table stops describing the system it is checked against, which
   is the exact condition `S-16` was, so the next term of this shape gets the same free pass.
 
+## D-76 · A component reads the parameters it did not choose through one channel
+
+**Accepted · 2026-09-04** · constrains `22`, `23`, `24`, `31`; completes `D-02`
+
+**`D-02` made every parameter optional and left two mechanisms to fill one in.** Sizing chooses a
+value between outer passes, and it is a fixed coefficient for that solve. Promotion (`23`) turns the
+same parameter into a *solver unknown* when the script states a constraint the circuit can only meet by
+moving it. `23` specified the second and `24` the first, and neither said how the number reaches the
+residual that has to use it.
+
+**It cannot reach it through the constructor, and that is not an implementation detail.** A promoted
+parameter changes on every Newton iteration; re-instantiating a component per iterate would allocate
+on the one path `22` forbids allocation on. `WellPosedness` was already promoting `PU1.head` and
+`3WV.position` into real columns — and `Pump.EvaluateResiduals` read `ShutOffHead` from its own field,
+so the column influenced nothing and every M2 circuit came back `FS3002`.
+
+**One channel serves both.** `IFlowComponent.Resolvable` names the parameters a kind will take from
+outside itself, in a fixed order, each with the value the component would otherwise use;
+`SolveContext.Parameters` carries the numbers, and `context.Parameter(index, own)` reads one with the
+component's own value as the fallback. From inside a residual the two mechanisms are the same thing —
+a number the component did not choose — so they are one mechanism.
+
+**The component declares them because only the component knows**, which is `FlowGroups`' argument
+again (`D-30`). "A pump's head is promotable" derived from a kind keyword outside the component is the
+kind-specific table that decision exists to prevent, and it would have to agree with the registry
+about spelling forever.
+
+**The fallback is what makes it testable.** A hand-built context supplies no parameter buffer at all,
+so `Parameter` returns the component's own value and a residual test written before any of this still
+passes unchanged — which is how the whole component suite survived the change untouched.
+
+**A pump's `head` is its shut-off head, and the two readings agree where both exist.** `ComponentFactory`
+already reads a bare `head=` with no `flow=` beside it as a shut-off head with a flat curve, so
+promotion moves H₀ with the curvature held. Moving H₀ alone shifts the curve vertically, which moves
+the operating flow monotonically — the one-dimensional freedom a constraint needs. Sizing that has a
+duty *point* rebuilds the pump instead, because two numbers do not fit through one parameter.
+
+**Rejected.**
+
+- *Put promoted parameters in `SolveContext.Unknowns` beside a component's own state.* No new member,
+  no new span. Cost: a tank's mixed enthalpy is at index 0 today; if a promotion could land at index 1
+  of the same span, a component's own indices would depend on what the user wrote. `D-74` made those
+  indices a contract.
+- *Re-instantiate the component from a sizing overlay each iterate.* Uniform with how sizing will feed
+  a two-number curve. Cost: an allocation per component per residual evaluation, on a path that runs
+  N+1 times per Newton iteration — `22`'s one hard performance rule.
+- *Have the assembler write into the component through a setter.* Smallest diff. Cost: a component
+  stops being immutable, so a solve is no longer a pure function of (graph, guess, settings) and
+  `31`'s invariant 6 goes with it.
+
 ## Open questions
 
 None. This document records decisions that are settled; an unsettled question belongs in the Open

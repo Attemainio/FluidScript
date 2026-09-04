@@ -165,6 +165,17 @@ public sealed class HeatExchanger : IFlowComponent
     /// <inheritdoc/>
     public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
 
+    /// <summary>The index of <c>power</c> among this kind's resolvable parameters.</summary>
+    public const int PowerIndex = 0;
+
+    /// <inheritdoc/>
+    /// <value>
+    /// The duty, W, signed: positive into the circuit. It is what a stated <c>out</c> promotes on an
+    /// exchanger whose <c>power</c> the script left free, which is the duty-follows-temperature reading
+    /// of a radiator sized to a room rather than to a number.
+    /// </value>
+    public ImmutableArray<ResolvedParameter> Resolvable => [new ResolvedParameter("power", Power, "W")];
+
     /// <inheritdoc/>
     /// <remarks>
     /// <para>
@@ -215,9 +226,10 @@ public sealed class HeatExchanger : IFlowComponent
         injection.Clear();
 
         var forward = Smoothing.ForwardShare(context.Flows[0]);
+        var duty = context.Parameter(PowerIndex, Power);
 
-        injection[0] = Power * (1 - forward);
-        injection[1] = Power * forward;
+        injection[0] = duty * (1 - forward);
+        injection[1] = duty * forward;
     }
 
     /// <summary>The flow a stated duty implies across a stated temperature rise.</summary>

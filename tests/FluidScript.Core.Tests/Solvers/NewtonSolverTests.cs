@@ -70,18 +70,44 @@ public sealed class NewtonSolverTests
     }
 
     [Fact]
-    public async Task AnUnevaluatedRowMakesTheJacobianSingularAndItSaysWhere()
+    public async Task TheSimpleLoopConvergesToTheFlowItsDutyImplies()
     {
-        // FS3002. The cooling loop states HE1 in and out, so two promotion pairings assemble with no
-        // residual behind them -- two columns nothing influences. That is exactly the shape a missing
-        // datum has, and the message names an unknown rather than a row index.
+        // The first circuit this project solves end to end, and the number is checkable by hand: 30 kW
+        // between 20 and 50 C is 0.2392 kg/s at water's own enthalpy table (24's worked example, step 1).
+        // Nothing states the flow -- PU1's head is promoted, the loop's pressure balance fixes the flow
+        // from the head, and the head is whatever makes HE1's outlet arrive at 50 C.
+        var system = Assemble("m2-simple-loop.fluid", out var seed);
+        var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Converged, $"{result.Termination}: {result.ResidualNorm:G3}");
+        Assert.InRange(result.Iterations, 1, 10);
+        Assert.Equal(0.2392, result.Solution.Values[system.Unknowns.BranchFlow(0)], 2);
+
+        // The promoted head is positive, which is the part a sign error would take out: a pump seeded at
+        // a shut-off head of zero has to be driven up, and a solve that drove it down would still balance
+        // the loop -- against a pump that consumes pressure.
+        Assert.True(
+            result.Solution.Values[system.Unknowns.PromotionOffset] > 0,
+            "PU1.head came back non-positive, so the loop is balanced by a pump running backwards.");
+    }
+
+    [Fact]
+    public async Task APromotedPositionRunsOutOfItsPhysicalRangeAndTheSolveSaysSo()
+    {
+        // S-26, recorded as a test rather than as a comment. `position` is a fraction and the solver has
+        // no idea: nothing bounds a promoted parameter, so the cooling loop's 3WV drives its split past
+        // 180 chasing a mixed inlet temperature the seeded field cannot deliver, and the Kv law's
+        // derivative collapses out there. The circuit is well-posed and square; what is missing is a box
+        // constraint, which belongs with the rest of P3.7's bounds handling.
+        //
+        // This test is the record of that, and it fails the day the bound lands -- which is the point.
         var system = Assemble("m2-cooling-loop.fluid", out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
 
         Assert.False(result.Converged);
         Assert.Equal(SolveTermination.Singular, result.Termination);
         Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "FS3002");
-        Assert.NotEmpty(system.Unevaluated);
+        Assert.Empty(system.Unevaluated);
     }
 
     [Fact]
