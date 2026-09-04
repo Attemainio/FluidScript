@@ -3030,6 +3030,126 @@ interface change.
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md), and `ComponentRegistry`.
 
 
+## D-71 · Layout is verified on the prepared scene, never on the SVG
+
+**Accepted · 2026-09-04** · constrains `53`, `59`, `62`; makes `PreparedScene` a specified structure
+
+**The diagram has to be checked, and the SVG is the wrong place to check it.** A placement reaches the
+DOM as `transform="translate(240,0)"` composed with the root Y-flip, a symbol's geometry lives inside a
+normalized unit box (`D-20`, `D-24`) that the renderer scales and rotates, and a route is a `d` string.
+Asking "do these two boxes overlap" of that requires the test to rebuild the renderer's own transform
+stack — a second implementation of the same arithmetic, which either repeats the renderer's mistake and
+agrees with it, or differs and fails on correct output. Neither outcome is a test.
+
+**The prepared scene is already the single artefact both drawing paths consume.** `53`'s invariant 6
+and `59`'s export contract make the canvas and the exporter serialize the same `PreparedScene`; there
+is deliberately no second drawing implementation. So predicates asserted on the scene cover the canvas
+and the export at once, and they run headlessly, in the same worker module that produced them, with no
+DOM, no font, and no browser.
+
+**This makes the scene a contract rather than an internal.** It must carry *resolved* geometry — symbol
+bounds after orientation, route polylines as point lists, port anchors as absolute points, label boxes
+(`D-73`) — because a predicate that has to re-derive geometry from a symbol id and a rotation is the
+second implementation again, one layer up. `53` specifies the structure.
+
+**The SVG tier survives, and shrinks to what only it can see.** One class of defect passes every scene
+predicate and still renders wrong: correct geometry pushed through a wrong transform — a Y-flip applied
+twice, a rotation about the box centre instead of the port anchor, a viewBox that clips. That is
+roughly eight assertions on parsed SVG for the reference circuits, not thirty, and it is the only thing
+the SVG tier is asked to prove.
+
+**Rejected.**
+
+- *Parse the emitted SVG and assert geometry on it.* One tier instead of three, and it tests the
+  artefact the user actually sees. Cost: the transform-stack reimplementation above; and a failure
+  localizes to "somewhere between hints and pixels", which is the entire pipeline, so every red test
+  starts with a bisection.
+- *Screenshot diffing as the primary gate.* Catches everything, including appearance. Cost: it says a
+  diagram changed and never why; it is brittle across font and renderer versions; and in practice
+  nobody reads a pixel diff of a 200-component drawing, so it degrades into a blanket re-baseline.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`59-static-export`](../50-frontend/59-static-export.md),
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md).
+
+
+## D-72 · Reflow repair is monotone and bounded
+
+**Accepted · 2026-09-04** · constrains `53`; completes `D-44`
+
+**Three hard constraints share one placement and the plan never argued they can be met together.**
+`53` makes non-overlap (invariant 3) hard, the corner rule (invariant 4a, `D-44`) hard with no
+cramped-layout exception, and placement byte-deterministic (invariant 1). Each conflict resolves to
+"reflow deterministically until clear", with no iteration bound and no statement of which rule yields.
+
+**They can undo each other.** Lengthening a run to move a component off a corner shifts everything
+downstream of it, which can open an overlap; widening spacing to close that overlap re-lengthens runs
+and can push a different component onto a corner. **Deterministic does not mean terminating** — a
+deterministic cycle is still a cycle, and the stated escape is `FS5002`, described as a *renderer
+invariant breach*. As written, the honest failure mode is the renderer reporting its own bug on a legal
+user script.
+
+**The repair is therefore defined as monotone in one scalar.** Every repair step strictly increases the
+scene's total run length, and both constraints are monotonically easier in that direction: symbols
+occupy fixed bounding boxes, so lengthening every run strictly increases the free straight-section
+length available to place them on, and never converts a straight section into a corner. The sequence
+therefore terminates, and the termination argument is a property of the measure rather than of any
+particular fixture.
+
+**A cap exists so that a wrong monotonicity proof fails loudly rather than hanging.** The iteration cap
+is `FS5002`'s trigger. It is a backstop, not a working limit: a test asserts that no sample, reference
+circuit, or supported-scale fixture consumes more than half of it, so the cap is proven slack rather
+than load-bearing. A fixture approaching the cap is a finding about the repair, not a fixture to
+enlarge the cap for.
+
+**Rejected.**
+
+- *Rank the rules and let the loser yield.* Simplest resolution — declare the corner rule advisory
+  under pressure. Cost: `D-44` already rejected exactly this, and for the stated reason: the soft
+  version holds until the first cramped layout and then stops holding, in precisely the dense diagrams
+  where legibility matters most.
+- *A fixed iteration count with no monotonicity argument.* Guarantees termination in one line. Cost: it
+  guarantees termination without guaranteeing a *result*, so the cap becomes load-bearing and `FS5002`
+  fires on ordinary scripts as density rises.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md).
+
+
+## D-73 · Label geometry comes from a declared metric table
+
+**Accepted · 2026-09-04** · constrains `53`, `55`, `59`; implements `55`'s font-independence rule
+
+**`55` already forbids what the obvious implementation does.** Its error table says that when the
+monospace stack falls back, *layout must not depend on a specific font's metrics*. Measuring a label by
+rendering it — `measureText`, or a DOM node — makes every placement a function of whichever font
+resolved on that machine, which breaks that rule, breaks `53`'s byte-determinism (invariant 1), and
+cannot run in the layout worker or in a headless test at all.
+
+**So the advance widths are declared data, per type-scale entry, and layout uses those.** A label's box
+is `advance × character count × size` from the table, and the real font is only ever required to *fit
+inside* the box the table reserved. A fallback font that is wider than the declared metric overflows
+its own box and nothing else moves — a legible degradation, and the only one available if placements
+are to be stable.
+
+**This is what makes label collision testable, and the export viewBox correct.** Label boxes become
+part of the prepared scene (`D-71`), so the label-disjointness predicates run headlessly like every
+other; and `59`'s "tight viewBox plus 5 % margin" needs label extents to be tight at all, which it
+cannot get from a font it may not have.
+
+**Rejected.**
+
+- *Measure text at render time and reflow.* Exact for the font actually in use. Cost: placements differ
+  per machine, the layout worker has no text-measurement API without a DOM, and the golden corpus
+  becomes unrunnable in CI.
+- *Reserve a generous fixed box per label.* No table to maintain. Cost: it wastes space in exactly the
+  dense diagrams where space is scarce, and a long tag still overflows, so the failure it was meant to
+  prevent survives.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md),
+[`55-design-system`](../50-frontend/55-design-system.md),
+[`59-static-export`](../50-frontend/59-static-export.md).
+
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

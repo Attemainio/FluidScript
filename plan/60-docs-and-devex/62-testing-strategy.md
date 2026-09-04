@@ -228,7 +228,97 @@ without them: the debounce actually in force, the server's compile time, and the
 serialize-plus-parse cost. They are diagnostic, not gates — `07` states which one governs.
 
 **The layout engine is unit-testable and must be**: given hints, assert placements. It is the most
-algorithmically complex frontend code and the least suited to visual-only testing.
+algorithmically complex frontend code and the least suited to visual-only testing. The section below
+states how.
+
+### Layout verification
+
+**The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
+string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a
+route is a `d` attribute; asking geometric questions of that requires the test to rebuild the
+renderer's own transform stack, which either repeats its mistake and agrees or differs and fails on
+correct output. The prepared scene ([`53`](../50-frontend/53-canvas-renderer.md)) is already the single
+artefact the canvas and the exporter both consume, it carries resolved geometry, and it builds
+headlessly — no DOM, no font, no browser.
+
+Four tiers, with the assertions concentrated in the first:
+
+| Tier | Input | Answers | Tool |
+|---|---|---|---|
+| 1 · Scene predicates | hints + graph → `PreparedScene` | Everything the layout engine decides | Vitest, headless |
+| 2 · SVG geometry | rendered SVG, six references | Only what tier 1 cannot express: transform composition, the Y-flip, port anchors landing where layout thought, DOM/navigation order, export-vs-canvas identity | Vitest + jsdom |
+| 3 · Screenshots | pixels, both themes | Stroke weights, fills, fonts, symbol shapes — appearance, not geometry | Playwright |
+| 4 · Golden corpus | committed scenes for the six references | "A designer would draw it this way", frozen after human sign-off | Byte comparison |
+
+**Tier 2 is deliberately small — roughly eight assertions.** It earns its place on exactly one class of
+defect: correct geometry pushed through a wrong transform, which passes every scene predicate and
+renders upside down. Every other question belongs one tier up, where a failure names the step instead
+of the pipeline.
+
+**Tier 3 stays small for the opposite reason.** A pixel diff says a diagram changed and never why, and
+nobody reads one for a 200-component drawing; left as the primary gate it degrades into a blanket
+re-baseline.
+
+#### The predicate sweep
+
+One loop: every predicate against every fixture. Adding a fixture tests it against all sixteen
+predicates, and adding a predicate applies it to every fixture already there — which is what makes this
+a sweep rather than a list of per-sample expectations that grows one assertion at a time.
+
+| # | Predicate | Enforces |
+|---|---|---|
+| L1 | The scene is byte-identical across 100 builds for one graph, hints and spacing | `53` inv 1, 10 |
+| L2 | Drawn edges are a bijection with graph edges, compared **port for port** | inv 4c |
+| L3 | Symbol bounding boxes pairwise disjoint after mandatory collapse | inv 3 |
+| L4 | Label boxes disjoint from each other, from non-owner symbols, and from non-leader routes | inv 3a |
+| L5 | No placement contains a corner, computed **per point**: two incident run-ends on different axes | inv 4a, `D-44` |
+| L6 | Every junction element sits at its junction | inv 4b |
+| L7 | Segments axis-aligned; none zero-length or reversing; bends within preference; length within its factor of Manhattan distance | inv 4e |
+| L8 | `metrics.symbolCrossings` zero on samples and references | inv 3b |
+| L9 | Components on a run in traversal order, none drawn between two directly connected | inv 4d |
+| L10 | Every component's orientation matches its kind's rule | inv 8 |
+| L11 | Every arrow agrees with the sign of the solved flow | inv 9 |
+| L12 | Every route endpoint coincides exactly with its port's anchor | inv 4 |
+| L13 | Thermal-stage bands at monotonically increasing X, ranks consumed unchanged | `D-31` |
+| L14 | Two spacing values change placements and change nothing Core computes | inv 1b, `D-37` |
+| L15 | No DOM key, selection key, or export id contains an equipment tag | inv 1c, `D-34` |
+| L16 | `metrics.reflowIterations` under half of `D-72`'s cap | `D-72` |
+
+**L2 is the one to keep if only one survives.** Every other predicate protects legibility; L2 protects
+correctness, and its breach is the only one on this list that a reader cannot see. A scene can be
+disjoint, corner-free, deterministic and beautifully routed while connecting the wrong ports.
+
+**Fixtures.** The six reference circuits; every sample script; the supported 200-component fixture; a
+crowded fixture built to force reflow; an explicitly over-limit fixture. Plus **corpus mutation over
+the sample scripts** — the same argument this document already makes for the parser fuzz applies here:
+mutations of real scripts produce near-valid topologies, which is where a layout engine breaks, and a
+pure random graph generator produces shapes no plant has.
+
+Cost is not a concern at this scale. 200 components is 19,900 symbol pairs, and roughly 250 routes of
+four segments against 200 boxes is about 200,000 segment-box tests — naive `O(n²)` in JavaScript, well
+under a second. No spatial index.
+
+#### Metrics, which are trended rather than gated
+
+`SceneMetrics` records per fixture and is committed: `symbolCrossings`, `routeCrossings`,
+`labelCollisions`, `reflowIterations`, `routeLengthRatio`, `areaUtilisation`, `aspectRatio`. Three of
+those have hard limits in `53`'s invariants; the rest have none and are not meant to.
+
+**This is the part that answers "is the diagram any good", and the honest answer is that it cannot be
+asserted.** What can be done is to make degradation visible: a refactor that raises mean route length
+by 40 % or drops area utilisation by half has made every diagram worse, breaks no invariant, and shows
+up as a committed number moving. Nobody diffs screenshots; everybody notices a number.
+
+#### The golden corpus, and the human in it
+
+Predicates reach what can be named. "A designer would not draw it that way" cannot be named, and it is
+the failure that makes a generated diagram look generated.
+
+So the six reference circuits' prepared scenes are rendered, **looked at once by a person**, and
+committed as goldens; thereafter they are guarded byte for byte and a legitimate change requires a
+fresh look rather than a re-baseline. That review is a scheduled step in P5.7, not an informal one —
+it is the only instrument that reaches the undecidable half, and it costs an afternoon at the single
+moment when it is cheap.
 
 The storage-header layout fixture asserts source/storage/consumer X bands, parallel stacking, tank
 port elevation anchors, and stable placement across reversed transient flows. A screenshot alone is
@@ -385,6 +475,14 @@ prove one of the three.
 - [ ] Every diagnostic code has a triggering test.
 - [ ] The fuzz corpus produces no exception from any pipeline stage.
 - [ ] The end-to-end write-back test passes in Playwright.
+- [ ] All sixteen layout predicates run against every fixture in the sweep, and adding a fixture
+      requires no new assertion.
+- [ ] The prepared scene builds with no DOM, no font and no browser, and is byte-identical across 100
+      builds (`D-71`).
+- [ ] `SceneMetrics` is recorded and committed per fixture, and a deliberate layout regression that
+      breaks no invariant is visible as a metric moving.
+- [ ] The six reference goldens are signed off by a person before they are committed, and a change to
+      any of them fails until re-reviewed.
 - [ ] No test performs network I/O — asserted by running with networking disabled.
 - [ ] Golden files exist for every sample's parse tree, printer output, model contract, and diagnostics.
 - [ ] All `07` resource/performance boundaries and stop conditions have boundary or fault-injection tests.

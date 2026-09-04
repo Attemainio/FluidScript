@@ -44,8 +44,11 @@ export interface PngExportOptions extends SvgExportOptions {
 }
 ```
 
-Export uses a frozen `PreparedScene` containing model contract, computed placements, routes,
-styles, visualization, and export timestamp. It clones/reconstructs SVG from the generic declarative
+Export uses a frozen `PreparedScene` containing model contract, computed placements, routes, labels,
+styles, visualization, and export timestamp. Its geometric structure is specified by
+[`53-canvas-renderer`](53-canvas-renderer.md) and cited here, not restated: `D-71` makes the scene the
+verification target for both drawing paths, so the predicates that guard the canvas guard the export
+with no export-side geometry test to write. It clones/reconstructs SVG from the generic declarative
 symbol interpreter, inlines styles, embeds fonts or paths, sets a tight viewBox plus 5% margin, and
 includes `<title>`/`<desc>`. PNG rasterizes that exact SVG; it has no separate drawing path.
 
@@ -80,6 +83,9 @@ for no reason", and it is the reason tags may be exported at all. It does not em
 6. Export work may run in a worker, but its source scene is immutable and identified by source hash.
 7. Export preserves the scene's left-to-right thermal stages and real per-connection fluid arrows; it
    never mirrors a return branch merely to make every arrow point right (`D-31`).
+8. The exported geometry is the scene's geometry: every symbol origin, port anchor, route point and
+   label box in the file is the value the scene carried. Export invents no placement and adjusts none,
+   which is what lets `53`'s predicate sweep stand as the export's geometric test (`D-71`).
 
 ## Error cases
 
@@ -109,6 +115,8 @@ the same SVG rasterized at 300 dpi produces the PNG.
 - [ ] `<title>`/`<desc>` pass screen-reader inspection and carry all required provenance.
 - [ ] The canvas and exporter consume one symbol-definition golden set; no TypeScript kind-specific
       drawing implementation exists.
+- [ ] Every symbol origin, port anchor, route point and label box parsed back out of an exported SVG
+      equals the prepared scene's value for it, for each of the six reference circuits.
 - [ ] Cooling-loop, substation, storage-header, and multi-conversion goldens preserve the prepared
       scene's stage ranks and per-connection arrows exactly; export performs no thermal reranking.
 - [ ] Unsolved, oversized, missing-font, missing-symbol, and failed-download cases match the table.

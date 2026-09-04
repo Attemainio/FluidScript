@@ -293,6 +293,14 @@ unit-tested on placements before it is attached to a canvas;
 [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md) is explicit that a screenshot
 alone cannot test it.
 
+**P5.7 ships the prepared scene and its predicate sweep together, because the sweep is what makes the
+engine reviewable at all.** `D-71` makes the scene a specified structure and the verification target,
+so the sixteen predicates in `62` are written against it before the canvas consumes it — the same
+order P5.1 uses for the model contract. Two of the package's exits are unusual and deliberate: the
+reflow repair must state `D-72`'s monotonicity argument rather than rely on determinism, and **a person
+looks at the six reference diagrams once and signs the golden corpus off**. That review is the only
+instrument that reaches "a designer would not draw it that way", and it is cheap exactly once.
+
 ### P6 — M4: make it move
 
 | # | Package |

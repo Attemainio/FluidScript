@@ -195,6 +195,14 @@ it cannot distinguish is a valid component kind from an invalid one, and the squ
 | Canvas label | same | 11 px | 500 |
 | Numeric readout | the monospace stack, **tabular figures** | 12 px | 400 |
 
+**The two canvas roles carry a declared advance-width metric, and layout uses it (`D-73`).** The
+error table below already forbids layout depending on a specific font's metrics; measuring a label by
+rendering it is exactly that dependency, and it is also unavailable in the layout worker, which has no
+DOM. So `Canvas label` and `Numeric readout` each publish an advance width per character at their
+stated size, a label's box is `advance x characters x size`, and the resolved font is only required to
+*fit inside* the box the table reserved. A wider fallback overflows its own box and moves no placement
+— the only degradation available if a diagram is to be identical on two machines.
+
 **Tabular figures on every numeric readout.** Values that update 600 times a second during playback
 must not shift horizontally as digits change width — the jitter is small and deeply distracting.
 The value/unit text itself uses `D-14`'s dimension-wide display unit; this document styles it but never
@@ -284,6 +292,8 @@ lightness requirement expressed in kilobytes.
 5. Theme switching requires no reload and loses no state.
 6. Canvas geometry never animates.
 7. Every numeric readout uses tabular figures.
+8. Canvas label geometry comes from the declared advance-width metric, never from measuring rendered
+   text (`D-73`). No placement is a function of which font resolved.
 
 ## Error cases
 
@@ -350,6 +360,8 @@ which is the split this document exists to hold.
       equivalent tokens.
 - [ ] Theme switching loses no editor or canvas state.
 - [ ] Numeric readouts do not shift horizontally during playback.
+- [ ] Forcing the monospace and UI stacks to a deliberately wider fallback changes no placement in any
+      prepared scene; the affected labels overflow their own reserved boxes and nothing else moves.
 - [ ] A malformed custom theme leaves the current theme intact.
 - [ ] Solved temperature colouring is on by default, can be disabled without changing the script, and
       uses a text/legend cue so changing colour cannot be mistaken for topology instability.

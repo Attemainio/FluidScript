@@ -3,7 +3,7 @@ id: 53-canvas-renderer
 title: Canvas renderer
 tier: 50-frontend
 status: reviewed
-owns: [SVG canvas rendering, viewport, layout engine and its two modes, routing, declarative-symbol interpretation, axes, component spacing]
+owns: [SVG canvas rendering, viewport, layout engine and its two modes, routing, the prepared scene, label geometry, declarative-symbol interpretation, axes, component spacing]
 depends_on: [25-layout-hints, 26-model-contract, 51-frontend-architecture]
 traces_to: [R-22, R-23, R-27, R-34, R-37, R-41, R-42, R-44, R-45, R-46, R-47, R-48]
 open_questions: 0
@@ -229,6 +229,16 @@ connections genuinely meet is a junction for the same reason.
 So: **corners carry nothing; junctions carry their junction element; straight runs carry everything
 else.**
 
+**A corner is a property of a point, not of a route, and the difference is exactly the junction case.**
+Collect every run-end incident at a point: two ends on different axes is a corner; three or more ends
+is a junction, whatever their directions. Walking each *route's* own direction changes instead —
+the phrasing this document's acceptance criterion carried through review pass 6 — is wrong in both
+directions. It under-detects where a branch tees off with a bend that no single route contains, and it
+over-detects where a route bends at a junction, which `D-44` explicitly permits. The worked example's
+`N2` sits on that boundary: `N1` west, recirculation south, `PU1` east is three incident ends and so a
+junction, while the per-route reading of the same point depends on which route is walked. The predicate
+is computed per point.
+
 **When it cannot be satisfied, the layout reflows — it does not compromise.** A placement that would
 land a component on a corner lengthens the affected run and re-runs steps 7–9, deterministically, the
 same machinery overlap resolution already uses. Exhausting that is a renderer invariant failure
@@ -238,6 +248,18 @@ reported as one (`FS5002`), never a diagram with a pump in an elbow.
 cramped layout and then stops holding, in exactly the dense diagrams where legibility matters most.
 And the rule is not only aesthetic — nobody welds an elbow into a pump casing, so a diagram that does
 depicts an installation that cannot be built.
+
+**The reflow terminates because it is monotone, not because it is deterministic (`D-72`).** Non-overlap
+and the corner rule are both hard, and their repairs can undo each other: lengthening a run to clear a
+corner shifts everything downstream of it and can open an overlap, while widening spacing to close that
+overlap re-lengthens runs and can push another component onto a corner. A deterministic cycle is still
+a cycle. So every repair step strictly increases the scene's total run length, and both constraints are
+monotonically easier in that direction — symbols occupy fixed bounding boxes, so lengthening every run
+strictly increases the straight-section length available to place them on and never converts a straight
+section into a corner. `FS5002` fires at an iteration cap that is a backstop for a wrong monotonicity
+argument, never a working limit: no sample, reference circuit, or supported-scale fixture may consume
+more than half of it, and one that does is a finding about the repair rather than a reason to raise the
+cap.
 
 **This is not cosmetic.** A symbol at a corner has one port on each of two perpendicular runs, so its
 own geometry has to absorb a 90° turn: the exchanger's two passes stop being parallel, the pump's
@@ -269,6 +291,105 @@ passes only because spacing never reached the frontend at all.
 
 That pair is the enforcement of `D-03` from this side: spacing crosses Core as opaque presentation and
 influences nothing Core decides.
+
+### Label geometry
+
+Every symbol carries its tag as drawn text (`D-34`), and at 200 components the label layer holds more
+boxes than the symbol layer does. Labels are laid out, spaced and asserted on exactly as symbols are;
+a diagram whose symbols are disjoint and whose labels overlap each other is the ordinary way a
+generated P&I drawing becomes unreadable.
+
+**A label's box comes from a declared advance-width table, never from measuring the rendered text
+(`D-73`).** [`55-design-system`](55-design-system.md) already forbids layout depending on a specific
+font's metrics, and `measureText` would break that, break invariant 1's byte-determinism, and be
+unavailable in the layout worker and in a headless test alike. The box is `advance x characters x size`
+from the table for that type-scale entry; the resolved font is only required to *fit inside* it. A
+wider fallback overflows its own reserved box and moves nothing else, which is the only degradation
+available if placements are to be stable across machines.
+
+Labels are placed on the side of their owner away from the run it sits on, and displaced along the run
+when that would collide. A label that cannot be placed clear takes a leader line to its owner rather
+than being dropped: a symbol whose tag is invisible is worse than a slightly busier diagram, because
+the tag is what a reader matches against the equipment schedule.
+
+### The prepared scene
+
+The layout engine's output, and the artefact everything downstream consumes: the canvas draws it, the
+exporter serializes it ([`59-static-export`](59-static-export.md)), and every layout predicate in
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md) asserts on it. **`D-71` makes it
+the verification target instead of the SVG**, which means it is a specified structure rather than an
+internal, and that it carries *resolved* geometry — a predicate that has to re-derive a bounding box
+from a symbol id and a rotation would be a second implementation of the renderer's arithmetic, which is
+the thing `D-71` exists to avoid.
+
+```typescript
+export interface PreparedScene {
+  readonly sourceHash: string;
+  readonly topologyHash: string;          // what layout.worker keys on (invariant 2)
+  readonly bounds: Box;                   // world units, Y up
+  readonly symbols: readonly PreparedSymbol[];
+  readonly routes: readonly PreparedRoute[];
+  readonly labels: readonly PreparedLabel[];
+  readonly degraded: boolean;             // set only with FS5001
+  readonly metrics: SceneMetrics;
+}
+
+export interface PreparedSymbol {
+  readonly id: string;                    // stable id, never a tag (D-34)
+  readonly kind: string;
+  readonly definition: string;            // SymbolDefinition id (D-24)
+  readonly origin: Point;
+  readonly orientation: "north" | "east" | "south" | "west";
+  readonly bounds: Box;                   // after orientation, world units
+  readonly ports: readonly PreparedPort[];
+  readonly junction: boolean;             // a flow group of three or more ports
+  readonly inferred: boolean;
+}
+
+export interface PreparedPort {
+  readonly name: string;
+  readonly anchor: Point;                 // absolute, world units
+  readonly side: "north" | "east" | "south" | "west";
+}
+
+export interface PreparedRoute {
+  readonly id: string;
+  readonly from: PortId;                  // component id plus port name
+  readonly to: PortId;
+  readonly points: readonly Point[];      // polyline; every segment axis-aligned
+  readonly arrow: "forward" | "reverse" | "none";
+}
+
+export interface PreparedLabel {
+  readonly ownerId: string;
+  readonly text: string;
+  readonly bounds: Box;                   // from the declared metric table (D-73)
+  readonly leader?: readonly Point[];
+}
+
+export interface SceneMetrics {
+  readonly symbolCrossings: number;       // route segments crossing a symbol box
+  readonly routeCrossings: number;        // route/route crossings, drawn as hops
+  readonly labelCollisions: number;
+  readonly reflowIterations: number;      // against D-72's cap
+  readonly routeLengthRatio: number;      // route length over Manhattan distance
+  readonly areaUtilisation: number;       // symbol area over scene-bounds area
+  readonly aspectRatio: number;
+}
+```
+
+The state, style and provenance payload the scene also carries is
+[`57-state-visualization`](57-state-visualization.md)'s and `59`'s, cited here rather than restated;
+what this document specifies is the geometry, because that is what the layout engine decides.
+
+**`metrics` is not a gate.** `labelCollisions`, `symbolCrossings` and `reflowIterations` have hard
+limits stated in the invariants below; the rest are recorded per fixture and trended. A number that
+moves is how a refactor that quietly degrades the diagram becomes visible, which no screenshot review
+achieves in practice.
+
+**Routes are port-to-port, and that is load-bearing.** `from` and `to` name a port, not a component,
+because a route landing on `3WV.b` where the graph says `3WV.c` draws a bypass as a through-leg — a
+diagram that satisfies every geometric predicate and depicts a plant nobody described.
 
 `D-31` makes step 1 normative. Cooling/source circuits occupy the left, conversion and storage the
 middle, and radiator/AHU heating networks the right. Multiple sources and multiple consumers stack
@@ -373,16 +494,43 @@ first impression a user forms.
 2. Layout runs only on a topology change, never on a value change.
 3. No symbol overlaps another for a model inside `07`'s supported scale after mandatory initial
    collapse has been applied.
+3a. No label box overlaps another label box, any symbol but its own owner, or any route but its own
+   leader, at supported scale. Label boxes come from the declared metric table (`D-73`), so this is a
+   property of the scene rather than of the machine rendering it.
+3b. **No route segment crosses a symbol on any sample or reference circuit** — `metrics.symbolCrossings`
+   is zero there. The error-case fallback below stays available for genuinely hard geometry, but a
+   reference circuit reaching it is a layout failure, not a permitted imperfection: with no counted
+   budget, "crossing is acceptable" licenses a diagram that routes through forty symbols and still
+   satisfies every other invariant.
 4. Every connection route starts and ends at a port anchor.
 4a. **No component of any kind is placed at a corner** — a direction change with no branch (`D-44`).
    There is no exception for nodes, for inferred components, or for a layout that has run out of room.
 4b. A junction element (a flow group of three or more ports) is placed *at* its junction. Every other
    component is placed on a straight run matching its default orientation unless a stated hint
    overrides the orientation — the orientation is overridable, the corner rule is not.
+4c. **The drawn edge set is the graph edge set, port for port.** Every connection has exactly one route
+   and every route has exactly one connection — a bijection, not an inclusion — and each route's
+   endpoints are the two *ports* the connection names. This is the one invariant whose breach is
+   invisible: a scene can satisfy every other rule here and depict a circuit nobody described.
+4d. Components on a run appear in traversal order, and no component is drawn between two that are
+   directly connected. Non-overlap and the corner rule are both silent about a rail that interleaves
+   two branches' components in a legal-looking order.
+4e. Every route segment is axis-aligned; no segment has zero length or reverses its predecessor; bend
+   count is within the routing preference or accounted for; and route length is within a bounded factor
+   of the Manhattan distance between its endpoints. The last clause is what catches a route that
+   wanders across the diagram to arrive correctly.
 5. Rendering a model with `solved: false` succeeds, showing topology with no state.
 6. The prepared scene contains every symbol, route, label, state, and provenance input required by
    [`59-static-export`](59-static-export.md), with no second drawing implementation.
 7. No layout or rendering code performs a unit conversion beyond display formatting.
+8. Every component's orientation matches its kind's rule in the table above, on every fixture, unless a
+   stated hint overrode it. Asserting this on two named components in two named fixtures leaves the
+   other five kinds untested.
+9. Every route's arrow direction agrees with the sign of the solved flow on that branch. A reviewer
+   looking at a screenshot does not independently know the answer, so this is only ever caught here.
+10. The prepared scene is the verification target (`D-71`): it is produced headlessly, carries resolved
+   geometry, and is byte-identical for a given graph, hints and spacing. Every predicate above is
+   asserted on it, and the SVG tier asserts only what the scene cannot express.
 
 ## Error cases
 
@@ -391,7 +539,10 @@ first impression a user forms.
 | A supported post-collapse model would overlap | Deterministically increase stage/row spacing and reflow until clear; failure is a renderer invariant breach, not a degraded success |
 | A placement would land a component on a corner | Lengthen the affected run and reflow deterministically until every component sits on a straight section; exhausting that is `FS5002`, a renderer invariant breach (`D-44`) |
 | An unsupported/degraded model still overlaps after collapse/reflow | Place deterministically with overlap, log `FS5001` (warning), mark the scene degraded, and never present it as satisfying the supported layout gate |
-| A route cannot avoid crossing a symbol | Route through it, drawn beneath — a visible imperfection beats a missing connection |
+| A route cannot avoid crossing a symbol | Route through it, drawn beneath — a visible imperfection beats a missing connection — and count it in `metrics.symbolCrossings`. Non-zero on a sample or reference circuit fails invariant 3b |
+| Reflow reaches `D-72`'s iteration cap | `FS5002`, a renderer invariant breach. The cap is a backstop for a wrong monotonicity argument; a fixture consuming more than half of it is a finding about the repair |
+| A label cannot be placed clear of everything | Place it at the least-collided position with a leader line to its owner, and count it in `metrics.labelCollisions`. Non-zero at supported scale fails invariant 3a |
+| The resolved font is wider than the declared metric table | The label overflows its own reserved box and nothing moves (`D-73`). Placements are stable across machines; a font-dependent reflow is not |
 | Model exceeds 500 rendered elements | Collapse every collapsible group; groups over 10 members start collapsed even below the scene limit (`FS2402`) |
 | A component kind has no symbol | Render a labelled rectangle; log a warning. A new component kind must never break the canvas |
 | `layout` missing from the model | Fall back to a simple grid; the diagram is poor but present |
@@ -520,9 +671,11 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 - [ ] The worked example produces the placement above, deterministically across 100 runs.
 - [ ] `HE1` renders vertically at the midpoint of the loop's right run.
 - [ ] **No component of any kind sits at a corner in any sample, reference circuit, or the supported
-      200-component fixture** — asserted by walking every route's direction changes and checking each
-      against every placement's bounding box. A node at a corner fails this test exactly as a pump
-      does (`D-44`).
+      200-component fixture** — asserted per *point*: a point with exactly two incident run-ends on
+      different axes is a corner, three or more is a junction, and no placement's bounding box contains
+      a corner. A node at a corner fails this test exactly as a pump does (`D-44`). Walking each route's
+      own direction changes instead is wrong in both directions and is what this criterion said before
+      `D-72`'s pass.
 - [ ] A fixture deliberately crowded enough to force the issue reflows to a clear layout rather than
       placing a component on a corner, and a fixture crowded past that limit reports `FS5002` rather
       than rendering one.
@@ -538,6 +691,24 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
       reflows deterministically until clear.
 - [ ] An explicitly over-limit fixture may render overlap only with `FS5001` and `degraded: true`; the
       same condition in a supported fixture fails the invariant test.
+- [ ] The drawn edge set is a bijection with the graph edge set on every fixture, endpoints compared
+      port for port; a route retargeted from `3WV.c` to `3WV.b` fails it.
+- [ ] Components on every run appear in traversal order, with no component drawn between two that are
+      directly connected.
+- [ ] Every route segment is axis-aligned, no segment is zero-length or reverses its predecessor, and
+      no route exceeds its bounded factor of the Manhattan distance between its endpoints.
+- [ ] `metrics.symbolCrossings` is zero on every sample and reference circuit, and within the recorded
+      cap on the 200-component fixture.
+- [ ] No label box overlaps another label, a non-owner symbol, or a non-leader route at supported
+      scale; a label whose text is doubled in length overflows its own box and moves no placement.
+- [ ] Every component's orientation matches its kind's rule on every fixture, not only `HE1` and the
+      tank.
+- [ ] Every arrow direction agrees with the sign of the solved flow on its branch, including after a
+      reversal during playback.
+- [ ] A crowded fixture's `metrics.reflowIterations` stays under half of `D-72`'s cap, and a fixture
+      built to exceed the cap reports `FS5002` rather than looping.
+- [ ] The prepared scene builds headlessly with no DOM, no font, and no browser, and is byte-identical
+      across 100 builds for one graph, hints and spacing (`D-71`).
 - [ ] Layout is not recomputed during a transient run — counting spy.
 - [ ] Zoom centres on the cursor; Y increases upward.
 - [ ] The red X and green Y axes are visible at the origin above 0.5× zoom.
