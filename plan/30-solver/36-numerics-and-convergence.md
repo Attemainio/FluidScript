@@ -91,6 +91,18 @@ maximum over individually scaled residuals, per-branch scaling needs no change t
 | `scale.flow_floor` | 1e-3 | kg/s, the floor under a per-branch flow scale | Stops a zero-flow branch dividing by zero, and is where `flow.zero_tol` sits three orders below |
 | `scale.temperature` | 1e1 | K, where a temperature is solved directly | A typical ΔT |
 
+**Two residual scales are derived from those rows rather than tabulated beside them, and deliberately.**
+A keyed row is a number somebody chose; these are consequences of numbers already chosen, and giving
+them rows of their own would be two more values to keep consistent with the ones that determine them.
+
+- **A node's own mass balance takes the largest of the branch scales meeting it** (`S-13`). The residual
+  is a sum of those flows, so its magnitude is set by the biggest; scaling by the smallest inflates a
+  residual that can never get that small and the row never converges. The case that forces the question
+  is the one per-branch scaling was introduced for — a node joining a 10 kg/s primary to a 0.05 kg/s
+  bypass — so the two rules meet on the single topology they were both written for.
+- **An energy balance takes that flow scale times `scale.enthalpy`.** The residual is `Σ ṁh`, so a power
+  scale is a flow scale times an enthalpy scale. A tabulated `scale.power` would not track the branch.
+
 **These are defaults, not user-facing settings.** A user who needs to change a solver tolerance has hit
 a bug in this table.
 
