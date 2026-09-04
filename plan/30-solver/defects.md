@@ -44,6 +44,21 @@ owns them would not have seen them. The entries below are that backlog, written 
 
 ## Observations
 
+**The two counts had to be compared before either could be trusted, and comparing them is what found
+`S-11`.** `S-9` asks the assembler to *consume* the counting table rather than re-derive it, and the
+cheapest possible version of that — summing `DeclareEquations` over the graph and holding it against
+`CountingTable.Equations` on every sample — cost one throwaway test and found a contradiction that had
+survived four packages. Neither number was checkable alone: the table matched `23`'s hand-tabulated
+worked example exactly, and the declarations matched `22`'s component list exactly. It is the
+disagreement that carries the information, which is the whole argument for building the assembler
+against the table instead of beside it.
+
+**A defect found this way names both sides and neither.** `S-11` was recorded against `22`, `23` and
+`31` together, because the exchanger's row and the node's row are each defensible in isolation and only
+the pair is wrong. A finding filed against one document would have been fixed there, and the fix would
+have been the direction-dependent one that does not survive a flow reversal.
+
+
 **The nodal formulation's consequences are now structural, not just stated.** `23` argues that loop
 closure is a property of the unknowns rather than an equation, and `P3.4a` built the cycle basis as
 data with no equation attached: `CircuitLoop` is read by layout and by `FS2214`, and by nothing in the

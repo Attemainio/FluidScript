@@ -176,4 +176,42 @@ public interface IFlowComponent : IComponent
     /// </para>
     /// </remarks>
     void EvaluateResiduals(in SolveContext context, Span<double> residuals);
+
+    /// <summary>Gets whether this component adds energy to the streams passing through it.</summary>
+    /// <value>
+    /// <see langword="false"/> for most kinds, and it is a <em>structural</em> answer: it may depend on
+    /// a stated parameter, which is fixed for the whole solve, and never on a solved value. The
+    /// assembler reads it to decide which node rows a component can reach, so an answer that moved
+    /// between iterations would change the Jacobian's sparsity underneath it.
+    /// </value>
+    bool InjectsEnergy => false;
+
+    /// <summary>Writes the energy each port delivers into the node it touches.</summary>
+    /// <param name="context">Port states, flows, and this component's own unknowns, at the iterate.</param>
+    /// <param name="injection">
+    /// Destination, one entry per port in <see cref="Ports"/> order, in watts, positive into the node
+    /// at that port. It is what the stream gains <em>beyond</em> what it carried in: the node's own
+    /// balance already accounts for the enthalpy arriving through the port.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <strong>Energy is a flux a component contributes, not a row it owns</strong> (<c>D-69</c>). An
+    /// exchanger that declared <c>Q = ṁ(h_out − h_in)</c> as its own equation was asserting the same
+    /// relation as the balance of the node it discharges into, with <c>Q</c> missing from one of them,
+    /// and the system was over-specified by a row per exchanger. Written this way the node keeps its
+    /// balance, the count stays <c>Nodes.Length</c>, and the heat follows the flow through a reversal
+    /// instead of being nailed to a port.
+    /// </para>
+    /// <para>
+    /// <strong>Most kinds contribute nothing, and that is a statement about today rather than about
+    /// physics.</strong> A pipe injects <c>−ṁgΔz</c> for its elevation now and will inject
+    /// <c>−UA(T̄ − T_amb)</c> when uninsulated pipe is modelled; this member is on the interface rather
+    /// than on the exchanger so that day costs no rewrite.
+    /// </para>
+    /// <para>
+    /// The same rules as <see cref="EvaluateResiduals"/> apply: it runs on the same hot path, allocates
+    /// nothing, calls no property backend, and is deterministic.
+    /// </para>
+    /// </remarks>
+    void EvaluateEnergyInjection(in SolveContext context, Span<double> injection) => injection.Clear();
 }

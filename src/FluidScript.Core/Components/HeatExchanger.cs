@@ -78,7 +78,6 @@ public sealed class HeatExchanger : IFlowComponent
 
         _equations =
         [
-            new EquationDeclaration(0, EquationKind.Energy, name, $"{name} duty", "W"),
             new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} side-1 drop", "Pa"),
         ];
     }
@@ -147,8 +146,17 @@ public sealed class HeatExchanger : IFlowComponent
     ];
 
     /// <inheritdoc/>
-    /// <value>Two: side 1's energy relation and its momentum relation.</value>
-    public int EquationCount => 2;
+    /// <value>
+    /// One: side 1's momentum relation.
+    /// <para>
+    /// <strong>The duty is not a row here.</strong> It was, and it asserted the same relation as the
+    /// balance of the node this exchanger discharges into — that node's balance reduces to
+    /// <c>h_own = h_arriving</c>, which is <c>Q = ṁ(h_out − h_in)</c> with <c>Q</c> missing — so the
+    /// assembled system carried one row too many per exchanger. The duty is now an energy injection
+    /// into the node's own balance (<c>D-69</c>, <see cref="EvaluateEnergyInjection"/>).
+    /// </para>
+    /// </value>
+    public int EquationCount => 1;
 
     /// <inheritdoc/>
     /// <returns>Empty. Its flow belongs to its branch and its pressures to its nodes.</returns>
@@ -161,30 +169,55 @@ public sealed class HeatExchanger : IFlowComponent
     /// <remarks>
     /// <para>
     /// <code>
-    /// Q̇  = ṁ (h_out − h_in)
     /// Δp = dp_design · (ṁ/ṁ_design)²
     /// </code>
-    /// </para>
-    /// <para>
-    /// <strong>The energy relation is written against solved port enthalpies, not against stated
-    /// terminal temperatures.</strong> Convention 3 is that components consume and produce
-    /// <c>(p, h)</c> and temperature is derived — an energy balance produces an enthalpy, and going via
-    /// a temperature means inverting <c>cp</c>. A stated <c>in=50</c> is a boundary condition on the
-    /// attached node, which lowering handles; it is not this component's equation (<c>C-19</c>).
     /// </para>
     /// <para>
     /// The momentum term is <c>ṁ·|ṁ|</c> rather than <c>ṁ²</c>, so a reversed flow loses pressure in
     /// the direction it is going instead of gaining it.
     /// </para>
+    /// <para>
+    /// The duty is in <see cref="EvaluateEnergyInjection"/>, not here. It is still written against
+    /// solved port enthalpies rather than stated terminal temperatures — convention 3 is that
+    /// components consume and produce <c>(p, h)</c> and temperature is derived, and a stated
+    /// <c>in=50</c> is a boundary condition on the attached node rather than this component's equation
+    /// (<c>C-19</c>).
+    /// </para>
     /// </remarks>
     public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var flow = context.Flows[0];
-        var inlet = context.Ports[0];
-        var outlet = context.Ports[1];
 
-        residuals[0] = Power - (flow * (outlet.Enthalpy - inlet.Enthalpy));
-        residuals[1] = inlet.Pressure - outlet.Pressure - (_resistance * flow * Math.Abs(flow));
+        residuals[0] = context.Ports[0].Pressure - context.Ports[1].Pressure
+            - (_resistance * flow * Math.Abs(flow));
+    }
+
+    /// <inheritdoc/>
+    /// <value>Always. Injecting heat is what the kind is for, and a zero duty injects zero.</value>
+    public bool InjectsEnergy => true;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// The whole duty lands on the side the exchanger discharges through, and
+    /// <see cref="Smoothing.ForwardShare"/> is what makes that survive a reversal: at
+    /// <c>ṁ &gt; 0</c> it is all on <c>out</c>, at <c>ṁ &lt; 0</c> all on <c>in</c>, and C¹ between. The two
+    /// entries sum to <see cref="Power"/> at every flow, which is the invariant worth testing — the
+    /// exchanger moves a fixed amount of heat into the circuit however the fluid runs.
+    /// </para>
+    /// <para>
+    /// Side 2 stays zero: duty mode makes no claim about a second stream, and a coupled exchanger's
+    /// <c>−Q</c> on the other side arrives with the rated model (<c>P4.1</c>).
+    /// </para>
+    /// </remarks>
+    public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
+    {
+        injection.Clear();
+
+        var forward = Smoothing.ForwardShare(context.Flows[0]);
+
+        injection[0] = Power * (1 - forward);
+        injection[1] = Power * forward;
     }
 
     /// <summary>The flow a stated duty implies across a stated temperature rise.</summary>

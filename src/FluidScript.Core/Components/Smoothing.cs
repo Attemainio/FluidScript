@@ -42,6 +42,23 @@ internal static class Smoothing
         return clamped * clamped * (3 - (2 * clamped));
     }
 
+    /// <summary>How strongly the flow runs in the positive direction, blended across zero.</summary>
+    /// <param name="massFlow">kg/s, positive in the direction the component's ports are ordered.</param>
+    /// <returns>
+    /// 1 at or above <see cref="UpwindBand"/>, 0 at or below its negative, and C¹ between. At rest it
+    /// is 0.5, which is not a physical claim: it is what keeps the split differentiable through a
+    /// reversal, and every quantity it divides is itself zero there.
+    /// </returns>
+    /// <remarks>
+    /// <strong>Which side of a component an energy injection lands on is a direction question, and the
+    /// direction is solved.</strong> A heat exchanger heats whichever node it discharges into, and a
+    /// rising pipe takes potential energy out of whichever node it discharges into. Choosing with an
+    /// <c>if</c> would make the system's contents depend on a solved sign; this makes the share depend
+    /// on it smoothly instead (<c>D-69</c>).
+    /// </remarks>
+    public static double ForwardShare(double massFlow) =>
+        SmoothStep((massFlow + UpwindBand) / (2 * UpwindBand));
+
     /// <summary>Chooses the enthalpy a stream carries, smoothly across zero flow.</summary>
     /// <param name="massFlow">kg/s, positive into the component.</param>
     /// <param name="upstream">J/kg, the enthalpy arriving when the flow is inward.</param>
@@ -54,7 +71,7 @@ internal static class Smoothing
     /// </remarks>
     public static double Upwind(double massFlow, double upstream, double own)
     {
-        var blend = SmoothStep((massFlow + UpwindBand) / (2 * UpwindBand));
+        var blend = ForwardShare(massFlow);
 
         return (blend * upstream) + ((1 - blend) * own);
     }

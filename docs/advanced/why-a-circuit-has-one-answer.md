@@ -128,6 +128,26 @@ duties that do not, which is a contradiction between equations rather than a sho
 same circuit in a `dynamic` model is fine, and is exactly what a warm-up study looks like: the water
 heats up, and the stored energy is where the 30 kW goes.
 
+### Where a duty actually appears
+
+A heat exchanger does not carry an equation of its own that says `30 kW = ṁ × Δh`. Its duty is added
+to the energy balance of **the node it discharges into**, and that is why a diagnostic about a duty
+names a node rather than the exchanger:
+
+```
+FS3001  Could not solve in 50 steps. Furthest off: N3 energy balance by 17.4 kW.
+```
+
+The reason is worth knowing if you ever reverse a circuit. If the exchanger owned the equation, the
+node just downstream would own a second one saying the same thing with the heat left out, and the two
+would contradict each other — so the model would depend on which way you happened to draw it. Written
+as a contribution, the heat follows the flow: reverse it and the duty simply lands on the other side.
+
+A pipe that climbs works the same way. Lifting water costs energy — 98 J for every kilogram raised
+10 m — and that shows up in the balance of the node at the top, or the one at the bottom if the flow
+runs the other way. It changes the enthalpy and not the temperature, which is why a riser does not
+show up as a temperature drop.
+
 **So does mass.** A `supply` with no `return` injects fluid the circuit cannot get rid of:
 
 ```

@@ -167,6 +167,49 @@ public sealed class Pipe : IFlowComponent
             - (density * Gravity * Elevation);
     }
 
+    /// <inheritdoc/>
+    /// <value>
+    /// Whenever the pipe climbs or falls. A level pipe reaches no node row that the stream does not
+    /// already reach, and saying so keeps it out of the Jacobian's sparsity pattern — which matters,
+    /// because most pipes in most models are level.
+    /// <para>
+    /// It depends on a stated parameter and not on a solved value, so it is fixed for the whole solve.
+    /// </para>
+    /// </value>
+    public bool InjectsEnergy => Elevation != 0;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// <c>−ṁgΔz</c>, landing on whichever port the pipe discharges through. A stream rising 10 m loses
+    /// 98.1 J/kg, so 0.5 kg/s up a riser takes 49 W out of the node at the top; running the other way
+    /// it puts the same 49 W into the node at the bottom.
+    /// </para>
+    /// <para>
+    /// <strong>Without this the elevation is half-modelled, and the missing half is a temperature
+    /// error.</strong> <see cref="EvaluateResiduals"/> already carries <c>ρgΔz</c>, so a rise drops the
+    /// pressure; leaving the energy side out holds <c>h</c> constant across that drop, which is an
+    /// isenthalpic expansion worth about +0.021 K per 10 m of rise, in the wrong direction. What the
+    /// term actually describes is bookkeeping rather than heating: the enthalpy change is exactly the
+    /// <c>pv</c> change, so <c>u</c> and the temperature do not move at all (<c>D-70</c>).
+    /// </para>
+    /// <para>
+    /// Friction, by contrast, contributes nothing here and correctly so. It converts <c>pv</c> into
+    /// <c>u</c> at constant <c>h</c> — the temperature rises by 0.8 mK over a 10 m DN25 run at
+    /// 0.5 kg/s, since liquid water's Joule–Thomson coefficient is negative — and an energy balance in
+    /// enthalpy sees none of it.
+    /// </para>
+    /// </remarks>
+    public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
+    {
+        var flow = context.Flows[0];
+        var carried = -flow * Gravity * Elevation;
+        var forward = Smoothing.ForwardShare(flow);
+
+        injection[0] = carried * (1 - forward);
+        injection[1] = carried * forward;
+    }
+
     /// <summary>The pressure lost to friction and fittings at a velocity.</summary>
     /// <param name="velocity">m/s, signed along the nominal direction.</param>
     /// <param name="density">kg/m³.</param>
