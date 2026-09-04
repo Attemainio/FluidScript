@@ -31,9 +31,37 @@ each step reduces to ([`32-steady-state-newton`](32-steady-state-newton.md)), st
 ## What is actually dynamic
 
 The brief's phrasing — "usually explicit with no need of the solver" — is right, and the reason is
-worth stating: **hydraulics are fast, thermals are slow.** A pressure disturbance propagates at the
-speed of sound in water, ~1500 m/s, crossing a plant in milliseconds. A temperature front travels at
-the *flow* velocity, ~1 m/s, taking minutes.
+worth stating: **hydraulics are fast, thermals are slow.** A temperature front travels at the *flow*
+velocity, ~1 m/s, taking minutes; pressure equilibrates in a fraction of a timestep.
+
+**The quantity that decides this is capacitance, not the speed of sound (`S-17`).** The tempting
+argument is acoustic transit — 1500 m/s in water, milliseconds across a plant — and it does not
+generalise: sound in air is **343 m/s**, only 4.4× slower, so transit time would clear a duct system
+comfortably and tell us nothing. What actually governs is how much mass a volume must gain to change
+its pressure. From `dp = a²dρ`:
+
+```
+C = V / a²                       kg/Pa, the pneumatic capacitance of a volume
+τ = C · dΔp/dṁ = (V/a²)(2Δp/ṁ)   s, across a square-law resistance
+```
+
+| System | V | a | Δp | ṁ | τ |
+|---|---|---|---|---|---|
+| Hydronic loop | 1 m³ | 1500 m/s | 200 kPa | 5 kg/s | **0.036 s** |
+| Air handling unit and ductwork, design flow | 100 m³ | 343 m/s | 1000 Pa | 5 kg/s | **0.34 s** |
+| The same, throttled | 100 m³ | 343 m/s | 500 Pa | 0.5 kg/s | **1.7 s** |
+
+**Water is one to two orders below any sane timestep and air is the same order as one.** The physical
+statement is not that pressure signals travel slower in air — it is that **air stores mass and water
+essentially does not**. v1 stays quasi-static for both, because making a node's pressure a differential
+state for gases alone would make the unknown structure depend on the working fluid; but the air-side
+case is an approximation to be defended rather than one to be assumed, and a model that crosses the
+line should say so rather than answer quietly.
+
+Two things are missing before that guard can exist, and both are larger than the property call: nothing
+but a pipe-internal node has a **volume** today (`GraphNode.ThermalVolume` is zero everywhere else), and
+`a` is not among the properties a port carries. It is a per-step quantity rather than a per-residual
+one, so it belongs outside the Newton loop where a ~200 µs state fix per node is affordable.
 
 So the model is **quasi-static in pressure, dynamic in energy**:
 
@@ -78,8 +106,18 @@ t = τ the outlet has reached 63 % of the step, not 0 %. `nodes=n` turns it into
 series, and the front sharpens as n grows. Ten nodes gives a recognisable front; a hundred gives a
 sharp one at ten times the cost.
 
-**The user chooses via `nodes=`**, and `/docs` must explain the trade — it is the single most important
-modelling decision in a transient run, and it looks like a cosmetic parameter.
+**The user chooses via `nodes=`**, and `/docs` must explain the trade — on the water side it is the
+single most important modelling decision in a transient run, and it looks like a cosmetic parameter.
+
+**On the air side that advice inverts (`S-19`).** The step limit is the residence time `Vρ/ṁ`, and air
+is ~800× less dense. The DN20 water cell below is 0.0925 l at 988 kg/m³ and 0.0763 kg/s: τ = 1.20 s,
+step 1.08 s. A Ø315 duct cell of the same 0.25 m length holds 19.5 l at 1.2 kg/m³ and 0.467 kg/s:
+τ = **0.050 s**, step **0.045 s** — the same `nodes=` for **24× the steps**, about 13 000 over a 600 s
+horizon against 1 400, at two Newton solves each. And the phenomenon being bought is smaller: a front
+crosses 8 m of duct at 5 m/s in **1.6 s**, so duct transport is barely visible next to an air handling
+unit's thermal mass, which v1 does not model at all. `FS3101` will fire on essentially every air-side
+model, and `/docs` must say that a low `nodes=` is the right default on a duct for the opposite reason
+it is the wrong one on a pipe.
 
 ## Stratified tank
 
@@ -173,6 +211,14 @@ A transient needs something to disturb it. v1's schedule:
 | `at 60s HE1.power = 45` | Step change at a time |
 | `over 60s..120s HE1.power = 30..45` | Linear ramp |
 | `at 60s 3WV.position = 0.3` | Any settable parameter |
+
+**There is no ambient, so the first transient a user will reach for cannot be written (`S-18`).** A
+schedule targets `component.parameter`, and an outdoor temperature is not one; v1 also has no ambient
+loss and no wall conduction, so even given a target no component would read it. The only route an
+outdoor condition has into a model today is a boundary node's stated temperature — a district-supply
+scenario, correct as far as it goes and not a weather one. Closing it needs an ambient scalar the
+schedule can reach and a `−UA(T̄ − T_amb)` term on the pipe; the component half already has its place,
+because `D-69`'s flux member is on `IFlowComponent` rather than on the exchanger for exactly this.
 
 **[`12-grammar`](../10-language/12-grammar.md) now defines this**, as a `schedule` section whose
 statements are `at`/`over` disturbances. `at` and `over` are not reserved words — section position
