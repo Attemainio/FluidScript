@@ -11,6 +11,11 @@ TV1 three_way_valve authority=0.5
 `a` is the common port, `b` the controlled one and `c` the bypass. `c` is optional — a three-way valve
 used as a two-way leaves it open.
 
+Leaving `c` open is not a cosmetic choice: the valve then **is** a two-way valve. It has two ports, one
+Kv law, and no mixing to describe, so the circuit gets one equation from it rather than three. Which
+one you wrote is reported as its mode — `three_way` or `two_way` — and it is read from the topology,
+never declared.
+
 **All three are bidirectional, and the arrangement comes from the topology rather than a
 declaration.** A diverting valve takes one stream in at `a` and splits it between `b` and `c`; a
 mixing valve — the commonest in hydronics — takes two streams in at `b` and `c` and delivers one at

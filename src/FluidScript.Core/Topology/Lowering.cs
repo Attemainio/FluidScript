@@ -63,7 +63,7 @@ public static partial class Lowering
 
         var build = new Build(model, factory);
 
-        build.CountNodePorts();
+        build.CountConnections();
         build.CreateComponents();
         build.ResolveLinks();
         build.ExpandPipes();

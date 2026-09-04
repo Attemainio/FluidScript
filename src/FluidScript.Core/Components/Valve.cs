@@ -137,11 +137,16 @@ public sealed class ThreeWayValve : IFlowComponent
     /// <param name="position">The opening between <c>a</c> and <c>b</c>, 0 to 1.</param>
     /// <param name="characteristic">Which characteristic the controlled path follows.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="kv"/> is not positive.</exception>
+    /// <param name="bypassConnected">
+    /// Whether a connection reaches <c>c</c>. <see langword="false"/> makes this a two-way valve: two
+    /// ports, one flow group, one Kv law, and no mass balance of its own.
+    /// </param>
     public ThreeWayValve(
         string name,
         double kv,
         double position = 1,
-        ValveCharacteristic characteristic = ValveCharacteristic.Linear)
+        ValveCharacteristic characteristic = ValveCharacteristic.Linear,
+        bool bypassConnected = true)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kv);
@@ -150,13 +155,35 @@ public sealed class ThreeWayValve : IFlowComponent
         Kv = kv;
         Position = position;
         Characteristic = characteristic;
+        BypassConnected = bypassConnected;
 
-        _equations =
-        [
-            new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
-            new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-b", "kg/s"),
-            new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-c", "kg/s"),
-        ];
+        Ports = bypassConnected
+            ?
+            [
+                new Port { Name = "a", Role = PortRole.Bidirectional, IsOptional = false },
+                new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
+                new Port { Name = "c", Role = PortRole.Bidirectional, IsOptional = true },
+            ]
+            :
+            [
+                new Port { Name = "a", Role = PortRole.Bidirectional, IsOptional = false },
+                new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
+            ];
+
+        // Three ports in one group is a junction element and a branch cannot cross it; two in one
+        // group is a pass-through, so the branch walks straight through and its single flow makes
+        // the mass balance an identity. That is why the two-way form drops a row rather than
+        // keeping one that would be zeros.
+        FlowGroups = bypassConnected ? [0, 0, 0] : [0, 0];
+
+        _equations = bypassConnected
+            ?
+            [
+                new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-b", "kg/s"),
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-c", "kg/s"),
+            ]
+            : [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-b", "kg/s")];
     }
 
     /// <inheritdoc/>
@@ -166,8 +193,12 @@ public sealed class ThreeWayValve : IFlowComponent
     public string Kind => "three_way_valve";
 
     /// <inheritdoc/>
-    /// <value>Always <see langword="null"/>.</value>
-    public string? Mode => null;
+    /// <value>
+    /// <c>three_way</c> or <c>two_way</c>, decided by the topology rather than by a declaration — the
+    /// same way an exchanger's mode is. A user who leaves <c>c</c> open has written a two-way valve,
+    /// and this is where the tool says so.
+    /// </value>
+    public string? Mode => BypassConnected ? "three_way" : "two_way";
 
     /// <inheritdoc/>
     public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
@@ -195,24 +226,29 @@ public sealed class ThreeWayValve : IFlowComponent
     /// <summary>Gets which characteristic the controlled path follows.</summary>
     public ValveCharacteristic Characteristic { get; }
 
+    /// <summary>Gets whether anything is connected to the bypass port.</summary>
+    /// <value>
+    /// <see langword="false"/> for a valve the script wired as a two-way. The registry makes <c>c</c>
+    /// optional and <c>docs/functions/three-way-valve.md</c> says leaving it open is how a two-way
+    /// valve is written; before <c>S-14a</c> this class ignored that and declared a Kv law for a port
+    /// with no node behind it, which made two of the shipped samples over-specified by two.
+    /// </value>
+    public bool BypassConnected { get; }
+
     /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; } =
-    [
-        new Port { Name = "a", Role = PortRole.Bidirectional, IsOptional = false },
-        new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
-        new Port { Name = "c", Role = PortRole.Bidirectional, IsOptional = true },
-    ];
+    public ImmutableArray<Port> Ports { get; }
 
     /// <inheritdoc/>
     /// <value>
-    /// <strong>One group of three</strong>, which is what makes this a junction element. The flow
-    /// divides here, so its three ports carry three different flows and no branch may pass through it.
+    /// <strong>One group of three</strong> when the bypass is connected, which is what makes this a
+    /// junction element: the flow divides here, so its three ports carry three different flows and no
+    /// branch may pass through it. Wired as a two-way it is one group of two, and a branch does.
     /// </value>
-    public ImmutableArray<int> FlowGroups { get; } = [0, 0, 0];
+    public ImmutableArray<int> FlowGroups { get; }
 
     /// <inheritdoc/>
-    /// <value>Three: a mass balance and one Kv relation per path.</value>
-    public int EquationCount => 3;
+    /// <value>Three: a mass balance and one Kv relation per path. One when wired as a two-way.</value>
+    public int EquationCount => BypassConnected ? 3 : 1;
 
     /// <inheritdoc/>
     public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
@@ -230,14 +266,22 @@ public sealed class ThreeWayValve : IFlowComponent
     {
         var common = context.Ports[0];
         var controlled = context.Ports[1];
-        var bypass = context.Ports[2];
 
-        residuals[0] = context.Flows[0] + context.Flows[1] + context.Flows[2];
-
-        residuals[1] = -context.Flows[1] - ValveLaw.MassFlow(
+        var controlledPath = -context.Flows[1] - ValveLaw.MassFlow(
             Kv * ValveLaw.Opening(Position, Characteristic),
             common.Pressure - controlled.Pressure,
             (common.Density + controlled.Density) / 2);
+
+        if (!BypassConnected)
+        {
+            residuals[0] = controlledPath;
+            return;
+        }
+
+        var bypass = context.Ports[2];
+
+        residuals[0] = context.Flows[0] + context.Flows[1] + context.Flows[2];
+        residuals[1] = controlledPath;
 
         residuals[2] = -context.Flows[2] - ValveLaw.MassFlow(
             Kv * ValveLaw.Opening(1 - Position, Characteristic),

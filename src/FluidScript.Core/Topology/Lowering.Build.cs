@@ -38,6 +38,7 @@ public static partial class Lowering
         private readonly List<GraphNode> _nodes = [];
         private readonly List<(int Element, int Port, int Peer, int PeerPort)> _links = [];
         private readonly Dictionary<string, int> _degree = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<string>> _namedPorts = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _nextPort = new(StringComparer.Ordinal);
         private readonly ImmutableDictionary<string, string>.Builder _circuits =
             ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
@@ -90,28 +91,55 @@ public static partial class Lowering
 
         public ImmutableArray<string> Unresolved => _unresolved.ToImmutable();
 
-        /// <summary>Counts how many connections each node has, which is how many ports it gets.</summary>
+        /// <summary>Counts how each component was connected, and by which named ports.</summary>
         /// <remarks>
+        /// <para>
         /// A node's ports are unnamed and positional (<c>15</c>), so nothing in the semantic model says
         /// how many it has — only the connection list does. The count decides both the port count and
         /// whether the node carries a mass balance, so it has to come before the node is constructed.
+        /// </para>
+        /// <para>
+        /// <strong>It counts every component and not only the nodes</strong>, because a node is no
+        /// longer the only kind whose shape depends on how it was wired: a three-way valve with its
+        /// optional bypass left open is a two-way valve (<c>S-14a</c>). The named ports are collected
+        /// alongside the count, since a degree of two says something is unconnected and not
+        /// <em>which</em>.
+        /// </para>
         /// </remarks>
-        public void CountNodePorts()
+        public void CountConnections()
         {
             foreach (var connection in model.Connections)
             {
-                Count(connection.From.Component);
-                Count(connection.To.Component);
+                Count(connection.From);
+                Count(connection.To);
             }
 
-            void Count(string component)
+            void Count(Binding.EndpointSymbol endpoint)
             {
-                if (IsNode(component))
+                _degree[endpoint.Component] = _degree.GetValueOrDefault(endpoint.Component) + 1;
+
+                if (endpoint.Port.Length == 0)
                 {
-                    _degree[component] = _degree.GetValueOrDefault(component) + 1;
+                    return;
                 }
+
+                if (!_namedPorts.TryGetValue(endpoint.Component, out var ports))
+                {
+                    ports = [];
+                    _namedPorts[endpoint.Component] = ports;
+                }
+
+                ports.Add(endpoint.Port);
             }
         }
+
+        /// <summary>How the connection list wired one component.</summary>
+        /// <param name="component">The component's name.</param>
+        /// <returns>Its degree and the ports connections named explicitly.</returns>
+        private PortWiring Wiring(string component) =>
+            new(
+                _degree.GetValueOrDefault(component),
+                _namedPorts.TryGetValue(component, out var ports) ? [.. ports] : []);
 
         /// <summary>Instantiates every component that carries flow, in declaration order.</summary>
         /// <remarks>
@@ -160,7 +188,7 @@ public static partial class Lowering
                     continue;
                 }
 
-                if (factory.Create(symbol) is not { } component)
+                if (factory.Create(symbol, Wiring(symbol.Name)) is not { } component)
                 {
                     _unresolved.Add(symbol.Name);
                     continue;
