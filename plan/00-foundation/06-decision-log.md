@@ -2890,6 +2890,146 @@ already gives every parameter. What v1 does not do is pretend to know the number
 **Constrains.** [`27-component-catalog`](../20-core-domain/27-component-catalog.md),
 [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md), and `Catalogs/SOURCES.md`.
 
+## D-69 · Energy is a flux a component contributes, not a row it owns
+
+**Accepted · 2026-09-04** · constrains `22`, `23`, `31`, `36`; resolves `S-11`, `C-40`
+
+**Two rows were asserting the same relation, and one of them had `Q` missing.** A heat exchanger
+declares `Q = ṁ(h_out − h_in)`. The node it discharges into declares an energy balance over its ports,
+which for a degree-two node reduces to `h_own = h_arriving`. Both land in the assembled system, so it
+is over-specified by exactly one row per exchanger — found by `P3.6a` doing what `S-9` asks and
+comparing the declared rows against the counting table before writing an assembler that would have had
+to pick one. Across the sample corpus the excess is always exactly the number of non-node components
+declaring an energy row.
+
+**The obvious fix does not survive a flow reversal.** Dropping the energy balance of the node at the
+exchanger's structural outlet works forward and fails backward. Take `S — P1 — A — HE1 — B — P2 — R`,
+water at 0.5 kg/s, `Q` = 20 kW, supply 40 °C, so `Q/ṁ` = 40 kJ/kg:
+
+| | Forward (ṁ = +0.5) | Reverse (ṁ = −0.5) |
+|---|---|---|
+| A's balance | h_A = h_S = 167.5 | h_A = h_B — takes the arriving enthalpy through HE1 as h_B |
+| HE1 duty | h_B = h_A + 40 = **207.5** ✓ | h_B − h_A = −40 |
+| B | *dropped* | *dropped* — and with it `h_B = h_R`, which nothing else supplies |
+
+Reversed, one equation is missing and two contradict, `0 = −40`. Repairing it means choosing the
+dropped row by **solved** flow direction, which changes the system's size and the meaning of its
+residual vector between Newton iterations — the thing `22`'s "the energy count is unconditional"
+clause exists to forbid, and forbids for good reason.
+
+**So `Q` enters the node's balance rather than sitting in a row of its own.** A node's energy balance
+is the sum of energy fluxes entering through its ports. For an exchanger between A and B:
+
+```
+Φ_B = ṁ·upwind( ṁ, h_A, h_B) + Q·s(ṁ)
+Φ_A = −ṁ·upwind(−ṁ, h_B, h_A) + Q·(1 − s(ṁ))
+```
+
+with `s` a smoothstep across `upwind.smoothing_band`, so the heat follows the flow across a reversal
+instead of being nailed to a port. The transport terms cancel in the sum, leaving exactly `Q`
+injected. The same rows solve both directions: forward gives h_B = h_A + 40, reverse gives h_B = h_R
+and h_A = h_B + 40, both correct.
+
+**Every component contributes, and most contribute zero.** The member goes on `IFlowComponent`, not on
+the exchanger, because the pipe needs it too: `−ṁgΔz` for elevation today (`D-70`) and `−UA(T̄ − T_amb)`
+for heat loss when `72` promotes it. Building this as an exchanger special case guarantees a rewrite of
+every kind the day insulation lands, which is the argument `08` already makes for putting sensors ahead
+of the six kinds.
+
+**The counting table was right and the component was wrong.** Energy rows stay `Nodes.Length`, the
+exchanger keeps exactly the one pressure relation `Relations` already counts for it, and
+`HeatExchanger.EquationCount` goes 2 → 1. No change to `23`'s counting argument.
+
+**Rejected.**
+
+- *Drop the adjacent node's energy row.* The version above; it is direction-dependent in correctness,
+  not merely in bookkeeping.
+- *A two-phase evaluation where components hand nodes an arriving enthalpy.* The most uniform rule —
+  pass-throughs transport, control volumes balance. Cost: `Q/ṁ` is singular at zero flow while
+  `ṁ·h + Q` is finite, so the phase would have to exchange fluxes anyway, and it rewrites how every
+  node port state is filled.
+- *Keep both rows and let the solver least-squares it.* Cost: the system stops being square, and
+  `31`'s first invariant with it.
+
+**A stated duty at zero flow is unsatisfiable**, and correctly so: 20 kW cannot enter a stationary
+fluid at steady state. The solver reports it rather than solving it; a topology check ahead of the
+solve would say it better, and is recorded rather than built.
+
+**Constrains.** [`22-component-model`](../20-core-domain/22-component-model.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
+[`31-solver-architecture`](../30-solver/31-solver-architecture.md),
+[`36-numerics-and-convergence`](../30-solver/36-numerics-and-convergence.md).
+
+## D-70 · Elevation is an absolute height on every component
+
+**Accepted · 2026-09-04** · constrains `02`, `15`, `22`, `23`, the registry; supersedes `pipe.elevation`
+as a relative rise; resolves `C-41`
+
+**A height is a property of position, and a rise is not.** `pipe.elevation` was "outlet height minus
+inlet height", ±500 m. Generalising *that* to every kind makes the elevation terms around a closed loop
+cancel only when the user's numbers happen to sum to zero, and the failure is larger than the circuit:
+10 m of water is **98 kPa** and a 32 m riser is **314 kPa**, against a typical hydronic pump head of
+200–300 kPa. A user who writes `+32` on the riser and omits `−32` on the return has invented more
+pressure than the pump produces, and the circuit still converges — to a fabricated answer, with nothing
+looking wrong.
+
+**Stated as an absolute height, the loop sum is identically zero by construction.** There is nothing to
+check because there is nothing to get wrong, and it is what the user actually knows: the air handling
+unit is on the roof and the plant room is in the basement. Differencing that into per-segment rises by
+hand is the error-prone step, so the tool does it.
+
+**Only what spans two heights carries a hydrostatic term.** A component at one height has both ports at
+that height and contributes nothing of its own; stating `elevation` on a pump changes the *pipes*
+attached to it, not the pump's equation.
+
+| | Carries `ρgΔz` |
+|---|---|
+| `pump`, `valve`, `heat_exchanger`, node, sensor | No — a height, both ports at it |
+| `pipe` | Yes, and its Δz becomes **derived**: `z(outlet node) − z(inlet node)` |
+| A bare connection (`D-25`'s ideal link) | Yes, for the same reason |
+| `tank` | Yes: `z_port = z_tank + f·H`, which is what its normalized port fractions finally mean |
+
+**The energy side is not optional, and it is `D-69`'s flux.** A pipe rising 10 m loses 98.1 J/kg of
+enthalpy, entirely through the `pv` term, so `Δu` and therefore the temperature are unchanged. Carry
+`ρgΔz` in the pressure residual while omitting `−ṁgΔz` from the energy balance and the model holds `h`
+constant across a falling pressure — an isenthalpic expansion worth **+0.021 K per 10 m of rise**,
+systematically wrong-signed. Friction, by contrast, changes `h` by exactly nothing and the temperature
+by +0.8 mK over a 10 m DN25 run at 0.5 kg/s: it converts `pv` into `u` at constant `h`, and the
+Joule–Thomson coefficient of liquid water is negative.
+
+**An omitted height is 0, never sized.** `D-02` normally makes an omitted parameter a sizing candidate;
+a height is not something a sizing loop may choose, because it is building geometry rather than
+equipment selection. Every kind gets `Defaulted("0")`.
+
+**The word already means two incompatible things, and this decision does not add a third.**
+`pipe.elevation` is a signed rise in metres; `tank.in1_elevation` is a normalized 0–1 layer selector
+that `22` says never enters a pressure equation. `elevation` becomes the absolute height everywhere,
+the tank's port fractions take a different word, and [`02-glossary`](02-glossary.md) settles which
+before any code.
+
+**An inferred node between two components at different heights is a missing riser, not an ambiguity.**
+`A - B` with `A` at 0 and `B` at 32 puts `I2`'s `A__B` node at both heights. There is no rule that
+resolves it because the user left the pipe out, and the diagnostic says so.
+
+**Rejected.**
+
+- *Relative Δz on every kind, plus a loop-closure check.* Preserves `pipe.elevation` and needs no
+  migration. Cost: it detects the error instead of preventing it, needs a tolerance nobody can
+  motivate, and leaves a three-port component needing a Δz per port pair.
+- *Elevation on nodes only.* Closest to the physics, since pressure is a node unknown. Cost: most nodes
+  are inferred, so the user has nowhere to write it.
+
+**Scheduled as its own package after `P3.6`.** It touches the registry, the glossary, the binder,
+lowering's height propagation and every kind's `/docs` page. `P3.6` ships only `D-69`'s flux member and
+wires the pipe's existing rise through it; every other kind contributes zero until this lands, with no
+interface change.
+
+**Constrains.** [`02-glossary`](02-glossary.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`22-component-model`](../20-core-domain/22-component-model.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md), and `ComponentRegistry`.
+
+
 ## Invariants
 
 1. `D-` numbers are never reused or renumbered.

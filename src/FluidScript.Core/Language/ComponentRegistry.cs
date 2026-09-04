@@ -414,7 +414,10 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("dn", Dimension.NominalDiameter, 6, 2000, precision: 0),
             Defaulted("roughness", Dimension.Length, 1e-6, 5e-3, "0.045 mm", "commercial steel", precision: 4),
             Sized("nodes", Dimension.Dimensionless, 0, 100, precision: 0),
-            Sized("elevation", Dimension.Length, -500, 500, precision: 2),
+            // A height is where the plant is, not something equipment selection decides, so an
+            // omitted one is 0 rather than a sizing candidate (D-70, C-41). It stays a signed rise
+            // until the elevation package makes it an absolute height on every kind.
+            Defaulted("elevation", Dimension.Length, -500, 500, "0 m", "no elevation stated", precision: 2),
             Defaulted("minor_loss", Dimension.Dimensionless, 0, 10000, "0", "no fittings stated", precision: 2)),
         Properties = Properties(
             Solved("dp", Dimension.PressureDelta),
