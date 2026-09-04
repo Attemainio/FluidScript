@@ -16,7 +16,7 @@ namespace FluidScript.Core.Catalogs;
 /// <para>
 /// <strong>The range stops at DN150 because the standard does.</strong> <c>27</c>'s open-questions
 /// section promises DN15-DN300 from this series, and EN 10255 does not extend past DN150; anything
-/// above it is a second series and a second set of sources. Recorded as <c>C-31</c>.
+/// above it is a second series and a second set of sources. Recorded as <c>C-42</c>.
 /// </para>
 /// <para>
 /// Nothing here reproduces a standard's table. The dimensions are facts about physical objects, the

@@ -446,7 +446,7 @@ Note DN25's ID is 27.3 mm, not 25 mm. DN is a designation, not a dimension, and 
 ## Open questions
 
 None. v1 ships one verified pipe series (`steel_en10255`, DN15–DN150 — the range EN 10255 covers;
-DN200 and above are a second series with their own sources, `C-31`) and one generic discrete Kv
+DN200 and above are a second series with their own sources, `C-42`) and one generic discrete Kv
 series. `catalog steel_en10255@2026.1` pins exactly one version; `catalog steel_en10255` selects the
 shipped version of that named catalogue; absence selects the shipped default. Every resolution records
 the exact id and version. M2a cannot exit until two public manufacturer sources support every row and an independent
