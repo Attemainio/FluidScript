@@ -99,6 +99,10 @@ public sealed class NewtonSolver : ISolver
 
         var previous = double.PositiveInfinity;
 
+        // Reported once per parameter rather than once per step: a bound that binds usually binds on
+        // every remaining iteration, and a user needs to know it happened, not how often.
+        var pinned = new List<int>();
+
         for (var iteration = 1; iteration <= _settings.MaxIterations; iteration++)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -195,6 +199,22 @@ public sealed class NewtonSolver : ISolver
             {
                 scaledStep = Math.Max(scaledStep, Math.Abs(alpha * step[column]));
                 x[column] += alpha * step[column] * system.UnknownScales[column];
+            }
+
+            // `S-26b`. A promoted `position` is a fraction and a `head` is not negative; Newton knows
+            // neither, and left alone the cooling loop's split walks to about 5.5. Projecting after the
+            // step rather than constraining the step keeps the line search's own arithmetic untouched,
+            // and it is safe only because `S-26a` made the residual differentiable at a bound -- while
+            // `Opening` clamped, landing on a bound put the iterate exactly where its column was dead.
+            if (system.Project(x, out var bound) && !pinned.Contains(bound))
+            {
+                pinned.Add(bound);
+
+                diagnostics.Add(Diagnostic.Create(
+                    SolverDiagnostics.ParameterPinned,
+                    null,
+                    new DiagnosticArgument("parameter", system.Unknowns.Unknowns[bound].Name),
+                    Number("bound", x[bound])));
             }
 
             progress?.Report(new SolveProgress(iteration, norm, alpha));

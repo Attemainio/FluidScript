@@ -170,7 +170,8 @@ public sealed class Pump : IFlowComponent
     /// reports. A bare <c>head=</c> with no <c>flow=</c> beside it <em>is</em> the shut-off head
     /// (<c>ComponentFactory</c>), so the two readings agree wherever both exist.
     /// </value>
-    public ImmutableArray<ResolvedParameter> Resolvable => [new ResolvedParameter("head", ShutOffHead, "m")];
+    public ImmutableArray<ResolvedParameter> Resolvable =>
+        [new ResolvedParameter("head", ShutOffHead, "m", Minimum: 0)];
 
     /// <summary>The head this pump develops at a flow and its current speed.</summary>
     /// <param name="massFlow">kg/s.</param>

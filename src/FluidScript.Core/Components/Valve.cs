@@ -114,8 +114,8 @@ public sealed class Valve : IFlowComponent
     /// </value>
     public ImmutableArray<ResolvedParameter> Resolvable =>
     [
-        new ResolvedParameter("kv", Kv, "m3/h"),
-        new ResolvedParameter("position", Position, "1"),
+        new ResolvedParameter("kv", Kv, "m3/h", Minimum: 0),
+        new ResolvedParameter("position", Position, "1", Minimum: 0, Maximum: 1),
     ];
 
     /// <inheritdoc/>
@@ -292,8 +292,11 @@ public sealed class ThreeWayValve : IFlowComponent
     /// </value>
     public ImmutableArray<ResolvedParameter> Resolvable =>
     [
-        new ResolvedParameter("kv", Kv, "m3/h"),
-        new ResolvedParameter("position", Position, "1"),
+        new ResolvedParameter("kv", Kv, "m3/h", Minimum: 0),
+
+        // Bounded on both sides, and the bypass is why the upper one matters as much as the lower:
+        // the a-c leg reads `1 - position`, so a split above 1 is a bypass opening past fully shut.
+        new ResolvedParameter("position", Position, "1", Minimum: 0, Maximum: 1),
     ];
 
     /// <inheritdoc/>

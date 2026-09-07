@@ -92,37 +92,50 @@ public sealed class NewtonSolverTests
     }
 
     [Fact]
-    public async Task APromotedPositionRunsOutOfItsPhysicalRangeAndTheSolveSaysSo()
+    public async Task APromotedParameterIsHeldInsideItsPhysicalRangeAndTheSolveSaysSo()
     {
-        // `S-26`, which turned out to be **two** defects sharing one symptom.
+        // `S-26`, which was **two** defects sharing one symptom, both now fixed.
         //
-        // The first was a dead Jacobian column. `ValveLaw.Opening` clamped position into [0, 1] and the
-        // Jacobian is built by forward differences, so a position at either bound perturbed to a value
-        // the clamp undid: the column came out identically zero and the solve stopped `Singular` before
-        // it could step anywhere. That is fixed -- equal-percentage is `R^(x-1)`, smooth and positive on
-        // the whole real line, and it never needed a clamp.
+        // `S-26a` was a dead Jacobian column: `ValveLaw.Opening` clamped position into [0, 1] and the
+        // Jacobian is built by forward differences, so a position at a bound perturbed to a value the
+        // clamp undid, the column came out identically zero, and the solve stopped `Singular` before it
+        // could step anywhere.
         //
-        // What is left is the defect the original entry described: **nothing bounds a promoted
-        // parameter**. With a live derivative the split now actually moves, and it moves to about 5.5 --
-        // a fraction five times fully open -- chasing a mixed inlet temperature this field cannot
-        // deliver, and the residual grows until the divergence guard stops it. A box constraint is what
-        // is missing, and it is only now worth adding: clamping the iterate *to* a bound used to land it
-        // exactly where the column was dead, so the two fixes had to arrive in this order.
+        // `S-26b` was the runaway underneath it, invisible until the column could move: nothing bounded
+        // a promoted parameter, so the split walked to about 5.5 -- a fraction five times fully open.
+        // The order mattered. Projecting onto a bound while `Opening` still clamped would have put the
+        // iterate exactly where its column was dead, so the box constraint had to come second.
         //
-        // This test records that state and fails the day the bound lands, which is the point.
+        // What this asserts is the contract, not convergence: the answer stays physical and the user is
+        // told which parameter ran out of room. This circuit still does not converge, and that is a
+        // separate open defect rather than this one half-done.
         var system = Assemble("m2-cooling-loop.fluid", out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
 
         Assert.False(result.Converged);
-        Assert.Equal(SolveTermination.Diverging, result.Termination);
         Assert.Empty(system.Unevaluated);
 
-        // The column is alive: the position left the value it was seeded at, which is exactly what it
-        // could not do before. That it left the *physical range* is the half still open.
-        var layout = system.Unknowns;
-        var position = result.Solution.Values[layout.PromotionOffset];
+        // Every promoted parameter finished inside the range its own component declares. Before the
+        // bound landed the position read 5.465 and the head read -0.49; both are physical nonsense and
+        // both were reported as an answer.
+        for (var index = 0; index < system.Unknowns.Unknowns.Length; index++)
+        {
+            var declaration = system.Unknowns.Unknowns[index];
 
-        Assert.True(position > 1, $"position stayed at {position}; the column is dead again.");
+            if (declaration.Name.EndsWith(".position", StringComparison.Ordinal))
+            {
+                Assert.InRange(result.Solution.Values[index], 0, 1);
+            }
+
+            if (declaration.Name.EndsWith(".head", StringComparison.Ordinal))
+            {
+                Assert.True(result.Solution.Values[index] >= 0, "a pump cannot develop negative head.");
+            }
+        }
+
+        // `FS3008` names the parameter that ran out of room rather than leaving the user to infer it
+        // from a residual, and it is reported once per parameter rather than once per step.
+        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "FS3008");
     }
 
     [Fact]

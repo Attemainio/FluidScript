@@ -602,6 +602,48 @@ public sealed class EquationSystem
         return true;
     }
 
+    /// <summary>Clamps every promoted column into the range its component declared.</summary>
+    /// <param name="x">The iterate, updated in place.</param>
+    /// <param name="pinned">The last column a bound actually bit on, or <c>-1</c>.</param>
+    /// <returns><see langword="true"/> when any bound bit.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The bounds are the component's, not the solver's</strong> (<c>D-30</c>). A
+    /// <c>position</c> is a fraction and a <c>kv</c> is positive; nothing in Newton knows that, and
+    /// <c>_promoted</c> already carries the element and the slot, so the range comes off
+    /// <see cref="Components.ResolvedParameter"/> with no second table to keep in step.
+    /// </para>
+    /// <para>
+    /// <strong>This is only safe because the residual is differentiable at a bound</strong>
+    /// (<c>S-26a</c>). While <c>ValveLaw.Opening</c> clamped, projecting an iterate <em>onto</em> a
+    /// bound put it exactly where the Jacobian column was identically zero — the fix and the defect
+    /// would have been the same operation. The clamp is gone, so a pinned column still has a slope and
+    /// the next step can leave the bound if the residual wants it to.
+    /// </para>
+    /// </remarks>
+    public bool Project(Span<double> x, out int pinned)
+    {
+        pinned = -1;
+
+        foreach (var (element, slot, column) in _promoted)
+        {
+            var parameter = _graph.Components[element].Resolvable[slot];
+
+            if (parameter.Minimum is { } low && x[column] < low)
+            {
+                x[column] = low;
+                pinned = column;
+            }
+            else if (parameter.Maximum is { } high && x[column] > high)
+            {
+                x[column] = high;
+                pinned = column;
+            }
+        }
+
+        return pinned >= 0;
+    }
+
     /// <summary>Which node's fluid state one unknown decides, or <c>-1</c> when it decides none.</summary>
     /// <param name="column">The unknown's index in the state vector.</param>
     /// <returns>The node index, or <c>-1</c>.</returns>

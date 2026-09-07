@@ -114,6 +114,22 @@ public static class SolverDiagnostics
         DiagnosticSeverity.Info,
         "Taking a reduced step near {component}; the solution is hard to reach here.");
 
+    /// <summary>The answer wanted a promoted parameter outside the range its component allows.</summary>
+    /// <value><c>FS3008</c>, a warning.</value>
+    /// <remarks>
+    /// A warning rather than an error, and the distinction is the user's problem rather than the
+    /// solver's: the circuit is well-posed and square, and what it is asking for is a valve open past
+    /// fully open or a pump with negative head. The number reported is the bound, because that is what
+    /// the solve actually used — reporting the unclamped value would name a state no component was ever
+    /// evaluated in.
+    /// </remarks>
+    public static DiagnosticDescriptor ParameterPinned { get; } = new(
+        "FS3008",
+        DiagnosticSeverity.Warning,
+        "{parameter} was held at {bound}, which is as far as it goes. The circuit is asking for more "
+        + "than this component can give: check the duty, the resistance, or a stated temperature it "
+        + "cannot reach.");
+
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -124,6 +140,7 @@ public static class SolverDiagnostics
         Refused,
         Cancelled,
         NonFinite,
+        ParameterPinned,
         ReducedStep,
     ];
 }

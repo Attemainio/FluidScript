@@ -152,6 +152,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3005` | Error | Solver | {solver} cannot solve this: {reason}. |
 | `FS3006` | Info | Solver | Solve cancelled after {steps} steps. |
 | `FS3007` | Error | Solver | {component} produced an impossible value in {equation} after {steps} steps. |
+| `FS3008` | Warning | Solver | {parameter} was held at {bound}, which is as far as it goes. The circuit is asking for more than this component can give: check the duty, the resistance, or a stated temperature it cannot reach. |
 | `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
 <!-- END GENERATED: diagnostic-codes -->
 
