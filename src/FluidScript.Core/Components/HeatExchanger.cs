@@ -288,8 +288,19 @@ public sealed class HeatExchanger : IFlowComponent
     /// exchanger moves a fixed amount of heat into the circuit however the fluid runs.
     /// </para>
     /// <para>
-    /// Side 2 stays zero: duty mode makes no claim about a second stream, and a coupled exchanger's
-    /// <c>−Q</c> on the other side arrives with the rated model (<c>P4.1</c>).
+    /// <strong>When side 2 is connected it takes the same duty out, and leaving it at zero was
+    /// `S-31`.</strong> This used to read "duty mode makes no claim about a second stream", deferring
+    /// the <c>-Q</c> to <c>P4.1</c>'s rated model. But a script that wires <c>in2</c>/<c>out2</c> and
+    /// states <c>power</c> has already made the claim: 150 kW crossing an exchanger leaves one stream
+    /// and enters the other. Injecting it on one side only <strong>creates energy from nothing</strong> — on
+    /// <c>m2-substation</c> the primary stayed at 85 °C end to end instead of returning at 45, because
+    /// nothing ever took its heat away. What <c>P4.1</c> owns is how much duty crosses when the script
+    /// does <em>not</em> say (ε-NTU, LMTD, a rated point); it does not own conservation.
+    /// </para>
+    /// <para>
+    /// Side 2 gets its own <see cref="Smoothing.ForwardShare"/> from its own flow, because the two
+    /// streams are usually counter-current and a shared share would put the heat on the wrong port the
+    /// moment they were.
     /// </para>
     /// </remarks>
     public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
@@ -301,6 +312,16 @@ public sealed class HeatExchanger : IFlowComponent
 
         injection[0] = duty * (1 - forward);
         injection[1] = duty * forward;
+
+        if (!SecondarySideConnected)
+        {
+            return;
+        }
+
+        var secondary = Smoothing.ForwardShare(context.Flows[2]);
+
+        injection[2] = -duty * (1 - secondary);
+        injection[3] = -duty * secondary;
     }
 
     /// <summary>The flow a stated duty implies across a stated temperature rise.</summary>

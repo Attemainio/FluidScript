@@ -214,4 +214,68 @@ public sealed class EnergyInjectionTests
             ThermalConductivity = state.Value.ThermalConductivity.SiValue,
         };
     }
+
+    [Fact]
+    public void ACoupledExchangerTakesOutOfOneStreamWhatItPutsIntoTheOther()
+    {
+        // `S-31`, and it is a conservation law rather than a modelling preference. A script that wires
+        // `in2`/`out2` and states `power` has said 150 kW crosses this component; injecting it on side 1
+        // and nothing on side 2 **creates energy from nothing**. On `m2-substation` that showed as a
+        // district primary sitting at 85 C from end to end instead of returning at 45, because nothing
+        // ever took its heat away.
+        var coupled = new HeatExchanger(
+            "HX1", power: 150_000, secondarySideConnected: true);
+
+        Span<double> injection = stackalloc double[4];
+        coupled.EvaluateEnergyInjection(
+            new SolveContext(
+                Water,
+                [State(0, 0), State(0, 0), State(0, 0), State(0, 0)],
+                [1.5, -1.5, -0.9, 0.9]),
+            injection);
+
+        // Side 1 gains the duty, side 2 loses it, and the whole component is neutral.
+        Assert.Equal(150_000, injection[0] + injection[1], tolerance: 1e-9);
+        Assert.Equal(-150_000, injection[2] + injection[3], tolerance: 1e-9);
+        Assert.Equal(0, injection[0] + injection[1] + injection[2] + injection[3], tolerance: 1e-9);
+    }
+
+    [Fact]
+    public void ADutyBlockWithNoSecondSideStillPutsItsWholeDutyIn()
+    {
+        // The other half of `S-31`: a one-sided exchanger is a source or a sink and is *meant* to be
+        // unbalanced -- the heat comes from a boiler or goes to a room, neither of which is modelled.
+        // Only a component the script wired on both sides makes the crossing claim.
+        var duty = new HeatExchanger("HE1", power: 30_000);
+
+        Span<double> injection = stackalloc double[4];
+        duty.EvaluateEnergyInjection(
+            new SolveContext(Water, [State(0, 0), State(0, 0)], [0.24, -0.24]), injection);
+
+        Assert.Equal(30_000, injection[0] + injection[1], tolerance: 1e-9);
+        Assert.Equal(0, injection[2], tolerance: 1e-12);
+        Assert.Equal(0, injection[3], tolerance: 1e-12);
+    }
+
+    [Fact]
+    public void EachSideReadsItsOwnFlowDirectionBecauseTheStreamsRunOpposite()
+    {
+        // Counter-current is the usual arrangement, so the two sides' `ForwardShare` differ by design.
+        // A shared share would put side 2's heat on the wrong port exactly when the streams are
+        // counter-current, which is most of the time.
+        var coupled = new HeatExchanger("HX1", power: 100_000, secondarySideConnected: true);
+
+        Span<double> injection = stackalloc double[4];
+        coupled.EvaluateEnergyInjection(
+            new SolveContext(
+                Water,
+                [State(0, 0), State(0, 0), State(0, 0), State(0, 0)],
+                [2.0, -2.0, -2.0, 2.0]),
+            injection);
+
+        // Side 1 runs in at port 0, so its duty lands on `out`. Side 2 runs the other way, so its
+        // withdrawal lands on `in2` -- the port its fluid leaves through.
+        Assert.Equal(100_000, injection[1], tolerance: 1e-9);
+        Assert.Equal(-100_000, injection[2], tolerance: 1e-9);
+    }
 }

@@ -101,6 +101,18 @@ it if you want the secondary side to resist. Until you do, side 2 is ideal — i
 relation that its two connections are at the same pressure, which is what makes a two-sided exchanger
 solvable at all.
 
+**The duty crosses.** When you connect a second side, whatever `power` puts into one stream comes out
+of the other: 150 kW arriving on the secondary is 150 kW leaving the primary, and the primary's return
+temperature drops accordingly. Each side reads its own flow direction, so a counter-current
+arrangement — the usual one — puts the heat on the right port of each stream without your having to
+say which way round they run.
+
+What is *not* worked out for you is the second side's **flow**. On side 1, stating `power` with `in`
+and `out` implies the flow that carries it, and the solver starts there. Side 2 has no equivalent: a
+stated `in2`/`out2` pair is read as a profile, not as a constraint on how much water passes. Until the
+coupled model lands you should state `flow2` yourself whenever the secondary's temperatures are meant
+to be met rather than merely reported.
+
 ## Properties
 
 `power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `dp`, `dp2`, `dt`,
