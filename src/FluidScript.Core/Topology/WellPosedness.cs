@@ -649,8 +649,17 @@ public static class WellPosedness
     /// something else to choose. A stated parameter is never promoted: two things setting one unknown
     /// is the trap <c>D-02</c> creates, and it reports as an over-specification naming both.
     /// </remarks>
+    /// <remarks>
+    /// <strong>All three maps, and the third one was missing.</strong> <c>ComponentFactory.Defaults</c>
+    /// already wrote down the rule this enforces — "well-posedness looks for a parameter no map claims"
+    /// — but the check read two of them, so once the outer loop began filling
+    /// <see cref="IComponent.SizedParameters"/> a parameter could be sized and promoted at once: chosen
+    /// by a rule and solved for as an unknown, with the two answers disagreeing and nothing saying so.
+    /// It cost nothing before <c>P3.7b</c>, because no map was ever filled.
+    /// </remarks>
     private static bool IsFree(IFlowComponent component, string parameter) =>
         !component.StatedParameters.ContainsKey(parameter)
+        && !component.SizedParameters.ContainsKey(parameter)
         && !component.DefaultParameters.ContainsKey(parameter);
 
     /// <summary>Which hydraulic component an element belongs to.</summary>

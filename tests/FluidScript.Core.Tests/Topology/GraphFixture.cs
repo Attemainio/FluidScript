@@ -2,6 +2,8 @@ using FluidScript.Core.Binding;
 using FluidScript.Core.Catalogs;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Language;
+using FluidScript.Core.Sizing;
+using FluidScript.Core.Solvers;
 using FluidScript.Core.Syntax;
 using FluidScript.Core.Topology;
 
@@ -52,14 +54,31 @@ public static class GraphFixture
         return new CatalogBoreLookup(resolved.Value.Catalog);
     }
 
-    /// <summary>Binds and lowers a script.</summary>
+    /// <summary>Binds and lowers a script, with sizing applied.</summary>
     /// <param name="source">The script.</param>
     /// <returns>The lowering result, graph and all.</returns>
-    public static LoweringResult Lower(string source) =>
-        Lowering.Lower(
-            Bind(source),
-            ConstantPropertyWater.Instance,
-            new ComponentFactory(Bores()));
+    /// <remarks>
+    /// <strong>It goes through <see cref="OuterLoop.Prepare"/> rather than calling lowering directly,
+    /// because the two do not produce the same graph.</strong> A pipe with no chosen diameter has no
+    /// bore and is therefore not built at all, so a script that leaves sizing to do its job comes back
+    /// short a component and every walk over it runs out of peers. That is what happened the moment
+    /// <c>m2-simple-loop</c> stopped stating <c>dn=25</c>: three tests failed and four skipped, all of
+    /// them reporting the pipe as dropped. A fixture that lowers differently from the solver is a
+    /// fixture testing a model nobody runs.
+    /// </remarks>
+    public static LoweringResult Lower(string source)
+    {
+        var resolved = PipeCatalogs.Resolve(pin: null);
+
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+
+        return new OuterLoop(
+                new NewtonSolver(),
+                new CatalogBoreLookup(resolved.Value.Catalog),
+                [new PipeSizer(resolved.Value.Catalog)])
+            .Prepare(Bind(source), ConstantPropertyWater.Instance)
+            .Lowered;
+    }
 
     /// <summary>The cooling loop <c>23</c> tabulates, and <c>01</c> gives solved values for.</summary>
     /// <remarks>

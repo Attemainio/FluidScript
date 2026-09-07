@@ -698,10 +698,11 @@ public sealed class WellPosednessTests
                 // connection, so nothing is left to absorb `HE1 out=50`.
                 ["m1-syntax-reference.fluid"] = "1",
 
-                // A pipe with no `dn` cannot be built until the catalogue lands in P3.5 (C-24), and
-                // dropping it takes its connections with it. The M2 samples state `dn` and say why in
-                // their own headers; the tour is a syntax file and states none.
-                ["m1-syntax-tour.fluid"] = "unresolved PB1",
+                // PB1 used to read "unresolved": a pipe with no `dn` had no bore and so was not built,
+                // and dropping it took its connections with it (C-24). P3.7b's outer loop chooses the
+                // diameter, so the graph is complete for the first time and what is left is the tour
+                // being a tour -- four productions' worth of components that no circuit closes.
+                ["m1-syntax-tour.fluid"] = "4",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",
@@ -723,10 +724,10 @@ public sealed class WellPosednessTests
             return "does not bind";
         }
 
-        var lowered = Lowering.Lower(
-            bound.Model,
-            FluidScript.Core.Fluids.ConstantPropertyWater.Instance,
-            new ComponentFactory(GraphFixture.Bores()));
+        // Through the same prepare step a solve takes, because a pipe with no chosen diameter has no
+        // bore and so is not built at all -- counting a graph short a component would report a shape
+        // nobody solves (`P3.7b`).
+        var lowered = GraphFixture.Lower(source);
 
         var table = WellPosedness.Check(lowered.Graph).Counting;
 

@@ -60,6 +60,23 @@ sizing rules need flows and most flows need sizes.
 6. Repeat      From 4, until clean or the iteration cap is hit (FS2301).
 ```
 
+**A sized value is applied by lowering again, not by setting anything.** A pipe's bore is a
+constructor argument, so the pass that uses a new diameter is the pass that built a new `Pipe`; the
+loop carries a `SizingOverlay` — component name to parameter to value — and hands it to the component
+factory, which puts it in `SizedParameters` and nowhere else. Three consequences worth stating.
+A stated value and a chosen one stay distinguishable, which `D-02` depends on and which merging into
+`StatedParameters` would destroy. A solve stays a pure function of its graph
+([`31`](../30-solver/31-solver-architecture.md)'s invariant 6), because no component is ever mutated.
+And **a parameter claimed by no map is promotable**, so the set of parameters the loop intends to size
+is fixed before the first solve and only the values move afterwards — one that became sized *between*
+passes would stop being promotable between passes, and the system's shape would change under a warm
+start.
+
+**The first lowering is a bootstrap and is never solved against.** A pipe with no diameter has no bore
+and is not built, so a graph has to exist before flows can be estimated on it; each rule offers a
+provisional value for that and nothing else. Flow estimates come from stated duties and stated flows
+rather than from resistances, so nothing that survives the bootstrap depends on what it was built with.
+
 **This is the same outer fixed-point loop as deferred expressions**
 ([`14-expressions-and-references`](../10-language/14-expressions-and-references.md)). They must be one
 loop, not two nested ones: a deferred expression can feed a sizing input, and a sized value can feed a

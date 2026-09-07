@@ -48,7 +48,7 @@ public sealed class PipeSizerTests
     {
         var sized = Size(0.2392, 35);
 
-        Assert.Equal(25.0, sized.Values["dn"].Value);
+        Assert.Equal(25.0, sized.Values["dn"].Value.SiValue);
         Assert.Contains("DN25", sized.Values["dn"].Basis, StringComparison.Ordinal);
         Assert.Contains("Pa/m", sized.Values["dn"].Basis, StringComparison.Ordinal);
         Assert.False(sized.Values["dn"].FromDefault);
@@ -97,8 +97,8 @@ public sealed class PipeSizerTests
         var loose = Size(0.160, 55);
         var tight = Size(0.160, 55, target: 100);
 
-        Assert.Equal(20.0, loose.Values["dn"].Value);
-        Assert.Equal(20.0, tight.Values["dn"].Value);
+        Assert.Equal(20.0, loose.Values["dn"].Value.SiValue);
+        Assert.Equal(20.0, tight.Values["dn"].Value.SiValue);
         Assert.Contains(tight.Notes, note => note.Contains("stepped down", StringComparison.Ordinal));
     }
 
@@ -112,8 +112,8 @@ public sealed class PipeSizerTests
 
         Assert.Contains(sized.Notes, note => note.Contains("stepped up", StringComparison.Ordinal));
         Assert.True(
-            SizingDefaults.VelocityMaximum((int)sized.Values["dn"].Value)
-                >= Velocity(sized.Values["dn"].Value, 0.2392, 35),
+            SizingDefaults.VelocityMaximum((int)sized.Values["dn"].Value.SiValue)
+                >= Velocity(sized.Values["dn"].Value.SiValue, 0.2392, 35),
             "the chosen size still exceeds its own velocity ceiling.");
     }
 
@@ -140,7 +140,7 @@ public sealed class PipeSizerTests
         // wider than a domestic reading of it suggests.
         var sized = Size(40.0, 55);
 
-        Assert.Equal(150.0, sized.Values["dn"].Value);
+        Assert.Equal(150.0, sized.Values["dn"].Value.SiValue);
         Assert.Contains(sized.Notes, note => note.Contains("largest size", StringComparison.Ordinal));
 
         // And the velocity ceiling it also breaches, which the rule used to pass over in silence
@@ -167,7 +167,7 @@ public sealed class PipeSizerTests
         {
             var sized = Size(flow, 55);
 
-            Assert.Contains(sized.Values["dn"].Value, nominals);
+            Assert.Contains(sized.Values["dn"].Value.SiValue, nominals);
             Assert.NotEmpty(sized.Values["dn"].Basis);
         }
     }

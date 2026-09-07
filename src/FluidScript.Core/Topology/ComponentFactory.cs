@@ -87,8 +87,16 @@ public interface IComponentFactory
 /// </para>
 /// </remarks>
 /// <param name="bores">Where a DN designation becomes a bore.</param>
-public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
+/// <param name="sizes">
+/// What the outer loop chose on an earlier pass, or <see langword="null"/> on the first lowering.
+/// This is the whole of how a sized value re-enters the model: lowering is re-run against it rather
+/// than a component being mutated, which is what keeps a solve a pure function of its graph
+/// (<c>31</c>'s invariant 6) and what <c>08</c> means by lowering having to be re-runnable.
+/// </param>
+public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = null) : IComponentFactory
 {
+    private readonly SizingOverlay _sizes = sizes ?? SizingOverlay.Empty;
+
     /// <inheritdoc/>
     public IFlowComponent? Create(ComponentSymbol symbol, PortWiring wiring)
     {
@@ -101,10 +109,11 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
 
         var stated = Stated(symbol);
         var defaults = Defaults(symbol, kind);
+        var sized = Sized(symbol, kind, stated, defaults);
 
         return kind.Keyword switch
         {
-            "pipe" => Pipe(symbol, stated, defaults),
+            "pipe" => Pipe(symbol, stated, sized, defaults),
             "valve" => new Valve(
                 symbol.Name,
                 Value(symbol, kind, "kv") ?? 1,
@@ -112,6 +121,7 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
                 Characteristic(symbol))
             {
                 StatedParameters = stated,
+                SizedParameters = sized,
                 DefaultParameters = defaults,
             },
             "three_way_valve" => new ThreeWayValve(
@@ -125,17 +135,58 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
                 bypassConnected: wiring.Connections > 2 || wiring.Names("c"))
             {
                 StatedParameters = stated,
+                SizedParameters = sized,
                 DefaultParameters = defaults,
             },
-            "pump" => Pump(symbol, kind, stated, defaults),
+            "pump" => Pump(symbol, kind, stated, sized, defaults),
             "heat_exchanger" => new HeatExchanger(symbol.Name, Value(symbol, kind, "power") ?? 0)
             {
                 StatedParameters = stated,
+                SizedParameters = sized,
                 DefaultParameters = defaults,
             },
-            "tank" => Tank(symbol, kind, stated, defaults),
+            "tank" => Tank(symbol, kind, stated, sized, defaults),
             _ => null,
         };
+    }
+
+    /// <summary>Every parameter the outer loop chose for this component.</summary>
+    /// <param name="symbol">The bound component.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <param name="stated">What the script stated, which sizing may never override.</param>
+    /// <param name="defaults">What the registry defaulted, which sizing does not touch either.</param>
+    /// <returns>Canonical parameter name to value; empty before the loop has run.</returns>
+    /// <remarks>
+    /// <strong>A stated value wins outright</strong> (<c>24</c>'s invariant 1), and a defaulted one is
+    /// already claimed, so an overlay entry for either is dropped rather than applied. That is a guard
+    /// against a rule that did not check, not an expectation that one will not: the loop already skips
+    /// both, and a sizer reaching past a user's own number is the worst thing this subsystem could do
+    /// quietly.
+    /// </remarks>
+    private ImmutableDictionary<string, Quantity> Sized(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> defaults)
+    {
+        var chosen = _sizes.For(symbol.Name);
+
+        if (chosen.IsEmpty)
+        {
+            return [];
+        }
+
+        var sized = ImmutableDictionary.CreateBuilder<string, Quantity>(StringComparer.Ordinal);
+
+        foreach (var (name, value) in chosen)
+        {
+            if (!stated.ContainsKey(name) && !defaults.ContainsKey(name) && kind.Parameters.ContainsKey(name))
+            {
+                sized[name] = value;
+            }
+        }
+
+        return sized.ToImmutable();
     }
 
     /// <summary>Every parameter the script stated, in SI.</summary>
@@ -209,11 +260,19 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
     /// The value in SI, or <see langword="null"/> when the script stated none and the kind declares no
     /// default — which is a parameter sizing chooses, and sizing has not run.
     /// </returns>
-    private static double? Value(ComponentSymbol symbol, ComponentKindInfo kind, string parameter)
+    private double? Value(ComponentSymbol symbol, ComponentKindInfo kind, string parameter)
     {
         if (symbol.Parameters.TryGetValue(parameter, out var stated) && stated.Value is { } quantity)
         {
             return quantity.SiValue;
+        }
+
+        // Between the two, because a stated value outranks a chosen one and a chosen one outranks the
+        // registry's default -- which for a `Size` parameter does not exist anyway, so in practice this
+        // is the only thing that ever fills one in.
+        if (_sizes.For(symbol.Name, parameter) is { } chosen)
+        {
+            return chosen;
         }
 
         return kind.Parameters.TryGetValue(parameter, out var info)
@@ -264,6 +323,7 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
     private Pipe? Pipe(
         ComponentSymbol symbol,
         ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
         ImmutableDictionary<string, Quantity> defaults)
     {
         var kind = symbol.Kind!;
@@ -284,14 +344,16 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             Value(symbol, kind, "elevation") ?? 0)
         {
             StatedParameters = stated,
+            SizedParameters = sized,
             DefaultParameters = defaults,
         };
     }
 
-    private static Pump Pump(
+    private Pump Pump(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
         ImmutableDictionary<string, Quantity> defaults)
     {
         var head = Value(symbol, kind, "head");
@@ -307,14 +369,16 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
         return new Pump(symbol.Name, shutOff, curvature, efficiency: efficiency)
         {
             StatedParameters = stated,
+            SizedParameters = sized,
             DefaultParameters = defaults,
         };
     }
 
-    private static Tank Tank(
+    private Tank Tank(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
         ImmutableDictionary<string, Quantity> defaults)
     {
         var layers = Value(symbol, kind, "layers") ?? Components.Tank.DefaultLayers;
@@ -327,6 +391,7 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
             (int)layers)
         {
             StatedParameters = stated,
+            SizedParameters = sized,
             DefaultParameters = defaults,
         };
     }
@@ -341,7 +406,7 @@ public sealed class ComponentFactory(IBoreLookup bores) : IComponentFactory
     /// binder already decided which ports exist, and a port evidenced by a connection has a height
     /// whether or not the script wrote one (<c>D-32</c>).
     /// </remarks>
-    private static ImmutableArray<double> Elevations(
+    private ImmutableArray<double> Elevations(
         ComponentSymbol symbol, ComponentKindInfo kind, string prefix)
     {
         var heights = ImmutableArray.CreateBuilder<double>();

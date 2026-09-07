@@ -2,12 +2,12 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Sizing;
 
 /// <summary>One value sizing chose, and why it chose it.</summary>
-/// <param name="Value">SI, in <paramref name="SiUnit"/>.</param>
-/// <param name="SiUnit">The unit <paramref name="Value"/> is in, spelled as the model spells it.</param>
+/// <param name="Value">The value, carrying its own dimension so nothing downstream has to guess it.</param>
 /// <param name="Basis">
 /// What a user reads when they ask why. Never empty — <c>24</c>'s invariant 2, and the whole mitigation
 /// for the risk that document opens with: a sized value always <em>looks</em> reasonable, so the number
@@ -17,7 +17,7 @@ namespace FluidScript.Core.Sizing;
 /// <see langword="true"/> when the value came from the default catalogue rather than a computation.
 /// Rendered differently, because a default is a placeholder and a computed size is a decision.
 /// </param>
-public readonly record struct SizedValue(double Value, string SiUnit, string Basis, bool FromDefault);
+public readonly record struct SizedValue(Quantity Value, string Basis, bool FromDefault);
 
 /// <summary>What one sizer decided about one component.</summary>
 public sealed record SizingResult
@@ -77,6 +77,20 @@ public interface ISizer
 {
     /// <summary>Gets the parameter names this rule can choose, as a script would spell them.</summary>
     ImmutableArray<string> Parameters { get; }
+
+    /// <summary>Gets a value per parameter that merely lets a graph exist.</summary>
+    /// <value>
+    /// Canonical parameter name to a value, or empty when this rule's parameters do not block lowering.
+    /// </value>
+    /// <remarks>
+    /// <strong>Not a design, and never solved against.</strong> A pipe has no component at all without a
+    /// bore, so the outer loop's bootstrap lowering needs something in the slot before there is a graph
+    /// to estimate flows on. Flow estimates come from stated duties and stated flows rather than from
+    /// resistances, so nothing they produce depends on what is here, and the first real pass replaces it.
+    /// A rule whose parameters never block lowering — a pump's head, a valve's Kv, both of which have a
+    /// constructor fallback — returns nothing and stays promotable, which is the correct outcome.
+    /// </remarks>
+    ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <summary>Tells whether this rule applies to a component at all.</summary>
     /// <param name="component">The component.</param>

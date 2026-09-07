@@ -4,6 +4,7 @@ using System.Globalization;
 using FluidScript.Core.Catalogs;
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Sizing;
 
@@ -36,6 +37,16 @@ public sealed class PipeSizer(
 {
     /// <inheritdoc/>
     public ImmutableArray<string> Parameters { get; } = ["dn"];
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The smallest size in the series. A pipe is the one kind lowering cannot build without a chosen
+    /// value, so this is what makes a first graph exist; it is replaced before anything is solved.
+    /// </remarks>
+    public ImmutableDictionary<string, Quantity> Provisional { get; } =
+        ImmutableDictionary<string, Quantity>.Empty.Add(
+            "dn",
+            Quantity.FromSi(catalog.Entries[0].Spec.NominalDiameter, Dimension.NominalDiameter));
 
     /// <inheritdoc/>
     public bool CanSize(IFlowComponent component) => component is Pipe;
@@ -125,8 +136,7 @@ public sealed class PipeSizer(
             Values = ImmutableDictionary<string, SizedValue>.Empty.Add(
                 "dn",
                 new SizedValue(
-                    chosen.Spec.NominalDiameter,
-                    "1",
+                    Quantity.FromSi(chosen.Spec.NominalDiameter, Dimension.NominalDiameter),
                     string.Create(
                         CultureInfo.InvariantCulture,
                         $"DN{chosen.Spec.NominalDiameter} ({chosen.Spec.Series}) — {gradient:0.#} Pa/m, {velocity:0.##} m/s"),
