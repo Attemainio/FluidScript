@@ -94,20 +94,35 @@ public sealed class NewtonSolverTests
     [Fact]
     public async Task APromotedPositionRunsOutOfItsPhysicalRangeAndTheSolveSaysSo()
     {
-        // S-26, recorded as a test rather than as a comment. `position` is a fraction and the solver has
-        // no idea: nothing bounds a promoted parameter, so the cooling loop's 3WV drives its split past
-        // 180 chasing a mixed inlet temperature the seeded field cannot deliver, and the Kv law's
-        // derivative collapses out there. The circuit is well-posed and square; what is missing is a box
-        // constraint, which belongs with the rest of P3.7's bounds handling.
+        // `S-26`, which turned out to be **two** defects sharing one symptom.
         //
-        // This test is the record of that, and it fails the day the bound lands -- which is the point.
+        // The first was a dead Jacobian column. `ValveLaw.Opening` clamped position into [0, 1] and the
+        // Jacobian is built by forward differences, so a position at either bound perturbed to a value
+        // the clamp undid: the column came out identically zero and the solve stopped `Singular` before
+        // it could step anywhere. That is fixed -- equal-percentage is `R^(x-1)`, smooth and positive on
+        // the whole real line, and it never needed a clamp.
+        //
+        // What is left is the defect the original entry described: **nothing bounds a promoted
+        // parameter**. With a live derivative the split now actually moves, and it moves to about 5.5 --
+        // a fraction five times fully open -- chasing a mixed inlet temperature this field cannot
+        // deliver, and the residual grows until the divergence guard stops it. A box constraint is what
+        // is missing, and it is only now worth adding: clamping the iterate *to* a bound used to land it
+        // exactly where the column was dead, so the two fixes had to arrive in this order.
+        //
+        // This test records that state and fails the day the bound lands, which is the point.
         var system = Assemble("m2-cooling-loop.fluid", out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
 
         Assert.False(result.Converged);
-        Assert.Equal(SolveTermination.Singular, result.Termination);
-        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "FS3002");
+        Assert.Equal(SolveTermination.Diverging, result.Termination);
         Assert.Empty(system.Unevaluated);
+
+        // The column is alive: the position left the value it was seeded at, which is exactly what it
+        // could not do before. That it left the *physical range* is the half still open.
+        var layout = system.Unknowns;
+        var position = result.Solution.Values[layout.PromotionOffset];
+
+        Assert.True(position > 1, $"position stayed at {position}; the column is dead again.");
     }
 
     [Fact]

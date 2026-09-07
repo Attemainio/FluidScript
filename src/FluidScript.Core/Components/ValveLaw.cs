@@ -53,29 +53,72 @@ public static class ValveLaw
     /// </value>
     public const double RegularizationDrop = Tolerances.ValveRegularizationDrop;
 
+
     /// <summary>The fraction of rated Kv an opening delivers.</summary>
     /// <param name="position">The opening, 0 to 1. 1 is fully open.</param>
     /// <param name="characteristic">Which characteristic the valve follows.</param>
-    /// <returns>φ, dimensionless.</returns>
+    /// <returns>φ, dimensionless, and never negative for any real position.</returns>
     /// <remarks>
+    /// <para>
     /// <strong>Equal-percentage does not reach zero, and that is the definition rather than an
     /// oversight.</strong> φ(0) = R⁻¹ = 0.02, so a fully closed equal-percentage valve still passes
     /// 2 % of its rated Kv. A real valve's shut-off comes from its seat, which is a separate leakage
     /// class and not part of the characteristic; a model that quietly forced φ(0) = 0 would be
     /// inventing a seat. It matters for a bypass that is supposed to be shut (`C-18`).
+    /// </para>
+    /// <para>
+    /// <strong>Nothing is clamped, and `S-26` is why.</strong> This used to open with
+    /// <c>Math.Clamp(position, 0, 1)</c>, which looks like defensive hygiene and is a numerical trap:
+    /// <see cref="Solvers.NewtonSolver"/> builds its Jacobian by <em>forward</em> differences, so at
+    /// <c>position = 1</c> the perturbation clamped straight back to 1, every entry in that column came
+    /// out <c>0 − 0</c>, and the system was singular naming the valve. The same happened anywhere below
+    /// 0. <strong>A bound is not somewhere the iterate may not go; it is somewhere the derivative stops
+    /// existing</strong> — and one step onto it was unrecoverable, because the column that would have
+    /// stepped back off is exactly the one that died. Measured: `m2-distribution-header` was singular at
+    /// iteration <em>zero</em> with both promoted positions sitting at 1.
+    /// </para>
+    /// <para>
+    /// <strong>Equal-percentage needs no repair at all — the formula is already the regularisation.</strong>
+    /// <c>R^(x−1)</c> is smooth, strictly positive and monotone for every real <c>x</c>, so removing the
+    /// clamp is the whole fix for the default characteristic and for every valve in the corpus. Values
+    /// inside <c>[0, 1]</c> are untouched to the last bit.
+    /// </para>
+    /// <para>
+    /// <strong>The other two keep a dead column below zero, and the obstruction is real rather than a
+    /// lack of imagination.</strong> Linear and quick-open have φ(0) = 0 with φ′(0) &gt; 0, and no C¹
+    /// extension of such a function stays non-negative below zero: a line through the origin with
+    /// positive slope goes negative, and a negative φ is a negative Kv, which makes
+    /// <see cref="MassFlow"/> drive flow <em>against</em> its pressure difference. A valve that pumps is
+    /// far worse than a valve whose column is dead somewhere it should never be, so they are floored at
+    /// zero and the limitation is recorded rather than papered over with an invented leak — a floor at a
+    /// leakage class was tried and rejected, because it changes φ(0) on a characteristic whose φ(0) = 0
+    /// is deliberate and asserted. Nothing in the corpus uses either: lowering maps an unstated
+    /// characteristic to equal-percentage. The fix if one ever does is to solve a transformed variable,
+    /// not to bend the physics.
+    /// </para>
+    /// <para>
+    /// Above 1 every characteristic continues linearly from its own value and slope at 1, which keeps φ
+    /// positive, monotone and C¹ across the join. A position out there is not physical and is not meant
+    /// to be; it is somewhere the iterate may pass through on its way back, and `FS2303` is what reports
+    /// it if a converged answer stays there.
+    /// </para>
     /// </remarks>
-    public static double Opening(double position, ValveCharacteristic characteristic)
-    {
-        var x = Math.Clamp(position, 0, 1);
-
-        return characteristic switch
+    public static double Opening(double position, ValveCharacteristic characteristic) =>
+        characteristic switch
         {
-            ValveCharacteristic.Linear => x,
-            ValveCharacteristic.EqualPercentage => Math.Pow(Rangeability, x - 1),
-            ValveCharacteristic.QuickOpen => Math.Sqrt(x),
-            _ => x,
+            // Smooth, positive and monotone on the whole real line. The formula is its own continuation,
+            // above 1 as well as below 0, so removing the clamp is the entire fix here.
+            ValveCharacteristic.EqualPercentage => Math.Pow(Rangeability, position - 1),
+
+            // sqrt is undefined below zero, and its slope at 1 is 1/2.
+            ValveCharacteristic.QuickOpen => position > 1
+                ? 1 + (0.5 * (position - 1))
+                : Math.Sqrt(Math.Max(position, 0)),
+
+            // Linear is its own continuation above 1, so flooring at zero is all it needs -- and all it
+            // can have, since anything below would be negative.
+            _ => Math.Max(position, 0),
         };
-    }
 
     /// <summary>The mass flow the Kv relation gives at a pressure drop.</summary>
     /// <param name="effectiveKv">Kv · φ(position), in m³/h at 1 bar.</param>
