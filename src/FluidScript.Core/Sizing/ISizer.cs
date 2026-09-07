@@ -56,6 +56,35 @@ public readonly record struct SizingContext
     /// <summary>Gets the mass flow through the component.</summary>
     /// <value>kg/s. Signed as the branch is; every rule here uses its magnitude.</value>
     public required double MassFlow { get; init; }
+
+    /// <summary>Gets the resistance the rest of this component's branch puts in its way.</summary>
+    /// <value>
+    /// Pa at <see cref="MassFlow"/>, positive against the flow, and <strong>excluding this component's
+    /// own contribution</strong> — which is what a valve's authority is measured against.
+    /// </value>
+    public required double BranchDrop { get; init; }
+
+    /// <summary>Gets the resistance around the whole circuit this component drives.</summary>
+    /// <value>
+    /// <para>
+    /// Pa at the design flow, excluding this component's own contribution. Zero is a real answer rather
+    /// than a missing one — a circuit of ideal links has no head to develop against.
+    /// </para>
+    /// <para>
+    /// <see langword="null"/> is the different fact that <strong>the component is on no closed circuit
+    /// at all</strong> — declared, possibly even on a branch, but on no cycle. Both reach the same head,
+    /// and they are opposite defects: one is a loss nobody modelled, the other a connection nobody made.
+    /// A rule that collapses them reports the wrong one, which is <c>C-57</c>.
+    /// </para>
+    /// </value>
+    /// <remarks>
+    /// <strong>A pump cannot be sized from a converged solve, and this is why it is handed the drop
+    /// instead.</strong> At convergence the head and the flow are consistent by construction: the field
+    /// balances whatever head the pump was given, so reading the rise back across it returns the value
+    /// it started with and the loop reports settled at the wrong answer. The drop has to be evaluated
+    /// at the flow the <em>duty</em> fixes, against the laws of everything else on the loop.
+    /// </remarks>
+    public required double? LoopDrop { get; init; }
 }
 
 /// <summary>Fills the parameters a user left out (<c>D-02</c>).</summary>

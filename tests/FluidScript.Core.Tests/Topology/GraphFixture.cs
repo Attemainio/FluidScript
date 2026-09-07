@@ -75,7 +75,7 @@ public static class GraphFixture
         return new OuterLoop(
                 new NewtonSolver(),
                 new CatalogBoreLookup(resolved.Value.Catalog),
-                [new PipeSizer(resolved.Value.Catalog)])
+                OuterLoop.Rules(resolved.Value.Catalog))
             .Prepare(Bind(source), ConstantPropertyWater.Instance)
             .Lowered;
     }

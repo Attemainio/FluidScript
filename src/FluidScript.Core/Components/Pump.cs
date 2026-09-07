@@ -21,7 +21,7 @@ namespace FluidScript.Core.Components;
 public sealed class Pump : IFlowComponent
 {
     /// <summary>Standard gravity, m/s².</summary>
-    private const double Gravity = 9.80665;
+    private const double Gravity = UnitTable.StandardGravity;
 
     /// <summary>The shut-off head of the default curve, as a multiple of the duty head.</summary>
     /// <value>1.2, typical for a centrifugal pump.</value>

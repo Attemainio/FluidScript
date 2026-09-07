@@ -27,6 +27,19 @@ public static class UnitTable
     /// <value>Pa absolute.</value>
     public const double StandardAtmosphere = 101_325;
 
+    /// <summary>Standard gravitational acceleration, which turns a head into a pressure.</summary>
+    /// <value>
+    /// m/s². The conventional value, not a local one — a head in metres is a pressure divided by a
+    /// stated density and this constant, not a statement about where the plant is.
+    /// </value>
+    /// <remarks>
+    /// Here because <c>MetreOfWater</c> below is already this number times 1000 kg/m³, so the two agree
+    /// by construction rather than by coincidence. It had been a private constant in both <c>Pipe</c>
+    /// and <c>Pump</c>, and a sizing rule turning a loop drop into a head would have made a third copy
+    /// of a physical constant.
+    /// </remarks>
+    public const double StandardGravity = 9.80665;
+
     private const double Fahrenheit = 5.0 / 9.0;
     private const double MetreOfWater = 9806.65;
     private const double PoundPerSquareInch = 6894.757293168361;

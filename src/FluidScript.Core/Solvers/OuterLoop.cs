@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 
 using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
@@ -91,6 +92,17 @@ public sealed record PreparedModel(
 public sealed class OuterLoop(
     ISolver solver, IBoreLookup bores, ImmutableArray<ISizer> sizers, int maxPasses = 10)
 {
+    /// <summary>The rules a v1 solve runs, in the order a component is offered to them.</summary>
+    /// <param name="pipes">The pipe series diameters are chosen from.</param>
+    /// <returns>The rules.</returns>
+    /// <remarks>
+    /// One list rather than one per caller. A fixture that assembled its own would be lowering a model
+    /// sized by a different set of rules than a solve uses, which is the shape of <c>C-55</c> and cost
+    /// three failures and four skips the first time it happened.
+    /// </remarks>
+    public static ImmutableArray<ISizer> Rules(Catalogs.ICatalog<Catalogs.PipeSpec> pipes) =>
+        [new PipeSizer(pipes), new PumpSizer()];
+
     /// <summary>Lowers a model with sizing applied, which is the only graph a solve ever sees.</summary>
     /// <param name="model">The bound semantic model.</param>
     /// <param name="substance">The fluid.</param>
@@ -173,9 +185,45 @@ public sealed class OuterLoop(
 
             lowered = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay), name);
             var posedness = WellPosedness.Check(lowered.Graph);
+
+            // A malformed script is the normal case while one is being edited, and a script whose
+            // equations outnumber its unknowns is malformed. Without this the system is built anyway and
+            // `DenseLu.Factor` throws `ArgumentException` on a Jacobian that is not square -- a pipeline
+            // stage throwing on user input, which the contract forbids outright (`S-28`).
+            if (!posedness.CanSolve)
+            {
+                return Result.Failure<OuterLoopResult>(ResultError.From(
+                    Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                    ("property", "a solution"),
+                    ("name", name),
+                    ("state", Unsolvable(posedness))));
+            }
+
             var layout = SystemLayout.Build(lowered.Graph, posedness.Counting);
             var iterate = warm ?? Seed(lowered.Graph);
             var system = EquationSystem.Build(lowered.Graph, posedness, iterate);
+
+            // `CanSolve` speaks for the counting table, which is a prediction. `Rows` and `Columns` are
+            // what assembly actually produced, and the two disagree wherever a component declares fewer
+            // equations than the table credits it with -- `S-14b`'s coupled exchanger is the live case.
+            // The disagreement is a defect in this engine rather than in the script, but it still must
+            // not reach `DenseLu`, which throws on a matrix that is not square (`S-28`).
+            if (system.Rows != system.Columns)
+            {
+                var assembled = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"assembly gave {system.Rows} equations for {system.Columns} unknowns");
+                var predicted = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"counting predicted {posedness.Counting.Equations} for {posedness.Counting.Unknowns}");
+
+                return Result.Failure<OuterLoopResult>(ResultError.From(
+                    Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                    ("property", "a solution"),
+                    ("name", name),
+                    ("state", $"{assembled}, though {predicted}")));
+            }
+
 
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
                 .ConfigureAwait(false);
@@ -206,6 +254,26 @@ public sealed class OuterLoop(
                 ("name", name),
                 ("state", "the pass cap is not positive")))
             : Result.Success(Report(lowered.Graph, solve, overlay, bases, notes, passes, settled: false));
+    }
+
+    /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
+    /// <param name="posedness">The failing check.</param>
+    /// <returns>The first error it reported, or the counting mismatch when it reported none.</returns>
+    /// <remarks>
+    /// The error is preferred because it names a place in the script; the count is the fallback for the
+    /// case <see cref="WellPosednessResult.CanSolve"/> also admits, where every diagnostic is a warning
+    /// and the system is simply not square.
+    /// </remarks>
+    private static string Unsolvable(WellPosednessResult posedness)
+    {
+        var error = posedness.Diagnostics.FirstOrDefault(
+            static diagnostic => diagnostic.Severity == Diagnostics.DiagnosticSeverity.Error);
+
+        return error is not null
+            ? error.Message
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{posedness.Counting.Equations} equations for {posedness.Counting.Unknowns} unknowns");
     }
 
     private static OuterLoopResult Report(
@@ -352,41 +420,178 @@ public sealed class OuterLoop(
     private static SizingContext? Context(
         CircuitGraph graph, SystemLayout layout, StateVector iterate, IFlowComponent component)
     {
-        foreach (var branch in graph.Branches)
+        var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(component));
+
+        if (branch is null || Inlet(graph, layout, iterate, component) is not { } state)
         {
-            if (!branch.Path.Contains(component))
-            {
-                continue;
-            }
-
-            var node = branch.From.Element as CircuitNode
-                ?? branch.To.Element as CircuitNode
-                ?? graph.Nodes.FirstOrDefault()?.Component as CircuitNode;
-
-            var index = node is null ? -1 : Array.FindIndex(
-                [.. graph.Nodes], candidate => ReferenceEquals(candidate.Component, node));
-
-            if (index < 0)
-            {
-                continue;
-            }
-
-            var state = graph.Substance.FromPressureEnthalpy(
-                Quantity.FromSi(iterate.Values[layout.NodePressure(index)], Dimension.Pressure),
-                Quantity.FromSi(iterate.Values[layout.NodeEnthalpy(index)], Dimension.Enthalpy));
-
-            if (!state.IsSuccess)
-            {
-                return null;
-            }
-
-            return new SizingContext
-            {
-                State = state.Value,
-                MassFlow = iterate.Values[layout.BranchFlow(branch.Index)],
-            };
+            return null;
         }
 
-        return null;
+        var flow = iterate.Values[layout.BranchFlow(branch.Index)];
+
+        return new SizingContext
+        {
+            State = state,
+            MassFlow = flow,
+            BranchDrop = Resistance(graph, state, branch.Path, flow, component),
+            LoopDrop = Circuit(graph, layout, iterate, component, state),
+        };
     }
+
+    /// <summary>The fluid state at a component's own inlet.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current values.</param>
+    /// <param name="component">The component.</param>
+    /// <returns>The state, or <see langword="null"/> when its inlet reaches no node.</returns>
+    /// <remarks>
+    /// <strong>Its own inlet, not the loop mean, and <c>24</c> flags the difference as a trap.</strong>
+    /// A pump develops head against the fluid actually entering it, so the worked example converts
+    /// 51.7 kPa at 998.2 kg/m³ and reads 5.28 m; the same drop at the loop's 35 °C mean of 994 kg/m³
+    /// reads 5.30 m. Under half a percent there, and it grows with the loop's temperature spread — so
+    /// an implementation that silently takes the mean disagrees with the document by more than rounding
+    /// while looking right.
+    /// </remarks>
+    private static FluidState? Inlet(
+        CircuitGraph graph, SystemLayout layout, StateVector iterate, IFlowComponent component)
+    {
+        var element = graph.Components.IndexOf(component);
+        var peer = element < 0 ? PortRef.None : graph.Adjacency.Peer(element, 0);
+        var index = peer.Exists
+            ? Array.FindIndex(
+                [.. graph.Nodes],
+                node => ReferenceEquals(node.Component, graph.Components[peer.Component]))
+            : -1;
+
+        if (index < 0)
+        {
+            return null;
+        }
+
+        var state = graph.Substance.FromPressureEnthalpy(
+            Quantity.FromSi(iterate.Values[layout.NodePressure(index)], Dimension.Pressure),
+            Quantity.FromSi(iterate.Values[layout.NodeEnthalpy(index)], Dimension.Enthalpy));
+
+        return state.IsSuccess ? state.Value : null;
+    }
+
+    /// <summary>The drop around the largest circuit through a component, excluding the component.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current values.</param>
+    /// <param name="component">The component the circuit runs through.</param>
+    /// <param name="state">The fluid at it.</param>
+    /// <returns>
+    /// Pa, or <see langword="null"/> when no cycle contains the component at all — a different fact from
+    /// a cycle that resists nothing, and only the caller can say which one matters (<c>C-57</c>).
+    /// </returns>
+    /// <remarks>
+    /// The largest, because a pump on a set of parallel circuits has to reach the worst of them — which
+    /// is the index circuit, and sizing to any other one leaves a branch short of its design flow.
+    /// </remarks>
+    private static double? Circuit(
+        CircuitGraph graph,
+        SystemLayout layout,
+        StateVector iterate,
+        IFlowComponent component,
+        FluidState state)
+    {
+        double? worst = null;
+
+        foreach (var loop in graph.Loops)
+        {
+            if (!loop.Branches.Any(branch => branch.Path.Contains(component)))
+            {
+                continue;
+            }
+
+            var drop = 0.0;
+
+            foreach (var branch in loop.Branches)
+            {
+                drop += Resistance(
+                    graph, state, branch.Path, iterate.Values[layout.BranchFlow(branch.Index)], component);
+            }
+
+            worst = Math.Max(worst ?? drop, drop);
+        }
+
+        return worst;
+    }
+
+    /// <summary>What a run of components resists at a flow, by their own laws.</summary>
+    /// <param name="graph">The graph, for its substance.</param>
+    /// <param name="state">The fluid to evaluate the laws against.</param>
+    /// <param name="path">The components along the run.</param>
+    /// <param name="flow">kg/s through them.</param>
+    /// <param name="exclude">The component whose own contribution is left out.</param>
+    /// <returns>Pa, positive against the flow.</returns>
+    /// <remarks>
+    /// <strong>Each component states its own drop, and none of them is asked how.</strong> A pressure
+    /// residual is written <c>p_in − p_out − Δp(law) = 0</c>, so evaluating it over a <em>flat</em>
+    /// pressure field leaves exactly <c>−Δp(law)</c> — the component's own contribution at that flow,
+    /// from the same code the solver runs. No kind appears here, a pump's rise comes out negative
+    /// because that is what a pump does to a loop, and a component added later is covered the day it
+    /// declares a pressure equation.
+    /// </remarks>
+    private static double Resistance(
+        CircuitGraph graph,
+        FluidState state,
+        ImmutableArray<IFlowComponent> path,
+        double flow,
+        IFlowComponent exclude)
+    {
+        var total = 0.0;
+
+        foreach (var element in path)
+        {
+            if (ReferenceEquals(element, exclude) || element.EquationCount == 0)
+            {
+                continue;
+            }
+
+            var row = element.DeclareEquations()
+                .FirstOrDefault(declaration => declaration.Kind == EquationKind.Pressure);
+
+            if (row is null)
+            {
+                continue;
+            }
+
+            var ports = new PortState[element.Ports.Length];
+            var flows = new double[element.Ports.Length];
+            var residuals = new double[element.EquationCount];
+
+            Array.Fill(ports, Flat(state));
+            Array.Fill(flows, flow);
+
+            element.EvaluateResiduals(new SolveContext(graph.Substance, ports, flows), residuals);
+
+            if (double.IsFinite(residuals[row.Index]))
+            {
+                total -= residuals[row.Index];
+            }
+        }
+
+        return total;
+    }
+
+    /// <summary>A port state carrying real properties at zero gauge pressure.</summary>
+    /// <param name="state">The fluid.</param>
+    /// <returns>The port state.</returns>
+    /// <remarks>
+    /// Only the pressure is flattened. The properties stay real, because a pipe cannot form a Reynolds
+    /// number without a density and a viscosity, and a law evaluated against invented ones would be a
+    /// different law.
+    /// </remarks>
+    private static PortState Flat(FluidState state) => new()
+    {
+        Pressure = 0,
+        Enthalpy = state.Enthalpy.SiValue,
+        Temperature = state.Temperature.SiValue,
+        Density = state.Density.SiValue,
+        SpecificHeat = state.SpecificHeat.SiValue,
+        DynamicViscosity = state.DynamicViscosity.SiValue,
+        ThermalConductivity = state.ThermalConductivity.SiValue,
+    };
 }

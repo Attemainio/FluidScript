@@ -43,6 +43,7 @@ that nothing is wrong.
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| C-57 | [`24`](24-auto-sizing.md) | **A pump on no circuit and a circuit with no resistance were the same number, so the rule misdiagnosed both places it fired** | `SizingContext.LoopDrop` was a `double` and `OuterLoop.Circuit` returned `0` both when a cycle through the component resisted nothing *and* when no cycle contained it at all. The pump rule read the zero and said "its circuit contains no modelled resistance" either way. Every firing in the corpus was the second case -- `m1-syntax-reference` and `m1-syntax-tour` both declare `PU1` and never connect it, which the first sample states in its own header -- so the rule was wrong in 2 of 2 live cases, telling a reader to add a pipe when what was missing was a connection. | `LoopDrop` became `double?`, `Circuit` returns `null` for "no cycle contains it", and the rule now separates three causes that all reach zero head: no closed circuit (a missing connection), a drop of zero at zero flow (a missing duty -- at zero flow every loss law returns zero, so a ring full of real pipes reports no resistance), and a drop of zero at a real flow (a missing loss, the original message). The basis string says `no closed circuit` instead of `loop drop 0.0 kPa`. |
 | C-56 | [`23`](23-topology-and-graph.md), [`24`](24-auto-sizing.md) | **A sized parameter was still promotable, so one value could have been chosen by a rule and solved for as an unknown at once** | `ComponentFactory.Defaults` states the rule in its own remarks -- "well-posedness looks for a parameter no map claims" -- and `WellPosedness.IsFree` read `StatedParameters` and `DefaultParameters` and not `SizedParameters`. Latent for four packages because nothing ever filled the third map; live the moment `P3.7b`'s loop did. The failure would have been silent in the worst way: a pump head chosen by a sizing rule *and* carried as a Newton column, converging to two different numbers with the counting table calling the system square throughout. | `IsFree` reads all three. The loop skips promoted parameters when sizing and `ASizedParameterIsNeverAlsoPromoted` asserts the disjointness on the corpus, so the two halves of the division of labour are each checked against the other rather than both against the same assumption. |
 | C-55 | [`24`](24-auto-sizing.md), [`62`](../60-docs-and-devex/62-testing-strategy.md) | **The test fixture lowered a script differently from the way a solve does, and the difference was invisible while every sample stated its own sizes** | `GraphFixture.Lower` called `Lowering.Lower` directly with a bare `ComponentFactory`. That is only equivalent to what a solve builds while nothing needs sizing: a pipe with no chosen `dn` has no bore, so it is **not built at all** and lowering reports it under `Unresolved` rather than failing. Removing `dn=25` from `m2-simple-loop` -- which its own header had asked for since `P3.5` -- made three tests fail and four skip, every one of them reporting the pipe as dropped. The fixture was testing a model nobody runs. | `GraphFixture.Lower` and `WellPosednessTests.Excess` both go through `OuterLoop.Prepare`, which is public for exactly this reason. Two consequences fell out immediately: `m2-simple-loop` counts square with nothing stating its diameter, and `m1-syntax-tour`'s `PB1` resolves for the first time, taking the corpus skip count from 7 to 3. |
 | C-46 | [`24`](24-auto-sizing.md), `D-58` | **`24` never cited the decision that owns its sizing point, and said a transient freezes sizes "at t = 0"** | `D-58` makes `design` the sizing point in every mode and explicitly *not* the operating point in a dynamic solve, so freezing sizes at t = 0 sizes the plant for whatever the weather is at midnight on 1 January. The document referenced `D-22` for the freeze and `D-58` nowhere at all, which is how the two drifted. | `24`'s pipeline now states that sizing runs once at the `design` point and holds for the whole run, and cites `D-58` where it says so. The remaining gap -- that no rule reads any driver but `tout` -- is `C-51`, deferred to `P3.8`. |
@@ -464,3 +465,40 @@ lands". P3.5 landed and the notes could not be honoured: the catalogue turns a d
 bore, and *choosing* the designation is sizing (`P3.7`). Lowering still drops a pipe with no `dn`.
 Corrected to name P3.7. Worth recording because the note was written by the package that was blocked,
 which is the package least able to know which later one unblocks it.
+
+**The pump rule has no converging circuit in the corpus, and the reason is that promotion gets there
+first.** Every sample that solves either states its pump's head or has it *promoted* to a solver
+unknown, because a duty is a spare constraint and promotion is what spends one. The rule therefore
+fired exactly twice across seven samples, both times on a pump connected to nothing. That is not an
+argument against the rule -- where a head is genuinely free and a flow is genuinely fixed, the loop
+drop is the answer, and `PumpSizerTests` holds it against `24`'s worked example directly. It is an
+argument about coverage: `Circuit` and `Resistance` return a real non-zero drop from a real graph
+(2.5 kPa on a two-pump ring, measured), and no *converging* sample exercises that path. The circuit
+that would is two pumps in series, which is `S-29` and does not converge for unrelated reasons. Worth
+knowing before the same shape is assumed for the valve rule, where the promotion/sizing split lands in
+the same place.
+
+**Promotion and sizing compute the same pump head by different routes, and promotion is the better
+one.** On the simple loop `PU1.head` is promoted and the solver finds the head that delivers the
+duty-fixed flow -- which is, by construction, the loop drop at that flow, `24`'s 5.28 m. The rule
+computes the identical quantity from the outside with a `margin` multiplier and one pass of lag. Where
+both are available the solver's answer is exact and needs no heuristic, so the rule should be read as
+the fallback for circuits promotion cannot reach, not as the primary path. `24` presents it as the
+primary path; that framing is worth revisiting when the valve rule forces the same question.
+
+**A worked example computed at a loop mean does not match a rule that sizes at each inlet, and both
+numbers are right.** `24` sizes the simple loop's `P1` at the 35 C loop mean and reads 94.1 Pa/m; the
+implementation sizes every component at its own inlet, which for `P1` is the 20 C leaving `LOAD`, and
+reads 99.8 Pa/m. Six percent, and the same DN25 either way, so nothing was wrong -- but the sample's
+header comment had transcribed 94 as what the tool reports, which it does not. `24` already flags
+inlet-versus-mean as a trap for the *pump's* head and does not notice that its own pipe example has
+it. The sample now states both numbers and why they differ. Any future worked example needs to say
+which state it is worked at, because the two agree closely enough to look like rounding and diverge
+with the loop's temperature spread.
+
+**Sizing runs against the seed before it runs against a solution, and the two differ enough to
+notice.** `OuterLoop.Prepare` sizes from the bootstrap's flow estimate: `P1` reads 104.2 Pa/m there
+and 99.8 Pa/m at convergence, a 4 % gap from the seed's cruder flow. Both choose DN25, which is the
+discreteness that makes the outer loop settle in one pass. Recorded because `Prepare`'s bases are
+tempting to assert on in a test -- they are not the run's answer, and a continuous parameter would
+show the gap plainly.

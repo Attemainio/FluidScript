@@ -41,7 +41,7 @@ public sealed class OuterLoopTests
         return new OuterLoop(
             new NewtonSolver(),
             new CatalogBoreLookup(resolved.Value.Catalog),
-            [new PipeSizer(resolved.Value.Catalog)],
+            OuterLoop.Rules(resolved.Value.Catalog),
             maxPasses);
     }
 
@@ -134,5 +134,84 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Settled);
         Assert.InRange(run.Passes, 1, 3);
+    }
+
+    /// <summary>The simple loop with a second pump in series, for <c>S-29</c>.</summary>
+    /// <remarks>
+    /// <c>PU2</c>'s head is <em>stated</em> on purpose, so nothing about sizing is in the picture: this
+    /// is 14 unknowns for 14 equations with one free head and a flow the duty fixes, which is the shape
+    /// the one-pump loop solves in five iterations.
+    /// </remarks>
+    private const string SeriesPumps = """
+        fluidscript 1
+        circuit series
+        fluid water
+
+        HE1  heat_exchanger power=30 in=20 out=50
+        LOAD heat_exchanger power=-30
+        CV1  valve
+        PU1  pump
+        PU2  pump head=3
+        P1   pipe length=25 dn=25
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N6 - PU2 - N1
+        """;
+
+    [Fact]
+    public async Task AScriptWhoseComponentsAreNotConnectedIsToldSoRatherThanThrowing()
+    {
+        // `S-28`. `m1-syntax-reference` is 18 unknowns for 19 equations, and says in its own header that
+        // it is not a solvable circuit. The counting table's verdict was never consulted before the
+        // system was assembled, so `DenseLu.Factor` threw `ArgumentException` on a Jacobian that was not
+        // square -- a pipeline stage throwing on user input, which the contract forbids outright.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m1-syntax-reference.fluid"));
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(source), Water.Instance, "reference", TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("not connected", result.Error!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ACountingTableThatDisagreesWithAssemblyIsReportedRatherThanFactored()
+    {
+        // `S-28` again, for the half `CanSolve` cannot see. The counting table is a prediction: it counts
+        // 23 for 23 on the substation while assembly produces 22 rows, because `S-14b`'s coupled
+        // exchanger declares one momentum equation fewer than the table credits it with. A prediction
+        // that disagreed with the system used to reach `DenseLu` and throw; now it is a diagnostic.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-substation.fluid"));
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(source), Water.Instance, "substation", TestContext.Current.CancellationToken);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("22 equations for 23 unknowns", result.Error!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void APumpOnNoLoopIsSizedToZeroAndToldWhichThingIsMissing()
+    {
+        // `C-57`, end to end. `Circuit` returns null rather than zero for a component no cycle contains,
+        // and that is the whole reason the rule can say "no closed circuit" instead of blaming a loss
+        // nobody modelled. PU1 is declared and never connected here, which is the sample's stated point.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m1-syntax-reference.fluid"));
+        var prepared = Loop().Prepare(GraphFixture.Bind(source), Water.Instance, "reference");
+
+        Assert.Equal(0.0, prepared.Sizes.For("PU1", "head"));
+        Assert.Contains("no closed circuit", prepared.Bases["PU1.head"], StringComparison.Ordinal);
+        Assert.Contains("no closed circuit", Assert.Single(prepared.Notes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TwoPumpsInSeriesDoNotConvergeYet()
+    {
+        // `S-29`, pinned so that fixing it shows up as a failing test rather than as nothing at all.
+        // Two pumps in series is the one thing separating this from a circuit that converges in five
+        // iterations at the same 14 unknowns, and the second head is stated, so sizing is not involved.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(SeriesPumps), Water.Instance, "series", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.False(result.Value.Solve.Converged, "S-29 is fixed -- delete this test and its note.");
     }
 }

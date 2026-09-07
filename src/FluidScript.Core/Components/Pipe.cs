@@ -26,7 +26,7 @@ namespace FluidScript.Core.Components;
 public sealed class Pipe : IFlowComponent
 {
     /// <summary>Standard gravity, m/s².</summary>
-    private const double Gravity = 9.80665;
+    private const double Gravity = UnitTable.StandardGravity;
 
     /// <summary>Below this Reynolds number the flow is laminar.</summary>
     private const double LaminarLimit = 2300;

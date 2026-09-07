@@ -30,7 +30,15 @@ public sealed class PipeSizerTests
 
         Assert.True(state.IsSuccess, state.Error?.Message);
 
-        return new SizingContext { State = state.Value, MassFlow = massFlow };
+        // The pipe rule reads neither drop; a valve's authority and a pump's head are what those are
+        // for, and both are sized against a circuit rather than against one component.
+        return new SizingContext
+        {
+            State = state.Value,
+            MassFlow = massFlow,
+            BranchDrop = 0,
+            LoopDrop = 0,
+        };
     }
 
     private static SizingResult Size(double massFlow, double celsius, double target = 150)

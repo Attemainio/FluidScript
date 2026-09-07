@@ -6,7 +6,12 @@
 # value (D-65).
 #
 # P1 states no `dn`: P3.7b's outer loop chooses it. This is 01's canonical block, unchanged -- the
-# sizing rule selects DN25 at 94 Pa/m and 0.41 m/s, which is what 24's worked example computes by hand.
+# sizing rule selects DN25 at 0.41 m/s, which is what 24's worked example computes by hand.
+#
+# The gradient it reports is 99.8 Pa/m, not 24's 94.1. Both are right about different states: 24 works
+# the example at the loop's 35 C mean, and the rule sizes every component at its own inlet, which for
+# P1 is the 20 C leaving LOAD. Sizing at a mean nobody is standing in is the trap 24 flags for the
+# pump's head, and the pipe rule has it too -- 6 % of gradient here, and the same DN either way.
 
 fluidscript 1
 circuit simpleLoop

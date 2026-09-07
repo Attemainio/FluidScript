@@ -10,6 +10,32 @@ PU2 pump head=15
 A pump with no parameters is sized: its head comes out equal to the loop's total pressure drop, which
 is the number you would otherwise have computed by hand to choose one.
 
+## How the head is chosen
+
+The head is the resistance of the circuit the pump drives, at the flow the circuit's **duty** fixes —
+a heat exchanger with a power and two temperatures fixes it through an energy balance, and the pump is
+then sized to it. Everything on the loop states its own drop, so the number includes your pipes,
+valves and exchangers and nothing you did not write down.
+
+Pressure becomes metres at the density **entering the pump**, not at the loop's average. On the simple
+loop that is 51.7 kPa at 998 kg/m³, or 5.28 m; the same drop at the loop's 35 °C mean would read
+5.30 m. The gap is small on one ring and grows with the temperature spread, so the reported head and a
+hand check will only agree if the hand check uses the inlet too.
+
+`margin` multiplies the result and is reported when you set it, so a head of 5.81 m says
+`margin 1.1` beside it. It is a design allowance, not a stand-in for fittings nobody modelled — those
+belong in a pipe's `minor_loss`.
+
+### When the head comes out zero
+
+Zero is a real answer, and three different omissions produce it. The reported reason says which:
+
+| What you are told | What is missing |
+|---|---|
+| `on no closed circuit` | The pump is declared but never connected into a loop — check your `connections`. |
+| `no flow was estimated` | Nothing sets a flow. Give the circuit a duty: an exchanger with a power and two temperatures, or a stated flow. |
+| `no modelled resistance` | The loop has flow but nothing that resists it. Add the pipe, valve or exchanger drop you meant to write. |
+
 ## Ports
 
 `in` and `out`.
