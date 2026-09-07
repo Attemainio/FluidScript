@@ -226,6 +226,15 @@ repeats at states the solver has already visited within its iteration.
   interpolation tables, incompressible fast paths — needs a benchmark first, and
   [`36-numerics-and-convergence`](../30-solver/36-numerics-and-convergence.md) owns whether the solver
   is actually property-bound.
+- **A table is gridded on `(p, h)` or `(p, s)`, never on `(p, T)`** (`D-79`). This is a correctness
+  constraint on the line above, not a performance one, and it is stated here because a benchmark is
+  the only permission that row asks for. Inside the two-phase dome pressure and temperature are not
+  independent — they are related by the saturation curve — so every two-phase state maps onto a single
+  *line* in `(p, T)` space and a `(p, T)` grid **has no cells covering the dome at all**. The
+  saturation line is then a hard table boundary: one table per phase region or no table, because
+  enthalpy's slope and `c_p` are both discontinuous across it. And no property is ever obtained by
+  blending two evaluated states — the cache above returns a *computed* state, which is why exact
+  bit-pattern keys are the right design twice over.
 
 ## Substance registry
 
@@ -241,6 +250,15 @@ public interface ISubstanceRegistry
 v1 registry names are `water` for solved hydronic circuits and `air` for metadata/property validation.
 `air` cannot lower to a v1 circuit (`D-28`). Glycol mixtures are post-v1: accepting a concentration
 before the real backend and freezing-basis behavior are validated would overstate supported physics.
+
+**Refrigerants are pure fluids and arrive with `D-78`'s cycle**, not with the glycols. A mixture needs
+a concentration argument and a freezing basis; `ammonia`, `propane` and `co2` need neither, and the
+backend already carries them. What they do need is three members this document did not have —
+`FluidState.Entropy`, `ISubstance.FromPressureEntropy` for the isentropic discharge state, and
+`ISubstance.SaturationTemperature`, whose backend function `WaterSaturationTemperature` exists and is
+simply unexposed. A cycle's four state points are otherwise served by what is already here, because
+the state after the expansion valve is never evaluated: the expansion is isenthalpic, so `h₄ = h₃` is
+an assignment.
 
 ## Invariants
 

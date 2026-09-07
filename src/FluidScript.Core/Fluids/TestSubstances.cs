@@ -89,6 +89,11 @@ public sealed class ConstantPropertyWater : SubstanceBase
         Pressure = gaugePressure,
         Temperature = Quantity.FromSi(kelvin, Dimension.Temperature),
         Enthalpy = Quantity.FromSi(SpecificHeatValue * (kelvin - 273.15), Dimension.Enthalpy),
+
+        // s = integral of cp/T, which for a constant cp is cp*ln(T/T_ref) exactly. Real rather than a
+        // placeholder, so the double stays internally consistent: dh/ds is T at every point, as it must
+        // be.
+        Entropy = Quantity.FromSi(SpecificHeatValue * Math.Log(kelvin / 273.15), Dimension.SpecificHeat),
         Density = Quantity.FromSi(DensityValue, Dimension.Density),
         DynamicViscosity = Quantity.FromSi(DynamicViscosityValue, FluidDimensions.DynamicViscosity),
         SpecificHeat = Quantity.FromSi(SpecificHeatValue, Dimension.SpecificHeat),
@@ -199,6 +204,22 @@ public sealed class LinearPropertyWater : SubstanceBase
         return (SpecificHeatAtReference * x) + (SpecificHeatSlope * x * x / 2);
     }
 
+    /// <summary>The specific entropy at a temperature, on the same datum as <see cref="EnthalpyAt"/>.</summary>
+    /// <param name="kelvin">K.</param>
+    /// <returns>
+    /// J/(kg·K), negative below 273.15 K. The integral of <c>cp/T</c> rather than of <c>cp</c>, so
+    /// <c>dh/ds</c> comes out as the temperature at every point and the fake stays a consistent
+    /// substance rather than two unrelated fits.
+    /// </returns>
+    public static double EntropyAt(double kelvin)
+    {
+        // With cp(T) = a + b(T - T0), cp/T integrates to (a - b*T0)*ln(T) + b*T, in closed form for the
+        // same reason EnthalpyAt is: this fake exists to be non-constant and exactly invertible.
+        var intercept = SpecificHeatAtReference - (SpecificHeatSlope * ReferenceTemperature);
+
+        return (intercept * Math.Log(kelvin / 273.15)) + (SpecificHeatSlope * (kelvin - 273.15));
+    }
+
     private FluidState At(Quantity gaugePressure, double kelvin)
     {
         var x = kelvin - ReferenceTemperature;
@@ -209,6 +230,7 @@ public sealed class LinearPropertyWater : SubstanceBase
             Pressure = gaugePressure,
             Temperature = Quantity.FromSi(kelvin, Dimension.Temperature),
             Enthalpy = Quantity.FromSi(EnthalpyAt(kelvin), Dimension.Enthalpy),
+            Entropy = Quantity.FromSi(EntropyAt(kelvin), Dimension.SpecificHeat),
             Density = Quantity.FromSi(998.2 - (0.45 * x), Dimension.Density),
             DynamicViscosity = Quantity.FromSi(
                 Math.Max(1e-4, 1.002e-3 - (8e-6 * x)), FluidDimensions.DynamicViscosity),

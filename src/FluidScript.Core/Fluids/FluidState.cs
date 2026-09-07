@@ -14,7 +14,13 @@ public enum Phase
     /// <summary>Gas or vapour.</summary>
     Gas,
 
-    /// <summary>Two phases at once, which no v1 component models.</summary>
+    /// <summary>Two phases at once.</summary>
+    /// <remarks>
+    /// Ordinary rather than exceptional since <c>D-78</c>: an expansion valve discharges into the dome
+    /// by definition, and an evaporator is here over almost its whole length. Three of the seven
+    /// properties do not exist at such a point and are blanked rather than guessed (<c>C-52</c>); what
+    /// is always well posed is <c>(p, h)</c>, which is why the solver's node unknown is enthalpy.
+    /// </remarks>
     TwoPhase,
 
     /// <summary>Above the critical point.</summary>
@@ -98,7 +104,7 @@ public interface IThermodynamicState
     Phase Phase { get; }
 }
 
-/// <summary>A fully determined thermodynamic point of a single-phase fluid.</summary>
+/// <summary>A fully determined thermodynamic point of a fluid.</summary>
 /// <remarks>
 /// <para>
 /// Immutable, and fixed by exactly two independent properties. <c>21</c> asks for derived properties
@@ -112,6 +118,13 @@ public interface IThermodynamicState
 /// Never compare derived properties for equality — enthalpy in particular carries the substance's own
 /// reference datum, so only differences are meaningful and an absolute value asserted against a
 /// textbook will fail for a correct implementation.
+/// </para>
+/// <para>
+/// <strong>Two-phase and supercritical points are states like any other</strong> (<c>D-78</c>). The
+/// pair that fixes one is <c>(p, h)</c>: inside the dome a pressure and a temperature are the same
+/// constraint rather than two, so <see cref="Temperature"/> there is the saturation temperature and
+/// says nothing further. That is the reason the solver's node unknown is enthalpy — a formulation
+/// carrying node temperature could not represent an evaporator inlet at all.
 /// </para>
 /// </remarks>
 public sealed record FluidState : IThermodynamicState
@@ -134,6 +147,19 @@ public sealed record FluidState : IThermodynamicState
     /// substance whose basis is different.
     /// </value>
     public required Quantity Enthalpy { get; init; }
+
+    /// <summary>Gets the specific entropy.</summary>
+    /// <value>
+    /// J/(kg·K), on the substance's own reference datum exactly as <see cref="Enthalpy"/> is, so only
+    /// differences carry meaning. Its dimension is <see cref="Dimension.SpecificHeat"/>, which is the
+    /// same J/(kg·K) — dimensionally exact, and why there is no separate entropy dimension.
+    /// </value>
+    /// <remarks>
+    /// Carried for one job: fixing a compressor's isentropic discharge state (<c>D-78</c>). It is also
+    /// what a T–s or p–h plot is drawn from, which is the form an engineer reads a refrigeration
+    /// circuit in.
+    /// </remarks>
+    public required Quantity Entropy { get; init; }
 
     /// <summary>Gets the density.</summary>
     /// <value>kg/m³, always positive.</value>
@@ -223,4 +249,8 @@ public sealed record HumidAirState : IThermodynamicState
     /// eye at all, only by a test that asserts the basis rather than inspecting a number.
     /// </value>
     public required Quantity DryAirBasisEnthalpy { get; init; }
+
+    /// <summary>Gets the specific entropy, per kg of dry air.</summary>
+    /// <value>J/(kg dry air·K). The same basis as <see cref="DryAirBasisEnthalpy"/>, and named for it.</value>
+    public required Quantity DryAirBasisEntropy { get; init; }
 }

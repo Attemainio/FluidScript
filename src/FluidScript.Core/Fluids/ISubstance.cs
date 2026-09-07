@@ -83,6 +83,29 @@ public interface ISubstance
     /// cavitation checks, which compare it against a gauge pressure the model holds.
     /// </returns>
     Result<Quantity> SaturationPressure(Quantity temperature);
+
+    /// <summary>Fixes a state from pressure and specific entropy.</summary>
+    /// <param name="gaugePressure">The pressure, gauge, as above.</param>
+    /// <param name="entropy">The specific entropy, J/(kg·K) on this substance's own datum.</param>
+    /// <returns>The state, or why the pair does not describe one.</returns>
+    /// <remarks>
+    /// The pair a compressor needs and nothing else does: an isentropic discharge point is
+    /// <c>(p_high, s_suction)</c> by definition (<c>D-78</c>). A substance with no vapour phase has no
+    /// use for it and says so rather than answering.
+    /// </remarks>
+    Result<FluidState> FromPressureEntropy(Quantity gaugePressure, Quantity entropy);
+
+    /// <summary>Finds the saturation temperature at a pressure.</summary>
+    /// <param name="gaugePressure">The pressure, gauge.</param>
+    /// <returns>
+    /// The saturation temperature in K, or why it is unknown — including because this substance has no
+    /// saturation curve to be on.
+    /// </returns>
+    /// <remarks>
+    /// The inverse of <see cref="SaturationPressure"/>, and the direction a cycle asks in: a condensing
+    /// or evaporating temperature is chosen by the water it exchanges with, and the pressure follows.
+    /// </remarks>
+    Result<Quantity> SaturationTemperature(Quantity gaugePressure);
 }
 
 /// <summary>Humid air, which needs three independent properties rather than two.</summary>

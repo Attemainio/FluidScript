@@ -43,6 +43,27 @@ public abstract class SubstanceBase : ISubstance
     /// <inheritdoc/>
     public abstract Result<Quantity> SaturationPressure(Quantity temperature);
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Virtual rather than abstract, and refusing rather than answering, because most substances have
+    /// no vapour phase and therefore no isentropic compression to describe. That is not a gap to fill
+    /// later: <c>ISubstance</c> returns <c>Result</c> precisely so "this substance cannot say" is an
+    /// answer. A substance that <em>can</em> overrides.
+    /// </remarks>
+    public virtual Result<FluidState> FromPressureEntropy(Quantity gaugePressure, Quantity entropy) =>
+        Result.Failure<FluidState>(NotEvaluable(
+            "a state from pressure and entropy", Describe(double.NaN, Absolute(gaugePressure))));
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Refused by default for the same reason, and humid air is the case that proves it is the right
+    /// default rather than a shortcut: moist air has a dew point, not a saturation temperature, and
+    /// answering with one would be inventing a curve it does not have.
+    /// </remarks>
+    public virtual Result<Quantity> SaturationTemperature(Quantity gaugePressure) =>
+        Result.Failure<Quantity>(NotEvaluable(
+            "a saturation temperature", Describe(double.NaN, Absolute(gaugePressure))));
+
     /// <summary>Converts a gauge pressure the model holds into the absolute one a backend needs.</summary>
     /// <param name="gaugePressure">The pressure, gauge.</param>
     /// <returns>Pa absolute.</returns>
@@ -229,6 +250,46 @@ public sealed class Water : SubstanceBase
         return Result.Success<Quantity>(Quantity.FromSi(absolute - Atmosphere, Dimension.Pressure));
     }
 
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Water has a vapour phase, so the pair means something here even though no hydronic circuit asks
+    /// it. The range check runs on the temperature that comes back, exactly as
+    /// <see cref="FromPressureEnthalpy"/> does and for the same reason: an entropy outside the domain
+    /// is only recognisable as the temperature it implies.
+    /// </remarks>
+    public override Result<FluidState> FromPressureEntropy(Quantity gaugePressure, Quantity entropy)
+    {
+        var absolute = Absolute(gaugePressure);
+        var measured = PropertyBackend.WaterFromPressureEntropy(absolute, entropy.SiValue);
+
+        if (measured is { } state && OutOfRange(state.Temperature, absolute) is { } failure)
+        {
+            return Result.Failure<FluidState>(failure);
+        }
+
+        return Build(gaugePressure, absolute, measured);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The boiling line, which is where <see cref="ValidRange"/>'s rectangle stops describing the
+    /// domain: it moves from 99.61 °C at 100 kPa absolute to 179.88 °C at 1000 kPa, so the corner above
+    /// it is steam rather than an out-of-range liquid.
+    /// </remarks>
+    public override Result<Quantity> SaturationTemperature(Quantity gaugePressure)
+    {
+        var absolute = Absolute(gaugePressure);
+
+        if (PropertyBackend.WaterSaturationTemperature(absolute) is not { } boiling
+            || !double.IsFinite(boiling))
+        {
+            return Result.Failure<Quantity>(
+                NotEvaluable("a saturation temperature", Describe(double.NaN, absolute)));
+        }
+
+        return Result.Success<Quantity>(Quantity.FromSi(boiling, Dimension.Temperature));
+    }
+
     private Result<FluidState> Build(Quantity gaugePressure, double absolute, BackendState? measured)
     {
         if (measured is not { } state)
@@ -238,7 +299,8 @@ public sealed class Water : SubstanceBase
         }
 
         if (!double.IsFinite(state.Density) || !double.IsFinite(state.Enthalpy)
-            || !double.IsFinite(state.SpecificHeat) || !double.IsFinite(state.DynamicViscosity)
+            || !double.IsFinite(state.Entropy) || !double.IsFinite(state.SpecificHeat)
+            || !double.IsFinite(state.DynamicViscosity)
             || !double.IsFinite(state.ThermalConductivity))
         {
             return Result.Failure<FluidState>(
@@ -267,6 +329,7 @@ public sealed class Water : SubstanceBase
             Pressure = gaugePressure,
             Temperature = Quantity.FromSi(state.Temperature, Dimension.Temperature),
             Enthalpy = Quantity.FromSi(state.Enthalpy, Dimension.Enthalpy),
+            Entropy = Quantity.FromSi(state.Entropy, Dimension.SpecificHeat),
             Density = Quantity.FromSi(state.Density, Dimension.Density),
             DynamicViscosity = Quantity.FromSi(state.DynamicViscosity, FluidDimensions.DynamicViscosity),
             SpecificHeat = Quantity.FromSi(state.SpecificHeat, Dimension.SpecificHeat),

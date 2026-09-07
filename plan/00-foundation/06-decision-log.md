@@ -3316,6 +3316,328 @@ duty *point* rebuilds the pump instead, because two numbers do not fit through o
   stops being immutable, so a solve is no longer a pure function of (graph, guess, settings) and
   `31`'s invariant 6 goes with it.
 
+---
+
+## D-77 · A substance belongs to the hydraulic partition, not to the graph
+
+**Accepted · 2026-09-04**
+
+`CircuitGraph.Substance` is one property for the whole graph, and `D-33` settled that several circuits
+are one graph. Together they say a model carries exactly one fluid.
+
+**That is already false for the plant this project was built to draw.**
+[`01-vision-and-scope`](01-vision-and-scope.md)'s flagship system is "ground-source circuit → heat
+conversion → tank → radiator and AHU networks in parallel". A ground loop is brine and the heating
+side is water. `m2-substation` hides the problem only because district water and building water are
+both water.
+
+**The substance moves to the hydraulic partition** — the connected component of the flow graph that
+`23`'s `Decompose` already finds, and that `WellPosedness` already reasons about one at a time. A
+partition has exactly one fluid by construction: fluid crosses no port that pressure does not.
+Everything that reads `graph.Substance` today reads the partition's instead, and a graph with one
+partition behaves as it does now.
+
+**This is what makes a refrigerant loop ordinary rather than special** (`D-78`). A refrigerant circuit
+is a third partition with a third fluid, not a new mechanism. The brine case needs the identical fix
+and needs it whether or not a heat pump is ever modelled, which is why this is its own decision and
+not part of the cycle work.
+
+**Rejected.**
+
+- *Keep one substance and model brine as water.* No code change. Cost: a 30 % ethanol mix has roughly
+  0.87× the density and 0.90× the specific heat of water and freezes at −20 °C. Sizing a ground loop
+  as water gets the flow, the pressure drop and the freeze margin all wrong, and `21` already refuses
+  glycols rather than approximate them.
+- *One graph per substance, coupled externally.* Clean separation. Cost: an exchanger's two sides land
+  in different graphs, so `23`'s component-spans-circuits property — which the graph's own remarks call
+  out — stops holding, and the counting table loses the coupled rows it exists to count.
+- *Substance per circuit.* Matches the language's `circuit` statement. Cost: `CircuitOf` is a
+  per-component field precisely because a circuit may span hydraulic components and a hydraulic
+  component may span circuits. Fluid follows the hydraulics, not the labelling.
+
+---
+
+## D-78 · The refrigeration cycle is a modelled circuit, and two-phase and supercritical states are valid
+
+**Accepted · 2026-09-04**
+
+A heat pump is **four components on a refrigerant partition** — compressor, condenser, expansion
+valve, evaporator — lowered, drawn, and solved like any other circuit, with every node carrying a real
+state. It is not a component with a COP correlation inside it.
+
+**A correlation cannot be asked the questions the project exists to answer.** Discharge temperature,
+pressure ratio, superheat, subcooling, the split between desuperheat and condensation — all of them
+are states of a circuit, and a black box has none of them. It also composes: a cascade, an economizer,
+a desuperheater and a two-stage cycle are topologies, and a topology is what this project models.
+
+**The node unknowns already accommodate it, and this is why enthalpy was the right choice.** The state
+after the expansion valve is two-phase, and `(P, h)` fixes it exactly — `FromPressureEnthalpy` returns
+`T = T_sat(P)` and a quality. A formulation carrying node *temperature* could not represent that node
+at all.
+
+**The cycle's own state points are all single-phase, so the property surface needed is small.** Suction
+is superheated vapour, both discharge states are superheated vapour, condenser outlet is subcooled
+liquid, and the post-expansion state is never evaluated because the expansion is isenthalpic —
+`h₄ = h₃` is an assignment, not a property call. The whole cycle costs three new members:
+`FluidState.Entropy`, `ISubstance.FromPressureEntropy`, and `ISubstance.SaturationTemperature`, whose
+backend function `WaterSaturationTemperature` already exists unexposed. `21`'s "exactly one type
+references SharpProp" is untouched.
+
+**[`07-quality-attributes`](07-quality-attributes.md) presently lists two-phase states among the things
+that produce diagnostics.** That line predates any thought of a refrigerant and is superseded here:
+two-phase and supercritical states are valid, and the validity claim rests on the property backend's
+own range rather than on a table of ours. What stays out of v1 is the two-phase **pressure drop**
+correlation, which is research-grade and independent of everything above.
+
+**The verification this needs is a Jacobian probe, not an argument.** Inside the dome `∂T/∂h = 0`
+exactly, so any residual reading temperature at that node contributes nothing to its enthalpy column;
+the column is carried by the evaporator's energy balance alone. That is the `S-21`/`S-25` shape this
+project has now hit three times, and it is checked by measurement on a real loop.
+
+**Rejected.**
+
+- *The cycle as a component-internal calculation, exposed to the outer system as a duty and a
+  first-order surrogate `Q̇₀ + (∂Q̇/∂T)(T − T₀)`.* Cheapest, and it was proposed before the substance
+  problem was understood. Cost: the surrogate is an extrapolation across a region whose phase
+  structure can change, which is exactly what `D-79` forbids elsewhere; and no node of the cycle would
+  be reportable or drawable. Kept only as a documented fallback if the coupled system proves
+  unconvergeable, never as the design.
+- *The refrigerant loop as its own graph, coupled by an outer fixed point.* Isolates the numerics.
+  Cost: the same coupling linearization, plus the exchanger-spans-graphs problem `D-77` rejects.
+
+---
+
+## D-79 · A property table is gridded on (P,h) or (P,s), never on (P,T)
+
+**Accepted · 2026-09-04**
+
+[`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md) invites a future optimization —
+"interpolation tables, incompressible fast paths — needs a benchmark first" — and gates it on
+performance evidence alone. This is the correctness constraint that has to sit beside the invitation,
+written down before anyone arrives with a benchmark.
+
+**Inside the two-phase dome, pressure and temperature are not independent.** They are related by the
+saturation curve, so every two-phase state maps onto a single *line* in `(P,T)` space. A `(P,T)` grid
+does not merely interpolate badly across the dome — **it has no cells covering the dome at all**, and
+the region is unaddressable in those coordinates.
+
+[`07-quality-attributes`](07-quality-attributes.md) already states this for the saturation line
+itself: "on either one a pressure and a temperature are the same constraint rather than two — so the
+backend refuses the pair instead of choosing a side." The decision here is that the same fact governs
+the dome's interior, and therefore governs any table.
+
+**Three rules follow.**
+
+1. A property table is gridded on `(P,h)` or `(P,s)`. Never `(P,T)`.
+2. The saturation line is a hard table boundary: one table per phase region, or no table. Enthalpy's
+   slope and `c_p` are both discontinuous across it, so a cell spanning it returns a number that is
+   not any real state.
+3. No property is ever obtained by blending two evaluated states.
+
+**The existing per-solve cache already satisfies all three** and needs no change: `21` keys it on the
+exact IEEE-754 bit patterns of `(substance, p, h)` and forbids rounded keys, for the closely related
+reason that coarse keys "can turn a real property derivative into a zero Jacobian column". A cache
+returns a *computed* state; only a table interpolates.
+
+**Rejected.**
+
+- *Allow a `(P,T)` table for water, where hydronic circuits stay subcooled.* True today and cheap.
+  Cost: the table would be reached through `ISubstance`, so the day a refrigerant partition used it
+  the answers would be wrong with no failure and no diagnostic. A rule that holds for one substance
+  and silently breaks for another is worse than no table.
+
+---
+
+## D-80 · A phase-changing exchanger is zoned, and sizing follows area share, not duty share
+
+**Accepted · 2026-09-04**
+
+A condenser has three zones — desuperheat, condensation, subcool — and an evaporator two, boiling and
+superheat. Each is an ε-NTU element with its own `U`, its own `LMTD` and its own `Cr`; the
+phase-changing zones have `Cr = 0`, giving `ε = 1 − e^(−NTU)`.
+
+**A single-zone model gets the temperature right and the area badly wrong.** Ammonia at −7/40 °C with
+5 K superheat, 3 K subcooling and η_is = 0.7, **measured** against the property backend rather than
+estimated, discharges at **152.5 °C** against a pressure ratio of 4.74 and rejects 1424.3 kJ/kg:
+
+| Zone | Δh | Duty share |
+|---|---|---|
+| Desuperheat 152.5 → 40 °C | 310.5 kJ/kg | **21.8 %** |
+| Condense at 40 °C | 1099.6 kJ/kg | 77.2 % |
+| Subcool 40 → 37 °C | 14.2 kJ/kg | 1.0 % |
+
+112 K of superheat carrying a fifth of the duty — the discharge state is far from the dome in
+temperature and close to it in enthalpy, which is why "the condenser is at constant P and T" is a good
+first-order picture for COP. It is not one for area. Gas-side `U` is roughly 500 W/(m²·K) against 3000
+for condensation, and with a desuperheat LMTD about 2.5× the condensing one:
+
+```
+A_zoned / A_single-U  =  0.782 + 0.218 × (3000/500) / 2.5  =  1.31
+```
+
+**~30 % more area than a single-zone selection predicts.** The evaporator is starker still: 5 K of
+superheat is about 4 % of its duty and roughly 20 % of its area. **Duty share and area share are
+different numbers, and a sizing rule uses the second.**
+
+**Zoning is also the only way to express a desuperheater**, which produces water above the condensing
+temperature and lives entirely inside that 22 %. A single-zone condenser cannot represent one at all.
+
+The `Cr = 0` branch is now shared by three unrelated needs — an emitter against a room, a condensing
+zone, a boiling zone. That is the evidence the abstraction is the right one.
+
+**Rejected.**
+
+- *One zone with an effective `U`.* One ε-NTU call. Cost: the effective `U` depends on the duty split,
+  which depends on the discharge state, which depends on the cycle — so the "constant" is a function
+  of the answer, and the 29 % is absorbed silently into a number nobody can argue with.
+- *Two zones, folding subcool into condensation.* Subcool is genuinely small. Cost: subcooling is the
+  parameter that sets `h₃` and therefore the evaporator's duty; it earns its zone by being a stated
+  design input, not by its area.
+
+---
+
+## D-81 · A transcritical high-side pressure is closed by correlation or by search, never by a stationarity residual
+
+**Accepted · 2026-09-04**
+
+**Subcritical and transcritical cycles have different unknown counts, and that is the whole of the
+difference.**
+
+- **Subcritical.** `P_high = P_sat(T_c)`, and `T_c` follows from the water outlet plus the condenser
+  approach. The high side has no free variable; the pressure is an *output*.
+- **Transcritical.** Above the critical point there is no saturation line, so the gas-cooler outlet
+  temperature no longer determines the pressure. They are independent, and the machine carries **one
+  more unknown** than a subcritical one.
+
+A `CountingTable` is exactly the instrument for that, so CO₂ is admitted rather than excluded: one
+extra column, closed by one extra rule.
+
+**There is a real interior optimum**, because raising the high-side pressure costs compressor work but
+buys disproportionate enthalpy in the gas cooler, the supercritical isotherms being strongly curved.
+At `T_evap = −7 °C` and a 35 °C gas-cooler outlet, Liao–Zhao–Jakobsen gives **89.1 bar** and Kauf
+**98.5 bar** — 10 % apart in pressure and 1–2 % apart in COP, because the peak is flat.
+
+**That split decides the design.** The correlation is accurate enough for the COP an optimizer reads,
+and not accurate enough for the pressure rating a compressor selection reads.
+
+- **Default:** `p_high` is a parameter defaulting to a correlation, its basis naming which —
+  `"92.1 bar — Liao at 35 °C gas-cooler outlet"`. One cycle evaluation, deterministic, and the same
+  shape as every other `24` default.
+- **Opt-in:** a 1-D search (golden section) on the model's own cycle, ~12 evaluations per outer pass,
+  reported as the optimized value and its gain over the correlation.
+
+**Rejected — `dCOP/dp = 0` as a Newton residual.** It is the elegant form and it is a trap, for two
+independent reasons that stack. `21` records that the Jacobian is finite-differenced at `sqrt(eps)`
+≈ 1.5e-8 relative; a residual that is *itself* a finite-difference derivative, differenced again for
+the Jacobian, carries `eps^0.25` ≈ **1.2e-4** relative error — four orders coarser than the solver's
+tolerance. And an optimum is flat by definition, so `d²COP/dp²` is small and the column is weakly
+determined even with exact derivatives. It becomes viable only if `ISubstance` grows an analytic
+derivative API, which is a far larger change than the three members `D-78` needs.
+
+---
+
+## D-82 · A machine's loss destination is a component property, and `efficiency` is two numbers
+
+**Accepted · 2026-09-04**
+
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md)'s default catalogue carries one row,
+`pump.efficiency = 0.7`, "typical small centrifugal". That single number is being asked to be two
+different quantities, and it is wrong as both.
+
+- **For the energy balance** you need the fraction of work that heats the fluid: `(1 − η_hydraulic)` —
+  *plus every watt of motor loss if the pump is wet-rotor*, since a canned circulator dumps its motor
+  into the water, and *none of them if dry-rotor*, where they go to the room.
+- **For the energy cost** you need wire-to-water `η_hydraulic × η_motor`, which for a small circulator
+  is 0.3–0.5, not 0.7.
+
+So the catalogue splits, and **loss destination becomes a property of the component** rather than a
+global default — the same question for a pump, a fan and a compressor.
+
+**One identity governs all three.** For a compressor, with `w = w_s/η`, `h₂ = h₁ + w` and `h₃` fixed by
+the condensing temperature:
+
+```
+COP_heating,real = η · COP_heating,ideal + (1 − η)
+COP_cooling,real = η · COP_cooling,ideal
+COP_heating      = COP_cooling + 1
+```
+
+**Isentropic loss degrades heating COP far less than cooling COP, because the loss is delivered as
+heat.** The limits are the proof: at `η → 0` a heat pump degrades to `COP_h = 1`, an immersion heater,
+and never below. A Carnot-fraction model multiplies both by the same factor and cannot express this.
+Generally: **a loss that lands in the working fluid contributes `(1 − η)` to heating COP; a loss that
+lands in the room contributes nothing.** Measured on the ammonia cycle above at `η_motor = 0.92`, a
+hermetic machine reaches 4.011 against an open drive's 3.931 — worth **2.0 %**: small, one-directional,
+and larger than several of the modelling choices it would otherwise hide behind.
+
+**The three identities are the acceptance criteria**, and they hold for any refrigerant at any two
+temperatures with no stored golden number — the style `24` already uses for `UA` against `Q̇/LMTD`.
+
+**A pump gets the same term, and it is small.** The simple loop at Δp = 51.7 kPa, ρ = 998, η = 0.7:
+reversible `Δp/ρ` = 51.8 J/kg, actual `Δp/(ρη)` = 74.0 J/kg, dissipation 22.2 J/kg → **0.0053 K**, or
+17.7 W into a 30 kW circuit. Negligible in size and systematic in sign, and `Pump.EvaluateResiduals`
+currently writes no energy term at all. `D-69`'s flux member is its home — the same slot `S-18`
+identified for ambient loss.
+
+**Rejected.**
+
+- *Keep one `efficiency` and document which meaning it has.* One row. Cost: the two meanings differ by
+  roughly a factor of two, and the failure is invisible at 0.06 % on a pump and several percent on a
+  compressor. A number whose meaning depends on the caller's assumption is `C-45`'s defect, not its
+  fix.
+- *Assume every loss reaches the fluid.* Conservative for heating. Cost: wrong sign for chilled water,
+  where a dry-rotor pump's motor loss is a room gain and not a parasitic cooling load.
+
+---
+
+## D-83 · Curve and schedule optimization is gated on the physics it optimizes against
+
+**Accepted · 2026-09-04**
+
+Optimizing a heating curve for energy efficiency is a real and valuable goal, and
+[`35-evolutionary-sizing`](../30-solver/35-evolutionary-sizing.md) is already its home. This entry
+records what must exist first, because the failure mode is a confident wrong answer rather than a
+visible one.
+
+**Run against today's model, a curve optimizer returns nonsense.** The trade it would explore is
+entirely between a lower supply temperature raising source COP and a higher flow costing pump energy.
+Measured on `D-78`'s cycle with propane at −7 °C evaporating, a 75 °C condensing temperature (≈ 70 °C
+supply) gives a heating COP of **2.126** and a 50 °C one (≈ 45 °C supply) gives **3.220** — 9.41 kW of
+compressor against 6.21 kW for the same 20 kW, so **3.2 kW saved against roughly 50 W of extra
+circulator, a factor of 60**. With no COP term in the model the optimizer sees only the pump cost and
+drives the supply temperature *up*; with a COP term but no emitter feasibility limit it drives it to
+zero. Both answers look reasonable and neither is.
+
+**The Carnot-fraction stand-in is wrong by 5 % here, and in the direction nobody guesses.** A
+0.45-fraction model gives 2.21 and 3.18 for those two conditions, a ratio of 1.44 against the real
+cycle's **1.515** — so it *understates* the benefit of lowering supply temperature rather than
+overstating it, which is the opposite of what was argued before anyone measured it. That ratio is the
+only thing a curve optimizer reads, and 5 % of it is the whole margin between two designs.
+
+**Prerequisites, in dependency order:**
+
+1. **An emitter** with the EN 442 exponent — the feasibility floor. A 20 kW load at 70/40 needs 36.1 kW
+   of nominal radiator; the same load at 45/35 needs 72.3 kW, exactly **2.00×**. Without that, the
+   optimizer has no lower bound.
+2. **A source whose efficiency varies with lift** — the objective. `D-78`'s cycle is this.
+3. **Annual or binned simulation** — M6 transient, plus a weather curve driven by `time`, which the
+   language already supports (`D-57`). `S-18` blocks the driver today.
+4. **Then** the population search in `35`, which already states it runs on request rather than per
+   compile.
+
+**Sizing itself stays deterministic.** `24` runs on every keystroke inside `07`'s draft-compile budget;
+a search does not, and conflating them is what this entry exists to prevent. What sizing *does* gain
+from curves is `D-58`'s design point supplying its inputs — that is `P3.8`, and it is not optimization.
+
+**One consequence worth stating.** A design point is a maximum load occurring a few hours a year, and
+the dominant machine should not be sized there: a heat pump is normally sized to 50–70 % of peak with
+backup, because sizing to peak means cycling all winter at poor efficiency. `D-58`'s grammar already
+scales to this — it gives *each driver* a value, and `D-59`'s registry resolves driver names — but no
+sizing rule reads any driver but `tout`, and the fraction-of-peak rule has nowhere to live. That is a
+`24` gap, recorded as `C-51`, not a reversal of `D-58`.
+
+---
+
 ## Open questions
 
 None. This document records decisions that are settled; an unsettled question belongs in the Open

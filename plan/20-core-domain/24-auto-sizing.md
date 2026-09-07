@@ -70,6 +70,15 @@ deferred expression. Two loops would interleave unpredictably and could oscillat
 first iterate close to the answer, and where the duty fully determines the flow it *is* the answer —
 the worked example needs two passes for that reason, one to size and one to confirm.
 
+**Every pass of this pipeline runs at the `design` point, and only there** (`D-58`). Sizing is
+inherently a single-condition question, so `design` supplies each driver a value, every curve
+short-circuits to a constant against it, and the sizes that come out hold for the whole run. In a
+static solve the design point is also the operating point and the distinction is invisible. In a
+dynamic one it is not: sizing is **not** re-run per time step and it is not run at t = 0 either, which
+would size the plant for whatever the weather is at midnight on the first of January. `P3.8` is the
+package where sizing first reads `ProjectSettings.Design`; `C-51` records that no rule here yet reads
+any driver but `tout`, and that the fraction-of-peak rule a heat pump needs has nowhere to live.
+
 ## Constraint propagation
 
 `D-02`'s second half: a stated value constrains rather than seeds. Concretely:
@@ -111,6 +120,22 @@ exception is preferable to an invented "sizing" basis that has no demand-duratio
 3. Check velocity against the limit for that diameter (below DN50: **1.0 m/s**; DN50–DN150:
    **1.5 m/s**; above: **2.0 m/s**). If exceeded, step up one nominal size and re-check.
 4. Basis: `"DN{n} — {gradient} Pa/m, {velocity} m/s"`.
+
+**The three bounds have an explicit precedence, because two of them can disagree** (`C-48`).
+`velocity_max` is **hard** — a size that exceeds it is never selected. The gradient target is a
+**target** — the smallest size meeting it wins, and if none does, the largest catalogue size is taken
+with `FS2305`. `velocity_min` is **soft**: if the selected size falls below it, step *down* one size
+and report `FS2307`, unless doing so would breach `velocity_max`. Without that ordering the sizer
+selects pipes it knows will make its own validator emit `FS4005`: 20 kW at 70/40 is 0.160 kg/s, which
+on EN 10255 bores at 55 °C runs DN15 585 Pa/m · DN20 132 Pa/m at 0.438 m/s · DN25 42 Pa/m at
+**0.276 m/s** — so a 100 Pa/m target picks DN25, under the 0.3 m/s minimum, with the step-down
+available and unconsidered. The whole 100-versus-150 Pa/m argument is one catalogue step for that
+branch and there is nothing in between.
+
+**A per-pipe gradient rule cannot see the criterion that actually governs**, which is the index
+circuit's total head budget: a domestic circulator offers 40–60 kPa and the gradient has to be
+whatever fits it over the index path. That check belongs with `FS2303` after the network is sized, not
+inside the per-pipe rule.
 
 Pressure-drop target first, velocity as a check; this resolves the component model's former default-
 criterion question and makes the catalogue choice deterministic.
@@ -265,6 +290,48 @@ which sets the velocity, which sets `h`, which sets `U`, which sets the area req
 the same outer loop as everything else here — not a nested one, for the reason stated at the top of this
 document.
 
+### Heat exchanger — a phase-changing side is zoned
+
+`D-80`. A condenser has three zones — desuperheat, condensation, subcool — and an evaporator two,
+boiling and superheat. Each is its own ε-NTU element with its own `U`, its own `LMTD` and its own
+`Cr`, and the phase-changing zones have `Cr = 0`, so `ε = 1 − e^(−NTU)`.
+
+**A single-zone selection gets the temperature right and the area badly wrong.** Ammonia at −7/40 °C
+with `η_is` = 0.7 discharges near 150 °C; desuperheating to saturation is ≈ 319 kJ/kg against 1099 of
+latent heat, so **110 K of superheat carries 22 % of the duty**. Gas-side `U` is roughly
+500 W/(m²·K) against 3000 for condensation, and with a desuperheat LMTD about 2.5× the condensing one:
+
+```
+A_zoned / A_single-U  =  0.78 + 0.22 × (3000/500) / 2.5  =  1.29
+```
+
+**≈ 30 % more area than a single-zone rule predicts**, and the evaporator is starker: 5 K of superheat
+is about 4 % of its duty and roughly 20 % of its area. **Duty share and area share are different
+numbers, and this rule uses the second.** Zoning is also the only way to express a desuperheater,
+which produces water above the condensing temperature and lives entirely inside that 22 %.
+
+The `Cr = 0` branch is shared by three unrelated needs — an emitter against a room (`C-50`), a
+condensing zone, a boiling zone — which is the evidence it belongs in the ε-NTU core rather than in
+any one rule.
+
+### Compressor — `p_high` on a transcritical cycle only
+
+`D-81`. On a **subcritical** cycle there is nothing to size: `P_high = P_sat(T_c)` and `T_c` follows
+from the water outlet plus the condenser approach, so the pressure is an output. On a **transcritical**
+one the gas-cooler outlet temperature no longer determines the pressure, the machine carries one more
+unknown, and this rule closes it.
+
+1. Default: a correlation from `T_gc,out` and `T_evap`. At −7 °C evaporating and a 35 °C gas-cooler
+   outlet, Liao–Zhao–Jakobsen gives **89.1 bar** and Kauf **98.5 bar**.
+2. Basis: `"{p} bar — {correlation} at {T} °C gas-cooler outlet"`.
+3. On request, a golden-section search on the model's own cycle replaces the correlation, reported with
+   its gain over it.
+
+**The correlations are 10 % apart in pressure and 1–2 % apart in COP**, because the optimum is flat.
+That split is the rule: a correlation is accurate enough for the COP an optimizer reads and not
+accurate enough for the pressure rating a compressor selection reads, which is why the search exists
+and why it is opt-in rather than default.
+
 ### Node — nothing
 
 Nodes carry state, not size. A node with no stated boundary is not sized; it is solved.
@@ -286,7 +353,9 @@ and a table with a source column is that answer.
 | `valve.authority_target` | 0.5 | Control-quality convention |
 | `valve.authority_min` | 0.25 | Below this, `FS4006` |
 | `pump.margin` | 1.0 | Deliberately none |
-| `pump.efficiency` | 0.7 | Typical small centrifugal |
+| `pump.efficiency_hydraulic` | 0.7 | Typical small centrifugal. **The energy-balance number** — `(1 − η)` of the shaft work heats the fluid (`D-82`) |
+| `pump.efficiency_motor` | 0.6 | Small wet-rotor circulator. Wire-to-water is the product, 0.42 here — **the energy-cost number**, and not the row above |
+| `pump.loss_destination` | `fluid` | A wet-rotor circulator dumps its motor into the water; a dry-rotor one dumps it into the room. Per component, never global (`D-82`) |
 | `hx.dp_default` | 20 kPa | Typical plate exchanger — duty mode only |
 | `hx.u_default` | 3000 W/(m²·K) | Water/water brazed plate, clean. Used when neither `u` nor geometry is given |
 | `hx.fouling_default` | 1e-5 m²·K/W | Combined, clean closed-circuit water |
@@ -480,5 +549,6 @@ three of those numbers are engineering, and one is a guess.
 ## Open questions
 
 None. Pump allowance is the explicit `margin` parameter; physical fittings use explicit
-`minor_loss` rather than an invented blanket percentage; and a transient snapshot freezes all sizes at
-t = 0 (`D-22`).
+`minor_loss` rather than an invented blanket percentage; and a transient run holds the sizes chosen at
+the `design` point for its whole length — frozen into the immutable snapshot by `D-22`, but *chosen*
+by `D-58`, which is a design condition and not a clock reading.

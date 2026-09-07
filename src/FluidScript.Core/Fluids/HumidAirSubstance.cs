@@ -146,6 +146,7 @@ public sealed class HumidAirSubstance : SubstanceBase, IHumidAir
             WetBulb = Quantity.FromSi(state.WetBulb, Dimension.Temperature),
             DewPoint = Quantity.FromSi(state.DewPoint, Dimension.Temperature),
             DryAirBasisEnthalpy = Quantity.FromSi(state.DryAirBasisEnthalpy, Dimension.Enthalpy),
+            DryAirBasisEntropy = Quantity.FromSi(state.DryAirBasisEntropy, Dimension.SpecificHeat),
         });
     }
 
@@ -171,6 +172,7 @@ public sealed class HumidAirSubstance : SubstanceBase, IHumidAir
             Pressure = air.Pressure,
             Temperature = air.Temperature,
             Enthalpy = air.DryAirBasisEnthalpy,
+            Entropy = air.DryAirBasisEntropy,
             Density = air.Density,
             DynamicViscosity = air.DynamicViscosity,
             SpecificHeat = air.SpecificHeat,

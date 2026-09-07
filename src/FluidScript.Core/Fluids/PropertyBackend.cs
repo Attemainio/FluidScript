@@ -7,6 +7,7 @@ namespace FluidScript.Core.Fluids;
 /// <summary>Raw property measurements, in SI, from the property backend.</summary>
 /// <param name="Temperature">K.</param>
 /// <param name="Enthalpy">J/kg of whatever the caller asked about.</param>
+/// <param name="Entropy">J/(kg·K) of the same.</param>
 /// <param name="Density">kg/m³.</param>
 /// <param name="DynamicViscosity">Pa·s.</param>
 /// <param name="SpecificHeat">J/(kg·K).</param>
@@ -15,6 +16,7 @@ namespace FluidScript.Core.Fluids;
 internal readonly record struct BackendState(
     double Temperature,
     double Enthalpy,
+    double Entropy,
     double Density,
     double DynamicViscosity,
     double SpecificHeat,
@@ -24,6 +26,7 @@ internal readonly record struct BackendState(
 /// <summary>Psychrometric measurements, in SI, from the property backend.</summary>
 /// <param name="Temperature">Dry-bulb, K.</param>
 /// <param name="DryAirBasisEnthalpy">J per kg of dry air.</param>
+/// <param name="DryAirBasisEntropy">J per kg of dry air per K, the same basis.</param>
 /// <param name="Density">kg of moist air per m³.</param>
 /// <param name="DynamicViscosity">Pa·s.</param>
 /// <param name="SpecificHeat">J/(kg·K).</param>
@@ -35,6 +38,7 @@ internal readonly record struct BackendState(
 internal readonly record struct BackendHumidAirState(
     double Temperature,
     double DryAirBasisEnthalpy,
+    double DryAirBasisEntropy,
     double Density,
     double DynamicViscosity,
     double SpecificHeat,
@@ -93,6 +97,9 @@ internal static class PropertyBackend
 {
     private static readonly Fluid SharedWater = new(FluidsList.Water);
     private static readonly HumidAir SharedAir = new();
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<RefrigerantKind, Fluid>
+        SharedRefrigerants = new();
 
     /// <summary>Measures water at an absolute pressure and a temperature.</summary>
     /// <param name="absolutePressure">Pa absolute.</param>
@@ -215,9 +222,195 @@ internal static class PropertyBackend
         }
     }
 
+    /// <summary>Measures water at an absolute pressure and a specific entropy.</summary>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <param name="entropy">J/(kg·K).</param>
+    /// <returns>The measurements, or <see langword="null"/> when the backend could not take them.</returns>
+    public static BackendState? WaterFromPressureEntropy(double absolutePressure, double entropy)
+    {
+        try
+        {
+            return Read(SharedWater.WithState(
+                Input.Pressure(Pressure.FromPascals(absolutePressure)),
+                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy))));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Measures a refrigerant at an absolute pressure and a temperature.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <param name="temperature">K.</param>
+    /// <returns>The measurements, or <see langword="null"/> when the backend could not take them.</returns>
+    public static BackendState? RefrigerantFromPressureTemperature(
+        RefrigerantKind kind, double absolutePressure, double temperature)
+    {
+        try
+        {
+            return Read(Shared(kind).WithState(
+                Input.Pressure(Pressure.FromPascals(absolutePressure)),
+                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature))));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Measures a refrigerant at an absolute pressure and a specific enthalpy.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <param name="enthalpy">J/kg.</param>
+    /// <returns>The measurements, or <see langword="null"/> when the backend could not take them.</returns>
+    /// <remarks>
+    /// The one pair that reaches inside the two-phase dome, where it stays well posed while a pressure
+    /// and a temperature would not (<c>D-78</c>).
+    /// </remarks>
+    public static BackendState? RefrigerantFromPressureEnthalpy(
+        RefrigerantKind kind, double absolutePressure, double enthalpy)
+    {
+        try
+        {
+            return Read(Shared(kind).WithState(
+                Input.Pressure(Pressure.FromPascals(absolutePressure)),
+                Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy))));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Measures a refrigerant at an absolute pressure and a specific entropy.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <param name="entropy">J/(kg·K).</param>
+    /// <returns>The measurements, or <see langword="null"/> when the backend could not take them.</returns>
+    public static BackendState? RefrigerantFromPressureEntropy(
+        RefrigerantKind kind, double absolutePressure, double entropy)
+    {
+        try
+        {
+            return Read(Shared(kind).WithState(
+                Input.Pressure(Pressure.FromPascals(absolutePressure)),
+                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy))));
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Finds a refrigerant's saturation pressure at a temperature.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="temperature">K.</param>
+    /// <returns>Pa absolute, or <see langword="null"/> when the backend could not say.</returns>
+    public static double? RefrigerantSaturationPressure(RefrigerantKind kind, double temperature)
+    {
+        try
+        {
+            return Shared(kind).WithState(
+                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)),
+                Input.Quality(Ratio.FromPercent(0))).Pressure.Pascals;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Finds a refrigerant's saturation temperature at an absolute pressure.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <returns>K, or <see langword="null"/> when the backend could not say.</returns>
+    public static double? RefrigerantSaturationTemperature(RefrigerantKind kind, double absolutePressure)
+    {
+        try
+        {
+            return Shared(kind).WithState(
+                Input.Pressure(Pressure.FromPascals(absolutePressure)),
+                Input.Quality(Ratio.FromPercent(0))).Temperature.Kelvins;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Reads a refrigerant's saturated liquid and vapour enthalpies at a pressure.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <returns>J/kg for each, or <see langword="null"/> when the backend could not say.</returns>
+    /// <remarks>
+    /// The two numbers that split a condenser into its zones: everything above the vapour value is
+    /// desuperheat, everything between them is latent, everything below the liquid value is subcool.
+    /// <c>D-80</c> sizes on the resulting shares, so they are measured here rather than estimated from
+    /// a specific heat.
+    /// </remarks>
+    public static (double Liquid, double Vapour)? RefrigerantSaturationEnthalpies(
+        RefrigerantKind kind, double absolutePressure)
+    {
+        try
+        {
+            var fluid = Shared(kind);
+            var pressure = Input.Pressure(Pressure.FromPascals(absolutePressure));
+
+            return (fluid.WithState(pressure, Input.Quality(Ratio.FromPercent(0))).Enthalpy.JoulesPerKilogram,
+                fluid.WithState(pressure, Input.Quality(Ratio.FromPercent(100))).Enthalpy.JoulesPerKilogram);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Reads a refrigerant's critical point.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <returns>K and Pa absolute, or <see langword="null"/> when the backend could not say.</returns>
+    /// <remarks>
+    /// The line between a cycle with a condensing temperature and one without, which is a difference of
+    /// one unknown rather than one correlation (<c>D-81</c>).
+    /// </remarks>
+    public static (double Temperature, double Pressure)? RefrigerantCriticalPoint(RefrigerantKind kind)
+    {
+        try
+        {
+            var fluid = Shared(kind);
+
+            return fluid.CriticalTemperature is { } temperature && fluid.CriticalPressure is { } pressure
+                ? (temperature.Kelvins, pressure.Pascals)
+                : null;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Gets the shared instance for one refrigerant.</summary>
+    /// <param name="kind">Which refrigerant.</param>
+    /// <returns>The instance, constructed once per kind.</returns>
+    /// <remarks>
+    /// One instance per kind for the reason the water one is shared: the constructor was 37 % of a
+    /// measurement. <c>WithState</c> returns a new instance rather than mutating the receiver, so the
+    /// sharing is safe across threads.
+    /// </remarks>
+    private static Fluid Shared(RefrigerantKind kind) => SharedRefrigerants.GetOrAdd(
+        kind,
+        static key => new Fluid(key switch
+        {
+            RefrigerantKind.Ammonia => FluidsList.Ammonia,
+            RefrigerantKind.Propane => FluidsList.nPropane,
+            _ => FluidsList.CarbonDioxide,
+        }));
+
     private static BackendState Read(IFluid fluid) =>
         new(fluid.Temperature.Kelvins,
             fluid.Enthalpy.JoulesPerKilogram,
+            fluid.Entropy.JoulesPerKilogramKelvin,
             fluid.Density.KilogramsPerCubicMeter,
             fluid.DynamicViscosity?.PascalSeconds ?? double.NaN,
             fluid.SpecificHeat.JoulesPerKilogramKelvin,
@@ -227,6 +420,7 @@ internal static class PropertyBackend
     private static BackendHumidAirState Read(SharpProp.IHumidAir air) =>
         new(air.Temperature.Kelvins,
             air.Enthalpy.JoulesPerKilogram,
+            air.Entropy.JoulesPerKilogramKelvin,
             air.Density.KilogramsPerCubicMeter,
             air.DynamicViscosity.PascalSeconds,
             air.SpecificHeat.JoulesPerKilogramKelvin,

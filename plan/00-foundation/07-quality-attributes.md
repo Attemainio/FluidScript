@@ -100,8 +100,18 @@ attainable only as a limit: 0.01 °C is a state, 0 °C exactly is not. This is a
 and not a defect to fix; it is written down so a reader does not take an endpoint for a test case.
 
 These are software-verification bounds against stated equations and independent reference data, not
-approval-grade equipment-selection guarantees. Unsupported fluids, two-phase states, cavitation,
-compressible networks, condensation, and extrapolation outside the table produce diagnostics.
+approval-grade equipment-selection guarantees. Unsupported fluids, cavitation, compressible networks,
+condensation, and extrapolation outside the table produce diagnostics.
+
+**Two-phase and supercritical states are valid, and `D-78` is why the earlier exclusion could not
+stand.** An expansion valve discharges into the dome by definition and an evaporator is two-phase over
+almost its whole length, so refusing those states would refuse the ground-source plant
+[`01-vision-and-scope`](01-vision-and-scope.md) is built around. The claim rests on the property
+backend's own validated range rather than on a table of ours, and `(p, h)` fixes a two-phase state
+exactly — which is the reason node *enthalpy* rather than node temperature is the solver's unknown.
+What remains out of v1 is the two-phase **pressure drop** correlation, a genuinely separate and
+research-grade thing: a refrigerant partition's evaporating and condensing pressures are boundary
+conditions of the cycle, not results of a friction law.
 
 ### Transient isolation and stop policy
 
