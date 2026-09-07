@@ -119,4 +119,45 @@ public static class ValveLaw
 
         return sign * blended;
     }
+
+    /// <summary>The effective Kv that would pass a flow at a pressure drop.</summary>
+    /// <param name="massFlow">kg/s. Its magnitude is used; a Kv has no direction.</param>
+    /// <param name="pressureDrop">Pa. Its magnitude is used, and it must be positive.</param>
+    /// <param name="density">kg/m³.</param>
+    /// <returns>
+    /// Kv · φ(position), in m³/h at 1 bar — the same quantity <see cref="MassFlow"/> takes, so dividing
+    /// by φ gives the rated Kv to look up. <see cref="double.NaN"/> when the drop is not a usable
+    /// positive number, because there is no Kv that passes a flow across no pressure.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The sizing rule must call this rather than write the relation out again.</strong> The
+    /// conversion carries a √10⁵, and getting it wrong is a flow two and a half orders of magnitude out
+    /// that looks entirely plausible at every step — the trap <see cref="MassFlow"/>'s remarks describe.
+    /// A rule that inverts the law here is wrong only if the law is, and the round trip is testable.
+    /// </para>
+    /// <para>
+    /// <strong>It inverts the √ branch only, and refuses below the regularisation drop.</strong> The
+    /// blended branch is a quadratic in Δp that exists to keep a <em>closed</em> valve differentiable,
+    /// and no valve is ever sized to sit there: a design drop under 100 Pa is a valve with no authority
+    /// at all. Inverting a branch whose only purpose is numerical would put a sized valve inside the
+    /// smoothing band, where its authority is not what the arithmetic says.
+    /// </para>
+    /// </remarks>
+    public static double RequiredKv(double massFlow, double pressureDrop, double density)
+    {
+        var magnitude = Math.Abs(pressureDrop);
+
+        if (!double.IsFinite(magnitude) || magnitude < RegularizationDrop
+            || !double.IsFinite(density) || density <= 0 || !double.IsFinite(massFlow))
+        {
+            return double.NaN;
+        }
+
+        // MassFlow's coefficient solved for Kv: mdot = (rho * Kv / (3600 * sqrt(rel * 1e5))) * sqrt(dp).
+        var relativeDensity = density / WaterDensity;
+
+        return Math.Abs(massFlow) * 3600 * Math.Sqrt(relativeDensity * 1e5)
+            / (density * Math.Sqrt(magnitude));
+    }
 }

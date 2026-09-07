@@ -214,4 +214,42 @@ public sealed class OuterLoopTests
         Assert.True(result.IsSuccess, result.Error?.Message);
         Assert.False(result.Value.Solve.Converged, "S-29 is fixed -- delete this test and its note.");
     }
+
+    [Fact]
+    public async Task TheSimpleLoopsValveIsSizedFromItsBranchAndReportsWhatItAchieved()
+    {
+        // The valve rule reached by the loop rather than called directly: `CV1` is sized from the drop
+        // the rest of its branch actually produces at the solved flow, and both parameters it claims
+        // come back with a basis. `24`'s Kv 1.6 is not the number here and cannot be until the heat
+        // exchanger has a pressure drop -- the document assumes 20 kPa across HE1 and this model has
+        // none, so the branch resists only the pipe's 2.5 kPa and the valve sized to it is larger.
+        var run = await RunAsync("m2-simple-loop.fluid");
+
+        Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
+        Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
+
+        Assert.Equal(4.0, run.Sizes.For("CV1", "kv"));
+        Assert.Contains("Kv 4", run.Bases["CV1.kv"], StringComparison.Ordinal);
+        Assert.Contains("R5 preferred numbers", run.Bases["CV1.kv"], StringComparison.Ordinal);
+        Assert.Contains("achieved against a target", run.Bases["CV1.authority"], StringComparison.Ordinal);
+
+        // Rounding down raises authority above the target, whatever the branch turns out to be.
+        Assert.True(run.Sizes.For("CV1", "authority") > 0.5);
+    }
+
+    [Fact]
+    public async Task NoComponentCarriesAValueNoParameterMapRecords()
+    {
+        // `C-58`. `ComponentFactory` built every valve with a literal `?? 1` that reached the component
+        // and none of the three maps, so `IsFree` called `kv` free and promotable while lowering had
+        // already chosen it -- and at Kv 1 this valve dropped 74.3 kPa against the 4.6 it is sized to.
+        // `D-02` allows sizing or a visible decided default and allows nothing else, so every parameter
+        // a component resolves must now appear somewhere a reader can find it.
+        var run = await RunAsync("m2-simple-loop.fluid");
+        var valve = Assert.Single(run.Graph.Components.Where(static c => c.Kind == "valve"));
+
+        Assert.Contains("kv", valve.SizedParameters.Keys);
+        Assert.Equal(4.0, valve.SizedParameters["kv"].SiValue);
+        Assert.DoesNotContain("kv", valve.StatedParameters.Keys);
+    }
 }

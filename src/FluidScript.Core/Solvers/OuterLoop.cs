@@ -94,14 +94,25 @@ public sealed class OuterLoop(
 {
     /// <summary>The rules a v1 solve runs, in the order a component is offered to them.</summary>
     /// <param name="pipes">The pipe series diameters are chosen from.</param>
+    /// <param name="valves">The Kv series valves are chosen from. R5 unless a caller says otherwise.</param>
     /// <returns>The rules.</returns>
     /// <remarks>
+    /// <para>
     /// One list rather than one per caller. A fixture that assembled its own would be lowering a model
     /// sized by a different set of rules than a solve uses, which is the shape of <c>C-55</c> and cost
     /// three failures and four skips the first time it happened.
+    /// </para>
+    /// <para>
+    /// <strong>Order is not significant and must not become so.</strong> Each rule answers for one kind,
+    /// so no component is offered to two of them, and the coupling between rules runs through the
+    /// <em>iterate</em> rather than through this list: a valve's Kv changes the drop the pump is sized
+    /// against on the <em>next</em> pass, not on this one. A rule that needed to run after another would
+    /// be a rule that had outgrown <see cref="ISizer"/>.
+    /// </para>
     /// </remarks>
-    public static ImmutableArray<ISizer> Rules(Catalogs.ICatalog<Catalogs.PipeSpec> pipes) =>
-        [new PipeSizer(pipes), new PumpSizer()];
+    public static ImmutableArray<ISizer> Rules(
+        Catalogs.ICatalog<Catalogs.PipeSpec> pipes, Catalogs.ICatalog<Catalogs.ValveSpec>? valves = null) =>
+        [new PipeSizer(pipes), new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance), new PumpSizer()];
 
     /// <summary>Lowers a model with sizing applied, which is the only graph a solve ever sees.</summary>
     /// <param name="model">The bound semantic model.</param>

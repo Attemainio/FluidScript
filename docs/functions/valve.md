@@ -24,6 +24,48 @@ V2 valve authority=0.5 characteristic=equal_percentage
 `kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
 nothing else.
 
+## How the Kv is chosen
+
+A valve you do not give a `kv` is sized for **authority** — the share of its branch's total pressure
+drop that the valve itself takes. Authority is what makes the travel mean something: a valve taking
+half the branch's drop keeps roughly the characteristic you asked for, while one taking a tenth is a
+switch with a handle, because the branch's own resistance dominates until the valve is nearly shut and
+then the flow collapses over the last few percent.
+
+The rule asks what drop gives the target share, works out the coefficient that produces it at the
+design flow, and takes the nearest catalogue value **at or below** it. Rounding down means a slightly
+smaller valve, which drops slightly more, so the authority you get is always at or above the one you
+asked for — never below. The reported value is the one achieved:
+
+```
+CV1  kv         4      sized   Kv 4 (R5 preferred numbers) — authority 0.65 at 0.24 l/s, 4.6 kPa
+CV1  authority  0.65   sized   0.65 achieved against a target of 0.5 — Kv 4 drops 4.6 of 7.1 kPa
+```
+
+Write `authority=0.7` to change the target. The default is 0.5.
+
+The sizes come from the **R5 preferred numbers** — 1.0, 1.6, 2.5, 4.0, 6.3 and the same digits in
+every decade, which is what most manufacturers step their Kvs on. The step is 1.6× in Kv and therefore
+2.56× in pressure drop, so the achieved authority can land well above the target: that is the
+catalogue being coarse, not the rule being wrong.
+
+### When it cannot be sized
+
+If the rest of the branch drops almost nothing, there is no honest answer — a valve taking half of
+almost nothing would sit inside the range where the solver smooths the flow law, and its authority
+would not be what the arithmetic says. You are told so and asked to add resistance to the branch or to
+state a `kv` yourself.
+
+If the achieved authority is below 0.25 you get [`FS4006`](diagnostics.md): the valve will behave as a
+switch. Raising authority means a smaller valve, and the smallest one in the catalogue may still be
+larger than the branch needs, so the fix is usually to the branch rather than to the valve.
+
+### Balancing valves
+
+Authority is a **control**-valve criterion. A balancing valve is sized for a measurable drop at design
+flow, typically 3–10 kPa, and the two are not the same job. Balancing a set of parallel branches
+against each other is not yet done: give those valves an explicit `kv` for now.
+
 ### What is checked
 
 | If you write | You get |

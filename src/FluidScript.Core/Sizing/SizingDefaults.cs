@@ -38,4 +38,30 @@ public static class SizingDefaults
         <= 150 => 1.5,
         _ => 2.0,
     };
+
+    /// <summary>The share of its branch's drop a control valve is sized to take.</summary>
+    /// <value>Dimensionless, 0 to 1. <c>24</c>'s <c>valve.authority_target</c>.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>Authority is what makes a valve's travel mean something.</strong> A valve taking half
+    /// the branch's drop keeps roughly its intended characteristic; one taking a tenth is a switch with
+    /// a handle, because the branch's own resistance dominates until the valve is nearly shut and then
+    /// the flow collapses over the last few percent of travel.
+    /// </para>
+    /// <para>
+    /// It is a <em>control</em>-valve criterion and does not transfer. A balancing valve is sized for a
+    /// measurable drop at design flow, typically 3-10 kPa, and asking it for authority sizes it for a
+    /// job it does not have (<c>C-49</c>).
+    /// </para>
+    /// </remarks>
+    public const double ValveAuthorityTarget = 0.5;
+
+    /// <summary>The authority below which a sized valve is reported as controlling poorly.</summary>
+    /// <value>Dimensionless. <c>24</c>'s <c>valve.authority_min</c>, the threshold for <c>FS4006</c>.</value>
+    /// <remarks>
+    /// Reported rather than corrected. Raising a valve's authority means shrinking it, and a valve small
+    /// enough to control a low-resistance branch may be smaller than the branch can pass -- so the fix
+    /// is usually to the branch rather than to the valve, and the rule is not the thing that can decide.
+    /// </remarks>
+    public const double ValveAuthorityMinimum = 0.25;
 }

@@ -114,30 +114,8 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         return kind.Keyword switch
         {
             "pipe" => Pipe(symbol, stated, sized, defaults),
-            "valve" => new Valve(
-                symbol.Name,
-                Value(symbol, kind, "kv") ?? 1,
-                Value(symbol, kind, "position") ?? 1,
-                Characteristic(symbol))
-            {
-                StatedParameters = stated,
-                SizedParameters = sized,
-                DefaultParameters = defaults,
-            },
-            "three_way_valve" => new ThreeWayValve(
-                symbol.Name,
-                Value(symbol, kind, "kv") ?? 1,
-                Value(symbol, kind, "position") ?? 1,
-                Characteristic(symbol),
-
-                // Two connections and no explicit `c` is the two-way arrangement the page describes,
-                // and it is one Kv law rather than two (S-14a).
-                bypassConnected: wiring.Connections > 2 || wiring.Names("c"))
-            {
-                StatedParameters = stated,
-                SizedParameters = sized,
-                DefaultParameters = defaults,
-            },
+            "valve" => Valve(symbol, kind, stated, sized, defaults),
+            "three_way_valve" => ThreeWay(symbol, kind, wiring, stated, sized, defaults),
             "pump" => Pump(symbol, kind, stated, sized, defaults),
             "heat_exchanger" => new HeatExchanger(symbol.Name, Value(symbol, kind, "power") ?? 0)
             {
@@ -149,6 +127,70 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             _ => null,
         };
     }
+
+    /// <summary>A two-way valve, or <see langword="null"/> when nothing has chosen its <c>kv</c>.</summary>
+    /// <param name="symbol">The bound declaration.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <param name="stated">What the script wrote.</param>
+    /// <param name="sized">What a rule chose.</param>
+    /// <param name="defaults">What the registry decided.</param>
+    /// <returns>The component, or <see langword="null"/> to leave it unresolved.</returns>
+    /// <remarks>
+    /// <strong>The absent <c>kv</c> used to be a literal <c>1</c>, and that was <c>C-58</c>.</strong>
+    /// The fallback reached the component without reaching any of the three parameter maps, so
+    /// <c>WellPosedness.IsFree</c> called <c>kv</c> free and promotable while lowering had already
+    /// picked it -- and at Kv 1 the simple loop's valve dropped 74.3 kPa where sizing gives 29.3, which
+    /// is most of the gap between its pump head and <c>24</c>'s worked example. <c>D-02</c> allows a
+    /// parameter to be sized or to carry a visible decided default and allows nothing else, so this now
+    /// follows <see cref="Pipe"/>'s rule: no bore, no pipe; no Kv, no valve.
+    /// </remarks>
+    private Valve? Valve(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
+        ImmutableDictionary<string, Quantity> defaults) =>
+        Value(symbol, kind, "kv") is not { } kv
+            ? null
+            : new Valve(symbol.Name, kv, Value(symbol, kind, "position") ?? 1, Characteristic(symbol))
+            {
+                StatedParameters = stated,
+                SizedParameters = sized,
+                DefaultParameters = defaults,
+            };
+
+    /// <summary>A three-way valve, or <see langword="null"/> when nothing has chosen its <c>kv</c>.</summary>
+    /// <param name="symbol">The bound declaration.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <param name="wiring">How many ports the script connected, and by what names.</param>
+    /// <param name="stated">What the script wrote.</param>
+    /// <param name="sized">What a rule chose.</param>
+    /// <param name="defaults">What the registry decided.</param>
+    /// <returns>The component, or <see langword="null"/> to leave it unresolved.</returns>
+    /// <remarks><c>C-58</c>, for the same reason as <see cref="Valve"/>.</remarks>
+    private ThreeWayValve? ThreeWay(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        PortWiring wiring,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
+        ImmutableDictionary<string, Quantity> defaults) =>
+        Value(symbol, kind, "kv") is not { } kv
+            ? null
+            : new ThreeWayValve(
+                symbol.Name,
+                kv,
+                Value(symbol, kind, "position") ?? 1,
+                Characteristic(symbol),
+
+                // Two connections and no explicit `c` is the two-way arrangement the page describes,
+                // and it is one Kv law rather than two (S-14a).
+                bypassConnected: wiring.Connections > 2 || wiring.Names("c"))
+            {
+                StatedParameters = stated,
+                SizedParameters = sized,
+                DefaultParameters = defaults,
+            };
 
     /// <summary>Every parameter the outer loop chose for this component.</summary>
     /// <param name="symbol">The bound component.</param>
