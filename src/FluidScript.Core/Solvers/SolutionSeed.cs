@@ -162,6 +162,61 @@ public static class SolutionSeed
                 _ => 0,
             };
         }
+
+        Promoted(graph, layout, values);
+    }
+
+    /// <summary>Seeds every promoted parameter from the value its own component holds.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the state vector keeps each unknown.</param>
+    /// <param name="values">The seed being filled.</param>
+    /// <remarks>
+    /// <para>
+    /// <strong>Zero is not a neutral starting point for a promoted parameter; for two of the three
+    /// promotable kinds it is a <em>bound</em>.</strong> <see cref="Components.ValveLaw.Opening"/>
+    /// clamps position into <c>[0, 1]</c>, so a column seeded at 0 has a one-sided derivative at best
+    /// and a dead one at worst -- and <c>m2-distribution-header</c> came out <c>Singular</c> at
+    /// <em>iteration zero</em> with both its promoted positions sitting exactly there. A pump seeded at
+    /// zero head is a loop with no driver, which is the same problem one variable over (<c>S-26</c>).
+    /// </para>
+    /// <para>
+    /// <strong>The component is the only thing that knows.</strong> <c>Resolvable</c> exists to say what
+    /// a component uses when nothing supplies one, in SI, and <see cref="SystemLayout"/> already reads
+    /// the unit off it for the same reason (<c>D-30</c>). Reading the value here needs no knowledge of
+    /// the kind, which is what keeps this seed free of a table of defaults that would drift.
+    /// </para>
+    /// <para>
+    /// The old behaviour was a placeholder and said so: "a promoted parameter carries no unit yet and
+    /// falls to zero, which is honest and is the thing the outer loop replaces when promotion becomes
+    /// live". Promotion is live.
+    /// </para>
+    /// </remarks>
+    private static void Promoted(CircuitGraph graph, SystemLayout layout, double[] values)
+    {
+        for (var index = layout.PromotionOffset; index < layout.Count; index++)
+        {
+            var declaration = layout.Unknowns[index];
+            var owner = graph.Components.FirstOrDefault(element =>
+                string.Equals(element.Name, declaration.OwnerComponentId, StringComparison.Ordinal));
+
+            if (owner is null)
+            {
+                continue;
+            }
+
+            // The declaration's name is the promotion's label, `"3WV.position"`, so the parameter is
+            // whatever follows the owner's name and the dot.
+            var parameter = declaration.Name[(declaration.OwnerComponentId.Length + 1)..];
+
+            foreach (var resolvable in owner.Resolvable)
+            {
+                if (string.Equals(resolvable.Name, parameter, StringComparison.Ordinal)
+                    && double.IsFinite(resolvable.Value))
+                {
+                    values[index] = resolvable.Value;
+                }
+            }
+        }
     }
 
     /// <summary>How many steps from its branch's start each node is, wrapped into a narrow band.</summary>

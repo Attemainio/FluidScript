@@ -218,4 +218,27 @@ public sealed class SolutionSeedTests
 
     private static CircuitGraph Lower(string sample) =>
         GraphFixture.Lower(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
+
+    [Fact]
+    public void APromotedParameterIsSeededFromTheValueItsComponentHolds()
+    {
+        // `S-26`. Promoted columns fell to zero, and the seed said so in its own remarks -- "honest, and
+        // the thing the outer loop replaces when promotion becomes live". Promotion is live, and zero is
+        // not neutral: for a valve position it is a *bound*, and `ValveLaw.Opening` clamps there, so the
+        // column's forward difference is dead before the first iteration.
+        //
+        // The header's two three-way valves state no position, so each holds the registry's 1.
+        var graph = Lower("m2-distribution-header.fluid");
+        var counting = WellPosedness.Check(graph).Counting;
+        var layout = SystemLayout.Build(graph, counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        var positions = Enumerable.Range(layout.PromotionOffset, layout.Count - layout.PromotionOffset)
+            .Where(index => layout.Unknowns[index].Name.EndsWith(".position", StringComparison.Ordinal))
+            .Select(index => seed.Values[index])
+            .ToArray();
+
+        Assert.NotEmpty(positions);
+        Assert.All(positions, position => Assert.Equal(1.0, position));
+    }
 }
