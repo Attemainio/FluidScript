@@ -117,14 +117,65 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             "valve" => Valve(symbol, kind, stated, sized, defaults),
             "three_way_valve" => ThreeWay(symbol, kind, wiring, stated, sized, defaults),
             "pump" => Pump(symbol, kind, stated, sized, defaults),
-            "heat_exchanger" => new HeatExchanger(symbol.Name, Value(symbol, kind, "power") ?? 0)
-            {
-                StatedParameters = stated,
-                SizedParameters = sized,
-                DefaultParameters = defaults,
-            },
+            "heat_exchanger" => Exchanger(symbol, kind, wiring, stated, sized, defaults),
             "tank" => Tank(symbol, kind, stated, sized, defaults),
             _ => null,
+        };
+    }
+
+    /// <summary>A duty-mode exchanger, with the resistance its design point implies.</summary>
+    /// <param name="symbol">The bound declaration.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <param name="stated">What the script wrote.</param>
+    /// <param name="sized">What a rule chose.</param>
+    /// <param name="defaults">What the registry decided.</param>
+    /// <returns>The component. An exchanger always builds; only its resistance waits.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The drop and the flow arrive from different places and neither is sufficient alone.</strong>
+    /// <see cref="HeatExchanger"/> holds <c>Δp = dp·(ṁ/ṁ_design)²</c>, so a <c>dp</c> with no design flow
+    /// is half a law. <c>dp</c> is stated or carries the registry's decided 20 kPa; the design flow is
+    /// sized by <c>ExchangerSizer</c> from the flow the circuit actually runs at.
+    /// </para>
+    /// <para>
+    /// <strong>Before the first flow estimate there is no design point, so the block is ideal.</strong>
+    /// Passing a positive <c>dp</c> with a zero flow throws by contract, and rightly -- the implied
+    /// resistance is infinite. The bootstrap pass therefore builds a resistance-free exchanger and the
+    /// first real pass replaces it, which is the same shape as every other provisional.
+    /// </para>
+    /// </remarks>
+    /// <param name="wiring">How many ports the script connected, and by what names.</param>
+    private HeatExchanger Exchanger(
+        ComponentSymbol symbol,
+        ComponentKindInfo kind,
+        PortWiring wiring,
+        ImmutableDictionary<string, Quantity> stated,
+        ImmutableDictionary<string, Quantity> sized,
+        ImmutableDictionary<string, Quantity> defaults)
+    {
+        var design = Value(symbol, kind, "flow") ?? 0;
+        var drop = design > 0 ? Value(symbol, kind, "dp") ?? 0 : 0;
+
+        // `S-14b`. Side 2's row exists whenever the script wired it, and its *resistance* only when a
+        // script also states `flow2` -- no rule chooses that, because a rule sees one branch and this
+        // component sits on two. An ideal side still carries `p_in2 = p_out2`, which is the row the
+        // counting table was crediting and the component was not declaring.
+        var secondary = wiring.Names("in2") || wiring.Names("out2");
+        var secondaryFlow = Value(symbol, kind, "flow2") ?? 0;
+        var secondaryDrop = secondaryFlow > 0 ? Value(symbol, kind, "dp2") ?? 0 : 0;
+
+        return new HeatExchanger(
+            symbol.Name,
+            Value(symbol, kind, "power") ?? 0,
+            drop,
+            design,
+            secondaryDrop,
+            secondaryFlow,
+            secondary)
+        {
+            StatedParameters = stated,
+            SizedParameters = sized,
+            DefaultParameters = defaults,
         };
     }
 

@@ -46,41 +46,93 @@ public sealed class HeatExchanger : IFlowComponent
 {
     private readonly ImmutableArray<EquationDeclaration> _equations;
     private readonly double _resistance;
+    private readonly double _secondaryResistance;
 
     /// <summary>Initializes a duty-mode exchanger.</summary>
     /// <param name="name">The user's identifier.</param>
     /// <param name="power">W transferred, positive when side 1 gains heat.</param>
     /// <param name="designPressureDrop">Pa across side 1 at the design flow; 0 for an ideal block.</param>
     /// <param name="designFlow">kg/s, the flow the design drop belongs to.</param>
+    /// <param name="secondaryPressureDrop">Pa across side 2 at its own design flow; 0 for an ideal side.</param>
+    /// <param name="secondaryFlow">kg/s, the flow the secondary drop belongs to.</param>
+    /// <param name="secondarySideConnected">
+    /// Whether the script wired <c>in2</c>/<c>out2</c>. It decides how many momentum relations this
+    /// component declares, and lowering is the only thing that knows it (<c>D-63</c>).
+    /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="designPressureDrop"/> is negative, or it is positive while
-    /// <paramref name="designFlow"/> is not.
+    /// Either drop is negative, or one is positive while its flow is not.
     /// </exception>
+    /// <remarks>
+    /// <strong>Side 2 gets a momentum relation whenever it is connected, and that is <c>S-14b</c>.</strong>
+    /// Two branches crossing this component means <c>Relations()</c> credits it with two pressure
+    /// equations; it declared one, so <c>m2-substation</c> counted 23 for 23, assembled 22 rows, and
+    /// could not be solved at all. A real second stream has a real pressure drop, and even an ideal one
+    /// has the relation <c>p_in2 = p_out2</c> -- which is a statement, where declaring nothing is a hole.
+    /// </remarks>
     public HeatExchanger(
-        string name, double power, double designPressureDrop = 0, double designFlow = 0)
+        string name,
+        double power,
+        double designPressureDrop = 0,
+        double designFlow = 0,
+        double secondaryPressureDrop = 0,
+        double secondaryFlow = 0,
+        bool secondarySideConnected = false)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegative(designPressureDrop);
+        ArgumentOutOfRangeException.ThrowIfNegative(secondaryPressureDrop);
 
         if (designPressureDrop > 0)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(designFlow);
         }
 
+        if (secondaryPressureDrop > 0)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(secondaryFlow);
+        }
+
         Name = name;
         Power = power;
         DesignPressureDrop = designPressureDrop;
         DesignFlow = designFlow;
+        SecondaryPressureDrop = secondaryPressureDrop;
+        SecondaryFlow = secondaryFlow;
+        SecondarySideConnected = secondarySideConnected;
 
         // Folded once here rather than per iteration: dp_design / mdot_design^2 is constant, and the
         // residual then costs one multiply instead of a divide inside the hot path.
         _resistance = designPressureDrop > 0 ? designPressureDrop / (designFlow * designFlow) : 0;
+        _secondaryResistance =
+            secondaryPressureDrop > 0 ? secondaryPressureDrop / (secondaryFlow * secondaryFlow) : 0;
 
-        _equations =
-        [
-            new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} side-1 drop", "Pa"),
-        ];
+        _equations = secondarySideConnected
+            ?
+            [
+                new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} side-1 drop", "Pa"),
+                new EquationDeclaration(1, EquationKind.Pressure, name, $"{name} side-2 drop", "Pa"),
+            ]
+            :
+            [
+                new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} side-1 drop", "Pa"),
+            ];
     }
+
+    /// <summary>Gets the side-2 pressure drop at its design flow.</summary>
+    /// <value>Pa. Zero means an ideal side, which still carries the relation <c>p_in2 = p_out2</c>.</value>
+    public double SecondaryPressureDrop { get; }
+
+    /// <summary>Gets the flow the secondary pressure drop belongs to.</summary>
+    /// <value>
+    /// kg/s. <strong>Sized only when a script states it.</strong> No rule chooses it, because a rule
+    /// sees one branch and this component sits on two -- the same limit that keeps parallel-set
+    /// balancing out of <c>ISizer</c> (<c>C-49</c>). Until it is stated, side 2 is ideal.
+    /// </value>
+    public double SecondaryFlow { get; }
+
+    /// <summary>Gets whether the script wired the secondary ports.</summary>
+    /// <value><see langword="true"/> when <c>in2</c>/<c>out2</c> are connected, which adds a row.</value>
+    public bool SecondarySideConnected { get; }
 
     /// <inheritdoc/>
     public string Name { get; }
@@ -147,7 +199,14 @@ public sealed class HeatExchanger : IFlowComponent
 
     /// <inheritdoc/>
     /// <value>
-    /// One: side 1's momentum relation.
+    /// One momentum relation per <em>connected</em> side: one for a duty block, two once <c>in2</c> and
+    /// <c>out2</c> are wired.
+    /// <para>
+    /// <strong>It counts sides rather than ports because the counting table does.</strong> Two branches
+    /// crossing this component earn it two pressure relations, and declaring one left
+    /// <c>m2-substation</c> a row short of square -- solvable by nothing, and reported as a counting
+    /// table that disagreed with its own assembly (<c>S-14b</c>).
+    /// </para>
     /// <para>
     /// <strong>The duty is not a row here.</strong> It was, and it asserted the same relation as the
     /// balance of the node this exchanger discharges into — that node's balance reduces to
@@ -156,7 +215,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// into the node's own balance (<c>D-69</c>, <see cref="EvaluateEnergyInjection"/>).
     /// </para>
     /// </value>
-    public int EquationCount => 1;
+    public int EquationCount => SecondarySideConnected ? 2 : 1;
 
     /// <inheritdoc/>
     /// <returns>Empty. Its flow belongs to its branch and its pressures to its nodes.</returns>
@@ -201,6 +260,18 @@ public sealed class HeatExchanger : IFlowComponent
 
         residuals[0] = context.Ports[0].Pressure - context.Ports[1].Pressure
             - (_resistance * flow * Math.Abs(flow));
+
+        if (!SecondarySideConnected)
+        {
+            return;
+        }
+
+        // Ports 2 and 3 are `in2`/`out2`, and `FlowGroups` puts them in their own group -- nothing
+        // crosses between the sides, so this reads side 2's own flow rather than side 1's.
+        var secondary = context.Flows[2];
+
+        residuals[1] = context.Ports[2].Pressure - context.Ports[3].Pressure
+            - (_secondaryResistance * secondary * Math.Abs(secondary));
     }
 
     /// <inheritdoc/>

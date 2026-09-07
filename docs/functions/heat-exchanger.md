@@ -37,7 +37,7 @@ the solve makes it the cold side is worse than one that says nothing.
 | `in`, `out` | °C | Side-1 inlet and outlet temperature |
 | `in2`, `out2` | °C | Side-2 inlet and outlet temperature |
 | `dt`, `dt2` | dK | Temperature change across that side. Always positive; the sign follows `power` |
-| `dp`, `dp2` | kPa | Pressure drop at design flow, per side |
+| `dp`, `dp2` | kPa | Pressure drop at design flow, per side. Defaults to 20 kPa; write `dp=0` for an ideal block |
 | `flow`, `flow2` | kg/s | Flow constraint, per side |
 | `ua` | W/K | Overall conductance — the thermal size, independent of how it is achieved |
 | `area` | m² | Heat transfer area |
@@ -66,6 +66,40 @@ Plate geometry is a fourth route to the same pair: it derives both `area` and `u
 **A cooler is written with a negative `power`, never a negative `dt`.** `dt` is how far the
 temperature moves and the duty's sign is which way, so `power=-70 dt=20` takes 70 kW out and leaves
 the outlet 20 K below the inlet. `dt=-20` has no second reading available to it.
+
+## Pressure drop
+
+Every exchanger resists flow, so `dp` carries a decided default of **20 kPa** — a plate exchanger at
+its design flow. You will see it in the pressure the pump has to develop, and in the valve sizes on
+the same branch, because both are chosen from what the branch actually drops.
+
+A pressure drop is only half a law: `Δp = dp · (ṁ/ṁ_design)²` needs the flow the drop was measured at,
+and you never write that down. It is the flow the circuit runs at, so it is worked out for you and
+reported beside the drop:
+
+```
+HE1  flow  0.2392   sized   0.2392 kg/s — the flow HE1's 20 kPa is measured at, 0.24 l/s
+```
+
+### When to write `dp=0`
+
+When the block is a modelling device rather than a piece of plant. A `LOAD` that exists only to make
+the duties balance is not a physical exchanger and should not resist anything, and nothing in the
+script can tell the two apart — so say so:
+
+```fluidscript
+LOAD heat_exchanger power=-30 dp=0
+```
+
+Leaving it out is a common way to end up with twice the exchanger drop you meant and a pump sized to
+match.
+
+### The second side
+
+`dp2` behaves the same way, but its design flow is **not** worked out for you: state `flow2` alongside
+it if you want the secondary side to resist. Until you do, side 2 is ideal — it still carries the
+relation that its two connections are at the same pressure, which is what makes a two-sided exchanger
+solvable at all.
 
 ## Properties
 

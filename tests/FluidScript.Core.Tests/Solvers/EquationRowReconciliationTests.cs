@@ -51,11 +51,13 @@ public sealed class EquationRowReconciliationTests
             .Count(static row => row.Kind is EquationKind.Pressure or EquationKind.ComponentConstraint);
 
         // The links are the table's own now (`S-15`): an assembler has to write those rows, so it has
+        // The links are the table's own now (`S-15`): an assembler has to write those rows, so it has
         // to be told between which nodes, and a walk here would be the second implementation that
         // naming them exists to prevent.
-        Assert.Equal(
-            counting.PressureRelations - RowAllowance.CoupledCrossings(graph),
-            declared + counting.IdealLinks.Length);
+        //
+        // Nothing is subtracted. `RowAllowance` used to take off the row a coupled exchanger's second
+        // side was counted for and did not declare; it declares one now (`S-14b`).
+        Assert.Equal(counting.PressureRelations, declared + counting.IdealLinks.Length);
     }
 
     [Theory]

@@ -112,7 +112,12 @@ public sealed class OuterLoop(
     /// </remarks>
     public static ImmutableArray<ISizer> Rules(
         Catalogs.ICatalog<Catalogs.PipeSpec> pipes, Catalogs.ICatalog<Catalogs.ValveSpec>? valves = null) =>
-        [new PipeSizer(pipes), new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance), new PumpSizer()];
+    [
+        new PipeSizer(pipes),
+        new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance),
+        new ExchangerSizer(),
+        new PumpSizer(),
+    ];
 
     /// <summary>Lowers a model with sizing applied, which is the only graph a solve ever sees.</summary>
     /// <param name="model">The bound semantic model.</param>

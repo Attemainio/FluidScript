@@ -34,7 +34,7 @@ public sealed class EquationLayoutTests
         var (graph, posedness) = Lower(sample);
         var layout = EquationLayout.Build(graph, posedness);
 
-        Assert.Equal(posedness.Counting.Equations - RowAllowance.CoupledCrossings(graph), layout.Count);
+        Assert.Equal(posedness.Counting.Equations, layout.Count);
     }
 
     [Theory]
@@ -45,17 +45,18 @@ public sealed class EquationLayoutTests
         // circuit is not square to begin with: an under-specified script is the user's business and
         // FS2211's, and asserting anything about its shape here would be asserting about a diagnostic.
         //
-        // A free enthalpy level used to be skipped alongside those, which excused the one sample that
-        // had one -- and that sample was exactly the one assembling a row more than it had columns
-        // (`S-24`). The level is a dropped equation now (`D-75`), so there is nothing left to excuse.
+        // Two allowances used to stand here and neither does now. A free enthalpy level was skipped
+        // alongside the under-specified ones, which excused the one sample that had one -- and that
+        // sample was exactly the one assembling a row more than it had columns (`S-24`); the level is a
+        // dropped equation now (`D-75`). Then `RowAllowance` subtracted the row a coupled exchanger's
+        // second side did not declare, which was `m2-substation` and only ever `m2-substation`; side 2
+        // has a momentum relation now (`S-14b`), so the allowance is gone and so is the file.
         var (graph, posedness) = Lower(sample);
         var counting = posedness.Counting;
-        var allowance = RowAllowance.CoupledCrossings(graph);
 
         Assert.SkipWhen(
-            counting.Excess != 0 || allowance != 0,
-            $"{sample} is not a square, fully-modelled circuit: excess {counting.Excess}, "
-            + $"rows the table does not model {allowance}.");
+            counting.Excess != 0,
+            $"{sample} is not a square circuit: excess {counting.Excess}.");
 
         Assert.Equal(SystemLayout.Build(graph, counting).Count, EquationLayout.Build(graph, posedness).Count);
     }

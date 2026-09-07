@@ -18,6 +18,7 @@ that nothing is wrong.
 
 | # | Document | What | Why it is still open |
 |---|---|---|---|
+| C-59 | [`24`](24-auto-sizing.md) | **`24`'s worked example counts one exchanger drop on a circuit that has two** | The document totals the simple loop as pipe + 20 kPa exchanger + valve = 51.67 kPa, and the loop has **two** heat exchangers: `HE1` and `LOAD`. With every exchanger carrying the decided 20 kPa the ring holds 40 kPa of exchanger drop, the valve is sized against twice the branch, and the head reaches **11.93 m** against the document's 5.28. Neither number is a defect on its own: `LOAD` is a modelling device -- the sample's own header opens by saying it exists to make the duties sum to zero -- and a fiction should not resist flow, while a *physical* load absolutely should. **Nothing in the language distinguishes them.** Resolved for the sample by stating `dp=0` on `LOAD`, which reproduces `24` exactly; open as a question for `24`, because the next person to write a load block will hit it and the registry's rationale string ("write dp=0 for an ideal block") is the only place that says so. |
 | C-54 | [`24`](24-auto-sizing.md) | **The pipe rule's velocity ceiling never fires at the default gradient target, so the step it describes is untested by any real case** | `24` step 3 reads as a check that acts -- "if exceeded, step up one nominal size and re-check" -- and on EN 10255 at 150 Pa/m it never does. The reason is dimensional: at fixed flow the gradient falls roughly as D^-5 and the velocity as D^-2, so a size meeting a gradient target is already far under its noise limit. The worked example is the illustration -- DN25 at 0.411 m/s against a 1.0 m/s ceiling, a factor of 2.4 of margin -- and a sweep from 0.05 to 12 kg/s never triggers a step-up at that target. It becomes reachable only when a script states a much looser target, or at the very top of the series where DN150 meets 150 Pa/m at about 1.65 m/s against a 1.5 m/s limit, and there the step cannot be taken because nothing is larger. `PipeSizer` implements the rule as written and `TheVelocityCeilingIsHardAndSaysWhenItMoved` exercises it at a stated target rather than pretending the default reaches it. Left open because it is a question for `24` rather than a defect in the code: a bound that never binds is either a wrong bound, a wrong target, or documentation that should say it is a guard. **Found the same way `C-48` was** -- by running the rule rather than reading it. Its companion is now fixed: clamping at the top of the series reported the gradient miss and said nothing about the velocity ceiling it also breached. |
 | C-53 | [`21`](21-fluid-and-state.md), [`07`](../00-foundation/07-quality-attributes.md) | **A refrigerant's valid range is bounded by its data, not by its critical point, and the compressor discharge is what sets the top** | Ammonia and propane were first given ranges stopping at their critical temperatures, which looked conservative and refused the reference cycle outright: a measured ammonia cycle at -7/40 C and eta_is = 0.7 **discharges at 152.5 C**, twenty degrees above the 132.25 C critical temperature -- superheated vapour at a pressure well below the critical one, which is an ordinary state and not a supercritical one. Propane at -7/75 C discharges at 107.0 C against a 96.74 C critical temperature. Worse, the bound moves with the *compressor*: the same ammonia cycle at eta_is = 0.5 discharges at 205 C, so a range wide enough for a good machine refuses a bad one, and the identity tests that sweep eta are exactly what walk into it. Ammonia now runs to 250 C and propane to 165 C, against backend data valid to 427 C. Recorded because the error is silent in the other direction too: a range set from a fluid's headline numbers rather than from the states a cycle actually visits will refuse real designs and look principled doing it. |
 | C-52 | [`21`](21-fluid-and-state.md), `D-78` | **Inside the two-phase dome the backend answers with the vapour phase's transport properties under labels that say the state's** | `FluidState` presumes all seven properties exist at every state, and for a two-phase point three of them do not. Measured on ammonia at -7 C, quality about 0.2: the backend returns `DynamicViscosity` 8.15e-6 Pa.s and `ThermalConductivity` 0.0252 W/(m.K) -- the **vapour's**, against liquid ammonia's 1.8e-4 and 0.55, both about a factor of 22 away -- and `SpecificHeat` 12715 J/(kg.K) where the constant-pressure value is *infinite*, because heat added there moves quality and not temperature. Three plausible numbers, none of them the quantity its field is documented as, and no failure anywhere: the same shape as `S-16`, `S-22` and `S-24`. `Refrigerant.Build` now blanks all three for a two-phase state, which costs nothing today because nothing reads them and makes the failure loud the day something does. Still open because the real answer is a `Quality` on the state plus saturated-liquid and saturated-vapour lookups, which is what a two-phase pressure-drop model will need and what `07` still keeps out of v1. |
@@ -551,3 +552,31 @@ until the *achieved authority* was computed from the chosen row — 0.565 agains
 reported only its selection would have agreed with `24` while disagreeing about the physics. This is
 the argument for `24`'s invariant that the achieved value is reported rather than the target, and it
 is worth carrying to every rule that rounds: report what the chosen row does, not what was asked for.
+
+**`24`'s worked example now reproduces end to end, and the last difference left is the density
+basis.** With the exchanger's drop in place, the pipeline produces DN25 at 99.8 Pa/m, Kv 1.6 dropping
+29.0 kPa, a 51.5 kPa ring and 5.264 m of head, against the document's DN25, Kv 1.6, 29.32 kPa,
+51.67 kPa and 5.28 m. Every one of those is now computed by a rule reading the solved field rather
+than supplied by hand to a unit test. The residual is 0.4 % and it is the inlet-versus-loop-mean
+question recorded three times already -- which is the argument for settling it in `24` rather than
+widening a tolerance: it is the only thing left between the document and the tool on this circuit, and
+that is a good state to keep.
+
+**Three rules chained cost two extra passes, and the loop still settles.** The simple loop went from
+one pass to four when the exchanger's drop landed, because the chain is real: the exchanger's design
+flow comes from the solve, its drop changes the branch, the valve's Kv is sized against that branch,
+and the valve's drop changes the flow again. `24` says two passes for this circuit, written when there
+was one rule. Four of a cap of ten, `Settled` is true, and discreteness is still what ends it -- DN25
+stays DN25 and Kv 1.6 stays Kv 1.6 while the continuous values under them are still moving. Worth
+watching rather than fixing: the count grows with the number of *coupled* rules, not with circuit
+size, and the next rule to read a branch drop will add another pass.
+
+**A parameter can be half a law, and the registry cannot say so.** `dp` alone is not a resistance --
+`Δp = dp·(ṁ/ṁ_design)²` needs the flow it was measured at, and a script never writes that. So `dp` is
+a decided default and `flow` is *sized*, and the two only mean something together. The registry
+describes parameters one at a time and has no way to express "this one is meaningless without that
+one"; what caught it here was the component's constructor, which throws when given a positive drop and
+a zero flow. That contract is doing the work a registry relation should. Recorded because the same
+shape is coming for `ua`/`area`/`u` and for `dp2`/`flow2`, and the second of those is already live:
+side 2 resists only when a script states `flow2`, and nothing tells a reader that stating `dp2` alone
+achieves nothing.

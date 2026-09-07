@@ -12,13 +12,19 @@
 # the example at the loop's 35 C mean, and the rule sizes every component at its own inlet, which for
 # P1 is the 20 C leaving LOAD. Sizing at a mean nobody is standing in is the trap 24 flags for the
 # pump's head, and the pipe rule has it too -- 6 % of gradient here, and the same DN either way.
+#
+# LOAD states `dp=0` because it is the modelling device this header opens by describing, not a physical
+# block: it exists to make the duties sum to zero. Every heat_exchanger otherwise carries a decided
+# 20 kPa, which is right for HE1 and wrong for a fiction, and nothing in the language can tell the two
+# apart -- so the fiction has to say so. Without it the ring carries 40 kPa of exchanger drop rather
+# than 20, the valve is sized against twice the branch, and the loop reaches 11.9 m instead of 5.3.
 
 fluidscript 1
 circuit simpleLoop
 fluid water
 
 HE1  heat_exchanger power=30 in=20 out=50
-LOAD heat_exchanger power=-30
+LOAD heat_exchanger power=-30 dp=0
 CV1  valve
 PU1  pump
 P1   pipe length=25
