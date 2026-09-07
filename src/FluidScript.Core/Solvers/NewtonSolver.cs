@@ -32,6 +32,13 @@ public sealed class NewtonSolver : ISolver
 {
     private const double ArmijoFactor = 1e-4;
 
+    /// <summary>How many participants in a null direction <c>FS3009</c> names before summarising.</summary>
+    /// <remarks>
+    /// Six. A direction with more participants than that is describing a circuit under-specified in a way
+    /// no list fixes, and the first six are the ones carrying the largest share of it.
+    /// </remarks>
+    private const int NamedParticipants = 6;
+
     private readonly NewtonSettings _settings;
 
     /// <summary>Initializes a solver.</summary>
@@ -167,6 +174,18 @@ public sealed class NewtonSolver : ISolver
                         "component",
                         system.Unknowns.Unknowns[factored.SingularColumn].OwnerComponentId)));
 
+                // DenseLu overwrote the Jacobian factorising it, so this rebuilds one to eliminate
+                // again with full pivoting. N+1 residual evaluations on a run that has already stopped.
+                var undetermined = Undetermined(system, x, residuals, trial, perturbed, columns);
+
+                if (undetermined is not null)
+                {
+                    diagnostics.Add(Diagnostic.Create(
+                        SolverDiagnostics.Undetermined,
+                        null,
+                        new DiagnosticArgument("combination", undetermined)));
+                }
+
                 return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics);
             }
 
@@ -251,6 +270,78 @@ public sealed class NewtonSolver : ISolver
                 Amount(residuals[furthest] * system.ResidualScales[furthest], declaration.ResidualSiUnit))));
 
         return Stop(system, x, _settings.MaxIterations, final, SolveTermination.IterationCap, diagnostics);
+    }
+
+    /// <summary>Names the combination of unknowns a singular Jacobian left undetermined.</summary>
+    /// <param name="system">The assembled system.</param>
+    /// <param name="x">The iterate the factorisation failed at.</param>
+    /// <param name="residuals">The scaled residuals at <paramref name="x"/>.</param>
+    /// <param name="trial">Scratch, one per unknown.</param>
+    /// <param name="perturbed">Scratch, one per equation.</param>
+    /// <param name="columns">The system's order.</param>
+    /// <returns>
+    /// The combination, written as a signed sum of unknown names, or <see langword="null"/> when there is
+    /// nothing to name — the rebuild left the property domain, or the direction is not recoverable.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>It rebuilds the Jacobian rather than keeping a copy of it.</strong>
+    /// <see cref="DenseLu.Factor"/> overwrites the matrix it factorises, so by the time singularity is
+    /// known the original is gone. Copying every iteration to serve a path that ends the run would put an
+    /// <em>n²</em> copy in the hot loop for the benefit of the last iteration only; rebuilding costs N+1
+    /// residual evaluations once, on a solve that is already over.
+    /// </para>
+    /// <para>
+    /// A coefficient is printed only when it is far enough from 1 to matter. Most null directions in a
+    /// hydraulic circuit come out as ±1 on each participant, because what is undetermined is a sum of
+    /// heads or of pressures rather than a weighted one, and printing <c>1 ×</c> in front of every term
+    /// would bury the two that are genuinely weighted.
+    /// </para>
+    /// </remarks>
+    private static string? Undetermined(
+        EquationSystem system,
+        double[] x,
+        double[] residuals,
+        double[] trial,
+        double[] perturbed,
+        int columns)
+    {
+        var rebuilt = new double[columns * columns];
+
+        if (!Jacobian(system, x, residuals, trial, perturbed, rebuilt))
+        {
+            return null;
+        }
+
+        var direction = NullDirection.Of(rebuilt, columns);
+
+        if (direction.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        var terms = new List<string>();
+
+        foreach (var participant in direction)
+        {
+            if (terms.Count == NamedParticipants)
+            {
+                terms.Add($"and {direction.Length - NamedParticipants} more");
+                break;
+            }
+
+            var magnitude = Math.Abs(participant.Weight);
+            var coefficient = magnitude < 0.95
+                ? magnitude.ToString("0.##", CultureInfo.InvariantCulture) + " x "
+                : string.Empty;
+            var sign = terms.Count == 0
+                ? participant.Weight < 0 ? "-" : string.Empty
+                : participant.Weight < 0 ? "- " : "+ ";
+
+            terms.Add(sign + coefficient + system.Unknowns.Unknowns[participant.Column].Name);
+        }
+
+        return string.Join(" ", terms);
     }
 
     /// <summary>Builds the scaled Jacobian by forward differences.</summary>

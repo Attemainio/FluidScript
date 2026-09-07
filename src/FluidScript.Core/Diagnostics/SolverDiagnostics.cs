@@ -130,6 +130,29 @@ public static class SolverDiagnostics
         + "than this component can give: check the duty, the resistance, or a stated temperature it "
         + "cannot reach.");
 
+    /// <summary>The combination of unknowns a singular Jacobian left undetermined.</summary>
+    /// <value><c>FS3009</c>, an error, and it rides alongside <see cref="Singular"/> rather than replacing it.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong><see cref="Singular"/> names one component and that is often the wrong one.</strong>
+    /// Partial pivoting stops at whichever column it reaches first, which need not be the column most
+    /// responsible; on <c>m2-distribution-header</c> it named <c>PU_RAD</c> for a direction in which
+    /// <c>PU_MAIN</c> participates just as strongly, and then suggested checking for a missing pressure
+    /// datum on a script that states one. This descriptor carries what was measured instead of what was
+    /// guessed (<c>S-33</c>).
+    /// </para>
+    /// <para>
+    /// <strong>Two codes for one stop is deliberate.</strong> <c>FS3002</c> is why the run ended and
+    /// stays the termination's code; this is what the run found, and it is absent when the direction is
+    /// not recoverable — a matrix of zeros leaves everything undetermined, which names nothing.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor Undetermined { get; } = new(
+        "FS3009",
+        DiagnosticSeverity.Error,
+        "Nothing in the circuit determines {combination}. These move together and no equation "
+        + "separates them, so a value stated for any one of them determines the rest.");
+
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -141,6 +164,7 @@ public static class SolverDiagnostics
         Cancelled,
         NonFinite,
         ParameterPinned,
+        Undetermined,
         ReducedStep,
     ];
 }
