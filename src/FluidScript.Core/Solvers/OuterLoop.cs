@@ -499,16 +499,8 @@ public sealed class OuterLoop(
             var flows = Array.ConvertAll(
                 legs, leg => Math.Abs(iterate.Values[layout.BranchFlow(leg.Index)]));
 
-            var common = Array.IndexOf(flows, flows.Max());
-            var variable = -1;
-
-            for (var leg = 0; leg < legs.Length; leg++)
-            {
-                if (leg != common && Reaches(legs[leg], valve) is not null)
-                {
-                    variable = leg;
-                }
-            }
+            var common = ValveLegs.Common(legs, flows, valve);
+            var variable = ValveLegs.Variable(graph, legs, common, valve);
 
             if (variable < 0)
             {
@@ -517,8 +509,8 @@ public sealed class OuterLoop(
                     overlay,
                     bases,
                     notes,
-                    "neither of the legs it controls reaches a stated pressure, so nothing says which "
-                    + "path varies when the valve strokes");
+                    "its two controlled legs are the same distance from the leg they split, so nothing "
+                    + "says which of them recirculates and which varies when the valve strokes");
 
                 continue;
             }
@@ -578,14 +570,6 @@ public sealed class OuterLoop(
         }
     }
 
-    /// <summary>The pressure stated at the far end of one of a valve's legs, if one is.</summary>
-    /// <param name="leg">A branch with the valve at one end.</param>
-    /// <param name="valve">The valve, so the other end can be told from it.</param>
-    /// <returns>Pa, or <see langword="null"/> when that end states no pressure.</returns>
-    private static double? Reaches(Branch leg, IFlowComponent valve) =>
-        HydraulicPartition.Stated(
-            ReferenceEquals(leg.From.Element, valve) ? leg.To.Element : leg.From.Element,
-            HydraulicPartition.Pressure);
 
     /// <summary>Says a three-way valve kept its bootstrap value, and why (<c>C-60</c>).</summary>
     /// <param name="valve">The valve that was not sized.</param>
