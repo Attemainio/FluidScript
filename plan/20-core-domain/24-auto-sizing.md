@@ -249,6 +249,110 @@ calculation looks wrong on either branch alone.
 Ties are broken by declaration order so the choice is deterministic and stable across edits, the same
 rule the pressure datum uses.
 
+### Three-way valve — `kv`
+
+A three-way valve is sized on its **controlled path**, and the criterion is the same authority the
+two-way rule uses. What differs is what authority is measured *against*, and — more consequentially —
+that the drop is sometimes chosen and sometimes determined.
+
+**Ports.** [`22-component-model`](22-component-model.md) settles them: `a` is the common port, `b` the
+controlled path, `c` the bypass. The rule needs no topology inference to know which is which.
+
+**Design flow** is the controlled path's flow at the design duty, not the flow through the common
+port. In a mixing circuit the common port carries the constant loop flow and `b` carries the variable
+draw, and the two differ by the recirculation — for `m2-cooling-loop`, 0.239 kg/s round the secondary
+against 0.163 kg/s drawn from the primary.
+
+**Authority is measured against the variable-flow circuit**, which is the part whose flow actually
+changes as the valve strokes — the primary path in a mixing circuit. Measuring it against the branch,
+as the two-way rule does, would fold in the constant-flow secondary loop, which sits on the other side
+of the valve and does not respond to it at all. A valve dominating the variable circuit is well
+authorised however much resistance the loop behind it carries.
+
+#### The drop is chosen on a pump-driven circuit and determined on a bounded one
+
+This is the part with no two-way analogue, and getting it wrong sizes every primary-side valve wrong.
+
+**Pump-driven** — the circuit's driving pressure is free, because a pump's head is sized or promoted
+to whatever the loop needs. The valve's drop is then a *choice*, and the authority target makes it, as
+in the two-way rule: `Δp_valve = a · Δp_rest / (1 − a)`. Round the catalogue selection **down**: a
+smaller Kv drops more, raising authority, and the pump absorbs the difference.
+
+**Pressure-bounded** — both ends of the variable circuit state a pressure, so the driving pressure is
+fixed and the flow is fixed by the duty. The valve's drop is then *whatever closes the balance*:
+
+```
+Δp_valve = (p_supply − p_return) − Δp_rest
+```
+
+There is no freedom left for a target, and applying one anyway under-sizes the drop and leaves the
+circuit over-driven. Round the catalogue selection **up** here, which is the opposite direction and for
+a specific reason: rounding down makes the design flow unreachable at full travel, because a valve
+whose Kv is below what the balance requires cannot pass design flow even wide open. Rounding up leaves
+the valve slightly open-ended at the design point, its position a little below 1 — which is the
+headroom a control valve is supposed to have.
+
+**Authority is reported in both cases and targeted only in the first.** On a bounded circuit it is an
+outcome, and `FS4006` still fires when it comes out low.
+
+#### Why this is an `OuterLoop` pass and not an `ISizer`
+
+A three-way valve is a **junction element**. It appears in no branch's `Path`, so
+`OuterLoop.Context` — which finds a component's branch by `Path.Contains` — can build it no context at
+all: it sits on three branches at once. That is the same structural limit as the parallel set above,
+and it has the same answer. A rule that must compare sibling branches belongs to the loop, which can
+see them, not to an `ISizer`, which is handed one branch (`C-49`, `C-61`).
+
+#### What a static sizing can and cannot promise
+
+**It can choose the Kv.** The design point is where the controlled path carries its maximum flow, and
+that is the flow the coefficient must pass. Nothing dynamic is needed for that.
+
+**It cannot validate the control.** The failure mode of an oversized three-way valve is an oscillation:
+the supply temperature falls, the valve opens, far more flow arrives than the correction asked for, the
+temperature overshoots, the valve closes too far, and the cycle repeats. Plants are commissioned with
+two or three differently sized valves in parallel, opened and closed in sequence, precisely to get fine
+control near the bottom of the range that one large valve cannot give.
+
+**Authority is the static shadow of that dynamic failure, and it is the only warning this tool can
+give.** Low authority means the branch's own resistance dominates until the valve is nearly shut, so
+the installed characteristic bunches almost all of its flow change into the first few percent of
+travel — which is what makes a proportional controller overshoot. There is no transient solver, so a
+valve at an absurd Kv produces a perfectly respectable steady state and reports nothing wrong unless
+authority is computed and surfaced. That raises the importance of this rule rather than lowering it:
+it is not a refinement of an answer that would otherwise be roughly right, it is the only place the
+tool can notice.
+
+**Out of scope here.** Sequenced parallel valves are a control-topology question, not a sizing one, and
+they need a control element that is a *set* rather than a component — the same shape as the parallel
+set above. Recorded so it is not mistaken for an oversight.
+
+#### Worked example — `m2-cooling-loop`'s `3WV`
+
+The primary is bounded: `N1` states 300 kPa and `N3` states 280 kPa, so 20 kPa drives the controlled
+path, and the duty fixes its flow.
+
+```
+controlled flow  = 30 kW / (4.18 kJ/(kg·K) × (50 − 6) K)   = 0.1631 kg/s
+P1 at that flow  (DN25, 25 m)                              = 1.12 kPa
+Δp_valve         = 20 kPa − 1.12 kPa                       = 18.88 kPa
+required Kv      = 0.163 × 3600 × √(0.988 × 10⁵) ÷ (988 × √18 880)
+                                                           = 1.36
+selected         round **up** in R5                        = Kv 1.6
+achieved drop    = (1.36 / 1.6)² × 18.88 kPa               = 13.6 kPa
+authority        = 13.6 / (13.6 + 1.12)                    = 0.92
+```
+
+The valve dominates its circuit, which is right for a primary-side control valve on a short run of
+pipe, and it sits slightly open-ended at the design point with 5 kPa of travel in hand.
+
+**What the absence of this rule costs, measured.** Until it lands `3WV` keeps the bootstrap
+provisional — the largest row in the series, **Kv 630** — because `Bootstrap` hands provisionals out by
+kind while `CanSize` selects by type (`C-60`). At Kv 630 the valve drops nothing, the 20 kPa boundary
+pair over-drives the loop by about 14 kPa, and the pump is asked for negative head to absorb it. The
+sample cannot converge, and every number in it looks plausible.
+
+
 ### Heat exchanger — duty mode: `dp` and `flow`
 
 1. `flow` from the energy balance, if `power` and two temperatures are stated.
@@ -542,6 +646,16 @@ three of those numbers are engineering, and one is a guess.
 - [ ] A valve-less highest-drop branch becomes the fixed index, emits `FS2313`, and lets adjustable
       lower-drop branches balance to it without inventing a valve or raising pump head.
 - [ ] A stated `head=15` on that pump is honoured, and `FS2303` fires if the loop cannot use it.
+- [ ] A **three-way valve on a pressure-bounded circuit** is sized to the drop the balance leaves it,
+      not to the authority target: `m2-cooling-loop`'s `3WV` reaches **Kv 1.6** with an achieved
+      authority near **0.92**, and its position sits below 1 at the design point.
+- [ ] A **three-way valve on a pump-driven circuit** is sized to the authority target instead, and
+      rounds the other way — down — so the achieved authority exceeds the target as the two-way rule
+      requires.
+- [ ] A three-way valve's design flow is its **controlled path's**, not its common port's: asserted on
+      `m2-cooling-loop`, where the two differ by the recirculation (0.163 against 0.239 kg/s).
+- [ ] No sizable parameter survives the loop still holding its bootstrap provisional without saying so
+      — the basis names it as provisional and a note explains that no rule chose it (`C-60`).
 - [ ] Every sized value in every sample carries a non-empty basis.
 - [ ] `FromDefault` is populated for `hx.dp` and empty for pipe diameters.
 - [ ] Sizing twice on a converged model produces identical output (idempotence).
