@@ -109,7 +109,7 @@ public sealed record Branch
 /// <remarks>
 /// <b>Not a <c>GraphNode</c>.</b> A branch ends at a junction <i>element</i>, and a multi-port
 /// component is a junction element without being a node — the cooling loop's branches end at
-/// <c>3WV.a</c>, <c>3WV.b</c> and <c>3WV.c</c>, which no node type can name. Typing both ends as
+/// <c>3WV.ab</c>, <c>3WV.a</c> and <c>3WV.b</c>, which no node type can name. Typing both ends as
 /// <c>GraphNode</c> made the branch table this document tabulates unrepresentable.
 /// <para>
 /// <see cref="Port"/> is null when <see cref="Element"/> is a node, since a node's ports are
@@ -637,7 +637,7 @@ flow components plus the two boundary nodes ([`01-vision-and-scope`](../00-found
 inference inventory).
 
 **Junction elements — four, and terminals count.** `N2` (three connections: from `N1`, to `PU1`, from
-`3WV.b`), `3WV` itself (three ports), and the two terminals `N1` and `N3`, each with one connection and
+`3WV.a`), `3WV` itself (three ports), and the two terminals `N1` and `N3`, each with one connection and
 a stated boundary. Terminals are junction elements for the purpose of invariant 2 and the mass-balance
 count: they are vertices of the branch graph, since a branch must end somewhere. Counting only the two
 degree-≥3 elements gives `Loops = 4 − 2 + 1 = 3`, which is wrong — this circuit has one loop.
@@ -647,9 +647,9 @@ degree-≥3 elements gives `Loops = 4 − 2 + 1 = 3`, which is wrong — this ci
 | # | From → To | Interior components and nodes |
 |---|---|---|
 | 1 | N1 → N2 | — (a bare connection: an ideal zero-drop link, `D-25`) |
-| 2 | N2 → 3WV.a | `PU1`, `PU1__HE1`, `HE1`, `HE1__3WV` |
-| 3 | 3WV.b → N2 | — (the recirculation branch) |
-| 4 | 3WV.c → N3 | `3WV__P1`, `P1` |
+| 2 | N2 → 3WV.ab | `PU1`, `PU1__HE1`, `HE1`, `HE1__3WV` |
+| 3 | 3WV.a → N2 | — (the recirculation branch) |
+| 4 | 3WV.b → N3 | `3WV__P1`, `P1` |
 
 The branch graph has four vertices (`N1`, `N2`, `N3`, `3WV`) and four edges, so **one independent
 loop**: `N2 → PU1 → HE1 → 3WV → N2`. That loop contains the pump, which is what makes the

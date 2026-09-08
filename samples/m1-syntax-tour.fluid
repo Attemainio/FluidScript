@@ -89,9 +89,9 @@ RB1 return                                # and `return`, which needs no argumen
 
 connections
 NB1 - HE2 - PB1 - NB2                     # a chain desugars to three connections (I6)
-TV2.b - NB2                               # a port-qualified endpoint
-SB1 - TV2.a                               # the declared supply feeds the valve
-TV2.c - RB1                               # and the declared return takes the fluid away
+TV2.a - NB2                               # a port-qualified endpoint
+SB1 - TV2.ab                              # the declared supply feeds the valve
+TV2.b - RB1                               # and the declared return takes the fluid away
 
 # ---------------------------------------------------------------------------------------------
 # A subcircuit: attachment to the parent, a controller, and a control binding.

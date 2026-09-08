@@ -152,8 +152,8 @@ Four rules produce it:
    instrumentation.
 3. **The bypass leg closes the U on the near side.** A three-way valve's recirculation port routes
    straight down to the return run, and whatever sits on that leg — a check valve here — sits on the
-   vertical. This is the same `PortSides` fact the cooling loop already relies on (`3WV.b North`,
-   `3WV.c South`); the header only chooses which vertical it descends.
+   vertical. This is the same `PortSides` fact the cooling loop already relies on (`3WV.a North`,
+   `3WV.b South`); the header only chooses which vertical it descends.
 4. **Inline components stay inline.** Sensors, isolating valves and fittings are placed along whichever
    run they belong to, evenly spaced by their bounding boxes, never bunched at a corner.
 
@@ -388,7 +388,7 @@ moves is how a refactor that quietly degrades the diagram becomes visible, which
 achieves in practice.
 
 **Routes are port-to-port, and that is load-bearing.** `from` and `to` name a port, not a component,
-because a route landing on `3WV.b` where the graph says `3WV.c` draws a bypass as a through-leg — a
+because a route landing on `3WV.a` where the graph says `3WV.b` draws a bypass as a through-leg — a
 diagram that satisfies every geometric predicate and depicts a plant nobody described.
 
 `D-31` makes step 1 normative. Cooling/source circuits occupy the left, conversion and storage the
@@ -608,7 +608,7 @@ make the diagram unreadable at exactly the component a designer looks at first.
 **`3WV` sits at a T, and that is placement rather than a corner-rule breach.** Three runs meet at
 (0, −240): the return arriving from the east, the recirculation leaving north up the left vertical to
 `N2`, and the primary return continuing west to `N3`. A three-way valve *is* the junction — putting it
-anywhere else would mean drawing a bare tee and then a valve beside it. `3WV.b North` and `3WV.c West`
+anywhere else would mean drawing a bare tee and then a valve beside it. `3WV.a North` and `3WV.b West`
 separate the two outlets without the renderer having to work out which is which.
 
 **The primary return continues along the bottom run, it does not hang below.** `3WV__P1`, `P1` and
@@ -684,7 +684,7 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 - [ ] The cooling loop's primary return runs west along the return line to `N3`; no sample places a
       third vertical by dropping a return chain below the loop.
 - [ ] A tank renders vertically in every circuit that contains one.
-- [ ] The recirculation branch `3WV.b → N2` renders as a closed loop edge, not as a stub.
+- [ ] The recirculation branch `3WV.a → N2` renders as a closed loop edge, not as a stub.
 - [ ] The cooling loop follows Core's `Clockwise` orientation; two loops sharing an exchanger render
       side-by-side with the exchanger between them.
 - [ ] No symbols overlap on any sample or supported 200-component post-collapse fixture; the layout
@@ -692,7 +692,7 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
 - [ ] An explicitly over-limit fixture may render overlap only with `FS5001` and `degraded: true`; the
       same condition in a supported fixture fails the invariant test.
 - [ ] The drawn edge set is a bijection with the graph edge set on every fixture, endpoints compared
-      port for port; a route retargeted from `3WV.c` to `3WV.b` fails it.
+      port for port; a route retargeted from `3WV.b` to `3WV.a` fails it.
 - [ ] Components on every run appear in traversal order, with no component drawn between two that are
       directly connected.
 - [ ] Every route segment is axis-aligned, no segment is zero-length or reverses its predecessor, and

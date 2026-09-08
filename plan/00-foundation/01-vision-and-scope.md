@@ -321,8 +321,8 @@ computed from the stated duty and temperatures alone, so they are checkable with
 |---|---|---|
 | Secondary flow (through `PU1`, `HE1`) | **0.2392 kg/s** | 30 000 W ÷ (h₅₀ − h₂₀) = 30 000 ÷ 125 411 |
 | Mixing fraction at `N2` (primary share) | **0.681** | (h₅₀ − h₂₀) ÷ (h₅₀ − h₆) = 125 411 ÷ 184 094 |
-| Primary flow (`N1 → N2`, `3WV.c → P1 → N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
-| Recirculation flow (`3WV.b → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
+| Primary flow (`N1 → N2`, `3WV.b → P1 → N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
+| Recirculation flow (`3WV.a → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
 | Primary-side duty check | **30 000 W** | 0.1630 × (h₅₀ − h₆) = 0.1630 × 184 094 |
 | `P1` sized diameter | **DN20** | 0.1649 l/s at 50 °C → 138 Pa/m, 0.45 m/s |
 
@@ -510,7 +510,7 @@ at 60 s   HE1.power = 45
 
 **`PB` puts pipe volume on the recirculation branch.** This is the change the whole transient story
 rests on. In the cooling loop the path from `HE1` to the measured node `N2` is
-`HE1 → HE1__3WV → 3WV.a → 3WV.b → N2` with no declared pipe on it, so a disturbance at `HE1` reaches
+`HE1 → HE1__3WV → 3WV.ab → 3WV.a → N2` with no declared pipe on it, so a disturbance at `HE1` reaches
 `N2` within one timestep and there is no dead time to tune against. `P1` cannot supply it: `P1` sits on
 the primary *return*, downstream of `N2`, and discharges to `N3` without returning. 8 m at `nodes=4`
 gives four 2 m pipe cells inside the loop the controller actually closes around. Lowering also
@@ -538,7 +538,7 @@ adds a statement kind ([`12-grammar`](../10-language/12-grammar.md)).
 **Transport figures.** These are the numbers every transient and controller document must reproduce.
 `PB` carries the **recirculation** flow of **0.0763 kg/s** at 50 °C — not the secondary 0.2392 kg/s,
 which is the mistake to avoid, since `PB` is on the branch that returns to `N2` rather than the one that
-leaves through `3WV.c`.
+leaves through `3WV.b`.
 
 | Quantity | Value | Derivation |
 |---|---|---|
@@ -673,7 +673,7 @@ return N6
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) lowers `supply N3` to a
 connection from the parent's `N3` to the subcircuit's *first unconnected inlet* and `return N5` to one
 from its *last unconnected outlet* — so the branch has to leave both free. `PU_AHU - HE_AHU - TV_AHU`
-leaves `PU_AHU.in` and `TV_AHU.b`, which is the flow path the header figures below are computed over.
+leaves `PU_AHU.in` and `TV_AHU.a`, which is the flow path the header figures below are computed over.
 Without the `connections` lines this fixture has no path from supply to return at all, and the three
 flows `05` requires of it are unreachable (`F-11`).
 
@@ -753,7 +753,7 @@ no single-circuit reference can: flow entering the supply header equals the sum 
 subcircuits draw, and the return header carries it back.
 
 **Still open: the recirculation leg is not connected** (`F-16`). The mixing the figures above assume
-needs `TV_AHU.c` wired back to `PU_AHU.in`, and today the third port of each three-way valve is left
+needs `TV_AHU.b` wired back to `PU_AHU.in`, and today the third port of each three-way valve is left
 open and terminated (`FS2202`). As connected, each subcircuit is once-through, its exchanger cannot
 see 50 °C on a 60 °C header, and the `in=50` on each is a demand met only by a valve position that
 has nothing to divert. The counting pass is square either way — it promotes each `in` to its valve's

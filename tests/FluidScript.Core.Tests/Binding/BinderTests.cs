@@ -217,13 +217,13 @@ public sealed class BinderTests
         // a default. `3WV` also has to survive as an identifier despite the leading digit.
         var model = Model("fluidscript 1\n3WV three_way_valve\n");
 
-        // One declaration, and the two I3 boundary nodes its non-optional ports now terminate: `c` is
+        // One declaration, and the two I3 boundary nodes its non-optional ports now terminate: `b` is
         // optional, so a three-way valve alone in a file produces exactly two.
         var component = Assert.Single(model.Components, symbol => symbol.Origin is Origin.Declared);
         Assert.Equal("3WV", component.Name);
         Assert.Equal("three_way_valve", component.Kind!.Keyword);
         Assert.Empty(component.Parameters);
-        Assert.Equal(["3WV__a", "3WV__b"], model.Components
+        Assert.Equal(["3WV__ab", "3WV__a"], model.Components
             .Where(symbol => symbol.Origin is Origin.Inferred)
             .Select(symbol => symbol.Name));
     }

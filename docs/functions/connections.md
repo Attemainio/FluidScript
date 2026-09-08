@@ -14,7 +14,7 @@ N1 - HE1 - N2 - PU1 - N1
 
 - `A - B` joins two components. `A - B - C` is one line and two connections, and it stays one line in
   your file.
-- A port is named with a dot: `TV1.b - N2`. Without one, connections bind to the component's ports in
+- A port is named with a dot: `TV1.ab - N2`. Without one, connections bind to the component's ports in
   order.
 - **A component declaration is legal here too.** Boundary conditions usually read better below the
   topology than above it:

@@ -528,16 +528,18 @@ public sealed class ComponentRegistry : IComponentRegistry
     {
         Keyword = "three_way_valve",
         Aliases = ["3_way_valve", "mixing_valve", "diverting_valve", "3wv"],
-
-        // All three bidirectional, and `c` optional: a mixing valve takes two streams in at `b` and
-        // `c`, a diverting valve splits one from `a`, and which it is comes from the topology rather
-        // than from a declaration. Fixed roles made the mixing arrangement expressible only by relying
-        // on reverse flow, which put `FS4009` on a correct design.
+        // `ab` is the common port and `a`/`b` the two switched ones, which is how a valve body is
+        // labelled: mixing is A + B -> AB, diverting is AB -> A + B. `b` is optional -- a three-way
+        // used as a two-way leaves it open, and inference rule I3 terminates it.
+        //
+        // All three stay bidirectional. Typing them inlet/outlet/outlet describes a *diverting* valve
+        // only, and doing so made a mixing arrangement expressible just by relying on reverse flow,
+        // which put `FS4009` on a correct design. Which arrangement it is comes from the topology.
         Ports =
         [
+            Port("ab", PortRole.Bidirectional),
             Port("a", PortRole.Bidirectional),
-            Port("b", PortRole.Bidirectional),
-            Port("c", PortRole.Bidirectional, optional: true),
+            Port("b", PortRole.Bidirectional, optional: true),
         ],
         PortFamilies = [],
         IndexedParameterFamilies = [],

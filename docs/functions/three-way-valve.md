@@ -8,35 +8,37 @@ TV1 three_way_valve authority=0.5
 
 ## Ports
 
-`a` is the common port, `b` the controlled one and `c` the bypass. `c` is optional — a three-way valve
-used as a two-way leaves it open.
+`ab` is the common port; `a` and `b` are the two switched ones. These are the letters cast into the
+valve body: a mixing valve is **A + B → AB** and a diverting valve is **AB → A + B**, so the common
+port is the one written with both letters.
 
-Leaving `c` open is not a cosmetic choice: the valve then **is** a two-way valve. It has two ports, one
-Kv law, and no mixing to describe, so the circuit gets one equation from it rather than three. Which
-one you wrote is reported as its mode — `three_way` or `two_way` — and it is read from the topology,
-never declared.
+`b` is optional — a three-way valve used as a two-way leaves it open. That is not a cosmetic choice:
+the valve then **is** a two-way valve. It has two ports, one Kv law, and no mixing to describe, so the
+circuit gets one equation from it rather than three. Which one you wrote is reported as its mode —
+`three_way` or `two_way` — and it is read from the topology, never declared.
 
-**All three are bidirectional, and the arrangement comes from the topology rather than a
-declaration.** A diverting valve takes one stream in at `a` and splits it between `b` and `c`; a
-mixing valve — the commonest in hydronics — takes two streams in at `b` and `c` and delivers one at
-`a`. Both are real, both are written the same way, and the port that carries flow toward the valve at
-the design point is its inlet.
+**All three are bidirectional, and mixing or diverting comes from the topology rather than a
+declaration.** A diverting valve takes one stream in at `ab` and splits it between `a` and `b`; a
+mixing valve — the commonest in hydronics — takes two streams in at `a` and `b` and delivers one at
+`ab`. Both are real, both are written the same way, and the port that carries flow toward the valve at
+the design point is its inlet. Note that a valve body is built for one service or the other and they
+are not interchangeable in the field; nothing here checks that yet.
 
 Ports are named in a connection with a dot:
 
 ```fluidscript
 fluidscript 1
 connections
-N1 - TV1.a
-TV1.b - N2
-TV1.c - N3
+N1 - TV1.ab
+TV1.a - N2
+TV1.b - N3
 ```
 
 ## Parameters
 
 The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`.
 
-`position` means the same in both: **1 is fully open between `a` and `b`**, whichever way the fluid
+`position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
 happens to run.
 
 ## How the Kv is chosen
@@ -52,7 +54,7 @@ cooling loop the common port carries 0.239 kg/s round the secondary while the co
 control.
 
 **Which leg that is comes from the circuit, not from the port letters.** Ports take connections in the
-order you write them, so `b` is not reliably the controlled one — write `TV1 - N2` before `TV1 - P1`
+order you write them, so `a` is not reliably the controlled one — write `TV1 - N2` before `TV1 - P1`
 and it is the recirculation leg. The leg that varies is the one reaching a stated pressure rather than
 closing back into the valve's own loop, and that is what the rule looks for.
 

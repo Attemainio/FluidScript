@@ -396,7 +396,7 @@ Flow:   every connection Forward — this circuit has no dead legs and no
         reverse flow at the design point.
 
 PortSides:  PU1.in West · PU1.out East · HE1.in West · HE1.out East
-            3WV.a West · 3WV.b North · 3WV.c South
+            3WV.ab West · 3WV.a North · 3WV.b South
             P1.in West · P1.out East
 
 Loops:  [[N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV]]     one independent loop
@@ -468,8 +468,8 @@ header entirely.
 upstream of the other — they are parallel branches of one header, and a diagram that ranked `101`
 before `102` would imply heat flows through the AHU on its way to the radiators.
 
-Two observations. `3WV.b North` returns the recirculation branch to the junction it came from while
-`3WV.c South` sends the primary return downward, so the two outlets separate without the renderer
+Two observations. `3WV.a North` returns the recirculation branch to the junction it came from while
+`3WV.b South` sends the primary return downward, so the two outlets separate without the renderer
 having to guess which is which — a small hint doing real work. And **four of the ten components are
 inferred**: the user wrote six declarations — four flow components plus two boundary nodes — and got a
 ten-element graph, which is the ratio that makes `Inferred` worth carrying. A canvas that draws all ten

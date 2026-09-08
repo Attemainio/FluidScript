@@ -179,17 +179,21 @@ public sealed class ThreeWayValve : IFlowComponent
         Characteristic = characteristic;
         BypassConnected = bypassConnected;
 
+        // `ab` is the common port and `a`/`b` are the two switched ones, which is how valve bodies are
+        // labelled: a mixing valve is A + B -> AB and a diverting valve is AB -> A + B. The names used
+        // to be `a` common, `b` controlled, `c` bypass, which called the *common* port `a` and so meant
+        // the opposite of the label cast into the iron.
         Ports = bypassConnected
             ?
             [
+                new Port { Name = "ab", Role = PortRole.Bidirectional, IsOptional = false },
                 new Port { Name = "a", Role = PortRole.Bidirectional, IsOptional = false },
-                new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
-                new Port { Name = "c", Role = PortRole.Bidirectional, IsOptional = true },
+                new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = true },
             ]
             :
             [
+                new Port { Name = "ab", Role = PortRole.Bidirectional, IsOptional = false },
                 new Port { Name = "a", Role = PortRole.Bidirectional, IsOptional = false },
-                new Port { Name = "b", Role = PortRole.Bidirectional, IsOptional = false },
             ];
 
         // Three ports in one group is a junction element and a branch cannot cross it; two in one
@@ -202,10 +206,10 @@ public sealed class ThreeWayValve : IFlowComponent
             ?
             [
                 new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
-                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-b", "kg/s"),
-                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-c", "kg/s"),
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s"),
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-b", "kg/s"),
             ]
-            : [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, a-b", "kg/s")];
+            : [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s")];
     }
 
     /// <inheritdoc/>

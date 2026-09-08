@@ -55,9 +55,9 @@ The cooling loop has four:
 | Branch | From → to | What is along it |
 |---|---|---|
 | 1 | `N1` → `N2` | nothing: a bare connection is a perfect, lossless link |
-| 2 | `N2` → `3WV.a` | `PU1`, `HE1`, and the two nodes between them |
-| 3 | `3WV.b` → `N2` | nothing — the recirculation leg |
-| 4 | `3WV.c` → `N3` | `P1` |
+| 2 | `N2` → `3WV.ab` | `PU1`, `HE1`, and the two nodes between them |
+| 3 | `3WV.a` → `N2` | nothing — the recirculation leg |
+| 4 | `3WV.b` → `N3` | `P1` |
 
 This is why a chain of five pipes in series solves as fast as one: it is one flow, not five.
 

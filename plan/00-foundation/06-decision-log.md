@@ -3669,6 +3669,50 @@ for the truth. `SteelEn10255` and `CopperEn1057` are unaffected and still carry 
 
 ---
 
+## D-85 · A three-way valve's ports are named `ab`, `a` and `b`, as the body is labelled
+
+**Accepted · 2026-09-08**
+
+The common port is **`ab`** and the two switched ports are **`a`** and **`b`**. `b` is the optional
+one, so a three-way valve used as a two-way leaves `b` open. This supersedes the previous naming —
+`a` common, `b` controlled, `c` bypass — which is not a decision recorded here, only a convention that
+grew in [`22-component-model`](../20-core-domain/22-component-model.md).
+
+**Why.** Manufacturers label the three ports **A**, **B** and **AB**, with AB the common port: a
+mixing valve is A + B → AB and a diverting valve is AB → A + B, so the port carrying both letters is
+the one both services share. The old scheme called the *common* port `a`, which is the opposite of
+what the label on the iron means. An engineer reading a script beside a valve body would have matched
+`3WV.a` to the wrong port, and every such mistake produces a graph that binds, solves and describes a
+different plant.
+
+This is not a preference between two arbitrary alphabets. One of them is already written on the
+equipment the script is specifying.
+
+**Rejected.**
+- *Keep `a` / `b` / `c`.* No migration, no churn in samples, docs and plan. Cost: the tool's names
+  contradict the hardware's on the one port where being wrong matters most, and nothing in the script
+  warns you.
+- *`in1` / `out1` / `out2`, sized by a declared port count.* Reads unambiguously and encodes flow
+  direction. Cost: it declares an arrangement the model deliberately reads from the topology (see
+  below), needs a parameter whose only two legal values are (1,2) and (2,1), and invents a vocabulary
+  where an industry one exists. `C-65` keeps the arrangement question open on its own terms.
+- *`common` / `a` / `b`.* Unmistakable about which is which. Cost: `TV1.common - N2` is long in the
+  place a script is read most, and it still is not what the body says.
+
+**Constrains.** [`22-component-model`](../20-core-domain/22-component-model.md),
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md),
+[`26-model-contract`](../20-core-domain/26-model-contract.md),
+[`01-vision-and-scope`](01-vision-and-scope.md), `samples/m1-syntax-tour.fluid`, and
+`docs/functions/three-way-valve.md`.
+
+**What it does not change.** The ports stay **bidirectional** and mixing-versus-diverting is still read
+from the topology, not declared. Typing them inlet / outlet / outlet describes a diverting valve only,
+and doing that made a mixing arrangement expressible solely by relying on reverse flow, which put
+`FS4009` on a correct design. Renaming and re-typing are separate questions and only the first is
+settled here.
+
+---
+
 ## Open questions
 
 None. This document records decisions that are settled; an unsettled question belongs in the Open

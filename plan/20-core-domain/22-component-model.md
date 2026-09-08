@@ -525,17 +525,36 @@ and `dt=-20` on a source would contradict `power`, so neither is accepted (`FS13
 Two kinds sharing an equation.
 
 **`valve` ports:** `in`, `out`.
-**`three_way_valve` ports:** `a` (common), `b` (controlled), `c` (bypass). All three are
-**bidirectional**; `c` is optional — a three-way valve used as a two-way leaves it open, and inference
+**`three_way_valve` ports:** `ab` (common), `a` and `b` (the switched pair). All three are
+**bidirectional**; `b` is optional — a three-way valve used as a two-way leaves it open, and inference
 rule I3 terminates it.
+
+**The names are the ones cast into the valve body, and `AB` is the common port** (`D-85`). Industry
+labels the three ports A, B and AB: a mixing valve is **A + B → AB**, a diverting valve is
+**AB → A + B**, and the port carrying both letters is the one both services share.[^ports] The names
+here were previously `a` common, `b` controlled and `c` bypass, which called the *common* port `a` and
+therefore meant the opposite of the label on the iron — a reader matching script to nameplate would
+have wired the valve backwards.
+
+[^ports]: Industrial Monitor Direct, *3-Way Valve Selection: Mixing vs Diverting*.
+    https://industrialmonitordirect.com/blogs/knowledgebase/3-way-valve-selection-mixing-vs-diverting-applications
 
 **All three ports are bidirectional because both arrangements are real and the model must carry
 both.** The ports were previously typed inlet / outlet / outlet, which describes a **diverting** valve
-— one stream in at `a`, split between `b` and `c` — and that is what the cooling loop uses. But the
-commonest three-way valve in hydronics is a **mixing** valve: two streams in at `b` and `c`, one out
-at `a`, which is how every weather-compensated heating circuit is built. Fixed port roles made that
+— one stream in at `ab`, split between `a` and `b` — and that is what the cooling loop uses. But the
+commonest three-way valve in hydronics is a **mixing** valve: two streams in at `a` and `b`, one out
+at `ab`, which is how every weather-compensated heating circuit is built. Fixed port roles made that
 arrangement expressible only by relying on reverse flow being legal, which left `PortRole` wrong, the
 canvas arrows wrong, and `FS4009` firing on a correct design.
+
+**A valve body is nevertheless built for one service, and nothing here checks it yet.** Manufacturer
+guidance is explicit that "a mixing valve must not be used for diverting service, or vice
+versa"[^service] — the plug geometry differs, and the wrong one defeats the fail-safe position. So the
+*arrangement* is a real property of the specified equipment, not only an outcome of the topology, and
+a script that declared it would let the tool catch a wrong-service valve. Recorded as `C-65`; the
+bidirectional model above is what ships until it is decided, and it is right for the solve either way.
+
+[^service]: HVAC Engineering, *Three-Way Control Valves*. https://hvac-eng.com/three-way-control-valves/
 
 The equations do not change: `ṁ_a = ṁ_b + ṁ_c` with signed flows covers both, and convention 2 already
 makes a negative solved flow a legal answer. What changes is that **the arrangement is read from the
@@ -544,13 +563,13 @@ is its inlet, and `25-layout-hints` reports which so the renderer draws the arro
 solved flows contradict the nominal direction written in `connections` still produces `FS4009` — that
 is a real finding — but a mixing valve wired as a mixing valve does not.
 
-`position` means the same in both: **1 is fully open between `a` and `b`**, whichever way the fluid
+`position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
 moves through them.
 
 | Parameter | Dimension | Bare number means | Range | Meaning |
 |---|---|---|---|---|
 | `kv` | Kv | m³/h @1 bar | 0.01 … 10000 | Flow coefficient |
-| `position` | Dimensionless | — | 0 … 1 | Opening. 1 = fully open to `b`. |
+| `position` | Dimensionless | — | 0 … 1 | Opening. 1 = fully open to `a`. |
 | `characteristic` | — | — | — | `linear` \| `equal_percentage` \| `quick_open` |
 | `authority` | Dimensionless | — | 0 … 1 | Target authority for sizing |
 | `dp` | PressureDelta | kPa | 0 … 2500 | Design pressure drop, an alternative to `kv` |
@@ -935,7 +954,7 @@ such row.
       would have caught `length` in m beside `roughness` in mm.
 - [ ] A node interior to a branch contributes **no** mass balance, and a circuit built only of
       degree-two nodes plus two terminals assembles to a non-singular Jacobian.
-- [ ] A three-way valve wired as a mixer (two inflows at `b` and `c`, outflow at `a`) solves and
+- [ ] A three-way valve wired as a mixer (two inflows at `a` and `b`, outflow at `ab`) solves and
       produces **no** `FS4009`; the same valve with a genuinely reversed branch still does.
 - [ ] `power=-70 dt=20` gives an outlet 20 K below the inlet; `dt=-20` produces `FS1307`.
 - [ ] `nodes=2` on a pipe produces four states with a monotonic profile.

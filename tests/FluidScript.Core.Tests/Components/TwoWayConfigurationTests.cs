@@ -26,7 +26,7 @@ public sealed class TwoWayConfigurationTests
     {
         var valve = new ThreeWayValve("TV1", kv: 6.3, bypassConnected: false);
 
-        Assert.Equal(["a", "b"], valve.Ports.Select(static port => port.Name));
+        Assert.Equal(["ab", "a"], valve.Ports.Select(static port => port.Name));
         Assert.Equal([0, 0], valve.FlowGroups);
         Assert.Equal(1, valve.EquationCount);
         Assert.Equal("two_way", valve.Mode);
@@ -42,7 +42,7 @@ public sealed class TwoWayConfigurationTests
     {
         var valve = new ThreeWayValve("TV1", kv: 6.3);
 
-        Assert.Equal(["a", "b", "c"], valve.Ports.Select(static port => port.Name));
+        Assert.Equal(["ab", "a", "b"], valve.Ports.Select(static port => port.Name));
         Assert.Equal([0, 0, 0], valve.FlowGroups);
         Assert.Equal(3, valve.EquationCount);
         Assert.Equal("three_way", valve.Mode);
@@ -96,10 +96,42 @@ public sealed class TwoWayConfigurationTests
         Assert.Equal(1, valve.EquationCount);
 
         var threeWay = Valve(GraphFixture.Lower(TwoWay.Replace(
-            "N1 - TV1 - N2", "N1 - TV1 - N2\nTV1.c - N3", StringComparison.Ordinal)).Graph);
+            "N1 - TV1 - N2", "N1 - TV1 - N2\nTV1.b - N3", StringComparison.Ordinal)).Graph);
 
         Assert.Equal("three_way", threeWay.Mode);
         Assert.Equal(3, threeWay.EquationCount);
+    }
+
+    [Fact]
+    public void TheCommonPortIsAbAndItCarriesWhatTheOtherTwoSplit()
+    {
+        // `D-85`'s content, as opposed to its spelling. The names are only worth changing if `ab` really
+        // is the port both services share -- a mixing valve is A + B -> AB and a diverting valve is
+        // AB -> A + B, so whichever way the fluid runs, the flow at `ab` is the sum of the other two.
+        // Renaming the strings and leaving `a` as the common port would be worse than leaving it alone,
+        // because the script would then agree with the valve body's label while meaning the opposite.
+        var graph = GraphFixture.Lower(GraphFixture.CoolingLoop).Graph;
+        var valve = Valve(graph);
+
+        Assert.Equal(["ab", "a", "b"], valve.Ports.Select(static port => port.Name));
+
+        // The branch reaching `ab` is the one carrying the loop: it holds the pump and the exchanger.
+        // The other two are the legs the valve splits between, and neither holds either.
+        var legs = graph.Branches
+            .Where(branch => ReferenceEquals(branch.From.Element, valve)
+                || ReferenceEquals(branch.To.Element, valve))
+            .ToDictionary(
+                branch => (ReferenceEquals(branch.From.Element, valve)
+                    ? branch.From.PortName
+                    : branch.To.PortName) ?? "?",
+                branch => branch.Path.Select(static part => part.Name).ToArray(),
+                StringComparer.Ordinal);
+
+        Assert.Equal(3, legs.Count);
+        Assert.Contains("PU1", legs["ab"]);
+        Assert.Contains("HE1", legs["ab"]);
+        Assert.DoesNotContain("PU1", legs["a"]);
+        Assert.DoesNotContain("PU1", legs["b"]);
     }
 
     private static ThreeWayValve Valve(CircuitGraph graph) =>

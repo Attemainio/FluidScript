@@ -215,7 +215,7 @@ public sealed class ReferenceCircuitTests
         Assert.Empty(Named(model, "I3"));
 
         Assert.Equal(
-            ["N3->PU_AHU.in", "TV_AHU.b->N5", "N4->PU_RAD.in", "TV_RAD.b->N6"],
+            ["N3->PU_AHU.in", "TV_AHU.a->N5", "N4->PU_RAD.in", "TV_RAD.a->N6"],
             model.Connections
                 .Where(static connection => connection.From.Component.StartsWith('N')
                     || connection.To.Component.StartsWith('N'))

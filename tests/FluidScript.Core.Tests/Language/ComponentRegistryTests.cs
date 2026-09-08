@@ -320,11 +320,15 @@ public sealed class ComponentRegistryTests
         // Mixing and diverting are both real, and which one a valve is comes from the topology. Fixed
         // roles made a mixing valve expressible only by relying on reverse flow, which put FS4009 on a
         // correct design.
+        //
+        // The names are the ones cast into a valve body: `ab` common, `a` and `b` the switched pair, so
+        // mixing is A + B -> AB and diverting is AB -> A + B. They used to be `a` common, `b` controlled
+        // and `c` bypass, which called the *common* port `a` and so meant the opposite of the label.
         var valve = Registry.ByKeyword("three_way_valve")!;
 
-        Assert.Equal(["a", "b", "c"], valve.Ports.Select(static port => port.Name));
+        Assert.Equal(["ab", "a", "b"], valve.Ports.Select(static port => port.Name));
         Assert.All(valve.Ports, static port => Assert.Equal(PortRole.Bidirectional, port.Role));
-        Assert.Equal(["c"], valve.Ports.Where(static p => p.IsOptional).Select(static p => p.Name));
+        Assert.Equal(["b"], valve.Ports.Where(static p => p.IsOptional).Select(static p => p.Name));
     }
 
     [Fact]

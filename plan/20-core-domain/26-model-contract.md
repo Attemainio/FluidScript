@@ -150,7 +150,7 @@ converting there costs one pass and removes a whole class of consumer bug.
       { "rank": 0, "role": "neutral", "components": ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"] }
     ],
     "portSides": { "HE1.in": "west", "HE1.out": "east",
-                   "3WV.a": "west", "3WV.b": "north", "3WV.c": "south" },
+                   "3WV.ab": "west", "3WV.a": "north", "3WV.b": "south" },
     "loops": [["N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV"]],
     "loopOrientations": ["clockwise"],
     "groups": [],

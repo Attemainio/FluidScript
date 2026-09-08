@@ -8,7 +8,7 @@ namespace FluidScript.Core.Topology;
 /// <remarks>
 /// <strong>Not a <see cref="GraphNode"/>.</strong> A branch ends at a junction <em>element</em>, and a
 /// multi-port component is a junction element without being a node — the cooling loop's branches end
-/// at <c>3WV.a</c>, <c>3WV.b</c> and <c>3WV.c</c>, which no node type can name. Typing both ends as a
+/// at <c>3WV.ab</c>, <c>3WV.a</c> and <c>3WV.b</c>, which no node type can name. Typing both ends as a
 /// node makes the branch table <c>23</c> tabulates unrepresentable.
 /// </remarks>
 public sealed record BranchEnd

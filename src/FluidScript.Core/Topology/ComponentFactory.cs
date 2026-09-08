@@ -234,9 +234,12 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 Value(symbol, kind, "position") ?? 1,
                 Characteristic(symbol),
 
-                // Two connections and no explicit `c` is the two-way arrangement the page describes,
-                // and it is one Kv law rather than two (S-14a).
-                bypassConnected: wiring.Connections > 2 || wiring.Names("c"))
+                // Two connections and no explicit `b` is the two-way arrangement the page describes,
+                // and it is one Kv law rather than two (S-14a). `b` is the bypass port, which was spelt
+                // `c` before the A/B/AB rename shifted every letter -- so this names a different port
+                // than it used to, and it is the one place where getting that backwards would silently
+                // turn every three-way valve in the corpus into a two-way.
+                bypassConnected: wiring.Connections > 2 || wiring.Names("b"))
             {
                 StatedParameters = stated,
                 SizedParameters = sized,

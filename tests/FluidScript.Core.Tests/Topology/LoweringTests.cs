@@ -125,9 +125,9 @@ public sealed class LoweringTests
         // Direction is the walk's, not the document's, so each row is checked in whichever orientation
         // the walk found it. What must match is which two ends a branch joins.
         Assert.Contains(pairs, p => p is "N1|N2" or "N2|N1");
+        Assert.Contains(pairs, p => p is "3WV.ab|N2" or "N2|3WV.ab");
         Assert.Contains(pairs, p => p is "3WV.a|N2" or "N2|3WV.a");
-        Assert.Contains(pairs, p => p is "3WV.b|N2" or "N2|3WV.b");
-        Assert.Contains(pairs, p => p is "3WV.c|N3" or "N3|3WV.c");
+        Assert.Contains(pairs, p => p is "3WV.b|N3" or "N3|3WV.b");
     }
 
     [Fact]
