@@ -215,7 +215,36 @@ public sealed class ValveSizerTests
             .Size(new Pipe("P1", 25, 0.0273), At(WorkedExampleBranchDrop));
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("not a valve", result.Error!.Message, StringComparison.Ordinal);
+        Assert.Contains("two-way valve", result.Error!.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AThreeWayValveUsedAsATwoWayIsSizedByThisRule()
+    {
+        // `C-61`. With the bypass unconnected the component is hydraulically a two-way valve, and the
+        // topology says so: measured on `m2-distribution-header`, `TV_AHU` is not a junction element and
+        // sits inside a branch's `Path`, so it gets the same single-branch context a `valve` gets.
+        // Excluding it by type left it holding the bootstrap Kv 630 for the whole run.
+        var valve = new ThreeWayValve("TV1", 630, bypassConnected: false);
+        var result = new ValveSizer(ValveKvR5.Instance).Size(valve, At(WorkedExampleBranchDrop));
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.Equal(1.6, result.Value.Values["kv"].Value.SiValue);
+    }
+
+    [Fact]
+    public void AThreeWayValveWithItsBypassConnectedIsStillRefused()
+    {
+        // It stands on three branches at once, so a single-branch context does not describe it and the
+        // authority its `BranchDrop` reports is one leg of three. `24`'s three-way rule and an
+        // `OuterLoop` pass own that case (`C-61`); answering it here would look right and be wrong.
+        var valve = new ThreeWayValve("3WV", 630, bypassConnected: true);
+
+        Assert.False(new ValveSizer(ValveKvR5.Instance).CanSize(valve));
+
+        var result = new ValveSizer(ValveKvR5.Instance).Size(valve, At(WorkedExampleBranchDrop));
+
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]

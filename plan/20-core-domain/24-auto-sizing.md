@@ -255,8 +255,18 @@ A three-way valve is sized on its **controlled path**, and the criterion is the 
 two-way rule uses. What differs is what authority is measured *against*, and — more consequentially —
 that the drop is sometimes chosen and sometimes determined.
 
-**Ports.** [`22-component-model`](22-component-model.md) settles them: `a` is the common port, `b` the
-controlled path, `c` the bypass. The rule needs no topology inference to know which is which.
+**Ports name themselves but do not identify the variable path, and the rule must not use them for
+it.** [`22-component-model`](22-component-model.md) settles the names — `a` common, `b` controlled, `c`
+bypass — but the binding is **positional**: ports take connections in the order the script writes them.
+Measured on `m2-cooling-loop`, `b` binds to `N2` and carries the *recirculation* at 0.076 kg/s while `c`
+binds toward `N3` and carries the *primary draw* at 0.163 kg/s, because `3WV - N2` was written before
+`3WV - P1`. Reaching for port `b` would size the wrong leg on any script whose author typed the
+connections the other way round.
+
+**The variable path is found topologically**: it is the one that reaches a stated-pressure boundary or
+an external flux, rather than the one closing back into the valve's own loop. That is the same
+criterion the authority definition uses — the circuit whose flow changes when the valve strokes — and it
+does not depend on how the script was written.
 
 **Design flow** is the controlled path's flow at the design duty, not the flow through the common
 port. In a mixing circuit the common port carries the constant loop flow and `b` carries the variable

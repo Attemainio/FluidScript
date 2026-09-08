@@ -65,21 +65,40 @@ public sealed class ValveSizer(
                 catalog is { Entries.Count: > 0 } ? catalog.Entries[^1].Spec.Kvs : 1, Dimension.Kv));
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is Valve;
+    /// <remarks>
+    /// <para>
+    /// <strong>A three-way valve whose bypass is unconnected is a two-way valve, and this rule is right
+    /// for it</strong> (<c>C-61</c>). <c>22</c> says as much -- "a three-way valve used as a two-way
+    /// leaves [<c>c</c>] open, and inference rule I3 terminates it" -- and the topology agrees: measured
+    /// on <c>m2-distribution-header</c>, <c>TV_AHU</c> and <c>TV_RAD</c> are <em>not</em> junction
+    /// elements and sit <em>inside</em> a branch's <c>Path</c>, so <c>OuterLoop.Context</c> builds them
+    /// the same single-branch context a <c>valve</c> gets. Excluding them by type left both holding the
+    /// bootstrap Kv 630 for the life of the run (<c>C-60</c>).
+    /// </para>
+    /// <para>
+    /// A three-way valve with its bypass <em>connected</em> is a different matter and is still refused:
+    /// it is a junction element standing on three branches at once, so no single-branch context
+    /// describes it, and its rule is the one <c>24</c> states separately.
+    /// </para>
+    /// </remarks>
+    public bool CanSize(IFlowComponent component) =>
+        component is Valve or ThreeWayValve { BypassConnected: false };
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
     {
         ArgumentNullException.ThrowIfNull(component);
 
-        if (component is not Valve valve)
+        if (!CanSize(component))
         {
             return Result.Failure<SizingResult>(ResultError.From(
                 Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a Kv"),
                 ("name", component.Name),
-                ("state", "a component that is not a valve")));
+                ("state", "a two-way valve, or a three-way valve with its bypass unconnected")));
         }
+
+        var valve = component;
 
         var target = Target(valve);
         var density = context.State.Density.SiValue;
@@ -170,7 +189,7 @@ public sealed class ValveSizer(
 
     /// <summary>Adds whatever is worth telling the user about the row that was chosen.</summary>
     private static void Report(
-        Valve valve,
+        IFlowComponent valve,
         CatalogSelection<ValveSpec> chosen,
         double kvs,
         double achieved,
@@ -210,6 +229,6 @@ public sealed class ValveSizer(
     /// <summary>The target authority for one valve.</summary>
     /// <param name="valve">The valve.</param>
     /// <returns>Dimensionless. A stated <c>authority</c> is a constraint; otherwise the rule's target.</returns>
-    private double Target(Valve valve) =>
+    private double Target(IFlowComponent valve) =>
         valve.StatedParameters.TryGetValue("authority", out var stated) ? stated.SiValue : authorityTarget;
 }
