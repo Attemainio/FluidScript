@@ -1,40 +1,81 @@
+# The distribution header reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# Three circuits: a heat source on its own loop, and two consumers tapped off a supply/return header
+# pair. Every consumer runs cooler than the header, so each blends header water with its own return.
+#
+# `F-21`: the source has a loop of its own rather than sitting in the header path. Without it the
+# source's flow *is* the network's flow, the plant has no freedom left to regulate with, and the
+# system is rank deficient -- measured, 37 unknowns and rank 36.
+#
+# `F-22`: that loop is an **uncontrolled bypass**, not a three-way valve. A diverting valve
+# recirculating into a fixed-duty source cannot change the source's outlet temperature at all --
+# T_out = T_return + Q/(m*cp) for every recirculation rate -- so a valve here would regulate nothing
+# and leave its own position constrained by nothing thermal. Holding a supply setpoint needs a mixing
+# valve and a controller, which is a later tier.
+#
+# `HS1` states no `out`, and must not: with the duty and the outlet both stated the source flow is
+# pinned to the network draw, the bypass carries exactly zero, and a zero-flow branch is `S-21`'s
+# singularity. The outlet floats and the primary flow is `PU_MAIN`'s own.
+#
+# `S-39`: the pressure datum is on `N2`, which lies inside a branch, not on a junction. A pressure
+# stated on a node that carries a mass balance is read as a boundary admitting unknown mass flux, so
+# writing it on `N1` would quietly turn this closed circuit into an open one, drop no redundant mass
+# balance, and leave the system deficient by exactly one.
+#
+# `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in=50` on a 60 C header is a
+# demand its valve can actually meet. Both ends of each attachment are written out because
+# `supply`/`return` cannot express a mixing subcircuit: the rule takes the first unconnected inlet,
+# and on this shape that is the valve's outlet, which wires the consumer's return to the *supply*
+# header and leaves every header branch carrying zero.
+#
+# `C-66`: the tap branches carry real pipework. A branch written as a bare node-to-node connection
+# drops 0 kPa, and a valve sized against no resistance at all sits inside the solver's smoothing band,
+# so the rule declines rather than inventing an answer.
+
 fluidscript 1
 project static plant_01
 
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54 out=60             # the plant-side source
-PU_MAIN pump
+HS1     heat_exchanger power=54                   # the plant-side source; its outlet floats
+PU_MAIN pump head=10                              # constant speed, so the primary flow is its own
+BV      valve kv=2                                # the bypass takes the primary's surplus
+PB      pipe length=4 dn=32
 
 connections
 N1 - HS1 - N2 - PU_MAIN - N3
-N3 - N4                                        # supply header
+N3 - PB - BV - N1                                 # what the network does not draw, recirculated
+N3 - N4                                           # supply header
 N6 - N5
-N5 - N1                                        # return header
+N5 - N1                                           # return header
 
-N1 node p=250
+N2 node p=250
 
 circuit AHU 101
 
 HE_AHU  heat_exchanger in=50 out=30 power=24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
+PA1     pipe length=12 dn=25
+PA2     pipe length=12 dn=25
 
 connections
-PU_AHU - HE_AHU - TV_AHU                       # the branch, open at both ends
-
-supply N3
-return N5
+NM_AHU - PU_AHU - HE_AHU - TV_AHU
+TV_AHU.b - NM_AHU                                 # recirculation, 30 C back to the mixing node
+N3 - PA1 - NM_AHU                                 # drawn from the supply header
+TV_AHU.a - PA2 - N5                               # and returned to it
 
 circuit radiators 102
 
 HE_RAD  heat_exchanger in=50 out=30 power=30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
+PR1     pipe length=18 dn=25
+PR2     pipe length=18 dn=25
 
 connections
-PU_RAD - HE_RAD - TV_RAD
-
-supply N4
-return N6
+NM_RAD - PU_RAD - HE_RAD - TV_RAD
+TV_RAD.b - NM_RAD
+N4 - PR1 - NM_RAD
+TV_RAD.a - PR2 - N6

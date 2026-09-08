@@ -156,18 +156,18 @@ public sealed class ReferenceCircuitTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void BothSubcircuitsAttachToTheSameParent()
+    public void TheHeadersCircuitsAreSiblingsRatherThanAttachedSubcircuits()
     {
+        // The consumers are wired to the header by hand rather than attached, so none of them declares a
+        // parent -- see `EachConsumerIsWiredToTheHeaderAtBothEndsByHand` for why attachment cannot
+        // express this shape (`F-16`/`F-17`). Asserted rather than left implicit because the previous
+        // version of this test asserted the opposite, and a fixture quietly losing a language feature is
+        // exactly the thing a reference circuit exists to make loud.
         var model = Model("m2-distribution-header.fluid");
 
-        Assert.Null(model.Circuits[0].ParentCircuit);
-        Assert.Equal("heating", model.Circuits[1].ParentCircuit);
-        Assert.Equal("heating", model.Circuits[2].ParentCircuit);
-
-        Assert.Equal("N3", model.Circuits[1].Supply!.ParentComponentName);
-        Assert.Equal("N5", model.Circuits[1].Return!.ParentComponentName);
-        Assert.Equal("N4", model.Circuits[2].Supply!.ParentComponentName);
-        Assert.Equal("N6", model.Circuits[2].Return!.ParentComponentName);
+        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.ParentCircuit));
+        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.Supply));
+        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.Return));
     }
 
     [Fact]
@@ -194,37 +194,48 @@ public sealed class ReferenceCircuitTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void AHeaderNodeASubcircuitAttachesToIsNotADeadEnd()
+    public void NoHeaderNodeIsReportedAsADeadEnd()
     {
-        // `F-12`. `N4` and `N6` each carry one written connection, and the subcircuit that attaches to
-        // them supplies the second — `23` lowers `supply N4` to exactly that edge, one stage after
-        // this check runs. Warning about them told a user to fix a circuit that is already right.
+        // `F-12`. Every header node now carries both its connections in writing, so this passes for a
+        // plainer reason than it used to: it was the *attachment* that supplied each node's second edge,
+        // one stage after this check runs, and warning about them told a user to fix a circuit that was
+        // already right. The guard still earns its place -- `N4` and `N6` are one connection each until
+        // the consumer circuits are read.
         Assert.DoesNotContain("FS2107", Codes("m2-distribution-header.fluid"));
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void EachBranchIsOpenAtBothEndsForItsAttachmentToJoin()
+    public void EachConsumerIsWiredToTheHeaderAtBothEndsByHand()
     {
-        // `23`: `supply` becomes a connection from the parent's node to the subcircuit's *first
-        // unconnected inlet*, and `return` one from its last unconnected outlet. Both ends must be open
-        // for that, and the four dead-leg nodes I3 used to stand at them are exactly what these four
-        // connections replace -- so the branch closing is the same fact as I3 having nothing left to do.
+        // `F-16`/`F-17`. These four connections were written as `supply N3` / `return N5` attachments
+        // until measurement showed attachment cannot express a mixing subcircuit: the rule takes the
+        // subcircuit's *first unconnected inlet*, and on this shape that is the valve's outlet, which
+        // wires the consumer's return to the supply header and leaves every header branch at zero flow.
+        // Attachment itself is still exercised -- `m1-syntax-tour` uses it on a shape it suits.
         var model = Model("m2-distribution-header.fluid");
 
         Assert.Empty(Named(model, "I3"));
 
+        // The tap pipes are the wiring, so they are what this asserts: each consumer reaches the supply
+        // header through one and returns through another, both ends written out. The return tap starts at
+        // an inferred node rather than at the valve port -- `N3` is already a node so `N3 - PA1` needs
+        // none, while `TV_AHU.a - PA2` joins two component ports and I2 puts one between them.
         Assert.Equal(
-            ["N3->PU_AHU.in", "TV_AHU.a->N5", "N4->PU_RAD.in", "TV_RAD.a->N6"],
+            [
+                "N3->PA1.in", "PA1.out->NM_AHU", "TV_AHU__PA2->PA2.in", "PA2.out->N5",
+                "N4->PR1.in", "PR1.out->NM_RAD", "TV_RAD__PR2->PR2.in", "PR2.out->N6",
+            ],
             model.Connections
-                .Where(static connection => connection.From.Component.StartsWith('N')
-                    || connection.To.Component.StartsWith('N'))
+                .Where(static connection => Tap(connection.From.Component)
+                    || Tap(connection.To.Component))
                 .Select(static connection =>
                     $"{Label(connection.From)}->{Label(connection.To)}")
-                .Where(static label => label.Contains("_AHU", StringComparison.Ordinal)
-                    || label.Contains("_RAD", StringComparison.Ordinal))
                 .ToArray());
     }
+
+    private static bool Tap(string component) =>
+        component is "PA1" or "PA2" or "PR1" or "PR2";
 
     private static string Label(EndpointSymbol endpoint) =>
         endpoint.Port.Length == 0 ? endpoint.Component : $"{endpoint.Component}.{endpoint.Port}";

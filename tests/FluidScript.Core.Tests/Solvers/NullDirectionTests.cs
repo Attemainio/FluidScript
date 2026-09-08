@@ -123,11 +123,15 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
-    public async Task TheHeaderIsToldWhichPumpHeadsMoveTogether()
+    public async Task TheHeaderIsToldItsTwoConsumersMoveTogether()
     {
-        // `S-33`. FS3002 names `PU_RAD` because partial pivoting stopped there; the measured direction is
-        // `PU_AHU.head - PU_MAIN.head + PU_RAD.head`, in which `PU_MAIN` participates just as strongly.
-        // A user sent to PU_RAD alone would be looking at one third of the problem.
+        // `S-38`. `FS3002` names `PU_RAD` because partial pivoting stopped there; the measured direction
+        // spans both consumers at once -- each secondary's pump head against its own valve position, with
+        // the two consumers symmetric. A user sent to `PU_RAD` alone would be looking at a quarter of it.
+        //
+        // `PU_MAIN` is absent and should be: its head is stated, so it is not a solver unknown. An earlier
+        // version of this test asserted it *was* named, which was true of a fixture whose source sat in
+        // the header path (`F-21`) rather than on a loop of its own.
         var resolved = PipeCatalogs.Resolve(pin: null);
 
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
@@ -148,9 +152,11 @@ public sealed class NullDirectionTests
         var undetermined = Assert.Single(
             run.Value.Solve.Diagnostics.Where(static d => d.Code == "FS3009"));
 
-        Assert.Contains("PU_MAIN.head", undetermined.Message, StringComparison.Ordinal);
         Assert.Contains("PU_AHU.head", undetermined.Message, StringComparison.Ordinal);
         Assert.Contains("PU_RAD.head", undetermined.Message, StringComparison.Ordinal);
+        Assert.Contains("TV_AHU.position", undetermined.Message, StringComparison.Ordinal);
+        Assert.Contains("TV_RAD.position", undetermined.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("PU_MAIN.head", undetermined.Message, StringComparison.Ordinal);
 
         // It rides alongside the termination's own code rather than replacing it.
         Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
@@ -175,13 +181,13 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
-    public async Task ASingularCircuitIsToldWhichEquationTheOthersAlreadyImply()
+    public async Task TheRowDirectionIsNotReportedOnACircuitThatHasOne()
     {
-        // `FS3010`, and `S-36`'s whole point. The header's `FS3009` names three pump heads, and three
-        // sessions of pump arrangements followed it -- four variants built, measured and eliminated,
-        // each deficient by exactly one, because the deficiency was never about pumps. The row direction
-        // on the same circuit names **energy balances**, which is a different part of the model
-        // entirely, and it is the half that says what has to change.
+        // `S-40`, recorded as a failing expectation rather than a passing one. The header IS singular and
+        // a row null direction demonstrably exists on it -- a finite-difference Jacobian at the same
+        // point names seven rows, mass balances at weight 1 -- but `NullDirection.Redundancy` finds none
+        // through the solver's own path, so `FS3010` is silent and the user gets only `FS3009`, the half
+        // `S-36` exists to warn against trusting alone.
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
@@ -196,14 +202,11 @@ public sealed class NullDirectionTests
 
         Assert.True(run.IsSuccess, run.Error?.Message);
 
-        var implied = Assert.Single(
-            run.Value.Solve.Diagnostics.Where(static d => d.Code == "FS3010"));
-
-        Assert.Contains("balance", implied.Message, StringComparison.Ordinal);
-
-        // Both halves are reported, and neither replaces the termination's own code. A user given only
-        // the free columns is being handed the question rather than the answer.
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
+        // The termination and the column direction are both reported.
         Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
+        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
+
+        // And the row direction is not, which is the defect. Flip this to `Contains` when `S-40` closes.
+        Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3010");
     }
 }
