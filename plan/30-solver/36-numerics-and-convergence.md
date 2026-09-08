@@ -50,12 +50,47 @@ the pressure scale, an energy balance by (flow scale × enthalpy scale).
 **Scales are computed once per solve from the sizing estimate, then held fixed.** Rescaling mid-solve
 changes what "converged" means between iterations and can make the residual norm appear to jump.
 
-**Mass flow is scaled per branch, not per circuit.** One circuit-wide flow scale is only adequate when
-every branch carries a comparable flow. A primary loop at 10 kg/s beside a bypass at 0.05 kg/s shares
-one scale, so the bypass's mass balance is divided by 200× its own magnitude and the convergence test
-declares success while that balance is off by 10 % of the flow through it. Because ‖·‖∞ is already a
-maximum over individually scaled residuals, per-branch scaling needs no change to the convergence test
-— only to how the scale vector is built.
+**Mass flow is scaled per branch, not per circuit**, and for two reasons — neither of them the one
+this section used to give (`S-12`). Take the running example: a primary loop at 10 kg/s beside a bypass
+at 0.05 kg/s, sharing one scale of 10.
+
+The **discarded** reason was that the convergence test would then "declare success while that balance is
+off by 10 % of the flow through it". It does not follow from this table's own numbers. With
+`newton.residual_tol` at 1e-8, one scale of 10 permits an absolute mass error of 1e-7 kg/s — two parts
+per million of the bypass, not 10 %. The claim needs a tolerance three orders looser than the table
+gives, so it argued for the right implementation from a number that was never true.
+
+The two that hold:
+
+1. **The convergence test stops being a relative statement.** Scaling exists so that ‖r‖∞ < tol means
+   the same thing for every row. One scale across a 200× span makes the criterion relative on the
+   primary and effectively absolute on the bypass — the test is still sound, but it no longer says what
+   the table claims it says, and the reader cannot tell which rows it is being strict about.
+2. **The linear solve is worse conditioned.** With one scale the bypass's Jacobian columns come out 200×
+   smaller than the primary's, which is a conditioning problem in its own right and makes
+   `newton.step_tol` meaningless on the small branch: a step large enough to matter there is below the
+   tolerance measured against the large one.
+
+Because ‖·‖∞ is already a maximum over individually scaled residuals, per-branch scaling needs no change
+to the convergence test — only to how the scale vector is built.
+
+### How to test C¹, and how not to
+
+**The obvious test — take finite differences either side of the join and assert they are close — is
+not what C¹ promises, and it fails on a correct implementation** (`S-5`). C¹ says the *one-sided
+derivatives agree at the join*. It says nothing about the derivative varying slowly near it, and across
+the valve's 100 Pa regularisation band the true derivative sweeps from 0 to about 3.75 × 10⁷. A test
+comparing differences taken at a fixed offset either side is measuring that sweep, not the join.
+
+The working form probes the **one-sided derivative at the join with a shrinking step**:
+
+- take `(f(x₀ + h) − f(x₀)) / h` for a decreasing sequence of `h`, from the right;
+- take `(f(x₀) − f(x₀ − h)) / h` for the same sequence, from the left;
+- assert the two sequences converge to the same limit, relative to that limit's magnitude.
+
+Both one-sided estimates approach the same value as `h` shrinks precisely when the function is C¹ there,
+and neither is contaminated by curvature away from the join. The tolerance is relative because the
+derivative's magnitude at a join is a property of the regularisation, not a constant.
 
 ## The tolerance table
 
@@ -195,7 +230,8 @@ difference between a message and a fix.
    in solver code. Enforced by review and by a grep-style test over the solver namespace.
 2. The system is scaled before solving and unscaled after; the raw system is never solved.
 3. Scales are computed once per solve and held fixed.
-4. Every regularized function is C¹ at its join, asserted by a finite-difference test on both sides.
+4. Every regularized function is C¹ at its join, asserted by a finite-difference test on both sides —
+   **written the way described below, because the obvious form of this test fails on correct code**.
 5. Every termination maps to exactly one code and one message.
 6. Bit-reproducible results across runs on the same machine and build.
 

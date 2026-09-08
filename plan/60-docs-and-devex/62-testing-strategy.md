@@ -69,6 +69,18 @@ Traits, so a fast subset can run constantly and the whole suite before a commit.
 | `Category=Golden` | < 10 s | Parser, printer, model-contract snapshots | Pre-commit |
 | `Category=Api` | < 30 s | Endpoint and contract tests | Pre-commit |
 | `Category=Docs` | < 5 s | The documentation gate: registry, reserved words and diagnostic codes against `/docs` | Pre-commit, and its own CI check |
+| `Category=Diagnostic` | *(none — the duration is the measurement)* | Performance harnesses that write a timing report into `diagnostics/` | **Never in a gate**; on request |
+
+**`Category=Diagnostic` is in the table but is not a test tier in the same sense** (`T-1`). It has no
+pass criterion and no budget, because the thing it measures *is* its duration — `P3.1` added it for the
+property-performance harness, which writes a timing report rather than asserting anything. A row with a
+budget would be a contradiction, and leaving it out of the table entirely is what let it be mistaken for
+an omission. It is excluded from every gate deliberately: a run whose duration is the result cannot also
+be a run that fails when it is slow.
+
+The consequence to hold on to is that **a regression here is invisible to CI by design**, so it is found
+by reading the reports. `F-19` is what that looks like when nobody does — a property-call cost 20 000×
+the figure the latency budget was set against, sitting in `diagnostics/` and contradicting `07`.
 
 **The budget is execution time, not what `dotnet test` prints.** Measured on the reference
 environment, a run matching *no* tests still reports between 0.6 s and 1.3 s: that is host start,

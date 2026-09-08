@@ -110,6 +110,19 @@ public sealed record EquationDeclaration(
     string Name,
     string ResidualSiUnit);
 
+// What a component is handed to evaluate its residuals. Adopted from `FluidScript.Core.Components`
+// rather than specified here first — see below (`S-1`).
+public readonly ref struct SolveContext
+{
+    public ISubstance Substance { get; }             // the circuit's fluid
+    public ReadOnlySpan<PortState> Ports { get; }    // one per port, in declaration order
+    public ReadOnlySpan<double> Flows { get; }       // kg/s, signed, one per port
+    public ReadOnlySpan<double> Unknowns { get; }    // this component's own scalars (`D-74`)
+    public ReadOnlySpan<double> Parameters { get; }  // promoted parameters, when the solve carries them
+
+    public double Parameter(int index, double own);  // the promoted value, or the component's own
+}
+
 public sealed record StateVector(ImmutableArray<double> Values);
 
 public sealed record ScalingVector(
@@ -123,6 +136,20 @@ public sealed record ResidualReport(
     string ResidualSiUnit,
     double ScaledResidual);
 ```
+
+**`SolveContext` is defined in `FluidScript.Core.Components`, and tier 30 adopts that shape rather than
+imposing its own** (`S-1`, `C-17`). [`22`](../20-core-domain/22-component-model.md) said this document
+would fix the shape; `P3.3` could not build a single residual without one, so it defined both types
+where the components live and this tier is ratifying the result. Six components implement it, which is
+the honest reason: changing it now costs six rewrites to buy nothing, and the shape has held through
+promotion (`Parameters`), component-owned scalars (`D-74`) and the no-allocation rule.
+
+Three properties of it are load-bearing and not obvious from the fields. It is a **`readonly ref
+struct`**, so it cannot be captured or boxed — `EvaluateResiduals` runs N+1 times per Newton iteration
+and must allocate nothing. `Flows` is **signed and per port**, not per branch, so a component never has
+to know which way its branch was written (`C-25`). And `Parameter(index, own)` is the only correct way
+to read a promotable value: it returns the solver's column when the parameter was promoted and the
+component's own field when it was not, so a residual reads the same either way.
 
 **`initialGuess` from the previous solution is what makes the editor feel alive.** A one-character
 edit changes one coefficient; starting Newton from the previous solution converges in two or three
