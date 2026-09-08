@@ -31,9 +31,11 @@ public sealed class CorpusStatusTests
         // Solves in one pass: nothing in it needs sizing.
         { "m4-storage-header.fluid", SolveTermination.Converged },
 
-        // `S-30`. Bounded, physical, and singular at 11 iterations. Full rank at the seed, so the
-        // deficiency develops during the iteration rather than being structural.
-        { "m2-cooling-loop.fluid", SolveTermination.Singular },
+        // `S-30b` fixed the seed, so the energy side now lands on `01`'s figures: the mixing node at
+        // 20.13 C against 20, and the return at 50.07 C against 50. What is left is hydraulic -- `3WV`'s
+        // Kv law is still about 1.6 kg/s out with the position against its lower bound -- so it runs to
+        // the cap rather than converging. That is `S-30`'s remainder, and a smaller thing than it was.
+        { "m2-cooling-loop.fluid", SolveTermination.IterationCap },
 
         // `S-33`. Rank 27 of 28 at the seed -- structurally under-determined before a step is taken.
         { "m2-distribution-header.fluid", SolveTermination.Singular },

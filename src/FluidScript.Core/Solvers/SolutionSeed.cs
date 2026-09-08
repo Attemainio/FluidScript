@@ -137,6 +137,7 @@ public static class SolutionSeed
         var level = pressures.Length > 0 ? pressures.Average() : Tolerances.PressureScale;
         var datum = Datum(graph);
         var steps = Steps(graph);
+        var levels = Levels(graph, datum);
 
         for (var index = 0; index < graph.Nodes.Length; index++)
         {
@@ -146,7 +147,7 @@ public static class SolutionSeed
                 ?? level - (NominalDrop * steps[index]);
 
             var temperature = HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature)
-                ?? datum - (NominalRise * steps[index]);
+                ?? levels[index] - (NominalRise * steps[index]);
 
             values[layout.NodePressure(index)] = pressure;
             values[layout.NodeEnthalpy(index)] = Enthalpy(graph.Substance, pressure, temperature);
@@ -217,6 +218,262 @@ public static class SolutionSeed
                 }
             }
         }
+    }
+
+    /// <summary>The temperature level each node sits near, propagated downstream from what is known.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="fallback">The level for a node no anchor reaches.</param>
+    /// <returns>One level per node, in K, indexed as <c>graph.Nodes</c> is.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>One global level cannot serve a circuit whose nodes sit at several</strong> (<c>S-30</c>).
+    /// <c>m2-cooling-loop</c> runs a 6 &#176;C primary into a secondary loop <c>HE1</c> rates at 20/50, and
+    /// seeding every unstated node by walking <em>down</em> from the first stated one put the whole
+    /// secondary at 2 to 6 &#176;C -- on the wrong side of the mixing split, with the node after the pump
+    /// colder than the node before it. The solve reached <c>Singular</c> at eleven iterations; substituting
+    /// the loop's own temperatures by hand reached <c>01</c>'s figures instead.
+    /// </para>
+    /// <para>
+    /// <strong>A rated <c>in</c>/<c>out</c> is a design condition, not a boundary, and it is used here
+    /// only because a seed is not a claim.</strong> The script saying an exchanger is rated 20/50 does not
+    /// assert that the nodes at its ports are at 20 and 50 -- in this circuit those are produced by the
+    /// mixing valve recirculating hot return water, and how far the fluid actually rises depends on the
+    /// flow the pump delivers. Newton moves off a seed freely, so a design point cannot make an
+    /// unreachable design look reachable; it is the designer's own statement of where the circuit is meant
+    /// to sit, which is the best prior available before anything is solved. The line that must hold is
+    /// that this informs the <em>seed</em> and never a constraint row, which the counting pass owns.
+    /// </para>
+    /// <para>
+    /// <strong>Placing those ports alone is worse than not placing them.</strong> Measured: the unplaced
+    /// neighbours stay at the old level, the seed then carries a 46 K jump across one component, and the
+    /// first step leaves the fluid's range. Propagation is what makes the placement usable -- a node with
+    /// no anchor of its own takes the mean of the anchors reaching it from upstream, which at a mixing
+    /// node is the two streams it mixes and everywhere else is the one thing feeding it.
+    /// </para>
+    /// <para>
+    /// Direction is the declared path order, not the solved one. A seed cannot know which way a branch
+    /// runs before it solves, and does not need to: a reversed branch still lands its nodes on the right
+    /// level, because both ends of it are near the same temperature.
+    /// </para>
+    /// </remarks>
+    private static double[] Levels(CircuitGraph graph, double fallback)
+    {
+        var count = graph.Nodes.Length;
+        var levels = new double[count];
+        var known = new bool[count];
+        var index = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+
+        for (var node = 0; node < count; node++)
+        {
+            index[graph.Nodes[node].Component] = node;
+        }
+
+        var ported = Ported(graph, index);
+
+        for (var node = 0; node < count; node++)
+        {
+            var anchor =
+                HydraulicPartition.Stated(graph.Nodes[node].Component, HydraulicPartition.Temperature)
+                ?? ported[node];
+
+            if (anchor is not null)
+            {
+                levels[node] = anchor.Value;
+                known[node] = true;
+            }
+        }
+
+        var flows = Downstream(graph, index);
+
+        // Bounded by the node count: each pass fixes at least one node or stops, so a circuit whose
+        // anchors reach everything settles well inside it and one whose anchors reach nothing exits at once.
+        for (var pass = 0; pass < count; pass++)
+        {
+            var moved = false;
+
+            for (var node = 0; node < count; node++)
+            {
+                if (known[node])
+                {
+                    continue;
+                }
+
+                var sum = 0.0;
+                var arriving = 0;
+
+                foreach (var (from, to) in flows)
+                {
+                    if (to == node && known[from])
+                    {
+                        sum += levels[from];
+                        arriving++;
+                    }
+                }
+
+                if (arriving == 0)
+                {
+                    continue;
+                }
+
+                levels[node] = sum / arriving;
+                known[node] = true;
+                moved = true;
+            }
+
+            if (!moved)
+            {
+                break;
+            }
+        }
+
+        for (var node = 0; node < count; node++)
+        {
+            if (!known[node])
+            {
+                levels[node] = fallback;
+            }
+        }
+
+        return levels;
+    }
+
+    /// <summary>The temperature a component states at the port facing each node.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="index">Node component to its position in <c>graph.Nodes</c>.</param>
+    /// <returns>One entry per node: K where a neighbour states it, <see langword="null"/> otherwise.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The port map decides which node an <c>in</c> belongs to, and walking the branch does
+    /// not.</strong> A parameter is named after the port it describes, so <c>in</c> is the temperature at
+    /// the port called <c>in</c> whichever way round the graph was walked. Reading the neighbours out of
+    /// <c>branch.Path</c> instead looks equivalent and is not: path order is the order the walk crossed
+    /// the branch, which need not match the component's own orientation. Measured on
+    /// <c>m2-cooling-loop</c>, that put 46 &#176;C on the node before <c>HE1</c> and 18 &#176;C on the node
+    /// after it -- the rated 20/50 laid on backwards, so the seed said the exchanger cooled.
+    /// </para>
+    /// <para>
+    /// The dimension is checked rather than assumed. <c>in</c> and <c>out</c> are temperatures on every
+    /// kind carrying them today, and seeding an enthalpy from something that turned out to be a flow would
+    /// be a property call far outside the fluid's range rather than a slightly wrong guess.
+    /// </para>
+    /// </remarks>
+    private static double?[] Ported(CircuitGraph graph, Dictionary<object, int> index)
+    {
+        var ported = new double?[graph.Nodes.Length];
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            var component = graph.Components[element];
+
+            if (element >= graph.Adjacency.ComponentCount)
+            {
+                continue;
+            }
+
+            for (var port = 0; port < component.Ports.Length; port++)
+            {
+                if (!component.StatedParameters.TryGetValue(component.Ports[port].Name, out var stated)
+                    || stated.Dimension != Dimension.Temperature)
+                {
+                    continue;
+                }
+
+                var peer = graph.Adjacency.Peer(element, port);
+
+                if (peer.Exists && index.TryGetValue(graph.Components[peer.Component], out var node))
+                {
+                    ported[node] ??= stated.SiValue;
+                }
+            }
+        }
+
+        return ported;
+    }
+
+    /// <summary>Which node feeds which, in the nominal direction the script declared.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="index">Node component to its position in <c>graph.Nodes</c>.</param>
+    /// <returns>Directed pairs, upstream first.</returns>
+    /// <remarks>
+    /// <strong>Branches meet at junction <em>elements</em>, not only at nodes, so consecutive nodes within
+    /// a path are not the whole adjacency.</strong> A three-way valve is a junction: the node before it on
+    /// one branch feeds the nodes after it on the others, and without that link the level anchored on an
+    /// exchanger's outlet never reaches the pipe on the far side of the valve -- which is the 46 K jump
+    /// that made placement alone worse than nothing.
+    /// </remarks>
+    private static List<(int From, int To)> Downstream(CircuitGraph graph, Dictionary<object, int> index)
+    {
+        var flows = new List<(int From, int To)>();
+        var into = new Dictionary<object, List<int>>(ReferenceEqualityComparer.Instance);
+        var outOf = new Dictionary<object, List<int>>(ReferenceEqualityComparer.Instance);
+
+        foreach (var branch in graph.Branches)
+        {
+            var nodes = new List<int>();
+
+            foreach (var part in new[] { branch.From.Element }
+                .Concat(branch.Path)
+                .Append(branch.To.Element))
+            {
+                if (part is CircuitNode && index.TryGetValue(part, out var node))
+                {
+                    nodes.Add(node);
+                }
+            }
+
+            for (var step = 1; step < nodes.Count; step++)
+            {
+                flows.Add((nodes[step - 1], nodes[step]));
+            }
+
+            if (nodes.Count == 0)
+            {
+                continue;
+            }
+
+            if (branch.From.Element is not CircuitNode)
+            {
+                Attach(outOf, branch.From.Element, nodes[0]);
+            }
+
+            if (branch.To.Element is not CircuitNode)
+            {
+                Attach(into, branch.To.Element, nodes[^1]);
+            }
+        }
+
+        foreach (var (junction, arriving) in into)
+        {
+            if (!outOf.TryGetValue(junction, out var leaving))
+            {
+                continue;
+            }
+
+            foreach (var upstream in arriving)
+            {
+                foreach (var downstream in leaving)
+                {
+                    flows.Add((upstream, downstream));
+                }
+            }
+        }
+
+        return flows;
+    }
+
+    /// <summary>Records one node against the junction element it meets.</summary>
+    /// <param name="sides">The map being built.</param>
+    /// <param name="junction">The junction element.</param>
+    /// <param name="node">The node's position in <c>graph.Nodes</c>.</param>
+    private static void Attach(Dictionary<object, List<int>> sides, object junction, int node)
+    {
+        if (!sides.TryGetValue(junction, out var nodes))
+        {
+            nodes = [];
+            sides[junction] = nodes;
+        }
+
+        nodes.Add(node);
     }
 
     /// <summary>How many steps from its branch's start each node is, wrapped into a narrow band.</summary>
