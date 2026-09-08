@@ -417,11 +417,16 @@ public static class SolveExplanation
             return;
         }
 
-        // `NullDirection` reads a square matrix, and a refused circuit's is not. Padding with zero ROWS
-        // leaves the column null space untouched -- a zero row constrains nothing -- so the free-unknown
-        // direction is exact whatever the shape. The row direction is not recoverable the same way: a
-        // padded zero row is trivially dependent and would be named ahead of any real redundancy, so it is
-        // reported only when the system is genuinely square.
+        // `NullDirection` reads a square matrix and a rectangular system has to be padded to reach it. The
+        // padding is only harmless in one direction at a time, and which one depends on the shape.
+        //
+        // Squaring a system with more unknowns than equations adds zero ROWS. A zero row constrains
+        // nothing, so it adds no column freedom and the free-unknown direction is exact -- but it is
+        // dependent on everything, so the redundancy direction would name it ahead of anything real.
+        // Squaring the other shape adds zero COLUMNS, and the two guarantees swap.
+        //
+        // So each direction is reported only when the padding cannot have invented it. The section says
+        // which one it withheld rather than printing an answer it cannot stand behind.
         var side = Math.Max(rows, columns);
         var padded = new double[side * side];
 
@@ -433,23 +438,22 @@ public static class SolveExplanation
         if (undetermined > 0)
         {
             report.AppendLine();
-            report.AppendLine(
-                "    unknowns nothing separates (the column direction — where pivoting landed):");
-            Direction(report, NullDirection.Of([.. padded], side),
-                index => index < system.Unknowns.Unknowns.Length
-                    ? system.Unknowns.Unknowns[index].Name
-                    : $"column {index}");
-        }
 
-        if (rows != columns)
-        {
-            var shape =
-                $"the row direction is not reported on a {rows}x{columns} system: the count already "
-                + "names the shortfall, and a padded row would be named ahead of any real redundancy";
-
-            report.AppendLine();
-            report.AppendLine(CultureInfo.InvariantCulture, $"    {shape}");
-            return;
+            if (rows > columns)
+            {
+                report.AppendLine(CultureInfo.InvariantCulture,
+                    $"    {undetermined} unknown(s) are undetermined and the column direction is withheld: "
+                    + $"squaring a {rows}x{columns} system adds columns, which are free by construction");
+            }
+            else
+            {
+                report.AppendLine(
+                    "    unknowns nothing separates (the column direction — where pivoting landed):");
+                Direction(report, NullDirection.Of([.. padded], side),
+                    index => index < system.Unknowns.Unknowns.Length
+                        ? system.Unknowns.Unknowns[index].Name
+                        : $"column {index}");
+            }
         }
 
         if (dependent == 0)
@@ -458,8 +462,18 @@ public static class SolveExplanation
         }
 
         report.AppendLine();
+
+        if (columns > rows)
+        {
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {dependent} equation(s) are dependent and the row direction is withheld: "
+                + $"squaring a {rows}x{columns} system adds rows, which are dependent by construction");
+
+            return;
+        }
+
         report.AppendLine("    equations that are not independent (the row direction — the redundancy):");
-        Direction(report, NullDirection.Redundancy([.. matrix], columns),
+        Direction(report, NullDirection.Redundancy([.. padded], side),
             index => index < system.Equations.Rows.Length
                 ? system.Equations.Rows[index].Name
                 : $"row {index}");

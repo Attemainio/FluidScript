@@ -256,16 +256,19 @@ circuit open because it carried a stated pressure on its datum node.
 Neither list alone would have said that. The column direction pointed at two pumps, which is where the
 elimination stopped rather than where the problem was.
 
-On a system that is not square, only the column list is shown:
+On a system that is not square, one of the two lists may be withheld and the report says so:
 
 ```
-    the row direction is not reported on a 44x45 system: the count already names the shortfall,
-    and a padded row would be named ahead of any real redundancy
+    1 equation(s) are dependent and the row direction is withheld: squaring a 44x45 system
+    adds rows, which are dependent by construction
 ```
 
-The column direction is exact whatever the shape. The row direction is not recoverable the same way —
-squaring the matrix means inventing rows of zeros, and a zero row is dependent on everything, so it
-would be named ahead of any real redundancy.
+Reading a null direction needs a square matrix, so a rectangular system is padded to reach one — and
+the padding is only harmless in one direction at a time. More unknowns than equations pads with rows
+of zeros: a zero row constrains nothing, so the *column* answer is exact, but it is dependent on
+everything, so it would be named ahead of any real redundancy. More equations than unknowns pads with
+columns of zeros and the two guarantees swap. Whichever answer the padding could have invented is
+withheld rather than printed.
 
 ## When the circuit never ran
 

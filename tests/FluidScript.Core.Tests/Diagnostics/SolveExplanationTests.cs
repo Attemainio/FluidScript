@@ -86,9 +86,10 @@ public sealed class SolveExplanationTests
             StringComparison.Ordinal);
         Assert.Contains("PU_RAD.head", report, StringComparison.Ordinal);
 
-        // The row direction is withheld rather than padded, because a zero row invented to square the
-        // matrix is trivially dependent and would be named ahead of any real redundancy.
-        Assert.Contains("the row direction is not reported on a 44x45 system", report, StringComparison.Ordinal);
+        // Every row is independent here, so there is no redundancy section at all. When a rectangular
+        // system does have one, it is reported only if squaring the matrix could not have invented it:
+        // padding a wider-than-tall system adds rows, and an added row is dependent by construction.
+        Assert.DoesNotContain("the row direction", report, StringComparison.Ordinal);
     }
 
     [Fact]
