@@ -266,8 +266,26 @@ against 0.163 kg/s drawn from the primary.
 **Authority is measured against the variable-flow circuit**, which is the part whose flow actually
 changes as the valve strokes — the primary path in a mixing circuit. Measuring it against the branch,
 as the two-way rule does, would fold in the constant-flow secondary loop, which sits on the other side
-of the valve and does not respond to it at all. A valve dominating the variable circuit is well
-authorised however much resistance the loop behind it carries.
+of the valve and does not respond to it at all.
+
+This is not a derivation, it is the published rule. Spirax Sarco's control-valve sizing guidance states
+that for three-port valves the authority calculation uses the valve's drop "in relation to the circuit
+with the **variable flowrate**", and notes that a three-port valve is a constant-flowrate device —
+whether mixing or diverting, the total flow through it does not change, so the constant side carries no
+information about how well the valve controls.[^spirax]
+
+**Target and bands, from the same sources.** Below **0.2–0.25** control is unstable; **0.25–0.5** is
+fair to good; **0.5–1.0** gives excellent control at the cost of pumping energy.[^fluidflow] Spirax is
+more conservative for three-port valves specifically — "between 0.2 and 0.5, the closer to 0.5 the
+better", and near 0.5 "but not greater than".[^spirax] The two agree on where control goes bad and
+differ on whether exceeding 0.5 is a fault; the disagreement is about **energy**, not
+controllability, and `FS4006` therefore fires on a low result and not on a high one.
+
+[^spirax]: Spirax Sarco, *Control Valve Sizing for Water Systems*.
+    https://www.spiraxsarco.com/learn-about-steam/control-hardware-electric-pneumatic-actuation/control-valve-sizing-for-water-systems
+
+[^fluidflow]: FluidFlow, *Valve Authority: Sizing Control Valves Right*.
+    https://fluidflowinfo.com/valve-authority-technical-paper/
 
 #### The drop is chosen on a pump-driven circuit and determined on a bounded one
 
@@ -291,6 +309,20 @@ a specific reason: rounding down makes the design flow unreachable at full trave
 whose Kv is below what the balance requires cannot pass design flow even wide open. Rounding up leaves
 the valve slightly open-ended at the design point, its position a little below 1 — which is the
 headroom a control valve is supposed to have.
+
+> **Provenance.** The bounded/pump-driven split and the two rounding directions are reasoned from the
+> hydraulics here, not taken from a published rule — a survey of manufacturer and industry guidance
+> (Spirax Sarco, FluidFlow, Belimo, Danfoss) found the authority definition and its bands stated
+> repeatedly and the catalogue-rounding direction stated nowhere. The physical argument stands on its
+> own: at a fixed differential, a Kv below the required value cannot pass the design flow at any
+> position. But it is this document's reasoning rather than an inherited convention, and the first
+> implementation should treat it as the part most worth testing against measured behaviour.
+>
+> **It also applies to the two-way rule above, which does not make the distinction.** That rule rounds
+> down unconditionally, on the grounds that more authority is the safe direction. That is true on a
+> pump-driven circuit, where the pump absorbs the extra drop, and false on a pressure-bounded one,
+> where it silently makes the design flow unreachable. Recorded here rather than edited into the
+> two-way rule, because changing a settled rule needs its own decision (`C-62`).
 
 **Authority is reported in both cases and targeted only in the first.** On a bounded circuit it is an
 outcome, and `FS4006` still fires when it comes out low.
@@ -343,8 +375,20 @@ achieved drop    = (1.36 / 1.6)² × 18.88 kPa               = 13.6 kPa
 authority        = 13.6 / (13.6 + 1.12)                    = 0.92
 ```
 
-The valve dominates its circuit, which is right for a primary-side control valve on a short run of
-pipe, and it sits slightly open-ended at the design point with 5 kPa of travel in hand.
+**0.92 is a finding, not a success, and the rule must report it as one.** It is well above the 0.5 both
+sources aim for, and Spirax says explicitly not to exceed it. But it is not a choice the rule made: the
+circuit offers 20 kPa of differential against 1.12 kPa of pipe, so *any* valve that limits the flow to
+design must take almost all of it. Authority near 1 cannot be avoided by selecting differently — only
+by changing the circuit, which is a design decision and not a sizing one.
+
+That it is nevertheless a legitimate operating point is worth stating, because a rule that treated it
+as an error would be wrong: a pressure-independent control valve is a product category built to deliver
+**100 % authority** deliberately.[^picv] What a high number here actually reports is that the available
+differential greatly exceeds what the circuit needs — the condition a differential-pressure controller
+exists to absorb.
+
+[^picv]: Danfoss, *Pressure-independent control valves*.
+    https://www.danfoss.com/en/products/dhs/differential-pressure-and-flow-controllers/differential-pressure-flow-and-temperature-controllers/pressure-independent-control-valves/
 
 **What the absence of this rule costs, measured.** Until it lands `3WV` keeps the bootstrap
 provisional — the largest row in the series, **Kv 630** — because `Bootstrap` hands provisionals out by
