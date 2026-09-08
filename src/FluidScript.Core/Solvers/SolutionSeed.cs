@@ -59,6 +59,20 @@ public static class SolutionSeed
     /// validated range, large enough that an enthalpy difference is far from the noise floor of a
     /// finite-difference derivative.
     /// </value>
+    /// <remarks>
+    /// <strong>Two degrees is load-bearing at both ends, and reducing it was tried and reverted.</strong>
+    /// The spread is chosen in kelvin and paid for in watts: an interior node's energy balance reads
+    /// <c>m*(h_out - h_in)</c>, so a step of <c>dT</c> costs <c>m*cp*dT</c> of residual, and the header's
+    /// 1.65 kg/s primary turns the eight-degree wrap into 55 kW against a plant whose whole duty is 54 kW.
+    /// That looked like the reason its first Newton step leaves the property domain, and it is not.
+    /// Measured at 0.02 K: the scaled residual stayed at 1.96 — unchanged by a hundredfold reduction, so
+    /// the energy rows never dominated it — the header variant that had converged at 2.85e-10 turned
+    /// <c>NonFinite</c>, and the shipped header's measured rank fell from 44 to 43. The last of those is
+    /// the point: a smaller spread brings back the very column degeneracy the spread exists to prevent
+    /// (<c>S-21</c>). The noise-floor bound is on the <em>derivative</em>; what actually binds is that the
+    /// enthalpy differences keep the flow columns distinguishable, and that needs far more than
+    /// resolvability. See <c>S-44</c>.
+    /// </remarks>
     public const double NominalRise = 2;
 
     /// <summary>How many steps the seed takes before wrapping back to the start of its band.</summary>
