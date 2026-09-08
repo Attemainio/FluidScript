@@ -205,10 +205,14 @@ time, so adding a component kind never breaks an existing script that used the n
 
 **`node` and `pipe` are no longer reserved**, and that is a correction rather than a relaxation. They
 were reserved on the grounds that "the ambiguity would be real", but no ambiguity exists: neither word
-introduces a directive, so neither can start a statement, and both occur only in `kind-name` position
-— where `kind-name = identifier` cannot match a keyword token. Reserving them made `P1 pipe length=45`
-unparseable, which is a line in both reference circuits. Every kind now resolves the same way, through
-the registry ([`15-semantic-model`](15-semantic-model.md)).
+introduces a directive, so neither can start a statement, and both occur only in `kind-name` position.
+Reserving them made `P1 pipe length=45` unparseable, which is a line in both reference circuits. Every
+kind now resolves the same way, through the registry ([`15-semantic-model`](15-semantic-model.md)).
+
+The argument that first carried this was that `kind-name = identifier` "cannot match a keyword token",
+using the production as evidence for its own safety. That production is now `identifier | keyword`
+(`D-64`), so the reasoning had to be replaced by the real one — **position**, below — and the change
+survived losing it (`L-45`).
 
 **A reserved word *may* stand in `kind-name` position, and `supply` and `return` do** (`D-64`). The
 position is what disambiguates, and it always was: a statement whose first token is a reserved word is
@@ -217,6 +221,20 @@ happens to be spelled with a keyword token. The parser therefore accepts an iden
 in second position and hands the spelling to the registry, which keeps the parser free of the list of
 kinds — the same reason `node` and `pipe` were unreserved. Only the second position is relaxed: a name
 is still an identifier, so no script can declare a component *called* `supply`.
+
+**The reverse direction, which is what makes this safe to extend** (`L-45`). Reserving a *new* word
+later is already a breaking change, and the registry adds one constraint on top of it: a reserved word
+may be a kind's **own keyword**, and may not be an **alias**. `ComponentRegistry.Verify` enforces it
+and reports it as a registry error rather than a script diagnostic, because it is a defect in this
+project's tables and never in a user's file.
+
+The asymmetry is deliberate. A kind's keyword spelled with a reserved word is a decision the log has
+sanctioned — `D-64` sanctioned exactly two, `supply` and `return` — and position makes it
+unambiguous. An alias is a convenience spelling, so one that collides with a reserved word buys a
+second way to write something already writeable and costs a word the grammar wanted; before `D-64` it
+was worse than useless, because a reserved word never reached kind position at all. So: **only a kind
+the decision log sanctions is reachable by a reserved word**, and adding a reserved word that an
+existing alias claims fails the build rather than silently shadowing the alias.
 
 ### Hyphens are not part of a name
 

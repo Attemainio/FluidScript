@@ -669,9 +669,7 @@ expects `AirHandlingUnit` to find `ahu`.
    endpoint on the right of `-` takes the next free inlet; one on the left takes the next free outlet.
    Multiple-port tank examples qualify every endpoint so source reordering cannot change intent. This
    is where the inference rules fire.
-8. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
-   has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
-9. **Bind attachments, control bindings, and the schedule.** Each `supply`/`return` endpoint resolves against the
+8. **Bind attachments, control bindings, and the schedule.** Each `supply`/`return` endpoint resolves against the
    the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
    the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
    final. A lone `supply` or `return` is `FS1520`. **Both must resolve into the same circuit**, which
@@ -684,7 +682,27 @@ expects `AirHandlingUnit` to find `ahu`.
    same way `actuate=` does, and evaluates its times against `Time` and its values against the
    target parameter's dimension, so `at 60 s HE4.power = 45` is forty-five kilowatts by `D-14`'s
    bare-number rule exactly as `power=45` would be.
-10. **Validate.** A declared component in no connection is `FS1507`; a *cluster* of two or more
+
+   **Attachments bind before inference, and the order is load-bearing** (`L-44`). `supply N3` lowers to
+   a connection from the parent's `N3` to the subcircuit's *first unconnected inlet* — so run after I3
+   there are no unconnected inlets left, because that rule has already terminated every one of them with
+   a dead-leg node. Two consequences follow. The `_sourceConnections` snapshot includes
+   attachment-derived connections, which is right: `supply` **is** a connection the user wrote. And
+   `ReportDeadEnds` needs no exemption for attachment parent nodes, because the edge it used to stand in
+   for is counted by the time it runs.
+
+9. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
+   has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
+10. **Validate.** `FS1507` skips two things on purpose (`L-32`). A kind with **no ports at all** is
+    never warned about — a controller appears in no connection by design, because a `control` line
+    binds it rather than topology, so warning would put a squiggle on the one script using `D-40`
+    correctly. A declared **`node`** is skipped for a weaker reason and it is a judgement rather than a
+    derivation: a node may legitimately be mentioned only as a subcircuit's attachment target, and a
+    lone declared node is more often a datum the user is about to wire than a mistake. The cost is that
+    a genuinely orphaned `node` is silent; `FS2107` catches the dead-end case once topology runs, which
+    is where the evidence to tell them apart exists.
+
+    A declared component in no connection is `FS1507`; a *cluster* of two or more
     connected to each other and to nothing else in their circuit is `FS1511`. The two partition one
     mistake and never both fire for one component, so connectivity is judged on the connections the
     **user wrote**, before inference — after I3 nothing is unconnected and neither code could fire
@@ -712,6 +730,54 @@ The binder preserves the exact presence of `in2`, `out2`, `dt2`, and `flow2` plu
 connections. During lowering, the heat-exchanger factory derives `duty`, `rated`, or `coupled` from
 that evidence using `D-19`'s precedence. It must not collapse “secondary ports unconnected” to Duty:
 that would erase Rated external-profile designs before Core sees them.
+
+### The role registries
+
+`CircuitRoleRegistry` and `ScheduleRoleRegistry` are **implementation-defined** — this project chooses
+the entries, no standard supplies them, and a script that names something else gets a diagnostic rather
+than a guess. They were defined in code and enumerated in no document, which is what `L-20` and `L-39`
+recorded; the sets are below, and this document is now their home.
+
+A role is resolved by **normalised spelling**: the canonical name, or any alias, case-insensitively. An
+unknown circuit role is `FS1519` and an unknown schedule driver is `FS1527`, and both messages list the
+canonical names only — the aliases exist so a user's first guess lands, not to be memorised.
+
+**Circuit roles** (`D-35`). The default is `neutral`, which claims nothing and lays out in written
+order; every other role is a layout hint that [`25-layout-hints`](../20-core-domain/25-layout-hints.md)
+maps to a stage.
+
+| Role | Aliases |
+|---|---|
+| `neutral` | *(the default; also the role of a circuit that names none)* |
+| `ahu` | `air_handling_unit`, `ventilation`, `air_handler` |
+| `cooling` | `chilled_water`, `cooling_circuit`, `cooling_loop` |
+| `district` | `district_heating`, `district_loop` |
+| `distribution` | `primary`, `header`, `distribution_header` |
+| `ground_loop` | `ground_source`, `borehole`, `brine` |
+| `heat_pump` | `heatpump`, `hp` |
+| `heating` | `heating_circuit`, `secondary` |
+| `hot_water` | `dhw`, `domestic_hot_water`, `tap_water` |
+| `radiator` | `radiators`, `radiator_circuit` |
+| `solar` | `solar_collector`, `solar_loop` |
+| `storage` | `buffer`, `accumulator`, `storage_circuit` |
+| `underfloor` | `floor_heating`, `ufh`, `underfloor_heating` |
+
+**Schedule drivers** (`D-59`). Each names a quantity a schedule can be written against; `tout` is the
+one `D-59` sanctioned and the rest follow the same pattern.
+
+| Driver | Aliases |
+|---|---|
+| `tout` | `t_out`, `outdoor`, `outdoor_temperature`, `outside_temperature`, `oat` |
+| `troom` | `t_room`, `room_temperature`, `indoor_temperature`, `zone_temperature` |
+| `tground` | `t_ground`, `ground_temperature`, `brine_temperature`, `soil_temperature` |
+| `demand` | `heat_demand`, `heating_demand`, `load` |
+| `humidity` | `rh`, `relative_humidity`, `outdoor_humidity` |
+| `solar` | `irradiance`, `solar_radiation`, `insolation` |
+| `wind` | `wind_speed`, `windspeed` |
+
+**Adding an entry is not a breaking change and removing one is**, which is the asymmetry to hold on to:
+a new alias makes a previously rejected script legal, and dropping one makes a legal script fail. Both
+lists are therefore additive-only until a `D-` entry says otherwise.
 
 ## Inference, concretely
 
