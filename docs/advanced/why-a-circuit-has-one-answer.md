@@ -210,6 +210,7 @@ diagram keeps drawing what you have so far.
 ## See also
 
 - [How a script becomes a circuit](how-a-script-becomes-a-circuit.md) — the graph these checks run on
+- [Reading the solve report](reading-the-solve-report.md) — the same count, itemised, for a circuit that failed anyway
 - [`node`](../functions/node.md) — `p`, `t` and `flow`, the three boundary conditions
 - [`supply` and `return`](../functions/supply-return.md) — declaring which way fluid crosses an edge of the model
 - [`heat-exchanger`](../functions/heat-exchanger.md) — `in`, `out` and `power`, and which combinations fix a flow

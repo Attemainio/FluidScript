@@ -494,3 +494,20 @@ received a list without it, and `CountingTable.Constraints.Length` came back unc
 validated design and a working change are different things**, and the gap here is in the counting
 table's accounting rather than in the physics. Worth reading `Count` end to end before trying again,
 rather than editing `Promote` a third time.
+
+**Twelve throwaway probes were a tooling gap, not twelve investigations.** Every question asked of the
+header between `C-66` and `S-38` --- what is the counting table, which promotion answers which
+constraint, what does the seed hold, which rows are dependent, what did the sizing rules choose ---
+was answered by writing a test, printing something, reading it and deleting it. `SolveExplanation`
+answers all of them in one call, and on its first run reported something none of the probes had: the
+header's row null direction is dominated by **energy** balances at weight 1 while the counting table
+says `less enthalpy levels 0`. That is `S-39`'s story on the energy side --- a redundancy nothing
+removed --- and it is the lead `S-38` should be attacked from. **Build the instrument at the second
+probe, not the twelfth.**
+
+**The report's own first bug was a confident wrong verdict.** It printed "NOTHING --- this is what
+reports the circuit over-specified" for any constraint no promotion answered. `m2-simple-loop` has
+exactly that and counts square: its `in=50` is paid for by the enthalpy level the closed loop drops,
+not by an unknown it adds. A diagnostic that states a conclusion the counting table contradicts is
+worse than one that states nothing, so the section now prints the arithmetic --- unanswered
+constraints against levels dropped --- and leaves the verdict to the count.
