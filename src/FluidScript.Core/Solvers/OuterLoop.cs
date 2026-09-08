@@ -419,9 +419,232 @@ public sealed class OuterLoop(
             }
         }
 
+        ThreeWay(graph, places, iterate, ref overlay, bases, notes, promoted);
         Unsized(graph, overlay, bases, notes);
 
         return (overlay, bases.ToImmutable(), notes.ToImmutable());
+    }
+
+    /// <summary>Sizes every three-way valve that stands as a junction element (<c>24</c>, <c>C-63</c>).</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current estimate the sizing is read off.</param>
+    /// <param name="overlay">The overlay being built, added to in place.</param>
+    /// <param name="bases">Why each value was chosen, keyed <c>component.parameter</c>.</param>
+    /// <param name="notes">Anything the user should be told.</param>
+    /// <param name="promoted">Labels the counting pass has already claimed as solver unknowns.</param>
+    /// <remarks>
+    /// <para>
+    /// <strong>This is a pass rather than an <c>ISizer</c> because of what the context needs to be, not
+    /// because the arithmetic differs.</strong> A three-way valve with its bypass connected is a junction
+    /// element: it appears in no branch's <c>Path</c>, so <see cref="Context"/> finds it nothing and the
+    /// ordinary loop skips it. What it needs is a context built from <em>one of its three legs</em>, and
+    /// choosing which one is a comparison across sibling branches that a rule handed a single branch
+    /// cannot make (<c>C-49</c>, <c>C-61</c>). Once the context exists, <see cref="ValveSizer"/> is the
+    /// rule -- the same Kv law, authority definition and catalogue a two-way valve gets.
+    /// </para>
+    /// <para>
+    /// <strong>Neither leg is identified by its port letter, and using them would be wrong on half of
+    /// all scripts.</strong> <c>22</c> names the ports <c>a</c> common, <c>b</c> controlled, <c>c</c>
+    /// bypass, but binding is positional -- ports take connections in the order the script writes them.
+    /// Measured on <c>m2-cooling-loop</c>, <c>b</c> carries the <em>recirculation</em> and <c>c</c> the
+    /// primary draw, because <c>3WV - N2</c> was written before <c>3WV - P1</c>. So both legs are found
+    /// from the circuit instead: the <strong>common</strong> leg is the one carrying what the other two
+    /// split, which mass balance settles, and the <strong>variable</strong> leg is the one reaching a
+    /// stated pressure rather than closing back into the valve's own loop, which is the same criterion
+    /// the authority definition uses.
+    /// </para>
+    /// <para>
+    /// <strong>Whether the drop is chosen or determined is decided by looking for a free pump on the
+    /// path the variable flow actually takes</strong> -- the variable leg and the common leg, which are
+    /// the two the drawn flow crosses. A pump whose head is promoted or unstated makes the driving
+    /// pressure free, so the authority target chooses the drop; with no such pump the boundary pressures
+    /// fix it and the valve takes what the rest of the path leaves. Looking graph-wide instead would
+    /// misread a pumped secondary beside a genuinely bounded primary, which is the arrangement this rule
+    /// exists for.
+    /// </para>
+    /// </remarks>
+    private void ThreeWay(
+        CircuitGraph graph,
+        SystemLayout layout,
+        StateVector iterate,
+        ref SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases,
+        ImmutableArray<string>.Builder notes,
+        HashSet<string> promoted)
+    {
+        if (sizers.OfType<ValveSizer>().FirstOrDefault() is not { } rule)
+        {
+            return;
+        }
+
+        foreach (var component in graph.Components)
+        {
+            if (component is not ThreeWayValve { BypassConnected: true } valve
+                || Inlet(graph, layout, iterate, valve) is not { } state)
+            {
+                continue;
+            }
+
+            var legs = graph.Branches
+                .Where(branch =>
+                    ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+                .ToArray();
+
+            if (legs.Length != 3)
+            {
+                continue;
+            }
+
+            var flows = Array.ConvertAll(
+                legs, leg => Math.Abs(iterate.Values[layout.BranchFlow(leg.Index)]));
+
+            var common = Array.IndexOf(flows, flows.Max());
+            var variable = -1;
+
+            for (var leg = 0; leg < legs.Length; leg++)
+            {
+                if (leg != common && Reaches(legs[leg], valve) is not null)
+                {
+                    variable = leg;
+                }
+            }
+
+            if (variable < 0)
+            {
+                Declined(
+                    valve,
+                    overlay,
+                    bases,
+                    notes,
+                    "neither of the legs it controls reaches a stated pressure, so nothing says which "
+                    + "path varies when the valve strokes");
+
+                continue;
+            }
+
+            var driven = legs[common].Path.Concat(legs[variable].Path).Any(static element =>
+                element is Pump pump && !pump.StatedParameters.ContainsKey("head"));
+
+            var flow = flows[variable];
+            var context = new SizingContext
+            {
+                State = state,
+                MassFlow = flow,
+                BranchDrop = Resistance(graph, state, legs[variable].Path, flow, valve),
+                LoopDrop = Circuit(graph, layout, iterate, valve, state),
+                AvailableDrop = driven ? null : Offered(graph),
+            };
+
+            if (!driven && context.AvailableDrop is null)
+            {
+                Declined(
+                    valve,
+                    overlay,
+                    bases,
+                    notes,
+                    "no pump on its path carries a free head, so the boundary pressures determine its "
+                    + "drop — and the circuit does not state exactly two of them, so which pair drives "
+                    + "this valve is not decided");
+
+                continue;
+            }
+
+            var sized = rule.Size(valve, context);
+
+            if (!sized.IsSuccess)
+            {
+                Declined(valve, overlay, bases, notes, sized.Error?.Message ?? "the rule declined it");
+
+                continue;
+            }
+
+            var mode = driven
+                ? "chosen against the leg's own resistance, which a free pump absorbs"
+                : $"determined by the {context.AvailableDrop!.Value / 1000:0.#} kPa the boundaries offer";
+
+            foreach (var (parameter, value) in sized.Value.Values)
+            {
+                if (Claimed(valve, parameter, promoted))
+                {
+                    continue;
+                }
+
+                overlay = overlay.With(valve.Name, parameter, value.Value);
+                bases[$"{valve.Name}.{parameter}"] = $"{value.Basis} — {mode}";
+            }
+
+            notes.AddRange(sized.Value.Notes);
+        }
+    }
+
+    /// <summary>The pressure stated at the far end of one of a valve's legs, if one is.</summary>
+    /// <param name="leg">A branch with the valve at one end.</param>
+    /// <param name="valve">The valve, so the other end can be told from it.</param>
+    /// <returns>Pa, or <see langword="null"/> when that end states no pressure.</returns>
+    private static double? Reaches(Branch leg, IFlowComponent valve) =>
+        HydraulicPartition.Stated(
+            ReferenceEquals(leg.From.Element, valve) ? leg.To.Element : leg.From.Element,
+            HydraulicPartition.Pressure);
+
+    /// <summary>Says a three-way valve kept its bootstrap value, and why (<c>C-60</c>).</summary>
+    /// <param name="valve">The valve that was not sized.</param>
+    /// <param name="overlay">The overlay holding its provisional values.</param>
+    /// <param name="bases">Where the explanation is written, keyed <c>component.parameter</c>.</param>
+    /// <param name="notes">Where the user-facing warning goes.</param>
+    /// <param name="reason">What stopped the rule, as a sentence fragment.</param>
+    /// <remarks>
+    /// <strong><see cref="Unsized"/> cannot cover this case and must not be made to.</strong> Its check
+    /// is deliberately static — does <em>any</em> sizer both <c>CanSize</c> this component and list this
+    /// parameter — so that a value sized on an earlier pass and skipped on a later one is not slandered
+    /// as a bootstrap leftover. <see cref="ValveSizer"/> now answers yes for every three-way valve, so a
+    /// three-way this pass declines would fall through that check and be reported with <em>no basis at
+    /// all</em>, which is <c>D-02</c>'s "absence, never null" read backwards and exactly the defect
+    /// <c>C-60</c> recorded. The pass that declined is the only thing that knows why, so it says so.
+    /// </remarks>
+    private static void Declined(
+        ThreeWayValve valve,
+        SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases,
+        ImmutableArray<string>.Builder notes,
+        string reason)
+    {
+        foreach (var (parameter, value) in overlay.For(valve.Name))
+        {
+            var key = $"{valve.Name}.{parameter}";
+
+            if (!bases.ContainsKey(key))
+            {
+                bases[key] = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{value.SiValue:0.###} — provisional, not chosen: {reason}");
+            }
+        }
+
+        notes.Add(
+            $"{valve.Name} is still the bootstrap value no rule replaced, because {reason}. It was chosen "
+            + "to disturb the first pass as little as possible, not to suit this circuit — state a `kv`, "
+            + "or read the result knowing this one number is arbitrary.");
+    }
+
+    /// <summary>The driving pressure a circuit with no free pump offers a valve.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <returns>Pa, positive, or <see langword="null"/> when the graph does not settle it.</returns>
+    /// <remarks>
+    /// The span between the two stated boundary pressures. With any other count the pair the variable
+    /// flow runs between is a path question rather than a set one, and answering it by taking the
+    /// extremes would quietly size against a differential no fluid crosses — so the rule declines and
+    /// says so rather than guessing.
+    /// </remarks>
+    private static double? Offered(CircuitGraph graph)
+    {
+        var stated = graph.Nodes
+            .Select(node => HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure))
+            .Where(static pressure => pressure is not null)
+            .Select(static pressure => pressure!.Value)
+            .ToArray();
+
+        return stated.Length == 2 ? Math.Abs(stated[0] - stated[1]) : null;
     }
 
     /// <summary>Reports any bootstrap provisional no rule was ever able to replace.</summary>

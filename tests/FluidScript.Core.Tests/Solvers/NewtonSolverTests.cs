@@ -92,7 +92,7 @@ public sealed class NewtonSolverTests
     }
 
     [Fact]
-    public async Task APromotedParameterIsHeldInsideItsPhysicalRangeAndTheSolveSaysSo()
+    public async Task APromotedParameterIsHeldInsideItsPhysicalRange()
     {
         // `S-26`, which was **two** defects sharing one symptom, both now fixed.
         //
@@ -106,13 +106,14 @@ public sealed class NewtonSolverTests
         // The order mattered. Projecting onto a bound while `Opening` still clamped would have put the
         // iterate exactly where its column was dead, so the box constraint had to come second.
         //
-        // What this asserts is the contract, not convergence: the answer stays physical and the user is
-        // told which parameter ran out of room. This circuit still does not converge, and that is a
-        // separate open defect rather than this one half-done.
+        // This circuit **converges** now (`S-35`, `C-63`), which it did not when the assertion was
+        // written -- so the bound is no longer the thing standing between it and an answer. The contract
+        // is what is pinned, and it is worth more on a converged solve than on a failed one: a run that
+        // stops early has fewer chances to leave a parameter somewhere impossible.
         var system = Assemble("m2-cooling-loop.fluid", out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
 
-        Assert.False(result.Converged);
+        Assert.True(result.Converged);
         Assert.Empty(system.Unevaluated);
 
         // Every promoted parameter finished inside the range its own component declares. Before the
@@ -132,10 +133,33 @@ public sealed class NewtonSolverTests
                 Assert.True(result.Solution.Values[index] >= 0, "a pump cannot develop negative head.");
             }
         }
+    }
 
-        // `FS3008` names the parameter that ran out of room rather than leaving the user to infer it
-        // from a residual, and it is reported once per parameter rather than once per step.
-        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Code == "FS3008");
+    [Fact]
+    public async Task AParameterThatRunsOutOfRoomIsNamedRatherThanLeftToBeInferred()
+    {
+        // `FS3008`. The cooling loop used to demonstrate this by accident, because nothing sized its
+        // three-way valve and the bootstrap Kv 630 left `position` pinned against a bound for the whole
+        // run. Now that the valve is sized the circuit has room, so the case needs a script that asks for
+        // something a component cannot give -- here, that same Kv 630 stated deliberately.
+        //
+        // A stated `kv` is a constraint, so no rule replaces it: the valve passes essentially everything,
+        // the boundary pair over-drives the loop, and the split runs to its stop trying to absorb the
+        // difference. That is a real script a user can write, and the point of the diagnostic is that
+        // they are told which parameter gave out instead of being handed a residual to interpret.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
+            .Replace("3WV three_way_valve", "3WV three_way_valve kv=630", StringComparison.Ordinal);
+
+        var system = Assemble(source, out var seed);
+        var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
+
+        Assert.False(result.Converged);
+
+        // Once per parameter rather than once per step, and it names the parameter.
+        var held = Assert.Single(
+            result.Diagnostics.Where(static diagnostic => diagnostic.Code == "FS3008"));
+
+        Assert.Contains("3WV.position", held.Message, StringComparison.Ordinal);
     }
 
     [Fact]

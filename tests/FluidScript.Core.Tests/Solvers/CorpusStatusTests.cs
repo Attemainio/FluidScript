@@ -31,11 +31,12 @@ public sealed class CorpusStatusTests
         // Solves in one pass: nothing in it needs sizing.
         { "m4-storage-header.fluid", SolveTermination.Converged },
 
-        // `S-30b` fixed the seed, so the energy side now lands on `01`'s figures: the mixing node at
-        // 20.13 C against 20, and the return at 50.07 C against 50. What is left is hydraulic -- `3WV`'s
-        // Kv law is still about 1.6 kg/s out with the position against its lower bound -- so it runs to
-        // the cap rather than converging. That is `S-30`'s remainder, and a smaller thing than it was.
-        { "m2-cooling-loop.fluid", SolveTermination.IterationCap },
+        // Converged, after three fixes in a row: `S-30b` anchored the seed's temperatures, `S-35` stopped
+        // a component in the bypass leg collapsing the valve's three ports onto one pressure, and
+        // `C-63`'s three-way pass finally chose `3WV.kv` rather than leaving it on the bootstrap Kv 630.
+        // It reaches `01`'s figures: the mixing node at 19.99 C against 20, the return at 49.94 against
+        // 50, and 0.0763 kg/s recirculating. **An `M2a` exit criterion, met.**
+        { "m2-cooling-loop.fluid", SolveTermination.Converged },
 
         // `S-33`. Rank 27 of 28 at the seed -- structurally under-determined before a step is taken.
         { "m2-distribution-header.fluid", SolveTermination.Singular },

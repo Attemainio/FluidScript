@@ -39,6 +39,61 @@ The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authorit
 `position` means the same in both: **1 is fully open between `a` and `b`**, whichever way the fluid
 happens to run.
 
+## How the Kv is chosen
+
+A three-way valve you do not give a `kv` is sized like a [`valve`](valve.md) — for **authority**, from
+the same R5 catalogue — but two things about a three-port valve change which numbers go into that.
+
+**It is sized on the leg that varies, not on the flow through it.** A three-port valve is a
+constant-flow device: whether it mixes or diverts, the total crossing it does not change, and only the
+split does. So the design flow is the **controlled** leg's, which is not the common port's. In the
+cooling loop the common port carries 0.239 kg/s round the secondary while the controlled leg draws
+0.163 from the primary; sizing on the larger number would size the valve for a flow it never has to
+control.
+
+**Which leg that is comes from the circuit, not from the port letters.** Ports take connections in the
+order you write them, so `b` is not reliably the controlled one — write `TV1 - N2` before `TV1 - P1`
+and it is the recirculation leg. The leg that varies is the one reaching a stated pressure rather than
+closing back into the valve's own loop, and that is what the rule looks for.
+
+**Whether the drop is chosen or determined depends on what drives the circuit.** With a pump on the
+path whose head you have not stated, the driving pressure is free, the valve's drop is a choice, and
+the authority target makes it — rounding **down** as for a two-way valve. With no such pump the
+boundary pressures fix the driving pressure, the valve takes whatever the rest of the path leaves, and
+the selection rounds **up** instead: at a fixed differential a coefficient below the required one
+cannot pass the design flow at any position, so rounding down there would make the design point
+unreachable rather than safe. Which of the two was used is written into the reported basis.
+
+```
+3WV  kv         4      sized   Kv 4 (R5 preferred numbers) — authority 0.66 at 0.165 l/s, 2.2 kPa
+                               — chosen against the leg's own resistance, which a free pump absorbs
+```
+
+### The drop it is sized for is not always the drop it runs at
+
+Both legs share one `kv` and one `position`, and their coefficients are complementary — so the
+position that satisfies the controlled leg also fixes the bypass leg. On a circuit where the bypass leg
+is what a pump has to push against, the valve can end up dropping far more than it was sized for. The
+sizing is still pointing the right way: a larger `kv` lowers the head the pump needs. But read the
+solved drop rather than the design one when the pump head looks high, and remember that one catalogue
+step is 1.6× in Kv and 2.56× in drop.
+
+### The bypass leg usually needs a balancing valve
+
+Standard practice for this arrangement is a balancing valve in the bypass leg, set so that with the
+valve in the bypass position the drop is similar to the path it bypasses. Without one the bypass is a
+short circuit: the supply-to-return differential falls and other consumers on the same pair can be
+starved. Nothing here sizes that valve for you — give it an explicit `kv` — and one coefficient could
+not do the job anyway, because the two legs carry different flows.
+
+### When it cannot be sized
+
+If neither controlled leg reaches a stated pressure, nothing says which path varies when the valve
+strokes, and the rule declines rather than guessing. The same happens when the drop is determined by
+the boundaries but the circuit does not state exactly two pressures, so which pair drives this valve is
+open. In both cases the valve keeps a placeholder `kv`, the report says it was never chosen, and you
+are asked to state one.
+
 ## Properties
 
 `kv`, `dp`, `position`, `authority`, `flow`.

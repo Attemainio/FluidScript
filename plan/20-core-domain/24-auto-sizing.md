@@ -406,40 +406,58 @@ set above. Recorded so it is not mistaken for an oversight.
 
 #### Worked example — `m2-cooling-loop`'s `3WV`
 
-The primary is bounded: `N1` states 300 kPa and `N3` states 280 kPa, so 20 kPa drives the controlled
-path, and the duty fixes its flow.
+**This circuit is pump-driven, and reading it as bounded is the mistake worth showing.** `N1` states
+300 kPa and `N3` states 280 kPa, which looks like 20 kPa driving the controlled path — but the path
+from `N1` to `N3` runs **through `PU1`**, whose head is promoted. A pump on the path means the
+driving pressure is not what the boundaries say it is; it is whatever the loop turns out to need.
+That is why the classification asks about the path the variable flow takes rather than about the
+boundary pair.
 
 ```
-controlled flow  = 30 kW / (4.18 kJ/(kg·K) × (50 − 6) K)   = 0.1631 kg/s
-P1 at that flow  (DN25, 25 m)                              = 1.12 kPa
-Δp_valve         = 20 kPa − 1.12 kPa                       = 18.88 kPa
-required Kv      = 0.163 × 3600 × √(0.988 × 10⁵) ÷ (988 × √18 880)
-                                                           = 1.36
-selected         round **up** in R5                        = Kv 1.6
-achieved drop    = (1.36 / 1.6)² × 18.88 kPa               = 13.6 kPa
-authority        = 13.6 / (13.6 + 1.12)                    = 0.92
+controlled flow  = 30 kW / (4.18 kJ/(kg·K) × (50 − 6) K)   = 0.1630 kg/s
+rest of the leg  P1 at that flow (DN25, 25 m)              = 1.10 kPa
+Δp_valve         a·rest/(1−a) at a = 0.5                    = 1.10 kPa
+required Kv      = 0.163 × 3600 × √(0.988 × 10⁵) ÷ (988 × √1100)
+                                                           = 5.63
+selected         round **down** in R5                      = Kv 4
+achieved drop    = (5.63 / 4)² × 1.10 kPa                   = 2.18 kPa
+authority        = 2.18 / (2.18 + 1.10)                    = 0.66
 ```
 
-**0.92 is a finding, not a success, and the rule must report it as one.** It is well above the 0.5 both
-sources aim for, and Spirax says explicitly not to exceed it. But it is not a choice the rule made: the
-circuit offers 20 kPa of differential against 1.12 kPa of pipe, so *any* valve that limits the flow to
-design must take almost all of it. Authority near 1 cannot be avoided by selecting differently — only
-by changing the circuit, which is a design decision and not a sizing one.
+**What the two readings cost, measured.** Every row below is a run of the sample with that `kv`
+stated, so the difference is the selection and nothing else:
 
-That it is nevertheless a legitimate operating point is worth stating, because a rule that treated it
-as an error would be wrong: a pressure-independent control valve is a product category built to deliver
-**100 % authority** deliberately.[^picv] What a high number here actually reports is that the available
-differential greatly exceeds what the circuit needs — the condition a differential-pressure controller
-exists to absorb.
+| Kv | Result | `PU1.head` | Valve drop | `3WV.position` |
+|---|---|---|---|---|
+| 1.0 | `NonFinite` | 62.9 m | 604 kPa | 0.840 |
+| **1.6** — what a bounded reading selects | converges | **33.6 m** | 328 kPa | 0.407 |
+| 2.5 | converges | 14.4 m | 140 kPa | 0.412 |
+| **4** — what this rule selects | converges | **6.4 m** | 61 kPa | 0.426 |
+| 6.3 | converges | 3.4 m | 32 kPa | 0.460 |
+| 10 | converges | 2.4 m | 22 kPa | 0.529 |
+
+The bounded reading is not merely a different answer, it is a **33.6 m pump on a loop whose exchanger
+drops 5** — the figure `C-63` recorded as absurd. One R5 step either way is a factor of about two in
+head, so this selection matters more than a valve selection usually does.
+
+**The design point is not where the circuit runs, and the rule does not claim it is.** At Kv 4 the
+rule sizes for a 2.18 kPa drop and the converged solve puts **61 kPa** across the valve. Both numbers
+are right. The valve's two legs share one coefficient, so the position that satisfies the controlled
+leg also fixes the bypass leg, and the bypass leg is what sets the head `PU1` must develop to drive
+the constant-flow secondary. The static rule sizes against the variable leg's **own** resistance,
+which is `P1`'s 1.10 kPa and does not depend on the pump at all; the operating drop is set by a loop
+the rule never looks at. `C-64` records the gap. What saves the answer is that the direction is right
+— a larger `kv` lowers the head monotonically, as the table shows — so a rule that sizes generously
+against the leg lands on a plant that works, and one that sizes tightly does not.
+
+That a high authority is nevertheless a legitimate operating point is worth stating, because a rule
+that treated it as an error would be wrong: a pressure-independent control valve is a product
+category built to deliver **100 % authority** deliberately.[^picv] What a high number reports is that
+the available differential greatly exceeds what the circuit needs — the condition a
+differential-pressure controller exists to absorb.
 
 [^picv]: Danfoss, *Pressure-independent control valves*.
     https://www.danfoss.com/en/products/dhs/differential-pressure-and-flow-controllers/differential-pressure-flow-and-temperature-controllers/pressure-independent-control-valves/
-
-**What the absence of this rule costs, measured.** Until it lands `3WV` keeps the bootstrap
-provisional — the largest row in the series, **Kv 630** — because `Bootstrap` hands provisionals out by
-kind while `CanSize` selects by type (`C-60`). At Kv 630 the valve drops nothing, the 20 kPa boundary
-pair over-drives the loop by about 14 kPa, and the pump is asked for negative head to absorb it. The
-sample cannot converge, and every number in it looks plausible.
 
 
 ### Heat exchanger — duty mode: `dp` and `flow`
@@ -735,12 +753,14 @@ three of those numbers are engineering, and one is a guess.
 - [ ] A valve-less highest-drop branch becomes the fixed index, emits `FS2313`, and lets adjustable
       lower-drop branches balance to it without inventing a valve or raising pump head.
 - [ ] A stated `head=15` on that pump is honoured, and `FS2303` fires if the loop cannot use it.
-- [ ] A **three-way valve on a pressure-bounded circuit** is sized to the drop the balance leaves it,
-      not to the authority target: `m2-cooling-loop`'s `3WV` reaches **Kv 1.6** with an achieved
-      authority near **0.92**, and its position sits below 1 at the design point.
-- [ ] A **three-way valve on a pump-driven circuit** is sized to the authority target instead, and
-      rounds the other way — down — so the achieved authority exceeds the target as the two-way rule
-      requires.
+- [ ] A **three-way valve on a pump-driven circuit** is sized to the authority target and rounds
+      **down**, so the achieved authority exceeds the target as the two-way rule requires:
+      `m2-cooling-loop`'s `3WV` reaches **Kv 4** at an achieved authority of **0.66**, the circuit
+      converges, and `PU1` is asked for **6.4 m** rather than the 33.6 m a bounded reading gives.
+- [ ] A **three-way valve on a pressure-bounded circuit** — one with no free pump on the path its
+      variable flow takes — is sized to the drop the balance leaves it instead, and rounds **up**.
+- [ ] Which of the two applies is decided from the **path the variable flow takes**, not from the graph
+      as a whole: a pumped secondary beside a genuinely bounded primary must not read as pump-driven.
 - [ ] A three-way valve's design flow is its **controlled path's**, not its common port's: asserted on
       `m2-cooling-loop`, where the two differ by the recirculation (0.163 against 0.239 kg/s).
 - [ ] No sizable parameter survives the loop still holding its bootstrap provisional without saying so

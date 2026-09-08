@@ -23,26 +23,53 @@ public sealed class SurvivingProvisionalTests
     }
 
     [Fact]
-    public async Task AThreeWayValvesKvSaysItWasNeverChosen()
+    public async Task AThreeWayValvesKvIsChosenNowThatARuleClaimsIt()
     {
-        // `Bootstrap` hands out `ISizer.Provisional` by *kind* -- every parameter the registry marks
-        // sizable -- while a rule applies to a *type*: `ValveSizer.CanSize` is `component is Valve`. So a
-        // three-way valve is given the largest row in the series, deliberately chosen to behave like an
-        // open port for one pass, and then nothing ever replaces it. Before this it was reported as a
-        // size with no basis at all, which is `D-02`'s "absence, never null" read backwards.
+        // `C-60` recorded this valve as the standing example of a bootstrap value nothing replaced:
+        // `Bootstrap` hands out `ISizer.Provisional` by *kind*, while a rule applied to a *type* that
+        // excluded it, so `3WV` kept the largest row in the series -- chosen to behave like an open port
+        // for one pass -- for the life of the run. `C-63`'s three-way pass is the rule that claims it, so
+        // what this now pins is that the example is closed rather than that it still stands.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"));
         var run = await Loop().RunAsync(
             GraphFixture.Bind(source), Water.Instance, "cooling", TestContext.Current.CancellationToken);
 
         Assert.True(run.IsSuccess, run.Error?.Message);
 
-        // The value is still there -- the model has to build -- but it now explains itself.
+        Assert.NotEqual(630.0, run.Value.Sizes.For("3WV", "kv"));
+        Assert.DoesNotContain("provisional", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
+        Assert.Contains("R5 preferred numbers", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
+
+        // And it says which of `24`'s two shapes chose the drop, because the answer is not recoverable
+        // from the Kv alone: the same row means different things on a bounded and a pump-driven circuit.
+        Assert.Contains("free pump absorbs", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AThreeWayTheRuleCannotSizeStillSaysItsKvWasNeverChosen()
+    {
+        // The hole widening `CanSize` opened, closed deliberately. `Unsized` asks a *static* question --
+        // does any sizer both `CanSize` this component and list this parameter -- so that a value sized on
+        // an earlier pass is not slandered on a later one. `ValveSizer` now answers yes for every
+        // three-way valve, so one the pass *declines* would sail through that check and be reported with
+        // no basis at all, which is `D-02`'s "absence, never null" read backwards and the whole of `C-60`.
+        //
+        // An authority outside (0, 1) is the cheapest way to make the rule decline on a circuit that is
+        // otherwise fine: `a / (1 - a)` is negative above 1, so there is no honest Kv to return.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
+            .Replace("3WV three_way_valve", "3WV three_way_valve authority=1.5", StringComparison.Ordinal);
+
+        var run = await Loop().RunAsync(
+            GraphFixture.Bind(source), Water.Instance, "cooling", TestContext.Current.CancellationToken);
+
+        Assert.True(run.IsSuccess, run.Error?.Message);
+
         Assert.Equal(630.0, run.Value.Sizes.For("3WV", "kv"));
         Assert.Contains("provisional, not chosen", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
 
         Assert.Contains(
             run.Value.Notes,
-            static note => note.Contains("3WV.kv is still the bootstrap value", StringComparison.Ordinal));
+            static note => note.Contains("3WV is still the bootstrap value", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -76,13 +76,16 @@ public sealed class ValveSizer(
     /// bootstrap Kv 630 for the life of the run (<c>C-60</c>).
     /// </para>
     /// <para>
-    /// A three-way valve with its bypass <em>connected</em> is a different matter and is still refused:
-    /// it is a junction element standing on three branches at once, so no single-branch context
-    /// describes it, and its rule is the one <c>24</c> states separately.
+    /// <strong>A three-way valve with its bypass <em>connected</em> is accepted here too, and what keeps
+    /// it out of the ordinary pass is the context rather than the type</strong> (<c>C-63</c>). It is a
+    /// junction element, so it sits in no branch's <c>Path</c> and <c>OuterLoop.Context</c> can build it
+    /// nothing -- the loop skips it on that alone. <c>OuterLoop</c>'s three-way pass builds the context
+    /// <em>its</em> way, from the leg that actually varies, and then this arithmetic is the arithmetic:
+    /// same Kv law, same authority definition, same catalogue. Refusing by type as well would mean
+    /// duplicating all of it to change which two numbers go in.
     /// </para>
     /// </remarks>
-    public bool CanSize(IFlowComponent component) =>
-        component is Valve or ThreeWayValve { BypassConnected: false };
+    public bool CanSize(IFlowComponent component) => component is Valve or ThreeWayValve;
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
@@ -112,10 +115,16 @@ public sealed class ValveSizer(
                 ("state", "the branch's resistance and a target authority between 0 and 1")));
         }
 
-        // `24` step 2. The valve's share `a` of the branch total means a * (rest + valve) = valve, so
-        // valve = a * rest / (1 - a). At a = 0.5 that is exactly the rest of the branch.
+        // `24` step 2, in whichever of its two shapes the circuit allows. On a pump-driven circuit the
+        // valve's share `a` of the branch total means a * (rest + valve) = valve, so valve = a * rest /
+        // (1 - a); at a = 0.5 that is exactly the rest of the branch. On a bounded one there is nothing
+        // to choose: the boundaries fix the driving pressure and the valve takes what the rest leaves.
         var rest = Math.Max(0, context.BranchDrop);
-        var wanted = rest * target / (1 - target);
+        var bounded = context.AvailableDrop is { } offered && double.IsFinite(offered) && offered > 0;
+        var wanted = bounded
+            ? Math.Max(0, context.AvailableDrop!.Value - rest)
+            : rest * target / (1 - target);
+
         var required = ValveLaw.RequiredKv(context.MassFlow, wanted, density);
         var notes = ImmutableArray.CreateBuilder<string>();
 
@@ -123,10 +132,14 @@ public sealed class ValveSizer(
         {
             // Below the regularisation drop there is no honest Kv, so the rule declines rather than
             // inventing one. `Provisional` still stands, so the valve exists and the model still builds.
-            notes.Add(
-                $"{valve.Name} could not be sized: its branch drops {rest / 1000:0.##} kPa excluding the "
-                + "valve, so a valve taking its target share would sit inside the solver's smoothing "
-                + "band. Add resistance to the branch, or state a `kv`.");
+            notes.Add(bounded
+                ? $"{valve.Name} could not be sized: the circuit offers "
+                    + $"{context.AvailableDrop!.Value / 1000:0.##} kPa and the rest of it already takes "
+                    + $"{rest / 1000:0.##} kPa, so nothing is left for the valve to drop. Reduce the "
+                    + "resistance in its path, widen the boundary pressures, or state a `kv`."
+                : $"{valve.Name} could not be sized: its branch drops {rest / 1000:0.##} kPa excluding the "
+                    + "valve, so a valve taking its target share would sit inside the solver's smoothing "
+                    + "band. Add resistance to the branch, or state a `kv`.");
 
             return Result.Success(new SizingResult
             {
@@ -135,7 +148,14 @@ public sealed class ValveSizer(
             });
         }
 
-        var chosen = catalog.NearestBelow(required, static spec => spec.Kvs);
+        // Up on a bounded circuit and down on a pump-driven one, and the asymmetry is the whole reason
+        // the two cases are distinguished: at a fixed differential a Kv below the required one cannot
+        // pass the design flow at any position, so rounding down there does not make the valve safer,
+        // it makes the design point unreachable.
+        var chosen = bounded
+            ? catalog.SmallestSatisfying(spec => spec.Kvs >= required)
+            : catalog.NearestBelow(required, static spec => spec.Kvs);
+
         var kvs = chosen.Entry.Spec.Kvs;
 
         // The drop the chosen row actually produces, from the same law the solver runs, and the

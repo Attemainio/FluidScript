@@ -85,6 +85,29 @@ public readonly record struct SizingContext
     /// at the flow the <em>duty</em> fixes, against the laws of everything else on the loop.
     /// </remarks>
     public required double? LoopDrop { get; init; }
+
+    /// <summary>Gets the driving pressure the circuit offers, when the circuit fixes it.</summary>
+    /// <value>
+    /// <para>
+    /// Pa, positive, and <strong>the whole of what is available to be spent</strong> — the difference
+    /// between the two stated boundary pressures the variable circuit runs between. A rule spends what
+    /// <see cref="BranchDrop"/> does not: the component's own drop is then <em>determined</em> rather
+    /// than chosen, and an authority target has nothing left to choose with.
+    /// </para>
+    /// <para>
+    /// <see langword="null"/> means the drop is a <strong>choice</strong>, because a pump on the path
+    /// carries whatever head the circuit turns out to need. That is the ordinary case and the one the
+    /// authority target was written for (<c>24</c>).
+    /// </para>
+    /// </value>
+    /// <remarks>
+    /// <strong>The two cases round opposite ways, and that is the point of carrying the distinction.</strong>
+    /// Rounding a Kv <em>down</em> picks a smaller valve, which drops more — safe where a pump absorbs
+    /// the difference, and wrong at a fixed differential, where a coefficient below the required one
+    /// cannot pass the design flow at <em>any</em> position. So a bounded circuit rounds up and keeps the
+    /// valve a little off its stop, which is the headroom a control valve is meant to have.
+    /// </remarks>
+    public double? AvailableDrop { get; init; }
 }
 
 /// <summary>Fills the parameters a user left out (<c>D-02</c>).</summary>

@@ -233,18 +233,49 @@ public sealed class ValveSizerTests
     }
 
     [Fact]
-    public void AThreeWayValveWithItsBypassConnectedIsStillRefused()
+    public void AThreeWayValveWithItsBypassConnectedIsSizedByTheSameArithmeticOnADifferentContext()
     {
-        // It stands on three branches at once, so a single-branch context does not describe it and the
-        // authority its `BranchDrop` reports is one leg of three. `24`'s three-way rule and an
-        // `OuterLoop` pass own that case (`C-61`); answering it here would look right and be wrong.
+        // `C-63`. It stands on three branches at once, so nothing here can decide *which* leg the numbers
+        // in a `SizingContext` describe -- but that is a question about the context, not about the
+        // arithmetic, and `OuterLoop`'s three-way pass answers it before calling this. What keeps such a
+        // valve out of the ordinary sizing loop is that `OuterLoop.Context` finds a junction element no
+        // branch at all, so refusing it by type here as well would only force the Kv law, the authority
+        // definition and the catalogue selection to be written twice.
         var valve = new ThreeWayValve("3WV", 630, bypassConnected: true);
+        var rule = new ValveSizer(ValveKvR5.Instance);
 
-        Assert.False(new ValveSizer(ValveKvR5.Instance).CanSize(valve));
+        Assert.True(rule.CanSize(valve));
 
-        var result = new ValveSizer(ValveKvR5.Instance).Size(valve, At(WorkedExampleBranchDrop));
+        var result = rule.Size(valve, At(WorkedExampleBranchDrop));
 
-        Assert.False(result.IsSuccess);
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.Equal(1.6, result.Value.Values["kv"].Value.SiValue);
+    }
+
+    [Fact]
+    public void ABoundedCircuitTakesTheDropTheBoundariesLeaveAndRoundsTheOtherWay()
+    {
+        // `24`'s second shape. With both ends of the variable circuit stating a pressure there is no
+        // freedom for an authority target: the valve drops what the rest of the path does not. Here the
+        // circuit offers 100 kPa and the branch takes 22.35, so the valve must take 77.65 -- far more than
+        // the target's 22.35 -- and the Kv that passes design flow through it is correspondingly smaller.
+        var context = At(WorkedExampleBranchDrop) with { AvailableDrop = 100_000 };
+        var bounded = new ValveSizer(ValveKvR5.Instance).Size(new Valve("CV1", 630), context);
+        var chosen = new ValveSizer(ValveKvR5.Instance).Size(new Valve("CV1", 630), At(WorkedExampleBranchDrop));
+
+        Assert.True(bounded.IsSuccess, bounded.Error?.Message);
+
+        var required = ValveLaw.RequiredKv(WorkedExampleFlow, 100_000 - WorkedExampleBranchDrop, 998.2);
+        var kv = bounded.Value.Values["kv"].Value.SiValue;
+
+        // Rounded **up**, which is the opposite of the pump-driven direction and the whole reason the two
+        // cases are told apart: at a fixed differential a Kv below the required one cannot pass design
+        // flow at any position, so rounding down would make the design point unreachable rather than safe.
+        Assert.True(kv >= required, $"Kv {kv} is below the {required:0.###} the balance requires.");
+        Assert.True(kv / 1.6 < required, "and it is the *smallest* row that clears it.");
+
+        // A bigger drop is a smaller valve, so the bounded selection is below the pump-driven one here.
+        Assert.True(kv < chosen.Value.Values["kv"].Value.SiValue);
     }
 
     [Fact]
