@@ -612,9 +612,51 @@ public static class WellPosedness
             yield return (owner.Name, "power");
         }
 
+        // Every element on a branch the constraint's owner sits on. A pump there drives the very flow the
+        // constraint pins, so it is the candidate an engineer would name.
+        var local = new HashSet<IFlowComponent>();
+
+        if (owner is not null)
+        {
+            foreach (var branch in graph.Branches)
+            {
+                if (!branch.Path.Contains(owner))
+                {
+                    continue;
+                }
+
+                foreach (var element in branch.Path)
+                {
+                    local.Add(element);
+                }
+            }
+        }
+
+        // Own branch first, then the rest. **Reaching across the plant is deliberate and stays** ---
+        // `Promote`'s first-come rule exists so that two parallel branches downstream of one pump share it,
+        // the first taking its head and the second falling to its own balancing valve. What was missing is
+        // an order: `hydraulic.Elements` is graph order, which is arbitrary with respect to the constraint,
+        // and a hydraulic component is the whole connected plant rather than one circuit.
+        //
+        // Measured (`S-45`): with `PU_AHU.head` stated, `HE_AHU`'s flow constraint took `PU_RAD.head` ---
+        // the other consumer's pump --- and that variant counts square at 44/44 while ranking 43,
+        // deficient and over-specified at once. A promotion that crosses the plant is not wrong in itself;
+        // taking a distant pump while a local one is free is.
         foreach (var element in hydraulic.Elements)
         {
-            if (string.Equals(element.Kind, "pump", StringComparison.Ordinal) && IsFree(element, "head"))
+            if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
+                && IsFree(element, "head")
+                && local.Contains(element))
+            {
+                yield return (element.Name, "head");
+            }
+        }
+
+        foreach (var element in hydraulic.Elements)
+        {
+            if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
+                && IsFree(element, "head")
+                && !local.Contains(element))
             {
                 yield return (element.Name, "head");
             }
