@@ -147,7 +147,10 @@ public static class SolutionSeed
                 ?? level - (NominalDrop * steps[index]);
 
             var temperature = HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature)
-                ?? levels[index] - (NominalRise * steps[index]);
+                    // Centred on the level rather than walking down from it: a one-sided excursion of
+                    // `Band` steps is 8 K, which puts a 6 C chilled-water node below freezing and ends
+                    // the seed in a failed property call rather than a bad guess (`S-35`).
+                    ?? levels[index] + (NominalRise * (steps[index] - (Band / 2)));
 
             values[layout.NodePressure(index)] = pressure;
             values[layout.NodeEnthalpy(index)] = Enthalpy(graph.Substance, pressure, temperature);
@@ -489,6 +492,23 @@ public static class SolutionSeed
     /// (<c>S-25</c>), one through pressure and one through enthalpy.
     /// </para>
     /// <para>
+    /// <strong>Adjacency is not only along a branch, and a per-branch walk misses the other kind
+    /// (<c>S-35</c>).</strong> Two branches leaving one junction element are adjacent <em>through</em> it,
+    /// so a counter that restarts at each branch gives both their first interior nodes the same step and
+    /// the junction sees no difference across itself at all. A three-way valve is exactly that shape:
+    /// with a component in each leg its three ports seeded to one pressure, <c>√Δp</c> went to zero, and
+    /// <c>position</c> was again a column of zeros — the very failure the paragraph above records as
+    /// fixed. The cooling loop escaped it only because its bypass leg was empty, which put that side on a
+    /// branch <em>end</em> instead of an interior node.
+    /// </para>
+    /// <para>
+    /// So each branch starts where its own leg of the junction says, not at zero: the <em>n</em>th branch
+    /// leaving an element begins at step <em>n</em>, and the walk down the branch proceeds from there.
+    /// Within a branch nothing changes — consecutive nodes still differ by one step — and across a
+    /// junction of fewer than <see cref="Band"/> legs the first nodes of any two legs now differ by
+    /// construction rather than by luck.
+    /// </para>
+    /// <para>
     /// <strong>Wrapped rather than cumulative, and the wrap is what keeps it safe.</strong> A long
     /// branch stepped monotonically would walk a seed out of the fluid's validated range — twenty nodes
     /// at 10 kPa and 2 K a step is 200 kPa and 40 K from where it started, and either end of that is a
@@ -504,6 +524,7 @@ public static class SolutionSeed
     {
         var steps = new int[graph.Nodes.Length];
         var index = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+        var legs = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
 
         for (var node = 0; node < graph.Nodes.Length; node++)
         {
@@ -512,7 +533,12 @@ public static class SolutionSeed
 
         foreach (var branch in graph.Branches)
         {
-            var step = 0;
+            // The leg this branch is, counted at the element it leaves. Legs of the same junction start
+            // one step apart, so their first interior nodes cannot seed to the same value.
+            var leg = legs.GetValueOrDefault(branch.From.Element);
+            var step = leg;
+
+            legs[branch.From.Element] = leg + 1;
 
             foreach (var part in branch.Path)
             {
