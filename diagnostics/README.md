@@ -11,6 +11,7 @@ timing invites it to be quoted without them.
 | `fluid-state-timings.md` | `StateTimingDiagnostics` | What it costs to fix a fluid state through `ISubstance`, per substance and per property pair — cold call, median, mean, standard deviation, min and max over 10 samples of 20 calls |
 | `backend-pair-matrix.md` | `BackendPairDiagnostics` | Which of the ten (T, p, h, s, d) input pairs each fluid *family* supports — pure, pseudo-pure, incompressible substance, incompressible solution, HEOS mixture and humid air — the backend's refusal message for the rest, and what each supported pair costs |
 | `backend-pair-log.md` | `BackendPairDiagnostics` | Its running log, appended and flushed before and after every call |
+| `pipeline-timings.md` | `PipelineTimingDiagnostics` | Where the time goes between a script and a solved circuit — parse, bind, lower and solve per sample, and inside one Newton step the cost of a residual evaluation, the `N+1` of them a finite-difference Jacobian needs, and the dense LU of the same order |
 
 ## Running them
 
