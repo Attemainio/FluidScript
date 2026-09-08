@@ -11,6 +11,26 @@ The report is one block of plain text, produced from a finished run — or from 
 as far as running. Every section is described below, in the order it appears, using the tutorial's
 simple loop and the distribution header from `samples/`.
 
+## Getting one
+
+Every solved model carries its report — it is not something you assemble. A finished run renders it
+directly, and a run that was refused before the solver renders the same sections from the circuit
+alone, with the parts that need a solve saying so:
+
+```csharp
+var run = await loop.RunAsync(graph, fluid, name, cancellationToken);
+
+// Whether or not the run produced a result.
+var report = SolveExplanation.Render(run, graph, name);
+
+// Or, from anything already holding a result — including a debugger watch window.
+var same = run.Value.ToString();
+```
+
+The format is the same for every model, in every state. That is the point: a section is never dropped
+because a particular circuit did not get far enough to fill it in, so two reports can be read side by
+side.
+
 ## The header
 
 ```

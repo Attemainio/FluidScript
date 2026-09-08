@@ -42,6 +42,16 @@ public sealed record OuterLoopResult
     /// solve actually used.
     /// </value>
     public required bool Settled { get; init; }
+
+    /// <summary>The full solve report: counting, constraints, unknowns, equations, sizes and rank.</summary>
+    /// <returns>The report, as lines of text.</returns>
+    /// <remarks>
+    /// On the record so that anywhere holding a result can print one without assembling the call ---
+    /// including a debugger watch window, which is where an unexpected termination is usually first met.
+    /// A run that never produced a result explains itself through
+    /// <see cref="Diagnostics.SolveExplanation.Render(CircuitGraph, string)"/> instead.
+    /// </remarks>
+    public override string ToString() => Diagnostics.SolveExplanation.Render(this);
 }
 /// <summary>A model lowered with sizing applied, before anything is solved.</summary>
 /// <param name="Lowered">The graph, and whatever could still not be built.</param>

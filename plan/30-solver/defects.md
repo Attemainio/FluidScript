@@ -524,3 +524,17 @@ exactly that and counts square: its `in=50` is paid for by the enthalpy level th
 not by an unknown it adds. A diagnostic that states a conclusion the counting table contradicts is
 worse than one that states nothing, so the section now prints the arithmetic --- unanswered
 constraints against levels dropped --- and leaves the verdict to the count.
+
+**The report was built as a function and every caller re-wrote the same three lines.** `Render` had two
+overloads --- one for a finished run, one for a graph --- and picking between them was left to whoever
+was calling, so every probe repeated the same `run.IsSuccess ? ... : ...` branch, and the interesting
+case is the one where that branch goes the *wrong* way: a circuit refused before the solver is exactly
+the one whose report is worth reading. The fix is smaller than the habit it breaks --- one overload
+that takes the run and the graph, and `ToString()` on `OuterLoopResult` so anything holding a result
+can print one, a debugger watch window included. **A diagnostic that each caller has to assemble is a
+diagnostic that gets assembled differently each time**, and the format has to be identical across
+models or two reports cannot be read side by side.
+
+`EverySolutionCarriesTheSameReport` now enumerates `samples/` rather than listing it, and asserts all
+eight sections on every script. A list covers the samples that existed when it was written; the
+guarantee wanted here is over the directory.

@@ -11,24 +11,45 @@ namespace FluidScript.Core.Tests.Diagnostics;
 /// <summary>What the solve report has to say to be worth reading.</summary>
 public sealed class SolveExplanationTests
 {
+    /// <summary>Every script in <c>samples/</c>, enumerated rather than listed.</summary>
+    /// <remarks>
+    /// A list would cover the samples that existed when it was written. The report is meant to be what
+    /// *every* solution carries, so the guarantee has to be stated over the directory: a sample added
+    /// tomorrow is covered without anyone remembering to add it.
+    /// </remarks>
+    public static TheoryData<string> Samples =>
+        [.. Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid")
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Order(StringComparer.Ordinal)];
+
     [Theory]
     [Trait("Category", "Unit")]
-    [InlineData("m2-simple-loop.fluid")]
-    [InlineData("m2-cooling-loop.fluid")]
-    [InlineData("m2-distribution-header.fluid")]
-    [InlineData("m2-substation.fluid")]
-    [InlineData("m4-storage-header.fluid")]
-    public async Task EverySampleExplainsItselfWithoutThrowing(string sample)
+    [MemberData(nameof(Samples))]
+    public async Task EverySolutionCarriesTheSameReport(string sample)
     {
-        // Including the ones that do not solve, which are the ones worth explaining: a circuit that is
-        // refused by counting, one that goes `Singular`, and one that leaves the fluid's domain all reach
-        // different branches of this report, and none of them may throw (`No pipeline stage throws`).
+        // Every section, on every script, whatever happened to it. The ones that do not solve are the ones
+        // worth explaining --- a circuit refused by counting, one that goes `Singular`, one that leaves the
+        // fluid's property domain and one that is a syntax tour rather than a circuit all reach different
+        // branches, and none of them may throw or quietly drop a section (`No pipeline stage throws`).
         var report = await Explain(sample);
 
-        Assert.Contains("counting table", report, StringComparison.Ordinal);
-        Assert.Contains("constraints, and what answers each", report, StringComparison.Ordinal);
-        Assert.Contains("unknowns, seeded and solved", report, StringComparison.Ordinal);
-        Assert.Contains("rank and conditioning", report, StringComparison.Ordinal);
+        Assert.StartsWith($"=== {sample}", report, StringComparison.Ordinal);
+
+        foreach (var section in (string[])
+            [
+                "    counting     ",
+                "--- counting table",
+                "--- hydraulic partition",
+                "--- constraints, and what answers each",
+                "--- unknowns, seeded and solved",
+                "--- equations, and how far each is from satisfied",
+                "--- values chosen by a sizing rule",
+                "--- rank and conditioning",
+            ])
+        {
+            Assert.Contains(section, report, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -122,6 +143,10 @@ public sealed class SolveExplanationTests
 
     private static async Task<string> Explain(string sample)
     {
+        // One call, whether or not the run produced a result. Every caller used to write this branch
+        // itself and half of them wrote the fallback wrong -- a circuit refused before the solver is
+        // exactly the one whose report is worth reading.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));
         var resolved = PipeCatalogs.Resolve(pin: null);
         var run = await new OuterLoop(
                 new NewtonSolver(),
@@ -129,13 +154,8 @@ public sealed class SolveExplanationTests
                 OuterLoop.Rules(resolved.Value.Catalog),
                 10)
             .RunAsync(
-                GraphFixture.Bind(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))),
-                Water.Instance, sample, TestContext.Current.CancellationToken);
+                GraphFixture.Bind(source), Water.Instance, sample, TestContext.Current.CancellationToken);
 
-        return run.IsSuccess
-            ? SolveExplanation.Render(run.Value, sample)
-            : SolveExplanation.Render(
-                GraphFixture.Lower(
-                    File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph, sample);
+        return SolveExplanation.Render(run, GraphFixture.Lower(source).Graph, sample);
     }
 }

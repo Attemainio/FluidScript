@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 
+using FluidScript.Core.Fluids;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Topology;
 
@@ -49,6 +50,22 @@ public static class SolveExplanation
     /// <returns>The report, as lines of text.</returns>
     public static string Render(CircuitGraph graph, string name = "circuit") =>
         Render(graph, name, solve: null, bases: null, notes: default, passes: 0);
+
+    /// <summary>Explains a run whether or not it produced a result.</summary>
+    /// <param name="run">What <c>OuterLoop.RunAsync</c> returned.</param>
+    /// <param name="fallback">The lowered circuit, used when the run produced no result.</param>
+    /// <param name="name">The script's name.</param>
+    /// <returns>The report, as lines of text.</returns>
+    /// <remarks>
+    /// The overload every caller actually wants. A run refused before the solver has no result to render
+    /// and is exactly the run whose report is worth reading, so branching on success and picking the
+    /// right overload was left to each caller --- and each one wrote the branch again. It belongs here:
+    /// the two reports differ only in how much of the run they can fill in, and the sections that need a
+    /// solve already say so themselves.
+    /// </remarks>
+    public static string Render(
+        Result<OuterLoopResult> run, CircuitGraph fallback, string name = "circuit") =>
+        run.IsSuccess ? Render(run.Value, name) : Render(fallback, name);
 
     private static string Render(
         CircuitGraph graph,
