@@ -82,8 +82,8 @@ let bore   = 27.3 mm                      # DN25 steel bore: a designation is no
 HE2 heat_exchanger in=50 out=30 power=Q             # a parameter whose value is a reference to a `let`
 TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
 PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
-NB1 node t=6 p=300                        # nor is `node` — this one is a boundary
-NB2 node p=280
+NB1 supply t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
+NB2 return p=280                          # plain `node` is a *datum* instead, and admits none (D-86)
 SB1 supply t=6 flow=0.24 kg/s             # `supply` in kind position: a boundary that says so (D-64)
 RB1 return                                # and `return`, which needs no arguments at all
 

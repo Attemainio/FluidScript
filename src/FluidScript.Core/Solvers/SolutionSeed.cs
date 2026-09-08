@@ -813,11 +813,17 @@ public static class SolutionSeed
         /// The same rule <c>WellPosedness</c> applies, restated rather than shared because the two
         /// reach it from opposite directions — it walks nodes to count columns, and this walks vertices
         /// of the branch graph to fill them. A test holds the two lists against each other.
+        /// <para>
+        /// <strong>It is the third copy of one rule, and `D-86` had to change all three.</strong>
+        /// Changing only <c>HydraulicComponent</c> left the table an equation short; changing that and
+        /// <c>WellPosedness</c> left this one seeding a flux into a node that no longer has a column, so
+        /// <c>m1-syntax-tour</c>'s <c>NB2</c> came out 0.167 kg/s out of balance and the seed's
+        /// divergence-free claim was false (<c>S-39</c>).
+        /// </para>
         /// </remarks>
         private static bool Free(CircuitNode node) =>
             node.CarriesMassBalance
-            && (HydraulicPartition.Stated(node, HydraulicPartition.Pressure) is not null
-                || node.Boundary is BoundaryRole.Return);
+            && node.Boundary is not BoundaryRole.Interior;
 
         /// <summary>Records one end of a branch against the vertex it meets.</summary>
         /// <param name="element">The junction element at that end.</param>

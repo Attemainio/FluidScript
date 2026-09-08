@@ -58,8 +58,8 @@ public sealed class WellPosednessTests
         3WV - P1
         P1 - N3
 
-        N1 node t=6 p=300
-        N3 node p=280
+        N1 supply t=6 p=300
+        N3 return p=280
         """;
 
     private static WellPosednessResult Check(string source) =>
@@ -173,8 +173,8 @@ public sealed class WellPosednessTests
         circuit substation
         fluid water
 
-        NPS node t=85 p=600
-        NPR node p=350
+        NPS supply t=85 p=600
+        NPR return p=350
         PCV valve
         PP  pipe length=12 dn=25
 

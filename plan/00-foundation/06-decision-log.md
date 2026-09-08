@@ -3717,3 +3717,58 @@ settled here.
 
 None. This document records decisions that are settled; an unsettled question belongs in the Open
 questions section of the document it blocks, not here.
+
+## D-86 · A stated pressure is a boundary condition only on a boundary; on an interior node it is a datum
+
+**Accepted · 2026-09-08**
+
+`HydraulicPartition` decides whether a component admits **unknown external mass flux**, and that single
+bit decides whether one of its mass balances is redundant and must be dropped. The test was: a node that
+carries a mass balance, states no `flow`, and is either a `return` **or states a pressure**. The
+pressure clause is removed. An **interior** node never admits unknown flux however it is annotated; only
+a `supply` or a `return` does.
+
+So a stated pressure now means one of two different things depending on where it is written, and the
+kind is what says which:
+
+| Where | Meaning | Admits mass? |
+|---|---|---|
+| `supply` / `return` | Boundary condition — a district connection, a pumped feed | **Yes**, at whatever rate holds the pressure |
+| `node` (interior) | **Datum** — the reference the circuit's pressures are measured from | No |
+
+**Why.** The two are physically different and the script already distinguishes them by kind. An
+expansion vessel connection on a closed heating circuit fixes the pressure level and passes no water;
+a district-heating primary at 600 kPa passes as much as the plant draws. Reading both as boundaries
+means a closed circuit annotated with its own datum is modelled as open, so `EquationLayout.Redundancies`
+drops no balance — and the global conservation identity, which is genuinely redundant in a closed
+circuit, stays in the system as a dependent row.
+
+**Measured** (`S-39`). `m2-distribution-header` with its datum on the junction `N1`: 46 unknowns, **0
+balances dropped**, `Singular` at iteration 0, and the row null direction naming `NM_AHU + N1 + N3 mass
+balance`, every weight 1, same sign — the conservation identity and nothing else. The same fixture with
+the datum moved to `N2`, a node inside a branch that carries no mass balance, is not `Singular` at all.
+Under the old rule the fix was to move the datum off the junction, which is a workaround a user has no
+way to discover: nothing in the language suggests that *where* you write a pressure changes whether your
+circuit is closed.
+
+**What this does not change.** `m2-cooling-loop` states two pressures and both are on boundaries —
+`N1 supply t=6 p=300` and `N3 return p=280` — so it keeps its unknown fluxes and drops no balance,
+correctly. `FS2201`'s auto-picked datum is unaffected. A `flow` stated anywhere still injects mass, as
+`D-64` has it.
+
+**Supersedes.** The flux rule as stated in [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md)
+and implemented in `HydraulicComponent`. It does not amend `D-64`, which defines the boundary *kinds*;
+it narrows which annotations are read as boundary conditions.
+
+**Rejected.**
+- *Keep the rule and let the fixture move its datum.* No code change, and it is what shipped. Cost: the
+  workaround is undiscoverable, and every closed circuit whose author writes `p=` on a junction gets
+  `Singular` with a diagnostic that names pump heads. Three sessions were spent on exactly that.
+- *Diagnose it instead — warn when a pressure is stated on an interior node that carries a mass
+  balance.* Honest and cheap. Cost: it tells the user their correct script is suspect, when the defect
+  is in how the model reads it. A diagnostic is the right answer only when the two readings are both
+  legitimate, and here one of them is simply wrong.
+- *Drop a balance whenever the partition is closed, ignoring flux entirely.* Simpler test. Cost: it is
+  wrong on the storage header, whose boundaries all state `flow` and which therefore has every flux
+  known — that case needs the drop, and `HasUnknownFlux` is what distinguishes it.
+

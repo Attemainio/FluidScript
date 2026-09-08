@@ -181,13 +181,15 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
-    public async Task TheRowDirectionIsNotReportedOnACircuitThatHasOne()
+    public async Task ASingularCircuitIsToldWhichEquationTheOthersAlreadyImply()
     {
-        // `S-40`, recorded as a failing expectation rather than a passing one. The header IS singular and
-        // a row null direction demonstrably exists on it -- a finite-difference Jacobian at the same
-        // point names seven rows, mass balances at weight 1 -- but `NullDirection.Redundancy` finds none
-        // through the solver's own path, so `FS3010` is silent and the user gets only `FS3009`, the half
-        // `S-36` exists to warn against trusting alone.
+        // `S-40`, closed by `D-86` rather than by touching `NullDirection`. This was written as a failing
+        // expectation -- the header was singular, a finite-difference Jacobian at the same point named
+        // seven rows, and `FS3010` said nothing, so the user got only `FS3009`, the half `S-36` exists to
+        // warn against trusting alone. The cause was upstream: the circuit's datum sat on a junction and
+        // was read as a boundary, so no redundant mass balance was dropped and the elimination on the
+        // transpose had a different matrix to work on. With the flux rule fixed, the row direction is
+        // found and reported.
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
@@ -202,11 +204,14 @@ public sealed class NullDirectionTests
 
         Assert.True(run.IsSuccess, run.Error?.Message);
 
-        // The termination and the column direction are both reported.
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
+        var implied = Assert.Single(
+            run.Value.Solve.Diagnostics.Where(static d => d.Code == "FS3010"));
 
-        // And the row direction is not, which is the defect. Flip this to `Contains` when `S-40` closes.
-        Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3010");
+        Assert.Contains("balance", implied.Message, StringComparison.Ordinal);
+
+        // Both halves ride alongside the termination's own code. A user given only the free columns is
+        // being handed the question rather than the answer.
+        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
+        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
     }
 }

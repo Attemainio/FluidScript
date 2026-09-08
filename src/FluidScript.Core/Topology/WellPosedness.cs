@@ -156,9 +156,15 @@ public static class WellPosedness
             // A stated `flow` names the flux outright, so there is no unknown left to declare. It is
             // not an equation either: counting it as one and keeping the unknown gives the same total
             // and a table that reads as though the circuit had to work to meet it.
+            //
+            // `D-86`: the test is the node's *kind*. A stated pressure on an interior node is a datum,
+            // not a boundary condition, so it brings no flux unknown -- and this must agree with
+            // `HydraulicComponent.HasUnknownFlux`, which decides the matching mass-balance drop. The two
+            // are the same rule written twice; changing one alone leaves the table short an equation and
+            // advising a pressure on a mid-branch node (`S-39`).
             if (node.Component.CarriesMassBalance
                 && HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is null
-                && (stated || node.Component.Boundary is BoundaryRole.Return))
+                && node.Component.Boundary is not BoundaryRole.Interior)
             {
                 fluxes.Add(node);
             }

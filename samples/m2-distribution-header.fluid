@@ -17,10 +17,11 @@
 # pinned to the network draw, the bypass carries exactly zero, and a zero-flow branch is `S-21`'s
 # singularity. The outlet floats and the primary flow is `PU_MAIN`'s own.
 #
-# `S-39`: the pressure datum is on `N2`, which lies inside a branch, not on a junction. A pressure
-# stated on a node that carries a mass balance is read as a boundary admitting unknown mass flux, so
-# writing it on `N1` would quietly turn this closed circuit into an open one, drop no redundant mass
-# balance, and leave the system deficient by exactly one.
+# `S-39`/`D-86`: the pressure datum sits on `N1`, the return header's junction, which is where an
+# engineer would put it -- the expansion vessel connection. It admits no mass: a `p=` on an interior
+# node is a *datum*, and only a `supply` or a `return` is a boundary. Until `D-86` it was read as a
+# boundary, which turned this closed circuit into an open one, dropped no redundant mass balance, and
+# left the system deficient by exactly one -- fixable only by moving the datum somewhere unnatural.
 #
 # `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in=50` on a 60 C header is a
 # demand its valve can actually meet. Both ends of each attachment are written out because
@@ -50,7 +51,7 @@ N3 - N4                                           # supply header
 N6 - N5
 N5 - N1                                           # return header
 
-N2 node p=250
+N1 node p=250
 
 circuit AHU 101
 

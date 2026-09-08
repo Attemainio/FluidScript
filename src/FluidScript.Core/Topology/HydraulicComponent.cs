@@ -76,12 +76,21 @@ public sealed record HydraulicComponent
 
     /// <summary>Gets whether any external mass flux here is a solver unknown.</summary>
     /// <value>
-    /// <see langword="true"/> when some node that carries a mass balance is a <c>return</c> or states a
-    /// pressure, and does not state the flow crossing it. This is what decides the mass-balance
+    /// <see langword="true"/> when some node that carries a mass balance is a <c>supply</c> or a
+    /// <c>return</c> and does not state the flow crossing it. This is what decides the mass-balance
     /// redundancy: with every flux known, summing the balances gives an identity and one of them is
     /// implied by the rest — and a storage header whose every boundary states a flow is that case,
     /// however many boundaries it has.
     /// </value>
+    /// <remarks>
+    /// <strong>A stated pressure does not make a node admit mass, and reading it that way cost three
+    /// sessions</strong> (<c>D-86</c>, <c>S-39</c>). On a <c>supply</c> or a <c>return</c> a pressure is a
+    /// boundary condition and mass crosses at whatever rate holds it; on an <em>interior</em> node it is a
+    /// <em>datum</em>, the reference the circuit's pressures are measured from, and nothing enters there.
+    /// An expansion vessel connection passes no water. Reading both as boundaries models a closed circuit
+    /// annotated with its own datum as open, so no redundant balance is dropped and the global
+    /// conservation identity stays in the system as a dependent row.
+    /// </remarks>
     public required bool HasUnknownFlux { get; init; }
 }
 
@@ -244,15 +253,19 @@ public static class HydraulicPartition
                 node.Component.Boundary is not BoundaryRole.Interior
                 || Stated(node.Component, Pressure) is not null
                 || Stated(node.Component, Flow) is not null),
-
             // An unknown flux needs somewhere to enter: a node with no mass balance is interior to a
             // branch, and a branch carries one flow from end to end. A stated `flow` is the flux itself,
             // so a boundary that states one admits mass without leaving anything to solve for.
+            //
+            // `D-86`: the test is the node's *kind*, not its annotations. A stated pressure on a
+            // `supply` or a `return` is a boundary condition and mass crosses at whatever rate holds it;
+            // on an interior node it is a datum and nothing enters. Reading a datum as a boundary makes a
+            // closed circuit look open, drops no redundant mass balance, and leaves the global
+            // conservation identity in the system as a dependent row (`S-39`).
             HasUnknownFlux = nodes.Any(static node =>
                 node.Component.CarriesMassBalance
                 && Stated(node.Component, Flow) is null
-                && (node.Component.Boundary is BoundaryRole.Return
-                    || Stated(node.Component, Pressure) is not null)),
+                && node.Component.Boundary is not BoundaryRole.Interior),
         };
     }
 
