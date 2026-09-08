@@ -70,7 +70,11 @@ public static class SolveExplanation
 
         var layout = SystemLayout.Build(graph, posedness.Counting);
         var seed = SolutionSeed.Build(graph, layout);
-        var system = posedness.CanSolve ? EquationSystem.Build(graph, posedness, seed) : null;
+        // Assembled whether or not the count balanced. A circuit the check refuses is precisely the one
+        // whose rank is worth measuring: the counting table can say the shortfall is one and only the
+        // matrix can say *which* unknown nothing determines. `EquationSystem.Build` never required a
+        // square system; only this line did.
+        var system = Assemble(graph, posedness, seed);
 
         Unknowns(report, layout, seed, solve);
         Equations(report, system, solve);
@@ -78,6 +82,28 @@ public static class SolveExplanation
         Conditioning(report, system, seed, solve);
 
         return report.ToString();
+    }
+
+    /// <summary>Assembles the system, or reports nothing rather than throwing out of a diagnostic.</summary>
+    /// <remarks>
+    /// A report is asked for when something is already wrong, and a malformed graph is the normal case
+    /// rather than the exception (<c>no pipeline stage throws on user input</c>). Assembly walks lookups
+    /// that a graph refused by an earlier stage can leave incomplete, so a failure here becomes an absent
+    /// section rather than an exception thrown from the tool the user reached for to explain the failure.
+    /// </remarks>
+    private static EquationSystem? Assemble(
+        CircuitGraph graph, WellPosednessResult posedness, StateVector seed)
+    {
+        try
+        {
+            return EquationSystem.Build(graph, posedness, seed);
+        }
+#pragma warning disable CA1031 // See the remarks: a diagnostic that throws is worse than one that omits.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return null;
+        }
     }
 
     private static void Summary(
@@ -357,8 +383,9 @@ public static class SolveExplanation
         }
 
         var at = solve?.Solution ?? seed;
-        var order = system.Columns;
-        var matrix = Jacobian(system, at.Values.AsSpan(), order);
+        var rows = system.Rows;
+        var columns = system.Columns;
+        var matrix = Jacobian(system, at.Values.AsSpan(), rows, columns);
 
         if (matrix is null)
         {
@@ -368,38 +395,74 @@ public static class SolveExplanation
             return;
         }
 
-        var pivots = Pivots([.. matrix], order);
+        var pivots = Pivots([.. matrix], rows, columns);
         var largest = pivots.Length == 0 ? 0 : pivots.Max();
         var smallest = pivots.Length == 0 ? 0 : pivots.Min();
-        var deficient = pivots.Count(pivot => largest > 0 && pivot / largest < RankTolerance);
+        var rank = pivots.Count(pivot => largest > 0 && pivot / largest >= RankTolerance);
+        var undetermined = columns - rank;
+        var dependent = rows - rank;
 
         report.AppendLine(CultureInfo.InvariantCulture,
-            $"    evaluated at {(solve is null ? "the seed" : "the solved iterate")}, order {order}");
+            $"    evaluated at {(solve is null ? "the seed" : "the solved iterate")}, "
+            + $"{rows} equations x {columns} unknowns");
         report.AppendLine(CultureInfo.InvariantCulture,
             $"    pivots       largest {largest:G4}, smallest {smallest:G4}, "
             + $"ratio {(largest > 0 ? smallest / largest : 0):G4}");
         report.AppendLine(CultureInfo.InvariantCulture,
-            $"    rank         {order - deficient} of {order}, deficient by {deficient}");
+            $"    rank         {rank}: {undetermined} unknown(s) nothing determines, "
+            + $"{dependent} equation(s) the others imply");
 
-        if (deficient == 0)
+        if (undetermined == 0 && dependent == 0)
         {
             return;
         }
 
-        var free = NullDirection.Of([.. matrix], order);
-        var implied = NullDirection.Redundancy([.. matrix], order);
+        // `NullDirection` reads a square matrix, and a refused circuit's is not. Padding with zero ROWS
+        // leaves the column null space untouched -- a zero row constrains nothing -- so the free-unknown
+        // direction is exact whatever the shape. The row direction is not recoverable the same way: a
+        // padded zero row is trivially dependent and would be named ahead of any real redundancy, so it is
+        // reported only when the system is genuinely square.
+        var side = Math.Max(rows, columns);
+        var padded = new double[side * side];
 
-        report.AppendLine();
-        report.AppendLine("    unknowns nothing separates (the column direction — where pivoting landed):");
-        Direction(report, free, index => index < system.Unknowns.Unknowns.Length
-            ? system.Unknowns.Unknowns[index].Name
-            : $"column {index}");
+        for (var row = 0; row < rows; row++)
+        {
+            Array.Copy(matrix, row * columns, padded, row * side, columns);
+        }
+
+        if (undetermined > 0)
+        {
+            report.AppendLine();
+            report.AppendLine(
+                "    unknowns nothing separates (the column direction — where pivoting landed):");
+            Direction(report, NullDirection.Of([.. padded], side),
+                index => index < system.Unknowns.Unknowns.Length
+                    ? system.Unknowns.Unknowns[index].Name
+                    : $"column {index}");
+        }
+
+        if (rows != columns)
+        {
+            var shape =
+                $"the row direction is not reported on a {rows}x{columns} system: the count already "
+                + "names the shortfall, and a padded row would be named ahead of any real redundancy";
+
+            report.AppendLine();
+            report.AppendLine(CultureInfo.InvariantCulture, $"    {shape}");
+            return;
+        }
+
+        if (dependent == 0)
+        {
+            return;
+        }
 
         report.AppendLine();
         report.AppendLine("    equations that are not independent (the row direction — the redundancy):");
-        Direction(report, implied, index => index < system.Equations.Rows.Length
-            ? system.Equations.Rows[index].Name
-            : $"row {index}");
+        Direction(report, NullDirection.Redundancy([.. matrix], columns),
+            index => index < system.Equations.Rows.Length
+                ? system.Equations.Rows[index].Name
+                : $"row {index}");
     }
 
     private static void Direction(
@@ -421,12 +484,12 @@ public static class SolveExplanation
         }
     }
 
-    private static double[]? Jacobian(EquationSystem system, ReadOnlySpan<double> x, int order)
+    private static double[]? Jacobian(EquationSystem system, ReadOnlySpan<double> x, int rows, int columns)
     {
-        var matrix = new double[order * order];
-        var basis = new double[order];
-        var perturbed = new double[order];
-        var trial = new double[order];
+        var matrix = new double[rows * columns];
+        var basis = new double[rows];
+        var perturbed = new double[rows];
+        var trial = new double[columns];
 
         if (!system.TryEvaluateResiduals(x, basis))
         {
@@ -436,7 +499,7 @@ public static class SolveExplanation
         var scales = system.UnknownScales;
         var residualScales = system.ResidualScales;
 
-        for (var column = 0; column < order; column++)
+        for (var column = 0; column < columns; column++)
         {
             x.CopyTo(trial);
 
@@ -449,14 +512,14 @@ public static class SolveExplanation
                 return null;
             }
 
-            for (var row = 0; row < order; row++)
+            for (var row = 0; row < rows; row++)
             {
                 // The scaled Jacobian, because that is what the solver factors: an unscaled matrix's
                 // conditioning is a statement about units rather than about the circuit.
                 var derivative = (perturbed[row] - basis[row]) / step;
                 var scale = scales[column] / residualScales[row];
 
-                matrix[(row * order) + column] = derivative * scale;
+                matrix[(row * columns) + column] = derivative * scale;
             }
         }
 
@@ -464,23 +527,28 @@ public static class SolveExplanation
     }
 
     /// <summary>The pivot magnitudes a full-pivot elimination meets, largest first.</summary>
-    private static double[] Pivots(double[] matrix, int order)
+    /// <remarks>
+    /// Rectangular on purpose. The circuits worth a rank measurement are exactly the ones the counting
+    /// check refuses, and those are never square -- a square system that is refused does not exist.
+    /// </remarks>
+    private static double[] Pivots(double[] matrix, int rows, int columns)
     {
-        var pivots = new List<double>(order);
-        var rows = Enumerable.Range(0, order).ToArray();
-        var columns = Enumerable.Range(0, order).ToArray();
+        var steps = Math.Min(rows, columns);
+        var pivots = new List<double>(steps);
+        var rowOrder = Enumerable.Range(0, rows).ToArray();
+        var columnOrder = Enumerable.Range(0, columns).ToArray();
 
-        for (var step = 0; step < order; step++)
+        for (var step = 0; step < steps; step++)
         {
             var best = 0.0;
             var bestRow = step;
             var bestColumn = step;
 
-            for (var row = step; row < order; row++)
+            for (var row = step; row < rows; row++)
             {
-                for (var column = step; column < order; column++)
+                for (var column = step; column < columns; column++)
                 {
-                    var magnitude = Math.Abs(matrix[(rows[row] * order) + columns[column]]);
+                    var magnitude = Math.Abs(matrix[(rowOrder[row] * columns) + columnOrder[column]]);
 
                     if (magnitude > best)
                     {
@@ -498,24 +566,24 @@ public static class SolveExplanation
                 continue;
             }
 
-            (rows[step], rows[bestRow]) = (rows[bestRow], rows[step]);
-            (columns[step], columns[bestColumn]) = (columns[bestColumn], columns[step]);
+            (rowOrder[step], rowOrder[bestRow]) = (rowOrder[bestRow], rowOrder[step]);
+            (columnOrder[step], columnOrder[bestColumn]) = (columnOrder[bestColumn], columnOrder[step]);
 
-            var pivot = matrix[(rows[step] * order) + columns[step]];
+            var pivot = matrix[(rowOrder[step] * columns) + columnOrder[step]];
 
-            for (var row = step + 1; row < order; row++)
+            for (var row = step + 1; row < rows; row++)
             {
-                var factor = matrix[(rows[row] * order) + columns[step]] / pivot;
+                var factor = matrix[(rowOrder[row] * columns) + columnOrder[step]] / pivot;
 
                 if (factor == 0)
                 {
                     continue;
                 }
 
-                for (var column = step; column < order; column++)
+                for (var column = step; column < columns; column++)
                 {
-                    matrix[(rows[row] * order) + columns[column]] -=
-                        factor * matrix[(rows[step] * order) + columns[column]];
+                    matrix[(rowOrder[row] * columns) + columnOrder[column]] -=
+                        factor * matrix[(rowOrder[step] * columns) + columnOrder[column]];
                 }
             }
         }

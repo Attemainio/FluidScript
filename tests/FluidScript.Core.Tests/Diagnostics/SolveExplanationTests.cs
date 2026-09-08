@@ -61,22 +61,34 @@ public sealed class SolveExplanationTests
             "1 with no promotion, against 1 enthalpy level(s) dropped",
             report,
             StringComparison.Ordinal);
-        Assert.Contains("deficient by 0", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "0 unknown(s) nothing determines, 0 equation(s) the others imply",
+            report,
+            StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public async Task ACircuitTheCountRefusesSaysSoAndDoesNotPretendToARank()
+    public async Task ACircuitTheCountRefusesIsStillRankedAndNamesTheUnknownNothingDetermines()
     {
-        // The header, since `S-41`. A count that is short by one is a better answer than the zero pivot it
-        // used to produce, and the report must not manufacture a rank for a system that was never
-        // assembled -- a 45-by-44 matrix eliminated as if it were square would report a deficiency that is
-        // an artefact of the shape rather than of the circuit.
+        // The header, since `S-41`. Gating the rank on a balanced count withheld the measurement from the
+        // only circuits that need it: the count can say the shortfall is one, and only the matrix can say
+        // *which* unknown nothing determines. `PU_RAD.head` at weight 1 against its valve's position is
+        // `S-38`, stated in one line instead of inferred from a dozen probes.
         var report = await Explain("m2-distribution-header.fluid");
 
         Assert.Contains("45 unknowns, 44 equations — under-specified by 1", report, StringComparison.Ordinal);
         Assert.Contains("one energy balance dropped as its level", report, StringComparison.Ordinal);
-        Assert.Contains("(not assembled)", report, StringComparison.Ordinal);
+        Assert.Contains("44 equations x 45 unknowns", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "rank         44: 1 unknown(s) nothing determines, 0 equation(s) the others imply",
+            report,
+            StringComparison.Ordinal);
+        Assert.Contains("PU_RAD.head", report, StringComparison.Ordinal);
+
+        // The row direction is withheld rather than padded, because a zero row invented to square the
+        // matrix is trivially dependent and would be named ahead of any real redundancy.
+        Assert.Contains("the row direction is not reported on a 44x45 system", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,7 +97,10 @@ public sealed class SolveExplanationTests
     {
         var report = await Explain("m2-cooling-loop.fluid");
 
-        Assert.Contains("deficient by 0", report, StringComparison.Ordinal);
+        Assert.Contains(
+            "0 unknown(s) nothing determines, 0 equation(s) the others imply",
+            report,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("the row direction", report, StringComparison.Ordinal);
     }
 

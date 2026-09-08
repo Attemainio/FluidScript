@@ -190,22 +190,33 @@ other residual in the report above.
 
 ```
 --- rank and conditioning
-    evaluated at the solved iterate, order 45
-    pivots       largest 4.8, smallest 9.958E-14, ratio 2.074E-14
-    rank         44 of 45, deficient by 1
+    evaluated at the seed, 44 equations x 45 unknowns
+    pivots       largest 4.819, smallest 2.401E-09, ratio 4.982E-10
+    rank         44: 1 unknown(s) nothing determines, 0 equation(s) the others imply
 ```
 
 The section that answers "is this system actually solvable, and by how much is it not?".
 
 The matrix is the **scaled** Jacobian — the one the solver factors — eliminated with full pivoting.
-`rank 44 of 45` means one equation of forty-five adds nothing the other forty-four did not already
-say. **Deficient by 1** is a much more useful fact than "singular": one means look for a single
-missing or duplicated relation, and several means the model is wrong in a structural way.
+It is measured whether or not the count balanced, because a circuit the count refused is exactly the
+one whose rank is worth knowing: the counting table can tell you the shortfall is one, and only the
+matrix can tell you *which* unknown nothing determines.
+
+The two numbers after the rank are different failures and it matters which you have:
+
+- **unknowns nothing determines** — the system has more freedoms than it has relations. Something has
+  to be stated, or a value the tool is currently solving for has to be worked out by a rule instead.
+- **equations the others imply** — a relation in the system says nothing new. Stating something else
+  will not help; one of those equations has to go.
+
+A square system can have both at once, one of each, which is what "singular" used to be reported as.
+Knowing it is **one** rather than "some" is the difference between looking for a single missing
+relation and concluding the model is wrong in a structural way.
 
 The `pivots` ratio is a rough condition number. Around `1e-14` and below, the deficiency is real
 rather than arithmetic noise.
 
-When the rank is short, two lists follow, and **they answer different questions**:
+When the rank is short, up to two lists follow, and **they answer different questions**:
 
 ```
     unknowns nothing separates (the column direction — where pivoting landed):
@@ -244,6 +255,17 @@ circuit open because it carried a stated pressure on its datum node.
 
 Neither list alone would have said that. The column direction pointed at two pumps, which is where the
 elimination stopped rather than where the problem was.
+
+On a system that is not square, only the column list is shown:
+
+```
+    the row direction is not reported on a 44x45 system: the count already names the shortfall,
+    and a padded row would be named ahead of any real redundancy
+```
+
+The column direction is exact whatever the shape. The row direction is not recoverable the same way —
+squaring the matrix means inventing rows of zeros, and a zero row is dependent on everything, so it
+would be named ahead of any real redundancy.
 
 ## When the circuit never ran
 
