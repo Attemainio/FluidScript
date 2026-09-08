@@ -53,6 +53,11 @@ Read the relevant document before working in that area; update it when you learn
   `plan/00-foundation/08-implementation-sequence.md`.
 - **No pipeline stage throws on user input.** A script under editing is malformed most of the time;
   malformed input is a return value.
+- **Look engineering conventions up; never derive them.** Before settling a sizing rule, coefficient,
+  rounding direction or default, search published manufacturer and industry guidance and cite it in the
+  `plan/` document. First principles are how a plausible invention reaches the spec, and the user's own
+  experience is empirical and partial. Mark whatever the search cannot confirm as this project's
+  reasoning, and treat it as the part most worth testing.
 
 ## Navigating C# code
 
@@ -91,6 +96,10 @@ cd frontend && npm run dev                # Vite dev server, proxies /api and /w
   in, what comes out, and why. This project's physics needs numbers, not descriptions.
 - **Be disagreeable by default.** Challenge ideas and point out blind spots. A tool that computes
   engineering numbers needs its assumptions attacked.
+- **Explain a defect from the beginning, not from the conclusion.** For a bug, a wrong claim or plan
+  drift: what the code meant to do, what it did instead, why that is wrong *physically*, and how it got
+  there — plain language first, mechanism second, `C-`/`S-` number last. Assume an energy engineer not
+  carrying this convention today: an explanation they can argue with beats one that is merely correct.
 
 ## Non-obvious invariants
 
