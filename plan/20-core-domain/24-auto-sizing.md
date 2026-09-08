@@ -365,6 +365,41 @@ authority is computed and surfaced. That raises the importance of this rule rath
 it is not a refinement of an answer that would otherwise be roughly right, it is the only place the
 tool can notice.
 
+#### The bypass leg needs a balancing resistance, and the valve cannot supply it
+
+**Both legs share one `kv` and one `position`, and their effective coefficients are complementary — so
+a drop chosen for the controlled leg fixes the bypass leg's drop too, sensible or not.** Sizing from
+one leg alone therefore cannot be right, and `C-63` measured what that costs: on `m2-cooling-loop`,
+sizing the controlled leg for the 18.9 kPa the pressure balance leaves gives Kv 1.6, the solver must
+then close the valve to `position` 0.41 to satisfy the *other* leg, and there the bypass's effective Kv
+is about 0.16 and it drops **316 kPa** passing 0.0766 kg/s. The pump is asked for 33.6 m on a loop
+whose exchanger drops 5. Sizing for the bypass instead gives Kv 4, and the controlled leg can no longer
+restrict enough.
+
+**The missing element is not in the valve. It is a balancing valve in the bypass leg**, and industry
+guidance is unambiguous that it is required: the bypass balancing valve is "essential for proper
+operation of the water distribution system", set so that "when the valve is in the bypass position, the
+pressure drop will be similar to the path through the coil". Without it "a fluid short-circuit occurs
+and the supply-to-return differential pressure in the system will drop, possibly starving other coils
+in the system".[^bypass][^balance]
+
+So the rule is in two parts, and only the first belongs to the valve:
+
+1. **The valve's `kv` is sized from the controlled leg**, exactly as above.
+2. **The bypass leg carries a balancing resistance matched to the drop of the path it bypasses.** That
+   is a separate component with its own setting, not something a `kv` can express — one coefficient
+   cannot satisfy two legs whose flows differ.
+
+`m2-cooling-loop`'s bypass leg is **empty** — the branch from the valve back to the mixing node contains
+no components at all, so its resistance is exactly zero. That is the fluid short-circuit the guidance
+describes, and it is why no choice of `kv` makes that circuit behave. The fixture is missing a real
+component rather than the sizer missing a rule.
+
+[^bypass]: HVAC Engineering, *Three-Way Control Valves*. https://hvac-eng.com/three-way-control-valves/
+
+[^balance]: Eng-Tips, *Three way control valve balancing*.
+    https://www.eng-tips.com/threads/three-way-control-valve-balancing.320544/
+
 **Out of scope here.** Sequenced parallel valves are a control-topology question, not a sizing one, and
 they need a control element that is a *set* rather than a component — the same shape as the parallel
 set above. Recorded so it is not mistaken for an oversight.
