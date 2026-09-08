@@ -419,7 +419,69 @@ public sealed class OuterLoop(
             }
         }
 
+        Unsized(graph, overlay, bases, notes);
+
         return (overlay, bases.ToImmutable(), notes.ToImmutable());
+    }
+
+    /// <summary>Reports any bootstrap provisional no rule was ever able to replace.</summary>
+    /// <param name="graph">The graph as lowered for this pass.</param>
+    /// <param name="overlay">The overlay the passes settled on.</param>
+    /// <param name="bases">The bases being built; a surviving provisional gets one saying so.</param>
+    /// <param name="notes">The notes being built.</param>
+    /// <remarks>
+    /// <para>
+    /// <strong><see cref="Bootstrap"/> promises that "the first real pass replaces it", and where no rule
+    /// can size the component it never does</strong> (<c>C-60</c>). The provisional is applied by
+    /// <em>kind</em> -- any parameter the registry marks sizable -- while a rule applies to a
+    /// <em>type</em>, and the two do not agree. <c>ValveSizer.CanSize</c> is <c>component is Valve</c>, so
+    /// a <c>three_way_valve</c> is handed <see cref="ISizer.Provisional"/> and never sized: on
+    /// <c>m2-cooling-loop</c> that leaves <c>3WV</c> at <strong>Kv 630</strong>, the largest row in the
+    /// series, chosen deliberately to behave like an open port during the bootstrap. It then stays one --
+    /// the valve drops nothing, the primary's 300/280 kPa boundary over-drives the loop by about 14 kPa,
+    /// and the pump is asked for negative head to absorb it.
+    /// </para>
+    /// <para>
+    /// <strong>Reported rather than corrected, because the rule that would correct it does not exist
+    /// yet.</strong> A three-way valve is a junction element, so it appears in no branch's <c>Path</c> and
+    /// <see cref="Context"/> can build it no context -- it sits on three branches at once. That is the
+    /// same structural limit as <c>C-49</c>'s parallel set and it has the same answer: a pass over
+    /// <see cref="OuterLoop"/>, which can see sibling branches, rather than an <see cref="ISizer"/>, which
+    /// is handed one. Until that lands the honest thing is to say the value was never chosen, because
+    /// <c>D-02</c> allows a size or a visible decided default and a surviving provisional is neither.
+    /// </para>
+    /// </remarks>
+    private void Unsized(
+        CircuitGraph graph,
+        SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases,
+        ImmutableArray<string>.Builder notes)
+    {
+        foreach (var component in graph.Components)
+        {
+            foreach (var (parameter, value) in overlay.For(component.Name))
+            {
+                var key = $"{component.Name}.{parameter}";
+
+                if (bases.ContainsKey(key)
+                    || sizers.Any(sizer =>
+                        sizer.CanSize(component) && sizer.Parameters.Contains(parameter)))
+                {
+                    continue;
+                }
+
+                bases[key] = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{value.SiValue:0.###} — provisional, not chosen: no rule sizes a "
+                    + $"{component.Kind}'s `{parameter}`");
+
+                notes.Add(
+                    $"{component.Name}.{parameter} is still the bootstrap value no rule replaced, because "
+                    + $"nothing sizes a {component.Kind}'s `{parameter}` yet. It was chosen to disturb the "
+                    + "first pass as little as possible, not to suit this circuit — state it, or read the "
+                    + "result knowing this one number is arbitrary.");
+            }
+        }
     }
 
     private static bool Claimed(IFlowComponent component, string parameter, HashSet<string> promoted) =>

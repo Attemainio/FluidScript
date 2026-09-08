@@ -219,7 +219,10 @@ public sealed class OuterLoopTests
 
         Assert.Equal(0.0, prepared.Sizes.For("PU1", "head"));
         Assert.Contains("no closed circuit", prepared.Bases["PU1.head"], StringComparison.Ordinal);
-        Assert.Contains("no closed circuit", Assert.Single(prepared.Notes), StringComparison.Ordinal);
+        // One note among others now: `C-60` adds its own for `3WV`, whose `kv` no rule can size.
+        Assert.Contains(
+            prepared.Notes,
+            static note => note.Contains("no closed circuit", StringComparison.Ordinal));
     }
 
     [Fact]
