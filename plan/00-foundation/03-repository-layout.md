@@ -139,6 +139,13 @@ The cost is stated plainly: a machine with only a 10.0.3xx SDK cannot build this
 installs a 10.0.1xx one, and gets `SDK not found` rather than a silent roll-forward. That is the
 intended trade — a refusal at the first command beats a degraded answer an hour later.
 
+**Stated generally, because `global.json` is only the instance:** a repository's SDK selection is part
+of its contract with its tooling, not a local convenience. Every tool that opens these projects — an
+IDE, a language server, a Roslyn-backed agent, CI — resolves an SDK before it resolves a reference, and
+any two that resolve differently share one `ArtifactsPath` and corrupt each other quietly rather than
+loudly. So a repository states its band, and any new build-adjacent input that changes SDK or restore
+resolution gets a subsection here, alongside `Directory.Build.props` and `Directory.Packages.props`.
+
 ### `Directory.Build.props`
 
 ```xml
@@ -229,21 +236,34 @@ a `TreatWarningsAsErrors` repo that already has warnings on day one never gets c
 
 Where a new feature's files land — adding a `three_way_valve`:
 
-| Artifact | Path |
-|---|---|
-| Component type | `src/FluidScript.Core/Components/ThreeWayValve.cs` |
-| Keyword registration | `src/FluidScript.Core/Language/ComponentRegistry.cs` |
-| Sizing rule | `src/FluidScript.Core/Sizing/ThreeWayValveSizer.cs` |
-| Unit tests | `tests/FluidScript.Core.Tests/Components/ThreeWayValveTests.cs` |
-| Sizing tests | `tests/FluidScript.Core.Tests/Sizing/ThreeWayValveSizerTests.cs` |
-| Sample script | `samples/three-way-valve-basic.fluid` |
-| Declarative symbol | `src/FluidScript.Core/Model/Symbols/ThreeWayValveSymbol.cs` |
-| Generic renderer coverage | `frontend/src/features/canvas/symbols/symbolRenderer.test.tsx` |
-| Documentation (`R-28`) | `docs/functions/three-way-valve.md` |
+| Artifact | Path | Supplied by |
+|---|---|---|
+| Component type | `src/FluidScript.Core/Components/ThreeWayValve.cs` | the package that introduces the kind |
+| Keyword registration | `src/FluidScript.Core/Language/ComponentRegistry.cs` | the same package |
+| Unit tests | `tests/FluidScript.Core.Tests/Components/ThreeWayValveTests.cs` | the same package |
+| Documentation (`R-28`) | `docs/functions/three-way-valve.md` | the same package — **never deferred** |
+| Sizing rule | `src/FluidScript.Core/Sizing/…` | the sizing package for that kind (`P3.7`) |
+| Sizing tests | `tests/FluidScript.Core.Tests/Sizing/…` | the same sizing package |
+| Sample script | `samples/three-way-valve-basic.fluid` | the sizing package, which is the first one that can produce numbers |
+| Declarative symbol | `src/FluidScript.Core/Model/Symbols/ThreeWayValveSymbol.cs` | M3 (`D-24` defers `Model/Symbols/`) |
+| Generic renderer coverage | `frontend/src/features/canvas/symbols/symbolRenderer.test.tsx` | M3, with the frontend |
 
-Nine files. That list is the definition of "done" for a component, and
-[`61-documentation-plan`](../60-docs-and-devex/61-documentation-plan.md) restates the last row as a
-hard gate.
+Nine files. **That list is the definition of "done" for a component, not a checklist for the package
+that introduces one** — the distinction `F-4` was filed against, after `P3.3` built six component kinds
+and could satisfy only the first four rows, because sizing, symbols and the renderer had not been
+sequenced yet. Read down the third column to see which package owes each row; read the whole table only
+when asking whether a component is finished.
+
+The one row that never moves is the documentation:
+[`61-documentation-plan`](../60-docs-and-devex/61-documentation-plan.md) restates it as a hard gate, and a
+component that ships a keyword without a `/docs` page is incomplete however early its package sits.
+
+Two conventions the list does not show. A test file may cover **two kinds at once** where the physics
+is shared — `ValveAndPumpTests.cs` holds both, because the pump's curve and the valve's law are tested
+against the same regularisation, and splitting them would duplicate the fixture rather than isolate
+anything. And a sizing rule may be a **pass over `OuterLoop`** rather than an `ISizer`: choosing which
+of a three-way valve's legs to size against is a comparison across sibling branches, which a rule handed
+one branch cannot make (`C-61`, `C-63`, `C-66`).
 
 ## Acceptance criteria
 
