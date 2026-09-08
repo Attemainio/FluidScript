@@ -29,6 +29,15 @@
 # and on this shape that is the valve's outlet, which wires the consumer's return to the *supply*
 # header and leaves every header branch carrying zero.
 #
+# `S-41`: the datum being on `N1` was not enough on its own. `D-86` fixed the three places that decide
+# whether mass crosses a boundary and missed `IsClosed`, so this circuit still read as *open* -- with
+# zero boundaries -- and no energy balance was dropped as its level. A closed circuit's energy balances
+# are one short of independent, because adding the same enthalpy to every node satisfies all of them.
+#
+# `C-67`: both loads carry a **negative** `power`. They cool the water -- `in=50 out=30` -- and a cooler
+# is written with a negative duty, never a negative `dt`. Written positive, the three duties summed to
+# 108 kW instead of zero, which nothing reported until the circuit was correctly read as closed.
+#
 # `C-66`: the tap branches carry real pipework. A branch written as a bare node-to-node connection
 # drops 0 kPa, and a valve sized against no resistance at all sits inside the solver's smoothing band,
 # so the rule declines rather than inventing an answer.
@@ -55,7 +64,7 @@ N1 node p=250
 
 circuit AHU 101
 
-HE_AHU  heat_exchanger in=50 out=30 power=24 kW
+HE_AHU  heat_exchanger in=50 out=30 power=-24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
 PA1     pipe length=12 dn=25
@@ -69,7 +78,7 @@ TV_AHU.a - PA2 - N5                               # and returned to it
 
 circuit radiators 102
 
-HE_RAD  heat_exchanger in=50 out=30 power=30 kW
+HE_RAD  heat_exchanger in=50 out=30 power=-30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 PR1     pipe length=18 dn=25

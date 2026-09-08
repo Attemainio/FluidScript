@@ -63,6 +63,35 @@ relation per component — and you never influence it directly. The terms worth 
 The negative terms are where a hand count usually goes wrong. If your own count comes out one over,
 the missing subtraction is almost always here.
 
+## The hydraulic partition
+
+```
+--- hydraulic partition
+    [0] closed, 15 nodes, 11 branches, 29 elements
+        datum N1 (stated), 0 boundaries, 1 stated pressures, unknown flux False
+        one energy balance dropped as its level; coupled elements: none
+```
+
+One block per hydraulically separate part of the model — a substation has two, a single loop has one.
+This is where the counting table's *negative* terms come from, so when a subtraction you expected did
+not happen, the reason is here.
+
+**Closed means no mass crosses the boundary at all**, and it decides two subtractions at once. A closed
+circuit's mass balances are one short of independent, because the last node's is implied by all the
+others. Its *energy* balances are one short too, for a different reason: adding the same enthalpy
+offset to every node satisfies every balance and every duty relation unchanged, so one of them says
+nothing new. Both redundancies have to be removed or the matrix is singular by construction.
+
+Two things suppress the energy subtraction, and the block names both. A **coupled element** — a real
+two-sided exchanger whose second side is wired into another part — reads absolute temperatures on both
+sides, so the offset no longer cancels and no balance is redundant. And an **open** part takes its
+level from the enthalpy arriving with the incoming mass.
+
+`0 boundaries` with `unknown flux False` on a part reported *open* is a contradiction worth chasing:
+something is being read as an opening that admits no mass. A stated pressure on an interior node is a
+datum — an expansion vessel connection passes no water — and reading it as a boundary is exactly what
+this line exists to make visible.
+
 ## Constraints, and what answers each
 
 ```
@@ -206,10 +235,15 @@ the relation.
 Reading only the column list is the classic mistake, and it costs hours: it sends you to whichever
 pump the pivoting stopped at, when the answer is a redundant balance three sections up.
 
-In the excerpt above, the row direction is almost entirely energy balances at high weight, while the
-counting table says `less enthalpy levels 0` — no energy balance was dropped. Those two facts
-together name the defect: the circuit's energy relations are one short of independent and nothing
-removed the redundancy.
+That excerpt is worth keeping, because it is how a real defect was found. The row direction was almost
+entirely **energy** balances at high weight, while the counting table for the same circuit said `less
+enthalpy levels 0` — no energy balance had been dropped. Those two lines together name the cause with
+no further searching: the circuit's energy relations were one short of independent and nothing removed
+the redundancy. The reason sat one section up, in the hydraulic partition, which was calling a closed
+circuit open because it carried a stated pressure on its datum node.
+
+Neither list alone would have said that. The column direction pointed at two pumps, which is where the
+elimination stopped rather than where the problem was.
 
 ## When the circuit never ran
 

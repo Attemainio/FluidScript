@@ -23,7 +23,11 @@ namespace FluidScript.Core.Tests.Solvers;
 /// </remarks>
 public sealed class CorpusStatusTests
 {
-    public static TheoryData<string, SolveTermination> Corpus => new()
+    // `null` is a sample the counting check refuses, which never reaches the solver and so has no
+    // termination to record. It is a state worth distinguishing rather than folding into a failure:
+    // refused-with-a-count is a better place to stand than square-and-singular, even though neither
+    // solves.
+    public static TheoryData<string, SolveTermination?> Corpus => new()
     {
         // Solves end to end. `24`'s worked example, reached rather than transcribed.
         { "m2-simple-loop.fluid", SolveTermination.Converged },
@@ -38,8 +42,12 @@ public sealed class CorpusStatusTests
         // 50, and 0.0763 kg/s recirculating. **An `M2a` exit criterion, met.**
         { "m2-cooling-loop.fluid", SolveTermination.Converged },
 
-        // `S-33`. Rank 27 of 28 at the seed -- structurally under-determined before a step is taken.
-        { "m2-distribution-header.fluid", SolveTermination.Singular },
+        // `S-38`, and no longer `Singular`. It was square and rank 44 of 45; `S-41` found that a stated
+        // pressure on an interior datum was making this closed circuit read as open, so no energy balance
+        // was dropped as its level. With that fixed the count itself is short by one and the check refuses
+        // it before the solver sees it. The deficiency is the same one -- it is now named rather than met
+        // as a zero pivot.
+        { "m2-distribution-header.fluid", null },
 
         // `S-32`. The secondary's flow is not implied by its stated profile, so the loop runs at 2.21
         // kg/s where the duty implies 0.897 and the temperatures leave the property domain.
@@ -48,7 +56,7 @@ public sealed class CorpusStatusTests
 
     [Theory]
     [MemberData(nameof(Corpus))]
-    public async Task EachSampleStandsWhereItStood(string sample, SolveTermination expected)
+    public async Task EachSampleStandsWhereItStood(string sample, SolveTermination? expected)
     {
         var resolved = PipeCatalogs.Resolve(pin: null);
 
@@ -63,6 +71,13 @@ public sealed class CorpusStatusTests
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));
         var run = await loop.RunAsync(
             GraphFixture.Bind(source), Water.Instance, sample, TestContext.Current.CancellationToken);
+
+        if (expected is null)
+        {
+            Assert.False(run.IsSuccess, $"{sample} now reaches the solver; record its termination.");
+
+            return;
+        }
 
         Assert.True(run.IsSuccess, run.Error?.Message);
         Assert.Equal(expected, run.Value.Solve.Termination);

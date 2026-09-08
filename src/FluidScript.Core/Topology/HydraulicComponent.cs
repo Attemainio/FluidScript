@@ -247,11 +247,17 @@ public static class HydraulicPartition
                 node.Component.Boundary is not BoundaryRole.Interior)],
 
             // Closed means no external mass at all, which is stronger than having no datum. A stated
-            // `flow` injects mass as surely as a `supply` does, and a stated `p` lets mass in to hold
-            // the pressure -- so any of the three is enough to make the circuit open.
+            // `flow` injects mass as surely as a `supply` does, so either is enough to make the circuit
+            // open.
+            //
+            // `D-86` again, and this was its fourth implementation site rather than its third: a stated
+            // pressure does *not* let mass in. On a `supply` or a `return` the first clause has already
+            // fired; on an interior node the pressure is a datum -- an expansion vessel connection passes
+            // no water. Reading it as an opening left `NeedsEnthalpyLevel` returning false on a closed
+            // circuit, so no energy balance was dropped, and the uniform-enthalpy-offset redundancy that
+            // every closed circuit has stayed in the system as a dependent row (`S-41`).
             IsClosed = !nodes.Any(static node =>
                 node.Component.Boundary is not BoundaryRole.Interior
-                || Stated(node.Component, Pressure) is not null
                 || Stated(node.Component, Flow) is not null),
             // An unknown flux needs somewhere to enter: a node with no mass balance is interior to a
             // branch, and a branch carries one flow from end to end. A stated `flow` is the flux itself,

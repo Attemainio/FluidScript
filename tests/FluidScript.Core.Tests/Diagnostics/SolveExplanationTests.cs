@@ -66,15 +66,17 @@ public sealed class SolveExplanationTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public async Task RankIsReportedAsANumberRatherThanAsSingularOrNot()
+    public async Task ACircuitTheCountRefusesSaysSoAndDoesNotPretendToARank()
     {
-        // `Singular` says a pivot hit zero and nothing else. The header is deficient by exactly one, and
-        // knowing *one* rather than *some* is the difference between looking for a missing equation and
-        // looking for a broken model.
+        // The header, since `S-41`. A count that is short by one is a better answer than the zero pivot it
+        // used to produce, and the report must not manufacture a rank for a system that was never
+        // assembled -- a 45-by-44 matrix eliminated as if it were square would report a deficiency that is
+        // an artefact of the shape rather than of the circuit.
         var report = await Explain("m2-distribution-header.fluid");
 
-        Assert.Contains("deficient by 1", report, StringComparison.Ordinal);
-        Assert.Contains("the row direction", report, StringComparison.Ordinal);
+        Assert.Contains("45 unknowns, 44 equations — under-specified by 1", report, StringComparison.Ordinal);
+        Assert.Contains("one energy balance dropped as its level", report, StringComparison.Ordinal);
+        Assert.Contains("(not assembled)", report, StringComparison.Ordinal);
     }
 
     [Fact]

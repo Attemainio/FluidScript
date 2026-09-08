@@ -122,45 +122,7 @@ public sealed class NullDirectionTests
         Assert.Throws<ArgumentException>(() => NullDirection.Of(new double[5], 3));
     }
 
-    [Fact]
-    public async Task TheHeaderIsToldItsTwoConsumersMoveTogether()
-    {
-        // `S-38`. `FS3002` names `PU_RAD` because partial pivoting stopped there; the measured direction
-        // spans both consumers at once -- each secondary's pump head against its own valve position, with
-        // the two consumers symmetric. A user sent to `PU_RAD` alone would be looking at a quarter of it.
-        //
-        // `PU_MAIN` is absent and should be: its head is stated, so it is not a solver unknown. An earlier
-        // version of this test asserted it *was* named, which was true of a fixture whose source sat in
-        // the header path (`F-21`) rather than on a loop of its own.
-        var resolved = PipeCatalogs.Resolve(pin: null);
 
-        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
-
-        var loop = new OuterLoop(
-            new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
-            OuterLoop.Rules(resolved.Value.Catalog),
-            10);
-
-        var source = File.ReadAllText(
-            Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"));
-        var run = await loop.RunAsync(
-            GraphFixture.Bind(source), Water.Instance, "header", TestContext.Current.CancellationToken);
-
-        Assert.True(run.IsSuccess, run.Error?.Message);
-
-        var undetermined = Assert.Single(
-            run.Value.Solve.Diagnostics.Where(static d => d.Code == "FS3009"));
-
-        Assert.Contains("PU_AHU.head", undetermined.Message, StringComparison.Ordinal);
-        Assert.Contains("PU_RAD.head", undetermined.Message, StringComparison.Ordinal);
-        Assert.Contains("TV_AHU.position", undetermined.Message, StringComparison.Ordinal);
-        Assert.Contains("TV_RAD.position", undetermined.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("PU_MAIN.head", undetermined.Message, StringComparison.Ordinal);
-
-        // It rides alongside the termination's own code rather than replacing it.
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
-    }
 
     [Fact]
     public async Task ACircuitThatSolvesIsNeverToldSomethingIsUndetermined()
@@ -181,15 +143,23 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
-    public async Task ASingularCircuitIsToldWhichEquationTheOthersAlreadyImply()
+    public async Task TheHeadersRedundancyIsNowCaughtBeforeTheSolverRatherThanAsAZeroPivot()
     {
-        // `S-40`, closed by `D-86` rather than by touching `NullDirection`. This was written as a failing
-        // expectation -- the header was singular, a finite-difference Jacobian at the same point named
-        // seven rows, and `FS3010` said nothing, so the user got only `FS3009`, the half `S-36` exists to
-        // warn against trusting alone. The cause was upstream: the circuit's datum sat on a junction and
-        // was read as a boundary, so no redundant mass balance was dropped and the elimination on the
-        // transpose had a different matrix to work on. With the flux rule fixed, the row direction is
-        // found and reported.
+        // What `S-40` and `S-38` used to assert here, and why it moved.
+        //
+        // The header was square with rank 44 of 45, so `FS3009` and `FS3010` fired and this file held the
+        // only end-to-end coverage of both. `S-41` then found that a stated pressure on an *interior*
+        // datum was making a closed circuit read as open -- `D-86`'s rule, applied to `HasUnknownFlux` and
+        // missed on `IsClosed`. A closed circuit's energy balances are one short of independent, because a
+        // uniform enthalpy offset satisfies every one of them; nothing dropped that redundancy, and it sat
+        // in the matrix as the dependent row `FS3010` was naming.
+        //
+        // The deficiency did not change. Where it is reported did: the count is now short by one and the
+        // check refuses the circuit, which is a message a user can act on instead of a zero pivot.
+        //
+        // **This leaves `FS3009` and `FS3010` with no end-to-end subject in the corpus**, since no sample
+        // now reaches the solver singular. The matrix-level tests above still pin their content. A fixture
+        // that is square and singular on purpose is wanted, and is recorded as such.
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
@@ -202,16 +172,7 @@ public sealed class NullDirectionTests
         var run = await loop.RunAsync(
             GraphFixture.Bind(source), Water.Instance, "header", TestContext.Current.CancellationToken);
 
-        Assert.True(run.IsSuccess, run.Error?.Message);
-
-        var implied = Assert.Single(
-            run.Value.Solve.Diagnostics.Where(static d => d.Code == "FS3010"));
-
-        Assert.Contains("balance", implied.Message, StringComparison.Ordinal);
-
-        // Both halves ride alongside the termination's own code. A user given only the free columns is
-        // being handed the question rather than the answer.
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
-        Assert.Contains(run.Value.Solve.Diagnostics, static d => d.Code == "FS3002");
+        Assert.False(run.IsSuccess);
+        Assert.Contains("under-specified by 1", run.Error?.Message, StringComparison.Ordinal);
     }
 }

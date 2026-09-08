@@ -65,6 +65,7 @@ public static class SolveExplanation
 
         Summary(report, name, posedness, solve, passes);
         Counting(report, posedness);
+        Partition(report, posedness);
         Claims(report, posedness);
 
         var layout = SystemLayout.Build(graph, posedness.Counting);
@@ -146,6 +147,46 @@ public static class SolveExplanation
             + $"energy balances {t.EnergyBalances}, control volumes {t.ControlVolumeBalances}, "
             + $"stated pressures {t.StatedPressures}, constraints {t.Constraints.Length}, "
             + $"datums {t.Datums}, less enthalpy levels {t.EnthalpyLevels}");
+    }
+
+    /// <summary>
+    /// The hydraulic partition, which is what decides half the counting table's negative terms.
+    /// </summary>
+    /// <remarks>
+    /// Whether a part is closed decides both whether a mass balance is redundant and whether an energy
+    /// balance is, and a coupled element suppresses the second on its own. Reading `less enthalpy
+    /// levels 0` without being able to see which of those produced it is the position twelve throwaway
+    /// probes were written from.
+    /// </remarks>
+    private static void Partition(StringBuilder report, WellPosednessResult posedness)
+    {
+        report.AppendLine();
+        report.AppendLine("--- hydraulic partition");
+
+        foreach (var hydraulic in posedness.Hydraulics)
+        {
+            var level = posedness.Counting.LevelComponents.Contains(hydraulic)
+                ? "one energy balance dropped as its level"
+                : "no energy level dropped";
+            var datum = hydraulic.DatumWasStated ? "stated" : "picked";
+            var coupled = hydraulic.Elements
+                .Where(element => posedness.Hydraulics.Count(
+                    other => other.Elements.Contains(element)) > 1)
+                .Select(static element => element.Name)
+                .ToArray();
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    [{hydraulic.Index}] {(hydraulic.IsClosed ? "closed" : "open")}, "
+                + $"{hydraulic.Nodes.Length} nodes, {hydraulic.Branches.Length} branches, "
+                + $"{hydraulic.Elements.Length} elements");
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"        datum {hydraulic.Datum} ({datum}), {hydraulic.Boundaries.Length} boundaries, "
+                + $"{hydraulic.StatedPressures.Length} stated pressures, "
+                + $"unknown flux {hydraulic.HasUnknownFlux}");
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"        {level}; coupled elements: "
+                + $"{(coupled.Length == 0 ? "none" : string.Join(", ", coupled))}");
+        }
     }
 
     private static void Claims(StringBuilder report, WellPosednessResult posedness)
