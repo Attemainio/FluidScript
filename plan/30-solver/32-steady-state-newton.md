@@ -119,6 +119,22 @@ map back to a component and an equation through `EquationSystem`'s declarations,
 > *"The circuit has no unique solution around N3. Check for a missing pressure datum or a closed
 > loop with no driver."*
 
+**One name is not enough, and neither is one null direction.** `FS3002` names whichever column
+partial pivoting stopped at, which on `m2-distribution-header` is not the column most responsible
+(`S-33a`). `NullDirection` re-eliminates with **full** pivoting and reports the combination instead.
+But a square system short by one has **two** null directions and they answer different questions:
+
+| Code | Question | What it is |
+|---|---|---|
+| `FS3009` | Which unknowns are free? | The right null space. Reads like a cause and is not — after full pivoting these are whichever columns the elimination happened to leave over. |
+| `FS3010` | Which equation do the others already imply? | The left null space, from the same elimination on the transpose. **This is the redundancy**, and the row that has to change. |
+
+**Reporting only the first cost three sessions** (`S-36`). On the distribution header `FS3009` names
+pump heads, so four pump arrangements were built, measured and eliminated, each deficient by exactly
+one — the deficiency was never about pumps. `FS3010` on the same circuit names **energy balances**,
+which is a different part of the model entirely. Both are emitted; neither replaces the other, and
+neither replaces `FS3002`.
+
 The three causes worth naming in that message, in order of how often they occur:
 
 1. **No pressure datum** in a connected component — every pressure is free by a constant.

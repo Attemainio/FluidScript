@@ -176,14 +176,25 @@ public sealed class NewtonSolver : ISolver
 
                 // DenseLu overwrote the Jacobian factorising it, so this rebuilds one to eliminate
                 // again with full pivoting. N+1 residual evaluations on a run that has already stopped.
-                var undetermined = Undetermined(system, x, residuals, trial, perturbed, columns);
+                var (free, implied) = Deficiency(system, x, residuals, trial, perturbed, columns);
 
-                if (undetermined is not null)
+                if (free is not null)
                 {
                     diagnostics.Add(Diagnostic.Create(
                         SolverDiagnostics.Undetermined,
                         null,
-                        new DiagnosticArgument("combination", undetermined)));
+                        new DiagnosticArgument("combination", free)));
+                }
+
+                // The row direction is the one that names the defect: which equation the others already
+                // imply. `FS3009` names whichever columns the elimination left free, and following that
+                // instead cost three sessions of pump arrangements on the header (`S-36`).
+                if (implied is not null)
+                {
+                    diagnostics.Add(Diagnostic.Create(
+                        SolverDiagnostics.Redundant,
+                        null,
+                        new DiagnosticArgument("combination", implied)));
                 }
 
                 return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics);
@@ -298,7 +309,7 @@ public sealed class NewtonSolver : ISolver
     /// would bury the two that are genuinely weighted.
     /// </para>
     /// </remarks>
-    private static string? Undetermined(
+    private static (string? Unknowns, string? Equations) Deficiency(
         EquationSystem system,
         double[] x,
         double[] residuals,
@@ -310,11 +321,35 @@ public sealed class NewtonSolver : ISolver
 
         if (!Jacobian(system, x, residuals, trial, perturbed, rebuilt))
         {
-            return null;
+            return (null, null);
         }
 
-        var direction = NullDirection.Of(rebuilt, columns);
+        // `Redundancy` reads the matrix and transposes into its own copy; `Of` overwrites what it is
+        // given. So the row direction is taken first, off the matrix that is still intact.
+        var rows = NullDirection.Redundancy(rebuilt, columns);
+        var free = NullDirection.Of(rebuilt, columns);
 
+        return (
+            Render(free, index => system.Unknowns.Unknowns[index].Name),
+            Render(rows, index => Equation(system, index)));
+    }
+
+    /// <summary>Names one equation the way a user would recognise it.</summary>
+    /// <param name="system">The assembled system.</param>
+    /// <param name="row">The equation's row.</param>
+    /// <returns>The owner and the equation, e.g. <c>N2 mass balance</c>.</returns>
+    private static string Equation(EquationSystem system, int row) =>
+        row >= 0 && row < system.Equations.Rows.Length
+            ? system.Equations.Rows[row].Name
+            : $"row {row.ToString(CultureInfo.InvariantCulture)}";
+
+    /// <summary>Writes a null direction as a signed sum a user can read.</summary>
+    /// <param name="direction">The participants, largest share first.</param>
+    /// <param name="name">What each participant's index is called.</param>
+    /// <returns>The rendered sum, or <see langword="null"/> when there is no direction to render.</returns>
+    private static string? Render(
+        ImmutableArray<NullDirection.Participant> direction, Func<int, string> name)
+    {
         if (direction.IsDefaultOrEmpty)
         {
             return null;
@@ -338,7 +373,7 @@ public sealed class NewtonSolver : ISolver
                 ? participant.Weight < 0 ? "-" : string.Empty
                 : participant.Weight < 0 ? "- " : "+ ";
 
-            terms.Add(sign + coefficient + system.Unknowns.Unknowns[participant.Column].Name);
+            terms.Add(sign + coefficient + name(participant.Index));
         }
 
         return string.Join(" ", terms);

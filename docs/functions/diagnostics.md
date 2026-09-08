@@ -154,6 +154,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3007` | Error | Solver | {component} produced an impossible value in {equation} after {steps} steps. |
 | `FS3008` | Warning | Solver | {parameter} was held at {bound}, which is as far as it goes. The circuit is asking for more than this component can give: check the duty, the resistance, or a stated temperature it cannot reach. |
 | `FS3009` | Error | Solver | Nothing in the circuit determines {combination}. These move together and no equation separates them, so a value stated for any one of them determines the rest. |
+| `FS3010` | Error | Solver | {combination} are not independent: one of them is already implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something elsewhere will not help — one of these has to change. |
 | `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
 <!-- END GENERATED: diagnostic-codes -->
 

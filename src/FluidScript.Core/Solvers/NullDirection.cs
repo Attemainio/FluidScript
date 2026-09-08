@@ -32,13 +32,18 @@ namespace FluidScript.Core.Solvers;
 /// </remarks>
 public static class NullDirection
 {
-    /// <summary>A share of one null direction, carried by one unknown.</summary>
-    /// <param name="Column">The unknown's column in the system.</param>
+    /// <summary>A share of one null direction, carried by one unknown or by one equation.</summary>
+    /// <param name="Index">
+    /// Which one: a <strong>column</strong> of the system for a direction from <see cref="Of"/>, and a
+    /// <strong>row</strong> for one from <see cref="Redundancy"/>. The two null spaces are the same
+    /// elimination on a matrix and on its transpose, so they share this type and mean different things
+    /// by it — which is why it is not called <c>Column</c>.
+    /// </param>
     /// <param name="Weight">
     /// Its signed share, normalised so the largest participant is exactly 1. Dimensionless, and
     /// meaningful only relative to the other participants in the same direction.
     /// </param>
-    public readonly record struct Participant(int Column, double Weight);
+    public readonly record struct Participant(int Index, double Weight);
 
     /// <summary>The share of a null direction below which a participant is not worth naming.</summary>
     /// <value>
@@ -149,6 +154,67 @@ public static class NullDirection
         participants.Sort(static (left, right) => Math.Abs(right.Weight).CompareTo(Math.Abs(left.Weight)));
 
         return participants.ToImmutable();
+    }
+
+    /// <summary>Finds the equation a matrix's other rows already imply.</summary>
+    /// <param name="matrix">
+    /// The scaled Jacobian, <paramref name="order"/> squared and row-major. Read only — unlike
+    /// <see cref="Of"/> this transposes into its own working copy, because a caller wanting both
+    /// directions would otherwise have to keep two matrices.
+    /// </param>
+    /// <param name="order">The number of rows, which equals the number of columns.</param>
+    /// <returns>
+    /// The participants in the first left null direction, largest share first, normalised so the largest
+    /// is 1. Each <see cref="Participant.Index"/> is a <strong>row</strong> of the system. Empty on a
+    /// matrix of full rank, and on one of no rank at all.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="matrix"/> is not <paramref name="order"/> squared.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// <strong>A square system short by one has two null directions, and only this one is the
+    /// defect.</strong> <see cref="Of"/> answers "which unknowns are free", which reads like a cause and
+    /// is not: after full pivoting the free columns are whichever combination the elimination happened
+    /// to leave over. This answers "which equation says nothing the others did not", and that is the
+    /// redundancy itself — the row the user has to change, or supply a different one in place of.
+    /// </para>
+    /// <para>
+    /// <strong><c>S-36</c> is why both are reported.</strong> On <c>m2-distribution-header</c> the
+    /// column direction named pumps every time, and three sessions of pump arrangements followed it —
+    /// four variants built, measured and eliminated, each deficient by exactly one, because the
+    /// deficiency was never about pumps. The row direction on the same system names one node's
+    /// <em>mass</em> balance against <em>every energy balance in the circuit</em>. Neither answer is
+    /// wrong; they answer different questions, and only one of them is the question.
+    /// </para>
+    /// <para>
+    /// The transpose is the whole implementation. The left null space of <c>A</c> is the right null
+    /// space of <c>A</c> transposed, so this is <see cref="Of"/> on transposed data and inherits its
+    /// pivoting, its significance floor and its one-direction-only rule.
+    /// </para>
+    /// </remarks>
+    public static ImmutableArray<Participant> Redundancy(double[] matrix, int order)
+    {
+        ArgumentNullException.ThrowIfNull(matrix);
+
+        if (matrix.Length != order * order)
+        {
+            throw new ArgumentException(
+                $"Expected {order * order} entries for an order-{order} matrix, got {matrix.Length}.",
+                nameof(matrix));
+        }
+
+        var transposed = new double[matrix.Length];
+
+        for (var row = 0; row < order; row++)
+        {
+            for (var column = 0; column < order; column++)
+            {
+                transposed[(column * order) + row] = matrix[(row * order) + column];
+            }
+        }
+
+        return Of(transposed, order);
     }
 
     /// <summary>Reduces the matrix with full pivoting, recording where its columns went.</summary>

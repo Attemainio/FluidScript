@@ -153,6 +153,35 @@ public static class SolverDiagnostics
         "Nothing in the circuit determines {combination}. These move together and no equation "
         + "separates them, so a value stated for any one of them determines the rest.");
 
+    /// <summary>The equation a singular system's other rows already imply.</summary>
+    /// <value><c>FS3010</c>, an error, reported alongside <see cref="Undetermined"/> and never instead of it.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>This is the half of a singular system that names the defect</strong> (<c>S-36</c>). A
+    /// square system short by one has two null directions: <see cref="Undetermined"/> reports which
+    /// <em>unknowns</em> are left free, which reads like a cause and is not — after full pivoting those
+    /// are whichever columns the elimination happened to leave over. This reports which
+    /// <em>equation</em> the others already imply, which is the row that has to change.
+    /// </para>
+    /// <para>
+    /// <strong>The cost of having only the first one is measured.</strong> On
+    /// <c>m2-distribution-header</c> the unknown direction named pumps every time, and three sessions
+    /// followed it — four pump arrangements built, measured and eliminated, each deficient by exactly
+    /// one, because the deficiency was never about pumps. The equation direction on the same system
+    /// names one node's <em>mass</em> balance against <em>every energy balance in the circuit</em>.
+    /// </para>
+    /// <para>
+    /// Both are absent when the direction is not recoverable, and a user seeing only <c>FS3002</c> is
+    /// looking at a system with no rank at all rather than one short by one.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor Redundant { get; } = new(
+        "FS3010",
+        DiagnosticSeverity.Error,
+        "{combination} are not independent: one of them is already implied by the others, so the "
+        + "circuit constrains one thing fewer than it appears to. Stating something elsewhere will not "
+        + "help — one of these has to change.");
+
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -165,6 +194,7 @@ public static class SolverDiagnostics
         NonFinite,
         ParameterPinned,
         Undetermined,
+        Redundant,
         ReducedStep,
     ];
 }
