@@ -96,7 +96,7 @@ public static class SolveExplanation
         var system = Assemble(graph, posedness, seed);
 
         Unknowns(report, layout, seed, solve);
-        Equations(report, system, solve);
+        Equations(report, system, seed, solve);
         Sized(report, bases, notes);
         Conditioning(report, system, seed, solve);
 
@@ -313,7 +313,8 @@ public static class SolveExplanation
         }
     }
 
-    private static void Equations(StringBuilder report, EquationSystem? system, SolveResult? solve)
+    private static void Equations(
+        StringBuilder report, EquationSystem? system, StateVector seed, SolveResult? solve)
     {
         report.AppendLine();
         report.AppendLine("--- equations, and how far each is from satisfied");
@@ -325,29 +326,73 @@ public static class SolveExplanation
             return;
         }
 
+        // At the seed when there is no solve, because a circuit that never stepped is the one whose
+        // starting residuals are worth reading.
+        var at = solve?.Solution ?? seed;
         var residuals = new double[system.Rows];
-        var evaluated = solve is not null
-            && system.TryEvaluateResiduals(solve.Solution.Values.AsSpan(), residuals);
+        var evaluated = system.TryEvaluateResiduals(at.Values.AsSpan(), residuals);
+        var scales = system.ResidualScales;
 
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"    evaluated at {(solve is null ? "the seed" : "the solved iterate")}");
         report.AppendLine(
-            "      # kind             owner        name                            residual   unit");
+            "      # kind             owner        name                       residual unit        scaled");
 
         for (var row = 0; row < system.Equations.Rows.Length; row++)
         {
             var declaration = system.Equations.Rows[row];
-            var value = evaluated && row < residuals.Length
-                ? residuals[row].ToString("G4", CultureInfo.InvariantCulture)
+            var known = evaluated && row < residuals.Length;
+            var value = known ? residuals[row].ToString("G4", CultureInfo.InvariantCulture) : "-";
+            var scaled = known && row < scales.Length
+                ? (residuals[row] / scales[row]).ToString("G4", CultureInfo.InvariantCulture)
                 : "-";
 
             report.AppendLine(CultureInfo.InvariantCulture,
                 $"    {row,3} {declaration.Kind,-16} {declaration.OwnerComponentId,-12} "
-                + $"{declaration.Name,-28} {value,10} {declaration.ResidualSiUnit}");
+                + $"{declaration.Name,-24} {value,10} {declaration.ResidualSiUnit,-6} {scaled,12}");
         }
 
         foreach (var dropped in system.Equations.Dropped)
         {
             report.AppendLine(CultureInfo.InvariantCulture,
                 $"    dropped as redundant: {dropped.Equation} (hydraulic {dropped.Hydraulic})");
+        }
+
+        if (!evaluated)
+        {
+            return;
+        }
+
+        // What the reported norm is actually made of. The termination line quotes a **scaled** residual
+        // and this table used to print unscaled ones, so a norm of 1.96 named no row and could not be
+        // attributed --- which is how a hundredfold change to the enthalpy seed was made and measured
+        // without noticing it left the norm untouched (`S-44`).
+        var worst = Enumerable.Range(0, Math.Min(system.Rows, scales.Length))
+            .Select(row => (Row: row, Scaled: Math.Abs(residuals[row] / scales[row])))
+            .OrderByDescending(static entry => entry.Scaled)
+            .Take(5)
+            .ToArray();
+
+        // The largest single row, because that is what the termination line quotes: `SolveResult`'s
+        // residual is a max-norm, not a Euclidean one. Reporting a 2-norm here would print a number the
+        // solver never mentions next to one it does, and the first version of this section did exactly
+        // that -- 4.56 beside the solver's 1.96, which reads as a disagreement rather than as two norms.
+        var largest = worst.Length == 0 ? 0 : worst[0].Scaled;
+        var euclidean = Math.Sqrt(Enumerable
+            .Range(0, Math.Min(system.Rows, scales.Length))
+            .Sum(row => Math.Pow(residuals[row] / scales[row], 2)));
+
+        report.AppendLine();
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"    what the scaled residual of {largest:G4} is made of, largest first "
+            + $"(Euclidean norm {euclidean:G4} over {system.Rows} rows):");
+        foreach (var (row, scaled) in worst)
+        {
+            var declaration = system.Equations.Rows[row];
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"        {scaled,10:G4}  {declaration.Kind} {declaration.Name} "
+                + $"(scale {scales[row]:G4} {declaration.ResidualSiUnit})");
         }
     }
 
