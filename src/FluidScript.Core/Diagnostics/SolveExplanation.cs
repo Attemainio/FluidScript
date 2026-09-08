@@ -27,11 +27,13 @@ public static class SolveExplanation
 {
     /// <summary>How small a scaled pivot has to be before it counts as a rank deficiency.</summary>
     /// <remarks>
-    /// Relative to the largest pivot, not absolute: the scaled Jacobian's rows and columns are already
-    /// normalised, so what matters is the spread. A ratio below this is a column the elimination could
-    /// not distinguish from zero.
+    /// <strong>Borrowed rather than restated.</strong> This report ran its own copy of the rule and the
+    /// two drifted apart: it measured a pivot against the largest and called the header deficient, while
+    /// <see cref="NullDirection"/> measured against the matrix norm and returned no direction, so one
+    /// report said `1 unknown nothing determines` and `(none found)` two lines apart. The number is the
+    /// same either way; owning two of it is what made them disagree.
     /// </remarks>
-    private const double RankTolerance = 1e-10;
+    private const double RankTolerance = NullDirection.RankTolerance;
 
     /// <summary>Explains a completed run, sizing and solve included.</summary>
     /// <param name="result">What the outer loop produced.</param>

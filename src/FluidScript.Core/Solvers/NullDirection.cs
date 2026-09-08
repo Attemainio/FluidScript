@@ -53,6 +53,24 @@ public static class NullDirection
     /// </value>
     public const double Significant = 0.02;
 
+    /// <summary>How far a pivot must collapse, against the largest, before its column counts as free.</summary>
+    /// <remarks>
+    /// <para>
+    /// A ratio rather than a magnitude: a scaled Jacobian's entries still span orders, and only the
+    /// spread carries information. Measured across this corpus the gap is wide -- a circuit that solves
+    /// runs a smallest-to-largest pivot ratio between 4e-2 and 6e-4, and one that is rank deficient runs
+    /// 6e-12 to 2e-14. Six orders of clear water, so the constant is not delicate.
+    /// </para>
+    /// <para>
+    /// <strong>Deliberately far above machine epsilon and below the finite-difference noise floor.</strong>
+    /// The Jacobian is built by forward differences, whose relative error is about <c>sqrt(eps)</c>, near
+    /// 1e-8 -- a ratio below that says nothing about the circuit, and one at 1e-14 is a structural zero
+    /// rather than arithmetic. Sitting between them is what lets this report a deficiency without
+    /// inventing one.
+    /// </para>
+    /// </remarks>
+    public const double RankTolerance = 1e-10;
+
     /// <summary>Finds the combination of unknowns a matrix leaves undetermined.</summary>
     /// <param name="matrix">
     /// The scaled Jacobian, <paramref name="order"/> squared and row-major. <strong>Overwritten</strong>
@@ -79,23 +97,26 @@ public static class NullDirection
                 nameof(matrix));
         }
 
-        var norm = 0.0;
+        var largestEntry = 0.0;
 
-        for (var row = 0; row < order; row++)
+        foreach (var entry in matrix)
         {
-            var sum = 0.0;
-
-            for (var column = 0; column < order; column++)
-            {
-                sum += Math.Abs(matrix[(row * order) + column]);
-            }
-
-            norm = Math.Max(norm, sum);
+            largestEntry = Math.Max(largestEntry, Math.Abs(entry));
         }
 
-        // The same relative floor DenseLu uses, for the same reason: an absolute one means different
-        // things for differently scaled systems, and only the scaled system is ever factorised.
-        var floor = Tolerances.JacobianSingular * Math.Max(norm, 1);
+        // Relative to the largest entry -- which under full pivoting is the elimination's first pivot --
+        // because that is the only question rank has an answer to: how far has a pivot collapsed against
+        // the ones before it.
+        //
+        // It was `Tolerances.JacobianSingular` times the matrix norm, which is `DenseLu`'s floor and
+        // belongs there: `DenseLu` decides whether a Newton step can be taken, and a pivot near the
+        // arithmetic's own noise is what stops it. Rank is a different question, and asking it with a
+        // norm-scaled floor made this method disagree with the report that calls it. On the header with
+        // one pump head stated -- largest pivot 481.9, smallest 2.754e-9 -- that floor lands near 1e-9 and
+        // calls the collapsed pivot live, so one report printed `1 unknown nothing determines` and
+        // `(none found)` two lines apart. **A rank criterion that differs between an instrument and its
+        // caller is worse than either criterion, because the disagreement is silent.**
+        var floor = RankTolerance * largestEntry;
         var columnOf = new int[order];
 
         for (var index = 0; index < order; index++)

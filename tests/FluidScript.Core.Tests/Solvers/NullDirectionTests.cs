@@ -102,6 +102,32 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
+    public void ADirectionIsFoundWhereAPivotCollapsesRelativeToTheLargestRatherThanTowardsZero()
+    {
+        // The `rad-head` variant of `m2-distribution-header`, reduced: largest pivot 481.9, smallest
+        // 2.754e-9. Twelve orders apart, which is rank deficiency and not conditioning -- but 2.754e-9 is
+        // not *small*, and a floor scaled to `Tolerances.JacobianSingular` (1e-12) times the matrix norm
+        // lands near 1e-9 and calls it a live pivot.
+        //
+        // The report was measuring rank against the largest pivot and getting "deficient by 1", while this
+        // method measured it against the norm and returned nothing, so one report said `1 unknown nothing
+        // determines` and `(none found)` two lines apart. **A rank criterion that differs between the
+        // instrument and its caller is worse than either criterion**, because the disagreement is silent.
+        double[] matrix =
+        [
+            481.9, 0, 0,
+            0, 12.4, 0,
+            0, 0, 2.754e-9,
+        ];
+
+        var direction = NullDirection.Of([.. matrix], 3);
+
+        var participant = Assert.Single(direction);
+
+        Assert.Equal(2, participant.Index);
+    }
+
+    [Fact]
     public void ShareBelowTheSignificanceCutIsNotNamed()
     {
         // The third unknown participates at 1e-6 of the largest share, which is the finite-difference
