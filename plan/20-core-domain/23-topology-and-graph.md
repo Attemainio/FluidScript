@@ -149,6 +149,19 @@ ports is false whenever the two sides carry different flows — which is always.
 simply interior to a branch on each side, contributing one pressure relation per side and no mass
 balance at all, which is what it physically is.
 
+**A branch is written from its lower-numbered end** (`C-25`). A decomposition walks from whichever
+junction it reached first, so without a rule `Path` comes out in that order or its reverse, and both
+readings are defensible. The solver does not care; a golden test over a rendered branch table does, and
+so will write-back. The canonical orientation is therefore: **`From` is the end whose element comes
+first in `CircuitGraph.Components`, `To` is the other, and `Path` runs between them in that direction.**
+
+That is the orientation the decomposition already produces --- measured across the corpus when the rule
+was written, every branch of every sample ran ascending, 20 of 20 --- so this fixes what was already
+true rather than changing anything, and `BranchOrientationTests` keeps it that way. Nothing downstream
+should read `Path` order as *flow* direction: flow direction is the sign of the branch's solved mass
+flow, and a branch whose flow is negative runs against its written orientation, which is legal and
+common.
+
 **A component may therefore appear in more than one `Branch.Path`.** A Coupled exchanger appears in two,
 one per side. `Path` is not a partition of the component set and was never claimed to be, but it is
 worth stating because the natural implementation — walk every component once, assign it to a branch —
@@ -383,6 +396,11 @@ Inference rule I3 terminates open ports. What condition the created node carries
 | Open port on a valve's bypass (`c`) | **Dead leg**: zero flow | A three-way valve used as a two-way. Zero flow is the physical truth. |
 | Open port on any other component | Zero flow, plus `FS2202` (warning) | Almost certainly an unfinished script |
 | A node with exactly one connection and no stated boundary | Zero flow, plus `FS2107` | Same |
+
+The first two rows are the **inferred** cases and the third the **declared** one, which is what `C-7`
+asked for: an I3 node carries zero flow and is a boundary in its own right. That is why the binder
+exempts it from `FS2107` --- it *is* the boundary that rule created, so it terminates a port rather than
+dead-ending on one, and it is `FS2202` that reports it if anything does.
 
 Zero flow everywhere is the conservative choice: it changes no other result and it makes the graph
 solvable, so the user sees a diagram with a visibly dangling stub rather than an error message.
