@@ -53,10 +53,22 @@ cooling loop the common port carries 0.239 kg/s round the secondary while the co
 0.163 from the primary; sizing on the larger number would size the valve for a flow it never has to
 control.
 
-**Which leg that is comes from the circuit, not from the port letters.** Ports take connections in the
-order you write them, so `a` is not reliably the controlled one — write `TV1 - N2` before `TV1 - P1`
-and it is the recirculation leg. The leg that varies is the one reaching a stated pressure rather than
-closing back into the valve's own loop, and that is what the rule looks for.
+**Name the ports and you have said which leg that is.** `a` is the control path and `b` the bypass —
+the A–AB and B–AB of the valve body — and that is also how the equations read them, so writing
+`TV1.a - P1` and `TV1.b - N2` settles the question outright. This is the recommended way to write a
+three-port valve you want sized.
+
+**Leave them unnamed and the rule works it out from the shape**, because an unwritten letter is only
+connection order. Ports take connections in the order you write them, so a bare `TV1 - N2` before
+`TV1 - P1` makes `a` the *recirculation* leg — the opposite of what the letter means. The rule ignores
+an inferred letter for exactly that reason and asks the circuit instead: the bypass is the leg that gets
+back to where the common leg lands in the fewest components, since closing the valve's own loop is what
+a bypass does, and the other leg is the one that varies.
+
+That reading is right on every shape in the corpus, but it is a reading rather than a statement, and it
+has two blind spots: a short tap off a header feeding a long secondary looks inverted to it, and an
+injection circuit whose two switched legs land on the same header looks symmetric. Naming the ports is
+the answer to both.
 
 **Whether the drop is chosen or determined depends on what drives the circuit.** With a pump on the
 path whose head you have not stated, the driving pressure is free, the valve's drop is a choice, and
@@ -90,11 +102,14 @@ not do the job anyway, because the two legs carry different flows.
 
 ### When it cannot be sized
 
-If neither controlled leg reaches a stated pressure, nothing says which path varies when the valve
-strokes, and the rule declines rather than guessing. The same happens when the drop is determined by
-the boundaries but the circuit does not state exactly two pressures, so which pair drives this valve is
-open. In both cases the valve keeps a placeholder `kv`, the report says it was never chosen, and you
-are asked to state one.
+If the connections name no ports **and** the two switched legs are the same distance from the leg they
+split, nothing says which of them recirculates and which varies when the valve strokes, and the rule
+declines rather than guessing. Naming them — `a` for the leg it controls, `b` for the bypass — is the
+fix, and the message says so.
+
+The same happens when the drop is determined by the boundaries but the circuit does not state exactly
+two pressures, so which pair drives this valve is open. In both cases the valve keeps a placeholder
+`kv`, the report says it was never chosen, and you are asked to state one.
 
 ## Properties
 

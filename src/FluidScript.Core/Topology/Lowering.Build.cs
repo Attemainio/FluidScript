@@ -46,13 +46,21 @@ public static partial class Lowering
             ImmutableArray.CreateBuilder<ComponentGroup>();
         private readonly ImmutableArray<string>.Builder _unresolved = ImmutableArray.CreateBuilder<string>();
         private readonly HashSet<int> _replaced = [];
+        private readonly HashSet<string> _stated = new(StringComparer.Ordinal);
 
         private int[][] _peerElement = [];
         private int[][] _peerPort = [];
-
         public ImmutableArray<GraphNode> Nodes => [.. _nodes];
 
         public ImmutableArray<IFlowComponent> Components => [.. _elements];
+
+        /// <summary>The ports the script itself named, as <c>component.port</c> (<c>D-88</c>).</summary>
+        /// <value>
+        /// One entry per qualified endpoint. An unqualified one is absent even though it still resolved
+        /// to a port, which is the whole distinction: positional binding hands out real port names that
+        /// carry no user intent.
+        /// </value>
+        public ImmutableHashSet<string> StatedPorts => [.. _stated];
 
         /// <summary>The port-to-port table <see cref="Connect"/> built.</summary>
         /// <value>
@@ -216,10 +224,16 @@ public static partial class Lowering
 
         /// <summary>Turns each connection into a link between two port slots.</summary>
         /// <remarks>
+        /// <para>
         /// A node's port index comes from its position in this walk, which is why the walk order is the
         /// connection order and not anything derived. A link touching a component that was not built is
         /// dropped, but the node counter still advances — so a node's ports keep the indices the degree
         /// count gave them, and one is simply left with no peer.
+        /// </para>
+        /// <para>
+        /// It is also where the ports the script <em>named</em> are collected (<c>D-88</c>). The slot is
+        /// resolved either way, so nothing downstream could recover the difference from the graph alone.
+        /// </para>
         /// </remarks>
         public void ResolveLinks()
         {
@@ -231,7 +245,19 @@ public static partial class Lowering
                 if (from is { } a && to is { } b)
                 {
                     _links.Add((a.Element, a.Port, b.Element, b.Port));
+                    State(connection.From);
+                    State(connection.To);
                 }
+            }
+        }
+
+        /// <summary>Remembers a port name the script wrote, so an inferred one can be told from it.</summary>
+        /// <param name="endpoint">One end of a connection, resolved.</param>
+        private void State(EndpointSymbol endpoint)
+        {
+            if (endpoint.PortStated && endpoint.Port.Length > 0)
+            {
+                _stated.Add($"{endpoint.Component}.{endpoint.Port}");
             }
         }
 

@@ -259,12 +259,12 @@ internal sealed partial class BindingRun
 
         if (component.Ports.Contains(port, StringComparer.Ordinal))
         {
-            return Claim(component.Name, port, span);
+            return Claim(component.Name, port, span, stated: true);
         }
 
         if (kind.HasUnlimitedPorts)
         {
-            return new EndpointSymbol(component.Name, port);
+            return new EndpointSymbol(component.Name, port, PortStated: true);
         }
 
         if (Fit(kind, port) == PortFit.OutsideRange)
@@ -320,7 +320,8 @@ internal sealed partial class BindingRun
         var free = ordered.FirstOrDefault(port => !claimed.ContainsKey(port))
             ?? ordered.FirstOrDefault();
 
-        return free is null ? null : Claim(component.Name, free, span);
+        // Not stated: the letters this hands out are connection order, not the user's word for the leg.
+        return free is null ? null : Claim(component.Name, free, span, stated: false);
     }
 
     private static PortRole RoleOf(ComponentKindInfo kind, string port)
@@ -344,7 +345,16 @@ internal sealed partial class BindingRun
         return PortRole.Bidirectional;
     }
 
-    private EndpointSymbol? Claim(string component, string port, TextSpan span)
+    /// <summary>Takes a port for a connection, or reports that something already has it.</summary>
+    /// <param name="component">The component's name.</param>
+    /// <param name="port">The port being claimed.</param>
+    /// <param name="span">The line the connection was written on.</param>
+    /// <param name="stated">
+    /// Whether the script wrote <paramref name="port"/>. False when this rule chose it for an
+    /// unqualified endpoint, which is what <see cref="EndpointSymbol.PortStated"/> exists to say.
+    /// </param>
+    /// <returns>The endpoint, or <see langword="null"/> when the port was already claimed.</returns>
+    private EndpointSymbol? Claim(string component, string port, TextSpan span, bool stated)
     {
         if (!_claimed.TryGetValue(component, out var claimed))
         {
@@ -364,7 +374,7 @@ internal sealed partial class BindingRun
 
         claimed[port] = span;
 
-        return new EndpointSymbol(component, port);
+        return new EndpointSymbol(component, port, stated);
     }
 
     private ComponentSlot Infer(string name, string rule, string circuit, TextSpan span)
@@ -476,7 +486,7 @@ internal sealed partial class BindingRun
                 _connections.Add(new ConnectionSymbol(
                     new EndpointSymbol(component.Name, port.Name), boundary, span));
 
-                Claim(component.Name, port.Name, span);
+                Claim(component.Name, port.Name, span, stated: false);
                 Count(component.Name);
                 Count(boundary.Component);
 

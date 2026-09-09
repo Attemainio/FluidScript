@@ -519,8 +519,9 @@ public sealed class OuterLoop(
                     overlay,
                     bases,
                     notes,
-                    "its two controlled legs are the same distance from the leg they split, so nothing "
-                    + "says which of them recirculates and which varies when the valve strokes");
+                    "its connections name no ports, and its two switched legs are the same distance from "
+                    + "the leg they split -- so nothing says which of them recirculates and which varies "
+                    + "when the valve strokes. Name them: `a` is the leg it controls, `b` the bypass");
 
                 continue;
             }

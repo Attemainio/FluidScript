@@ -76,6 +76,16 @@ records that both reference circuits once failed to parse while every acceptance
 document passed. A block that is meant to be wrong declares its codes on its fence
 (` ```fluidscript expects=FS1203 `); a block that is not a script at all does not claim to be one.
 
+**A port name that reaches the graph is not evidence that anyone wrote one** (`D-88`). `Unqualified`
+resolves an endpoint with no port to a real port by preference order — outlets first on the left of the
+dash, inlets first on the right — and `Lowering.Build.End` then records that port's name exactly as it
+records a written one. So `3WV.a` in a branch table may be the user's word or may be connection order,
+and downstream nothing could tell. This mattered once and will again: a three-way valve's `a` is its
+control path and `b` its bypass, and on `m2-cooling-loop`, wired `HE1 - 3WV` / `3WV - N2` / `3WV - P1`,
+positional binding puts the inferred `a` on the **recirculation** leg — the opposite of what the letter
+means. `EndpointSymbol.PortStated` and `CircuitGraph.StatedPorts` carry the distinction now. Anything
+else tempted to read meaning into a port name has to consult them first.
+
 **Three constants in `15` were chosen, not derived.** The resolve threshold (0.70) and ambiguity
 margin (0.05) come from the document; the suggestion floor (0.60) does not, and was set by the `fan`
 case. If any of them is ever tuned, the tests that pin them name the input that fixed them.

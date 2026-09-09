@@ -112,11 +112,82 @@ public sealed class ValveLegsTests
         Assert.Equal(0, ValveLegs.Distance(graph, anchor, anchor, valve));
     }
 
-    private static (CircuitGraph Graph, Branch[] Legs, IFlowComponent Valve) Legs(string sample)
+    [Fact]
+    public void AWrittenPortLetterNamesTheControlLegAndTheWalkIsNotConsulted()
+    {
+        // `D-88`. `m2-distribution-header` writes `TV_AHU.a - PA2 - N5` and `TV_AHU.b - NM_AHU`, so the
+        // script has said which leg the valve modulates -- and it is the same thing the residuals say,
+        // since `ThreeWayValve` gives port `a` the opening `position` and `b` its complement. Sizing has
+        // to read the legs the way the equations do or it sizes a coefficient for the other path.
+        var (graph, legs, valve) = Legs("m2-distribution-header.fluid", "TV_AHU");
+
+        Assert.Contains("TV_AHU.a", graph.StatedPorts);
+
+        var common = ValveLegs.Common(legs, new double[legs.Length], valve);
+        var variable = ValveLegs.Variable(graph, legs, common, valve);
+
+        Assert.Equal("a", ValveLegs.PortName(legs[variable], valve));
+    }
+
+    [Fact]
+    public void AnInferredPortLetterIsNotBelieved()
+    {
+        // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`. Lowering
+        // resolves an unqualified endpoint to a real port and records its name like any other, so every
+        // leg carries a letter whether or not anyone wrote one. On `m2-cooling-loop`, whose valve is
+        // wired `HE1 - 3WV` / `3WV - N2` / `3WV - P1`, positional binding hands out `ab`, `a`, `b` in
+        // connection order -- putting `a` on the *recirculation* leg and `b` on the control leg, exactly
+        // backwards. Believing that letter sizes the valve against a branch with almost no resistance
+        // behind it, which asks for a large Kv and yields no authority over the path it controls;
+        // measured, it also stopped the sample converging at all.
+        var (graph, legs, valve) = Legs("m2-cooling-loop.fluid");
+
+        Assert.Empty(graph.StatedPorts);
+
+        var common = ValveLegs.Common(legs, new double[legs.Length], valve);
+        var variable = ValveLegs.Variable(graph, legs, common, valve);
+
+        // The walk's answer, and the opposite of what the inferred letter would have said.
+        Assert.Equal("b", ValveLegs.PortName(legs[variable], valve));
+        Assert.False(ValveLegs.Stated(graph, legs[variable], valve));
+    }
+
+    [Fact]
+    public void NamingOnlyTheBypassIsEnoughToNameTheOtherLeg()
+    {
+        // Either word settles it: a script that writes `b` on one switched leg has said the remaining one
+        // varies, whether or not it also wrote `a`. This is the shape a user reaches for when the bypass
+        // is the leg they are thinking about -- it is the one carrying the balancing valve.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
+            .Replace("TV_AHU.a - PA2 - N5", "TV_AHU - PA2 - N5", StringComparison.Ordinal);
+
+        var graph = GraphFixture.Lower(source).Graph;
+        var valve = graph.Components.OfType<ThreeWayValve>().Single(
+            static v => string.Equals(v.Name, "TV_AHU", StringComparison.Ordinal));
+        var legs = graph.Branches
+            .Where(branch =>
+                ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+            .ToArray();
+
+        Assert.DoesNotContain("TV_AHU.a", graph.StatedPorts);
+        Assert.Contains("TV_AHU.b", graph.StatedPorts);
+
+        var common = ValveLegs.Common(legs, new double[legs.Length], valve);
+        var variable = ValveLegs.Variable(graph, legs, common, valve);
+
+        Assert.InRange(variable, 0, legs.Length - 1);
+        Assert.NotEqual("b", ValveLegs.PortName(legs[variable], valve));
+    }
+
+    private static (CircuitGraph Graph, Branch[] Legs, IFlowComponent Valve) Legs(
+        string sample, string? name = null)
     {
         var graph = GraphFixture.Lower(
             File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
-        var valve = graph.Components.OfType<ThreeWayValve>().Single(static v => v.BypassConnected);
+        var valve = graph.Components.OfType<ThreeWayValve>().Single(
+            v => v.BypassConnected
+                && (name is null || string.Equals(v.Name, name, StringComparison.Ordinal)));
         var legs = graph.Branches
             .Where(branch =>
                 ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))

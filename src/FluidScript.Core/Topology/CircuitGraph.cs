@@ -105,6 +105,24 @@ public sealed record CircuitGraph
     /// </value>
     public required PortAdjacency Adjacency { get; init; }
 
+    /// <summary>Gets the ports the script itself named, as <c>component.port</c> (<c>D-88</c>).</summary>
+    /// <value>
+    /// <para>
+    /// Empty by default, which is right for a hand-built graph: nothing named anything, so nothing may
+    /// be read as the user's word.
+    /// </para>
+    /// <para>
+    /// <strong>A port name in <see cref="BranchEnd.PortName"/> is always present and only sometimes
+    /// means something.</strong> Lowering resolves an unqualified endpoint to a real port and records
+    /// its name like any other, so the graph alone cannot say whether <c>3WV.a</c> is what the user
+    /// wrote or what connection order produced. This set is that difference, and the only thing that
+    /// currently needs it is <see cref="Solvers.ValveLegs"/> — <c>a</c> is a three-way valve's control
+    /// path and <c>b</c> its bypass, so a script naming them has said which leg the valve modulates,
+    /// while positional binding has said nothing at all.
+    /// </para>
+    /// </value>
+    public ImmutableHashSet<string> StatedPorts { get; init; } = [];
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

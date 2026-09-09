@@ -3825,3 +3825,72 @@ position that holds the setpoint at rest. Both on one actuator is over-specifica
 - *Diagnose it — tell the user a node temperature needs a controller.* Honest and cheap. Cost: it names
   a tier-30 feature as the fix for a tier-20 counting gap, and the fix it names does not work, since a
   controller contributes no rows to the algebraic system.
+
+## D-88 · A port name the script wrote names a three-way valve's control leg; an inferred one names nothing
+
+**Accepted · 2026-09-09**
+
+Sizing identifies a three-way valve's **control leg** — the one whose design flow and branch resistance
+decide the Kv — from the port name **when the script wrote it**: `a` is the control path, `b` the
+bypass, per [`D-85`](#d-85--a-three-way-valves-ports-are-named-ab-a-and-b-as-the-body-is-labelled). A
+port name the *binder* chose for an unqualified endpoint is not consulted at all, and the graph-distance
+walk answers there instead. `CircuitGraph.StatedPorts` carries the difference, filled from a new
+`EndpointSymbol.PortStated`.
+
+**Why.** `ThreeWayValve.EvaluateResiduals` already gives port `a` the opening `position` and port `b`
+the complement `1 − position`. That is the manufacturers' convention — Belimo and Danfoss both label the
+control path A–AB and the bypass B–AB — and it is cast into the equations. A sizing rule that names the
+legs by any *other* criterion sizes a coefficient against one leg's flow and hands it to the equation
+governing the other. The two must be one reading.
+
+They were not. `ValveLegs.Common` found the common leg by the name `ab` while `ValveLegs.Variable`
+re-derived the control leg by walking the graph — the control leg being the one *further* from where the
+common leg lands — and returned "cannot tell" when the two tied. An injection circuit ties: the source
+leg and the return leg both land on the same header. Every mixing valve on one therefore declined and
+kept the bootstrap Kv 630, a coefficient chosen to behave like an open port for a single bootstrap pass.
+
+**Why the letter alone is not enough.** `Lowering.Build.End` records `component.Ports[port].Name`
+whether or not the script named a port, so every leg carries a letter and the graph cannot say which
+ones mean anything. `BindingRun.Unqualified` hands out ports in connection order, and on
+`m2-cooling-loop` — wired `HE1 - 3WV` / `3WV - N2` / `3WV - P1` — that puts the inferred `a` on the
+**recirculation** leg and `b` on the control leg, exactly backwards. This was measured rather than
+predicted: reading the letter unconditionally was implemented first, and it failed five tests including
+the sample's own convergence.
+
+Sizing the wrong leg is not a labelling error. Authority is measured against the resistance *behind* the
+leg, and a recirculation leg has almost none — so the rule asks for a large Kv and returns a valve with
+no authority over the path it actually controls.
+
+**Measured.**
+
+| Circuit | Ports written | Control leg before | Control leg now | `kv` |
+|---|---|---|---|---|
+| `m2-cooling-loop` | none | `b` → `N3` (walk) | `b` → `N3` (walk) | Kv 4, authority 0.66 — unchanged |
+| `m2-distribution-header` | `TV_AHU.a`, `.b`; `TV_RAD.a`, `.b` | `a` → `N5` (walk) | `a` → `N5` (name) | unchanged |
+| injection circuit | `TV_MAIN.ab`, `.a`, `.b` | **declined** — legs equidistant | `a` → `N1` (name) | **Kv 25, authority 0.51 at 0.656 l/s, 0.9 kPa** |
+
+The injection circuit is the case this exists for: it did not size and did not solve, and it now does
+both. The other two are unmoved, which is the point — the letters and the walk agree wherever the walk
+could answer.
+
+**Scope.** Which leg the sizing rule measures. It changes no equation, no port naming, and no behaviour
+for a valve whose ports the script did not name. `Common`'s `ab` test is deliberately left believing an
+inferred name: `ab` is port 0, so positional binding gives it to the first connection written, which is
+the common leg for both a mixing and a diverting arrangement. `a` and `b` are ports 1 and 2, handed out
+by the order of the two remaining connections, which says nothing about which leg recirculates.
+
+**Rejected.**
+- *Keep the walk and use the letter only to break a tie.* Two lines, no binder change, and it fixes the
+  injection circuit. Cost: it leaves the sizer disagreeing with the residuals wherever the walk reads
+  backwards — the case `ValveLegs` already names, a short tap off a header feeding a long secondary — and
+  the user's explicit word stays overridden by a heuristic.
+- *Believe every port name, stated or not.* Simplest possible rule, and what the equations do. Cost:
+  measured, it breaks `m2-cooling-loop` outright, because an inferred letter is connection order.
+  Implemented, run, reverted.
+- *Require a script to name a three-way valve's ports, and diagnose one that does not.* Removes the
+  ambiguity at its source. Cost: `m2-cooling-loop` and `m2-simple-loop` both write the valve bare, and
+  the shape reads perfectly well; a rule that refuses a correct script to make a sizing rule's life
+  easier is the wrong way round.
+- *Split the leg roles onto separate parameters (`kv_a`, `kv_b`) so nothing has to be derived.* The
+  arrangement manufacturers actually sell — see `C-69`. Cost: a component-contract change, and it does
+  not remove the question, since a sizer still has to know which leg carries the plant flow.

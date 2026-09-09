@@ -87,6 +87,7 @@ public static partial class Lowering
                 Loops = loops,
                 Groups = build.Groups,
                 Adjacency = build.Adjacency,
+                StatedPorts = build.StatedPorts,
                 CircuitOf = build.CircuitOf,
             },
             build.Unresolved);
