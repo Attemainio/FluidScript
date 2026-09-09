@@ -378,6 +378,11 @@ public static class WellPosedness
     {
         var constraints = ImmutableArray.CreateBuilder<ComponentConstraint>();
 
+        // Which components have already had their dropped enthalpy level paid for (`D-90`). A level pays
+        // for exactly one statement, so the first lone terminal in each takes it and the rest are flow
+        // pins as before.
+        var levelled = new HashSet<int>();
+
         foreach (var element in graph.Components)
         {
             var hydraulic = Owner(hydraulics, element);
@@ -413,18 +418,50 @@ public static class WellPosedness
                 }
             }
 
+            // A terminal pins a flow only when the other end of the same side is known too. With `in` and
+            // `out` both stated, `power` gives m = Q/(h_out - h_in) and the flow follows; with `out`
+            // alone that is one equation in two unknowns and pins nothing -- but it does fix an absolute
+            // temperature, which is precisely what a closed circuit's dropped level needs. An open
+            // circuit takes its inlet from a boundary, so the inlet is known without being stated and a
+            // lone `out` pins the flow there exactly as before.
+            var owed = hydraulics.FirstOrDefault(candidate => candidate.Index == hydraulic) is { } block
+                && NeedsEnthalpyLevel(graph, hydraulics, block);
+
             foreach (var parameter in FlowPins)
             {
-                if (HydraulicPartition.Stated(element, parameter) is not null)
+                if (HydraulicPartition.Stated(element, parameter) is null)
                 {
-                    constraints.Add(new ComponentConstraint(
-                        element.Name, parameter, ConstraintKind.FixedFlow, hydraulic));
+                    continue;
                 }
+
+                var pays = owed
+                    && Partner(parameter) is { } partner
+                    && HydraulicPartition.Stated(element, partner) is null
+                    && levelled.Add(hydraulic);
+
+                constraints.Add(new ComponentConstraint(
+                    element.Name,
+                    parameter,
+                    pays ? ConstraintKind.EnthalpyLevel : ConstraintKind.FixedFlow,
+                    hydraulic));
             }
         }
 
         return constraints.ToImmutable();
     }
+
+    /// <summary>The terminal at the other end of the same side, whose value makes a flow computable.</summary>
+    /// <param name="parameter">A terminal or difference parameter.</param>
+    /// <returns>
+    /// The partner terminal, or <see langword="null"/> for a parameter that is already a difference and so
+    /// has none -- <c>dt</c> states the rise outright and needs no second temperature to pin a flow.
+    /// </returns>
+    private static string? Partner(string parameter) => parameter switch
+    {
+        "out" => "in",
+        "out2" => "in2",
+        _ => null,
+    };
 
     /// <summary>Whether both of a component's sides carry flow.</summary>
     /// <param name="hydraulics">The hydraulic partition.</param>

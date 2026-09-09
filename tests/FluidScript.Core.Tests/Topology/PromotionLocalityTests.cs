@@ -86,6 +86,55 @@ public sealed class PromotionLocalityTests
             .Replace("HE1 heat_exchanger power=30 in=20 out=50", exchanger, StringComparison.Ordinal)
             .Replace("N3 return p=280", boundary, StringComparison.Ordinal);
 
+    [Fact]
+    public void ALoneOutletPaysTheClosedCircuitsEnthalpyLevelInsteadOfPinningAFlow()
+    {
+        // `D-90`. `power` with `out` alone is one equation in two unknowns and pins no flow -- but it
+        // fixes an absolute temperature, and a closed circuit has dropped one energy balance as its
+        // level because adding the same enthalpy to every node satisfies all of them. So it raises
+        // `EnthalpyLevel`, which promotes nothing, and that is what pays for the dropped balance.
+        //
+        // The count expected exactly this and nothing arranged it: whichever constraint ran out of
+        // candidates paid, so graph order decided which statement was physics and which was a demand.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
+            .Replace(
+                "HS1     heat_exchanger power=54",
+                "HS1     heat_exchanger power=54 out=80",
+                StringComparison.Ordinal);
+
+        var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
+
+        var level = counting.Constraints.Single(
+            constraint => constraint.Kind == ConstraintKind.EnthalpyLevel);
+
+        Assert.Equal("HS1", level.Component);
+        Assert.Equal("out", level.Parameter);
+
+        // The half that makes it worth having: it claims no unknown.
+        Assert.Null(Claimed(counting, "HS1", ConstraintKind.EnthalpyLevel));
+        Assert.DoesNotContain(counting.Promotions, promotion => promotion.Constraint == level);
+    }
+
+    [Fact]
+    public void AnOutletWithItsInletStatedStillPinsAFlow()
+    {
+        // The other side of `D-90`, and the reason it is conditional rather than a blanket reading of
+        // `out`. With both ends stated, `power` gives m = Q/(h_out - h_in) and the flow genuinely
+        // follows, so the statement needs an unknown to pay for it exactly as before. `m2-cooling-loop`
+        // states `HE1 power=30 in=20 out=50` and is open besides, so no level is dropped at all.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"));
+        var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
+
+        Assert.DoesNotContain(
+            counting.Constraints,
+            constraint => constraint.Kind == ConstraintKind.EnthalpyLevel);
+
+        Assert.Contains(
+            counting.Constraints,
+            constraint => constraint.Kind == ConstraintKind.FixedFlow
+                && string.Equals(constraint.Component, "HE1", StringComparison.Ordinal));
+    }
+
     private static (string, string)? Claimed(
         CountingTable counting, string component, ConstraintKind kind = ConstraintKind.FixedFlow) =>
         counting.Promotions

@@ -133,6 +133,21 @@ loop's redundant energy balance is what it consumes. The footer states the arith
 check it. Unanswered constraints *beyond* the levels dropped are the ones with nothing behind them,
 and that is over-specification.
 
+**One kind of statement is written to pay a level rather than falling into it.** In a closed circuit,
+an `out` with no matching `in` cannot pin a flow — `power` and `out` alone are one equation in two
+unknowns — but it does fix an absolute temperature, which is what the dropped level is missing. It
+shows up as its own kind:
+
+```
+    EnthalpyLevel   on HS1      -> no promotion
+    NodeTemperature on N3       -> solved for as TV_MAIN.position
+```
+
+That is the line to look for when a closed circuit reports **under-specified by one** and every
+temperature you have stated is already answering something else. A temperature on an interior node
+will not fix it — that is a [setpoint](../functions/node.md), and a setpoint brings its own unknown.
+Give the source the outlet it actually holds instead.
+
 On the distribution header, all four are answered:
 
 ```

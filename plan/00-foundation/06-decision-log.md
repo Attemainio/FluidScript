@@ -3949,3 +3949,78 @@ rather than by the pass, so a two-way valve says it as well as a three-way.
 - *Ask the script.* An `authority` is already statable and constrains the target; a rounding direction
   is not something a user should have to know to state. It is a consequence of the circuit, and the
   circuit already says which it is.
+
+## D-90 · A terminal temperature pins a flow only when the other end of its side is known; alone in a closed circuit it is the enthalpy datum
+
+**Accepted · 2026-09-09**
+
+A heat exchanger's stated `out` (or `out2`) raises a `FixedFlow` constraint **only when the matching
+`in` is stated too**. Stated alone in a **closed, steady, uncoupled** circuit — the condition
+`WellPosedness.NeedsEnthalpyLevel` already tests — it raises the new
+`ConstraintKind.EnthalpyLevel` instead: an equation that promotes nothing. Exactly one per hydraulic
+component takes it; a second is over-specification, which the count already reports.
+
+**Why.** With `power`, `in` and `out` all stated, `ṁ = Q/(h_out − h_in)` and the flow follows, so the
+statement genuinely pins a flow and needs an unknown to pay for it. With `power` and `out` alone that
+is **one equation in two unknowns** and pins nothing. What it does do is fix an absolute temperature —
+and a closed circuit has dropped one energy balance as its level, because adding the same enthalpy to
+every node satisfies all of them, so it needs exactly one statement that contributes a row and claims
+no column.
+
+The counting scheme already expected that. `SolveExplanation` says so in as many words: *"n with no
+promotion, against n enthalpy level(s) dropped. A level pays for one; anything beyond that is
+over-specification."* What was missing is that **nothing arranged it**. Whichever constraint happened
+to exhaust its candidate list paid the level, so graph order decided which statement was physics and
+which was a demand. On the distribution header no constraint ran out, nothing paid, and the circuit
+reported under-specified by one for the whole of its life.
+
+**Why a node cannot pay it.** `D-87` made every interior-node temperature a setpoint that promotes the
+split holding it, so it brings its own unknown. Measured: `N1 node p=250 t=40` on the header counts
+identically to stating nothing. After `D-87` a closed circuit's only route to an enthalpy datum is a
+component terminal, which is `D-65`'s reading of `HE1 in=20` on the simple loop — and this decision is
+what makes that route work where the partner terminal is absent.
+
+**In an open circuit nothing changes.** The inlet arrives from a boundary and is known without being
+stated, so a lone `out` pins the flow there exactly as before, and `NeedsEnthalpyLevel` returns false.
+
+**Measured.** No sample moves: 1434 tests green, `m2-simple-loop`, `m2-cooling-loop` and
+`m4-storage-header` unchanged, `m2-substation` still `NonFinite`, `m2-distribution-header` still
+refused at 45/44 — it states no lone terminal, so nothing here reaches it. The distribution header
+**rebuilt as an injection circuit** (`HS1 power=54 out=80` into `TV_MAIN.a`, the return header into
+`TV_MAIN.b`, `TV_MAIN.ab` through `PU_MAIN` to a supply header held at `N3 node t=60`) goes from
+**53 unknowns / 52 equations, under-specified by 1** to **52 / 52, square at rank 52** — no unknown
+undetermined, no equation implied by the others — with every constraint answered by the actuator that
+can actually reach it:
+
+```
+EnthalpyLevel   on HS1      -> no promotion
+NodeTemperature on N3       -> solved for as TV_MAIN.position
+MixedInlet      on HE_AHU   -> solved for as TV_AHU.position
+FixedFlow       on HE_AHU   -> solved for as PU_AHU.head
+MixedInlet      on HE_RAD   -> solved for as TV_RAD.position
+FixedFlow       on HE_RAD   -> solved for as PU_RAD.head
+```
+
+**It also removed the promotion collision this was chasing.** Paying the level with `HS1 in=40 out=80`
+instead makes the count square too, and wrongly: `in=40` demands a return-header temperature that
+`F-16` already recorded as an *answer*, and it competes with the `N3` setpoint for the one valve that
+can hold either — the report then reads `NodeTemperature on N3 -> solved for as TV_AHU.position`, a
+consumer valve downstream of the header it is supposed to hold. `S-45`'s matching residue is real, but
+it was not what blocked this circuit: the right statement removes the competition rather than needing a
+better matching to resolve it.
+
+**Scope.** Constraint classification for `out` and `out2`. `dt`/`dt2` are untouched and deliberately so
+— a difference states no absolute temperature and can never be a level, which is the reason `Terminals`
+already excluded it.
+
+**Rejected.**
+- *Let a node temperature pay the level.* The natural spelling, and `D-87` closed it: an interior node
+  temperature is a setpoint that promotes a split, so it can never be the free statement. Reopening it
+  would mean two readings of one syntax decided by context.
+- *Count `FixesEnthalpyLevel` as an equation directly.* That predicate already exists and is used only
+  to word `FS2211`. Cost: it is a property of the *component*, not of a statement, so it adds a row
+  nothing owns — and the report could no longer name which statement pays, which is the half that makes
+  the counting table readable.
+- *Require `in` alongside every `out`.* Squares the count with no new machinery. Cost: it forces the
+  user to state a return temperature the circuit is supposed to compute, which is `F-16` exactly, and
+  on the header it produces a wrong answer that counts right.
