@@ -822,71 +822,15 @@ public sealed class OuterLoop(
     /// <param name="exclude">The component whose own contribution is left out.</param>
     /// <returns>Pa, positive against the flow.</returns>
     /// <remarks>
-    /// <strong>Each component states its own drop, and none of them is asked how.</strong> A pressure
-    /// residual is written <c>p_in − p_out − Δp(law) = 0</c>, so evaluating it over a <em>flat</em>
-    /// pressure field leaves exactly <c>−Δp(law)</c> — the component's own contribution at that flow,
-    /// from the same code the solver runs. No kind appears here, a pump's rise comes out negative
-    /// because that is what a pump does to a loop, and a component added later is covered the day it
-    /// declares a pressure equation.
+    /// The rule itself moved to <see cref="BranchResistance"/> when the seed needed it as well: sizing
+    /// wants a run's total and the seed wants each element in turn, and one rule in two places is how
+    /// <c>D-86</c> came to be applied three times and missed a fourth.
     /// </remarks>
     private static double Resistance(
         CircuitGraph graph,
         FluidState state,
         ImmutableArray<IFlowComponent> path,
         double flow,
-        IFlowComponent exclude)
-    {
-        var total = 0.0;
-
-        foreach (var element in path)
-        {
-            if (ReferenceEquals(element, exclude) || element.EquationCount == 0)
-            {
-                continue;
-            }
-
-            var row = element.DeclareEquations()
-                .FirstOrDefault(declaration => declaration.Kind == EquationKind.Pressure);
-
-            if (row is null)
-            {
-                continue;
-            }
-
-            var ports = new PortState[element.Ports.Length];
-            var flows = new double[element.Ports.Length];
-            var residuals = new double[element.EquationCount];
-
-            Array.Fill(ports, Flat(state));
-            Array.Fill(flows, flow);
-
-            element.EvaluateResiduals(new SolveContext(graph.Substance, ports, flows), residuals);
-
-            if (double.IsFinite(residuals[row.Index]))
-            {
-                total -= residuals[row.Index];
-            }
-        }
-
-        return total;
-    }
-
-    /// <summary>A port state carrying real properties at zero gauge pressure.</summary>
-    /// <param name="state">The fluid.</param>
-    /// <returns>The port state.</returns>
-    /// <remarks>
-    /// Only the pressure is flattened. The properties stay real, because a pipe cannot form a Reynolds
-    /// number without a density and a viscosity, and a law evaluated against invented ones would be a
-    /// different law.
-    /// </remarks>
-    private static PortState Flat(FluidState state) => new()
-    {
-        Pressure = 0,
-        Enthalpy = state.Enthalpy.SiValue,
-        Temperature = state.Temperature.SiValue,
-        Density = state.Density.SiValue,
-        SpecificHeat = state.SpecificHeat.SiValue,
-        DynamicViscosity = state.DynamicViscosity.SiValue,
-        ThermalConductivity = state.ThermalConductivity.SiValue,
-    };
+        IFlowComponent exclude) =>
+        BranchResistance.Along(graph, state, path, flow, exclude);
 }

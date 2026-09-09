@@ -166,6 +166,19 @@ a failure that has nothing to do with the model.
 `PU1.head` starting at 0 is normal. A promoted parameter with no stated value has nothing better to
 start from, and the line search walks it up.
 
+**Where the seed's pressures come from.** Not from a fixed ladder. The flows are chosen first, so that
+every node balances; the pressures are then walked out from a starting point through the circuit,
+subtracting what each component's own law says it resists at the flow it is carrying. A pump raises
+the running pressure, a pipe and a valve lower it, and a three-way valve's legs come out where its own
+Kv relations put them rather than all at one value. So a seed pressure is already a claim the
+components agree with — everywhere the walk reaches.
+
+It cannot reach everywhere. The walk is a tree, and a circuit has loops: each independent loop leaves
+one connection whose two ends were reached separately, and the disagreement there is real. That is the
+error Newton exists to close, and it is normal to see a large residual on exactly one component per
+loop in a report taken at the seed. What is *not* normal is a large residual on many of them at once —
+that usually means the flows themselves are far from the answer, not the pressures.
+
 ## Equations, and how far each is from satisfied
 
 ```

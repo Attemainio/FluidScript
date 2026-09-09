@@ -144,9 +144,12 @@ public sealed class NewtonSolverTests
         // something a component cannot give -- here, that same Kv 630 stated deliberately.
         //
         // A stated `kv` is a constraint, so no rule replaces it: the valve passes essentially everything,
-        // the boundary pair over-drives the loop, and the split runs to its stop trying to absorb the
-        // difference. That is a real script a user can write, and the point of the diagnostic is that
-        // they are told which parameter gave out instead of being handed a residual to interpret.
+        // the boundary pair over-drives the loop, and something has to absorb the difference. Which
+        // parameter gives out is a property of the seed rather than of the script, and it moved when the
+        // seed took its pressures from the components' own laws (`S-46`): the split no longer runs to its
+        // stop and the pump is held at zero head instead, a loop over-driven through a valve that resists
+        // nothing having no need of a pump. What is asserted is therefore that a bound the solver hits is
+        // reported once and by name -- not which of the two gives out first.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
             .Replace("3WV three_way_valve", "3WV three_way_valve kv=630", StringComparison.Ordinal);
 
@@ -159,7 +162,7 @@ public sealed class NewtonSolverTests
         var held = Assert.Single(
             result.Diagnostics.Where(static diagnostic => diagnostic.Code == "FS3008"));
 
-        Assert.Contains("3WV.position", held.Message, StringComparison.Ordinal);
+        Assert.Contains("PU1.head", held.Message, StringComparison.Ordinal);
     }
 
     [Fact]
