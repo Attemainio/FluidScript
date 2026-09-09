@@ -57,7 +57,8 @@ would be filled with nothing.
 > **Phase P3, milestone M2a — the hydraulic core.**
 > P3.0 through P3.7 have shipped. **P3.8 and P3.9 have not been started.**
 > M2a's exit is blocked on one demo script: `samples/m2-distribution-header.fluid`.
-> As of `0f8985e`, 2026-09-09.
+> As of `f11af8f`, 2026-09-09. The three commits since `0f8985e` are this record and the environment
+> traps beside it; no code moved, and the baselines below were re-checked, not assumed.
 
 M2a asks for three demo scripts to solve. Two do:
 
@@ -198,16 +199,17 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 15 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **44** | |
+| | **45** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
 carries about its own unread documents.
 
 **The entries standing between here and M2a's exit** are `S-48` and `S-51` (the distribution header),
-with `S-45`, `S-47` and `S-29`/`S-37` behind them. Everything else open is either explicitly *not* an
+with `S-45`, `S-47` and `S-29`/`S-37` behind them. `S-52` is adjacent rather than blocking: it is the
+diagnostic that misdirects anyone trying to fix `S-48` by following the tool's own suggestion. Everything else open is either explicitly *not* an
 M2a blocker in its own entry, or belongs to a tier M2a does not touch.
 
 ## What is next
