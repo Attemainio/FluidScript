@@ -181,6 +181,26 @@ a failure that has nothing to do with the model.
 `PU1.head` starting at 0 is normal. A promoted parameter with no stated value has nothing better to
 start from, and the line search walks it up.
 
+**Where the seed's flows come from.** Each branch is first given a magnitude: from a duty and two
+temperatures where a component states them, from a stated flow where one is stated, and from a nominal
+0.1 kg/s where nothing does. Those magnitudes do not add up — nothing made them agree at a tee — so the
+circuit is spanned by a tree, the branches outside the tree keep their magnitude, and each remaining
+branch is *solved* as whatever closes the balance at its node.
+
+Two things follow that are worth knowing when a seed looks wrong.
+
+**Direction comes from the pumps.** A magnitude says how much, not which way, and a branch's stored
+direction is an artefact of the order the connections were read. Where a branch has a pump, the seed
+runs it the way the pump pushes; a branch with no pump takes the stored direction, which costs nothing
+because nothing else in the branch cares.
+
+**No branch is allowed to start at a standstill.** A branch solved as the leftover can legitimately
+come out at zero — and a pipe's resistance law `Δp = R·ṁ|ṁ|` has no slope at `ṁ = 0`, so the solver
+cannot move away from it. When that happens the seed spans the circuit again, this time refusing to
+make that branch the leftover, and keeps the new tree only if fewer branches stand still. A branch that
+is genuinely not flowing — a dead leg with nowhere for its water to go — stands still under every tree,
+and the seed accepts it and says so.
+
 **Where the seed's pressures come from.** Not from a fixed ladder. The flows are chosen first, so that
 every node balances; the pressures are then walked out from a starting point through the circuit,
 subtracting what each component's own law says it resists at the flow it is carrying. A pump raises

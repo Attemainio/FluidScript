@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
+using FluidScript.Core.Language;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Topology;
 using FluidScript.Core.Units;
@@ -849,6 +850,7 @@ public static class SolutionSeed
         private readonly List<List<(int Branch, int Sign)>> _incident = [];
         private readonly List<int> _order = [];
         private readonly Dictionary<object, double> _injection = new(ReferenceEqualityComparer.Instance);
+        private readonly Dictionary<object, int> _componentOf = Index(graph);
 
         private int[] _parent = [];
         private int[] _component = [];
@@ -865,14 +867,80 @@ public static class SolutionSeed
 
         /// <summary>Chooses chords and boundary fluxes, then solves the tree for the rest.</summary>
         /// <param name="estimates">One unsigned magnitude per branch.</param>
+        /// <remarks>
+        /// <para>
+        /// <strong>Whichever branch closes a vertex's balance can close it at zero, and a branch seeded
+        /// at zero is a singular row rather than a poor guess</strong> (<c>S-51</c>). A pipe's momentum
+        /// relation is <c>Δp = R·ṁ|ṁ|</c>, whose slope <c>2R|ṁ|</c> vanishes at <c>ṁ = 0</c>, and a pump
+        /// curve's does the same; <c>S-21</c> is the whole of why the seed exists. The forest cannot know
+        /// in advance which parent will land there, so the answer is measured rather than predicted: span,
+        /// solve, and if some branch came out at a standstill, bar it from being a parent and span again.
+        /// </para>
+        /// <para>
+        /// <strong>Measured on the decoupled injection header</strong>, where the primary loop through
+        /// <c>HS1</c> and the decoupler both run <c>N7</c> to <c>N8</c>. The walk reached <c>N8</c> by the
+        /// primary, so the primary became the parent and closed at <strong>−0</strong>: a 54 kW source
+        /// moving no water, every node along it enthalpy-undetermined, and the system <c>Singular</c> at
+        /// iteration zero with rank 57 of 59. Barring it moves the leftover onto the decoupler, which is
+        /// the branch that should carry it — the difference between primary and secondary flow is the
+        /// whole reason a decoupler is fitted.
+        /// </para>
+        /// <para>
+        /// <strong>A bar is kept only while it pays.</strong> Deferring an edge changes the whole walk,
+        /// so it can trade one standstill for two somewhere else; a retry that does not lower the count is
+        /// undone and the search stops. That makes the loop monotone in the number of stalled branches,
+        /// so it terminates, and it can never leave the seed worse than the plain walk left it — which
+        /// matters because a genuinely dead leg is zero under every forest and must simply be accepted.
+        /// </para>
+        /// </remarks>
         public void Solve(ImmutableArray<BranchFlow> estimates)
         {
-            Span(out var chords);
+            foreach (var branch in graph.Branches)
+            {
+                Attach(branch.From.Element, branch.Index, -1);
+                Attach(branch.To.Element, branch.Index, +1);
+            }
+
+            var barred = new bool[graph.Branches.Length];
+            var best = Fill(estimates, barred, out var stalled);
+
+            while (best > 0 && !barred[stalled])
+            {
+                barred[stalled] = true;
+
+                var count = Fill(estimates, barred, out var next);
+
+                if (count < best)
+                {
+                    best = count;
+                    stalled = next;
+
+                    continue;
+                }
+
+                barred[stalled] = false;
+                Fill(estimates, barred, out _);
+
+                return;
+            }
+        }
+
+        /// <summary>Spans the graph, then solves every tree branch into <see cref="Flows"/>.</summary>
+        /// <param name="estimates">One unsigned magnitude per branch.</param>
+        /// <param name="barred">Branches held back from parenting a vertex, by branch index.</param>
+        /// <param name="stalled">Receives the first branch left at a standstill, or -1 for none.</param>
+        /// <returns>How many branches the forest solved to a standstill.</returns>
+        private int Fill(ImmutableArray<BranchFlow> estimates, bool[] barred, out int stalled)
+        {
+            _order.Clear();
+            Array.Clear(Flows);
+
+            Span(barred, out var chords);
             Boundaries(estimates);
 
             foreach (var chord in chords)
             {
-                Flows[chord] = estimates[chord].Magnitude;
+                Flows[chord] = Orientation(graph.Branches[chord]) * estimates[chord].Magnitude;
             }
 
             // Leaves inward, so that when a vertex is reached everything at it but the branch joining
@@ -903,9 +971,119 @@ public static class SolutionSeed
 
                 Flows[_parent[vertex]] = -net / sign;
             }
+
+            return Stalls(out stalled);
         }
 
-            /// <summary>Builds the vertex set, the incidence lists and a spanning forest.</summary>
+        /// <summary>Counts the branches the field left at a standstill.</summary>
+        /// <param name="stalled">Receives the first such branch's index, or -1 when there is none.</param>
+        /// <returns>How many branches carry less than <see cref="Tolerances.FlowZero"/>.</returns>
+        private int Stalls(out int stalled)
+        {
+            var count = 0;
+
+            stalled = -1;
+
+            for (var branch = 0; branch < Flows.Length; branch++)
+            {
+                if (Math.Abs(Flows[branch]) > Tolerances.FlowZero)
+                {
+                    continue;
+                }
+
+                count++;
+                stalled = stalled < 0 ? branch : stalled;
+            }
+
+            return count;
+        }
+
+            /// <summary>Indexes every component by reference, for <see cref="PortAdjacency"/> lookups.</summary>
+            /// <param name="graph">The lowered circuit.</param>
+            /// <returns>Component to its position in <c>graph.Components</c>.</returns>
+            private static Dictionary<object, int> Index(CircuitGraph graph)
+            {
+                var index = new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+
+                for (var component = 0; component < graph.Components.Length; component++)
+                {
+                    index[graph.Components[component]] = component;
+                }
+
+                return index;
+            }
+
+            /// <summary>Which way a branch's estimated flow points, in the branch's own orientation.</summary>
+            /// <param name="branch">The branch.</param>
+            /// <returns>+1 along <see cref="Branch.From"/> to <see cref="Branch.To"/>, -1 against it.</returns>
+            /// <remarks>
+            /// <para>
+            /// <strong>A branch estimate is a magnitude, and the orientation it gets applied in belongs to
+            /// the walk that lowered the graph rather than to the plant</strong> (<c>S-51</c>).
+            /// <see cref="Solve"/> hands each chord its estimate outright, and until this existed it handed
+            /// it over as <em>positive along the branch</em> -- so whether the seed described the circuit
+            /// running forwards or backwards came down to which end the lowering happened to start from.
+            /// </para>
+            /// <para>
+            /// <strong>Measured on <c>m2-cooling-loop</c></strong>, whose supply branch is lowered
+            /// <c>3WV</c> to <c>N2</c> while the water runs <c>N2</c>, <c>PU1</c>, <c>HE1</c>, <c>3WV</c>.
+            /// Seeding that branch at +0.239 kg/s seeds the pump running backwards through its own
+            /// exchanger. The loop converged anyway only because the branch that happened to become the
+            /// chord was the empty bypass, whose lowered orientation agrees with the flow; the moment
+            /// anything changed which branch that was, the seed inverted and the first Newton step walked
+            /// a node out of the water domain.
+            /// </para>
+            /// <para>
+            /// <strong>The pump is what settles it, and only the pump.</strong> A pipe carries an
+            /// <c>in</c> and an <c>out</c> too, but those record the order the author typed the connection
+            /// and assert nothing about the water; a pump asserts a direction physically, and is the one
+            /// element in a hydronic branch the solution may not run backwards. A branch with no pump
+            /// keeps +1, which is no worse than what it had.
+            /// </para>
+            /// </remarks>
+            private int Orientation(Branch branch)
+            {
+                for (var step = 0; step < branch.Path.Length; step++)
+                {
+                    if (branch.Path[step] is not Pump pump
+                        || !_componentOf.TryGetValue(pump, out var element)
+                        || element >= graph.Adjacency.ComponentCount)
+                    {
+                        continue;
+                    }
+
+                    var before = step > 0 ? branch.Path[step - 1] : branch.From.Element;
+                    var after = step + 1 < branch.Path.Length ? branch.Path[step + 1] : branch.To.Element;
+
+                    for (var port = 0; port < pump.Ports.Length; port++)
+                    {
+                        var peer = graph.Adjacency.Peer(element, port);
+
+                        if (!peer.Exists)
+                        {
+                            continue;
+                        }
+
+                        var neighbour = graph.Components[peer.Component];
+                        var downstream = pump.Ports[port].Role is PortRole.Outlet;
+
+                        if (ReferenceEquals(neighbour, after))
+                        {
+                            return downstream ? +1 : -1;
+                        }
+
+                        if (ReferenceEquals(neighbour, before))
+                        {
+                            return downstream ? -1 : +1;
+                        }
+                    }
+                }
+
+                return +1;
+            }
+
+            /// <summary>Builds a spanning forest over the incidence lists already attached.</summary>
+            /// <param name="barred">Branches held back from parenting a vertex, by branch index.</param>
             /// <param name="chords">Receives every branch the forest did not use.</param>
             /// <remarks>
             /// <para>
@@ -914,6 +1092,7 @@ public static class SolutionSeed
             /// balance written here and a residual written there mean the same thing. A branch whose ends
             /// are the same vertex — a ring with one cut vertex is exactly this — lands twice with
             /// opposite signs and cancels, which is correct: a self-loop moves no mass across its vertex.
+            /// <see cref="Solve"/> attaches them, once, before the first of possibly several spans.
             /// </para>
             /// <para>
             /// <strong>The forest is not arbitrary at a three-way valve: it has to reach one by its common
@@ -938,15 +1117,14 @@ public static class SolutionSeed
             /// still gets attached, which keeps this a preference rather than a constraint the topology
             /// could contradict.
             /// </para>
+            /// <para>
+            /// <strong>A barred branch is held the same way</strong> (<c>S-51</c>), for the same reason
+            /// and with the same escape: <see cref="Solve"/> bars whatever the last forest solved to a
+            /// standstill, and a branch that is the only way into its vertex is attached regardless.
+            /// </para>
             /// </remarks>
-            private void Span(out List<int> chords)
+            private void Span(bool[] barred, out List<int> chords)
             {
-                foreach (var branch in graph.Branches)
-                {
-                    Attach(branch.From.Element, branch.Index, -1);
-                    Attach(branch.To.Element, branch.Index, +1);
-                }
-
                 _parent = new int[_vertices.Count];
                 _component = new int[_vertices.Count];
                 Array.Fill(_parent, -1);
@@ -992,7 +1170,7 @@ public static class SolutionSeed
                                     continue;
                                 }
 
-                                if (common[other] >= 0 && common[other] != branch)
+                                if ((common[other] >= 0 && common[other] != branch) || barred[branch])
                                 {
                                     held.Add((other, branch));
                                     continue;
@@ -1065,6 +1243,7 @@ public static class SolutionSeed
 
                 return -1;
             }
+
 
         /// <summary>Chooses an external flux for every boundary node, summing to zero per component.</summary>
         /// <param name="estimates">One unsigned magnitude per branch, for the scale to use.</param>

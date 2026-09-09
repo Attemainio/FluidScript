@@ -1,8 +1,10 @@
 using FluidScript.Core.Components;
+using FluidScript.Core.Language;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Core.Topology;
+using FluidScript.Core.Units;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Solvers;
@@ -289,4 +291,238 @@ public sealed class SolutionSeedTests
             Assert.Equal(held.Value, value);
         }
     }
+
+    /// <remarks>
+    /// <para>
+    /// <strong>A branch estimate is a magnitude, and the branch it is laid on has an orientation nothing
+    /// physical chose</strong> (<c>S-51</c>). <c>From</c> and <c>To</c> record the direction the lowering
+    /// walk happened to cross the branch; the seed gave every chord its estimate as positive along that,
+    /// so whether the field described the plant running forwards or backwards was an artefact of where
+    /// the walk started.
+    /// </para>
+    /// <para>
+    /// A rated exchanger is where that becomes checkable without restating the fix. <c>in</c> and
+    /// <c>out</c> name ports, not path positions, so an exchanger that states both says which way its
+    /// water goes; the seed must agree. Measured on <c>m2-cooling-loop</c>, whose supply branch is lowered
+    /// <c>3WV</c> to <c>N2</c> while the water runs <c>N2</c>, <c>PU1</c>, <c>HE1</c>, <c>3WV</c>: a chord
+    /// there at +0.239 kg/s seeds <c>PU1</c> pushing backwards through <c>HE1</c>, which is the same
+    /// inversion <c>ARatedInletLandsOnTheNodeAtTheInletPortAndNotTheOneAfterIt</c> caught in the
+    /// enthalpies, one iterate earlier and in the flows instead.
+    /// </para>
+    /// </remarks>
+    [Theory]
+    [MemberData(nameof(Samples))]
+    public void TheSeedRunsARatedExchangerFromItsInletTowardsItsOutlet(string sample)
+    {
+        var graph = Lower(sample);
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        foreach (var branch in graph.Branches)
+        {
+            var flow = seed.Values[layout.BranchFlow(branch.Index)];
+
+            // A branch at a standstill has no direction to be wrong about, and whether it is allowed to
+            // stand still at all is EveryDrivenBranchIsSeededAwayFromRest's question rather than this
+            // one's. m1-syntax-tour has one: it is a grammar exercise and several of its circuits are
+            // deliberately incomplete as plant.
+            if (Math.Abs(flow) <= Tolerances.FlowZero)
+            {
+                continue;
+            }
+
+            for (var step = 0; step < branch.Path.Length; step++)
+            {
+                if (Rated(graph, branch.Path[step]) is not { } rated)
+                {
+                    continue;
+                }
+
+                var entering = Where(graph, branch, step, rated.Inlet);
+                var leaving = Where(graph, branch, step, rated.Outlet);
+
+                if (entering == leaving)
+                {
+                    continue;
+                }
+
+                Assert.True(
+                    entering < leaving ? flow > 0 : flow < 0,
+                    $"{branch.Path[step].Name} states in and out, so the seed must carry water from the "
+                    + $"port called in to the one called out; branch {branch.Index} runs {flow:G4} kg/s "
+                    + "the other way, which is the exchanger cooling when it heats.");
+            }
+        }
+    }
+
+    /// <summary>A rated exchanger's inlet and outlet port indices, or <see langword="null"/>.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="element">The candidate component.</param>
+    /// <returns>The two port indices, when the component states a temperature at both.</returns>
+    private static (int Inlet, int Outlet)? Rated(CircuitGraph graph, IFlowComponent element)
+    {
+        if (!graph.Components.Contains(element))
+        {
+            return null;
+        }
+
+        var inlet = -1;
+        var outlet = -1;
+
+        for (var port = 0; port < element.Ports.Length; port++)
+        {
+            if (!element.StatedParameters.TryGetValue(element.Ports[port].Name, out var stated)
+                || stated.Dimension != Dimension.Temperature)
+            {
+                continue;
+            }
+
+            if (element.Ports[port].Role is PortRole.Inlet && inlet < 0)
+            {
+                inlet = port;
+            }
+            else if (element.Ports[port].Role is PortRole.Outlet && outlet < 0)
+            {
+                outlet = port;
+            }
+        }
+
+        return inlet >= 0 && outlet >= 0 ? (inlet, outlet) : null;
+    }
+
+    /// <summary>Where along a branch the neighbour on one of a component's ports sits.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="branch">The branch the component lies on.</param>
+    /// <param name="step">The component's own position in <see cref="Branch.Path"/>.</param>
+    /// <param name="port">The port to follow.</param>
+    /// <returns>A path position, -1 for the <c>From</c> end and the path length for the <c>To</c> end.</returns>
+    private static int Where(CircuitGraph graph, Branch branch, int step, int port)
+    {
+        var element = graph.Components.IndexOf(branch.Path[step]);
+        var peer = element < 0 ? PortRef.None : graph.Adjacency.Peer(element, port);
+
+        if (!peer.Exists)
+        {
+            return step;
+        }
+
+        var neighbour = graph.Components[peer.Component];
+
+        if (step > 0 && ReferenceEquals(neighbour, branch.Path[step - 1]))
+        {
+            return step - 1;
+        }
+
+        if (step + 1 < branch.Path.Length && ReferenceEquals(neighbour, branch.Path[step + 1]))
+        {
+            return step + 1;
+        }
+
+        if (ReferenceEquals(neighbour, branch.From.Element))
+        {
+            return -1;
+        }
+
+        return ReferenceEquals(neighbour, branch.To.Element) ? branch.Path.Length : step;
+    }
+
+    /// <remarks>
+    /// <para>
+    /// <strong>Being a vertex's parent means being solved for whatever closes its balance, and zero is a
+    /// legal answer to that</strong> (<c>S-51</c>). The forest picks parents by walking the graph, which
+    /// knows nothing about which branches are allowed to stand still, so a branch that must move water
+    /// can be handed the leftover and land on nothing.
+    /// </para>
+    /// <para>
+    /// The arrangement below is where it was measured: a hydraulically separated header, the standard
+    /// answer to a boiler that wants constant flow feeding consumers that do not. The primary loop
+    /// through <c>HS1</c> and the decoupler <c>PDC</c> both run <c>N7</c> to <c>N8</c>, the walk reached
+    /// <c>N8</c> by the primary, and the primary closed at <strong>-0</strong> -- a 54 kW source moving
+    /// no water, every node along it enthalpy-undetermined, and the system <c>Singular</c> at iteration
+    /// zero with rank 57 of 59.
+    /// </para>
+    /// <para>
+    /// <strong>The decoupler is the branch that should carry the leftover</strong>, and this is not a
+    /// coincidence of the walk: carrying the difference between primary and secondary flow is the whole
+    /// reason one is fitted, and near zero is its ordinary operating answer. The seed does not know that
+    /// as a rule, and does not need to -- it re-spans, barring whatever stalled, and keeps the bar only
+    /// while the count of stalled branches falls.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void NoBranchStandsStillWhereAnotherSpanningForestWouldHaveMovedIt()
+    {
+        var source = """
+            fluidscript 1
+            circuit heating 100
+            fluid water
+
+            HS1     heat_exchanger power=54 out=80
+            PU_SRC  pump
+            TV_MAIN three_way_valve
+            PU_MAIN pump
+            PP1     pipe length=5 dn=40
+            PP2     pipe length=5 dn=40
+            PDC     pipe length=1 dn=50
+            PS1     pipe length=6 dn=32
+            PB      pipe length=4 dn=32
+
+            connections
+            N1 - HS1 - N2 - PU_SRC - PP1 - N7
+            N7 - PDC - N8
+            N8 - PP2 - N1
+            N7 - PS1 - TV_MAIN.a
+            TV_MAIN.b - PB - N5
+            TV_MAIN.ab - PU_MAIN - N3
+            N3 - N4
+            N6 - N5
+            N5 - N8
+
+            N1 node p=250
+            N3 node t=60
+
+            circuit AHU 101
+
+            HE_AHU  heat_exchanger in=50 out=30 power=-24 kW
+            TV_AHU  three_way_valve
+            PU_AHU  pump
+            PA1     pipe length=12 dn=25
+            PA2     pipe length=12 dn=25
+
+            connections
+            NM_AHU - PU_AHU - HE_AHU - TV_AHU
+            TV_AHU.b - NM_AHU
+            N3 - PA1 - NM_AHU
+            TV_AHU.a - PA2 - N5
+
+            circuit radiators 102
+
+            HE_RAD  heat_exchanger in=50 out=30 power=-30 kW
+            TV_RAD  three_way_valve
+            PU_RAD  pump
+            PR1     pipe length=18 dn=25
+            PR2     pipe length=18 dn=25
+
+            connections
+            NM_RAD - PU_RAD - HE_RAD - TV_RAD
+            TV_RAD.b - NM_RAD
+            N4 - PR1 - NM_RAD
+            TV_RAD.a - PR2 - N6
+            """;
+
+
+        var graph = GraphFixture.Lower(source).Graph;
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        foreach (var branch in graph.Branches)
+        {
+            Assert.True(
+                Math.Abs(seed.Values[layout.BranchFlow(branch.Index)]) > Tolerances.FlowZero,
+                $"branch {branch.Index} ({branch.From.Label} -> {branch.To.Label}) is seeded at rest on a "
+                + "closed circuit whose every branch carries water, so the forest chose the wrong parent "
+                + "rather than the circuit choosing to stop (S-51).");
+        }
+    }
 }
+
