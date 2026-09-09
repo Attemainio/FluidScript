@@ -393,7 +393,7 @@ Inference rule I3 terminates open ports. What condition the created node carries
 
 | Situation | Condition | Reasoning |
 |---|---|---|
-| Open port on a valve's bypass (`c`) | **Dead leg**: zero flow | A three-way valve used as a two-way. Zero flow is the physical truth. |
+| Open port on a valve's bypass (`b`) | **Dead leg**: zero flow | A three-way valve used as a two-way. Zero flow is the physical truth. |
 | Open port on any other component | Zero flow, plus `FS2202` (warning) | Almost certainly an unfinished script |
 | A node with exactly one connection and no stated boundary | Zero flow, plus `FS2107` | Same |
 
