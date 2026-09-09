@@ -196,12 +196,12 @@ Counts only. Every description lives in the file named.
 
 | Tier | Open | File |
 |---|---|---|
-| 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
+| 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **45** | |
+| | **46** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
