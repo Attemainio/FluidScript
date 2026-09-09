@@ -238,8 +238,10 @@ a judgement.
 `dotnet test` discovers zero tests in this environment; the binaries under
 `~/.dotnet-artifacts/bin/<project>/debug/` are run directly. That and the Visual Studio `obj/`
 collision that produces hundreds of spurious `CS0246`s are written up in
-[`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) under Observations — environment facts
-belong in the repository, not in a session's own memory.
+[`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) under Observations, which is the
+authoritative account of both. **Environment traps are the one thing that also belongs in an agent's
+own memory**, because their whole value is firing before the mistake rather than after someone goes
+looking. Nothing about the project's state does: that is this file's job.
 
 ## Updating this file
 

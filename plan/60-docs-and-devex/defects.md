@@ -33,9 +33,12 @@ at all, in the tier of the code rather than the tier of the document.
 
 **Two environment traps that each cost most of a session, recorded here because
 [`62`](62-testing-strategy.md) and [`63`](63-ci-and-repo-hygiene.md) describe how the tests and the
-build are *meant* to run and neither describes what this one actually does.** They were carried in a
-session-local memory file until 2026-09-09; a fact that costs a session to rediscover belongs in the
-repository, where the next person gets it whether or not they are the same agent.
+build are *meant* to run and neither describes what this one actually does.** Until 2026-09-09 they
+lived only in an agent's session-local memory, which meant a second agent, a fresh clone or a human
+got neither. This is the authoritative account. A short hook survives in the agent memory as well,
+deliberately: the value of these two is that they fire *before* the mistake, and a note nobody loads
+until they go looking has already lost. The hook carries the symptom, the one-command proof and the
+fix, and nothing else — anything longer there would become a second account and drift from this one.
 
 **`dotnet test` discovers nothing in this WSL2 environment, and the tests are fine.** It exits with
 "Zero tests ran, error: 2" in about 80 ms without discovering anything. The built binaries run
