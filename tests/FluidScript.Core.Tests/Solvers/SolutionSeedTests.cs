@@ -220,14 +220,24 @@ public sealed class SolutionSeedTests
         GraphFixture.Lower(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
 
     [Fact]
-    public void APromotedParameterIsSeededFromTheValueItsComponentHolds()
+    public void APromotedPositionStartsAtMidTravelRatherThanOnEitherBound()
     {
-        // `S-26`. Promoted columns fell to zero, and the seed said so in its own remarks -- "honest, and
-        // the thing the outer loop replaces when promotion becomes live". Promotion is live, and zero is
-        // not neutral: for a valve position it is a *bound*, and `ValveLaw.Opening` clamps there, so the
-        // column's forward difference is dead before the first iteration.
+        // `S-26` then `S-50`, and they are one argument applied twice. Promoted columns first fell to
+        // **zero**, which the seed's own remarks called "honest, and the thing the outer loop replaces
+        // when promotion becomes live" -- and zero is not neutral, it is a *bound*, so the column's
+        // forward difference was dead before the first iteration. Reading the component's own value fixed
+        // that and walked into the mirror image: `ThreeWayValve.Position` defaults to **1**, which is the
+        // other bound.
         //
-        // The header's two three-way valves state no position, so each holds the registry's 1.
+        // It is the worse of the two for a three-way valve. On the equal-percentage characteristic every
+        // promotable position uses, phi(1) = 1 with slope 3.91 while the complementary leg sits at
+        // phi(0) = 0.02 with slope 0.078 -- fifty times flatter -- so the column carries almost no signal
+        // about the bypass and Newton pushes the position further into its stop. Measured on the
+        // injection header, both consumer valves pinned at 1 (`FS3008`) while the answer they wanted was
+        // (50-30)/(60-30) = 0.667.
+        //
+        // Mid-travel is symmetric: both legs at 0.141, both slopes 0.553. It is also where a valve sized
+        // for authority 0.5 is meant to sit.
         var graph = Lower("m2-distribution-header.fluid");
         var counting = WellPosedness.Check(graph).Counting;
         var layout = SystemLayout.Build(graph, counting);
@@ -239,6 +249,44 @@ public sealed class SolutionSeedTests
             .ToArray();
 
         Assert.NotEmpty(positions);
-        Assert.All(positions, position => Assert.Equal(1.0, position));
+        Assert.All(positions, position => Assert.Equal(0.5, position));
+    }
+
+    [Fact]
+    public void APromotedParameterBoundedOnOneSideKeepsTheValueItsComponentHolds()
+    {
+        // The other half of `S-50`, and the reason it is conditional rather than "seed every promotion at
+        // the middle". Only a parameter bounded on *both* sides has a middle to fall back to; one bounded
+        // on a single side has no non-arbitrary interior point, so its own value stands. `head` is the
+        // case: `Pump.Resolvable` bounds it below and not above, and this rule must leave it exactly
+        // where `S-26` put it.
+        //
+        // **It leaves it at zero, and that is a finding rather than an assertion of correctness.** An
+        // unsized pump holds head 0, so a promoted head still starts on the bound `S-26` warned about --
+        // "a pump seeded at zero head is a loop with no driver". `S-50` does not reach it, because the
+        // midpoint trick needs two bounds and there is only one. Recorded here so the day it is fixed
+        // shows up as this test failing rather than as nothing at all.
+        var graph = Lower("m2-distribution-header.fluid");
+        var counting = WellPosedness.Check(graph).Counting;
+        var layout = SystemLayout.Build(graph, counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        var heads = Enumerable.Range(layout.PromotionOffset, layout.Count - layout.PromotionOffset)
+            .Where(index => layout.Unknowns[index].Name.EndsWith(".head", StringComparison.Ordinal))
+            .Select(index => (layout.Unknowns[index].OwnerComponentId, Seed: seed.Values[index]))
+            .ToArray();
+
+        Assert.NotEmpty(heads);
+
+        foreach (var (owner, value) in heads)
+        {
+            var pump = graph.Components.Single(
+                element => string.Equals(element.Name, owner, StringComparison.Ordinal));
+
+            var held = pump.Resolvable
+                .Single(parameter => string.Equals(parameter.Name, "head", StringComparison.Ordinal));
+
+            Assert.Equal(held.Value, value);
+        }
     }
 }

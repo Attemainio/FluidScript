@@ -402,6 +402,21 @@ public static class SolutionSeed
     /// falls to zero, which is honest and is the thing the outer loop replaces when promotion becomes
     /// live". Promotion is live.
     /// </para>
+    /// <para>
+    /// <strong>One is a bound as surely as zero is, and a valve's default position sits on it</strong>
+    /// (<c>S-50</c>). <c>ThreeWayValve.Position</c> defaults to 1 -- correct for a valve nobody is
+    /// controlling, and the worst place to start one the solver has to move. On the equal-percentage
+    /// characteristic every promotable position uses, phi(1) = 1 with slope 3.91 while the complementary
+    /// leg sits at phi(0) = 0.02 with slope 0.078: **fifty times flatter**, so the column is dominated by
+    /// the control leg and carries almost no signal about the bypass. Mid-travel is symmetric --- both
+    /// legs at 0.141, both slopes 0.553 --- and it is where a valve sized for authority 0.5 is meant to
+    /// sit anyway. So a promoted parameter bounded on both sides whose component value lies *on* a bound
+    /// is seeded at the middle of its range instead.
+    /// </para>
+    /// <para>
+    /// It applies to nothing else in the corpus: <c>kv</c> is bounded below only and <c>head</c> not at
+    /// all, so both keep the component's own value, which is what the paragraph above is about.
+    /// </para>
     /// </remarks>
     private static void Promoted(CircuitGraph graph, SystemLayout layout, double[] values)
     {
@@ -422,13 +437,41 @@ public static class SolutionSeed
 
             foreach (var resolvable in owner.Resolvable)
             {
-                if (string.Equals(resolvable.Name, parameter, StringComparison.Ordinal)
-                    && double.IsFinite(resolvable.Value))
+                if (!string.Equals(resolvable.Name, parameter, StringComparison.Ordinal)
+                    || !double.IsFinite(resolvable.Value))
                 {
-                    values[index] = resolvable.Value;
+                    continue;
                 }
+
+                values[index] = Interior(resolvable);
             }
         }
+    }
+
+    /// <summary>Where a promoted parameter starts: its own value, unless that value is a bound.</summary>
+    /// <param name="resolvable">The component's declaration of the parameter.</param>
+    /// <returns>
+    /// The middle of the range for a two-sided parameter sitting on either bound, and the component's own
+    /// value otherwise. Dimensionless or SI, whichever the parameter is.
+    /// </returns>
+    /// <remarks>
+    /// <strong>A bound is not somewhere the iterate may not go; it is somewhere the derivative stops
+    /// existing</strong> --- <see cref="Components.ValveLaw.Opening"/> makes that argument for the clamp
+    /// it had to remove, and starting on one is the same mistake made a step earlier. Only a parameter
+    /// bounded on <em>both</em> sides has a middle to fall back to; one bounded on one side has no
+    /// non-arbitrary interior point, so its own value stands.
+    /// </remarks>
+    private static double Interior(ResolvedParameter resolvable)
+    {
+        if (resolvable.Minimum is not { } minimum || resolvable.Maximum is not { } maximum
+            || !double.IsFinite(minimum) || !double.IsFinite(maximum) || maximum <= minimum)
+        {
+            return resolvable.Value;
+        }
+
+        return resolvable.Value <= minimum || resolvable.Value >= maximum
+            ? (minimum + maximum) / 2
+            : resolvable.Value;
     }
 
     /// <summary>The temperature level each node sits near, propagated downstream from what is known.</summary>
@@ -862,76 +905,166 @@ public static class SolutionSeed
             }
         }
 
-        /// <summary>Builds the vertex set, the incidence lists and a spanning forest.</summary>
-        /// <param name="chords">Receives every branch the forest did not use.</param>
-        /// <remarks>
-        /// A branch is incident to its <see cref="Branch.From"/> end with sign −1 and to its
-        /// <see cref="Branch.To"/> end with +1, matching <see cref="PortMap"/>'s convention so that a
-        /// balance written here and a residual written there mean the same thing. A branch whose ends
-        /// are the same vertex — a ring with one cut vertex is exactly this — lands twice with
-        /// opposite signs and cancels, which is correct: a self-loop moves no mass across its vertex.
-        /// </remarks>
-        private void Span(out List<int> chords)
-        {
-            foreach (var branch in graph.Branches)
+            /// <summary>Builds the vertex set, the incidence lists and a spanning forest.</summary>
+            /// <param name="chords">Receives every branch the forest did not use.</param>
+            /// <remarks>
+            /// <para>
+            /// A branch is incident to its <see cref="Branch.From"/> end with sign −1 and to its
+            /// <see cref="Branch.To"/> end with +1, matching <see cref="PortMap"/>'s convention so that a
+            /// balance written here and a residual written there mean the same thing. A branch whose ends
+            /// are the same vertex — a ring with one cut vertex is exactly this — lands twice with
+            /// opposite signs and cancels, which is correct: a self-loop moves no mass across its vertex.
+            /// </para>
+            /// <para>
+            /// <strong>The forest is not arbitrary at a three-way valve: it has to reach one by its common
+            /// port</strong> (<c>S-49</c>). <see cref="Solve"/> gives every chord a free magnitude and
+            /// <em>solves</em> each vertex's parent branch to close that vertex's balance, so the parent
+            /// branch is the one that ends up carrying what the others sum to. At a three-way valve that
+            /// is the definition of the common port, and reaching the valve by a switched leg instead
+            /// applies the same arithmetic to the wrong port: the field still balances, and it describes a
+            /// valve whose <c>a</c> leg is the common one.
+            /// </para>
+            /// <para>
+            /// <strong>Measured on the injection header</strong>, where the plain breadth-first walk
+            /// reached <c>TV_AHU</c> through <c>PA2</c> and seeded it <c>ab</c> 0.2871, <c>a</c> 0.5742,
+            /// <c>b</c> 0.2871 kg/s — a diverting split on a valve wired for mixing. Its Kv law then sat at
+            /// a scaled residual of −3.345, an order of magnitude above everything else in the system, and
+            /// the first Newton step walked a node out of the water domain. <c>C-66</c> measured the same
+            /// two numbers from the other side and taught the <em>sizer</em> not to believe them.
+            /// </para>
+            /// <para>
+            /// So an edge that would claim a valve by anything but its common port is <em>held</em> rather
+            /// than taken, and used only once no preferred edge is left. A valve reachable no other way
+            /// still gets attached, which keeps this a preference rather than a constraint the topology
+            /// could contradict.
+            /// </para>
+            /// </remarks>
+            private void Span(out List<int> chords)
             {
-                Attach(branch.From.Element, branch.Index, -1);
-                Attach(branch.To.Element, branch.Index, +1);
-            }
-
-            _parent = new int[_vertices.Count];
-            _component = new int[_vertices.Count];
-            Array.Fill(_parent, -1);
-            Array.Fill(_component, -1);
-
-            var used = new bool[graph.Branches.Length];
-            var components = 0;
-
-            for (var root = 0; root < _vertices.Count; root++)
-            {
-                if (_component[root] >= 0)
+                foreach (var branch in graph.Branches)
                 {
-                    continue;
+                    Attach(branch.From.Element, branch.Index, -1);
+                    Attach(branch.To.Element, branch.Index, +1);
                 }
 
-                var queue = new Queue<int>();
+                _parent = new int[_vertices.Count];
+                _component = new int[_vertices.Count];
+                Array.Fill(_parent, -1);
+                Array.Fill(_component, -1);
 
-                _component[root] = components++;
-                _order.Add(root);
-                queue.Enqueue(root);
+                var common = new int[_vertices.Count];
 
-                while (queue.Count > 0)
+                for (var vertex = 0; vertex < _vertices.Count; vertex++)
                 {
-                    var vertex = queue.Dequeue();
+                    common[vertex] = CommonBranch(vertex);
+                }
 
-                    foreach (var (branch, sign) in _incident[vertex])
+                var used = new bool[graph.Branches.Length];
+                var components = 0;
+
+                for (var root = 0; root < _vertices.Count; root++)
+                {
+                    if (_component[root] >= 0)
                     {
-                        var other = Other(branch, sign);
+                        continue;
+                    }
 
-                        if (_component[other] >= 0)
+                    var queue = new Queue<int>();
+                    var held = new List<(int Vertex, int Branch)>();
+                    var component = components++;
+
+                    _component[root] = component;
+                    _order.Add(root);
+                    queue.Enqueue(root);
+
+                    while (true)
+                    {
+                        while (queue.Count > 0)
                         {
-                            continue;
+                            var vertex = queue.Dequeue();
+
+                            foreach (var (branch, sign) in _incident[vertex])
+                            {
+                                var other = Other(branch, sign);
+
+                                if (_component[other] >= 0)
+                                {
+                                    continue;
+                                }
+
+                                if (common[other] >= 0 && common[other] != branch)
+                                {
+                                    held.Add((other, branch));
+                                    continue;
+                                }
+
+                                used[branch] = true;
+                                _parent[other] = branch;
+                                _component[other] = component;
+                                _order.Add(other);
+                                queue.Enqueue(other);
+                            }
                         }
 
-                        used[branch] = true;
-                        _parent[other] = branch;
-                        _component[other] = _component[vertex];
-                        _order.Add(other);
-                        queue.Enqueue(other);
+                        // Nothing preferred is left, so a held edge is now the only way on. Entries whose
+                        // target was reached by its common port in the meantime are simply dropped.
+                        var next = held.FindIndex(entry => _component[entry.Vertex] < 0);
+
+                        if (next < 0)
+                        {
+                            break;
+                        }
+
+                        var (target, edge) = held[next];
+
+                        held.RemoveAt(next);
+
+                        used[edge] = true;
+                        _parent[target] = edge;
+                        _component[target] = component;
+                        _order.Add(target);
+                        queue.Enqueue(target);
+                    }
+                }
+
+                chords = [];
+
+                for (var branch = 0; branch < used.Length; branch++)
+                {
+                    if (!used[branch])
+                    {
+                        chords.Add(branch);
                     }
                 }
             }
 
-            chords = [];
-
-            for (var branch = 0; branch < used.Length; branch++)
+            /// <summary>The branch meeting a three-way valve's common port, or -1 for any other vertex.</summary>
+            /// <param name="vertex">The vertex to classify.</param>
+            /// <returns>A branch index, or -1 when the vertex is not a three-way valve with a named common port.</returns>
+            /// <remarks>
+            /// The port name is read directly, which <c>D-88</c> settles for the common port specifically:
+            /// <c>ab</c> is port 0, so positional binding gives it to the first connection written, and that
+            /// is the common leg for a mixing and a diverting arrangement alike. The switched legs are the
+            /// ones whose inferred letters mean nothing, and nothing here reads them.
+            /// </remarks>
+            private int CommonBranch(int vertex)
             {
-                if (!used[branch])
+                if (_vertices[vertex] is not ThreeWayValve { BypassConnected: true } valve)
                 {
-                    chords.Add(branch);
+                    return -1;
                 }
+
+                foreach (var (branch, _) in _incident[vertex])
+                {
+                    if (string.Equals(
+                        ValveLegs.PortName(graph.Branches[branch], valve), "ab", StringComparison.Ordinal))
+                    {
+                        return branch;
+                    }
+                }
+
+                return -1;
             }
-        }
 
         /// <summary>Chooses an external flux for every boundary node, summing to zero per component.</summary>
         /// <param name="estimates">One unsigned magnitude per branch, for the scale to use.</param>
