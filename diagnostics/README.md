@@ -11,6 +11,7 @@ timing invites it to be quoted without them.
 | `fluid-state-timings.md` | `StateTimingDiagnostics` | What it costs to fix a fluid state through `ISubstance`, per substance and per property pair — cold call, median, mean, standard deviation, min and max over 10 samples of 20 calls |
 | `backend-pair-matrix.md` | `BackendPairDiagnostics` | Which of the ten (T, p, h, s, d) input pairs each fluid *family* supports — pure, pseudo-pure, incompressible substance, incompressible solution, HEOS mixture and humid air — the backend's refusal message for the rest, and what each supported pair costs |
 | `backend-pair-log.md` | `BackendPairDiagnostics` | Its running log, appended and flushed before and after every call |
+| `circuit-reports.md` | `CircuitDiagnostics` | What a circuit actually is, per script: the counting table, the hydraulic partition, what answers each constraint, every unknown seeded against solved, the worst residuals, and what sizing chose. Covers `samples/` plus anything dropped in `scratch/` |
 | `pipeline-timings.md` | `PipelineTimingDiagnostics` | Where the time goes between a script and a solved circuit — parse, bind, lower and solve per sample, and inside one Newton step the cost of a residual evaluation, the `N+1` of them a finite-difference Jacobian needs, and the dense LU of the same order |
 
 ## Running them
@@ -25,6 +26,24 @@ ordinary tests otherwise, and `dotnet test` with no filter runs them.
 
 Add `-c Release` for a number worth quoting. A debug build is materially slower, and the report says
 so in its header rather than leaving you to remember.
+
+## Diagnosing a variant
+
+`CircuitDiagnostics` reports on every script in `samples/` **and on every `.fluid` file in
+`diagnostics/scratch/`**. That folder is the point of it: what a diagnosis usually needs is not a corpus
+sample but *this script with one line changed* — a stated outlet, an added datum, a different plant
+arrangement — and comparing the two reports side by side.
+
+```bash
+cp samples/m2-distribution-header.fluid diagnostics/scratch/variant.fluid
+# edit the one line
+dotnet test --filter-class FluidScript.Core.Tests.Performance.CircuitDiagnostics
+```
+
+**This replaces writing a throwaway test to print the number you want.** `SolveExplanation` already
+answered every question these reports answer and its only caller was a test asserting the sections
+exist, so diagnosing anything meant a scratch `.cs` file, a build, a deliberate `Assert.Fail` to get the
+text out, and a delete. Four of those were written in one session before this existed.
 
 ## When one never finishes
 
