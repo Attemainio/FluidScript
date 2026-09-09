@@ -232,7 +232,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1445 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1448 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

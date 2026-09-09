@@ -462,11 +462,31 @@ public sealed class ExpressionEvaluator
 
     private static string Describe(Dimension dimension) => dimension.Name.ToLowerInvariant();
 
-    private static string Example(Quantity left, Quantity right) =>
-        left.Dimension == Dimension.Temperature
-            ? $"{left.ValueIn(UnitTable.CanonicalUnitFor(Dimension.Temperature)!):0.##} °C + " +
-              $"{right.SiValue:0.##} dK"
-            : "a difference rather than a second absolute value";
+    /// <summary>The line the user should have written, for <c>FS1302</c>.</summary>
+    /// <param name="left">The left operand.</param>
+    /// <param name="right">The right operand, which the correction turns into a difference.</param>
+    /// <returns>A corrected expression, or a description when the dimension has no natural one.</returns>
+    /// <remarks>
+    /// <strong>The right operand is quoted as the script wrote it, not as its SI value.</strong> It used
+    /// to be quoted from <c>SiValue</c>, and for a temperature that is kelvin: <c>20 C + 30 C</c> was
+    /// answered with <em>"write '20 °C + 303.15 dK'"</em>, which is 323 °C rather than the 50 the user
+    /// meant. Worse than an unhelpful message, because the correction compiles -- there is no second
+    /// error to catch it. It read as correct because the only test asserted that the message contained
+    /// the letters <c>dK</c>, and because <c>40 C + 30 K</c>, the other case anyone tries, happens to
+    /// come out right: kelvin has no offset, so its SI value <em>is</em> the written number.
+    /// </remarks>
+    private static string Example(Quantity left, Quantity right)
+    {
+        var celsius = UnitTable.CanonicalUnitFor(Dimension.Temperature);
+
+        if (left.Dimension != Dimension.Temperature || right.Dimension != Dimension.Temperature
+            || celsius is null)
+        {
+            return "a difference rather than a second absolute value";
+        }
+
+        return $"{left.ValueIn(celsius):0.##} °C + {right.ValueIn(right.SourceUnit ?? celsius):0.##} dK";
+    }
 
     private EvaluationResult.Failed Fail(DiagnosticDescriptor descriptor, TextSpan span, params DiagnosticArgument[] arguments)
     {

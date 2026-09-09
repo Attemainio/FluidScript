@@ -425,9 +425,41 @@ public sealed class BinderTests
     public void FS1302_TwoAbsoluteTemperaturesDoNotAdd()
     {
         // The invariant the whole type system exists for. 20 °C + 30 °C is an error, not 596 K.
+        //
+        // The message is asserted whole rather than for the letters `dK`, because the point of it is the
+        // correction it offers and a correction with the wrong number in it is worse than none: a user
+        // who pastes it gets a second wrong answer and no error the second time.
         var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out=20 C + 30 C\n", "FS1302");
 
-        Assert.Contains("dK", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal(
+            "Cannot add two temperatures. To offset by a difference, write '20 °C + 30 dK'.",
+            diagnostic.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1302_KelvinIsAnAbsoluteTemperatureAndSoDoesNotAddEither()
+    {
+        // `D-26`: `K` is absolute temperature and a difference is written `dK` or `dC`. So `40 C + 30 K`
+        // is the same error as adding two Celsius readings, which is not obvious to anyone who has ever
+        // written a temperature rise in kelvin -- and it is the reason the message has to name the
+        // spelling that works.
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out=40 C + 30 K\n", "FS1302");
+
+        Assert.Equal(
+            "Cannot add two temperatures. To offset by a difference, write '40 °C + 30 dK'.",
+            diagnostic.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ATemperatureRiseInKelvinIsWrittenWithTheDeltaSpelling()
+    {
+        // The other half of the pair above: what the corrected line does. 40 °C + 30 dK is 70 °C, stored
+        // as 343.15 K.
+        var model = Model("fluidscript 1\nHE1 heat_exchanger out=40 C + 30 dK\n");
+
+        Assert.Equal(343.15, model.Components[0].Parameters["out"].Value!.Value.SiValue, 6);
     }
 
     [Fact]
