@@ -236,8 +236,10 @@ a judgement.
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 
 `dotnet test` discovers zero tests in this environment; the binaries under
-`~/.dotnet-artifacts/bin/<project>/debug/` are run directly. That is an environment defect, recorded
-where environment defects belong rather than treated as a project fact.
+`~/.dotnet-artifacts/bin/<project>/debug/` are run directly. That and the Visual Studio `obj/`
+collision that produces hundreds of spurious `CS0246`s are written up in
+[`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) under Observations — environment facts
+belong in the repository, not in a session's own memory.
 
 ## Updating this file
 

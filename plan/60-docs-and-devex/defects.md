@@ -31,6 +31,43 @@ at all, in the tier of the code rather than the tier of the document.
 
 ## Observations
 
+**Two environment traps that each cost most of a session, recorded here because
+[`62`](62-testing-strategy.md) and [`63`](63-ci-and-repo-hygiene.md) describe how the tests and the
+build are *meant* to run and neither describes what this one actually does.** They were carried in a
+session-local memory file until 2026-09-09; a fact that costs a session to rediscover belongs in the
+repository, where the next person gets it whether or not they are the same agent.
+
+**`dotnet test` discovers nothing in this WSL2 environment, and the tests are fine.** It exits with
+"Zero tests ran, error: 2" in about 80 ms without discovering anything. The built binaries run
+normally: `~/.dotnet-artifacts/bin/FluidScript.Core.Tests/debug/FluidScript.Core.Tests` finds and runs
+the whole suite in about ten seconds, and `FluidScript.Api.Tests` has its own. Filter with
+`-filter "/*/<namespace>/<class>/<method>"`, and strip ANSI with `sed 's/\x1b\[[0-9;]*m//g'` before
+grepping. The failure is in the runner wrapper, not in discovery and not in the code — do not spend a
+session bisecting the test project. `CLAUDE.md`'s `Commands` block still names `dotnet test` because
+that is the documented interface and it works elsewhere.
+
+**Hundreds of `CS0246: The type or namespace name 'Fact' could not be found` means Windows touched
+`obj/`, not that a package reference is wrong.** The repository lives on `/mnt/c/`, so WSL `dotnet`
+and Windows Visual Studio share one `obj/`. A running — or hung — `devenv.exe` restores the solution
+in the background and rewrites `obj/*.nuget.g.props` with a `C:\Users\...\.nuget\packages\` path
+that WSL cannot read. Deleting `obj/` is what wakes Visual Studio up, so cleaning makes it worse, and
+`dotnet build` can succeed while `dotnet test` fails because the two race it differently.
+
+*Proof before diagnosis:* read `restore.packagesPath` out of
+`tests/FluidScript.Core.Tests/obj/project.assets.json`. A `C:\` path proves it is environmental; a
+`/home/` path proves it is not, and the cause is elsewhere. `tasklist.exe | grep -i devenv` finds the
+culprit.
+
+*The standing fix is `ArtifactsPath=/home/<user>/.dotnet-artifacts`*, which moves the WSL intermediates
+out of the repository so the two toolchains stop sharing a directory. It has to be set where the agent
+tool's shell will see it — a non-interactive, non-login `-c` shell reads neither `.bashrc` nor
+`.profile`, so an export added to a shell profile reaches tool invocations only by inheritance from
+the terminal that launched the agent, which is to say usually not at all. `MSBUILDDISABLENODEREUSE=1`
+belongs beside it: a plain `dotnet build` otherwise leaves nine Linux MSBuild worker nodes and a
+`VBCSCompiler` alive per build, `dotnet build-server shutdown` reports success without reaping them,
+and only `pkill -f 'MSBuild.dll.*nodemode:1'` does.
+
+
 **Regenerating a page in place, and failing the test that did it, is the right shape for a generated
 region.** Adding eight diagnostic codes was one test run: the gate rewrote
 `docs/functions/diagnostics.md`, failed with "did not match what the code generates and has been
