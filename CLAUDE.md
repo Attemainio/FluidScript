@@ -22,7 +22,8 @@ Read the relevant document before working in that area; update it when you learn
 | Repository layout, build props, project boundaries | `plan/00-foundation/03-repository-layout.md` |
 | Coding-standard routing, XML docs, frontend lint | `plan/00-foundation/04-engineering-standards.md` |
 | Milestones and their exit criteria | `plan/00-foundation/05-milestones-and-acceptance.md` |
-| Work-package order inside a milestone, and why | `plan/00-foundation/08-implementation-sequence.md` |
+| Work-package order inside a milestone, and why — **the plan** | `plan/08-implementation-sequence.md` |
+| What has shipped, which phase we are in, what is next — **the state** | `plan/09-project-state.md` |
 | Performance, scale, accuracy, execution isolation, stop, accessibility | `plan/00-foundation/07-quality-attributes.md` |
 | The script language: grammar, units, expressions, binding, diagnostics, printer | `plan/10-language/` |
 | Fluids, components, topology, sizing, catalogue, model contract | `plan/20-core-domain/` |
@@ -34,8 +35,42 @@ Read the relevant document before working in that area; update it when you learn
 | Test tiers, validation cases, tolerances | `plan/60-docs-and-devex/62-testing-strategy.md` |
 | CI, public-repo requirements, releases | `plan/60-docs-and-devex/63-ci-and-repo-hygiene.md` |
 
-**Workflow:** `/plan-review` audits `plan/`; `/loop /plan-review` sweeps it across sessions.
+**Plan review:** `/plan-review` audits `plan/`; `/loop /plan-review` sweeps it across sessions.
 `.claude/skills/plan-review/SKILL.md` owns the protocol.
+
+## Working a plan
+
+Nothing a session learns survives it unless it is written into `plan/` or `docs/`. This is the loop
+that makes that happen. It is not optional and it is not only for large changes.
+
+### Before starting
+
+1. **`plan/08-implementation-sequence.md`** — the whole map: every phase, every work package, and why
+   each sits where it does. Written in the future tense; it never changes to match what happened.
+2. **`plan/09-project-state.md`** — the position on that map: what has shipped, what the current phase
+   is, what is next. Read second, always.
+3. **The plan documents of the phase you are in**, and the **`defects.md` of every tier they belong
+   to**. The defect file is where the traps are; the contract document alone will mislead you.
+
+### While working
+
+- **A defect gets its entry the moment it is understood, not when it is fixed.** File it as an open
+  question in the owning tier's `defects.md` immediately.
+- **Except when it can be fixed now.** Something resolvable in the same change is an edit, not a
+  finding, and filing it produces a register that only grows. Fix it and say so in the commit.
+
+### When a package or phase completes
+
+1. **Update the tier's `defects.md`** — move what closed, add what opened, keep observations worth
+   keeping. Every tier whose documents the work touched, not just the one the code lives in.
+2. **Write the entry from the beginning, not from the conclusion** (see Response style). The existing
+   entries are the standard: what the code meant to do, what it did instead, why that is wrong
+   physically, what was measured, and what is still open.
+3. **Update `plan/09-project-state.md`** — the package's row, the ids it closed, any open id that
+   changes what the next session should do, and the baselines if they moved.
+
+`09` references defect ids and never restates them. A description in two places is a description that
+disagrees with itself.
 
 ## Non-negotiable rules
 
@@ -49,8 +84,7 @@ Read the relevant document before working in that area; update it when you learn
 - **A change that alters a settled decision adds a new `D-` entry** to the decision log; it never edits
   the old one.
 - **Implementing a phase records what it found** in the `defects.md` of every `plan/` tier whose
-  documents it worked against — defects, their fixes, and observations worth keeping. See
-  `plan/00-foundation/08-implementation-sequence.md`.
+  documents it worked against, **and updates `plan/09-project-state.md`**. See *Working a plan*.
 - **No pipeline stage throws on user input.** A script under editing is malformed most of the time;
   malformed input is a return value.
 - **Look engineering conventions up; never derive them.** Before settling a sizing rule, coefficient,
@@ -139,8 +173,9 @@ document that should own it does not.
 
 ## Context budget
 
-This file is always loaded. Keep it a declaration of *when* and *where*, under ~150 lines. An overage
-is fixed by moving guidance behind a pointer, not by deleting it. Do not add a second unfrontmattered
+This file is always loaded, and `AGENTS.md` points at it so that an agent which does not read
+`CLAUDE.md` by convention still lands here. Keep it a declaration of *when* and *where*, under ~190
+lines. An overage is fixed by moving guidance behind a pointer, not by deleting it. Do not add a second unfrontmattered
 file to `.claude/rules/` — it would be always-loaded for every session and every subagent.
 
 # Compact instructions

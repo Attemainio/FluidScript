@@ -8,7 +8,7 @@ namespace FluidScript.Core.Tests.Fixtures;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the durable form of P0.3 in <c>plan/00-foundation/08-implementation-sequence.md</c>. It
+/// This is the durable form of P0.3 in <c>plan/08-implementation-sequence.md</c>. It
 /// deliberately shares no code with anything under <c>src/</c>: the arithmetic is written out at the
 /// assertion site, because a test that computed the expected value with the same helper the product
 /// uses would agree with a wrong helper.

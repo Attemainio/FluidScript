@@ -9,7 +9,7 @@ namespace FluidScript.Api.Tests;
 /// <remarks>
 /// Endpoint and contract tests need <c>Microsoft.AspNetCore.Mvc.Testing</c> and a
 /// <c>WebApplicationFactory</c>; both arrive with the REST contract in P5.2 of
-/// <c>plan/00-foundation/08-implementation-sequence.md</c>. Taking that dependency now would add a
+/// <c>plan/08-implementation-sequence.md</c>. Taking that dependency now would add a
 /// package with nothing to exercise.
 /// </remarks>
 public sealed class HostCompositionTests

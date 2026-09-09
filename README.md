@@ -33,7 +33,7 @@ because the thing that would compute one is being built. The seven scripts in [`
 go that far today.
 
 The plan being implemented is in [`plan/`](plan/); the order the work happens in is
-[`08-implementation-sequence`](plan/00-foundation/08-implementation-sequence.md), and what
+[`08-implementation-sequence`](plan/08-implementation-sequence.md), and what
 implementing it actually found is in each tier's `defects.md`.
 
 ## Building it

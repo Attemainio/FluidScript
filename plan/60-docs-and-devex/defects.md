@@ -8,7 +8,7 @@ owns: [defect and observation record for documents 61-63]
 # What implementing against the docs and devex tier found
 
 Defects, deferrals and observations from implementing against `61`–`63`. The rule and its reasoning
-are in [`08-implementation-sequence`](../00-foundation/08-implementation-sequence.md).
+are in [`08-implementation-sequence`](../08-implementation-sequence.md).
 
 **`61` and `62` have been implemented against since M0**; `63` only through the architecture tests
 that assert its table. Like [`30-solver/defects.md`](../30-solver/defects.md), this file was created

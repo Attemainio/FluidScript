@@ -10,7 +10,7 @@ namespace FluidScript.Core.Tests.Fluids;
 /// </summary>
 /// <remarks>
 /// <para>
-/// P1.1 of <c>plan/00-foundation/08-implementation-sequence.md</c>. These tests assert the values
+/// P1.1 of <c>plan/08-implementation-sequence.md</c>. These tests assert the values
 /// SharpProp <em>returns</em>, not the values <c>plan/20-core-domain/21-fluid-and-state.md</c>
 /// currently predicts. Where the two disagree the disagreement is named at the assertion, because a
 /// gate that quietly adopts whatever the library produced is not a gate.

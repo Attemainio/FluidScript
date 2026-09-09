@@ -4,7 +4,7 @@ namespace FluidScript.Core.Tests.Fixtures;
 
 /// <summary>
 /// Every implementable contract is scheduled: each document in tiers 10 through 50 is named somewhere
-/// in <c>plan/00-foundation/08-implementation-sequence.md</c>.
+/// in <c>plan/08-implementation-sequence.md</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -31,8 +31,7 @@ public sealed class SequenceCoverageTests
     public void EveryImplementableDocumentIsNamedInTheSequence()
     {
         var plan = Path.Combine(RepositoryLayout.Root, "plan");
-        var sequence = File.ReadAllText(
-            Path.Combine(plan, "00-foundation", "08-implementation-sequence.md"));
+        var sequence = File.ReadAllText(Path.Combine(plan, "08-implementation-sequence.md"));
 
         var unscheduled = new List<string>();
         var checkedDocuments = 0;

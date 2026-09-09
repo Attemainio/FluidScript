@@ -1715,7 +1715,7 @@ UI it was supposed to shape. What M0 cannot do is measure something that is not 
 
 **Constrains.** [`05-milestones-and-acceptance`](05-milestones-and-acceptance.md),
 [`07-quality-attributes`](07-quality-attributes.md),
-[`08-implementation-sequence`](08-implementation-sequence.md),
+[`08-implementation-sequence`](../08-implementation-sequence.md),
 [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md),
 [`63-ci-and-repo-hygiene`](../60-docs-and-devex/63-ci-and-repo-hygiene.md).
 

@@ -1,7 +1,7 @@
 ---
 id: 08-implementation-sequence
 title: Implementation sequence
-tier: 00-foundation
+tier: plan
 status: draft
 owns: [work-package decomposition inside a milestone, intra-milestone build order and its rationale, per-package verification, the pre-M0 prerequisite phase]
 depends_on: [01-vision-and-scope, 03-repository-layout, 05-milestones-and-acceptance, 06-decision-log, 07-quality-attributes]
@@ -14,12 +14,15 @@ last_review_pass: 0
 
 ## Purpose
 
-[`05-milestones-and-acceptance`](05-milestones-and-acceptance.md) says what must be true for a
+[`05-milestones-and-acceptance`](00-foundation/05-milestones-and-acceptance.md) says what must be true for a
 milestone to exit. It deliberately says nothing about the order in which the work inside that
 milestone is done. That order is not a matter of taste: several packages are cheap in one position
 and a rewrite in another, and the difference is invisible until the rewrite is due.
 
-This document fixes that order and states the reason for each placement. What breaks if it is wrong
+This document fixes that order and states the reason for each placement. It is written in the future
+tense and stays that way: **what has actually shipped is recorded in
+[`09-project-state`](09-project-state.md)**, which is the file to read second and the file to update
+when a package closes. A plan that edits itself to match what happened stops being a plan. What breaks if it is wrong
 is schedule, not correctness — but the failure mode is the expensive kind, where a milestone is
 declared done and a later milestone discovers that a foundational shape has to change underneath
 code that already depends on it.
@@ -31,10 +34,10 @@ packages, the reason each sits where it does, the verification that closes each 
 pre-M0 prerequisite phase.
 
 **Explicitly does not own.** The milestones themselves, their exit criteria, their demo scripts, or
-the ordering constraints *between* milestones ([`05-milestones-and-acceptance`](05-milestones-and-acceptance.md));
-the directory tree and migration steps ([`03-repository-layout`](03-repository-layout.md)); test
-tiers and validation cases ([`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md));
-CI mechanics ([`63-ci-and-repo-hygiene`](../60-docs-and-devex/63-ci-and-repo-hygiene.md)); and the
+the ordering constraints *between* milestones ([`05-milestones-and-acceptance`](00-foundation/05-milestones-and-acceptance.md));
+the directory tree and migration steps ([`03-repository-layout`](00-foundation/03-repository-layout.md)); test
+tiers and validation cases ([`62-testing-strategy`](60-docs-and-devex/62-testing-strategy.md));
+CI mechanics ([`63-ci-and-repo-hygiene`](60-docs-and-devex/63-ci-and-repo-hygiene.md)); and the
 content of any package, which is owned by its tier document.
 
 ## Contracts
@@ -48,17 +51,23 @@ start. A **work package** is one branch, one pull request, one squash merge.
 |---|---|---|---|
 | P0 | pre-M0 | 3 | Plan self-consistency |
 | P1 | M0 | 4 | SharpProp native packaging |
-| P2 | M1 | 9 | The lossless trivia model |
-| P3 | M2a | 9 | The sizing/solve outer loop |
+| P2 | M1 | 10 | The lossless trivia model |
+| P3 | M2a | 10 | The sizing/solve outer loop |
 | P4 | M2b | 3 | Two datums in one circuit |
 | P5 | M3 | 11 | The layout engine |
 | P6 | M4 | 7 | Run isolation under `D-22` |
 | P7 | M5 | 2 | Nothing, if P2.5 was done properly |
 | P8 | M6 | — | Evidence-gated; not decomposed here |
 
+**P2 and P3 each hold ten packages, not the nine this table carried until 2026-09-09.** Both grew
+during execution and both growths are argued for below — `P2.10` took the language half of `D-57`–`D-62`
+out of P3, and `P3.9` was created by `D-70` — but the count above was never moved with them. Corrected
+rather than recorded as a defect: a stale total in a summary row that its own tables contradict is an
+edit, not a finding.
+
 P8 is deliberately empty. `05` defines M6's contents as separately justified before entry, so a
 package list here would invent the requirements that justification is supposed to produce.
-[`35-evolutionary-sizing`](../30-solver/35-evolutionary-sizing.md) is the one tier-10-to-50 document
+[`35-evolutionary-sizing`](30-solver/35-evolutionary-sizing.md) is the one tier-10-to-50 document
 that lands here rather than in a package, and it is named so that the coverage check below can tell a
 document deferred on purpose from one nobody scheduled.
 
@@ -112,9 +121,9 @@ count reporting the fixture over-specified by one.
 
 **P1.1 runs first and alone.** It is the only package in the project that can invalidate a whole
 tier. If SharpProp's real surface, native packaging, or returned types disagree with
-[`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md), the contracts are revised before
+[`21-fluid-and-state`](20-core-domain/21-fluid-and-state.md), the contracts are revised before
 M1 starts rather than after tier 20 is written against them. The UnitsNet decision in
-[`03-repository-layout`](03-repository-layout.md) rests on this package's finding, and reversing it
+[`03-repository-layout`](00-foundation/03-repository-layout.md) rests on this package's finding, and reversing it
 later touches `Quantity`, the adapter, and every component.
 
 **P1.3's assertions pass trivially on empty projects, and that is the point.** An architecture test
@@ -129,7 +138,7 @@ in P2.3, one package late; the lexer's losslessness test is the first thing that
 is exactly the pressure that was supposed to be absent when they were written.
 
 **They are two files because one cannot do both jobs.** The reference holds the syntax example from
-[`01-vision-and-scope`](01-vision-and-scope.md) byte for byte and nothing else, so the nine-diagnostic
+[`01-vision-and-scope`](00-foundation/01-vision-and-scope.md) byte for byte and nothing else, so the nine-diagnostic
 count that document fixes is assertable against it. The tour exercises every production, which means
 more components, more inferred nodes and therefore a different diagnostic set — a single file
 satisfying both would have to be the reference, and then it would exercise a third of the grammar.
@@ -140,16 +149,16 @@ Order matters more here than anywhere else in the project.
 
 | # | Package | Why here |
 |---|---|---|
-| P2.1 | Diagnostics, spans, the code registry ([`16`](../10-language/16-diagnostics.md)) | Every stage downstream returns these. Added later, every signature changes. |
-| P2.2 | Dimensions, units, `Quantity` ([`13`](../10-language/13-type-and-unit-system.md)) | Pure, hand-checkable, zero dependencies. `Temperature` and `TemperatureDelta` as separate dimensions is a type-system decision that cannot be retrofitted cheaply. |
-| P2.3 | Lexer with trivia attached ([`12`](../10-language/12-grammar.md)) | Losslessness is a property of the lexer and the AST. Assert `concat(tokens including trivia) == source` here, where it is one line. |
-| P2.4 | Parser, AST, error recovery ([`12`](../10-language/12-grammar.md)) | Enforce [`11`](../10-language/11-language-overview.md)'s invariant 7 as a test: one token of lookahead classifies every statement. |
-| P2.5 | **Printer and the round-trip fuzz** ([`17`](../10-language/17-formatting-and-round-trip.md)) | **The one placement worth arguing about.** See below. |
-| P2.6 | Component registry, kind resolution ([`15`](../10-language/15-semantic-model.md)) | Data, not code. The docs gate reads it, so it must exist before a kind can be added. |
-| P2.7 | Binder steps 0–5, expressions ([`15`](../10-language/15-semantic-model.md), [`14`](../10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
-| P2.8 | Binder steps 6–11 ([`15`](../10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, the schedule, validation, tags last. Closes M1: `01`'s nine-diagnostic count on the syntax reference is asserted here. |
-| P2.9 | **Version detection and the compatibility gate** ([`18`](../10-language/18-script-compatibility.md)) | `18`'s invariant 2 — semantics are selected *before* parse and bind — is an ordering constraint, not a preference. See below. |
-| P2.10 | **The language half of `D-57`–`D-62`** ([`12`](../10-language/12-grammar.md), [`15`](../10-language/15-semantic-model.md), [`13`](../10-language/13-type-and-unit-system.md)) | `curve`, `design`, the `at` clause and the short `control` form are grammar and binding, and every one of them is a *language* change that P3 would otherwise have to make underneath six component kinds. See below. |
+| P2.1 | Diagnostics, spans, the code registry ([`16`](10-language/16-diagnostics.md)) | Every stage downstream returns these. Added later, every signature changes. |
+| P2.2 | Dimensions, units, `Quantity` ([`13`](10-language/13-type-and-unit-system.md)) | Pure, hand-checkable, zero dependencies. `Temperature` and `TemperatureDelta` as separate dimensions is a type-system decision that cannot be retrofitted cheaply. |
+| P2.3 | Lexer with trivia attached ([`12`](10-language/12-grammar.md)) | Losslessness is a property of the lexer and the AST. Assert `concat(tokens including trivia) == source` here, where it is one line. |
+| P2.4 | Parser, AST, error recovery ([`12`](10-language/12-grammar.md)) | Enforce [`11`](10-language/11-language-overview.md)'s invariant 7 as a test: one token of lookahead classifies every statement. |
+| P2.5 | **Printer and the round-trip fuzz** ([`17`](10-language/17-formatting-and-round-trip.md)) | **The one placement worth arguing about.** See below. |
+| P2.6 | Component registry, kind resolution ([`15`](10-language/15-semantic-model.md)) | Data, not code. The docs gate reads it, so it must exist before a kind can be added. |
+| P2.7 | Binder steps 0–5, expressions ([`15`](10-language/15-semantic-model.md), [`14`](10-language/14-expressions-and-references.md)) | Circuits, symbol table, kinds, parameters, dependency graph, evaluation. No topology yet. |
+| P2.8 | Binder steps 6–11 ([`15`](10-language/15-semantic-model.md)) | Ports, connections, inference I1/I2/I3, attachments, control bindings, the schedule, validation, tags last. Closes M1: `01`'s nine-diagnostic count on the syntax reference is asserted here. |
+| P2.9 | **Version detection and the compatibility gate** ([`18`](10-language/18-script-compatibility.md)) | `18`'s invariant 2 — semantics are selected *before* parse and bind — is an ordering constraint, not a preference. See below. |
+| P2.10 | **The language half of `D-57`–`D-62`** ([`12`](10-language/12-grammar.md), [`15`](10-language/15-semantic-model.md), [`13`](10-language/13-type-and-unit-system.md)) | `curve`, `design`, the `at` clause and the short `control` form are grammar and binding, and every one of them is a *language* change that P3 would otherwise have to make underneath six component kinds. See below. |
 
 **P2.1 delivers no shared result type, and the row said otherwise until it was built.** Every stage
 does return its output alongside `ImmutableArray<Diagnostic>`, but the plan states that shape as a
@@ -203,7 +212,7 @@ by checking a milestone's criteria against the packages that were supposed to de
 - **P3.5 owns `FS1703`** (a pinned catalogue that is absent or unsupported). There is no catalogue to
   be absent from until then.
 - **P5.9 owns the other half of `FS1701`** — Core withholds the `Save` action, and
-  [`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md) is what disables the button and offers to
+  [`58-file-lifecycle`](50-frontend/58-file-lifecycle.md) is what disables the button and offers to
   insert the directive. A diagnostic nobody acts on is not a gate.
 - **Migration — `PreviewMigration`, `ApplyMigration` and `FS1704` — is deferred with a stated
   trigger: the day a language major 2 exists.** It cannot be written or tested before then, since a
@@ -213,23 +222,23 @@ by checking a milestone's criteria against the packages that were supposed to de
 Through all of P2 there is no reference to `Core.Fluids`, `Core.Components` or `Core.Solvers`, and
 P1.3's tier-10 architecture assertion guarantees it. P2 closes with the M1 `/docs` pages and
 `samples/m1-syntax-tour.fluid` meeting every M1 criterion, and with the nine-diagnostic count the
-syntax reference in [`01-vision-and-scope`](01-vision-and-scope.md) fixes asserted against
+syntax reference in [`01-vision-and-scope`](00-foundation/01-vision-and-scope.md) fixes asserted against
 `samples/m1-syntax-reference.fluid`.
 
 ### P3 — M2a: the hydraulic core
 
 | # | Package | Why here |
 |---|---|---|
-| P3.0 | **Sensors as solved observers** ([`22`](../20-core-domain/22-component-model.md), `D-61`) | Before P3.3, not after. P3.3 builds six component kinds; adding a seventh family afterwards is six rewrites instead of one addition. The language half — the kinds, the `at` clause, the actuated-parameter marker — shipped in P2.10; what is left is what an instrument *reads*, which is a solved property. |
+| P3.0 | **Sensors as solved observers** ([`22`](20-core-domain/22-component-model.md), `D-61`) | Before P3.3, not after. P3.3 builds six component kinds; adding a seventh family afterwards is six rewrites instead of one addition. The language half — the kinds, the `at` clause, the actuated-parameter marker — shipped in P2.10; what is left is what an instrument *reads*, which is a solved property. |
 | P3.1 | `ISubstance`, `FluidState`, the single SharpProp adapter, **both** fakes | The constant-property fake buys test speed; the linear-in-temperature fake is what catches a component that only works with constant properties. One without the other is a false sense of coverage. |
 | P3.2 | Property-accuracy tier — V4, V5, and the two basis cases V13 and V14 | Wrong physics at the source invalidates everything above it, so it is proved before anything is built on it. V13 and V14 belong here rather than later because they are about *this* layer's conventions — gauge against absolute, and per kg of dry air against per kg of mixture — and both are silent when wrong. `62`'s rule 3 costs real sourcing effort: only density has a published closed form to check against across the range, so the other three properties are pinned at one state and otherwise checked behaviourally. |
-| P3.3 | Component model, six kinds in duty mode ([`22`](../20-core-domain/22-component-model.md)) | The zero-allocation `EvaluateResiduals` test is written **in this package**. Retrofitting it across six component types later is a rewrite. |
-| P3.4 | Lowering, `CircuitGraph`, boundaries, well-posedness ([`23`](../20-core-domain/23-topology-and-graph.md)) | The "no syntax type in `CircuitGraph`" assertion goes live here. Ran as three: **a** the graph, **b** boundaries, counting and promotion, **c** the boundary kinds and the two consistency codes. **It needs one thing P3.5 owns** — a pipe has a bore and a script states a designation — so `P3.4a` takes an injected `IBoreLookup`. The packages do not swap: the seam is wanted anyway, because P3.7 re-instantiates components as sizing chooses values and lowering has to be re-runnable against changing geometry (`F-18`, `C-24`). |
-| P3.5 | Catalogue ([`27`](../20-core-domain/27-component-catalog.md)) | Sizing cannot be written against a catalogue that does not exist. V12 closes it. The table is compiled C# rather than a data file (`D-66`), and its rows ship **unverified and refused** until two public sources per row are recorded — `Catalogs/SOURCES.md` carries the checklist and a test asserts the refusal. |
-| P3.6 | Scaling, then Newton ([`36`](../30-solver/36-numerics-and-convergence.md), [`32`](../30-solver/32-steady-state-newton.md)) | **Scaling first.** An unscaled residual norm measures the pressure equation and nothing else; Newton built first is tuned against a meaningless number, and the tolerances then have to be redone. **It also takes [`31`](../30-solver/31-solver-architecture.md)'s seam** — `EquationSystem`, `ISolver`, `SolveResult` — which this table used to leave to P3.7 alongside the outer loop. Newton has nothing to solve without them; P3.7 keeps the loop, sizing and solver selection. Ran as two: **a** the assembled system and its scaling, **b** Newton. |
-| P3.7 | Sizing and the single outer loop ([`24`](../20-core-domain/24-auto-sizing.md), [`31`](../30-solver/31-solver-architecture.md)) | One loop, one convergence test, one cap. Building sizing before the solve exists produces a second loop by default, which is exactly what `31` forbids. |
-| P3.8 | **The design point as the sizing point** ([`24`](../20-core-domain/24-auto-sizing.md), [`15`](../10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The language half shipped in P2.10 and is not repeated here; this is sizing reading `ProjectSettings.Design`, and a transient run re-reading a curve it was handed as deferred. |
-| P3.9 | **Elevation as an absolute height** ([`02`](02-glossary.md), [`15`](../10-language/15-semantic-model.md), [`22`](../20-core-domain/22-component-model.md), `D-70`) | After `P3.6`, because the energy half of a height is one of `D-69`'s fluxes and there is nothing to hang it on before that. Its own package rather than a line in `P3.6`: it adds a parameter to every kind, a glossary decision (`elevation` already means a signed rise on a pipe and a normalized layer fraction on a tank), height propagation in lowering, a diagnostic for the inferred node between two heights, and a `/docs` row per kind. **`C-41`'s one-line half was taken early** — an omitted height stopped being a sizing candidate before `P3.7` could act on it. |
+| P3.3 | Component model, six kinds in duty mode ([`22`](20-core-domain/22-component-model.md)) | The zero-allocation `EvaluateResiduals` test is written **in this package**. Retrofitting it across six component types later is a rewrite. |
+| P3.4 | Lowering, `CircuitGraph`, boundaries, well-posedness ([`23`](20-core-domain/23-topology-and-graph.md)) | The "no syntax type in `CircuitGraph`" assertion goes live here. Ran as three: **a** the graph, **b** boundaries, counting and promotion, **c** the boundary kinds and the two consistency codes. **It needs one thing P3.5 owns** — a pipe has a bore and a script states a designation — so `P3.4a` takes an injected `IBoreLookup`. The packages do not swap: the seam is wanted anyway, because P3.7 re-instantiates components as sizing chooses values and lowering has to be re-runnable against changing geometry (`F-18`, `C-24`). |
+| P3.5 | Catalogue ([`27`](20-core-domain/27-component-catalog.md)) | Sizing cannot be written against a catalogue that does not exist. V12 closes it. The table is compiled C# rather than a data file (`D-66`), and its rows ship **unverified and refused** until two public sources per row are recorded — `Catalogs/SOURCES.md` carries the checklist and a test asserts the refusal. |
+| P3.6 | Scaling, then Newton ([`36`](30-solver/36-numerics-and-convergence.md), [`32`](30-solver/32-steady-state-newton.md)) | **Scaling first.** An unscaled residual norm measures the pressure equation and nothing else; Newton built first is tuned against a meaningless number, and the tolerances then have to be redone. **It also takes [`31`](30-solver/31-solver-architecture.md)'s seam** — `EquationSystem`, `ISolver`, `SolveResult` — which this table used to leave to P3.7 alongside the outer loop. Newton has nothing to solve without them; P3.7 keeps the loop, sizing and solver selection. Ran as two: **a** the assembled system and its scaling, **b** Newton. |
+| P3.7 | Sizing and the single outer loop ([`24`](20-core-domain/24-auto-sizing.md), [`31`](30-solver/31-solver-architecture.md)) | One loop, one convergence test, one cap. Building sizing before the solve exists produces a second loop by default, which is exactly what `31` forbids. |
+| P3.8 | **The design point as the sizing point** ([`24`](20-core-domain/24-auto-sizing.md), [`15`](10-language/15-semantic-model.md), `D-57`–`D-60`) | After sizing, because `design` *is* the sizing point (`D-58`) and a curve with nothing to size against demonstrates nothing. The language half shipped in P2.10 and is not repeated here; this is sizing reading `ProjectSettings.Design`, and a transient run re-reading a curve it was handed as deferred. |
+| P3.9 | **Elevation as an absolute height** ([`02`](00-foundation/02-glossary.md), [`15`](10-language/15-semantic-model.md), [`22`](20-core-domain/22-component-model.md), `D-70`) | After `P3.6`, because the energy half of a height is one of `D-69`'s fluxes and there is nothing to hang it on before that. Its own package rather than a line in `P3.6`: it adds a parameter to every kind, a glossary decision (`elevation` already means a signed rise on a pipe and a normalized layer fraction on a tank), height propagation in lowering, a diagnostic for the inferred node between two heights, and a `/docs` row per kind. **`C-41`'s one-line half was taken early** — an omitted height stopped being a sizing candidate before `P3.7` could act on it. |
 
 **P3.4c was not planned, and the shape of why is worth keeping.** It began as a change to what a
 boundary declaration means (`D-64`) and turned into two corrections to the counting argument itself —
@@ -264,17 +273,17 @@ The largest phase and the one where scope creeps, because every package is visib
 
 | # | Package |
 |---|---|
-| P5.1 | Model contract and layout hints ([`26`](../20-core-domain/26-model-contract.md), [`25`](../20-core-domain/25-layout-hints.md)) — Core-side, closed by golden files before a pixel exists |
-| P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](../40-api/42-rest-contract.md), [`44`](../40-api/44-diagnostics-contract.md), [`41`](../40-api/41-api-architecture.md)) |
-| P5.3 | Design tokens and themes ([`55`](../50-frontend/55-design-system.md)) |
-| P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](../50-frontend/51-frontend-architecture.md)) |
-| P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](../50-frontend/52-editor.md), [`17`](../10-language/17-formatting-and-round-trip.md)) |
-| P5.6 | Canvas viewport and Core-owned symbols ([`53`](../50-frontend/53-canvas-renderer.md), `D-24`) |
-| P5.7 | **The layout engine** ([`53`](../50-frontend/53-canvas-renderer.md)) |
-| P5.8 | Hover, selection, console log, status line ([`54`](../50-frontend/54-interaction-and-writeback.md), [`56`](../50-frontend/56-console-log.md)) |
-| P5.9 | File lifecycle and document tabs ([`58`](../50-frontend/58-file-lifecycle.md), `D-39`) |
-| P5.10 | State visualization and colour scales ([`57`](../50-frontend/57-state-visualization.md)) |
-| P5.11 | SVG/PNG export, accessibility pass, M3 baselines ([`59`](../50-frontend/59-static-export.md), `D-45`) |
+| P5.1 | Model contract and layout hints ([`26`](20-core-domain/26-model-contract.md), [`25`](20-core-domain/25-layout-hints.md)) — Core-side, closed by golden files before a pixel exists |
+| P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)) |
+| P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)) |
+| P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)) |
+| P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](50-frontend/52-editor.md), [`17`](10-language/17-formatting-and-round-trip.md)) |
+| P5.6 | Canvas viewport and Core-owned symbols ([`53`](50-frontend/53-canvas-renderer.md), `D-24`) |
+| P5.7 | **The layout engine** ([`53`](50-frontend/53-canvas-renderer.md)) |
+| P5.8 | Hover, selection, console log, status line ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)) |
+| P5.9 | File lifecycle and document tabs ([`58`](50-frontend/58-file-lifecycle.md), `D-39`) |
+| P5.10 | State visualization and colour scales ([`57`](50-frontend/57-state-visualization.md)) |
+| P5.11 | SVG/PNG export, accessibility pass, M3 baselines ([`59`](50-frontend/59-static-export.md), `D-45`) |
 
 **P5.3 precedes every component that has a colour**, so the "no literal colour outside the theme
 files" assertion never has to be enforced retroactively across a built UI.
@@ -290,7 +299,7 @@ render into but before hover and log so those are built against real placements.
 layout modes (`D-38`), the corner rule (`D-44`), mandatory collapse, non-overlap at 200 components,
 and deterministic ordering. It is built **headless against golden layout-hint fixtures** and
 unit-tested on placements before it is attached to a canvas;
-[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md) is explicit that a screenshot
+[`62-testing-strategy`](60-docs-and-devex/62-testing-strategy.md) is explicit that a screenshot
 alone cannot test it.
 
 **P5.7 ships the prepared scene and its predicate sweep together, because the sweep is what makes the
@@ -305,12 +314,12 @@ instrument that reaches "a designer would not draw it that way", and it is cheap
 
 | # | Package |
 |---|---|
-| P6.1 | Transport delay and time integration on a fixed graph ([`33`](../30-solver/33-transient-time-domain.md)) |
-| P6.2 | Stratified tank ([`33`](../30-solver/33-transient-time-domain.md), `D-32`) — V15, V16, V17 |
-| P6.3 | Controllers, actuator limits, anti-windup ([`34`](../30-solver/34-controllers.md)) |
-| P6.4 | `RunSnapshot` and run isolation (`D-22`, [`07`](07-quality-attributes.md)) |
-| P6.5 | Backend worker and the WebSocket contract ([`43`](../40-api/43-realtime-contract.md)) |
-| P6.6 | Frontend Web Worker, frame reconstruction, playback ([`51`](../50-frontend/51-frontend-architecture.md)) |
+| P6.1 | Transport delay and time integration on a fixed graph ([`33`](30-solver/33-transient-time-domain.md)) |
+| P6.2 | Stratified tank ([`33`](30-solver/33-transient-time-domain.md), `D-32`) — V15, V16, V17 |
+| P6.3 | Controllers, actuator limits, anti-windup ([`34`](30-solver/34-controllers.md)) |
+| P6.4 | `RunSnapshot` and run isolation (`D-22`, [`07`](00-foundation/07-quality-attributes.md)) |
+| P6.5 | Backend worker and the WebSocket contract ([`43`](40-api/43-realtime-contract.md)) |
+| P6.6 | Frontend Web Worker, frame reconstruction, playback ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P6.7 | Detached runs across tabs (`D-39`, `D-42`) — V23 |
 
 Sizing is frozen for the duration of a run: it is a design-point property, and re-running it per
@@ -324,8 +333,8 @@ skipped as slow.
 
 | # | Package |
 |---|---|
-| P7.1 | The mutation API ([`17`](../10-language/17-formatting-and-round-trip.md)) |
-| P7.2 | On-canvas property editing and the write-back round trip ([`54`](../50-frontend/54-interaction-and-writeback.md)) |
+| P7.1 | The mutation API ([`17`](10-language/17-formatting-and-round-trip.md)) |
+| P7.2 | On-canvas property editing and the write-back round trip ([`54`](50-frontend/54-interaction-and-writeback.md)) |
 
 Two packages, because P2.5 did the hard part. If the printer tidies while printing, this is the
 phase where the project stalls, and the fix is upstream in the AST rather than here.
@@ -345,12 +354,12 @@ document itself, because a document that has been corrected no longer records th
 
 Which folder: the tier whose documents the finding is *about*, not the tier the code landed in. P2.6
 implemented a registry into `Core/Language` and found two defects in
-[`22-component-model`](../20-core-domain/22-component-model.md); those belong to
+[`22-component-model`](20-core-domain/22-component-model.md); those belong to
 `20-core-domain/defects.md`.
 
 **"Implements against" includes writing against a tier's contracts without implementing any of
 them**, and this is the reading that gets missed. P3.0 through P3.4a built components whose interface
-[`22`](../20-core-domain/22-component-model.md) says waits on `31` for the shape of `SolveContext`,
+[`22`](20-core-domain/22-component-model.md) says waits on `31` for the shape of `SolveContext`,
 whose residuals carry `36`'s smoothing constants, and whose graph exists for `32` to assemble — and
 created no `30-solver/defects.md` at all, for four packages running. Every finding about that tier
 sat in `20-core-domain/defects.md`, where the tier that owns it would not have looked.

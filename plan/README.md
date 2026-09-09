@@ -1,12 +1,22 @@
 # FluidScript — implementation plan
 
-This tree is the specification FluidScript is built from. It is **planning only**: no code lives
-here, and no document describes work already done. Once a subsystem is implemented, its user-facing
-documentation moves to `/docs` and the plan document becomes the historical record of *why* it is
-shaped the way it is.
+This tree is the specification FluidScript is built from. No code lives here, and no *contract*
+document describes work already done. Once a subsystem is implemented, its user-facing documentation
+moves to `/docs` and the plan document becomes the historical record of *why* it is shaped the way it
+is.
+
+**Three kinds of file break that rule on purpose**, and each says so in its own header: the
+[implementation sequence](08-implementation-sequence.md), which sequences the work; the
+[project state](09-project-state.md), which records what has shipped; and each tier's `defects.md`,
+which records what implementing that tier found. A specification with no memory beside it is
+re-derived from the commit log every session.
 
 ## How to read this
 
+0. If you are about to *implement* rather than read, start with
+   [`08-implementation-sequence.md`](08-implementation-sequence.md) and then
+   [`09-project-state.md`](09-project-state.md) — the plan and the position on it. The full workflow
+   is in the repository's `CLAUDE.md` under *Working a plan*.
 1. Start with [`00-foundation/01-vision-and-scope.md`](00-foundation/01-vision-and-scope.md) — it
    holds the numbered requirements (`R-01`…) that every other document traces back to.
 2. Read [`00-foundation/06-decision-log.md`](00-foundation/06-decision-log.md) for the decisions
@@ -18,9 +28,11 @@ shaped the way it is.
 a higher one. `depends_on` pointing up-tier is a review finding, not a style preference — it means a
 foundational decision was made inside a leaf.
 
-**Every document follows [`_template.md`](_template.md)**: Purpose · Responsibilities · Contracts ·
-Invariants · Error cases · Worked example · Acceptance criteria · Open questions. Contracts are
-signatures and data shapes, never method bodies (decision `D-04`).
+**Every contract document follows [`_template.md`](_template.md)**: Purpose · Responsibilities ·
+Contracts · Invariants · Error cases · Worked example · Acceptance criteria · Open questions.
+Contracts are signatures and data shapes, never method bodies (decision `D-04`). The three record
+files named above do not follow it, and should not — that shape describes a contract, and a record of
+what happened has none of those sections to fill.
 
 ## Status
 
@@ -36,6 +48,16 @@ The five **reference circuits** all live in `01-vision-and-scope`, and `D-11` st
 variants: the cooling loop (topology), the simple loop (sizing arithmetic), the substation (two-sided
 rating and coupled circuits), the demand-step loop (transient and control), and the storage header
 (multiple sources/consumers, thermal ordering, and stratified storage).
+
+### Plan root
+
+| Doc | Owns | Status |
+|---|---|---|
+| [08-implementation-sequence](08-implementation-sequence.md) | work-package decomposition and order inside each milestone | draft |
+| [09-project-state](09-project-state.md) | which phase we are in, what has shipped, what is next | living |
+
+Both sit above the tiers because both are about the whole project. `08` moved here from
+`00-foundation/` on 2026-09-09; it had always been a whole-plan document filed as a foundation one.
 
 ### 00 · Foundation
 

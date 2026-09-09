@@ -9,7 +9,7 @@ owns: [defect and observation record for documents 11-18]
 
 Every defect, deferral and observation from implementing against `11`–`18`, newest package last. The
 rule and its reasoning are in
-[`08-implementation-sequence`](../00-foundation/08-implementation-sequence.md).
+[`08-implementation-sequence`](../08-implementation-sequence.md).
 
 A closed entry says what changed. This matters more than it looks: a document that has been corrected
 reads as though it was always right, so without this file there is no record that
