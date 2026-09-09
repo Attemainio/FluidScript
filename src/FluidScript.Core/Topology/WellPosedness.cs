@@ -593,12 +593,77 @@ public static class WellPosedness
             yield break;
         }
 
+        if (constraint.Kind is ConstraintKind.NodeTemperature)
+        {
+            // A temperature stated on an interior node is a **setpoint**, and in a steady circuit the thing
+            // that holds it is the mixing split feeding that node -- exactly as a stated inlet is held by the
+            // split feeding an exchanger. [`34-controllers`](../../plan/30-solver/34-controllers.md) states
+            // the pairing outright: in the steady circuit the stated value "promotes the valve position into
+            // a solver unknown -- the circuit is *solved* into position", and "a controller does the same job
+            // dynamically". A controller is therefore the transient counterpart of this promotion, not a
+            // prerequisite for it, which is what the previous reading of this branch assumed.
+            //
+            // Until this arrived, a stated node temperature added a row and promoted nothing, so the circuit
+            // reported over-specified by exactly one --- breaking `23`'s rule that a constraint and its
+            // promotion appear and disappear together, which is that document's own check that the counting
+            // scheme is the right one (`S-48`).
+            var measured = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
+
+            // The splits that reach the node: either end of a branch the node lies on, and either end of a
+            // branch that ends at it. Ordering matters for the same reason it does below (`S-45`) --- taking a
+            // distant valve while an adjacent one is free is what makes a circuit rank-deficient and square at
+            // once --- so the reaching ones are offered first and the rest only after.
+            var reaching = new HashSet<IFlowComponent>();
+
+            if (measured is not null)
+            {
+                foreach (var branch in graph.Branches)
+                {
+                    if (!branch.Path.Contains(measured)
+                        && !ReferenceEquals(branch.From.Element, measured)
+                        && !ReferenceEquals(branch.To.Element, measured))
+                    {
+                        continue;
+                    }
+
+                    reaching.Add(branch.From.Element);
+                    reaching.Add(branch.To.Element);
+
+                    foreach (var element in branch.Path)
+                    {
+                        reaching.Add(element);
+                    }
+                }
+            }
+
+            foreach (var element in hydraulic.Elements)
+            {
+                if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
+                    && IsFree(element, "position")
+                    && reaching.Contains(element))
+                {
+                    yield return (element.Name, "position");
+                }
+            }
+
+            foreach (var element in hydraulic.Elements)
+            {
+                if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
+                    && IsFree(element, "position")
+                    && !reaching.Contains(element))
+                {
+                    yield return (element.Name, "position");
+                }
+            }
+
+            yield break;
+        }
+
         if (constraint.Kind is not ConstraintKind.FixedFlow)
         {
-            // A temperature stated on an interior node is met by whatever controls the branch feeding
-            // it, and a controller is not in the graph -- it has no ports, so lowering drops it. Until
-            // one reaches here the constraint has no candidate, which reports as over-specified rather
-            // than being quietly absorbed.
+            // Every kind the enum carries is handled above, so this is the guard for one added later: a
+            // constraint nothing can absorb reports as over-specified rather than being quietly dropped.
             yield break;
         }
 

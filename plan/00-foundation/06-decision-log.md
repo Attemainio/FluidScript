@@ -3772,3 +3772,56 @@ it narrows which annotations are read as boundary conditions.
   wrong on the storage header, whose boundaries all state `flow` and which therefore has every flux
   known — that case needs the drop, and `HasUnknownFlux` is what distinguishes it.
 
+
+## D-87 · A temperature stated on an interior node is a setpoint, and it promotes the split that holds it
+
+**Accepted · 2026-09-09**
+
+`WellPosedness` already raised a `NodeTemperature` constraint for a temperature stated on a node that is
+neither a boundary nor carrying a pressure or a flow. What it did not do was give that constraint
+anything to claim: `Candidates` fell through to `yield break`, on the reasoning that "a temperature
+stated on an interior node is met by whatever controls the branch feeding it, and a controller is not in
+the graph". So the constraint added a row and promoted nothing.
+
+A `NodeTemperature` now promotes the **position of the mixing split feeding that node**, exactly as a
+stated inlet promotes the split feeding an exchanger. Splits that reach the node are offered before any
+that do not, for the reason `S-45` records: taking a distant valve while an adjacent one is free makes a
+circuit rank-deficient and square at once.
+
+**Why.** [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) states the counting
+scheme's own check: "Remove either constraint and both the equation and its unknown disappear together."
+A constraint that contributes a row and no column breaks it, and the symptom is a circuit reported
+**over-specified by exactly one** for the crime of stating a setpoint.
+
+The reasoning that was there rests on a false premise, and
+[`34-controllers`](../30-solver/34-controllers.md) already says so in as many words: in the steady
+circuit a stated value "promotes the valve position into a solver unknown — the circuit is *solved* into
+position", and "a controller does the same job dynamically". A controller is therefore the **transient
+counterpart** of this promotion, not a prerequisite for it. Waiting for one meant a steady circuit could
+not express a setpoint at all, which is `M2a`'s remaining blocker (`S-48`): the distribution header asks
+each consumer for a 50 °C inlet from a header whose temperature nothing holds, and with the source
+outlet floating the supply solves to **102 °C** and the return to 108 until a node leaves the property
+domain.
+
+**Measured.** The header rebuilt as an injection circuit — a mixing valve blending source water with
+return to hold `N3 node t=60` — counts **49 unknowns, 49 equations, rank 49**, reports
+`NodeTemperature on N3 -> solved for as TV_MAIN.position`, and satisfies every temperature row to 1e-10
+including the setpoint. Before this it was over-specified by one and never ran.
+
+**Scope.** Steady circuits. It changes no transient behaviour, and it does not make a controller
+redundant: a controller drives an actuator through time and carries state, where this solves for the
+position that holds the setpoint at rest. Both on one actuator is over-specification, which
+`34-controllers` already called "over-specification wearing a control system's clothes".
+
+**Rejected.**
+- *Wait for controllers and leave setpoints unexpressible in a steady circuit.* What shipped. Cost: the
+  steady solve is the whole of `M1` and `M2`, and a plant whose supply temperature nothing holds is not a
+  plant anyone builds. It also reads as a counting defect rather than a missing feature, because
+  over-specified-by-one is what the user is told.
+- *Let the constraint claim a pump head instead.* A pump does change an outlet temperature — flow sets
+  the rise across a fixed duty — and with the source outlet stated that is exactly what happens. Cost:
+  measured, the solve drives that head to zero and reverses the primary loop, because the head is also
+  what the header differential is asking for. Two statements about one loop.
+- *Diagnose it — tell the user a node temperature needs a controller.* Honest and cheap. Cost: it names
+  a tier-30 feature as the fix for a tier-20 counting gap, and the fix it names does not work, since a
+  controller contributes no rows to the algebraic system.

@@ -40,10 +40,57 @@ public sealed class PromotionLocalityTests
         Assert.Equal(("PU_RAD", "head"), Claimed(counting, "HE_RAD"));
     }
 
-    private static (string, string)? Claimed(CountingTable counting, string component) =>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASetpointOnANodeIsHeldByTheSplitThatFeedsIt()
+    {
+        // `S-48`. A temperature stated on an interior node is a **setpoint**, and in a steady circuit what
+        // holds it is the mixing split feeding that node --- the same pairing a stated inlet already has,
+        // and the one `34-controllers` describes when it says the circuit is *solved* into position and a
+        // controller does that job dynamically. Before this, the constraint reached for nothing.
+        //
+        // The cooling loop states the same physical fact two ways. `HE1 in=20` is the exchanger's inlet,
+        // fed from `N2`; `N2 node t=20` is that node directly. Dropping the first frees `3WV` so the second
+        // has something to claim, and it must claim the same valve.
+        var counting = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
+            "HE1 heat_exchanger power=30 out=50",
+            "N3 return p=280\nN2 node t=20")).Graph).Counting;
+
+        Assert.Equal(("3WV", "position"), Claimed(counting, "N2", ConstraintKind.NodeTemperature));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASetpointBringsItsOwnUnknownSoTheCountIsUnmoved()
+    {
+        // `23`'s check on the whole counting scheme: "Remove either constraint and both the equation and
+        // its unknown disappear together." A constraint that added a row and promoted nothing broke it,
+        // and the symptom was a circuit reported over-specified by exactly one for stating a setpoint.
+        //
+        // Asserted as a difference rather than as an absolute, because the absolute is the sum of every
+        // other counting rule and would have to be restated here to be checked.
+        var without = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
+            "HE1 heat_exchanger power=30 out=50", "N3 return p=280")).Graph).Counting;
+
+        var with = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
+            "HE1 heat_exchanger power=30 out=50",
+            "N3 return p=280\nN2 node t=20")).Graph).Counting;
+
+        Assert.Equal(without.Excess, with.Excess);
+        Assert.Equal(without.Unknowns + 1, with.Unknowns);
+        Assert.Equal(without.Equations + 1, with.Equations);
+    }
+
+    private static string CoolingLoop(string exchanger, string boundary) =>
+        File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
+            .Replace("HE1 heat_exchanger power=30 in=20 out=50", exchanger, StringComparison.Ordinal)
+            .Replace("N3 return p=280", boundary, StringComparison.Ordinal);
+
+    private static (string, string)? Claimed(
+        CountingTable counting, string component, ConstraintKind kind = ConstraintKind.FixedFlow) =>
         counting.Promotions
             .Where(promotion =>
-                promotion.Constraint.Kind == ConstraintKind.FixedFlow
+                promotion.Constraint.Kind == kind
                 && string.Equals(promotion.Constraint.Component, component, StringComparison.Ordinal))
             .Select(promotion => ((string, string)?)(promotion.Component, promotion.Parameter))
             .FirstOrDefault();
