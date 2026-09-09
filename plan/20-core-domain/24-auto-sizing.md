@@ -328,11 +328,13 @@ headroom a control valve is supposed to have.
 > position. But it is this document's reasoning rather than an inherited convention, and the first
 > implementation should treat it as the part most worth testing against measured behaviour.
 >
-> **It also applies to the two-way rule above, which does not make the distinction.** That rule rounds
-> down unconditionally, on the grounds that more authority is the safe direction. That is true on a
-> pump-driven circuit, where the pump absorbs the extra drop, and false on a pressure-bounded one,
-> where it silently makes the design flow unreachable. Recorded here rather than edited into the
-> two-way rule, because changing a settled rule needs its own decision (`C-62`).
+> **It applies to the two-way rule above as well, and `D-89` is the decision that made it so.** That
+> rule rounded down unconditionally, on the grounds that more authority is the safe direction — true on
+> a pump-driven circuit, where the pump absorbs the extra drop, and false on a pressure-bounded one,
+> where it silently makes the design flow unreachable. One rule now serves both valve kinds and both
+> shapes: with a free pump on a circuit through the valve the drop is a choice and the selection rounds
+> **down**; with none the boundaries fix it and the selection rounds **up**. Which of the two was used
+> is written into the reported basis, because the same catalogue row means different things under each.
 
 **Authority is reported in both cases and targeted only in the first.** On a bounded circuit it is an
 outcome, and `FS4006` still fires when it comes out low.
@@ -743,7 +745,10 @@ three of those numbers are engineering, and one is a guess.
 - [ ] The worked example converges in ≤ 5 passes and reproduces the four values above within 2 %.
 - [ ] The pipe gradient used by the sizer equals [`27-component-catalog`](27-component-catalog.md)'s
       table for the same flow, computed rather than transcribed.
-- [ ] The achieved authority after rounding Kv down is **greater** than the target, never less.
+- [ ] On a **pump-driven** circuit the achieved authority after rounding Kv down is **greater** than
+      the target, never less. On a **pressure-bounded** one the selection rounds up instead, so the
+      achieved authority may fall below the target and the criterion is the flow: the chosen Kv
+      passes the design flow below full travel (`D-89`).
 - [ ] **Every branch of a parallel set carries its design flow after the solve**, within tolerance —
       the check that sizing and solving agree. Asserted on a two-branch circuit whose branches have
       *deliberately different* resistances, since equal ones pass even without the balancing rule.

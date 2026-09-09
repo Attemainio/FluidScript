@@ -167,18 +167,33 @@ public sealed class ValveSizer(
         Report(valve, chosen, kvs, achieved, achievedDrop, rest, required, notes);
 
         var litresPerSecond = Math.Abs(context.MassFlow) / density * 1000;
+            // Which of the two shapes chose the drop is not recoverable from the Kv alone -- the same
+            // catalogue row means different things on a bounded and a pump-driven circuit -- and the rule
+            // is the only thing that knows. It used to be `OuterLoop.ThreeWay`'s to say, which meant a
+            // two-way valve's basis said nothing about it (`C-62`).
+            var available = context.AvailableDrop ?? 0;
+            var shape = " — chosen against the branch's own resistance, which a free pump absorbs, so "
+                + "the selection rounds down";
 
-        // Two bases, because a report line reads "CV1.authority = ..." and a Kv designation in that
-        // position is a value that does not belong to the parameter it is explaining.
-        var kvBasis = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{chosen.Entry.Designation} ({chosen.Entry.Spec.Series}) — authority {achieved:0.##} at "
-            + $"{litresPerSecond:0.###} l/s, {achievedDrop / 1000:0.#} kPa");
+            if (bounded)
+            {
+                shape = string.Create(
+                    CultureInfo.InvariantCulture,
+                    $" — determined by the {available / 1000:0.#} kPa the boundaries offer, so the "
+                    + $"selection rounds up");
+            }
 
-        var authorityBasis = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{achieved:0.##} achieved against a target of {target:0.##} — {chosen.Entry.Designation} "
-            + $"drops {achievedDrop / 1000:0.#} kPa of the branch's {(rest + achievedDrop) / 1000:0.#} kPa");
+            // Two bases, because a report line reads "CV1.authority = ..." and a Kv designation in that
+            // position is a value that does not belong to the parameter it is explaining.
+            var kvBasis = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{chosen.Entry.Designation} ({chosen.Entry.Spec.Series}) — authority {achieved:0.##} at "
+                + $"{litresPerSecond:0.###} l/s, {achievedDrop / 1000:0.#} kPa{shape}");
+
+            var authorityBasis = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{achieved:0.##} achieved against a target of {target:0.##} — {chosen.Entry.Designation} "
+                + $"drops {achievedDrop / 1000:0.#} kPa of the branch's {(rest + achievedDrop) / 1000:0.#} kPa");
 
         var values = ImmutableDictionary<string, SizedValue>.Empty
             .Add("kv", new SizedValue(Quantity.FromSi(kvs, Dimension.Kv), kvBasis, FromDefault: false))

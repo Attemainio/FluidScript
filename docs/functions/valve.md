@@ -39,7 +39,33 @@ asked for — never below. The reported value is the one achieved:
 
 ```
 CV1  kv         4      sized   Kv 4 (R5 preferred numbers) — authority 0.65 at 0.24 l/s, 4.6 kPa
+                               — chosen against the branch's own resistance, which a free pump
+                               absorbs, so the selection rounds down
 CV1  authority  0.65   sized   0.65 achieved against a target of 0.5 — Kv 4 drops 4.6 of 7.1 kPa
+```
+
+### On a circuit the boundaries drive, it rounds the other way
+
+That holds where a **pump with a head you have not stated** sits on a circuit through the valve: the
+driving pressure is free, so the valve's drop is a choice and the pump takes up whatever it costs.
+
+With no such pump — both ends of the path stating a pressure, which is how a district-heating primary
+or any bounded connection is written — nothing is free to absorb anything. The driving pressure is
+fixed, the valve takes **whatever the rest of the path leaves**, and there is no target left to aim at.
+The selection then rounds **up**, which is the opposite direction and for a specific reason: at a fixed
+differential a valve whose Kv is below what the balance requires cannot pass the design flow *however
+far it opens*. Rounding down there would not make the valve safer, it would put the design point out of
+reach and say nothing. Rounding up leaves it a little below fully open at design, which is the headroom
+a control valve is meant to have.
+
+The achieved authority may then land **below** your target, and that is not the rule failing — on a
+bounded circuit the drop was never yours to choose. Which of the two shapes applied is written into the
+basis, because the same catalogue row means different things under each:
+
+```
+CV1  kv         2.5    sized   Kv 2.5 (R5 preferred numbers) — authority 0.31 at 0.24 l/s, 20.0 kPa
+                               — determined by the 20.0 kPa the boundaries offer, so the selection
+                               rounds up
 ```
 
 Write `authority=0.7` to change the target. The default is 0.5.

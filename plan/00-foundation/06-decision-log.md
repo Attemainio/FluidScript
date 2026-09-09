@@ -3894,3 +3894,58 @@ by the order of the two remaining connections, which says nothing about which le
 - *Split the leg roles onto separate parameters (`kv_a`, `kv_b`) so nothing has to be derived.* The
   arrangement manufacturers actually sell — see `C-69`. Cost: a component-contract change, and it does
   not remove the question, since a sizer still has to know which leg carries the plant flow.
+
+## D-89 · A control valve's catalogue selection rounds down on a pumped circuit and up on a bounded one
+
+**Accepted · 2026-09-09**
+
+Sizing a control valve's `kv` rounds **down** to the catalogue when a pump with a free head sits on a
+circuit through it, and **up** when none does and the boundary pressures fix the driving pressure. It
+applies to `valve` and `three_way_valve` alike — one rule, `ValveSizer`, decided by
+`SizingContext.AvailableDrop`. This supersedes the unconditional "round down" that
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) settled for the two-way rule, and the
+acceptance criterion that followed from it.
+
+**Why.** Rounding down was justified as the safe direction: a smaller Kv drops more, which raises
+authority above the target, and the pump absorbs the extra. That reasoning holds only where there *is*
+a pump free to absorb it. On a pressure-bounded circuit — both ends stating a pressure, which is every
+district-heating primary — the driving pressure is fixed and the valve takes whatever the rest of the
+path leaves. A Kv below what that balance requires **cannot pass the design flow at any position**, so
+rounding down does not make the valve safer; it makes the design point unreachable, and the duty is
+silently not met. Rounding up leaves the valve a little below fully open at design, which is the
+headroom a control valve is supposed to have.
+
+**This is the project's own reasoning, and it is marked as such.** `24`'s Provenance note records the
+survey: manufacturer and industry guidance (Spirax Sarco, FluidFlow, Belimo, Danfoss) states the
+authority definition and its bands repeatedly, and states the **catalogue-rounding direction nowhere**.
+So neither direction is an inherited convention this project would be departing from, and the physical
+argument stands on its own. It is the part most worth testing against measured behaviour.
+
+**What was actually wrong.** `ValveSizer` already implemented both directions and
+`ValveSizer.CanSize` already answered for `Valve` as well as `ThreeWayValve` — but
+`SizingContext.AvailableDrop`, which selects between them, was filled in exactly one place: the
+three-way pass. An ordinary two-way valve was therefore never told the circuit was bounded, the
+`bounded` branch could not run for one, and it rounded down unconditionally exactly as `C-62` said.
+The arithmetic was there; only the context was missing. `OuterLoop.Context` now fills it from the same
+`Driven`/`Offered` pair, and `OuterLoop.ThreeWay` keeps its own `driven` test because a three-way
+valve with its bypass connected is a junction element that sits in no branch's `Path`.
+
+**Scope.** Which catalogue row a control valve takes. It changes nothing on a pumped circuit, so no
+sample moves: `m2-simple-loop`'s `CV1` stays at Kv 1.6 and `m2-cooling-loop`'s `3WV` at Kv 4, both
+still rounding down. Which shape chose the drop is now written into the reported basis by the rule
+rather than by the pass, so a two-way valve says it as well as a three-way.
+
+**Rejected.**
+- *Leave the two-way rule rounding down and document the hazard.* What `24` did, and it is why this sat
+  open: a document that names the failure and ships the failing rule has recorded a defect rather than
+  fixed one. The user reading a Kv has no way to know which case they are in.
+- *Round up always.* Removes the distinction and one branch of code. Cost: on a pumped circuit it gives
+  a valve **below** its target authority, which is a valve that controls over less of its travel than
+  the report claims, and `24`'s invariant that the achieved authority is at or above the target is lost
+  in the case that invariant was written for.
+- *Choose from the achieved authority rather than the topology* — take whichever row lands nearer the
+  target. Cost: it is the same number in both cases and cannot distinguish them, because the failure on
+  a bounded circuit is not an authority miss but an unreachable flow.
+- *Ask the script.* An `authority` is already statable and constrains the target; a rounding direction
+  is not something a user should have to know to state. It is a consequence of the circuit, and the
+  circuit already says which it is.

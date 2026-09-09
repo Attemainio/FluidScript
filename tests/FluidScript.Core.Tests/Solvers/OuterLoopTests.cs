@@ -164,6 +164,49 @@ public sealed class OuterLoopTests
         N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N6 - PU2 - N1
         """;
 
+    // `C-62`. A two-way valve on a path between two stated pressures with no pump anywhere: the
+    // driving pressure is fixed, so the valve takes what the rest of the path leaves and the catalogue
+    // selection has to round *up*. `Offered` needs exactly two stated pressures and `Driven` needs no
+    // free pump on a circuit through the valve, and this shape gives both.
+    private const string BoundedValve = """
+        fluidscript 1
+        circuit district
+        fluid water
+
+        HE1 heat_exchanger power=30
+        CV1 valve
+        P1  pipe length=25 dn=25
+
+        connections
+        N1 - HE1 - N2 - CV1 - N3 - P1 - N4
+
+        N1 supply t=20 p=300
+        N4 return p=280
+        """;
+
+    [Fact]
+    public async Task ATwoWayValveOnABoundedPathIsToldWhatTheBoundariesOfferAndRoundsUp()
+    {
+        // The branch `C-62` opened. `SizingContext.AvailableDrop` used to be filled only by the
+        // three-way pass, so an ordinary `valve` was never told the circuit was pressure-bounded,
+        // `ValveSizer`'s `bounded` arithmetic could not run for one, and it rounded down --- which at a
+        // fixed differential puts the design flow out of reach at every position rather than making the
+        // valve safer. `OuterLoop.Context` fills it now, from the same `Driven`/`Offered` pair the
+        // three-way pass uses.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(BoundedValve), Water.Instance, "district", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var basis = result.Value.Bases["CV1.kv"];
+
+        Assert.Contains("boundaries offer", basis, StringComparison.Ordinal);
+        Assert.Contains("rounds up", basis, StringComparison.Ordinal);
+
+        // And the pump-driven wording is *absent*, which is the half that would have passed before.
+        Assert.DoesNotContain("free pump absorbs", basis, StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task AScriptWhoseComponentsAreNotConnectedIsToldSoRatherThanThrowing()
     {

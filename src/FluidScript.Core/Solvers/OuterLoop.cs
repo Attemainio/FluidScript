@@ -526,6 +526,9 @@ public sealed class OuterLoop(
                 continue;
             }
 
+            // Not `Driven(graph, valve)`: a three-way valve with its bypass connected is a junction
+            // element, so it sits in no branch's `Path` and that helper would find no circuit through it
+            // and call every one of them bounded. The legs the drawn flow crosses are its equivalent.
             var driven = legs[common].Path.Concat(legs[variable].Path).Any(static element =>
                 element is Pump pump && !pump.StatedParameters.ContainsKey("head"));
 
@@ -562,10 +565,6 @@ public sealed class OuterLoop(
                 continue;
             }
 
-            var mode = driven
-                ? "chosen against the leg's own resistance, which a free pump absorbs"
-                : $"determined by the {context.AvailableDrop!.Value / 1000:0.#} kPa the boundaries offer";
-
             foreach (var (parameter, value) in sized.Value.Values)
             {
                 if (Claimed(valve, parameter, promoted))
@@ -574,7 +573,7 @@ public sealed class OuterLoop(
                 }
 
                 overlay = overlay.With(valve.Name, parameter, value.Value);
-                bases[$"{valve.Name}.{parameter}"] = $"{value.Basis} — {mode}";
+                bases[$"{valve.Name}.{parameter}"] = value.Basis;
             }
 
             notes.AddRange(sized.Value.Notes);
@@ -707,12 +706,49 @@ public sealed class OuterLoop(
         || component.DefaultParameters.ContainsKey(parameter)
         || promoted.Contains($"{component.Name}.{parameter}");
 
+    /// <summary>Whether a free pump on a circuit through a component absorbs whatever it drops.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="component">The component being sized.</param>
+    /// <returns>
+    /// <see langword="true"/> when some loop through it carries a pump whose head is unstated or promoted,
+    /// which makes the driving pressure a free variable rather than something the boundaries fix.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>This is what decides which way a valve's catalogue selection rounds</strong> (<c>C-62</c>,
+    /// <c>D-89</c>). With a free pump the valve's drop is a <em>choice</em> and the authority target makes
+    /// it, rounding down because more authority is the safe direction and the pump absorbs the extra. With
+    /// no free pump the boundary pressures fix the driving pressure, the valve takes what the rest of the
+    /// path leaves, and rounding down would put the design flow out of reach at every position.
+    /// </para>
+    /// <para>
+    /// <strong>The scope is the component's own circuits, never the graph</strong> — the same reason
+    /// <see cref="ThreeWay"/> asks about the legs the drawn flow crosses rather than about every pump
+    /// present. Looking graph-wide would read a pumped secondary beside a genuinely bounded primary as
+    /// driven, which is the arrangement the distinction exists for. A component on no loop at all answers
+    /// <see langword="false"/>, which is right: an open path between two boundaries is the bounded case.
+    /// </para>
+    /// </remarks>
+    private static bool Driven(CircuitGraph graph, IFlowComponent component) =>
+        graph.Loops
+            .Where(loop => loop.Branches.Any(branch => branch.Path.Contains(component)))
+            .SelectMany(static loop => loop.Branches)
+            .SelectMany(static branch => branch.Path)
+            .Any(static element => element is Pump pump && !pump.StatedParameters.ContainsKey("head"));
+
     /// <summary>The flow through a component and the fluid state there.</summary>
     /// <param name="graph">The graph.</param>
     /// <param name="layout">Where the iterate keeps each unknown.</param>
     /// <param name="iterate">The current values.</param>
     /// <param name="component">The component being sized.</param>
     /// <returns>The context, or <see langword="null"/> when no branch carries this component.</returns>
+    /// <remarks>
+    /// <strong><see cref="SizingContext.AvailableDrop"/> is filled here as well as in
+    /// <see cref="ThreeWay"/></strong> (<c>C-62</c>). It used to be set only in the three-way pass, so a
+    /// two-way valve was never told what the boundaries offer, <c>ValveSizer</c>'s <c>bounded</c> branch
+    /// could not run for one, and it rounded down on a pressure-bounded circuit where that puts the design
+    /// flow out of reach. The arithmetic was already there; only the context was missing.
+    /// </remarks>
     private static SizingContext? Context(
         CircuitGraph graph, SystemLayout layout, StateVector iterate, IFlowComponent component)
     {
@@ -731,6 +767,7 @@ public sealed class OuterLoop(
             MassFlow = flow,
             BranchDrop = Resistance(graph, state, branch.Path, flow, component),
             LoopDrop = Circuit(graph, layout, iterate, component, state),
+            AvailableDrop = Driven(graph, component) ? null : Offered(graph),
         };
     }
 
