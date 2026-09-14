@@ -562,4 +562,31 @@ public sealed class ParserTests
         var connection = Assert.IsType<ConnectionSyntax>(result.Root.Statements[2]);
         Assert.Equal([null, "b", "a"], connection.Endpoints.Select(static e => e.Port?.Text));
     }
+
+    // ---- what must not take the process down ------------------------------------------------
+
+    [Theory]
+    [InlineData("(", ")")]
+    [InlineData("-", "")]
+    [InlineData("f(", ")")]
+    [Trait("Category", "Unit")]
+    public void TenThousandNestedLevelsAreMalformedNotAStackOverflow(string open, string close)
+    {
+        // Recursive descent costs a few frames per level, and a stack overflow cannot be caught. The
+        // parser runs on the host per keystroke, so one such line would take every session down.
+        const int Depth = 10_000;
+        var expression = string.Concat(Enumerable.Repeat(open, Depth)) + "1" + string.Concat(Enumerable.Repeat(close, Depth));
+
+        OnlyDiagnostic($"let x = {expression}", "FS1104");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void SixtyNestedParenthesesStillParse()
+    {
+        // The bound is far beyond any expression a script states; this pins that it is not near one.
+        var expression = new string('(', 60) + "1" + new string(')', 60);
+
+        Assert.Empty(Parse($"let x = {expression}").Diagnostics);
+    }
 }

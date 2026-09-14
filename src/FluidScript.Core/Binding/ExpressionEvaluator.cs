@@ -235,9 +235,13 @@ public sealed class ExpressionEvaluator
             return Literal(literal, sign: -1);
         }
 
-        if (Visit(unary.Operand) is not EvaluationResult.Value operand)
+        // Visited once: a visit reports its diagnostics as it goes, and the operand's would otherwise
+        // be reported twice -- and a chain of minus signs over a bad operand visited 2^depth times.
+        var visited = Visit(unary.Operand);
+
+        if (visited is not EvaluationResult.Value operand)
         {
-            return Visit(unary.Operand);
+            return visited;
         }
 
         if (!Quantity.TryNegate(operand.Quantity, out var negated, out var error))

@@ -41,12 +41,16 @@ public sealed class PipeSizer(
     /// <inheritdoc/>
     /// <remarks>
     /// The smallest size in the series. A pipe is the one kind lowering cannot build without a chosen
-    /// value, so this is what makes a first graph exist; it is replaced before anything is solved.
+    /// value, so this is what makes a first graph exist; it is replaced before anything is solved. An
+    /// empty catalogue -- refused by the catalogue gate before a sizer is ever built, and guarded here
+    /// as <see cref="ValveSizer"/> guards its own row -- yields DN 0, which no rule accepts.
     /// </remarks>
     public ImmutableDictionary<string, Quantity> Provisional { get; } =
         ImmutableDictionary<string, Quantity>.Empty.Add(
             "dn",
-            Quantity.FromSi(catalog.Entries[0].Spec.NominalDiameter, Dimension.NominalDiameter));
+            Quantity.FromSi(
+                catalog is { Entries.Count: > 0 } ? catalog.Entries[0].Spec.NominalDiameter : 0,
+                Dimension.NominalDiameter));
 
     /// <inheritdoc/>
     public bool CanSize(IFlowComponent component) => component is Pipe;

@@ -84,6 +84,12 @@ internal readonly record struct BackendHumidAirState(
 /// on update, and a rejected state leaves the instance ready for the next. The instance is thread-static
 /// because updating is a mutation and the API solves concurrently; the earlier sharing of a single
 /// static across threads was only ever safe because <c>WithState</c> cloned, which is the leak.
+/// <strong>Humid air is the exception, and measured to be one.</strong> CoolProp's psychrometrics
+/// (<c>HAPropsSI</c>) are a stateless function of their inputs; a <c>HumidAir</c> owns no native
+/// state, so its <c>WithState</c> clones a few managed fields and nothing else. Two thousand reads
+/// measure no working-set growth (<c>NativeMemoryTests</c>), and a stateless clone is what makes the
+/// one shared static safe across threads. It stays on <c>WithState</c> for that reason, not by
+/// oversight; migrate it if a future SharpProp gives it native state.
 /// </para>
 /// <para>
 /// <strong>Fixing a state is expensive and reading one is free</strong>, which is what shapes

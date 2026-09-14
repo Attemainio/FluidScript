@@ -20,6 +20,9 @@ binding.
   and a temperature *difference* do.
 - A binding that refers to itself, directly or through a chain, is reported once and names both ends
   rather than looping.
+- An expression may nest up to 64 levels of parentheses, function arguments and minus signs. Deeper
+  than that, the line is reported as unreadable. A chain of bindings each reading the next has no
+  such limit.
 
 ## See also
 

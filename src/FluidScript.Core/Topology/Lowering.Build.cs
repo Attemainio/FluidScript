@@ -320,6 +320,8 @@ public static partial class Lowering
                 Array.Fill(_peerPort[element], -1);
             }
 
+            // Every link claims two fresh slots: the binder refuses a second connection to a port
+            // (`FS1506`), and a node hands out a new slot per use, so no assignment here overwrites one.
             foreach (var (element, port, peer, peerPort) in _links)
             {
                 if (port >= _peerElement[element].Length || peerPort >= _peerElement[peer].Length)
@@ -440,10 +442,7 @@ public static partial class Lowering
                 visited[element][slot] = true;
                 queue.Enqueue((element, slot));
             }
-
-            members?.Add(element);
-
-            members?.Add(element);
+        members?.Add(element);
 
             while (queue.Count > 0)
             {
@@ -608,10 +607,11 @@ public static partial class Lowering
             };
         }
 
+        // A lookup, not a scan of the semantic model: this runs twice per connection, and a scan made
+        // resolving the links quadratic in the script. Every node exists by the time links resolve, and
+        // an expansion's own nodes carry a generated name no endpoint can spell.
         private bool IsNode(string component) =>
-            model.Components.Any(symbol =>
-                string.Equals(symbol.Name, component, StringComparison.Ordinal)
-                && symbol.Kind?.HasUnlimitedPorts == true);
+            _byName.TryGetValue(component, out var element) && _elements[element] is CircuitNode;
 
         private void Add(IFlowComponent component, string circuit, NodeOrigin? origin)
         {

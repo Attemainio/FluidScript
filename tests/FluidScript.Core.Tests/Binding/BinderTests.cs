@@ -524,6 +524,18 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void FS1404_TwoNamesThatSpellAlikeOnceNormalisedStillYieldASuggestion()
+    {
+        // Names are ordinal -- `Total` and `total` are two bindings -- but the suggestion index is
+        // keyed by the normalised spelling, under which they collide. Building it with a throwing
+        // dictionary took the binder down on this script; the nearest of the two is offered instead.
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nlet total = 1\nlet Total = 2\nlet x = totl + 1\n", "FS1404");
+
+        Assert.Equal("total", diagnostic.Suggestion!.Replacement);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void FS1406_APropertyTheKindDoesNotHave()
     {
         var diagnostic = OnlyDiagnostic("fluidscript 1\nPU1 pump\nlet x = PU1.colour\n", "FS1406");
@@ -667,5 +679,41 @@ public sealed class BinderTests
                 errors.Length == 0,
                 $"{sample.Name}: {string.Join("; ", errors.Select(static d => $"{d.Code} {d.Message}"))}");
         }
+    }
+
+    // ---- what must not take the process down ------------------------------------------------
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ADependencyChainTwentyThousandDeepEvaluatesRatherThanOverflowingTheStack()
+    {
+        // Every `let` reads the one declared *after* it, so the walk from the first has to descend the
+        // whole chain before anything finishes -- declared the other way round, each value is finished
+        // before the next starts and the walk never goes deep. A recursive walk overflowed on this; a
+        // stack overflow cannot be caught.
+        const int Length = 20_000;
+        var text = new System.Text.StringBuilder("fluidscript 1\n");
+
+        for (var i = 0; i < Length - 1; i++)
+        {
+            text.Append("let v").Append(i).Append(" = v").Append(i + 1).Append(" + 1\n");
+        }
+
+        text.Append("let v").Append(Length - 1).Append(" = 1\n");
+
+        var model = Model(text.ToString());
+
+        Assert.Equal(Length, model.Bindings.Single(static b => b.Name == "v0").Value!.Value.SiValue);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMinusOverAnUnknownNameReportsItOnce()
+    {
+        // The operand used to be visited twice -- once to classify, once to return -- and every visit
+        // reports; three minus signs over a bad operand reported it eight times.
+        var result = Bind("fluidscript 1\nlet x = ---nosuchthing\n");
+
+        Assert.Single(result.Diagnostics, static d => d.Code == "FS1404");
     }
 }

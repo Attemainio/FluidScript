@@ -95,9 +95,12 @@ public sealed class PortMap
             Array.Fill(bindings[index], PortBinding.Unconnected);
         }
 
+        // A walk leaves each element by a fresh port, so no branch is longer than the graph has ports.
+        var ports = bindings.Sum(static row => row.Length);
+
         foreach (var branch in graph.Branches)
         {
-            Trace(graph, components, branch, bindings);
+            Trace(graph, components, branch, bindings, ports);
         }
 
         // The state a port reads is the node it touches, and every non-node port touches one: rule I2
@@ -129,11 +132,18 @@ public sealed class PortMap
     /// <param name="components">Each component's index, by reference.</param>
     /// <param name="branch">The branch to walk.</param>
     /// <param name="bindings">The table being filled.</param>
+    /// <param name="steps">The most steps a branch can take: the graph's port count.</param>
+    /// <remarks>
+    /// A walk that outlives <paramref name="steps"/> is adjacency looping back on itself -- lowering's
+    /// invariant broken, not a branch. It stops, leaving the rest unconnected for the assembler to
+    /// report; walking on would hold a request worker forever, which is worse than a wrong answer.
+    /// </remarks>
     private static void Trace(
         CircuitGraph graph,
         Dictionary<object, int> components,
         Branch branch,
-        PortBinding[][] bindings)
+        PortBinding[][] bindings,
+        int steps)
     {
         var current = components[branch.From.Element];
         var exit = branch.From.Port;
@@ -141,7 +151,7 @@ public sealed class PortMap
         // The flow leaves the From end through this port, so it is negative into that element.
         bindings[current][exit] = bindings[current][exit] with { Branch = branch.Index, Sign = -1 };
 
-        while (true)
+        while (steps-- > 0)
         {
             var peer = graph.Adjacency.Peer(current, exit);
 

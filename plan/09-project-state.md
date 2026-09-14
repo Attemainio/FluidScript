@@ -242,7 +242,12 @@ pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its s
 makes visible without deciding. `L-47` (closed) records the sign discussion of 2026-09-14: `power`
 never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. Nothing stands between here and M2a's exit any more; it exited 2026-09-14 with `C-76` closed. P3.8 closed `C-51` with `D-94` on 2026-09-14; the M2a
 sweep of 2026-09-14 filed `C-74` (no `FS23xx` code is registered; sizing speaks in notes) and `C-75`,
-and closed `F-24` by moving the model-contract payload criterion to M3.
+and closed `F-24` by moving the model-contract payload criterion to M3. A four-instance code review
+of Core the same day, asked for the `C-76` class, found no second leak and three ways a script could
+take the process down --- two stack overflows and a binder crash, `L-48`/`L-49` --- plus the
+tier-20 sweep recorded as `C-77`; all closed before P4.1 starts. The review's untriggered aspects
+(error handling in Binding/Syntax, resource management outside Fluids/Solvers, architecture) are
+unassessed, not clean.
 
 ## What is next
 
@@ -272,7 +277,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1523 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~60 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1542 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~60 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

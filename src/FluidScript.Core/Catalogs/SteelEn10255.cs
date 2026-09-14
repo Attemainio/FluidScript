@@ -5,13 +5,12 @@ namespace FluidScript.Core.Catalogs;
 /// <summary>Medium-series non-alloy steel tube, the common European hydronic default.</summary>
 /// <remarks>
 /// <para>
-/// <strong>These rows are not yet verified and this catalogue will not size anything.</strong>
-/// <c>27</c>'s invariant 1 requires two independent public sources per row and a person's attestation
-/// that they agree; the dimensions below were authored from engineering knowledge of the series and
-/// carry neither. <see cref="Catalog{TSpec}.Validate"/> therefore reports <c>FS2605</c> and resolution
-/// refuses them, which is the designed behaviour rather than a defect. Filling in
-/// <c>src/FluidScript.Core/Catalogs/SOURCES.md</c> and flipping <c>Verified</c> is a one-time,
-/// human-reviewed task, and a test asserts the refusal until it is done.
+/// <strong>Verified and the shipped default.</strong> <c>27</c>'s invariant 1 requires two independent
+/// public sources per row and a person's attestation that they agree; both were recorded on
+/// 2026-09-03 in <c>src/FluidScript.Core/Catalogs/SOURCES.md</c>, <c>Verified</c> is set, and
+/// <c>PipeCatalogs.Default</c> is this series. Before that date the rows were authored from
+/// engineering knowledge of the series, <see cref="Catalog{TSpec}.Validate"/> reported <c>FS2605</c>
+/// and resolution refused them; the test that asserted the refusal now asserts the resolution.
 /// </para>
 /// <para>
 /// <strong>The range stops at DN150 because the standard does.</strong> <c>27</c>'s open-questions

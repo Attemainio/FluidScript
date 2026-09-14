@@ -376,7 +376,7 @@ public sealed class OuterLoop(
         return merged.ToImmutable();
     }
 
-    private static readonly string[] SideOneTerminals = ["in", "out"];
+    private static readonly ImmutableArray<string> SideOneTerminals = ["in", "out"];
 
     /// <summary>Names every pump and exchanger a converged solution runs backwards.</summary>
     /// <param name="graph">The solved graph.</param>

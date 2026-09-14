@@ -325,14 +325,17 @@ public sealed class HeatExchanger : IFlowComponent
     }
 
     /// <summary>The flow a stated duty implies across a stated temperature rise.</summary>
-    /// <param name="specificHeat">J/(kg·K).</param>
+    /// <param name="specificHeat">J/(kg·K), positive.</param>
     /// <param name="temperatureRise">K, the magnitude of the change across side 1.</param>
-    /// <returns>kg/s.</returns>
+    /// <returns>kg/s, or <see cref="double.NaN"/> when the rise or the specific heat is not positive: no flow carries a duty across no temperature change.</returns>
     /// <remarks>
     /// <para>
     /// A reported relation, not an equation. <c>power</c>, <c>in</c>, <c>out</c> and <c>flow</c> are
-    /// related by side 1's energy balance, so any three fix the fourth — and stating all four is
-    /// <c>FS2101</c>, which reports the value the other three imply. This computes that value.
+    /// related by side 1's energy balance, so any three fix the fourth, and stating all four is
+    /// <c>FS2101</c>. That diagnostic names the group and <em>not</em> this value (<c>C-21</c>): the
+    /// binder raises it before any substance is resolved, so it has no specific heat to quote. Nothing
+    /// in the pipeline calls this today; it states the relation the tests and a future lowering-stage
+    /// message hold the exchanger to.
     /// </para>
     /// <para>
     /// It is not on the iteration path, so unlike the residual it may use a specific heat the caller
@@ -340,5 +343,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// </para>
     /// </remarks>
     public double ImpliedFlow(double specificHeat, double temperatureRise) =>
-        Math.Abs(Power) / (specificHeat * temperatureRise);
+        specificHeat > 0 && temperatureRise > 0
+            ? Math.Abs(Power) / (specificHeat * temperatureRise)
+            : double.NaN;
 }

@@ -35,14 +35,18 @@ public sealed record ValveSpec
     /// <returns>The fault, phrased to complete "'Kv 1.6' …".</returns>
     public static string? Fault(ValveSpec spec)
     {
-        ArgumentNullException.ThrowIfNull(spec);
+        // Absence is a fault the caller reports, as `PipeSpec.Fault` reports it: nothing in a catalogue
+        // check throws.
+        if (spec is null)
+        {
+            return "is absent";
+        }
 
         if (!double.IsFinite(spec.Kvs) || spec.Kvs <= 0)
         {
             return string.Create(CultureInfo.InvariantCulture, $"has a Kvs of {spec.Kvs}, which is not a size");
         }
 
-        // The registry binds `kv` over 0.01 to 10000, so a catalogue row outside that band could be
         // selected and then refused by the binder -- a size the rule offers and the language rejects.
         return spec.Kvs is < 0.01 or > 10_000
             ? string.Create(CultureInfo.InvariantCulture, $"has a Kvs of {spec.Kvs}, outside the range `kv` binds over")

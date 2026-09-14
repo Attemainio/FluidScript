@@ -71,9 +71,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly List<BindingSymbol> _bindings = [];
     private readonly Dictionary<string, BindingSlot> _bindingsByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ComponentSlot> _componentsByName = new(StringComparer.Ordinal);
+    private ImmutableDictionary<string, string>? _suggestionIndex;
+    private int _suggestionIndexDeclared;
     private readonly Dictionary<ValueId, PendingValue> _pending = [];
     private readonly DependencyGraph _graph = new();
     private readonly List<DeferredExpression> _deferred = [];
+    private readonly HashSet<ValueId> _deferredTargets = [];
     private readonly List<StyleTokenSyntax> _styleTokens = [];
 
     // Where each `let` was written, which is the only thing that can say whether a curve it reads is
@@ -671,14 +674,21 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             }
         }
 
-        if (_graph.TopologicalOrder() is OrderResult.Cyclic cyclic)
+        switch (_graph.TopologicalOrder())
         {
-            ReportCycle(cyclic);
-            return;
+            case OrderResult.Cyclic cyclic:
+                ReportCycle(cyclic);
+                return;
+
+            case OrderResult.Ordered ordered:
+                EvaluateInOrder(ordered.Order);
+                return;
         }
+    }
 
-        var order = ((OrderResult.Ordered)_graph.TopologicalOrder()).Order;
-
+    /// <summary>Step 5: evaluates every value in the order the graph gave, curves included.</summary>
+    private void EvaluateInOrder(ImmutableArray<ValueId> order)
+    {
         foreach (var id in order)
         {
             // A curve is evaluated here rather than in step 0b, because the order it needs is the one
@@ -715,6 +725,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
                 case EvaluationResult.Deferred deferred:
                     _deferred.Add(new DeferredExpression(pending.Expression, id, null, deferred.Dependencies));
+                    _deferredTargets.Add(id);
                     break;
 
                 default:
@@ -1038,8 +1049,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private string? ClosestName(string written)
     {
-        var index = _bindingsByName.Keys.Concat(_componentsByName.Keys)
-            .ToImmutableDictionary(NameResolution.Normalize, static name => name, StringComparer.Ordinal);
+        var index = SuggestionIndex();
 
         if (index.IsEmpty)
         {
@@ -1051,6 +1061,42 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return match.Best is not null && match.BestScore >= NameResolution.SuggestionFloor
             ? match.Best
             : null;
+    }
+
+    /// <summary>Every declared name by its normalised spelling, built once per set of declarations.</summary>
+    /// <remarks>
+    /// <para>
+    /// Rebuilt only when a name has been declared since the last build. An unresolved reference is the
+    /// normal state of a line being typed, so this is asked for once per unknown name per keystroke,
+    /// and rebuilding it each time was a second pass over every declaration on top of the scoring.
+    /// </para>
+    /// <para>
+    /// Names are ordinal -- <c>total</c> and <c>Total</c> are two bindings, <c>PU1</c> and <c>pu1</c>
+    /// two components -- but normalising folds case and underscores, so two names can share one key.
+    /// The first declared keeps it (`L-48`): a suggestion is a hint, not a resolution, and either
+    /// spelling is the right hint for a typo of both. A throwing dictionary here took the binder down.
+    /// </para>
+    /// </remarks>
+    private ImmutableDictionary<string, string> SuggestionIndex()
+    {
+        var declared = _bindingsByName.Count + _componentsByName.Count;
+
+        if (_suggestionIndex is { } index && _suggestionIndexDeclared == declared)
+        {
+            return index;
+        }
+
+        var builder = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+
+        foreach (var name in _bindingsByName.Keys.Concat(_componentsByName.Keys))
+        {
+            builder.TryAdd(NameResolution.Normalize(name), name);
+        }
+
+        _suggestionIndex = builder.ToImmutable();
+        _suggestionIndexDeclared = declared;
+
+        return _suggestionIndex;
     }
 
     // ---- reporting -------------------------------------------------------------------------------

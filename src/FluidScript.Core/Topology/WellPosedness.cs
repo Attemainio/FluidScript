@@ -956,16 +956,25 @@ public static class WellPosedness
 
     /// <summary>Reports two stated pressures an ideal link forces to be equal.</summary>
     /// <remarks>
+    /// <para>
     /// Two stated pressures are ordinary and must not be reported: the cooling loop's <c>N1 p=300</c>
     /// and <c>N3 p=280</c> are what drive its primary. The degenerate case is two of them with nothing
     /// between them that could develop a pressure difference, where the second is not a boundary
     /// condition at all but a second datum on the same equipotential.
+    /// </para>
+    /// <para>
+    /// The equipotentials are labelled once, by one walk over every branch, and each pair is then a
+    /// label comparison. A flood fill per pair was quadratic in the stated pressures and quadratic
+    /// again in the graph, for a question the pair count never changes the answer to.
+    /// </para>
     /// </remarks>
     private static void ReportCompetingDatums(
         CircuitGraph graph,
         ImmutableArray<HydraulicComponent> hydraulics,
         ImmutableArray<Diagnostic>.Builder diagnostics)
     {
+        var equipotential = Equipotentials(graph);
+
         foreach (var hydraulic in hydraulics)
         {
             for (var i = 0; i < hydraulic.StatedPressures.Length; i++)
@@ -975,7 +984,9 @@ public static class WellPosedness
                     var a = hydraulic.StatedPressures[i];
                     var b = hydraulic.StatedPressures[j];
 
-                    if (!Equipotential(graph, a, b))
+                    if (!equipotential.TryGetValue(a.Component, out var first)
+                        || !equipotential.TryGetValue(b.Component, out var second)
+                        || first != second)
                     {
                         continue;
                     }
@@ -989,66 +1000,88 @@ public static class WellPosedness
         }
     }
 
-    /// <summary>Whether two nodes are joined by ideal links alone.</summary>
+    /// <summary>Labels every node by the set of nodes ideal links alone join it to.</summary>
     /// <param name="graph">The graph.</param>
-    /// <param name="from">One stated pressure's node.</param>
-    /// <param name="to">The other's.</param>
-    /// <returns><see langword="true"/> when nothing between them could make the two differ.</returns>
+    /// <returns>Node to label; two nodes share a label when nothing between them could make their pressures differ.</returns>
     /// <remarks>
+    /// <para>
     /// <strong>Adjacency inside a branch, not whole branches.</strong> <c>N1 - N2</c> in the middle of a
     /// longer run is still an ideal link between two separate pressure unknowns, and a check that only
-    /// compared branch <em>ends</em> would miss every one that is not a branch of its own — which is
+    /// compared branch <em>ends</em> would miss every one that is not a branch of its own -- which is
     /// most of them, since a degree-two node is interior by construction.
-    /// </remarks>
-    private static bool Equipotential(CircuitGraph graph, GraphNode from, GraphNode to)
-    {
-        var reached = new HashSet<IFlowComponent> { from.Component };
-        var grew = true;
-
-        while (grew)
-        {
-            grew = false;
-
-            foreach (var branch in graph.Branches)
-            {
-                var previous = branch.From.Element;
-
-                foreach (var part in branch.Path)
-                {
-                    grew |= Join(reached, previous, part);
-                    previous = part;
-                }
-
-                grew |= Join(reached, previous, branch.To.Element);
-            }
-        }
-
-        return reached.Contains(to.Component);
-    }
-
-    /// <summary>Joins two adjacent elements into the equipotential set, when both are nodes.</summary>
-    /// <param name="reached">The set built so far.</param>
-    /// <param name="left">The earlier element along the branch.</param>
-    /// <param name="right">The later one.</param>
-    /// <returns><see langword="true"/> when the set grew.</returns>
-    /// <remarks>
+    /// </para>
+    /// <para>
     /// Only a node-to-node adjacency is an ideal link (<c>D-25</c>). Anything else along a branch is a
     /// component that can develop a pressure difference, however small its stated resistance, and two
     /// pressures either side of one are ordinary boundary conditions rather than competing datums.
+    /// </para>
     /// </remarks>
-    private static bool Join(HashSet<IFlowComponent> reached, IFlowComponent left, IFlowComponent right)
+    private static Dictionary<IFlowComponent, int> Equipotentials(CircuitGraph graph)
     {
-        if (left is not CircuitNode || right is not CircuitNode)
+        var neighbours = new Dictionary<IFlowComponent, List<IFlowComponent>>();
+
+        foreach (var branch in graph.Branches)
         {
-            return false;
+            var previous = branch.From.Element;
+
+            foreach (var part in branch.Path)
+            {
+                Link(previous, part);
+                previous = part;
+            }
+
+            Link(previous, branch.To.Element);
         }
 
-        if (reached.Contains(left))
+        var label = new Dictionary<IFlowComponent, int>();
+        var queue = new Queue<IFlowComponent>();
+        var next = 0;
+
+        foreach (var start in neighbours.Keys)
         {
-            return reached.Add(right);
+            if (!label.TryAdd(start, next))
+            {
+                continue;
+            }
+
+            queue.Enqueue(start);
+
+            while (queue.TryDequeue(out var node))
+            {
+                foreach (var neighbour in neighbours[node])
+                {
+                    if (label.TryAdd(neighbour, next))
+                    {
+                        queue.Enqueue(neighbour);
+                    }
+                }
+            }
+
+            next++;
         }
 
-        return reached.Contains(right) && reached.Add(left);
+        return label;
+
+        void Link(IFlowComponent left, IFlowComponent right)
+        {
+            if (left is not CircuitNode || right is not CircuitNode)
+            {
+                return;
+            }
+
+            Neighbours(left).Add(right);
+            Neighbours(right).Add(left);
+        }
+
+        List<IFlowComponent> Neighbours(IFlowComponent node)
+        {
+            if (!neighbours.TryGetValue(node, out var list))
+            {
+                neighbours[node] = list = [];
+            }
+
+            return list;
+        }
     }
 
     /// <summary>Reports every loop nothing can drive flow around.</summary>

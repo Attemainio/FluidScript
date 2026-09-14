@@ -16,7 +16,18 @@ internal sealed class LineParser(
     ImmutableArray<Token> tokens,
     ImmutableArray<Diagnostic>.Builder diagnostics)
 {
+    /// <summary>How deep an expression may nest before the line is read as malformed.</summary>
+    /// <remarks>
+    /// Every nesting level -- a parenthesis, a call argument, a unary minus -- is a few stack frames of
+    /// recursive descent, and the parser runs on the host once per keystroke over whatever the line
+    /// holds. A stack overflow cannot be caught, so without a bound one line of a few thousand `(`
+    /// takes the process down instead of returning a diagnostic. Sixty-four is far beyond any
+    /// expression a script states and far below the stack.
+    /// </remarks>
+    private const int MaxExpressionDepth = 64;
+
     private int _index;
+    private int _depth;
 
     private Token? Current => _index < tokens.Length ? tokens[_index] : null;
 
@@ -966,8 +977,24 @@ internal sealed class LineParser(
         }
 
         var op = Advance();
-        var operand = ParseUnary();
+        var operand = Nested(static parser => parser.ParseUnary());
         return operand is null ? null : new UnaryExpressionSyntax(op, operand);
+    }
+
+    /// <summary>Runs one nested expression parse, or yields <c>null</c> when the nesting bound is reached.</summary>
+    /// <remarks>The parser never throws, so the depth is restored on every return path without a <c>finally</c>.</remarks>
+    private T? Nested<T>(Func<LineParser, T?> parse)
+        where T : class
+    {
+        if (_depth >= MaxExpressionDepth)
+        {
+            return null;
+        }
+
+        _depth++;
+        var result = parse(this);
+        _depth--;
+        return result;
     }
 
     private ExpressionSyntax? ParsePrimary()
@@ -991,7 +1018,7 @@ internal sealed class LineParser(
             case TokenKind.OpenParenthesis:
             {
                 var open = Advance();
-                var inner = ParseExpression();
+                var inner = Nested(static parser => parser.ParseExpression());
                 if (inner is null || Current is not { Kind: TokenKind.CloseParenthesis })
                 {
                     return null;
@@ -1029,7 +1056,7 @@ internal sealed class LineParser(
                 comma = Advance();
             }
 
-            var value = ParseExpression();
+            var value = Nested(static parser => parser.ParseExpression());
             if (value is null)
             {
                 return null;

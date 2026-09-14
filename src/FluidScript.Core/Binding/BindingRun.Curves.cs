@@ -472,7 +472,7 @@ internal sealed partial class BindingRun
 
             if (ModeOf(pending.Id) == FluidMode.Dynamic)
             {
-                if (!_deferred.Any(deferred => deferred.Target == pending.Id))
+                if (_deferredTargets.Add(pending.Id))
                 {
                     _deferred.Add(new DeferredExpression(
                         pending.Expression, pending.Id, pending.Value, pending.Dependencies));

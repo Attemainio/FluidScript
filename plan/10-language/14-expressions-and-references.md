@@ -46,6 +46,13 @@ picking one violates P6 for no gain.
 
 **No boolean operators, no comparisons, no ternary.** There is nothing to branch on (`D-01`).
 
+**Nesting is bounded at 64 levels** — a parenthesis, a call argument or a unary minus each count one.
+Past the bound the line is `FS1104`, malformed, like any other line the parser cannot read. The bound
+exists because the parser is recursive descent, a level is a few stack frames, and a stack overflow is
+the one failure .NET cannot turn into a return value: without it, one line of a few thousand `(` took
+the host down instead of producing a diagnostic (`L-49`). Sixty-four is far beyond any expression a
+script states and far below the stack.
+
 ### There is no modulo operator
 
 `%` is a unit symbol and nothing else (`D-51`). A unit symbol is recognised when it follows a number,
@@ -223,6 +230,9 @@ hangs.
 5. Dimensional correctness is checked before evaluation, so no operation is performed on mismatched
    dimensions even in a deferred expression.
 6. Evaluation never throws — division by zero is `FS1403`, not `DivideByZeroException`.
+7. Neither the parser nor the dependency walk recurses on the script's own depth. Expression nesting
+   is bounded (above), and `TopologicalOrder` keeps its path on an explicit stack, so a chain of
+   references as long as the script is ordinary input rather than a stack overflow (`L-49`).
 
 ## Error cases
 

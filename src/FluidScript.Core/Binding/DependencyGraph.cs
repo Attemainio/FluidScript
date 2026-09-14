@@ -161,9 +161,16 @@ public sealed class DependencyGraph
     /// <summary>Orders every value so each follows what it depends on.</summary>
     /// <returns>The evaluation order, or the first cycle found.</returns>
     /// <remarks>
+    /// <para>
     /// Depth-first rather than Kahn's algorithm for one reason: when it fails it has the cycle on its
-    /// own stack, and reporting the whole cycle is what <c>FS1402</c> needs. Kahn's leaves a set of
+    /// own path, and reporting the whole cycle is what <c>FS1402</c> needs. Kahn's leaves a set of
     /// unordered nodes, from which recovering the cycle is a second traversal.
+    /// </para>
+    /// <para>
+    /// The path lives on an explicit stack, not the call stack. Its depth is the longest dependency
+    /// chain in the script, which nothing bounds -- a generated script can chain thousands of
+    /// well-formed references -- and a stack overflow cannot be caught.
+    /// </para>
     /// </remarks>
     public OrderResult TopologicalOrder()
     {
@@ -172,46 +179,58 @@ public sealed class DependencyGraph
         var path = new List<ValueId>();
         var onPath = new HashSet<ValueId>();
 
+        // One frame per value on the path: the value, its dependencies in a fixed order, and how many
+        // of them the walk has already entered.
+        var frames = new Stack<(ValueId Value, ValueId[] Dependencies, int Next)>();
+
         foreach (var start in _order)
         {
-            if (Visit(start) is { } cycle)
+            if (finished.Contains(start))
             {
-                return new OrderResult.Cyclic(cycle);
+                continue;
+            }
+
+            Enter(start);
+
+            while (frames.Count > 0)
+            {
+                var (value, dependencies, next) = frames.Pop();
+
+                if (next < dependencies.Length)
+                {
+                    frames.Push((value, dependencies, next + 1));
+                    var dependency = dependencies[next];
+
+                    if (finished.Contains(dependency))
+                    {
+                        continue;
+                    }
+
+                    if (onPath.Contains(dependency))
+                    {
+                        // The cycle is the path from where this value first appears, closed by repeating it.
+                        var from = path.IndexOf(dependency);
+                        return new OrderResult.Cyclic([.. path[from..], dependency]);
+                    }
+
+                    Enter(dependency);
+                    continue;
+                }
+
+                path.RemoveAt(path.Count - 1);
+                onPath.Remove(value);
+                finished.Add(value);
+                ordered.Add(value);
             }
         }
 
         return new OrderResult.Ordered(ordered.ToImmutable());
 
-        ImmutableArray<ValueId>? Visit(ValueId value)
+        void Enter(ValueId value)
         {
-            if (finished.Contains(value))
-            {
-                return null;
-            }
-
-            if (!onPath.Add(value))
-            {
-                // The cycle is the path from where this value first appears, closed by repeating it.
-                var from = path.IndexOf(value);
-                return [.. path[from..], value];
-            }
-
             path.Add(value);
-
-            foreach (var dependency in _dependencies[value].OrderBy(static id => id.ToString(), StringComparer.Ordinal))
-            {
-                if (Visit(dependency) is { } cycle)
-                {
-                    return cycle;
-                }
-            }
-
-            path.RemoveAt(path.Count - 1);
-            onPath.Remove(value);
-            finished.Add(value);
-            ordered.Add(value);
-
-            return null;
+            onPath.Add(value);
+            frames.Push((value, [.. _dependencies[value].OrderBy(static id => id.ToString(), StringComparer.Ordinal)], 0));
         }
     }
 }
