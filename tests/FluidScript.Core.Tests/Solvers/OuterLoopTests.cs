@@ -511,6 +511,139 @@ public sealed class OuterLoopTests
         Assert.Contains("closed-circuit energy balance", prepared.Bases["SOURCE.power"], StringComparison.Ordinal);
     }
 
+    private const string TwoPumpedSourcesThreePumpedConsumers = """
+        fluidscript 1
+        project static plant_02
+
+        circuit heating 100
+        fluid water
+
+        HS_A    heater power=40 kW out=70
+        HS_B    heater out=70
+        PU_A    pump
+        PU_B    pump
+        PS_A    pipe length=6 dn=32
+        PS_B    pipe length=6 dn=32
+
+        connections
+        N1 - PU_A - HS_A - PS_A - N3
+        N1 - PU_B - HS_B - PS_B - N3
+        N3 - N4
+        N4 - N7
+        N8 - N6
+        N6 - N5
+        N5 - N1
+
+        N1 node p=250
+
+        circuit AHU 101
+
+        HE_AHU  load in=50 out=30 power=24 kW
+        TV_AHU  three_way_valve
+        PU_AHU  pump
+        PA1     pipe length=12 dn=25
+        PA2     pipe length=12 dn=25
+
+        connections
+        N3 - PA1 - TV_AHU.a
+        NM_AHU - TV_AHU.b
+        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+        NM_AHU - PA2 - N5
+
+        circuit radiators 102
+
+        HE_RAD  load in=50 out=30 power=30 kW
+        TV_RAD  three_way_valve
+        PU_RAD  pump
+        PR1     pipe length=18 dn=25
+        PR2     pipe length=18 dn=25
+
+        connections
+        N4 - PR1 - TV_RAD.a
+        NM_RAD - TV_RAD.b
+        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+        NM_RAD - PR2 - N6
+
+        circuit dhw 103
+
+        HE_DHW  load out=40 power=16 kW
+        PU_DHW  pump
+        PD1     pipe length=10 dn=25
+        PD2     pipe length=10 dn=25
+
+        connections
+        N7 - PD1 - PU_DHW - HE_DHW - PD2 - N8
+        """;
+
+    [Fact]
+    public async Task TwoPumpedSourcesShareALoadTheirConsumersSetAndEveryPumpKeepsItsOwnLoop()
+    {
+        // The fourth plant, built to exercise what the three reference circuits do not: two sources in
+        // parallel, one of them with its duty left to the closed-circuit balance, feeding two mixing
+        // consumers and one direct one. Every number below is a hand calculation at cp 4.18 kJ/kg K.
+        //
+        // Loads 24 + 30 + 16 = 70 kW, so `HS_B` closes at 30 kW. The mixing consumers draw their duty over
+        // the header's 40 K (70 to 30 C): 0.1435 and 0.1794 kg/s. The direct consumer draws 16 kW over
+        // 30 K: 0.1275 kg/s. The return header is the mass-weighted mix, (0.3229 x 30 + 0.1275 x 40) /
+        // 0.4504 = 32.8 C, and each source then carries its duty over 70 - 32.8 = 37.2 K: 0.2573 and
+        // 0.1930 kg/s, summing to the 0.4504 the consumers draw.
+        //
+        // Two things this plant found. `S-59`: the closure ran after the first count, so `HS_B.out`
+        // promoted the power the closure was about to size, `PU_B` got sized meanwhile, and on the next
+        // pass the constraint reached for `PU_AHU` and shifted every promotion after it by one. `D-93`:
+        // `PU_A` was sized to a loop through a consumer's own pump, took 46.8 kPa, and the header
+        // differential that made over-drove the direct consumer until its pump was asked for a negative
+        // head. Sized to the loop it alone drives, it takes its own branch's 19 kPa and the header sits at
+        // no differential -- a low-loss header without the component.
+        var model = GraphFixture.Bind(TwoPumpedSourcesThreePumpedConsumers);
+        var result = await Loop().RunAsync(
+            model, Water.Instance, "two-pumped-sources", TestContext.Current.CancellationToken);
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(
+            result, GraphFixture.Lower(TwoPumpedSourcesThreePumpedConsumers).Graph, "two-pumped-sources");
+
+        Assert.True(result.IsSuccess, report);
+
+        var run = result.Value;
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.True(run.Settled, report);
+        Assert.Equal(30_000.0, run.Sizes.For("HS_B", "power"));
+
+        // Each constraint on the pump that drives the flow it pins -- the cascade `S-59` produced put
+        // `HS_B.out` on `PU_AHU.head` and left `HE_DHW.out` with nothing.
+        var promoted = CoreTopology.WellPosedness.Check(run.Graph).Counting.Promotions
+            .ToDictionary(static p => $"{p.Constraint.Component}.{p.Constraint.Parameter}", static p => p.Label, StringComparer.Ordinal);
+
+        Assert.Equal("PU_B.head", promoted["HS_B.out"]);
+        Assert.Equal("PU_AHU.head", promoted["HE_AHU.out"]);
+        Assert.Equal("PU_RAD.head", promoted["HE_RAD.out"]);
+        Assert.Equal("PU_DHW.head", promoted["HE_DHW.out"]);
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string branch) =>
+            Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
+
+        var sources = run.Graph.Branches
+            .Where(static branch => branch.Path.Any(static element => element.Name is "HS_A" or "HS_B"))
+            .ToDictionary(
+                static branch => branch.Path.Single(static element => element.Name is "HS_A" or "HS_B").Name,
+                branch => Math.Abs(solved[layout.BranchFlow(branch.Index)]),
+                StringComparer.Ordinal);
+
+        Assert.Equal(0.2573, sources["HS_A"], 0.001);
+        Assert.Equal(0.1930, sources["HS_B"], 0.001);
+        Assert.Equal(0.1435, Flow("TV_AHU.a->N3"), 0.001);
+        Assert.Equal(0.1794, Flow("TV_RAD.a->N4"), 0.001);
+        Assert.Equal(0.1275, Flow("N4->N6"), 0.001);
+
+        // The direct consumer's pump develops its own branch's drop, which is the sign `D-93` exists for:
+        // with the source pump sized to a loop through a consumer it was held at zero and 6 kPa short.
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_DHW", "PU_DHW.head")], 1.5, 3.0);
+        Assert.InRange(run.Sizes.For("PU_A", "head")!.Value, 1.5, 2.5);
+    }
+
     [Fact]
     public async Task NoComponentCarriesAValueNoParameterMapRecords()
     {

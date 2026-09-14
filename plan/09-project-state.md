@@ -182,6 +182,7 @@ The load-bearing ones, by what they settled:
 |---|---|---|
 | Seeding | `S-26`, `S-30`, `S-35`, `S-46`, `S-49`, `S-50`, `S-51` | The seed went from "a number per unknown" to a construction with stated properties — mass-consistent, inside the property domain, off every bound, oriented by the pumps, and with no branch at rest |
 | Mixing | `S-58` | A junction's arriving enthalpy is the mass-weighted mix of its inlets, not their average — the one-line defect under `S-48` and `S-51`, found by stating a position and reading the converged number |
+| The fourth plant | `S-59`, `D-93` | Two pumped sources, two mixing consumers, one direct — built as a scratch experiment on 2026-09-14 and kept as `OuterLoopTests.TwoPumpedSourcesShareALoadTheirConsumersSetAndEveryPumpKeepsItsOwnLoop`. It found the closure running after the count and a source pump sized to a loop through a consumer's pump; converges in two iterations on hand figures |
 | Three-way valves | `C-60`, `C-61`, `C-63`, `C-66`, `D-85`, `D-88` | Ports named `ab`/`a`/`b` as manufacturers label them, sized by authority, and identified by the port name the script *wrote* rather than by walking the graph |
 | Counting and rank | `S-33`, `S-36`, `S-39`, `S-41`, `S-43`, `D-86`, `D-90` | A singular system now names the equation its other rows imply, instead of naming a component to blame |
 | Pressure boundaries | `S-38`, `S-44`, `D-86`, `D-87` | A stated pressure is a boundary only on a boundary; a temperature on an interior node is a setpoint that promotes the split holding it |
@@ -224,10 +225,14 @@ and the coverage row — not the solver.
    pumps drive the whole loop (`S-55`'s subject), and `load` in place of `heat_exchanger` (`D-91`).
    The figures and the tag table are unchanged. Updating the listing to the sample verbatim is a
    spec edit and the user's call; until then the sample is the reference and `01` the intent.
-2. **`S-53`'s four ordered fixes and `S-57`**, the seed's side of the same subject, and the
+2. **Whether the fourth plant becomes a fourth reference circuit.** It converges on hand figures as
+   a test fixture; promoting it to `samples/` and `01` is a spec addition (`D-11`) and the user's
+   call. Its natural next variants — one source off (`S-56`, and there is no check valve to stop
+   reverse flow through it), a source-side mixing valve (`S-55`) — are the open entries it points at.
+3. **`S-53`'s four ordered fixes and `S-57`**, the seed's side of the same subject, and the
    valve-sizing observation under `S-58`: an equal-percentage valve sized for authority at full open
    sits at 0.6 travel dropping 24–45 kPa, and the pump pays.
-3. **P3.8** — the design point as the sizing point. Holder: `C-51`.
+4. **P3.8** — the design point as the sizing point. Holder: `C-51`.
 5. **P3.9** — elevation as an absolute height.
 6. Then M2a exits and P4 begins.
 
@@ -238,7 +243,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1456 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1457 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

@@ -4125,3 +4125,46 @@ the other direction, and it belongs in the register until the target is the duty
 - *Write both rows and let the count drop one.* Two rows for one statement is exactly the
   over-specification the counting scheme reports, and choosing which to drop is the same decision
   as this one made less visibly.
+
+## D-93 · A pump is sized to the loops it drives alone; a loop shared with another pump is left out
+
+**Accepted · 2026-09-14**
+
+`OuterLoop.Circuit` sizes a pump to the largest drop around the loops through it. From this decision
+a loop that carries **another pump** is excluded from that search, and a pump whose every loop is
+shared is sized to **its own branch's** resistance. Only pumps are treated this way; a valve's circuit
+is still every loop through it, since a valve shares head with nothing.
+
+**Why.** Two pumps in series on one loop have one head between them and the loop equation says
+nothing about how it divides — `S-37` recorded the deficiency, and this is the sizing half of it.
+Sizing each pump to the whole loop hands the loop twice its drop. Measured on the fourth plant (two
+pumped sources, two mixing consumers, one direct consumer, `OuterLoopTests
+.TwoPumpedSourcesShareALoadTheirConsumersSetAndEveryPumpKeepsItsOwnLoop`): `PU_A`, the source pump,
+took **46.8 kPa** from a loop through `PU_AHU`'s consumer; the 26.6 kPa header differential that
+produced pushed the direct consumer past its 0.1275 kg/s design flow, and `PU_DHW`, promoted to hold
+that flow, was asked for **−6 kPa** and held at its zero bound — `IterationCap` at 0.0607 with every
+other residual at 1e-10. Sized to its own branch, `PU_A` takes **19.3 kPa**, `PU_B` (promoted)
+finds 1.97 m beside it, the header sits at no differential, `PU_DHW` develops its own 2.24 m, and the
+plant converges in two iterations on the hand figures: sources 0.2573 / 0.1930 kg/s, draws 0.1435 /
+0.1794 / 0.1275, return 32.8 °C.
+
+**The convention, and where it comes from.** Primary–secondary pumping practice sizes the primary
+pump for the primary circuit only and each secondary pump for its own secondary circuit, with the
+common pipe (or low-loss header) carrying no differential — this is the arrangement Bell & Gossett's
+primary–secondary technical manual, ASHRAE *HVAC Systems and Equipment* (hydronic pumping chapter)
+and CIBSE Guide B all describe. This project's reading of it is the part worth testing: that a
+*direct-coupled* plant with a pump on every consumer behaves as if a low-loss header were present,
+which is what the rule produces. A plant where the source pump is meant to carry part of the
+consumers' drop has to say so — a stated source head, or the differential setpoint `S-37` asks the
+language for — and the rule then does not apply because the head is not sized.
+
+**What it does not change.** The three reference circuits: every pump in them either shares no loop
+(`m2-simple-loop`, `m2-cooling-loop`) or is promoted rather than sized (the header's consumer pumps),
+so their reports are byte-identical before and after. `S-29` (two pumps in series terminate
+`NonFinite`) is the solver half and stays open.
+
+**Rejected.**
+- *Subtract the other pump's head from the loop drop.* The other pump is usually promoted, so its head
+  is an unknown at sizing time, and the rule would size against a number the solve has not produced.
+- *Size the source pump to the index circuit and let consumer pumps take the remainder.* That is the
+  measured failure: the remainder went negative on the direct consumer.

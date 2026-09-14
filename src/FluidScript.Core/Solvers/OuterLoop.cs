@@ -146,6 +146,14 @@ public sealed class OuterLoop(
     /// can be estimated on it, and flow estimates come from stated duties and stated flows rather than
     /// from resistances — so nothing that survives depends on the provisional sizes it was built with.
     /// </para>
+    /// <para>
+    /// <strong>The omitted duty is closed before the first count sees the graph</strong> (<c>S-59</c>).
+    /// The closure needs only the stated duties, so it can run on the bootstrap; run after the count
+    /// instead, the count saw the source's <c>power</c> as free and let its flow constraint promote
+    /// <em>that</em>, the sizer then took the source's pump head because nothing had claimed it, and on
+    /// the next pass — power now sized, head now sized — the constraint had nothing local left and
+    /// reached for a consumer's pump, shifting every promotion after it by one.
+    /// </para>
     /// </remarks>
     public PreparedModel Prepare(SemanticModel model, ISubstance substance, string name = "model")
     {
@@ -158,6 +166,17 @@ public sealed class OuterLoop(
         if (!bootstrap.Unresolved.IsEmpty)
         {
             return new PreparedModel(bootstrap, overlay, [], []);
+        }
+
+        var closure = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
+        var closed = overlay;
+
+        CloseEnergyBalance(bootstrap.Graph, ref closed, closure);
+
+        if (!ReferenceEquals(closed, overlay))
+        {
+            overlay = closed;
+            bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay), name);
         }
 
         var (sized, bases, notes) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
@@ -877,8 +896,22 @@ public sealed class OuterLoop(
     /// a cycle that resists nothing, and only the caller can say which one matters (<c>C-57</c>).
     /// </returns>
     /// <remarks>
+    /// <para>
     /// The largest, because a pump on a set of parallel circuits has to reach the worst of them — which
     /// is the index circuit, and sizing to any other one leaves a branch short of its design flow.
+    /// </para>
+    /// <para>
+    /// <strong>A loop that carries another pump is not this pump's to drive</strong> (<c>D-93</c>). Two
+    /// pumps in series on one loop have one head between them and nothing in the loop equation says how
+    /// it divides (<c>S-37</c>); sizing each to the whole loop hands the loop twice its drop. Measured on
+    /// two pumped sources feeding three pumped consumers: the source pump took 46.8 kPa from a loop
+    /// through a consumer's own pump, the header differential that produced over-drove the direct
+    /// consumer, and its promoted pump was asked for a negative head. The convention is
+    /// primary–secondary practice — the primary pump is sized for the primary circuit, each secondary
+    /// pump for its own — so a pump whose every loop is shared is sized to its own branch, and a loop
+    /// with a second pump on it is left out of the index search. Only a pump is treated this way: a
+    /// valve's circuit is still every loop through it, since a valve shares head with nothing.
+    /// </para>
     /// </remarks>
     private static double? Circuit(
         CircuitGraph graph,
@@ -888,10 +921,20 @@ public sealed class OuterLoop(
         FluidState state)
     {
         double? worst = null;
+        var onALoop = false;
 
         foreach (var loop in graph.Loops)
         {
             if (!loop.Branches.Any(branch => branch.Path.Contains(component)))
+            {
+                continue;
+            }
+
+            onALoop = true;
+
+            if (component is Pump
+                && loop.Branches.Any(branch => branch.Path.Any(
+                    element => element is Pump && !ReferenceEquals(element, component))))
             {
                 continue;
             }
@@ -905,6 +948,12 @@ public sealed class OuterLoop(
             }
 
             worst = Math.Max(worst ?? drop, drop);
+        }
+
+        if (worst is null && onALoop
+            && graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(component)) is { } own)
+        {
+            return Resistance(graph, state, own.Path, iterate.Values[layout.BranchFlow(own.Index)], component);
         }
 
         return worst;

@@ -17,6 +17,14 @@ a heat exchanger with a power and two temperatures fixes it through an energy ba
 then sized to it. Everything on the loop states its own drop, so the number includes your pipes,
 valves and exchangers and nothing you did not write down.
 
+**A loop with a second pump on it is that pump's to drive, not this one's.** Two pumps in series on
+one loop have one head between them, and the loop equation alone does not say how it divides. The
+convention is primary–secondary practice: the primary pump is sized for the primary circuit, each
+secondary pump for its own. So when every loop through a pump carries another pump — two boilers
+with their own pumps feeding consumers with their own — the source pump is sized to its own branch,
+the header sits at no differential, and each consumer's pump develops its own circuit's drop. A pump
+that shares no loop is sized to the worst of the loops through it, as before.
+
 Pressure becomes metres at the density **entering the pump**, not at the loop's average. On the simple
 loop that is 51.7 kPa at 998 kg/m³, or 5.28 m; the same drop at the loop's 35 °C mean would read
 5.30 m. The gap is small on one ring and grows with the temperature spread, so the reported head and a
