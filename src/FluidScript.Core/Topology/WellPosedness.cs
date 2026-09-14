@@ -73,6 +73,7 @@ public static class WellPosedness
         ReportCompetingDatums(graph, hydraulics, diagnostics);
         ReportDriverlessLoops(graph, diagnostics);
         ReportStates(graph, diagnostics);
+        ReportStaticHead(graph, hydraulics, diagnostics);
         ReportOwnership(graph, hydraulics, diagnostics);
         ReportClosure(graph, hydraulics, diagnostics);
         ReportBoundaries(graph, hydraulics, diagnostics);
@@ -1102,6 +1103,106 @@ public static class WellPosedness
                 new DiagnosticArgument("state", Describe(temperature, pressure)))
                 with
             { ComponentName = node.Name });
+        }
+    }
+
+    /// <summary>The fill-pressure margin practice adds above the static head, for the pressure the message suggests.</summary>
+    /// <value>
+    /// Pa. Half a bar: an expansion vessel's pre-charge is set to the static height plus 0.2 bar and the
+    /// fill pressure 0.3 bar above that (Flamco's <em>Reference Guide</em>, Reflex's <em>Professional
+    /// planning, calculation and equipment</em>, IMI Pneumatex's Statico manual, all after EN 12828).
+    /// </value>
+    private const double FillMargin = 50_000;
+
+    /// <summary>The temperature the static-head density is taken at.</summary>
+    /// <value>K. 20 °C: the plant is filled cold, and the check is about filling.</value>
+    private const double FillTemperature = 293.15;
+
+    /// <summary>Reports the highest node of each hydraulic part whose static head takes it below the substance's floor (<c>S-60</c>).</summary>
+    /// <remarks>
+    /// <para>
+    /// Water at the top of a 32 m riser is 313 kPa below the bottom, and a script that states no
+    /// pressure has its datum picked at 0 gauge. The seed then puts the top of the building at
+    /// −213 kPa, water has no state there, and the solve stopped with <c>FS3007</c> — an impossible
+    /// fluid state after 0 steps — which reads as a solver failure when the plant as written simply has
+    /// no fill pressure. Now that every node has a height (<c>D-70</c>) the check is arithmetic before
+    /// the seed: <c>p_datum − ρg(z − z_datum)</c> against the substance's floor, at the density the
+    /// plant is filled at.
+    /// </para>
+    /// <para>
+    /// One diagnostic per hydraulic part, on its highest node, because every node above the floor line
+    /// fails for the one reason and the fix is one number on the datum. The number suggested is what
+    /// practice writes: the static head plus half a bar.
+    /// </para>
+    /// </remarks>
+    private static void ReportStaticHead(
+        CircuitGraph graph,
+        ImmutableArray<HydraulicComponent> hydraulics,
+        ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        var floor = graph.Substance.ValidRange.MinimumAbsolutePressure;
+
+        foreach (var hydraulic in hydraulics)
+        {
+            var datum = hydraulic.Nodes.FirstOrDefault(node => node.Name == hydraulic.Datum);
+
+            if (datum?.Component is not CircuitNode anchor)
+            {
+                continue;
+            }
+
+            var gauge = HydraulicPartition.Stated(anchor, HydraulicPartition.Pressure) ?? 0;
+
+            // Density where the plant is filled: at the datum, cold. A property call that fails here
+            // is a state FS2215 has already reported, and there is nothing to add.
+            if (!graph.Substance.FromPressureTemperature(
+                    Quantity.FromSi(Math.Max(gauge, 0), Dimension.Pressure),
+                    Quantity.FromSi(FillTemperature, Dimension.Temperature)).TryGetValue(out var filled))
+            {
+                continue;
+            }
+
+            var density = filled.Density.SiValue;
+            GraphNode? highest = null;
+            var rise = 0.0;
+
+            foreach (var node in hydraulic.Nodes)
+            {
+                if (node.Component is CircuitNode placed && placed.Elevation - anchor.Elevation > rise)
+                {
+                    rise = placed.Elevation - anchor.Elevation;
+                    highest = node;
+                }
+            }
+
+            if (highest is null)
+            {
+                continue;
+            }
+
+            var head = density * UnitTable.StandardGravity * rise;
+            var absolute = gauge + UnitTable.StandardAtmosphere - head;
+
+            if (absolute >= floor)
+            {
+                continue;
+            }
+
+            // The datum pressure practice would state: static head plus the fill margin, in whole tens
+            // of kPa above the floor's own gauge value.
+            var needed = Math.Ceiling((floor - UnitTable.StandardAtmosphere + head + FillMargin) / 10_000) * 10;
+
+            diagnostics.Add(Diagnostic.Create(
+                TopologyDiagnostics.StaticHeadBelowFloor,
+                span: null,
+                new DiagnosticArgument("node", highest.Name),
+                new DiagnosticArgument("rise", rise.ToString("0.#", CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("datum", hydraulic.Datum),
+                new DiagnosticArgument("short", ((floor - absolute) / 1000).ToString("0", CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("substance", graph.Substance.Name),
+                new DiagnosticArgument("needed", needed.ToString("0", CultureInfo.InvariantCulture)))
+                with
+            { ComponentName = highest.Name });
         }
     }
 

@@ -240,6 +240,27 @@ public static class TopologyDiagnostics
         "'{second}' at {b} m is wired directly to '{first}' at {a} m. "
         + "Put a pipe between them, or give them one height.");
 
+    /// <summary>The static head above the datum takes a node below the pressure its fluid can exist at.</summary>
+    /// <value><c>FS2220</c>, an error.</value>
+    /// <remarks>
+    /// <para>
+    /// A plant with equipment above its datum needs a fill pressure, and a script that states none has
+    /// its datum picked at 0 gauge: the top of a 32 m riser is then 213 kPa below atmospheric, water
+    /// has no state there, and the solve used to stop with <c>FS3007</c> after 0 steps, saying nothing
+    /// about height (<c>S-60</c>). This names the node, the height, and the pressure to state.
+    /// </para>
+    /// <para>
+    /// The suggested pressure is the static head plus half a bar, which is what practice sets: an
+    /// expansion vessel's pre-charge at the static height plus 0.2 bar and the fill pressure 0.3 bar
+    /// above that (Flamco, Reflex and IMI Pneumatex vessel-sizing guidance, after EN 12828).
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor StaticHeadBelowFloor { get; } = new(
+        "FS2220",
+        DiagnosticSeverity.Error,
+        "'{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. "
+        + "State a pressure on '{datum}' of at least {needed} kPa.");
+
     /// <summary>Gets every code this area registers.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -257,5 +278,6 @@ public static class TopologyDiagnostics
         SelfAttachment,
         ConstraintReachesAcross,
         HeightsMeetWithoutAPipe,
+        StaticHeadBelowFloor,
     ];
 }

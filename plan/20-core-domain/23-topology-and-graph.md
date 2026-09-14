@@ -640,6 +640,21 @@ individually reasonable and the interaction is invisible.
 
 | `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |
 
+| `FS2220` | The static head above the datum takes a node below the pressure its fluid can exist at | Error | `'{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa.` |
+
+**`FS2220` is the fill-pressure check, and it runs before the seed** (`S-60`). A script that states
+no pressure has its datum picked at 0 gauge, and the top of a 32 m riser is then 213 kPa below
+atmospheric — a state water does not have, which used to surface as `FS3007` after 0 Newton steps
+with nothing said about height. With every node placed (`D-70`) it is arithmetic:
+`p_datum − ρg(z − z_datum)` at the highest node of each hydraulic part, at the density the plant is
+filled at (20 °C), against the substance's `MinimumAbsolutePressure`. One diagnostic per part, on the
+highest node, suggesting the static head plus half a bar in whole tens of kPa — the margin
+expansion-vessel sizing uses (pre-charge = static height + 0.2 bar, fill = pre-charge + 0.3 bar:
+Flamco's *Reference Guide*, Reflex's *Professional planning, calculation and equipment*, IMI
+Pneumatex's Statico manual, all after EN 12828). An error because the solve cannot reach a state, not
+a warning about good practice: a plant whose top sits above atmospheric but below the 0.5 bar margin
+is not reported, because it solves.
+
 **`FS2219` is an error because the alternative fabricates pressure.** Only a pipe or a bare link
 spans two heights (`D-70`); a valve that says 0 m wired straight to a load that says 32 m has left
 the riser out, and picking either height would put up to 313 kPa into the loop that nothing wrote.

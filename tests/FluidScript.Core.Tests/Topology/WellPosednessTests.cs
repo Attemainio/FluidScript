@@ -759,4 +759,48 @@ public sealed class WellPosednessTests
         Assert.Contains("HE_AHU.out", reach.Message, StringComparison.Ordinal);
         Assert.Contains("PU_RAD", reach.Message, StringComparison.Ordinal);
     }
+
+    private const string RoofLoopWithoutAFillPressure = """
+        fluidscript 1
+        circuit heating
+        fluid water
+
+        HE1  heat_exchanger power=30 in=20 out=50
+        LOAD heat_exchanger power=-30 dp=0 elevation=32
+        CV1  valve
+        PU1  pump
+        P1   pipe length=32
+        P2   pipe length=32
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+        """;
+
+    [Fact]
+    public void ATallPlantWithNoFillPressureIsNamedBeforeTheSeed()
+    {
+        // `S-60`: with the datum picked at 0 gauge, the top of a 32 m riser sits 313 kPa lower, which is
+        // 312 kPa under the 100 kPa absolute water needs. Before, that was FS3007 after 0 steps and a
+        // report that said nothing about height. The number suggested is practice's: the static head
+        // plus half a bar, in whole tens -- 313 + 50 - 1.3 rounds up to 370.
+        var result = Check(RoofLoopWithoutAFillPressure);
+
+        var head = Assert.Single(result.Diagnostics, static d => d.Code == "FS2220");
+
+        Assert.Equal(DiagnosticSeverity.Error, head.Severity);
+        Assert.Equal(
+            "'N4' is 32 m above 'N1', which puts it 312 kPa below the lowest pressure water can be at. "
+            + "State a pressure on 'N1' of at least 370 kPa.",
+            head.Message);
+        Assert.False(result.CanSolve);
+    }
+
+    [Fact]
+    public void AStatedFillPressureThatCoversTheStaticHeadIsNotReported()
+    {
+        var result = Check(RoofLoopWithoutAFillPressure + "\nN1 node p=450\n");
+
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS2220");
+        Assert.True(result.CanSolve);
+    }
 }

@@ -182,7 +182,7 @@ neighbourhood, not 0, or a roof would need `elevation=32` on every line. The def
 per-port `z_tank + f·H`, which waits for P6.2 to give the tank a height; its ports take the vessel's
 one height meanwhile, recorded in `22` and `23`. `S-60` was filed on the way: a tall loop with no
 `p=` fails at the seed with `FS3007` and nothing names the fill pressure; with heights on every node
-it is now arithmetic before the seed and the next small change.
+it became `FS2220` the same day, arithmetic before the seed.
 
 P3 is where tiers 20 and 30 were largely written and largely corrected: 49 of tier 20's 68 entries and
 41 of tier 30's 56 are closed. Both Closed tables carry the attribution.
@@ -220,9 +220,9 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 17 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **47** | |
+| | **46** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -251,9 +251,7 @@ and the coverage row — not the solver. P3.8 closed `C-51` with `D-94` on 2026-
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **`S-60`** — the fill-pressure check now that every node has a height: one diagnostic naming
-   the node, the static head and the pressure to state.
-5. **R-17's coverage row and `05`'s unmeasured M2a criteria** (humid air, the 4-node pipe profile,
+4. **R-17's coverage row and `05`'s unmeasured M2a criteria** (humid air, the 4-node pipe profile,
    the 200/800-unknown scale baselines, the model-contract payload), then M2a exits and P4 begins. `C-51`'s DHW half — a draw profile as a
    design condition — is `C-73`, deferred to P4's substation work.
 

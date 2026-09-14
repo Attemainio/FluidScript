@@ -53,10 +53,18 @@ Two stated heights joined directly, with no pipe between them, is a missing rise
 pressure nothing wrote is the one mistake this feature exists to make unwritable.
 
 **Mind the fill pressure.** Water at the top of a 32 m riser is 313 kPa below the bottom. With no
-`p=` anywhere the datum is picked at 100 kPa, the top of the building sits at −213 kPa, and the
-solve stops with [`FS3007`](diagnostics.md) — an impossible fluid state — rather than a hint about the
-static head. State the fill pressure on a node in the plant room: `N1 node p=450` is a 32 m building
-with a 0.3 bar margin at the top.
+`p=` anywhere the datum is picked at 0 kPa, the top of the building would sit 213 kPa below
+atmospheric, and [`FS2220`](diagnostics.md) says so before anything is solved — naming the node, the
+height, and the pressure to state:
+
+```
+FS2220  'N4' is 32 m above 'N1', which puts it 312 kPa below the lowest pressure water can be at.
+        State a pressure on 'N1' of at least 370 kPa.
+```
+
+The number is what practice sets: the static head plus half a bar — an expansion vessel's pre-charge
+at the static height plus 0.2 bar, and the fill pressure 0.3 bar above that. `N1 node p=370` in the
+plant room and the roof is fine.
 
 ## A temperature on an interior node is a setpoint
 
