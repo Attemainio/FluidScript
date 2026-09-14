@@ -4240,3 +4240,44 @@ and reads as the datasheet does.
 [`15-semantic-model`](../10-language/15-semantic-model.md),
 [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md); `ComponentSymbol.SizingPoint`,
 `ParameterValue.Basis`, `ValueId.SizingPoint`. Closes `C-51`.
+
+---
+
+## D-95 · An omitted height is inherited from what a component is wired to, and 0 only where nothing states one
+
+**Accepted · 2026-09-14** · amends one sentence of `D-70`; constrains `15`, `22`, `23`
+
+`D-70` said "an omitted height is 0, never sized", and the second half is what mattered: a height is
+building geometry, not equipment selection, and the sizing loop may never choose one (`C-41`). The
+first half, taken literally, makes the feature unusable. Only a pipe spans two heights, so a pump
+wired straight to an air handling unit on the roof *is* on the roof; reading its omitted height as 0
+puts the inferred node between them at two heights and turns every plant with equipment upstairs into
+a page of `FS2219` unless every valve, pump and exchanger up there repeats `elevation=32`.
+
+**The rule.** Heights flood from every stated `elevation` through everything that has one height —
+pumps, valves, exchangers, tanks, nodes — and stop at a pipe or a bare node-to-node connection. A
+component that states nothing sits where its neighbourhood does; a neighbourhood with no stated height
+sits at 0, which is what makes every existing script mean what it did. Two *stated* heights meeting
+in one neighbourhood is `FS2219`. The propagation is a union-find over connection endpoints in the
+binder, and the result is `SemanticModel.Heights`; lowering computes no height of its own.
+
+**What `D-70` keeps.** Everything else: absolute heights, the pipe's derived rise, the bare link's
+hydrostatic term, `−ṁgΔz` on the energy side, the tank's `z_port = z_tank + f·H` (deferred to P6.2
+until the tank has an `H`; its ports take the vessel's one height meanwhile), and "never sized".
+
+**Rejected.**
+- *Literal `D-70`: omitted is 0.* Nothing to implement beyond a default. Cost: the paragraph above —
+  the diagnostic fires on the case it was written to allow, and the fix is to state the same number
+  on every line of a floor.
+- *Omitted height on a node only, components take their node's.* Closest to the physics. Cost: most
+  nodes are inferred, so the user has nowhere to write it (`D-70`'s own rejection of nodes-only), and
+  a component between two nodes at different heights would need a rule anyway — which is this one.
+- *Warn instead of error on `FS2219`, and take the first height.* Keeps the script solvable. Cost: up
+  to 10 kPa per metre of difference fabricated silently, which is the failure `D-70` exists to make
+  unwritable; measured, a 32 m riser with no return drives the pump to 45.8 m and the valve to Kv 0.4
+  before the solve leaves the property domain.
+
+**Constrains.** [`15-semantic-model`](../10-language/15-semantic-model.md) step 8b,
+[`22-component-model`](../20-core-domain/22-component-model.md) convention 6,
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *Heights span pipes and bare
+links*; `BindingRun.AssignHeights`, `HeightMap`, `FS2219`.

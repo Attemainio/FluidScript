@@ -42,7 +42,7 @@ public sealed class Pipe : IFlowComponent
     /// <param name="insideDiameter">m, the catalogue bore — not the DN designation.</param>
     /// <param name="roughness">m, absolute wall roughness.</param>
     /// <param name="minorLoss">The sum of explicit fitting coefficients K, dimensionless.</param>
-    /// <param name="elevation">m, outlet height minus inlet height.</param>
+    /// <param name="rise">m, outlet height minus inlet height, from the heights of what the pipe connects.</param>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="length"/> or <paramref name="insideDiameter"/> is not positive, or
     /// <paramref name="roughness"/> or <paramref name="minorLoss"/> is negative.
@@ -53,7 +53,7 @@ public sealed class Pipe : IFlowComponent
         double insideDiameter,
         double roughness = 0.045e-3,
         double minorLoss = 0,
-        double elevation = 0)
+        double rise = 0)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
@@ -66,7 +66,7 @@ public sealed class Pipe : IFlowComponent
         InsideDiameter = insideDiameter;
         Roughness = roughness;
         MinorLoss = minorLoss;
-        Elevation = elevation;
+        Rise = rise;
         FlowArea = Math.PI * insideDiameter * insideDiameter / 4;
 
         _equations =
@@ -115,8 +115,27 @@ public sealed class Pipe : IFlowComponent
     public double MinorLoss { get; }
 
     /// <summary>Gets the outlet height minus the inlet height.</summary>
-    /// <value>m, positive when the outlet is higher.</value>
-    public double Elevation { get; }
+    /// <value>
+    /// m, positive when the outlet is higher. Derived from the heights of what the pipe connects
+    /// (<c>D-70</c>): a pipe has no height of its own, and lowering sets this through
+    /// <see cref="WithRise"/> once every node has one.
+    /// </value>
+    public double Rise { get; }
+
+    /// <summary>The same pipe with a different rise.</summary>
+    /// <param name="rise">m, outlet height minus inlet height.</param>
+    /// <returns>A copy carrying every parameter map and <paramref name="rise"/>.</returns>
+    /// <remarks>
+    /// A copy rather than a setter because a component is immutable once the graph holds it; lowering
+    /// calls this before the graph exists, when the heights the rise depends on have just been read.
+    /// </remarks>
+    public Pipe WithRise(double rise) =>
+        new(Name, Length, InsideDiameter, Roughness, MinorLoss, rise)
+        {
+            StatedParameters = StatedParameters,
+            SizedParameters = SizedParameters,
+            DefaultParameters = DefaultParameters,
+        };
 
     /// <summary>Gets the cross-sectional flow area.</summary>
     /// <value>m².</value>
@@ -164,7 +183,7 @@ public sealed class Pipe : IFlowComponent
 
         residuals[0] = inlet.Pressure - outlet.Pressure
             - PressureDrop(velocity, density, viscosity)
-            - (density * Gravity * Elevation);
+            - (density * Gravity * Rise);
     }
 
     /// <inheritdoc/>
@@ -176,7 +195,7 @@ public sealed class Pipe : IFlowComponent
     /// It depends on a stated parameter and not on a solved value, so it is fixed for the whole solve.
     /// </para>
     /// </value>
-    public bool InjectsEnergy => Elevation != 0;
+    public bool InjectsEnergy => Rise != 0;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -203,7 +222,7 @@ public sealed class Pipe : IFlowComponent
     public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
     {
         var flow = context.Flows[0];
-        var carried = -flow * Gravity * Elevation;
+        var carried = -flow * Gravity * Rise;
         var forward = Smoothing.ForwardShare(flow);
 
         injection[0] = carried * (1 - forward);

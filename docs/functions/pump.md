@@ -58,9 +58,14 @@ Zero is a real answer, and three different omissions produce it. The reported re
 | `speed` | — | Relative speed, for variable-speed control | Sized, or driven by a controller |
 | `efficiency` | — | Hydraulic efficiency | 0.7, a typical wet-rotor circulator |
 | `margin` | — | Head multiplier applied only when auto-sizing | 1.0 — size to the computed duty, with no spare |
+| `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 Head is in metres **of the fluid being pumped**, which is what a pump curve is drawn in. It has no
 unit symbol of its own; see [Units](units.md).
+
+A pump's `elevation` changes the pipes attached to it, never the pump's own equation: the water a
+pump lifts up a riser comes back down the return, and round a closed loop the two cancel, so a sized
+head is friction alone whatever the building's height.
 
 ### What is checked
 

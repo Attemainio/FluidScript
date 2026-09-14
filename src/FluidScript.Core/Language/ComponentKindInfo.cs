@@ -37,7 +37,7 @@ public sealed record ComponentKindInfo
     /// <value>Empty for fixed-port kinds; <c>tank</c> declares <c>in{n}</c>/<c>out{n}</c> (<c>D-32</c>).</value>
     public required ImmutableArray<PortFamilyInfo> PortFamilies { get; init; }
 
-    /// <summary>Gets the patterned parameter families, such as tank layer temperatures and port elevations.</summary>
+    /// <summary>Gets the patterned parameter families, such as tank layer temperatures and port levels.</summary>
     public required ImmutableArray<IndexedParameterFamilyInfo> IndexedParameterFamilies { get; init; }
 
     /// <summary>Gets the patterned property families, such as a tank's per-layer and per-port temperatures.</summary>
@@ -48,7 +48,7 @@ public sealed record ComponentKindInfo
     /// Its <c>t{index}</c> exists on both sides and means two things: as a parameter it is an initial
     /// condition the script may state, and as a property it is the solved layer temperature. Its
     /// <c>in{index}_t</c> is a property with no parameter behind it at all, and its
-    /// <c>in{index}_elevation</c> a parameter that is not meaningful to read back.
+    /// <c>in{index}_level</c> a parameter that is not meaningful to read back.
     /// </remarks>
     public ImmutableArray<IndexedPropertyFamilyInfo> IndexedPropertyFamilies { get; init; } = [];
 
@@ -409,15 +409,15 @@ public sealed record PortFamilyInfo
     public required PortRole Role { get; init; }
 
     /// <summary>Gets the associated normalized-height parameter suffix.</summary>
-    /// <value><c>_elevation</c> for a tank; <see langword="null"/> where a family has no height.</value>
-    public required string? ElevationParameterSuffix { get; init; }
+    /// <value><c>_level</c> for a tank; <see langword="null"/> where a family has no height.</value>
+    public required string? LevelParameterSuffix { get; init; }
 }
 
 /// <summary>A family of indexed parameters, such as a tank's per-layer temperatures.</summary>
 public sealed record IndexedParameterFamilyInfo
 {
     /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder.</summary>
-    /// <value><c>t{index}</c>, <c>in{index}_elevation</c>, or <c>out{index}_elevation</c>.</value>
+    /// <value><c>t{index}</c>, <c>in{index}_level</c>, or <c>out{index}_level</c>.</value>
     public required string Pattern { get; init; }
 
     /// <summary>Gets the lowest index the family accepts.</summary>

@@ -27,6 +27,9 @@ A supply must say what it delivers, because nothing downstream of it means anyth
 | `supply` | `t`, and exactly one of `flow` or `p` | the other of `flow`/`p` is solved | Fluid enters here in this state |
 | `return` | nothing | `t`, `p`, `flow` | Fluid leaves here, in whatever state the circuit delivers |
 
+Either may also state `elevation`, the boundary's height in metres above the project datum — a
+return on the roof of the building is `N2 return p=150 elevation=10`. See [`node`](node.md#height).
+
 The asymmetry is the point. A supply is a boundary condition — a fact about the plant outside the
 model — and a temperature nobody stated cannot be guessed. A return is where the answer comes out:
 demanding a number there would be inventing the thing the solve is meant to produce.

@@ -118,7 +118,7 @@ public sealed record Port
     /// It never enters a hydraulic pressure equation (<c>22</c> invariant): it selects which layer a
     /// port talks to, and nothing else. A hydrostatic term would be a different model.
     /// </remarks>
-    public double? NormalizedElevation { get; init; }
+    public double? NormalizedLevel { get; init; }
 }
 
 /// <summary>A component that participates in a fluid graph and its equation system.</summary>
@@ -230,7 +230,7 @@ public interface IFlowComponent : IComponent
     /// </para>
     /// <para>
     /// <strong>Most kinds contribute nothing, and that is a statement about today rather than about
-    /// physics.</strong> A pipe injects <c>−ṁgΔz</c> for its elevation now and will inject
+    /// physics.</strong> A pipe injects <c>−ṁgΔz</c> for its rise now and will inject
     /// <c>−UA(T̄ − T_amb)</c> when uninsulated pipe is modelled; this member is on the interface rather
     /// than on the exchanger so that day costs no rewrite.
     /// </para>

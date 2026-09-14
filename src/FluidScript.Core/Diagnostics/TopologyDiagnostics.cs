@@ -219,6 +219,27 @@ public static class TopologyDiagnostics
         + "Every pump on that branch is stated or already claimed; if one was meant to hold this flow, "
         + "free it.");
 
+    /// <summary>Two stated heights joined by nothing that could span them.</summary>
+    /// <value><c>FS2219</c>, an error.</value>
+    /// <remarks>
+    /// <para>
+    /// Only a pipe or a bare node-to-node connection spans two heights (<c>D-70</c>). A pump wired
+    /// straight to a load on the roof is on the roof; a pump that <em>says</em> it is in the basement
+    /// and is wired straight to that load has left the riser out, and there is no rule that puts it
+    /// back. An error rather than a warning because the alternative is to pick one of the two heights,
+    /// which fabricates up to 10 kPa of pressure per metre of the difference.
+    /// </para>
+    /// <para>
+    /// Reported on the later declaration's <c>elevation</c>, naming both, so that either fix — a pipe
+    /// between them, or one height — is one edit away.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor HeightsMeetWithoutAPipe { get; } = new(
+        "FS2219",
+        DiagnosticSeverity.Error,
+        "'{second}' at {b} m is wired directly to '{first}' at {a} m. "
+        + "Put a pipe between them, or give them one height.");
+
     /// <summary>Gets every code this area registers.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -235,5 +256,6 @@ public static class TopologyDiagnostics
         AmbiguousOwnership,
         SelfAttachment,
         ConstraintReachesAcross,
+        HeightsMeetWithoutAPipe,
     ];
 }

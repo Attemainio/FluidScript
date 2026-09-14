@@ -10,7 +10,13 @@ namespace FluidScript.Core.Solvers;
 /// <param name="Node">The node the enthalpy is read from.</param>
 /// <param name="Component">The component carrying it across, in graph order.</param>
 /// <param name="Port">The port of that component the flow enters by.</param>
-internal readonly record struct ArrivingSource(int Node, int Component, int Port);
+/// <param name="Lift">
+/// J/kg the enthalpy loses on the way: <c>g·(z_here − z_source)</c> across a bare connection between
+/// two nodes at different heights (<c>D-70</c>), 0 everywhere else. A pipe carries its own rise
+/// through <see cref="IFlowComponent.EvaluateEnergyInjection"/>; a bare link has no component to do
+/// it, so the node reads the arriving enthalpy already lifted.
+/// </param>
+internal readonly record struct ArrivingSource(int Node, int Component, int Port, double Lift = 0);
 
 /// <summary>The assembled residual function: everything the solver drives to zero, at one iterate.</summary>
 /// <remarks>
@@ -70,7 +76,7 @@ public sealed class EquationSystem
     private readonly ArrivingSource[][][] _arriving;
     private readonly (int Node, double Value)[] _stated;
     private readonly int[] _datums;
-    private readonly (int From, int To)[] _links;
+    private readonly (int From, int To, double Rise)[] _links;
     private readonly (int Offset, int Count)[] _owned;
     private readonly (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] _fluxes;
     private readonly double[][] _parameters;
@@ -116,7 +122,7 @@ public sealed class EquationSystem
         ArrivingSource[][][] arriving,
         (int Node, double Value)[] stated,
         int[] datums,
-        (int From, int To)[] links,
+        (int From, int To, double Rise)[] links,
         (int Offset, int Count)[] owned,
         (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] fluxes,
         double[][] parameters,
@@ -296,8 +302,12 @@ public sealed class EquationSystem
             datums.Add(datum is null ? -1 : byComponent[datum.Component]);
         }
 
+        // D-70: a bare connection spans two heights like a pipe does, so its row carries the rise.
         var links = posedness.Counting.IdealLinks
-            .Select(link => (byComponent[link.From.Component], byComponent[link.To.Component]))
+            .Select(link => (
+                byComponent[link.From.Component],
+                byComponent[link.To.Component],
+                Height(link.To.Component) - Height(link.From.Component)))
             .ToArray();
 
         // Where each component's own unknowns sit, walked in the order WellPosedness gathered them --
@@ -826,10 +836,14 @@ public sealed class EquationSystem
         var assembly = Equations.LinkOffset;
 
         // D-25's zero-drop connection: two nodes with nothing between them are one pressure, and no
-        // component is there to say so.
-        foreach (var (from, to) in _links)
+        // component is there to say so. Nothing between them but height, that is: a link that climbs
+        // carries ρgΔz like a frictionless pipe would (D-70), at the mean density of its two ends.
+        foreach (var (from, to, rise) in _links)
         {
-            residuals[assembly++] = x[Unknowns.NodePressure(from)] - x[Unknowns.NodePressure(to)];
+            var density = (_nodeStates[from].Density + _nodeStates[to].Density) / 2;
+
+            residuals[assembly++] = x[Unknowns.NodePressure(from)] - x[Unknowns.NodePressure(to)]
+                - (density * UnitTable.StandardGravity * rise);
         }
 
         foreach (var (node, value) in _stated)
@@ -1028,7 +1042,7 @@ public sealed class EquationSystem
 
         if (sources.Length == 1)
         {
-            return x[Unknowns.NodeEnthalpy(sources[0].Node)];
+            return x[Unknowns.NodeEnthalpy(sources[0].Node)] - sources[0].Lift;
         }
 
         var numerator = MixingFloor * x[Unknowns.NodeEnthalpy(node)];
@@ -1043,7 +1057,7 @@ public sealed class EquationSystem
 
             var weight = inflow * Smoothing.ForwardShare(inflow);
 
-            numerator += weight * x[Unknowns.NodeEnthalpy(source.Node)];
+            numerator += weight * (x[Unknowns.NodeEnthalpy(source.Node)] - source.Lift);
             denominator += weight;
         }
 
@@ -1075,7 +1089,13 @@ public sealed class EquationSystem
 
         if (byComponent.TryGetValue(attached, out var direct))
         {
-            return [new ArrivingSource(direct, peer.Component, peer.Port)];
+            // A node wired straight to a node: the ideal link, which carries gravity's share of the
+            // enthalpy itself because there is no component between them to inject it (D-70).
+            var lift = graph.Components[element] is CircuitNode here && attached is CircuitNode there
+                ? UnitTable.StandardGravity * (here.Elevation - there.Elevation)
+                : 0;
+
+            return [new ArrivingSource(direct, peer.Component, peer.Port, lift)];
         }
 
         var groups = attached.FlowGroups;
@@ -1098,4 +1118,10 @@ public sealed class EquationSystem
 
         return [.. sources];
     }
+
+    /// <summary>A node's height above the project datum, for the links between nodes.</summary>
+    /// <param name="component">The node's component.</param>
+    /// <returns>m; 0 for anything that is not a <see cref="CircuitNode"/>.</returns>
+    private static double Height(IFlowComponent component) =>
+        component is CircuitNode node ? node.Elevation : 0;
 }

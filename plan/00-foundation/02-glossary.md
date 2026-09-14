@@ -85,6 +85,9 @@ names.
 | **Symbol definition** | — | `SymbolDefinition` | Core-owned declarative primitives, port anchors, and label anchor selected by a component's `SymbolId`; placement and SVG rendering stay in the frontend. |
 | **Tank** | `tank` | `Tank` | A finite-volume liquid storage component with indexed inlet/outlet ports. `container` is an input alias, never the canonical name (`D-32`). |
 | **Tank layer** | — | `TankLayer` | One equal-volume, perfectly mixed and isothermal control volume in a tank. Layers are indexed bottom to top; their stack represents stratification. |
+| **Elevation** | `elevation` | `Elevation` | The absolute height of a component above the project datum, in metres (`D-70`). A property of position: a component has one and every port of it sits there. Only a **pipe** and a bare connection span two, and a pipe's **rise** is `z(out) − z(in)` from what it connects — a pipe states no elevation of its own. Omitted, it is inherited from whatever the component is wired to without a pipe in between, and 0 only where nothing states one (`D-95`); never sized. |
+| **Rise** | — | `Rise` | A pipe's outlet height minus its inlet height, derived from the elevations of its two ends. Carries `ρgΔz` in the pipe's momentum row and `−ṁgΔz` in its energy injection. Was `pipe.elevation` before `D-70`; the word moved because a rise is not a position. |
+| **Level** | `in1_level`…`out16_level` | `NormalizedLevel` | A tank port's position between the vessel's bottom (0) and top (1), used only to pick the layer the port talks to. Thermal metadata, not metres: no hydrostatic term is formed from it. Was `in1_elevation` before `D-70`; renamed so that `elevation` means one thing. |
 | **Pressure datum** | — | — | The node whose pressure anchors the field. Exactly one per connected component, arbitrary, often auto-picked. **Not** the same as a pressure boundary condition. |
 | **Pressure boundary** | `p` on a node | — | A real constraint holding a node at a pressure, admitting an unknown external flux. A circuit may have any number. |
 | **Gauge pressure** | bare pressure, `kPa`, `bar`, `kPag`, `barg` | — | Pressure relative to the model's recorded atmosphere; the v1 script/UI default. |
@@ -183,6 +186,7 @@ names.
 | "subsystem" for an inline attached circuit | **subcircuit** | A subsystem is an M6 reusable definition; a subcircuit is declared inline and attaches at named nodes. Two concepts, two words, and they must not swap (`D-33`). |
 | "name", "id" or "identifier" for `400PU01` | **tag** | The identifier is what the user wrote; the tag is derived. Conflating them is the mistake `D-34` exists to prevent, and it silently breaks every consumer keyed by id. |
 | "circuit id" | **circuit number** | The number is a drawing designation chosen by the engineer, not a system-assigned identity. |
+| "elevation" for a tank port's 0…1 position, or for a pipe's rise | **level** for the port, **rise** for the pipe | `elevation` is an absolute height in metres on a single-height component (`D-70`). A pipe has none, a tank port's fraction is not one, and one word for three quantities is how a 32 m riser lost its return. |
 
 ## Worked example
 

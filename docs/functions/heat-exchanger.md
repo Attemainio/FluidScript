@@ -50,6 +50,7 @@ the solve makes it the cold side is worse than one that says nothing.
 | `lamella` | m | Gap between adjacent plates, usually written `lamella=2.4 mm` |
 | `plate_area` | m² | Effective area of one plate |
 | `fouling` | m²·K/W | Combined fouling resistance. Defaults to 1e-5, clean surfaces |
+| `elevation` | m | Height above the project datum, both sides' ports at it; see [`node`](node.md#height). Never sized: wherever it is wired to, else 0 m |
 
 Everything except `arrangement` and `fouling` is sized when you omit it.
 

@@ -110,6 +110,15 @@ public sealed class CircuitNode : IFlowComponent
     /// </value>
     public bool CarriesMassBalance { get; }
 
+    /// <summary>Gets the node's height above the project datum (<c>D-70</c>).</summary>
+    /// <value>
+    /// m. Derived by the binder from what is wired to the node, never stated on the node itself
+    /// unless the script wrote <c>elevation</c> on a declared one. A bare connection between two
+    /// nodes at different heights carries <c>ρgΔz</c> between them, and this is where the assembler
+    /// reads the Δz from.
+    /// </value>
+    public double Elevation { get; init; }
+
     /// <summary>Gets which end of an open circuit this node is, when it is one.</summary>
     /// <value>
     /// <see cref="BoundaryRole.Interior"/> unless the script wrote <c>supply</c> or <c>return</c>

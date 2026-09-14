@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Topology;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Solvers;
 
@@ -356,6 +357,47 @@ public static class BranchResistance
 
         return total;
     }
+
+    /// <summary>What a branch resists at a flow, its ends included and its bare links counted.</summary>
+    /// <param name="graph">The graph, for its substance.</param>
+    /// <param name="state">The fluid to evaluate the laws against.</param>
+    /// <param name="branch">The branch.</param>
+    /// <param name="flow">kg/s through it.</param>
+    /// <param name="exclude">The component whose own contribution is left out, if any.</param>
+    /// <returns>Pa, positive against the flow.</returns>
+    /// <remarks>
+    /// <strong>A bare connection between two nodes at different heights resists nothing and still
+    /// changes the pressure</strong> (<c>D-70</c>): it carries <c>ρgΔz</c> with no component to say so,
+    /// exactly as the assembler writes its row. Left out here, a loop that climbs through a pipe and
+    /// comes down through a link would size its pump to the riser alone — measured at 45.8 m of head
+    /// on a loop whose friction is 5.3 m — and the valve against a drop the solve never produces.
+    /// </remarks>
+    public static double Along(
+        CircuitGraph graph,
+        FluidState state,
+        Branch branch,
+        double flow,
+        IFlowComponent? exclude)
+    {
+        ArgumentNullException.ThrowIfNull(branch);
+
+        var total = Along(graph, state, branch.Path, flow, exclude);
+        var previous = branch.From.Element;
+
+        foreach (var element in branch.Path)
+        {
+            total += Link(state, previous, element);
+            previous = element;
+        }
+
+        return total + Link(state, previous, branch.To.Element);
+    }
+
+    /// <summary>The hydrostatic drop across a bare node-to-node link, zero for anything else.</summary>
+    private static double Link(FluidState state, IFlowComponent from, IFlowComponent to) =>
+        from is CircuitNode lower && to is CircuitNode upper
+            ? state.Density.SiValue * UnitTable.StandardGravity * (upper.Elevation - lower.Elevation)
+            : 0;
 
     /// <summary>A port state carrying real properties at zero gauge pressure.</summary>
     /// <param name="state">The fluid.</param>

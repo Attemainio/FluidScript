@@ -750,4 +750,124 @@ public sealed class OuterLoopTests
         // 235.8 kJ/kg of enthalpy above the 0 °C liquid datum.
         Assert.Equal(235_844, solved[Index(layout, UnknownKind.NodeEnthalpy, "N2")], 500.0);
     }
+
+    private const string RoofLoop = """
+        fluidscript 1
+        circuit heating
+        fluid water
+
+        HE1  heat_exchanger power=30 in=20 out=50
+        LOAD heat_exchanger power=-30 dp=0 elevation=32
+        CV1  valve
+        PU1  pump
+        P1   pipe length=32
+        P2   pipe length=32
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1
+
+        N1 node p=450
+        """;
+
+    [Fact]
+    public async Task ALoadOnTheRoofCostsThePumpNothingAndTheWaterThreeHundredJoulesOnTheWayUp()
+    {
+        // `D-70`: the load states 32 m and nothing else does, so P1 rises 32 m and P2 falls 32 m. Round
+        // the loop the two hydrostatic terms cancel and the pump sees friction alone -- the same 5.3 m
+        // the flat loop needs. Between the bottom and the top of the riser the pressure falls by
+        // rho*g*32 = 313 kPa on top of friction, and the enthalpy by g*32 = 314 J/kg with no change of
+        // temperature: the loss is pv, not heat (`D-69`).
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(RoofLoop), Water.Instance, "roof", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.InRange(run.Sizes.For("PU1", "head") ?? solved[layout.PromotionOffset], 5.0, 5.6);
+
+        var bottom = solved[Index(layout, UnknownKind.NodePressure, "N3")];
+        var top = solved[Index(layout, UnknownKind.NodePressure, "N4")];
+
+        // 988 kg/m3 at the riser's 50 C: 310.1 kPa of static head plus 32 m at 89.9 Pa/m of friction.
+        Assert.Equal((988 * 9.80665 * 32) + (32 * 89.9), bottom - top, 1_500.0);
+        Assert.Equal(
+            9.80665 * 32,
+            solved[Index(layout, UnknownKind.NodeEnthalpy, "N3")] - solved[Index(layout, UnknownKind.NodeEnthalpy, "N4")],
+            1.0);
+    }
+
+    [Fact]
+    public async Task ABareLinkDownFromTheRoofCarriesTheStaticHeadAndSizingCountsIt()
+    {
+        // The return from the roof is N5 - N6, a bare connection: D-25's ideal link with D-70's
+        // hydrostatic term. Sizing has to count the same 313 kPa the assembler writes, or the pump is
+        // sized to the riser alone: measured at 45.8 m before `BranchResistance.Along` walked links.
+        var script = RoofLoop.Replace(
+            "N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5 - CV1 - N6 - P2 - N1",
+            "N1 - PU1 - N2 - HE1 - N3 - P1 - N4 - LOAD - N5\nN5 - N6\nN6 - CV1 - N7 - P2 - N1",
+            StringComparison.Ordinal);
+
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(script), Water.Instance, "link", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.InRange(solved[layout.PromotionOffset], 5.0, 5.6);
+        Assert.Equal(
+            998 * 9.80665 * 32,
+            solved[Index(layout, UnknownKind.NodePressure, "N6")] - solved[Index(layout, UnknownKind.NodePressure, "N5")],
+            1_000.0);
+        Assert.Equal(
+            9.80665 * 32,
+            solved[Index(layout, UnknownKind.NodeEnthalpy, "N6")] - solved[Index(layout, UnknownKind.NodeEnthalpy, "N5")],
+            1.0);
+    }
+
+    [Fact]
+    public async Task AnOpenRiserSpendsTheStaticHeadFirstAndFrictionWarmsTheWater()
+    {
+        // 300 kPa in at the bottom, 150 kPa out 10 m up, one DN25 pipe between. 98 kPa of the 150
+        // available goes to lifting the water, 52 kPa to friction, which DN25 passes at 2.0 kg/s. The
+        // enthalpy falls by g*10 = 98 J/kg; the pv term fell by 150 J/kg, so u rose by the 52 J/kg
+        // dissipated -- +0.0125 K, the sign the Joule-Thomson coefficient of liquid water requires.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind("""
+                fluidscript 1
+                circuit heating
+                fluid water
+
+                P1   pipe length=10 dn=25
+
+                connections
+                N1 - P1 - N2
+
+                N1 supply t=20 p=300
+                N2 return p=150 elevation=10
+                """),
+            Water.Instance,
+            "open-riser",
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(2.0, Math.Abs(solved[layout.BranchFlow(0)]), 0.05);
+        Assert.Equal(
+            -9.80665 * 10,
+            solved[Index(layout, UnknownKind.NodeEnthalpy, "N2")] - solved[Index(layout, UnknownKind.NodeEnthalpy, "N1")],
+            0.5);
+    }
 }

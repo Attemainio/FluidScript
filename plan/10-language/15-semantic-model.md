@@ -159,14 +159,14 @@ public sealed record PortFamilyInfo
     public required int MinIndex { get; init; }
     public required int MaxIndex { get; init; }
     public required PortRole Role { get; init; }
-    /// <summary>Associated normalized-height parameter suffix; <c>_elevation</c> for a tank.</summary>
+    /// <summary>Associated normalized-height parameter suffix; <c>_level</c> for a tank.</summary>
     public required string? ElevationParameterSuffix { get; init; }
 }
 
 public sealed record IndexedParameterFamilyInfo
 {
     /// <summary>Canonical pattern with one <c>{index}</c> placeholder.</summary>
-    /// <value><c>t{index}</c>, <c>in{index}_elevation</c>, or <c>out{index}_elevation</c>.</value>
+    /// <value><c>t{index}</c>, <c>in{index}_level</c>, or <c>out{index}_level</c>.</value>
     public required string Pattern { get; init; }
     public required int MinIndex { get; init; }
     /// <summary>Fixed maximum, or null when <see cref="MaxIndexParameter"/> supplies it.</summary>
@@ -647,7 +647,7 @@ expects `AirHandlingUnit` to find `ahu`.
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
 3. **Bind parameters.** Each parameter name is looked up in the kind's canonical names and curated
    aliases, by the same normalisation as a kind name. Indexed tank parameters (`t1`…`tN`,
-   `in1_elevation`…`out16_elevation`) are matched against their declared family before similarity.
+   `in1_level`…`out16_level`) are matched against their declared family before similarity.
    Unknown → `FS1503` listing the accepted names/patterns. The value binds
    according to `ParameterInfo.ValueKind`: a quantity is evaluated, a symbol is matched against
    `AcceptedSymbols` (`FS1514`), and a reference is recorded unevaluated (`FS1515`) for a later stage
@@ -688,6 +688,14 @@ expects `AirHandlingUnit` to find `ahu`.
    endpoint on the right of `-` takes the next free inlet; one on the left takes the next free outlet.
    Multiple-port tank examples qualify every endpoint so source reordering cannot change intent. This
    is where the inference rules fire.
+8b. **Propagate heights** (`D-70`, `D-95`), after inference and before observers. A union-find over
+   connection endpoints: a single-height component's ports share one class, a pipe's two ports are
+   two classes, and a bare node-to-node connection joins nothing — it spans heights like a pipe. Each
+   class takes the first `elevation` stated in it, in declaration order; a second, different one is
+   `FS2219` on that declaration, naming both components; a class with none reads 0. The result is
+   `SemanticModel.Heights`, keyed by component name and by `pipe.port`, from which lowering reads a
+   node's height and a pipe's rise. The map is derived, never a parameter: nothing here changes what
+   the script states, and a script with no height in it reads 0 everywhere and means what it did.
 8. **Bind attachments, control bindings, and the schedule.** Each `supply`/`return` endpoint resolves against the
    the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
    the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is

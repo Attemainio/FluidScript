@@ -313,7 +313,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1516_AnIndexOutsideItsFamily() =>
-        OnlyDiagnostic("fluidscript 1\nT1 tank in40_elevation=0.5\n", "FS1516");
+        OnlyDiagnostic("fluidscript 1\nT1 tank in40_level=0.5\n", "FS1516");
 
     [Fact]
     [Trait("Category", "Unit")]

@@ -115,7 +115,10 @@ from the grammar's side, and that is exactly what makes it easy to ship by mista
 
 The pre-release exemption is the same one `D-32` relies on below: **until a v1 file can be saved, the
 reserved list may grow freely.** `D-33`, `D-37` and `D-40` added `project`, `spacing`, `supply`,
-`return` and `control` under that exemption. Afterwards, growing the list requires a new major and a
+`return` and `control` under that exemption, and `D-70` (2026-09-14) used it for two removals: a
+pipe's `elevation` — a rise, now derived from the heights of what the pipe connects — and the tank's
+`in1_elevation`…`out16_elevation`, renamed `_level` so that `elevation` means one thing. Both are
+`FS1503` on an old script, with the new spelling one edit away. Afterwards, growing the list requires a new major and a
 migration that renames colliding identifiers — which is mechanical, since the migration knows both the
 old and new reserved sets and every identifier's span.
 

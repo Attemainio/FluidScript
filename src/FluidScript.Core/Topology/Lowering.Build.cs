@@ -190,6 +190,7 @@ public static partial class Lowering
                         {
                             StatedParameters = ComponentFactory.Stated(symbol),
                             Boundary = Role(kind),
+                            Elevation = model.Heights.Of(symbol.Name),
                         },
                         symbol.CircuitName,
                         symbol.Origin is Origin.Declared ? NodeOrigin.Declared : NodeOrigin.Inferred);
@@ -200,6 +201,13 @@ public static partial class Lowering
                 {
                     _unresolved.Add(symbol.Name);
                     continue;
+                }
+
+                // A pipe's rise is what it connects, not a number of its own (D-70): the binder has
+                // already propagated every stated height to the pipe's two ports.
+                if (component is Pipe pipe)
+                {
+                    component = pipe.WithRise(model.Heights.Rise(symbol.Name));
                 }
 
                 Add(component, symbol.CircuitName, origin: null);
@@ -275,7 +283,7 @@ public static partial class Lowering
         /// models, and the second one would be invisible to every diagnostic that names a node.
         /// </para>
         /// <para>
-        /// <strong>Length and elevation divide; minor loss does not.</strong> A stated <c>K</c> is a
+        /// <strong>Length and rise divide; minor loss does not.</strong> A stated <c>K</c> is a
         /// fitting somewhere along the run, not a property per metre, so splitting it across the
         /// sub-pipes would invent five smaller fittings. It stays whole on the first one.
         /// </para>
@@ -292,7 +300,7 @@ public static partial class Lowering
                     continue;
                 }
 
-                Expand(index, pipe, cells, symbol.CircuitName);
+                Expand(index, pipe, cells, symbol.CircuitName, model.Heights.Of(symbol.Name, "in"));
             }
         }
 
@@ -654,7 +662,7 @@ public static partial class Lowering
                 ? (int)value
                 : null;
 
-        private void Expand(int index, Pipe pipe, int cells, string circuit)
+        private void Expand(int index, Pipe pipe, int cells, string circuit, double inletHeight)
         {
             var members = ImmutableArray.CreateBuilder<string>();
             var segments = new int[cells + 1];
@@ -674,7 +682,7 @@ public static partial class Lowering
                         // The whole stated K on the first sub-pipe: a fitting is somewhere along the
                         // run, not a property per metre.
                         segment == 0 ? pipe.MinorLoss : 0,
-                        pipe.Elevation / (cells + 1)),
+                        pipe.Rise / (cells + 1)),
                     circuit,
                     origin: null);
                 members.Add(name);
@@ -685,7 +693,12 @@ public static partial class Lowering
             for (var cell = 0; cell < cells; cell++)
             {
                 var name = $"{pipe.Name}{Generated}n{(cell + 1).ToString(CultureInfo.InvariantCulture)}";
-                var node = new CircuitNode(name, portCount: 2, carriesMassBalance: false);
+                // Evenly up the run: the rise is shared between the sub-pipes, so each internal node
+                // sits one share above the last.
+                var node = new CircuitNode(name, portCount: 2, carriesMassBalance: false)
+                {
+                    Elevation = inletHeight + (pipe.Rise * (cell + 1) / (cells + 1)),
+                };
 
                 _byName[name] = _elements.Count;
                 _links.Add((segments[cell], 1, _elements.Count, 0));

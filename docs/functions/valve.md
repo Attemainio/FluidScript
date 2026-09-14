@@ -20,6 +20,7 @@ V2 valve authority=0.5 characteristic=equal_percentage
 | `characteristic` | — | `linear`, `equal_percentage` or `quick_open` | `equal_percentage` |
 | `authority` | — | Target authority for sizing | Sized |
 | `dp` | kPa | Design pressure drop, an alternative to `kv` | Sized |
+| `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 `kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
 nothing else.

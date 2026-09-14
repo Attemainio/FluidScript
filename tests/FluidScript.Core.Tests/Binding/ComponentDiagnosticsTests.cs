@@ -302,14 +302,14 @@ public sealed class ComponentDiagnosticsTests
         None("T1 tank layers=5", "FS2114");
 
     [Theory]
-    [InlineData("T1 tank in1_elevation=1.4")]
-    [InlineData("T1 tank out2_elevation=-0.2")]
+    [InlineData("T1 tank in1_level=1.4")]
+    [InlineData("T1 tank out2_level=-0.2")]
     public void FS2115_APortAboveOrBelowItsOwnTank(string body)
     {
         var diagnostic = Only(body, "FS2115");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("elevation", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("level", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public sealed class ComponentDiagnosticsTests
     {
         // Bottom and top are legal heights, and 22's layer mapping depends on them being so: 0 is
         // layer 1 and 1.0 is the top layer rather than a sixth that does not exist.
-        None("T1 tank in1_elevation=0 out1_elevation=1", "FS2115");
+        None("T1 tank in1_level=0 out1_level=1", "FS2115");
     }
 
     // ---- what the registry itself guarantees ----------------------------------------------------

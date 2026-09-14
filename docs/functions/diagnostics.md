@@ -127,7 +127,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2108` | Error | Components | '{name}': efficiency must be between 0 and 1. |
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
-| `FS2115` | Error | Components | '{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top). |
+| `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
 | `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
 | `FS2201` | Info | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
@@ -143,6 +143,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
 | `FS2217` | Error | Topology | '{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit. |
 | `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
+| `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2603` | Error | Catalog | No catalogue '{name}'. Available: {list}. |
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |

@@ -477,10 +477,10 @@ public static class BinderDiagnostics
 
     /// <summary>A tank port height outside the vessel.</summary>
     /// <value><c>FS2115</c>, an error.</value>
-    public static DiagnosticDescriptor ElevationOutsideRange { get; } = new(
+    public static DiagnosticDescriptor LevelOutsideRange { get; } = new(
         "FS2115",
         DiagnosticSeverity.Error,
-        "'{name}': {parameter} is normalized height and must be between 0 (bottom) and 1 (top).");
+        "'{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).");
 
     /// <summary>A parameter whose absence the kind has no answer for.</summary>
     /// <value><c>FS2117</c>, an error.</value>
@@ -651,7 +651,7 @@ public static class BinderDiagnostics
         EfficiencyOutsideRange,
         MixedTankTemperatures,
         InvalidLayerCount,
-        ElevationOutsideRange,
+        LevelOutsideRange,
         MissingRequiredParameter,
         UnderDetermined,
     ];

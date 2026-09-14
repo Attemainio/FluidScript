@@ -175,7 +175,7 @@ per component for a speedup nobody has measured a need for.
    produces enthalpy, and going via temperature requires inverting cp.
 4. **Every parameter is optional** (`D-02`). The registry's `OmissionBehavior` decides what absence
    means: normally sizing, or an explicit visible default backed by a binding decision. The tank's
-   `volume=300 dm3`, `layers=5`, and mid-height port elevations are explicit visible defaults because
+   `volume=300 dm3`, `layers=5`, and mid-height port levels are explicit visible defaults because
    the graph cannot infer them (`D-32`).
 5. **Every parameter declares a dimension, a plausible range (for `FS1306`), and a display
    precision** (for write-back formatting). The tables below carry the first two; **the display
@@ -188,6 +188,17 @@ per component for a speedup nobody has measured a need for.
    **Ranges are written in that column's unit, not in SI**: a temperature range of −50 … 300 is °C, and
    the registry converts it when it is built. Transcribing these as SI numbers by hand is how −50 °C
    becomes −50 K and every plausible temperature falls outside its own range.
+6. **Height is a property of position, and every single-height kind carries it** (`D-70`).
+   `elevation` is the absolute height in metres above the project datum on `node`, `pump`, `valve`,
+   `three_way_valve`, `heat_exchanger` and `tank`; a component has one height and every port of it
+   sits there. A **pipe has none**: it is the one kind that spans two heights, and its rise is
+   `z(out) − z(in)` from what it connects. A bare node-to-node connection spans heights the same way
+   and carries `ρgΔz` with no friction. An omitted height is never sized (`C-41`); it is inherited from
+   whatever the component is wired to without a pipe in between, and 0 only where nothing in that
+   neighbourhood states one (`D-95`). Two stated heights meeting without a pipe are a missing riser,
+   `FS2219`, not a choice for the tool. The binder does the propagation and
+   [`15`](../10-language/15-semantic-model.md) owns the rule; the model carries the result as
+   `SemanticModel.Heights`, from which lowering reads a node's `Elevation` and a pipe's `Rise`.
 
 ---
 
@@ -203,6 +214,7 @@ number of connections — that is what makes it the junction.
 | `t` | Temperature | °C | −50 … 300 | Fixes the temperature — a boundary condition |
 | `p` | Pressure | kPa | 0 … 2500 | A pressure boundary condition; the first one also supplies the circuit's datum |
 | `flow` | MassFlow | kg/s | 0 … 1000 | Terminal-flow magnitude. Positive follows the nominal connection: an upstream terminal injects and a downstream terminal extracts. |
+| `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. On a declared node it places the node and everything wired to it without a pipe. |
 
 **Properties:** `t`, `p`, `h`, `flow`, `rho`.
 
@@ -298,7 +310,6 @@ A pressure drop between two nodes, optionally discretized (`R-10`).
 | `roughness` | Length | m | 1 µm … 5 mm | Default 0.045 mm | Written `roughness=0.045 mm` — a bare number here is metres, like every other `Length` |
 | `nodes` | Dimensionless | — | 0 … 100 | Size | Internal discretization count (`R-10`): omission sizes to 0 because no transport resolution can be inferred from topology; transient storage is opt-in with explicit `nodes>=1`. |
 | `insulation` | Dimensionless | — | — | Size (unavailable in v1) | Reserved; heat loss is post-v1. |
-| `elevation` | Length | m | −500 … 500 m | Size | Outlet minus inlet height; absent geometry resolves to 0 m with basis “no elevation stated”. |
 | `minor_loss` | Dimensionless | — | 0 … 10000 | Default 0 | Sum of explicit fitting/local-loss coefficients K. |
 
 **Properties:** `dp`, `velocity`, `re`, `dn`, `diameter`, `flow`, `volume`.
@@ -314,6 +325,13 @@ the same way the parameter table stops it in code.
 ```
 Δp = (f · L/D + minor_loss) · (ρ v²/2)  +  ρ g Δz
 ```
+
+`Δz` is **derived**, `z(out) − z(in)` from the heights of the nodes the pipe joins (`D-70`); the
+pipe states no height of its own, and `P2 pipe elevation=-3` is `FS1503`. The energy side is
+`D-69`'s flux: the pipe injects `−ṁgΔz` so that a rise costs enthalpy through the `pv` term alone and
+the temperature is unchanged; friction converts `pv` to `u` at constant `h`. A pipe subdivided by
+`nodes=n` shares its rise evenly among its `n+1` sub-pipes, and each internal node sits one share
+above the last.
 
 with the Darcy friction factor `f` from Colebrook–White, solved by the Serghide explicit
 approximation — accurate to 0.003 % against the implicit form and, being explicit, differentiable and
@@ -404,6 +422,7 @@ that says `hot_in=40` when the solve makes it the cold side is worse than one th
 | `lamella` | Length | m | 1 mm … 20 mm | Lamella between adjacent plates. Written `lamella=2.4 mm` |
 | `plate_area` | Area | m² | 1e-3 … 5 | Effective heat transfer area of one plate |
 | `fouling` | — (m²·K/W) | m²·K/W | 0 … 1e-2 | Combined fouling resistance. Default 1e-5 |
+| `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Both sides' ports sit at it. |
 
 **Properties:** `power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`,
 `dp`, `dp2`, `dt`, `dt2`, `flow`, `flow2`, `t_in`, `t_out`, `t_in2`, `t_out2`.
@@ -578,6 +597,7 @@ moves through them.
 | `characteristic` | — | — | — | `linear` \| `equal_percentage` \| `quick_open` |
 | `authority` | Dimensionless | — | 0 … 1 | Target authority for sizing |
 | `dp` | PressureDelta | kPa | 0 … 2500 | Design pressure drop, an alternative to `kv` |
+| `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Every port, `ab` included, sits at it. |
 
 **Properties:** `kv`, `dp`, `position`, `authority`, `flow`.
 
@@ -632,6 +652,7 @@ like a solver bug.
 | `speed` | Dimensionless | — | 0 … 1.2 | Relative speed, for variable-speed control |
 | `efficiency` | Dimensionless | — | 0.1 … 0.95 | Hydraulic efficiency; default 0.7 |
 | `margin` | Dimensionless | — | 1 … 2 | Explicit head multiplier used only when auto-sizing; default 1.0 |
+| `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Changes the pipes attached to it, not the pump's equation. |
 | `curve` | — | — | — | Named curve, or absent for the default quadratic |
 
 **Properties:** `head`, `dp`, `flow`, `power`, `speed`, `efficiency`.
@@ -671,7 +692,7 @@ resolves to `volume`; neither alias is emitted (`D-32`). The tank is a mixed jun
 and a stack of equal-volume, perfectly mixed layers in a transient.
 
 **Ports:** indexed `in1`…`in16` and `out1`…`out16`, all bidirectional at solve time. `in1` and `out1`
-always exist. Higher ports materialize only when named by a qualified connection or an elevation
+always exist. Higher ports materialize only when named by a qualified connection or a level
 parameter. With several ports, qualified endpoints are the canonical authoring form. Actual solved
 flow sign decides whether fluid enters or leaves; an `in` port with reverse flow draws from its layer.
 
@@ -681,12 +702,13 @@ flow sign decides whether fluid enters or leaves; an `in` port with reverse flow
 | `layers` | Dimensionless integer | — | 1 … 100; **default 5** | Equal-volume layers, indexed bottom to top |
 | `t` | Temperature | °C | −50 … 300 | Uniform initial temperature for every layer |
 | `t1`…`tN` | Temperature | °C | −50 … 300 | Complete bottom-to-top initial profile; N equals `layers` |
-| `in1_elevation`…`in16_elevation` | Dimensionless | — | 0 … 1; **default 0.5** | Normalized inlet height, bottom 0 and top 1 |
-| `out1_elevation`…`out16_elevation` | Dimensionless | — | 0 … 1; **default 0.5** | Normalized outlet height |
+| `in1_level`…`in16_level` | Dimensionless | — | 0 … 1; **default 0.5** | Normalized inlet height, bottom 0 and top 1 |
+| `out1_level`…`out16_level` | Dimensionless | — | 0 … 1; **default 0.5** | Normalized outlet height |
+| `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. **One height for the vessel and every port on it**: `D-70`'s `z_port = z_tank + f·H` needs a vessel height the tank does not have, and waits for P6.2's geometry. |
 
 `t` and indexed `tN` are mutually exclusive. If indexed temperatures are used, **every** layer must
-be stated. With neither, the mixed steady solution initializes all layers. Elevation maps by
-`min(floor(elevation × layers) + 1, layers)`: 0 is layer 1, 30% of a five-layer tank is layer 2, and
+be stated. With neither, the mixed steady solution initializes all layers. A level maps by
+`min(floor(level × layers) + 1, layers)`: 0 is layer 1, 30% of a five-layer tank is layer 2, and
 1 is the top layer. The boundary rule is explicit so a port exactly on a layer boundary is not placed
 differently by two implementations.
 
@@ -704,11 +726,13 @@ flow already makes that row an identity, exactly as for an interior node:
 pᵢ − p₁ = 0                       i = 2…K
 ```
 
-No hydrostatic term is applied: normalized port height is thermal metadata, not physical metres, and
-the script has no vessel height from which to compute `ρgΔz`. No internal pressure drop is invented.
+No hydrostatic term is applied across the vessel: a port's level is thermal metadata, not physical
+metres, and the script has no vessel height from which to compute `ρgΔz` between two ports. The
+tank's one `elevation` places every port at the same height, so the pipes reaching it carry the
+rise to and from it (`D-70`). No internal pressure drop is invented.
 
 For a steady solve, all layers collapse to one perfectly mixed enthalpy `h_tank`; every outflow carries
-it and the incoming-stream energy balance is zero. `volume`, `layers`, and elevations have no steady
+it and the incoming-stream energy balance is zero. `volume`, `layers`, and levels have no steady
 effect and remain visible design data. This supplies a unique equilibrium and makes `layers=1`
 identical to the steady behavior of every larger count.
 
@@ -864,7 +888,7 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2112` | Exactly one secondary port is connected | Error | `{name}: Coupled mode requires both in2 and out2 connections; {port} is open.` |
 | `FS2113` | Tank uses `t` with any indexed temperature, or states only part of `t1`…`tN` | Error | `{name}: state either t for every layer, or all of t1…t{layers}; do not mix them.` |
 | `FS2114` | `layers` is non-integral or outside 1…100 | Error | `{name}: layers must be a whole number from 1 to 100.` |
-| `FS2115` | A tank port elevation is outside 0…1 | Error | `{name}: {parameter} is normalized height and must be between 0 (bottom) and 1 (top).` |
+| `FS2115` | A tank port level is outside 0…1 | Error | `{name}: {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).` |
 | `FS2116` | Tank substance is not a supported single-phase liquid | Error | `{name}: stratified tank supports a single-phase liquid; {substance} is outside that model.` |
 | `FS2117` | A required parameter is absent | Error | `'{name}': a {kind} must state {parameter}.` |
 | `FS2118` | A parameter group has too few of its members stated | Error | `'{name}': a {kind} must state {count} of {parameters}.` |
@@ -963,17 +987,17 @@ such row.
       produces **no** `FS4009`; the same valve with a genuinely reversed branch still does.
 - [ ] `power=-70 dt=20` gives an outlet 20 K below the inlet; `dt=-20` produces `FS1307`.
 - [ ] `nodes=2` on a pipe produces four states with a monotonic profile.
-- [ ] `T1 tank` resolves `volume=300 dm3`, `layers=5`, and 0.5 elevations as defaults—not sized or
+- [ ] `T1 tank` resolves `volume=300 dm3`, `layers=5`, and 0.5 levels as defaults—not sized or
       stated—and the model contract reports the basis for each.
 - [ ] `T1 container v=300` produces the same domain component as canonical `T1 tank volume=300`; the
       semantic model and wire contract use canonical names while the source round-trips byte for byte.
-- [ ] A five-layer tank maps elevations 0, 0.30, 0.90, and 1.0 to layers 1, 2, 5, and 5 exactly.
+- [ ] A five-layer tank maps levels 0, 0.30, 0.90, and 1.0 to layers 1, 2, 5, and 5 exactly.
 - [ ] A four-port tank contributes one mass balance and three independent pressure equalities, with no
       hydrostatic term; reverse flow uses actual sign to swap inlet/outlet behavior.
 - [ ] A steady tank produces one mixed outlet enthalpy for every outflow regardless of `layers`; a
       transient `layers=1` starts from and returns to the same equilibrium.
 - [ ] Partial indexed temperatures and `t` plus `t1` produce `FS2113`; non-integral layers and invalid
-      elevations produce `FS2114`/`FS2115` without throwing.
+      levels produce `FS2114`/`FS2115` without throwing.
 
 ## Open questions
 

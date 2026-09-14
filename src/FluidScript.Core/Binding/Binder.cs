@@ -107,6 +107,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             SymbolMap = _symbolMap,
             Deferred = [.. _deferred],
             Curves = [.. _curves],
+            Heights = _heights,
         };
 
         return new BindResult(model, [.. _diagnostics.OrderBy(static d => d.Span?.Start ?? 0)]);
@@ -517,7 +518,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             }
         }
 
-        // An indexed family member — `t3`, `in2_elevation` — is matched against its pattern before
+        // An indexed family member — `t3`, `in2_level` — is matched against its pattern before
         // similarity, so a tank's fortieth layer is an index error rather than an unknown parameter.
         foreach (var family in kind.IndexedParameterFamilies)
         {

@@ -184,7 +184,11 @@ The semantic model arrives with inference already applied. Lowering does five th
    states `dn`, and the designation becomes a bore through [`27`](27-component-catalog.md), which ships
    a package later — lowering takes the mapping as an injected lookup (`C-24`).
    Indexed tank ports have already been materialized by the binder; lowering maps each normalized
-   elevation to exactly one bottom-to-top layer and does not create ports absent from source (`D-32`).
+   level to exactly one bottom-to-top layer and does not create ports absent from source (`D-32`).
+   **Heights arrive resolved** (`D-70`): the binder has already propagated every stated `elevation`
+   into `SemanticModel.Heights`, so a node takes its `Elevation` from the map and a pipe its `Rise`
+   as `z(out) − z(in)`; lowering computes no height of its own. A subdivided pipe shares its rise
+   evenly and each internal node sits one share above the last.
 2. **Materialise pipe internals.** A `pipe` with `nodes=n` expands into n internal thermodynamic nodes
    and n+1 hydraulic sub-pipes, each 1/(n+1) of the length. The internal nodes separately own equal
    shares `V/n` of the pipe's thermal volume; endpoint nodes own none. This happens here rather than in
@@ -198,6 +202,33 @@ The semantic model arrives with inference already applied. Lowering does five th
 Lowering is where the semantic model's names stop mattering and the graph's structure starts. After
 this point nothing knows a script existed, which is what makes the solver testable from a
 hand-constructed graph.
+
+### Heights span pipes and bare links, and nothing else
+
+`D-70` made `elevation` an absolute height on every single-height kind, and the consequence for the
+graph is one rule: **a component has one height and every port of it sits there; a pipe and a bare
+node-to-node connection are the only edges that join two heights.** So heights flood from every
+stated `elevation` through pumps, valves, exchangers, tanks and nodes alike, and stop at a pipe or a
+bare link. A pipe's rise is the difference between the two classes it joins and its `ρgΔz` sits in
+its own momentum row, with `−ṁgΔz` injected through `D-69`'s flux. A bare link between two nodes at
+different heights is `D-25`'s ideal link with a hydrostatic term: the assembler's row is
+`p_A − p_B − ρ̄g(z_B − z_A) = 0` at the mean density of the two ends, and the enthalpy arriving at the
+higher node is read `g·Δz` lower (`ArrivingSource.Lift`), because there is no component between them
+to inject it. Sizing counts the same term when it walks a loop's drop (`BranchResistance.Along` over
+a `Branch`), which is what keeps a pump sized to friction alone on a loop that climbs through a pipe
+and comes down through a link — measured at 45.8 m against 5.3 m before the walk counted it.
+
+**An omitted height is inherited, and 0 only where nothing states one** (`D-95`). A pump wired
+straight to a load on the roof is on the roof. Two *stated* heights meeting without a pipe between
+them are a missing riser, `FS2219`, named on the later declaration with both components in the
+message; the tool never picks one, because the difference is up to 10 kPa per metre of fabricated
+pressure. The propagation is a union-find over connection endpoints in the binder
+([`15`](../10-language/15-semantic-model.md) step 8b), after inference so the I2 node between two
+components at different heights is the case the diagnostic describes.
+
+**The tank is a single height for now.** `D-70` gives its ports `z_tank + f·H`; the tank has no
+height `H` until P6.2 gives it geometry, so every port sits at the vessel's `elevation` and the pipes
+reaching it carry the rise. Recorded as a deliberate partial, not an oversight.
 
 ### Observers are lowered past the graph, not into it
 
@@ -606,6 +637,13 @@ individually reasonable and the interaction is invisible.
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
 | `FS2217` | A subcircuit's attachment endpoint resolves to its own circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
 | `FS2218` | A flow constraint answered by a pump on none of its owner's branches | Warning | `'{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it.` |
+
+| `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |
+
+**`FS2219` is an error because the alternative fabricates pressure.** Only a pipe or a bare link
+spans two heights (`D-70`); a valve that says 0 m wired straight to a load that says 32 m has left
+the riser out, and picking either height would put up to 313 kPa into the loop that nothing wrote.
+Reported by the binder on the later declaration's `elevation`, naming both, so either fix is one edit.
 
 **`FS2218` reports a reach and does not stop it.** Promotion reaches across the plant on purpose: two
 parallel branches below one shared pump are both served by it, the first taking its head and the

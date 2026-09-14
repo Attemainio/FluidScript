@@ -293,7 +293,7 @@ public sealed class FlowComponentTests
     {
         // 10 m up, 998.2 kg/m3: 998.2 x 9.80665 x 10 = 97 890 Pa, and the residual carries it whether
         // or not anything is flowing.
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273, elevation: 10);
+        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273, rise: 10);
 
         Span<double> residuals = stackalloc double[1];
         pipe.EvaluateResiduals(

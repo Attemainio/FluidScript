@@ -27,8 +27,36 @@ Every one of them is a boundary condition. A node with none is solved.
 | `t` | °C | Fixes the temperature. On an interior node it is a **setpoint** — see below |
 | `p` | kPa | Fixes the pressure. The first stated `p` in a circuit is also its pressure datum |
 | `flow` | kg/s | Terminal flow. Positive follows the nominal connection: an upstream terminal injects, a downstream one extracts |
+| `elevation` | m | Height above the project datum — see [Height](#height) |
 
-Omitting any of them means the solver works it out, which is the normal case.
+Omitting any of them means the solver works it out, which is the normal case — except `elevation`,
+which is never worked out: a height is where the plant is, not a number the tool may choose.
+
+## Height
+
+Every piece of equipment sits at one height, and `elevation` says which, in metres above wherever
+you call zero — usually the plant room floor:
+
+```fluidscript
+HE_AHU load power=24 in=50 out=30 elevation=32
+N4     node elevation=32
+```
+
+You need not write it on everything. **A height spreads to whatever is wired to it without a pipe
+in between**: the valve next to the AHU, the pump beside it, the nodes joining them are all on the
+roof once the AHU says so. Only a [`pipe`](pipe.md) — or a bare `A - B` between two nodes — runs
+between two heights, and it takes the difference as its rise. Where nothing states a height,
+everything sits at 0, so a script with no `elevation` in it means exactly what it did before.
+
+Two stated heights joined directly, with no pipe between them, is a missing riser and
+[`FS2219`](diagnostics.md) says so rather than choosing one: the difference is 10 kPa per metre, and a
+pressure nothing wrote is the one mistake this feature exists to make unwritable.
+
+**Mind the fill pressure.** Water at the top of a 32 m riser is 313 kPa below the bottom. With no
+`p=` anywhere the datum is picked at 100 kPa, the top of the building sits at −213 kPa, and the
+solve stops with [`FS3007`](diagnostics.md) — an impossible fluid state — rather than a hint about the
+static head. State the fill pressure on a node in the plant room: `N1 node p=450` is a 32 m building
+with a 0.3 bar margin at the top.
 
 ## A temperature on an interior node is a setpoint
 

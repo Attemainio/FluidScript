@@ -207,7 +207,7 @@ public sealed class TankTests
 
         Assert.Equal(0.3, tank.Volume, tolerance: 1e-12);
         Assert.Equal(5, tank.Layers);
-        Assert.Equal([0.5, 0.5], tank.PortElevations);
+        Assert.Equal([0.5, 0.5], tank.PortLevels);
         Assert.Equal(["in1", "out1"], tank.Ports.Select(static port => port.Name));
     }
 

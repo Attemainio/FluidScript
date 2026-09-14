@@ -672,7 +672,7 @@ public sealed class OuterLoop(
             {
                 State = state,
                 MassFlow = flow,
-                BranchDrop = Resistance(graph, state, legs[variable].Path, flow, valve),
+                BranchDrop = Resistance(graph, state, legs[variable], flow, valve),
                 LoopDrop = Circuit(graph, layout, iterate, valve, state),
                 AvailableDrop = driven ? null : Offered(graph),
             };
@@ -956,7 +956,7 @@ public sealed class OuterLoop(
         {
             State = state,
             MassFlow = flow,
-            BranchDrop = Resistance(graph, state, branch.Path, flow, component),
+            BranchDrop = Resistance(graph, state, branch, flow, component),
             LoopDrop = Circuit(graph, layout, iterate, component, state),
             AvailableDrop = Driven(graph, component) ? null : Offered(graph),
         };
@@ -1058,7 +1058,7 @@ public sealed class OuterLoop(
             foreach (var branch in loop.Branches)
             {
                 drop += Resistance(
-                    graph, state, branch.Path, iterate.Values[layout.BranchFlow(branch.Index)], component);
+                    graph, state, branch, iterate.Values[layout.BranchFlow(branch.Index)], component);
             }
 
             worst = Math.Max(worst ?? drop, drop);
@@ -1067,7 +1067,7 @@ public sealed class OuterLoop(
         if (worst is null && onALoop
             && graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(component)) is { } own)
         {
-            return Resistance(graph, state, own.Path, iterate.Values[layout.BranchFlow(own.Index)], component);
+            return Resistance(graph, state, own, iterate.Values[layout.BranchFlow(own.Index)], component);
         }
 
         return worst;
@@ -1076,7 +1076,7 @@ public sealed class OuterLoop(
     /// <summary>What a run of components resists at a flow, by their own laws.</summary>
     /// <param name="graph">The graph, for its substance.</param>
     /// <param name="state">The fluid to evaluate the laws against.</param>
-    /// <param name="path">The components along the run.</param>
+    /// <param name="branch">The branch, ends included.</param>
     /// <param name="flow">kg/s through them.</param>
     /// <param name="exclude">The component whose own contribution is left out.</param>
     /// <returns>Pa, positive against the flow.</returns>
@@ -1088,8 +1088,8 @@ public sealed class OuterLoop(
     private static double Resistance(
         CircuitGraph graph,
         FluidState state,
-        ImmutableArray<IFlowComponent> path,
+        Branch branch,
         double flow,
         IFlowComponent exclude) =>
-        BranchResistance.Along(graph, state, path, flow, exclude);
+        BranchResistance.Along(graph, state, branch, flow, exclude);
 }

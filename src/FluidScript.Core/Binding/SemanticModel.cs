@@ -59,6 +59,14 @@ public sealed record SemanticModel
     /// a named table, and every circuit that names it reads the same one.
     /// </value>
     public ImmutableArray<CurveSymbol> Curves { get; init; } = [];
+
+    /// <summary>Gets where every component sits, once the script's heights have been propagated (<c>D-70</c>).</summary>
+    /// <value>
+    /// Derived, never stated: the result of flooding each written <c>elevation</c> through everything
+    /// wired to it without a pipe in between. Lowering reads a node's height and a pipe's rise from
+    /// here, so the hydrostatic terms around a closed loop cancel by construction.
+    /// </value>
+    public HeightMap Heights { get; init; } = HeightMap.Empty;
 }
 
 /// <summary>One circuit and everything settled about it before topology.</summary>
@@ -243,7 +251,7 @@ public sealed record ComponentSymbol
 
     /// <summary>Gets the ports that exist on this component.</summary>
     /// <value>
-    /// The kind's fixed ports, plus any indexed port a qualified endpoint or an elevation parameter
+    /// The kind's fixed ports, plus any indexed port a qualified endpoint or a level parameter
     /// evidenced. A port nothing named does not exist here or in the model contract: a tank has
     /// sixteen possible inlets and however many the script actually used.
     /// </value>

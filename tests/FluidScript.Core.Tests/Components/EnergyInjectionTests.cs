@@ -180,7 +180,7 @@ public sealed class EnergyInjectionTests
 
     private static Pipe Level { get; } = new("P1", length: 10, insideDiameter: 0.0273);
 
-    private static Pipe Riser { get; } = new("P2", length: 10, insideDiameter: 0.0273, elevation: 10);
+    private static Pipe Riser { get; } = new("P2", length: 10, insideDiameter: 0.0273, rise: 10);
 
     private static (double Inlet, double Outlet) Injection(Pipe pipe, double flow)
     {

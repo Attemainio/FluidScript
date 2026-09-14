@@ -43,7 +43,8 @@ TV1.b - N3
 
 ## Parameters
 
-The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`.
+The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`, and
+`elevation` — one height for all three ports; see [`node`](node.md#height).
 
 `position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
 happens to run.

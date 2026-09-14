@@ -48,6 +48,10 @@ internal sealed partial class BindingRun
         _sourceConnections.AddRange(_connections);
 
         ApplyInference();
+
+        // After inference, so the node I2 puts between two components at different heights is the
+        // one FS2219 describes; before observers, which sit on nodes and carry no height (D-70).
+        AssignHeights();
         BindObservers();
         BindControlBindings(blocks);
         BindSchedule(blocks);
@@ -91,7 +95,7 @@ internal sealed partial class BindingRun
 
     /// <summary>Collects the ports the source actually named, per component.</summary>
     /// <remarks>
-    /// Two things evidence a port: a qualified endpoint naming it, and an elevation parameter that
+    /// Two things evidence a port: a qualified endpoint naming it, and a level parameter that
     /// belongs to it. Nothing else creates one — a tank has sixteen possible inlets and exactly as
     /// many as the script used.
     /// </remarks>
@@ -124,7 +128,7 @@ internal sealed partial class BindingRun
         {
             foreach (var family in component.Kind?.PortFamilies ?? [])
             {
-                if (family.ElevationParameterSuffix is not { } suffix)
+                if (family.LevelParameterSuffix is not { } suffix)
                 {
                     continue;
                 }

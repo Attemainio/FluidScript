@@ -21,7 +21,7 @@ namespace FluidScript.Core.Components;
 /// in disguise.
 /// </para>
 /// <para>
-/// <strong>Volume, layers and elevations have no steady effect at all</strong>, and stay visible design
+/// <strong>Volume, layers and levels have no steady effect at all</strong>, and stay visible design
 /// data rather than being dropped. That is what makes <c>layers=1</c> identical to the steady behaviour
 /// of every larger count, and it gives the steady solve a unique equilibrium.
 /// </para>
@@ -37,7 +37,7 @@ public sealed class Tank : IFlowComponent
 
     /// <summary>The normalized height a port gets when the script states none.</summary>
     /// <value>0.5, mid-height.</value>
-    public const double DefaultElevation = 0.5;
+    public const double DefaultLevel = 0.5;
 
     private readonly ImmutableArray<UnknownDeclaration> _unknowns;
     private readonly ImmutableArray<EquationDeclaration> _equations;
@@ -50,7 +50,7 @@ public sealed class Tank : IFlowComponent
     /// <param name="outletElevations">Normalized heights of <c>out1</c> onwards. At least one.</param>
     /// <param name="volume">m³ of liquid.</param>
     /// <param name="layers">Equal-volume layers, indexed bottom to top.</param>
-    /// <exception cref="ArgumentException">Either elevation list is empty.</exception>
+    /// <exception cref="ArgumentException">Either level list is empty.</exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="volume"/> is not positive, or <paramref name="layers"/> is below one.
     /// </exception>
@@ -65,13 +65,13 @@ public sealed class Tank : IFlowComponent
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(volume);
         ArgumentOutOfRangeException.ThrowIfLessThan(layers, 1);
 
-        var inlets = inletElevations.IsDefaultOrEmpty ? [DefaultElevation] : inletElevations;
-        var outlets = outletElevations.IsDefaultOrEmpty ? [DefaultElevation] : outletElevations;
+        var inlets = inletElevations.IsDefaultOrEmpty ? [DefaultLevel] : inletElevations;
+        var outlets = outletElevations.IsDefaultOrEmpty ? [DefaultLevel] : outletElevations;
 
         Name = name;
         Volume = volume;
         Layers = layers;
-        PortElevations = [.. inlets, .. outlets];
+        PortLevels = [.. inlets, .. outlets];
 
         Ports =
         [
@@ -108,7 +108,7 @@ public sealed class Tank : IFlowComponent
             Name = prefix + (index + 1).ToString(CultureInfo.InvariantCulture),
             Role = PortRole.Bidirectional,
             IsOptional = index > 0,
-            NormalizedElevation = elevation,
+            NormalizedLevel = elevation,
         };
     }
 
@@ -150,7 +150,7 @@ public sealed class Tank : IFlowComponent
 
     /// <summary>Gets each port's normalized height, in port order.</summary>
     /// <value>0 at the bottom and 1 at the top.</value>
-    public ImmutableArray<double> PortElevations { get; }
+    public ImmutableArray<double> PortLevels { get; }
 
     /// <summary>Gets whether this tank contributes a mass balance.</summary>
     public bool CarriesMassBalance { get; }
@@ -160,7 +160,7 @@ public sealed class Tank : IFlowComponent
     /// <strong>All bidirectional, whatever they are called.</strong> The solved flow sign decides
     /// whether fluid enters or leaves, so an <c>in</c> port with reverse flow draws from its layer.
     /// <c>in1</c> and <c>out1</c> always exist; higher ports materialize only when a qualified
-    /// connection or an elevation parameter names them.
+    /// connection or a level parameter names them.
     /// </remarks>
     public ImmutableArray<Port> Ports { get; }
 
@@ -185,23 +185,23 @@ public sealed class Tank : IFlowComponent
     /// <inheritdoc/>
     public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
 
-    /// <summary>The layer a normalized height selects.</summary>
-    /// <param name="elevation">0 at the bottom, 1 at the top.</param>
+    /// <summary>The layer a normalized level selects.</summary>
+    /// <param name="level">0 at the bottom, 1 at the top.</param>
     /// <param name="layers">The layer count.</param>
     /// <returns>A one-based layer index, bottom to top.</returns>
     /// <remarks>
-    /// <c>min(floor(elevation × layers) + 1, layers)</c>. <strong>The boundary rule is explicit so that
+    /// <c>min(floor(level × layers) + 1, layers)</c>. <strong>The boundary rule is explicit so that
     /// a port sitting exactly on a layer boundary is not placed differently by two implementations</strong>
     /// — in a five-layer tank, 0 is layer 1, 0.30 is layer 2, 0.90 is layer 5, and 1 is the top layer
     /// rather than a sixth that does not exist.
     /// </remarks>
-    public static int LayerFor(double elevation, int layers) =>
-        Math.Min((int)Math.Floor(elevation * layers) + 1, layers);
+    public static int LayerFor(double level, int layers) =>
+        Math.Min((int)Math.Floor(level * layers) + 1, layers);
 
     /// <summary>The layer a port's height selects in this tank.</summary>
     /// <param name="port">The port's index in <see cref="Ports"/>.</param>
     /// <returns>A one-based layer index.</returns>
-    public int LayerForPort(int port) => LayerFor(PortElevations[port], Layers);
+    public int LayerForPort(int port) => LayerFor(PortLevels[port], Layers);
 
     /// <inheritdoc/>
     /// <remarks>

@@ -324,7 +324,8 @@ public sealed class ComponentRegistry : IComponentRegistry
         Parameters = Parameters(
             Sized("t", Dimension.Temperature, -50, 300, precision: 1),
             Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
-            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3)),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
+            Elevation()),
         Properties = Properties(
             Solved("t", Dimension.Temperature),
             Solved("p", Dimension.Pressure),
@@ -353,7 +354,8 @@ public sealed class ComponentRegistry : IComponentRegistry
         Parameters = Parameters(
             Required("t", Dimension.Temperature, -50, 300, precision: 1),
             Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
-            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3)),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
+            Elevation()),
         ParameterGroups =
         [
             Exactly(
@@ -391,7 +393,8 @@ public sealed class ComponentRegistry : IComponentRegistry
         Parameters = Parameters(
             Sized("t", Dimension.Temperature, -50, 300, precision: 1),
             Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
-            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3)),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
+            Elevation()),
         Properties = Properties(
             Solved("t", Dimension.Temperature),
             Solved("p", Dimension.Pressure),
@@ -414,10 +417,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("dn", Dimension.NominalDiameter, 6, 2000, precision: 0),
             Defaulted("roughness", Dimension.Length, 1e-6, 5e-3, "0.045 mm", "commercial steel", precision: 4),
             Sized("nodes", Dimension.Dimensionless, 0, 100, precision: 0),
-            // A height is where the plant is, not something equipment selection decides, so an
-            // omitted one is 0 rather than a sizing candidate (D-70, C-41). It stays a signed rise
-            // until the elevation package makes it an absolute height on every kind.
-            Defaulted("elevation", Dimension.Length, -500, 500, "0 m", "no elevation stated", precision: 2),
+            // No `elevation` here, deliberately: a pipe is the one kind that spans two heights, so
+            // its rise is z(out) - z(in) from what it connects, never a number of its own (D-70).
             Defaulted("minor_loss", Dimension.Dimensionless, 0, 10000, "0", "no fittings stated", precision: 2)),
         Properties = Properties(
             Solved("dp", Dimension.PressureDelta),
@@ -486,7 +487,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("plates", Dimension.Dimensionless, 3, 800, precision: 0),
             Sized("lamella", Dimension.Length, 1e-3, 20e-3, precision: 4),
             Sized("plate_area", Dimension.Area, 1e-3, 5, precision: 4),
-            Defaulted("fouling", FoulingResistance, 0, 1e-2, "0.00001", "clean surfaces", precision: 6)),
+            Defaulted("fouling", FoulingResistance, 0, 1e-2, "0.00001", "clean surfaces", precision: 6),
+            Elevation()),
         Properties = Properties(
             Sized("power", Dimension.Power),
             Sized("ua", ConductancePerKelvin),
@@ -568,7 +570,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("speed", Dimension.Dimensionless, 0, 1.2, precision: 2),
             Defaulted("efficiency", Dimension.Dimensionless, 0.1, 0.95, "0.7", "a typical wet-rotor circulator", precision: 2)
                 with { Validity = Bounded(BinderDiagnostics.EfficiencyOutsideRange, 0, 1) },
-            Defaulted("margin", Dimension.Dimensionless, 1, 2, "1.0", "size to the computed duty, with no spare", precision: 2)),
+            Defaulted("margin", Dimension.Dimensionless, 1, 2, "1.0", "size to the computed duty, with no spare", precision: 2),
+            Elevation()),
         Properties = Properties(
             Sized("head", Dimension.Head),
             Solved("dp", Dimension.PressureDelta),
@@ -591,7 +594,7 @@ public sealed class ComponentRegistry : IComponentRegistry
                 MinIndex = 1,
                 MaxIndex = 16,
                 Role = PortRole.Bidirectional,
-                ElevationParameterSuffix = "_elevation",
+                LevelParameterSuffix = "_level",
             },
             new PortFamilyInfo
             {
@@ -599,7 +602,7 @@ public sealed class ComponentRegistry : IComponentRegistry
                 MinIndex = 1,
                 MaxIndex = 16,
                 Role = PortRole.Bidirectional,
-                ElevationParameterSuffix = "_elevation",
+                LevelParameterSuffix = "_level",
             },
         ],
         IndexedParameterFamilies =
@@ -613,21 +616,21 @@ public sealed class ComponentRegistry : IComponentRegistry
             },
             new IndexedParameterFamilyInfo
             {
-                Pattern = "in{index}_elevation",
+                Pattern = "in{index}_level",
                 MinIndex = 1,
                 MaxIndex = 16,
                 Element = Defaulted(
-                    "in_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
-                    with { Validity = Bounded(BinderDiagnostics.ElevationOutsideRange, 0, 1) },
+                    "in_level", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
+                    with { Validity = Bounded(BinderDiagnostics.LevelOutsideRange, 0, 1) },
             },
             new IndexedParameterFamilyInfo
             {
-                Pattern = "out{index}_elevation",
+                Pattern = "out{index}_level",
                 MinIndex = 1,
                 MaxIndex = 16,
                 Element = Defaulted(
-                    "out_elevation", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
-                    with { Validity = Bounded(BinderDiagnostics.ElevationOutsideRange, 0, 1) },
+                    "out_level", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
+                    with { Validity = Bounded(BinderDiagnostics.LevelOutsideRange, 0, 1) },
             },
         ],
         DrivesFlow = false,
@@ -637,7 +640,10 @@ public sealed class ComponentRegistry : IComponentRegistry
                 with { Aliases = ["v"] },
             Defaulted("layers", Dimension.Dimensionless, 1, 100, "5", "enough to show stratification", precision: 0)
                 with { Validity = Bounded(BinderDiagnostics.InvalidLayerCount, 1, 100, wholeNumber: true) },
-            Sized("t", Dimension.Temperature, -50, 300, precision: 1)),
+            Sized("t", Dimension.Temperature, -50, 300, precision: 1),
+            // One height for the whole vessel and every port on it. `D-70`'s z_port = z_tank + f·H
+            // waits for the tank to have a height, which is P6.2's geometry, not this registry's.
+            Elevation()),
         Properties = Properties(
             Declared("volume", Dimension.Volume),
             Declared("layers", Dimension.Dimensionless),
@@ -702,6 +708,24 @@ public sealed class ComponentRegistry : IComponentRegistry
         Properties = Properties(Solved(property, dimension)),
     };
 
+    /// <summary>The absolute height every single-height kind carries (<c>D-70</c>).</summary>
+    /// <returns>The parameter, in metres above the project datum.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>Not a sizing candidate, ever.</strong> A height is where the plant is, not something
+    /// equipment selection decides (<c>C-41</c>), so an omitted one is defaulted rather than sized.
+    /// The default is stated as 0 m for the registry's sake; the binder's height propagation is what
+    /// decides the height a silent component actually sits at (<c>D-95</c>), and it reads only the
+    /// heights the script wrote.
+    /// </para>
+    /// <para>
+    /// A pipe is the one flow kind without it: it spans two heights and its rise is derived from
+    /// what it connects. A sensor has none because it observes a node and carries no port.
+    /// </para>
+    /// </remarks>
+    private static ParameterInfo Elevation() =>
+        Defaulted("elevation", Dimension.Length, -500, 500, "0 m", "no elevation stated", precision: 2);
+
     private static ImmutableDictionary<string, ParameterInfo> ValveParameters() => Parameters(
         Sized("kv", Dimension.Kv, 0.01, 10000, precision: 2),
         Sized("position", Dimension.Dimensionless, 0, 1, precision: 3)
@@ -712,7 +736,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             "equal_percentage",
             "the usual choice for a control valve"),
         Sized("authority", Dimension.Dimensionless, 0, 1, precision: 2),
-        Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1));
+        Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1),
+        Elevation());
 
     private static ImmutableDictionary<string, PropertyInfo> ValveProperties() => Properties(
         Sized("kv", Dimension.Kv),

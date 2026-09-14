@@ -451,8 +451,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             metres,
             bore,
             Value(symbol, kind, "roughness") ?? 0.045e-3,
-            Value(symbol, kind, "minor_loss") ?? 0,
-            Value(symbol, kind, "elevation") ?? 0)
+            Value(symbol, kind, "minor_loss") ?? 0)
         {
             StatedParameters = stated,
             SizedParameters = sized,
@@ -496,8 +495,8 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
 
         return new Tank(
             symbol.Name,
-            Elevations(symbol, kind, "in"),
-            Elevations(symbol, kind, "out"),
+            Levels(symbol, kind, "in"),
+            Levels(symbol, kind, "out"),
             Value(symbol, kind, "volume") ?? Components.Tank.DefaultVolume,
             (int)layers)
         {
@@ -513,11 +512,11 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
     /// <param name="prefix"><c>in</c> or <c>out</c>.</param>
     /// <returns>One height per materialized port of that family, mid-height where none was stated.</returns>
     /// <remarks>
-    /// Driven by <see cref="ComponentSymbol.Ports"/> rather than by which elevations were stated: the
+    /// Driven by <see cref="ComponentSymbol.Ports"/> rather than by which levels were stated: the
     /// binder already decided which ports exist, and a port evidenced by a connection has a height
     /// whether or not the script wrote one (<c>D-32</c>).
     /// </remarks>
-    private ImmutableArray<double> Elevations(
+    private ImmutableArray<double> Levels(
         ComponentSymbol symbol, ComponentKindInfo kind, string prefix)
     {
         var heights = ImmutableArray.CreateBuilder<double>();
@@ -531,7 +530,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 break;
             }
 
-            heights.Add(Value(symbol, kind, $"{port}_elevation") ?? Components.Tank.DefaultElevation);
+            heights.Add(Value(symbol, kind, $"{port}_level") ?? Components.Tank.DefaultLevel);
         }
 
         return heights.ToImmutable();

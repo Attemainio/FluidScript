@@ -302,7 +302,7 @@ public sealed class ComponentRegistryTests
         Assert.Equal("5", tank.Parameters["layers"].DefaultLiteral);
 
         Assert.Equal(
-            ["in{index}_elevation", "out{index}_elevation", "t{index}"],
+            ["in{index}_level", "out{index}_level", "t{index}"],
             tank.IndexedParameterFamilies.Select(static family => family.Pattern).Order(StringComparer.Ordinal));
 
         // The layer count is a parameter, so the family's maximum is not a constant.

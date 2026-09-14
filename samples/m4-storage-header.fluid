@@ -16,7 +16,7 @@ show temperature
 
 S1 supply t=60 flow=0.12
 S2 supply t=45 flow=0.08
-T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_elevation=90% in2_elevation=30% out1_elevation=90% out2_elevation=30%
+T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
 RAD_NETWORK return flow=0.12
 AHU_NETWORK return flow=0.08
 

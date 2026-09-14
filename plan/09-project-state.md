@@ -55,7 +55,8 @@ would be filled with nothing.
 ## Where the project stands
 
 > **Phase P3, milestone M2a — the hydraulic core.**
-> P3.0 through P3.8 have shipped. **P3.9 has not been started.**
+> P3.0 through P3.9 have shipped; **P3 is code-complete** and M2a's exit waits on `05`'s
+> unmeasured criteria and the R-17 coverage row.
 > **All three M2a demo scripts converge**, as of 2026-09-14, and the header lands on `01`'s figures.
 > `S-58` was the last blocker: a junction mixed its inlets by a plain average, so no valve position
 > could move a mixed temperature. `D-91` (positive role capacities) and `D-92` (fixed flow as a flow
@@ -82,7 +83,7 @@ that test rather than quietly improving.
 | P0 | pre-M0 | 3 | **Complete** | 2026-09-01 |
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
-| P3 | M2a | 10 | **In progress** — P3.0–P3.8 shipped, P3.9 not started | — |
+| P3 | M2a | 10 | **In progress** — every package shipped; M2a's exit checklist is what remains | — |
 | P4 | M2b | 3 | Not started | — |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
@@ -154,7 +155,7 @@ each names the package that closed it. Seven remain open; see
 | P3.7a | The seed that closes every mass balance | `1fe14ce` | Shipped |
 | P3.7b | Sizing rules and the single outer loop | `91ac4fc`…`0689589` (5) | Shipped |
 | P3.8 | The design point as the sizing point — `sized_at` (`D-94`) | `b079ec6` | Shipped 2026-09-14 |
-| **P3.9** | **Elevation as an absolute height** | — | **Not started** |
+| P3.9 | Elevation as an absolute height (`D-70`, `D-95`) | uncommitted | Shipped 2026-09-14 |
 
 **P3.1a and P3.4c were not in the plan.** P3.1a transcribed the reference circuits before anything
 could solve them and found two defects in the documents that define them. P3.4c began as a change to
@@ -170,9 +171,18 @@ reading the curve at its own bivalent point, the closed-circuit closure sizing i
 fraction reported as the parameter's basis. The live-curve half (a curve as a function of time in a
 transient run) moved to P6.1, where a clock first exists; `08` records the re-scope.
 
-**P3.9's one-line half was taken early**: an omitted height stopped being a sizing candidate before
-P3.7 could act on it (`C-41`). The rest of the package — the parameter on every kind, height
-propagation in lowering, the inferred-node diagnostic, a `/docs` row per kind — has not been built.
+**P3.9 shipped as `D-70` with one amendment and one deferral.** Measured first: the relative rise
+already carried the right physics (313 kPa and 314 J/kg over a 32 m riser, +0.0125 K of friction
+heating on an open one), so the package was the language and the propagation, not the equations.
+`elevation` is now a height on every single-height kind; a pipe has none and its rise is derived;
+a bare node-to-node link carries `ρgΔz` in the assembler, in the arriving enthalpy and in sizing's
+loop walk (the last found by measurement: 45.8 m of head before it counted the link); the tank's
+port fraction is `in1_level`. The amendment is `D-95` — an omitted height is inherited from the
+neighbourhood, not 0, or a roof would need `elevation=32` on every line. The deferral is the tank's
+per-port `z_tank + f·H`, which waits for P6.2 to give the tank a height; its ports take the vessel's
+one height meanwhile, recorded in `22` and `23`. `S-60` was filed on the way: a tall loop with no
+`p=` fails at the seed with `FS3007` and nothing names the fill pressure; with heights on every node
+it is now arithmetic before the seed and the next small change.
 
 P3 is where tiers 20 and 30 were largely written and largely corrected: 49 of tier 20's 68 entries and
 41 of tier 30's 56 are closed. Both Closed tables carry the attribution.
@@ -210,9 +220,9 @@ Counts only. Every description lives in the file named.
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 17 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **46** | |
+| | **47** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -241,8 +251,10 @@ and the coverage row — not the solver. P3.8 closed `C-51` with `D-94` on 2026-
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P3.9** — elevation as an absolute height.
-5. **R-17's coverage row**, then M2a exits and P4 begins. `C-51`'s DHW half — a draw profile as a
+4. **`S-60`** — the fill-pressure check now that every node has a height: one diagnostic naming
+   the node, the static head and the pressure to state.
+5. **R-17's coverage row and `05`'s unmeasured M2a criteria** (humid air, the 4-node pipe profile,
+   the 200/800-unknown scale baselines, the model-contract payload), then M2a exits and P4 begins. `C-51`'s DHW half — a draw profile as a
    design condition — is `C-73`, deferred to P4's substation work.
 
 ## Standing baselines
@@ -252,7 +264,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1484 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1498 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

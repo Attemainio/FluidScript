@@ -91,7 +91,7 @@ public sealed class TopologyBindingTests
         // A tank has sixteen possible inlets. It gets the ones the script wrote and no others, which
         // is what keeps the model contract's port list a description of this script.
         var model = Model(
-            "fluidscript 1\nT1 tank v=300 in3_elevation=0.8\nconnections\nT1.in3 - N1\nT1.out1 - N2\n");
+            "fluidscript 1\nT1 tank v=300 in3_level=0.8\nconnections\nT1.in3 - N1\nT1.out1 - N2\n");
 
         var tank = model.Components.Single(static component => component.Name == "T1");
 
