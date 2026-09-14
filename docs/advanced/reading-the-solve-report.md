@@ -127,6 +127,19 @@ and both temperatures fix the flow through `HE1` — is paid for by promoting `P
 head becomes a number the solver finds, because *something* has to be free for the flow to come out
 where the duty demands.
 
+**When the pump's head is stated, the same line names a valve instead.** `PU1 pump head=15` takes
+the head off the table, and the constraint falls to the first valve on the branch whose `kv` you
+did not state:
+
+```
+    FixedFlow    on HE1        -> solved for as CV1.kv
+```
+
+That valve is then a solved value, not a sized one: it appears in the unknowns table, seeded at the
+catalogue's largest Kv and solved down to what absorbs the surplus, and it appears in no sizing
+basis — no rule chose it and none reports an authority for it. A loop with no such valve is
+over-specified, and the report says so.
+
 **A constraint with no promotion is not automatically a defect.** It can be paid for by a dropped
 enthalpy level instead, which is exactly what happens above: `MixedInlet on HE1` is `in=50`, and the
 loop's redundant energy balance is what it consumes. The footer states the arithmetic so you can

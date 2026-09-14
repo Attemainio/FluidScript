@@ -88,6 +88,7 @@ public static partial class Lowering
                 Groups = build.Groups,
                 Adjacency = build.Adjacency,
                 StatedPorts = build.StatedPorts,
+                ProvisionalParameters = factory.Provisional,
                 CircuitOf = build.CircuitOf,
             },
             build.Unresolved);

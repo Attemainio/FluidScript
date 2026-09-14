@@ -4281,3 +4281,43 @@ until the tank has an `H`; its ports take the vessel's one height meanwhile), an
 [`22-component-model`](../20-core-domain/22-component-model.md) convention 6,
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *Heights span pipes and bare
 links*; `BindingRun.AssignHeights`, `HeightMap`, `FS2219`.
+
+## D-96 · A bootstrap provisional is absence with a number in it: it lets a component build and decides nothing
+
+**Accepted · 2026-09-14** · refines `D-02`; constrains `22`, `23`, `24`
+
+`D-02` allows a parameter three states: stated, and therefore a constraint; sized, chosen by a rule;
+or carrying a visible decided default. A valve has no component without a Kv and a pipe none without
+a bore, so before there is a graph to size against the outer loop writes a *provisional* into the
+sized map — the catalogue's largest Kv, the smallest bore — purely so that lowering can build the
+thing. From the three maps that placeholder was indistinguishable from a rule's choice, and
+well-posedness read it as decided. The consequence was measured on the simplest possible case
+(`C-75`): `PU1 pump head=15` on a loop that needs 5.28 m. The stated head is a constraint, so the
+duty's flow constraint has to be absorbed by something else, and `23` says what — the first free
+valve on the branch, which is what a balancing valve is. Nothing was free. The count reported
+over-specified by one and named the exchanger's own `in` and `out` as the things to remove.
+
+**The rule.** A provisional is a fourth state only in the overlay: `SizingOverlay.Provisional` marks
+it, the factory passes the set to the graph as `CircuitGraph.ProvisionalParameters`, and
+`WellPosedness.IsFree` treats a sized value that is provisional as free. A rule that sizes the
+parameter writes over it and clears the mark; a promotion leaves the mark in place and the solver
+determines the value, and a sizing rule with a promoted parameter is skipped whole — a Kv the
+solver is choosing has no authority a rule can report. The overlay's key set is still fixed before
+the first solve; only what *free* means for one of its entries changed.
+
+**Why not a fourth map on `IComponent`.** Every component type would carry it and nothing but
+counting reads it. The overlay is where the value came from and the graph is what counting sees, and
+the flag travels the same path the value does.
+
+**Rejected.**
+- *Leave `head=15` refused with `FS2210`.* The report is technically honest — one constraint too
+  many — but it names the pair an engineer would never remove and hides the one they would adjust.
+- *Let the sizer run for a promoted Kv and report its authority anyway.* The authority would describe
+  a valve the solver did not choose; a number about nothing.
+- *Bootstrap only what no promotion could ever want.* Undecidable before the graph exists, which is
+  the reason the bootstrap exists.
+
+**Constrains.** [`22-component-model`](../20-core-domain/22-component-model.md) `SizingOverlay`,
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *promotion*,
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *bootstrap*; `OuterLoop.Bootstrap`,
+`OuterLoop.Apply`, `CircuitGraph.ProvisionalParameters`, `WellPosedness.IsFree`.

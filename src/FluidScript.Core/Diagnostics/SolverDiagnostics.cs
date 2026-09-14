@@ -121,7 +121,8 @@ public static class SolverDiagnostics
     /// solver's: the circuit is well-posed and square, and what it is asking for is a valve open past
     /// fully open or a pump with negative head. The number reported is the bound, because that is what
     /// the solve actually used — reporting the unclamped value would name a state no component was ever
-    /// evaluated in.
+    /// evaluated in. It is raised for the <em>final</em> iterate only: a bound the path merely passed
+    /// through says nothing about the answer (<c>S-61</c>).
     /// </remarks>
     public static DiagnosticDescriptor ParameterPinned { get; } = new(
         "FS3008",

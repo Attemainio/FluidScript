@@ -584,6 +584,15 @@ If the branch has no valve at all, the flow is unreachable and the constraint is
 branch and suggesting one — *"nothing on the branch through RAD1 can change its flow; add a valve"* —
 rather than the bare "over-specified by 1" that sends the user hunting.
 
+**"Unstated" means unstated, un-defaulted and not chosen by a rule — and a bootstrap provisional is
+none of those** (`D-96`). The outer loop's first lowering gives every unstated valve the catalogue's
+largest Kv so that the valve exists; the graph carries those labels as `ProvisionalParameters`, and
+`IsFree` reads one as free. Without that the row above and the pump row's fallback were dead from the
+first count on (`C-75`): `PU1 pump head=15` on the simple loop, whose ring needs 5.28 m, reported
+`FS2210` naming `HE1.in`/`HE1.out`, where the valve should have closed on the surplus — and does now,
+solved to Kv 0.77. A promoted provisional stays provisional; the rule that would have sized it is
+skipped, so nothing reports an authority for a Kv the solver chose.
+
 **Promotion is what `FS2210`/`FS2211` measure against.** A constraint with nothing to promote is an
 over-specification (`FS2210`); a free sized parameter with no constraint to pin it is left to sizing,
 not to the solver, and only becomes `FS2211` when nothing determines it at all.

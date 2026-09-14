@@ -1,6 +1,8 @@
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Fluids;
 using FluidScript.Core.Topology;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Tests.Topology;
 
@@ -311,18 +313,14 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
-    public void AStatedPumpHeadConstrainsRatherThanSeedsAndTheMismatchIsReported()
+    public void AStatedPumpHeadConstrainsRatherThanSeedsAndTheBalancingValveAbsorbsIt()
     {
         // M2a, `R-02`: `head=15` on the simple loop, whose ring needs 5.28 m. A stated value is never
-        // promoted, so the count that would have solved for the head now has one constraint too many, and
-        // the mismatch is reported rather than the 15 m being quietly used as a starting guess.
-        //
-        // **What is reported is the wrong pair, and that is `C-75`.** An engineer expects the balancing
-        // valve to close and absorb the 9.7 m the pump has to spare; `23`'s kv promotion exists for exactly
-        // this and never fires, because the bootstrap Kv lands in `SizedParameters` before the first count
-        // and `IsFree(CV1, "kv")` is false from then on. So the report names `HE1.in`/`HE1.out`. This
-        // pins the constraint and the report; when `C-75` closes, the assertions become a converged solve
-        // at 15 m with `CV1.kv` below its unconstrained 1.6.
+        // promoted, so the duty's flow constraint that would have taken the head has to go somewhere
+        // else -- and `23`'s rule sends it to the first free valve on the branch, which is what a
+        // balancing valve is for. `C-75`: until `D-96` the bootstrap Kv counted as decided, so the
+        // constraint found nothing, `FS2210` fired and named `HE1.in`/`HE1.out` -- the exchanger's own
+        // duty temperatures -- as the things to remove.
         var result = Check("""
             fluidscript 1
             circuit simpleLoop
@@ -339,10 +337,46 @@ public sealed class WellPosednessTests
             """);
 
         Assert.DoesNotContain(result.Counting.Promotions, static p => p.Label == "PU1.head");
-        Assert.False(result.CanSolve);
 
-        var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
-        Assert.Contains("over-specified by 1", reported.Message, StringComparison.Ordinal);
+        var promotion = Assert.Single(result.Counting.Promotions, static p => p.Constraint.Kind == ConstraintKind.FixedFlow);
+        Assert.Equal("CV1.kv", promotion.Label);
+        Assert.True(result.CanSolve);
+        Assert.DoesNotContain("FS2210", Codes(result));
+    }
+
+    [Fact]
+    public void AProvisionalIsFreeAndARuleSizedValueIsNot()
+    {
+        // `D-96` in one line each way. The graph `Check` lowers comes from the outer loop's bootstrap, so
+        // `CV1.kv` is a provisional there and counts as free; a graph whose overlay carries a rule's
+        // choice for the same parameter -- the second lowering of any run -- does not offer it.
+        const string script = """
+            fluidscript 1
+            circuit simpleLoop
+            fluid water
+
+            HE1  heat_exchanger power=30 in=20 out=50
+            LOAD heat_exchanger power=-30 dp=0
+            CV1  valve
+            PU1  pump head=15
+            P1   pipe length=25 dn=25
+
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+            """;
+
+        var bootstrapped = Check(script);
+        Assert.Contains("CV1.kv", bootstrapped.Counting.Promotions.Select(static p => p.Label));
+
+        var chosen = SizingOverlay.Empty.With("CV1", "kv", Quantity.FromSi(1.6, Dimension.Kv));
+        var lowered = Lowering.Lower(
+            GraphFixture.Bind(script), ConstantPropertyWater.Instance, new ComponentFactory(GraphFixture.Bores(), chosen));
+        var sized = WellPosedness.Check(lowered.Graph);
+
+        Assert.Empty(lowered.Graph.ProvisionalParameters);
+        Assert.DoesNotContain("CV1.kv", sized.Counting.Promotions.Select(static p => p.Label));
+        Assert.False(sized.CanSolve);
+        Assert.Contains("FS2210", Codes(sized));
     }
 
     [Fact]

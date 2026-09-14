@@ -123,6 +123,22 @@ public sealed record CircuitGraph
     /// </value>
     public ImmutableHashSet<string> StatedPorts { get; init; } = [];
 
+    /// <summary>Gets the sized parameters, as <c>component.parameter</c>, whose value is a bootstrap provisional (<c>D-96</c>).</summary>
+    /// <value>
+    /// <para>
+    /// Empty by default, which is right for a hand-built graph: every value on it was put there on purpose.
+    /// </para>
+    /// <para>
+    /// <strong>A provisional is absence with a number in it.</strong> A valve has no component without a
+    /// Kv, so the outer loop's bootstrap writes one into <see cref="IComponent.SizedParameters"/> before
+    /// there is a graph to size against — and from the maps alone that value is indistinguishable from a
+    /// rule's choice. This set is that difference. Well-posedness reads it so that a provisional counts
+    /// as free: a stated constraint the loop cannot otherwise absorb may promote it, which is the
+    /// balancing-valve case <c>23</c> describes and <c>C-75</c> found dead.
+    /// </para>
+    /// </value>
+    public ImmutableHashSet<string> ProvisionalParameters { get; init; } = [];
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

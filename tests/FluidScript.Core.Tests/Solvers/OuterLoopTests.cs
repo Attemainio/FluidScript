@@ -1060,4 +1060,32 @@ public sealed class OuterLoopTests
         Assert.StartsWith("PU1.head was held at 0", floor.Message, StringComparison.Ordinal);
         Assert.Contains("the resistance", floor.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task AStatedPumpHeadIsSpentByTheBalancingValveAndNothingSizesTheValve()
+    {
+        // M2a, `R-02`, after `C-75`. The ring needs 5.28 m; the pump states 15. The stated head is a
+        // constraint, so the duty's flow constraint falls to `CV1.kv` (`23`'s balancing-valve rule, dead
+        // until `D-96`), and the valve closes on the surplus: 15 m is 146.8 kPa at 20 C, the exchanger
+        // takes 20 kPa and DN25 at 0.2392 kg/s takes 2.5 kPa over 25 m, so the valve drops about 124 kPa
+        // and by the Kv law 0.861 m3/h over sqrt(1.24 bar) is Kv 0.77 -- solved, not chosen. No rule
+        // reports a Kv or an authority for it, and `FS3008` is silent: the iterate passed through Kv 0
+        // on its way down from the bootstrap's 630, and a bound it passed through is not one it sits on
+        // (`S-61`).
+        var run = await Solve(SimpleLoop.Replace("PU1  pump", "PU1  pump head=15", StringComparison.Ordinal), "head15");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal("CV1.kv", Assert.Single(layout.Unknowns.Where(static u => u.Kind == UnknownKind.Parameter)).Name);
+        Assert.Equal(0.773, solved[layout.PromotionOffset], 0.005);
+
+        var pump = Assert.IsType<Pump>(run.Graph.Components.Single(static c => c.Name == "PU1"));
+        Assert.Equal(15, pump.StatedParameters["head"].SiValue, 1e-9);
+
+        Assert.DoesNotContain("CV1.kv", run.Bases.Keys);
+        Assert.DoesNotContain("CV1.authority", run.Bases.Keys);
+        Assert.True(run.Sizes.IsProvisional("CV1", "kv"), "the bootstrap Kv stays a placeholder, never a choice");
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS3008");
+    }
 }

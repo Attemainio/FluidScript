@@ -34,6 +34,17 @@ hand check will only agree if the hand check uses the inlet too.
 `margin 1.1` beside it. It is a design allowance, not a stand-in for fittings nobody modelled — those
 belong in a pipe's `minor_loss`.
 
+### When you state the head
+
+A stated `head` is a constraint, not a starting guess. The circuit still has to carry the flow its
+duty fixes, so the head you wrote and the drop the loop makes must meet somewhere — and the place is
+the first valve on the loop whose `kv` you did not state. That valve is solved rather than sized: it
+closes until it has taken up whatever your pump has to spare. `PU2 pump head=15` on a loop that
+needs 5.28 m leaves 9.7 m for the valve, which lands on Kv 0.77 at 0.24 kg/s — reported as a solved
+value, with no catalogue row and no authority, because nothing chose it. A loop with no such valve
+has nothing to give, and you are told the circuit is over-specified rather than handed a head the
+loop cannot honour.
+
 ### When the head comes out zero
 
 Zero is a real answer, and three different omissions produce it. The reported reason says which:

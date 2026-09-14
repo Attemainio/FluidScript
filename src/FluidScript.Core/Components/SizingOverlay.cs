@@ -15,12 +15,20 @@ namespace FluidScript.Core.Components;
 /// <see cref="IComponent.SizedParameters"/> instead, which is the third map that already existed for it.
 /// </para>
 /// <para>
+/// <para>
 /// <strong>Its key set is fixed before the first solve and never grows.</strong> A parameter claimed by
 /// no map is promotable, so a parameter that becomes sized <em>between</em> passes would stop being
 /// promotable between passes, and the system's shape would change under a warm start. The outer loop
 /// therefore decides what it intends to size once, from the model, and only the values move afterwards.
 /// </para>
 /// <para>
+/// <strong>A provisional entry is absence with a number in it</strong> (<c>D-96</c>). The bootstrap
+/// needs a Kv for a valve to exist at all, but that Kv decides nothing: well-posedness treats a
+/// provisional parameter as free, so a stated constraint the loop cannot otherwise meet may promote it
+/// to a solver unknown, and a rule that sizes it replaces it and clears the flag. Until <c>C-75</c> the
+/// provisional landed in <see cref="IComponent.SizedParameters"/> unflagged, was counted as decided, and
+/// the balancing-valve promotion <c>23</c> describes never fired.
+/// </para>
 /// It lives here rather than beside the sizing rules because the component model is what both sides
 /// share: a rule produces one and lowering consumes one, and neither should have to know about the
 /// other.
@@ -32,10 +40,15 @@ public sealed record SizingOverlay
     public static SizingOverlay Empty { get; } = new()
     {
         Values = ImmutableDictionary<string, ImmutableDictionary<string, Quantity>>.Empty,
+        Provisional = [],
     };
 
     /// <summary>Gets the values, by component name and then by canonical parameter name.</summary>
     public required ImmutableDictionary<string, ImmutableDictionary<string, Quantity>> Values { get; init; }
+
+    /// <summary>Gets the labels, <c>component.parameter</c>, whose value is a bootstrap provisional rather than a choice.</summary>
+    /// <value>A subset of the labels in <see cref="Values"/>; empty once every rule has spoken.</value>
+    public required ImmutableHashSet<string> Provisional { get; init; }
 
     /// <summary>Everything chosen for one component.</summary>
     /// <param name="component">The component's name.</param>
@@ -51,13 +64,27 @@ public sealed record SizingOverlay
         For(component).TryGetValue(parameter, out var value) ? value.SiValue : null;
 
     /// <summary>Adds or replaces one value.</summary>
+    /// <summary>Whether one entry is a provisional rather than a choice.</summary>
+    /// <param name="component">The component's name.</param>
+    /// <param name="parameter">The canonical parameter name.</param>
+    /// <returns><see langword="true"/> when the value exists only so the component can be built.</returns>
+    public bool IsProvisional(string component, string parameter) =>
+        Provisional.Contains($"{component}.{parameter}");
+
+    /// <summary>Adds or replaces one value.</summary>
     /// <param name="component">The component's name.</param>
     /// <param name="parameter">The canonical parameter name.</param>
     /// <param name="value">The value.</param>
-    /// <returns>A new overlay; this one is unchanged.</returns>
-    public SizingOverlay With(string component, string parameter, Quantity value) =>
-        this with { Values = Values.SetItem(component, For(component).SetItem(parameter, value)) };
-
+    /// <param name="provisional">Whether the value is a bootstrap placeholder rather than a rule's choice.</param>
+    /// <returns>A new overlay; this one is unchanged. A choice written over a provisional clears the flag.</returns>
+    public SizingOverlay With(string component, string parameter, Quantity value, bool provisional = false) =>
+        this with
+        {
+            Values = Values.SetItem(component, For(component).SetItem(parameter, value)),
+            Provisional = provisional
+                ? Provisional.Add($"{component}.{parameter}")
+                : Provisional.Remove($"{component}.{parameter}"),
+        };
     /// <summary>Tells whether every value here matches another overlay's within a relative tolerance.</summary>
     /// <param name="other">The overlay to compare against.</param>
     /// <param name="relativeTolerance">The fraction two values may differ by and still count as settled.</param>

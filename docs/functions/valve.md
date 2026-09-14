@@ -90,8 +90,16 @@ larger than the branch needs, so the fix is usually to the branch rather than to
 ### Balancing valves
 
 Authority is a **control**-valve criterion. A balancing valve is sized for a measurable drop at design
-flow, typically 3–10 kPa, and the two are not the same job. Balancing a set of parallel branches
-against each other is not yet done: give those valves an explicit `kv` for now.
+flow, typically 3–10 kPa, and the two are not the same job.
+
+A valve with no `kv` becomes a balancing valve the moment the circuit needs one. If something else
+on its loop fixes the pressure — a stated `head` on the pump, say, or a second branch's fixed flow
+sharing the same pressure difference — the valve's `kv` is **solved** instead of sized: it closes
+until it has absorbed exactly what the circuit has to spare. You see it in the solve report as a
+solved value with no basis and no authority, because no rule chose it and no catalogue row was
+taken. On the simple loop with `PU1 pump head=15`, that is Kv 0.77 dropping 124 kPa where an
+unconstrained loop would have chosen Kv 1.6 and 29 kPa. Balancing a whole set of parallel branches
+against one another still needs the branches' own drops stated or an explicit `kv` on each.
 
 ### What is checked
 

@@ -856,7 +856,10 @@ registry is built, alongside the parameter-set test above.
 ## Invariants
 
 1. `StatedParameters`, `SizedParameters`, and `DefaultParameters` are pairwise disjoint, and their union
-   is the component's complete resolved parameter set.
+   is the component's complete resolved parameter set. A value in `SizedParameters` that the outer
+   loop's bootstrap wrote is a *provisional*: the component is built from it, and the graph's
+   `ProvisionalParameters` says so, because counting must treat it as undecided (`D-96`). The maps
+   themselves do not distinguish it — only the overlay and the graph do.
 2. `EvaluateResiduals` allocates nothing on the managed heap.
 3. `EvaluateResiduals` is deterministic and side-effect free.
 4. `residuals.Length == EquationCount` on every call.

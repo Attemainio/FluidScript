@@ -69,6 +69,14 @@ public interface IComponentFactory
     /// exception: a script under editing is malformed most of the time.
     /// </returns>
     IFlowComponent? Create(ComponentSymbol symbol, PortWiring wiring);
+
+    /// <summary>Gets the labels, <c>component.parameter</c>, of sized values that are bootstrap provisionals.</summary>
+    /// <value>
+    /// Empty when every sized value the factory holds was a rule's choice. A provisional lets a component
+    /// build and decides nothing (<c>D-96</c>); the graph carries the set so that well-posedness can treat
+    /// those parameters as free.
+    /// </value>
+    ImmutableHashSet<string> Provisional => [];
 }
 
 /// <summary>Builds components from a bound symbol's stated parameters and the registry's defaults.</summary>
@@ -96,6 +104,9 @@ public interface IComponentFactory
 public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = null) : IComponentFactory
 {
     private readonly SizingOverlay _sizes = sizes ?? SizingOverlay.Empty;
+
+    /// <inheritdoc/>
+    public ImmutableHashSet<string> Provisional => _sizes.Provisional;
 
     /// <inheritdoc/>
     public IFlowComponent? Create(ComponentSymbol symbol, PortWiring wiring)

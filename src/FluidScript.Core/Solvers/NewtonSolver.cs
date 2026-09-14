@@ -106,9 +106,12 @@ public sealed class NewtonSolver : ISolver
 
         var previous = double.PositiveInfinity;
 
-        // Reported once per parameter rather than once per step: a bound that binds usually binds on
-        // every remaining iteration, and a user needs to know it happened, not how often.
-        var pinned = new List<int>();
+        // Recorded once per parameter and reported at the end, and only for a bound the final iterate is
+        // still on. A projection on the path says nothing about the answer: a promoted Kv seeded at the
+        // catalogue's largest row overshoots to a negative Kv on its first step, is held at 0, and then
+        // walks up to 0.77 -- reporting `FS3008` for that walk claimed the circuit asked for more than
+        // the valve could give, of a valve that was three quarters open at the solution (`S-61`).
+        var pinned = new Dictionary<int, double>();
 
         for (var iteration = 1; iteration <= _settings.MaxIterations; iteration++)
         {
@@ -117,12 +120,12 @@ public sealed class NewtonSolver : ISolver
                 diagnostics.Add(Diagnostic.Create(
                     SolverDiagnostics.Cancelled, null, Count("steps", iteration - 1)));
 
-                return Stop(system, x, iteration - 1, previous, SolveTermination.Cancelled, diagnostics);
+                return Stop(system, x, iteration - 1, previous, SolveTermination.Cancelled, diagnostics, pinned);
             }
 
             if (!system.TryEvaluateScaled(x, residuals))
             {
-                return OutOfDomain(system, x, iteration - 1, previous, diagnostics);
+                return OutOfDomain(system, x, iteration - 1, previous, diagnostics, pinned);
             }
 
             var nonFinite = Array.FindIndex(residuals, static value => !double.IsFinite(value));
@@ -136,14 +139,14 @@ public sealed class NewtonSolver : ISolver
                     new DiagnosticArgument("equation", system.Equations.Rows[nonFinite].Name),
                     Count("steps", iteration - 1)));
 
-                return Stop(system, x, iteration - 1, double.NaN, SolveTermination.NonFinite, diagnostics);
+                return Stop(system, x, iteration - 1, double.NaN, SolveTermination.NonFinite, diagnostics, pinned);
             }
 
             var norm = Norm(residuals);
 
             if (norm < _settings.ResidualTolerance)
             {
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Converged, diagnostics);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Converged, diagnostics, pinned);
             }
 
             if (norm > previous * _settings.DivergenceFactor)
@@ -155,12 +158,12 @@ public sealed class NewtonSolver : ISolver
                     Count("steps", iteration - 1),
                     Number("previous", previous)));
 
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Diverging, diagnostics);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Diverging, diagnostics, pinned);
             }
 
             if (!Jacobian(system, x, residuals, trial, perturbed, jacobian))
             {
-                return OutOfDomain(system, x, iteration - 1, norm, diagnostics);
+                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned);
             }
 
             var factored = DenseLu.Factor(jacobian, columns);
@@ -197,7 +200,7 @@ public sealed class NewtonSolver : ISolver
                         new DiagnosticArgument("combination", implied)));
                 }
 
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics, pinned);
             }
 
             for (var row = 0; row < rows; row++)
@@ -211,7 +214,7 @@ public sealed class NewtonSolver : ISolver
 
             if (alpha < 0)
             {
-                return OutOfDomain(system, x, iteration - 1, norm, diagnostics);
+                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned);
             }
 
             if (alpha <= _settings.MinLineSearchStep)
@@ -236,15 +239,9 @@ public sealed class NewtonSolver : ISolver
             // step rather than constraining the step keeps the line search's own arithmetic untouched,
             // and it is safe only because `S-26a` made the residual differentiable at a bound -- while
             // `Opening` clamped, landing on a bound put the iterate exactly where its column was dead.
-            if (system.Project(x, out var bound) && !pinned.Contains(bound))
+            if (system.Project(x, out var bound))
             {
-                pinned.Add(bound);
-
-                diagnostics.Add(Diagnostic.Create(
-                    SolverDiagnostics.ParameterPinned,
-                    null,
-                    new DiagnosticArgument("parameter", system.Unknowns.Unknowns[bound].Name),
-                    Number("bound", x[bound])));
+                pinned[bound] = x[bound];
             }
 
             progress?.Report(new SolveProgress(iteration, norm, alpha));
@@ -260,7 +257,7 @@ public sealed class NewtonSolver : ISolver
                     new DiagnosticArgument("component", worst.OwnerComponentId),
                     new DiagnosticArgument("equation", worst.Name)));
 
-                return Stop(system, x, iteration, norm, SolveTermination.Stalled, diagnostics);
+                return Stop(system, x, iteration, norm, SolveTermination.Stalled, diagnostics, pinned);
             }
 
             previous = norm;
@@ -280,7 +277,7 @@ public sealed class NewtonSolver : ISolver
                 "amount",
                 Amount(residuals[furthest] * system.ResidualScales[furthest], declaration.ResidualSiUnit))));
 
-        return Stop(system, x, _settings.MaxIterations, final, SolveTermination.IterationCap, diagnostics);
+        return Stop(system, x, _settings.MaxIterations, final, SolveTermination.IterationCap, diagnostics, pinned);
     }
 
     /// <summary>Names the combination of unknowns a singular Jacobian left undetermined.</summary>
@@ -575,13 +572,15 @@ public sealed class NewtonSolver : ISolver
     /// <param name="iterations">How many were taken.</param>
     /// <param name="norm">The last known norm.</param>
     /// <param name="diagnostics">Everything reported so far.</param>
+    /// <param name="pinned">Each column a projection ever held, with the bound it was held at.</param>
     /// <returns>The result.</returns>
     private static SolveResult OutOfDomain(
         EquationSystem system,
         double[] x,
         int iterations,
         double norm,
-        ImmutableArray<Diagnostic>.Builder diagnostics)
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        IReadOnlyDictionary<int, double> pinned)
     {
         diagnostics.Add(Diagnostic.Create(
             SolverDiagnostics.NonFinite,
@@ -590,7 +589,7 @@ public sealed class NewtonSolver : ISolver
             new DiagnosticArgument("equation", "its fluid state"),
             Count("steps", iterations)));
 
-        return Stop(system, x, iterations, norm, SolveTermination.NonFinite, diagnostics);
+        return Stop(system, x, iterations, norm, SolveTermination.NonFinite, diagnostics, pinned);
     }
 
     /// <summary>Packages the last iterate and the worst rows into a result.</summary>
@@ -600,6 +599,7 @@ public sealed class NewtonSolver : ISolver
     /// <param name="norm">The final scaled norm.</param>
     /// <param name="termination">Why it stopped.</param>
     /// <param name="diagnostics">Everything reported.</param>
+    /// <param name="pinned">Each column a projection ever held, with the bound it was held at.</param>
     /// <returns>The result.</returns>
     /// <remarks>
     /// The last iterate is returned whatever happened. A circuit that got most of the way to a balance
@@ -612,8 +612,24 @@ public sealed class NewtonSolver : ISolver
         int iterations,
         double norm,
         SolveTermination termination,
-        ImmutableArray<Diagnostic>.Builder diagnostics)
+        ImmutableArray<Diagnostic>.Builder diagnostics,
+        IReadOnlyDictionary<int, double> pinned)
     {
+        // `FS3008` is a statement about the answer, so it is made here, about the last iterate: a bound
+        // the solution still sits on is one the circuit is pressing against; one it passed through on the
+        // way is not (`S-61`).
+        foreach (var (column, bound) in pinned.OrderBy(static entry => entry.Key))
+        {
+            if (Math.Abs(x[column] - bound) <= 1e-12 * Math.Max(1, Math.Abs(bound)))
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    SolverDiagnostics.ParameterPinned,
+                    null,
+                    new DiagnosticArgument("parameter", system.Unknowns.Unknowns[column].Name),
+                    Number("bound", bound)));
+            }
+        }
+
         var raw = new double[system.Rows];
         var scaled = new double[system.Rows];
 

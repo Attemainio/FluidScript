@@ -72,10 +72,15 @@ is fixed before the first solve and only the values move afterwards — one that
 passes would stop being promotable between passes, and the system's shape would change under a warm
 start.
 
-**The first lowering is a bootstrap and is never solved against.** A pipe with no diameter has no bore
-and is not built, so a graph has to exist before flows can be estimated on it; each rule offers a
-provisional value for that and nothing else. Flow estimates come from stated duties and stated flows
-rather than from resistances, so nothing that survives the bootstrap depends on what it was built with.
+**The first lowering is a bootstrap.** A pipe with no diameter has no bore and is not built, so a
+graph has to exist before flows can be estimated on it; each rule offers a provisional value for that
+and nothing else. Flow estimates come from stated duties and stated flows rather than from
+resistances, so nothing that survives the bootstrap depends on what it was built with. **A provisional
+decides nothing** (`D-96`): the overlay flags it, the graph carries the flag, and counting treats the
+parameter as free — so a constraint the loop cannot otherwise absorb may promote it, in which case the
+solver determines it, the rule that would have sized it is skipped whole, and the flag stays. A rule's
+choice written over a provisional clears the flag. Until `D-96` the provisional sat in the sized map
+unflagged and counted as decided, which is why `23`'s balancing-valve promotion never fired (`C-75`).
 
 **This is the same outer fixed-point loop as deferred expressions**
 ([`14-expressions-and-references`](../10-language/14-expressions-and-references.md)). They must be one

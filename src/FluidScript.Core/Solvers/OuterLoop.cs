@@ -461,9 +461,11 @@ public sealed class OuterLoop(
     /// <param name="model">The bound model.</param>
     /// <returns>An overlay covering every parameter this loop intends to size.</returns>
     /// <remarks>
-    /// <strong>These are not a design and are never solved against.</strong> A pipe has no component at
-    /// all without a bore, so something has to go in before flows can be estimated; a sizer's
-    /// <see cref="ISizer.Provisional"/> is that something, and the first real pass replaces it.
+    /// <strong>These are not a design.</strong> A pipe has no component at all without a bore, so
+    /// something has to go in before flows can be estimated; a sizer's <see cref="ISizer.Provisional"/>
+    /// is that something, and the first real pass replaces it. Each is flagged provisional in the overlay
+    /// so that counting treats it as undecided (<c>D-96</c>): a constraint the loop cannot otherwise meet
+    /// may promote it, and then it <em>is</em> solved against, by the solver rather than by a rule.
     /// </remarks>
     private SizingOverlay Bootstrap(SemanticModel model)
     {
@@ -484,7 +486,7 @@ public sealed class OuterLoop(
                         && kind.Parameters.TryGetValue(parameter, out var info)
                         && info.OmissionBehavior == Language.ParameterOmissionBehavior.Size)
                     {
-                        overlay = overlay.With(symbol.Name, parameter, value);
+                        overlay = overlay.With(symbol.Name, parameter, value, provisional: true);
                     }
                 }
             }
@@ -505,7 +507,9 @@ public sealed class OuterLoop(
     /// A parameter omitted with a <c>Size</c> policy is normally chosen here, but where a stated
     /// constraint needs somewhere to go, well-posedness promotes one such parameter to an unknown and
     /// the solver determines it. Sizing it as well would give two answers to one question, with nothing
-    /// saying they disagreed.
+    /// saying they disagreed. A rule is skipped whole when <em>any</em> of its parameters is promoted:
+    /// <see cref="ValveSizer"/> reports an <c>authority</c> for the Kv it chose, and a Kv the solver is
+    /// choosing instead would make that authority a number about a valve that does not exist (<c>C-75</c>).
     /// </remarks>
     private (SizingOverlay Overlay, ImmutableDictionary<string, string> Bases, ImmutableArray<string> Notes) Apply(
         CircuitGraph graph,
@@ -529,7 +533,8 @@ public sealed class OuterLoop(
             foreach (var sizer in sizers)
             {
                 if (!sizer.CanSize(component)
-                    || sizer.Parameters.All(parameter => Claimed(component, parameter, promoted)))
+                    || sizer.Parameters.All(parameter => Claimed(component, parameter, promoted))
+                    || sizer.Parameters.Any(parameter => promoted.Contains($"{component.Name}.{parameter}")))
                 {
                     continue;
                 }

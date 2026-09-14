@@ -158,10 +158,9 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       `OuterLoopTests.TheCoolingLoopMixesTo20DegreesAndRecirculatesTheFiguresFlow`
 - [x] Adding `head=15` to the pump makes the solver honour it and either satisfy or report the
       resulting mismatch — an explicit value constrains rather than seeds (`R-02`). —
-      `WellPosednessTests.AStatedPumpHeadConstrainsRatherThanSeedsAndTheMismatchIsReported`. Met in the
-      weaker sense: the head is never promoted and `FS2210` reports the excess. The pair it names is the
-      exchanger's temperatures rather than the valve that should close on the surplus — `C-75`, the
-      balancing-valve `kv` promotion that has not fired since `P3.7b`
+      `OuterLoopTests.AStatedPumpHeadIsSpentByTheBalancingValveAndNothingSizesTheValve` (15 m held,
+      `CV1.kv` solved to 0.77), `WellPosednessTests.AStatedPumpHeadConstrainsRatherThanSeedsAndTheBalancingValveAbsorbsIt`.
+      Until `D-96` the head was refused with `FS2210` naming the exchanger's temperatures (`C-75`)
 - [x] The cooling loop's three implicit nodes appear where the script declared none — `PU1__HE1`,
       `HE1__3WV` and `3WV__P1`, one per directly-connected pair of non-node components (`R-06`). Rule
       I2 inserts exactly one node per such pair, so "two between `HE1` and `3WV`" would be wrong. —

@@ -667,7 +667,7 @@ public static class WellPosedness
             foreach (var element in hydraulic.Elements)
             {
                 if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(element, "position"))
+                    && IsFree(graph, element, "position"))
                 {
                     yield return (element.Name, "position");
                 }
@@ -723,7 +723,7 @@ public static class WellPosedness
             foreach (var element in hydraulic.Elements)
             {
                 if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(element, "position")
+                    && IsFree(graph, element, "position")
                     && reaching.Contains(element))
                 {
                     yield return (element.Name, "position");
@@ -733,7 +733,7 @@ public static class WellPosedness
             foreach (var element in hydraulic.Elements)
             {
                 if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(element, "position")
+                    && IsFree(graph, element, "position")
                     && !reaching.Contains(element))
                 {
                     yield return (element.Name, "position");
@@ -755,7 +755,7 @@ public static class WellPosedness
 
         // A duty with no stated power determines the power: the constraint promotes the exchanger's own
         // parameter before it reaches for anything else's.
-        if (owner is not null && IsFree(owner, "power"))
+        if (owner is not null && IsFree(graph, owner, "power"))
         {
             yield return (owner.Name, "power");
         }
@@ -793,7 +793,7 @@ public static class WellPosedness
         foreach (var element in hydraulic.Elements)
         {
             if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
-                && IsFree(element, "head")
+                && IsFree(graph, element, "head")
                 && local.Contains(element))
             {
                 yield return (element.Name, "head");
@@ -803,7 +803,7 @@ public static class WellPosedness
         foreach (var element in hydraulic.Elements)
         {
             if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
-                && IsFree(element, "head")
+                && IsFree(graph, element, "head")
                 && !local.Contains(element))
             {
                 yield return (element.Name, "head");
@@ -827,7 +827,7 @@ public static class WellPosedness
 
             foreach (var element in branch.Path)
             {
-                if (element.Kind is "valve" or "three_way_valve" && IsFree(element, "kv"))
+                if (element.Kind is "valve" or "three_way_valve" && IsFree(graph, element, "kv"))
                 {
                     yield return (element.Name, "kv");
                 }
@@ -836,6 +836,7 @@ public static class WellPosedness
     }
 
     /// <summary>Whether a parameter is available to be promoted.</summary>
+    /// <param name="graph">The graph, for which sized values are provisionals.</param>
     /// <param name="component">The component that owns it.</param>
     /// <param name="parameter">The canonical parameter name.</param>
     /// <returns><see langword="true"/> when nothing has decided it yet.</returns>
@@ -846,17 +847,28 @@ public static class WellPosedness
     /// is the trap <c>D-02</c> creates, and it reports as an over-specification naming both.
     /// </remarks>
     /// <remarks>
+    /// <para>
     /// <strong>All three maps, and the third one was missing.</strong> <c>ComponentFactory.Defaults</c>
     /// already wrote down the rule this enforces — "well-posedness looks for a parameter no map claims"
     /// — but the check read two of them, so once the outer loop began filling
     /// <see cref="IComponent.SizedParameters"/> a parameter could be sized and promoted at once: chosen
     /// by a rule and solved for as an unknown, with the two answers disagreeing and nothing saying so.
     /// It cost nothing before <c>P3.7b</c>, because no map was ever filled.
+    /// </para>
+    /// <para>
+    /// <strong>A sized value that is a bootstrap provisional is still free</strong> (<c>D-96</c>,
+    /// <c>C-75</c>). The bootstrap writes a Kv into every unstated valve so that the valve exists, and
+    /// from the third map alone that placeholder looked decided — so the balancing-valve promotion below
+    /// never fired after <c>C-58</c>, and a pump with a stated head was refused with the exchanger's
+    /// temperatures named instead of the valve closing on the surplus. The graph says which sized values
+    /// are placeholders; a rule that later sizes one clears it, and a promotion keeps it a placeholder.
+    /// </para>
     /// </remarks>
-    private static bool IsFree(IFlowComponent component, string parameter) =>
+    private static bool IsFree(CircuitGraph graph, IFlowComponent component, string parameter) =>
         !component.StatedParameters.ContainsKey(parameter)
-        && !component.SizedParameters.ContainsKey(parameter)
-        && !component.DefaultParameters.ContainsKey(parameter);
+        && !component.DefaultParameters.ContainsKey(parameter)
+        && (!component.SizedParameters.ContainsKey(parameter)
+            || graph.ProvisionalParameters.Contains($"{component.Name}.{parameter}"));
 
     /// <summary>Which hydraulic component an element belongs to.</summary>
     /// <returns>Its index, or zero when nothing claims it.</returns>
