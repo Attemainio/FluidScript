@@ -153,7 +153,7 @@ each names the package that closed it. Seven remain open; see
 | P3.6b | Newton, and the seed it cannot start without | `b5f5539` | Shipped |
 | P3.7a | The seed that closes every mass balance | `1fe14ce` | Shipped |
 | P3.7b | Sizing rules and the single outer loop | `91ac4fc`…`0689589` (5) | Shipped |
-| P3.8 | The design point as the sizing point — `sized_at` (`D-94`) | uncommitted | Shipped 2026-09-14 |
+| P3.8 | The design point as the sizing point — `sized_at` (`D-94`) | `b079ec6` | Shipped 2026-09-14 |
 | **P3.9** | **Elevation as an absolute height** | — | **Not started** |
 
 **P3.1a and P3.4c were not in the plan.** P3.1a transcribed the reference circuits before anything
