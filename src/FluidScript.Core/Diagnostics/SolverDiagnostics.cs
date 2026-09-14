@@ -182,6 +182,27 @@ public static class SolverDiagnostics
         + "circuit constrains one thing fewer than it appears to. Stating something elsewhere will not "
         + "help — one of these has to change.");
 
+    /// <summary>A converged solve runs a directional component backwards.</summary>
+    /// <value><c>FS3013</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>A reversal is a real answer and this does not overrule it</strong> (<c>D-69</c>): a heater
+    /// heats whichever node it discharges into. What it does is say so, because the statements that
+    /// mention a port stay on that port. <c>HE1 in=50</c> is bound to the port the connection order made
+    /// the inlet; if the water enters at <c>out</c>, the constraint now holds the temperature the water
+    /// <em>leaves</em> at — the automation-system failure it mirrors, where T1 stays mounted where the
+    /// installer assumed the flow ran (<c>L-47</c>).
+    /// </para>
+    /// <para>
+    /// Only pumps and exchangers are reported. A pipe's <c>in</c> and <c>out</c> record the order the
+    /// author typed the connection and assert nothing about the water; a pump and a stated terminal do.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor ReversedFlow { get; } = new(
+        "FS3013",
+        DiagnosticSeverity.Warning,
+        "{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.");
+
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -196,5 +217,6 @@ public static class SolverDiagnostics
         Undetermined,
         Redundant,
         ReducedStep,
+        ReversedFlow,
     ];
 }

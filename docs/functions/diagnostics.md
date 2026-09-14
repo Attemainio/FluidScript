@@ -72,6 +72,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |
 | `FS1306` | Warning | Units | {parameter} = {value} is outside the usual range ({low}–{high}). Check the unit. |
 | `FS1307` | Error | Units | {parameter} cannot be negative. |
+| `FS1308` | Warning | Units | '{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow. |
 | `FS1401` | Error | Expressions | '{name}' is already defined at line {line}. |
 | `FS1402` | Error | Expressions | '{name}' depends on itself: {cycle}. |
 | `FS1403` | Error | Expressions | Dividing by zero here. '{expression}' is zero. |
@@ -157,6 +158,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3009` | Error | Solver | Nothing in the circuit determines {combination}. These move together and no equation separates them, so a value stated for any one of them determines the rest. |
 | `FS3010` | Error | Solver | {combination} are not independent: one of them is already implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something elsewhere will not help — one of these has to change. |
 | `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
+| `FS3013` | Warning | Solver | {component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

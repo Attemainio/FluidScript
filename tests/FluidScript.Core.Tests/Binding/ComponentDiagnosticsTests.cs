@@ -97,6 +97,30 @@ public sealed class ComponentDiagnosticsTests
         None("HE1 heat_exchanger power=-70 dt=-20", "FS1306");
     }
 
+    // ---- FS1308: a sign on a word that already carries one -----------------------------------
+
+    [Fact]
+    public void FS1308_ANegativePowerOnARoleWordIsTakenAsItsMagnitudeAndSaysSo()
+    {
+        // `D-91`: `load` reads `power` as a capacity and supplies the sign itself, so a minus beside it
+        // is a typo or a misreading of the convention -- it does not make the load heat, and it does not
+        // say which way the water runs (`L-47`). Kept running for older scripts; told.
+        var diagnostic = Only("LOAD load power=-24 kW in=50 out=30", "FS1308");
+
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains("LOAD", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("-24 kW is read as 24 kW", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS1308_DoesNotFireOnTheNeutralSpelling() =>
+        // `heat_exchanger` keeps the number signed; a negative there is a cooler and says so.
+        None("HE1 heat_exchanger power=-24 kW in=50 out=30", "FS1308");
+
+    [Fact]
+    public void FS1308_DoesNotFireOnAPositiveCapacity() =>
+        None("LOAD load power=24 kW in=50 out=30", "FS1308");
+
     // ---- FS2101: over-determined groups ---------------------------------------------------------
 
     [Fact]

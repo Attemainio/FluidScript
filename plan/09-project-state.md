@@ -200,11 +200,11 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 8 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 17 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **47** | |
+| | **46** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -215,8 +215,8 @@ measured on a *variant* and stay open on their own merits: `S-53` (the seed doub
 valve's inlet legs when the source outlet is omitted), `S-55` (driver analysis misses distribution
 pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow),
 `S-52` (`FS2211` sends the user to the balanced half) and `S-45`'s residue, which `FS2218` now
-makes visible without deciding. `L-47` records the sign discussion of 2026-09-14: terminals stay
-port-bound and a reversal wants a warning. What still stands between here and M2a's exit is `05`'s other criteria — P3.8, P3.9
+makes visible without deciding. `L-47` (closed) records the sign discussion of 2026-09-14: `power`
+never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. What still stands between here and M2a's exit is `05`'s other criteria — P3.8, P3.9
 and the coverage row — not the solver.
 
 ## What is next
@@ -232,7 +232,7 @@ and the coverage row — not the solver.
    reverse flow through it), a source-side mixing valve (`S-55`) — are the open entries it points at.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
-   and the pump pays. `L-47`'s two warnings are an hour each.
+   and the pump pays.
 4. **P3.8** — the design point as the sizing point. Holder: `C-51`.
 5. **P3.9** — elevation as an absolute height.
 6. Then M2a exits and P4 begins.
@@ -244,7 +244,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1458 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1462 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

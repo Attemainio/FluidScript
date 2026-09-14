@@ -660,4 +660,42 @@ public sealed class OuterLoopTests
         Assert.Equal(1.6, valve.SizedParameters["kv"].SiValue);
         Assert.DoesNotContain("kv", valve.StatedParameters.Keys);
     }
+
+    [Fact]
+    public async Task AComponentTheWaterRunsThroughBackwardsIsNamedAfterTheSolve()
+    {
+        // `L-47`. The simple loop with `LOAD` written the other way round: `N4 - LOAD - N3` puts its `in`
+        // on `N4`, and `PU1` drives the water `N3` to `N4`, so it enters at `out`. The solve is unchanged --
+        // a load takes its heat out of whichever node it discharges into (`D-69`) -- and that is exactly
+        // why the reversal is worth a warning: nothing else in the answer would show it.
+        const string reversed = """
+            fluidscript 1
+            circuit loop
+            fluid water
+            HE1  heat_exchanger power=30 in=20 out=50
+            LOAD heat_exchanger power=-30 dp=0
+            CV1  valve
+            PU1  pump
+            P1   pipe length=25
+            connections
+            N1 - PU1 - N2 - HE1 - N3
+            N4 - LOAD - N3
+            N4 - CV1 - N5 - P1 - N1
+            """;
+
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(reversed), Water.Instance, "reversed-load", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        var warning = Assert.Single(result.Value.Solve.Diagnostics, static d => d.Code == "FS3013");
+
+        Assert.StartsWith("LOAD carries 0.239 kg/s from 'out' to 'in'", warning.Message, StringComparison.Ordinal);
+
+        // And the loop as written runs everything forwards, so the same code is absent there.
+        var forwards = await RunAsync("m2-simple-loop.fluid");
+
+        Assert.DoesNotContain(forwards.Solve.Diagnostics, static d => d.Code == "FS3013");
+    }
 }

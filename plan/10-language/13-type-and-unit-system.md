@@ -382,6 +382,14 @@ A format that depends on the reader's locale means one file means two things on 
 | `FS1305` | Dimension mismatch in an operation | Error | `Cannot {op} a {a} and a {b}.` |
 | `FS1306` | Value outside a parameter's physical range | Warning | `{param} = {value} is outside the usual range ({lo}–{hi}). Check the unit.` |
 | `FS1307` | Negative value for a strictly positive parameter | Error | `{param} cannot be negative.` |
+| `FS1308` | Negative `power` on a role spelling whose word carries the sign | Warning | `'{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow.` |
+
+**`FS1308` is the sign the word already carries, written again.** `load`, `cooler`, `radiator` and
+`chiller` read `power` as a capacity and lower it negative; `heater` and `boiler` positive (`D-91`).
+A minus beside one of those words is taken as its magnitude — an older `load power=-24` keeps
+running — and reported, because it is either a typo or a reading of the convention this language
+does not use: it does not make a load heat, and it does not declare which way the water runs
+(`L-47`). The neutral spellings keep the number signed and are exempt.
 
 **`FS1307` reads a parameter's declared range as its declaration of sign**, and exempts absolute
 temperatures. A parameter whose range starts at or above zero cannot take a negative — `dt` is

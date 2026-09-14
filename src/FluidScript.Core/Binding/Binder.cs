@@ -906,11 +906,44 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 if (_pending.TryGetValue(id, out var pending) && pending.Value is { } quantity)
                 {
                     parameters[canonical] = value with { Value = quantity };
+                    CheckRoleSign(component, canonical, quantity, pending.Span);
                 }
             }
 
             _components[i] = component with { Parameters = parameters.ToImmutable() };
         }
+    }
+
+    /// <summary>Reports a negative <c>power</c> on a role spelling, where the word already carries the sign.</summary>
+    /// <remarks>
+    /// Checked at publication rather than in <see cref="CheckRange"/> because the range check knows the
+    /// parameter and not the word the component was declared with; the lowering that applies the
+    /// magnitude (<c>D-91</c>) reads <see cref="ComponentSymbol.WrittenKind"/> the same way.
+    /// </remarks>
+    private void CheckRoleSign(ComponentSymbol component, string canonical, Quantity quantity, TextSpan span)
+    {
+        if (!string.Equals(canonical, "power", StringComparison.Ordinal) || quantity.SiValue >= 0)
+        {
+            return;
+        }
+
+        var written = NameResolution.Normalize(component.WrittenKind);
+
+        if (written is not ("load" or "cooler" or "radiator" or "chiller" or "heater" or "boiler"))
+        {
+            return;
+        }
+
+        var unit = UnitTable.CanonicalUnitFor(quantity.Dimension);
+        var shown = unit is null ? quantity.SiValue : quantity.ValueIn(unit);
+
+        Report(
+            BinderDiagnostics.SignedRoleCapacity,
+            span,
+            ("component", component.Name),
+            ("kind", written),
+            ("value", Format(shown, unit?.Text)),
+            ("magnitude", Format(Math.Abs(shown), unit?.Text)));
     }
 
     // ---- the scope an expression is evaluated against -------------------------------------------

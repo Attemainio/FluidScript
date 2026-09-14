@@ -64,6 +64,15 @@ Plate geometry is a fourth route to the same pair: it derives both `area` and `u
 | All four of `power`, `in`, `out`, `flow` | [`FS2101`](diagnostics.md) |
 | All three of `ua`, `area`, `u` | [`FS2101`](diagnostics.md) |
 | A negative `dt` or `dt2` | [`FS1307`](diagnostics.md) |
+| A negative `power` on `load`, `cooler`, `radiator`, `chiller`, `heater` or `boiler` | [`FS1308`](diagnostics.md) — the word carries the sign; the magnitude is taken |
+| Water running through it from `out` to `in` at a converged solve | [`FS3013`](diagnostics.md) — a warning naming any stated terminal now on the wrong end |
+
+**The sign of `power` is the device's, never the water's.** Which way heat crosses the wall is the
+role word's job (or the sign on the neutral spelling); which way the water runs is solved from the
+circuit, and the connection order is only what you *intended*. If the solve runs a component
+backwards it still does its duty on the node it actually discharges into, and `FS3013` tells you —
+because `in=50` stays bound to the port you called `in`, exactly as a temperature sensor stays
+mounted where the installer put it.
 
 **`dt` is never negative.** It says how far the temperature moves, not which way. The component word
 supplies the direction when you use a role: `RAD1 load power=70 dt=20` removes 70 kW and leaves the

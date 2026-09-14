@@ -332,13 +332,93 @@ public sealed class OuterLoop(
         new()
         {
             Graph = graph,
-            Solve = solve,
+            Solve = solve.Converged
+                ? solve with { Diagnostics = solve.Diagnostics.AddRange(Reversals(graph, solve.Solution)) }
+                : solve,
             Sizes = sizes,
             Bases = bases,
             Notes = notes,
             Passes = passes,
             Settled = settled,
         };
+
+    private static readonly string[] SideOneTerminals = ["in", "out"];
+
+    /// <summary>Names every pump and exchanger a converged solution runs backwards.</summary>
+    /// <param name="graph">The solved graph.</param>
+    /// <param name="solution">The converged iterate.</param>
+    /// <returns>One <c>FS3013</c> per reversed component, in graph order.</returns>
+    /// <remarks>
+    /// Read off the port map rather than the branch orientation: a branch's sign says which way the
+    /// walk crossed it, and a component walked from its outlet end is entered at <c>out</c> even when the
+    /// branch flow is positive. What the map's sign gives is the flow <em>into</em> the component at a
+    /// port, and a negative inflow at <c>in</c> is the reversal whatever the walk did (<c>S-10</c>).
+    /// Only a converged iterate is read; the directions of one that is not are not answers.
+    /// </remarks>
+    private static ImmutableArray<Diagnostics.Diagnostic> Reversals(CircuitGraph graph, StateVector solution)
+    {
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var ports = PortMap.Build(graph);
+        var reversed = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            var component = graph.Components[element];
+
+            if (component is not (Pump or HeatExchanger))
+            {
+                continue;
+            }
+
+            var inlet = IndexOfPort(component, "in");
+            var outlet = IndexOfPort(component, "out");
+
+            if (inlet < 0 || outlet < 0 || !ports[element, inlet].CarriesFlow)
+            {
+                continue;
+            }
+
+            var binding = ports[element, inlet];
+            var entering = binding.Sign * solution.Values[layout.BranchFlow(binding.Branch)];
+
+            if (entering >= -Tolerances.FlowZero)
+            {
+                continue;
+            }
+
+            var terminals = SideOneTerminals
+                .Where(parameter => component.StatedParameters.ContainsKey(parameter))
+                .Select(parameter => $"{component.Name}.{parameter}")
+                .ToArray();
+            var note = terminals.Length == 0
+                ? string.Empty
+                : $"; its stated {string.Join(" and ", terminals)} {(terminals.Length == 1 ? "is" : "are")} on the port the water leaves by";
+
+            reversed.Add(Diagnostics.Diagnostic.Create(
+                Diagnostics.SolverDiagnostics.ReversedFlow,
+                span: null,
+                new Diagnostics.DiagnosticArgument("component", component.Name),
+                new Diagnostics.DiagnosticArgument("flow", Math.Abs(entering).ToString("0.###", CultureInfo.InvariantCulture)),
+                new Diagnostics.DiagnosticArgument("outlet", component.Ports[outlet].Name),
+                new Diagnostics.DiagnosticArgument("inlet", component.Ports[inlet].Name),
+                new Diagnostics.DiagnosticArgument("note", note)));
+        }
+
+        return reversed.ToImmutable();
+    }
+
+    private static int IndexOfPort(IFlowComponent component, string name)
+    {
+        for (var port = 0; port < component.Ports.Length; port++)
+        {
+            if (string.Equals(component.Ports[port].Name, name, StringComparison.Ordinal))
+            {
+                return port;
+            }
+        }
+
+        return -1;
+    }
 
     private static StateVector Seed(CircuitGraph graph) =>
         SolutionSeed.Build(graph, SystemLayout.Build(graph, WellPosedness.Check(graph).Counting));

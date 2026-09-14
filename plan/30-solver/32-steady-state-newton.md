@@ -274,10 +274,20 @@ Inherited from [`31-solver-architecture`](31-solver-architecture.md): `FS3001` c
 |---|---|---|---|
 | `FS3011` | Line search hit `αmin` without improvement | Info | `Taking a reduced step near {component}; the solution is hard to reach here.` |
 | `FS3012` | Retried from the sizing seed after a warm-start failure | Info | `Restarted from the initial estimate.` |
+| `FS3013` | A pump or exchanger carries flow against its written direction at a converged solve | Warning | `{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.` |
 
 Both are info: they describe recovery, not failure, and a user does not need them — but a support
 conversation does, and the console log ([`56-console-log`](../50-frontend/56-console-log.md)) can show
 them on demand.
+
+**`FS3013` is a warning and it overrules nothing.** A reversal is a real answer (`D-69`): a heater
+heats whichever node it discharges into. What the warning says is that the statements which name a
+port stay on that port — `HE1 in=50` is bound to the port the connection order made the inlet, and if
+the water enters at `out` the constraint now holds the temperature the water *leaves* at. That is the
+automation-system failure it mirrors, where a sensor stays mounted where the installer assumed the
+flow ran (`L-47`). Only pumps and exchangers are reported; a pipe's `in`/`out` record the order the
+author typed the connection and assert nothing about the water. It is raised by the outer loop after
+a converged solve, since the directions of an iterate that did not converge are not answers.
 
 ## Worked example
 

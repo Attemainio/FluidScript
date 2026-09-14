@@ -398,6 +398,25 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "{parameter} cannot be negative.");
 
+    /// <summary>A negative <c>power</c> on a role spelling, whose direction the word already carries.</summary>
+    /// <value><c>FS1308</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <c>load</c>, <c>cooler</c>, <c>radiator</c> and <c>chiller</c> read <c>power</c> as a capacity and
+    /// lower it to a negative side-1 flux; <c>heater</c> and <c>boiler</c> to a positive one (<c>D-91</c>).
+    /// The sign is the word's, so a minus written beside it says nothing the word does not — and it is
+    /// taken as its magnitude, which keeps an older <c>load power=-24</c> physically unchanged. A warning
+    /// rather than silence because a minus there is either a typo or a reading of the convention this
+    /// project does not use: it does not make a load heat, and it does not declare which way the water
+    /// runs (<c>L-47</c>). The neutral spellings keep the number signed and are exempt.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor SignedRoleCapacity { get; } = new(
+        "FS1308",
+        DiagnosticSeverity.Warning,
+        "'{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. "
+        + "Write it positive, or use 'heat_exchanger' for a signed heat flow.");
+
     /// <summary>More parameters of one relation stated than the relation has freedoms.</summary>
     /// <value><c>FS2101</c>, an error.</value>
     /// <remarks>
@@ -625,6 +644,7 @@ public static class BinderDiagnostics
         ObserverNotPlaced,
         DeadEndNode,
         NegativeValue,
+        SignedRoleCapacity,
         OverDetermined,
         RedundantValveDrop,
         PositionOutsideRange,
