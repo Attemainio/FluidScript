@@ -668,6 +668,19 @@ expects `AirHandlingUnit` to find `ahu`.
    the driver's own curve short-circuited; in a dynamic circuit, the current time, deferred like a
    solved property. A curve whose driver has neither is `FS1528` — an error naming the driver, never a
    default, because guessing zero puts a number in front of an engineer that nothing chose.
+
+   **A component with a `sized_at` clause reads every curve at its own point** (`D-94`). The clause's
+   values bind exactly as `design` does — pending expressions keyed by the driver's canonical role,
+   checked against the role's dimension, duplicated names `FS1401` — under `ValueId.SizingPoint`, and
+   each of the component's parameters is ordered after them. A curve reference then asks *whose*
+   parameter is reading: one belonging to such a component walks the curve chain afresh with the
+   overrides, falling back to the file's `design` value for any driver the clause did not name, so
+   two components reading one curve at two points each get their own number and the curve's stored
+   value never changes. `FS1528` is judged the same way, by what the reader saw, so a clause is
+   enough for its own component when the file states no `design` at all. The published
+   `ComponentSymbol.SizingPoint` carries the evaluated point and `ParameterValue.Basis` the sentence
+   the solve report shows — *27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks* — from the
+   same expression evaluated once more at the file's point.
 6. **Materialize indexed ports.** A tank starts with `in1` and `out1`. A qualified endpoint or an
    elevation parameter creates the named port after validating its 1…16 index. Ports not evidenced by
    source do not exist in the bound model or model contract.

@@ -55,7 +55,7 @@ would be filled with nothing.
 ## Where the project stands
 
 > **Phase P3, milestone M2a — the hydraulic core.**
-> P3.0 through P3.7 have shipped. **P3.8 and P3.9 have not been started.**
+> P3.0 through P3.8 have shipped. **P3.9 has not been started.**
 > **All three M2a demo scripts converge**, as of 2026-09-14, and the header lands on `01`'s figures.
 > `S-58` was the last blocker: a junction mixed its inlets by a plain average, so no valve position
 > could move a mixed temperature. `D-91` (positive role capacities) and `D-92` (fixed flow as a flow
@@ -82,7 +82,7 @@ that test rather than quietly improving.
 | P0 | pre-M0 | 3 | **Complete** | 2026-09-01 |
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
-| P3 | M2a | 10 | **In progress** — P3.0–P3.7 shipped, P3.8 and P3.9 not started | — |
+| P3 | M2a | 10 | **In progress** — P3.0–P3.8 shipped, P3.9 not started | — |
 | P4 | M2b | 3 | Not started | — |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
@@ -153,7 +153,7 @@ each names the package that closed it. Seven remain open; see
 | P3.6b | Newton, and the seed it cannot start without | `b5f5539` | Shipped |
 | P3.7a | The seed that closes every mass balance | `1fe14ce` | Shipped |
 | P3.7b | Sizing rules and the single outer loop | `91ac4fc`…`0689589` (5) | Shipped |
-| **P3.8** | **The design point as the sizing point** | — | **Not started** |
+| P3.8 | The design point as the sizing point — `sized_at` (`D-94`) | uncommitted | Shipped 2026-09-14 |
 | **P3.9** | **Elevation as an absolute height** | — | **Not started** |
 
 **P3.1a and P3.4c were not in the plan.** P3.1a transcribed the reference circuits before anything
@@ -161,6 +161,14 @@ could solve them and found two defects in the documents that define them. P3.4c 
 what a boundary declaration means and turned into two corrections to the counting argument itself —
 `08` keeps the account of why, because the shape of it ("the package that finds a defect is the one
 that tries to *use* the thing") is a planning lesson rather than a state fact.
+
+**P3.8 was smaller than planned, and half of it moved.** Measured before anything was written,
+`design` already sized end to end: the binder folds every curve to its design-point value before
+lowering, so no sizing rule needed to read `ProjectSettings.Design` and `C-51`'s "fraction-of-peak
+rule" turned out to be the wrong shape. What shipped is `D-94`'s `sized_at` clause — one component
+reading the curve at its own bivalent point, the closed-circuit closure sizing its backup, and the
+fraction reported as the parameter's basis. The live-curve half (a curve as a function of time in a
+transient run) moved to P6.1, where a clock first exists; `08` records the re-scope.
 
 **P3.9's one-line half was taken early**: an omitted height stopped being a sizing candidate before
 P3.7 could act on it (`C-41`). The rest of the package — the parameter on every kind, height
@@ -216,8 +224,8 @@ valve's inlet legs when the source outlet is omitted), `S-55` (driver analysis m
 pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow),
 `S-52` (`FS2211` sends the user to the balanced half) and `S-45`'s residue, which `FS2218` now
 makes visible without deciding. `L-47` (closed) records the sign discussion of 2026-09-14: `power`
-never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. What still stands between here and M2a's exit is `05`'s other criteria — P3.8, P3.9
-and the coverage row — not the solver.
+never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. What still stands between here and M2a's exit is `05`'s other criteria — P3.9
+and the coverage row — not the solver. P3.8 closed `C-51` with `D-94` on 2026-09-14.
 
 ## What is next
 
@@ -233,9 +241,9 @@ and the coverage row — not the solver.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P3.8** — the design point as the sizing point. Holder: `C-51`.
-5. **P3.9** — elevation as an absolute height.
-6. Then M2a exits and P4 begins.
+4. **P3.9** — elevation as an absolute height.
+5. **R-17's coverage row**, then M2a exits and P4 begins. `C-51`'s DHW half — a draw profile as a
+   design condition — is `C-73`, deferred to P4's substation work.
 
 ## Standing baselines
 
@@ -244,7 +252,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1462 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1484 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

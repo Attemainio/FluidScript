@@ -312,12 +312,21 @@ public sealed record ControlBindingSyntax(
 /// kind accepts one; the parser records it wherever it is written and the binder decides.
 /// </param>
 /// <param name="Parameters">The stated parameters. An omitted one is absence, never null.</param>
+/// <param name="SizedAtKeyword">The <c>sized_at</c> word, or <see langword="null"/> when the component takes the file's design point.</param>
+/// <param name="SizingPoint">
+/// The driver values this component is sized at (<c>D-94</c>), each a <c>driver=value</c> pair as a
+/// <c>design</c> line writes them. Empty when there is no clause. A heat pump written
+/// <c>sized_at tout=-5</c> reads its curve at −5 where the rest of the plant reads it at the design
+/// day; the bivalent point is the engineer's decision and this is where it is written.
+/// </param>
 public sealed record ComponentDeclarationSyntax(
     IdentifierSyntax Name,
     IdentifierSyntax Kind,
     Token? AtKeyword,
     IdentifierSyntax? AttachedTo,
-    ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax
+    ImmutableArray<ParameterSyntax> Parameters,
+    Token? SizedAtKeyword,
+    ImmutableArray<ParameterSyntax> SizingPoint) : StatementSyntax
 {
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>
@@ -328,6 +337,8 @@ public sealed record ComponentDeclarationSyntax(
             ? new[] { at }.Concat(node.Tokens)
             : [],
         .. Parameters.SelectMany(static parameter => parameter.Tokens),
+        .. SizedAtKeyword is { } sizedAt ? new[] { sizedAt } : [],
+        .. SizingPoint.SelectMany(static parameter => parameter.Tokens),
     ];
 }
 

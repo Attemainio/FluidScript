@@ -698,4 +698,56 @@ public sealed class OuterLoopTests
 
         Assert.DoesNotContain(forwards.Solve.Diagnostics, static d => d.Code == "FS3013");
     }
+
+    private const string BivalentPair = """
+        fluidscript 1
+        design tout=-26
+        curve heating tout
+        -26  50
+         20   0
+
+        circuit heating
+        fluid water
+
+        HP1  heater power=heating sized_at tout=-5
+        BL1  heater
+        LOAD load power=heating in=70 out=40
+        PU1  pump
+        P1   pipe length=20 dn=32
+
+        connections
+        N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1
+        """;
+
+    [Fact]
+    public async Task ABivalentPairSplitsTheDesignDayAtTheHeatPumpsOwnPoint()
+    {
+        // `D-94`: the heat pump reads the heating curve at its own −5, not the file's −26, so its
+        // stated power is its capacity at the bivalent point: 50 × 25 / 46 = 27.174 kW. The load reads
+        // the same curve at −26 and asks 50 kW; the boiler wrote nothing, so the closed-circuit balance
+        // gives it the difference. Hand figures: 0.3987 kg/s round the loop from 50 kW over 70→40 K,
+        // the heat pump lifting 40 → 56.3 °C and the boiler 56.3 → 70 °C.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(BivalentPair), Water.Instance, "bivalent", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        var run = result.Value;
+
+        Assert.Equal(22_826, run.Sizes.For("BL1", "power")!.Value, 1.0);
+        Assert.Contains("22.83 kW", run.Bases["BL1.power"], StringComparison.Ordinal);
+        Assert.Equal(
+            "27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks", run.Bases["HP1.power"]);
+        Assert.Null(run.Sizes.For("HP1", "power"));
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0.3984, Math.Abs(solved[layout.BranchFlow(0)]), 0.001);
+
+        // Between the two heaters the water sits at 56.3 °C: 40 + 27.174 / (0.3984 × 4.18), which is
+        // 235.8 kJ/kg of enthalpy above the 0 °C liquid datum.
+        Assert.Equal(235_844, solved[Index(layout, UnknownKind.NodeEnthalpy, "N2")], 500.0);
+    }
 }

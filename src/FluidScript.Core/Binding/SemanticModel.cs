@@ -259,6 +259,17 @@ public sealed record ComponentSymbol
     /// finished declaration set, so a stage that read one would make identity circular.
     /// </remarks>
     public string? Tag { get; init; }
+
+    /// <summary>Gets the component's own sizing point, from its <c>sized_at</c> clause (<c>D-94</c>).</summary>
+    /// <value>
+    /// Empty for a component that reads every curve where the file's <c>design</c> line says. Keyed by
+    /// canonical driver name like <see cref="ProjectSettings.Design"/>, with the value and the number
+    /// a curve is read at filled in once evaluated. A component whose parameters read a curve at this
+    /// point takes the curve's value there as its <em>capacity</em>: below the point it is flat out and
+    /// the rest of the plant carries the remainder, which is what a bivalent heat pump is.
+    /// </value>
+    public ImmutableDictionary<string, DesignValue> SizingPoint { get; init; } =
+        ImmutableDictionary<string, DesignValue>.Empty;
 }
 
 /// <summary>A parameter the user supplied. Its mere presence is a constraint (<c>D-02</c>).</summary>
@@ -285,6 +296,15 @@ public sealed record ParameterValue
 
     /// <summary>Gets where the assignment sits in the source.</summary>
     public required TextSpan Span { get; init; }
+
+    /// <summary>Gets how the value was arrived at, when it was read at the component's own sizing point (<c>D-94</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> for every parameter that read no curve or whose component wrote no
+    /// <c>sized_at</c>. Otherwise a sentence for the report — <em>30 kW at tout=-5, 0.6 of the 50 kW
+    /// the design day asks</em> — because the fraction is the number an engineer checks a bivalent
+    /// choice by, and it is an outcome of the point, never something the file states.
+    /// </value>
+    public string? Basis { get; init; }
 }
 
 /// <summary>A <c>let</c> binding: a name for a value used more than once.</summary>

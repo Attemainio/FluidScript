@@ -250,6 +250,16 @@ open, and the count will be one short in a way no line of your script explains.
 Everything the tool chose because you did not state it, with the basis it chose on. These are not
 solver unknowns — they are constants as far as the solve is concerned, recomputed between passes.
 
+A parameter you stated through a curve at a component's own point ([`sized_at`](../functions/design.md#sizing-one-component-somewhere-else-on-the-curve))
+is listed here too, because it was arrived at rather than typed:
+
+```
+    HP1.power            27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks
+```
+
+The fraction is the number to check a bivalent choice by, and it is an outcome of the point you
+chose, never something the script states.
+
 This is where to look when a result is *plausible but wrong*. A valve at `Kv 630` where you expected
 `6.3` is a rule that declined to size and left a bootstrap value in place, and it will bury every
 other residual in the report above.

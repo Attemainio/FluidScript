@@ -4168,3 +4168,75 @@ so their reports are byte-identical before and after. `S-29` (two pumps in serie
   is an unknown at sizing time, and the rule would size against a number the solve has not produced.
 - *Size the source pump to the index circuit and let consumer pumps take the remainder.* That is the
   measured failure: the remainder went negative on the direct consumer.
+
+---
+
+## D-94 · A component names its own sizing point with `sized_at`; the fraction of peak is reported, never stated
+
+**Accepted · 2026-09-14**
+
+A component declaration may end in a `sized_at` clause naming one or more driver values:
+
+```fluidscript
+design tout=-26
+curve heating tout
+-26  50
+ 20   0
+
+circuit heating
+fluid water
+
+HP1  heater power=heating sized_at tout=-5
+BL1  heater
+LOAD load power=heating in=70 out=40
+PU1  pump
+P1   pipe length=20 dn=32
+
+connections
+N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1
+```
+
+Every curve one of `HP1`'s parameters reads is evaluated at −5 instead of the file's −26, walking a
+chain of curves (`tout → outdoor → heating`) at −5 end to end. `HP1.power` is therefore 27.2 kW, the
+curve's value at the bivalent point, and that number is the machine's **capacity**: below −5 it is
+flat out and the rest of the plant carries the difference. In a static solve at the design day the
+capacity is also what it delivers, and the closed-circuit energy balance sizes `BL1` to the 22.8 kW
+that remains. `sized_at` is `design` with a narrower scope and nothing else: its values are pending
+expressions with the driver's role as their dimension, so `sized_at tout=3 bar` is the same `FS1304`
+that `design tout=3 bar` is, `tout` and `outdoor` are one driver, and a bare −5 is −5 °C.
+
+**The fraction is reported, never stated.** The parameter's basis in the solve report reads
+*27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks* — the same expression evaluated twice,
+once at the component's point and once at the file's. Practice sizes a bivalent heat pump by choosing
+a **bivalence point** on the building's heating curve, not a percentage: CIBSE Journal's *The balance
+of power: the bivalent approach to heat pumps* and CPD module 205 put the optimum heat-pump share at
+roughly 50–75 % of the building's peak load for a parallel-bivalent system, and a bivalence point
+near −5 °C leaves the backup a few percent of the annual heat while a point at 0 °C hands it 30 % or
+more. The point is the engineering choice and the fraction is its consequence, so the language takes
+the point and the report gives the fraction back for the engineer to check.
+
+**Why.** `C-51` asked where a fraction-of-peak rule could live, and the answer is nowhere: a rule
+that sized "the dominant machine" to 60 % of peak would have to know which machine dominates, what
+its backup is, and that the user wanted a bivalent plant at all — three facts the script never
+states. A point on the curve the file already has carries all three implicitly, costs one clause,
+and reads as the datasheet does.
+
+**Rejected.**
+- *A `fraction=0.6` parameter, or a `sized_at 60 %` spelling.* One number instead of a temperature.
+  Cost: it is the derived quantity, so a change to the heating curve silently changes what the
+  fraction means, and no engineer checks a bivalent design by its percentage.
+- *A second `design` line per component, or per circuit.* `D-58` already rejected per-circuit design
+  points because outdoor temperature is a site property. It still is; what varies by component is
+  where on the site's curve the component's capacity is read, which is a property of the component.
+- *A sizing rule in `24` that reads `ProjectSettings.Design` and applies a stated fraction.* The
+  shape `C-51` imagined. Cost: `P3.8` measured that `design` already sizes end to end through the
+  binder's folded curves, so the rule would size nothing the binder had not already sized; and its
+  input is the derived number above.
+- *Reading `sized_at` values in the solver, so a dynamic run could re-read the curve at the point.*
+  Cost: the point is a sizing input, and `D-58` keeps sizing at one condition in every mode; a
+  transient re-reading curves at each step is `P6`'s clock, not this clause.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md),
+[`15-semantic-model`](../10-language/15-semantic-model.md),
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md); `ComponentSymbol.SizingPoint`,
+`ParameterValue.Basis`, `ValueId.SizingPoint`. Closes `C-51`.

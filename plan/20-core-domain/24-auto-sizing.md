@@ -92,9 +92,14 @@ inherently a single-condition question, so `design` supplies each driver a value
 short-circuits to a constant against it, and the sizes that come out hold for the whole run. In a
 static solve the design point is also the operating point and the distinction is invisible. In a
 dynamic one it is not: sizing is **not** re-run per time step and it is not run at t = 0 either, which
-would size the plant for whatever the weather is at midnight on the first of January. `P3.8` is the
-package where sizing first reads `ProjectSettings.Design`; `C-51` records that no rule here yet reads
-any driver but `tout`, and that the fraction-of-peak rule a heat pump needs has nowhere to live.
+would size the plant for whatever the weather is at midnight on the first of January. **No rule here
+reads `ProjectSettings.Design` directly, and `P3.8` measured that none needs to**: the binder folds
+every curve to its design-point value before lowering, so a `power=heating` under `design tout=-26`
+reaches these rules as a stated 50 kW and is sized against exactly as a typed one. A component that
+should *not* be sized at the peak — the heat pump of a bivalent pair — says so with `sized_at tout=-5`
+on its own declaration (`D-94`), reads the curve there, and the closed-circuit closure in step 1
+gives its backup the remainder. The fraction of peak that results is reported as the parameter's
+basis, never taken as an input (`C-51`, closed).
 
 ## Constraint propagation
 

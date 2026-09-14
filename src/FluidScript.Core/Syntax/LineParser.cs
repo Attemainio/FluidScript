@@ -789,7 +789,34 @@ internal sealed class LineParser(
             return Malformed();
         }
 
-        return new ComponentDeclarationSyntax(name, kind, atKeyword, attachedTo, parameters);
+        // `HP1 heater power=heating sized_at tout=-5` names the point this component is sized at
+        // (`D-94`). Position-classified like `at`: it is only this word, after the parameters, followed
+        // by at least one `driver=value` pair. `ParseParameters` stops in front of it.
+        Token? sizedAtKeyword = null;
+        var sizingPoint = ImmutableArray<ParameterSyntax>.Empty;
+
+        if (Current is { Kind: TokenKind.Identifier, Text: "sized_at" })
+        {
+            sizedAtKeyword = Advance();
+            sizingPoint = ParseParameters(out failed);
+
+            if (failed)
+            {
+                return Malformed();
+            }
+
+            if (sizingPoint.IsEmpty)
+            {
+                Report(
+                    ParserDiagnostics.ParameterWithoutValue,
+                    sizedAtKeyword.Span,
+                    new DiagnosticArgument("token", sizedAtKeyword.Text));
+                return Malformed();
+            }
+        }
+
+        return new ComponentDeclarationSyntax(
+            name, kind, atKeyword, attachedTo, parameters, sizedAtKeyword, sizingPoint);
     }
 
     // ---- pieces -----------------------------------------------------------------------------
@@ -801,6 +828,14 @@ internal sealed class LineParser(
 
         while (Current is { Kind: TokenKind.Identifier } nameToken)
         {
+            // The one bare identifier a parameter list may end in front of: a declaration's sizing
+            // point begins here and the caller reads it (`D-94`).
+            if (nameToken.Text is "sized_at"
+                && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+            {
+                break;
+            }
+
             if (tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
             {
                 Report(

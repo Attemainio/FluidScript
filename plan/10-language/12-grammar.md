@@ -297,8 +297,14 @@ curve-driver        = identifier ;   (* "time", another curve, or a registered r
 curve-modifier      = identifier ;   (* "extrapolated"; clamped is the default *)
 curve-row           = ( number | timestamp ) , number ;
 
-component-decl      = identifier , kind-name , [ "at" , identifier ] , { parameter } ;
-                      (* the `at` clause places an observer on a node -- D-61 *)
+component-decl      = identifier , kind-name , [ "at" , identifier ] , { parameter }
+                    , [ "sized_at" , parameter , { parameter } ] ;
+                      (* the `at` clause places an observer on a node -- D-61; the `sized_at`
+                         clause names the component's own sizing point, driver=value as on a
+                         `design` line -- D-94. `sized_at` is an identifier the declaration parser
+                         recognises by position, not a keyword: the parameter list stops in front
+                         of a bare `sized_at`, while `sized_at=...` is still a parameter and meets
+                         the registry as one. A clause with no `driver=value` after it is FS1105 *)
 kind-name           = identifier | keyword ;        (* resolved against the registry at bind time;
                                                        a keyword here is a kind, never a statement -- D-64 *)
 parameter           = identifier , "=" , parameter-value ;

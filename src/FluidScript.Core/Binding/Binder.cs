@@ -402,6 +402,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         }
 
         var parameters = BindParameters(declaration, kind, name);
+        DeclareSizingPoint(declaration, name, parameters);
 
         var symbol = new ComponentSymbol
         {
@@ -654,7 +655,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 parse.Source,
                 ImmutableArray.CreateBuilder<Diagnostic>(),
                 pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
+            _evaluating = pending.Id;
             evaluator.Evaluate(pending.Expression);
+            _evaluating = null;
 
             // Kept on the pending value as well, so a later pass can ask what an expression read
             // without evaluating it a third time. That is how a curve reference is found again at the
@@ -697,7 +700,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 _diagnostics,
                 pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
 
-            switch (evaluator.Evaluate(pending.Expression))
+            // Named while it reads, so a curve reference can tell whose parameter is asking and read
+            // the curve at that component's own sizing point (`D-94`).
+            _evaluating = pending.Id;
+            var result = evaluator.Evaluate(pending.Expression);
+            _evaluating = null;
+
+            switch (result)
             {
                 case EvaluationResult.Value value:
                     Store(pending, value);
@@ -905,12 +914,20 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
                 if (_pending.TryGetValue(id, out var pending) && pending.Value is { } quantity)
                 {
-                    parameters[canonical] = value with { Value = quantity };
+                    parameters[canonical] = value with
+                    {
+                        Value = quantity,
+                        Basis = SizingBasis(component.Name, pending),
+                    };
                     CheckRoleSign(component, canonical, quantity, pending.Span);
                 }
             }
 
-            _components[i] = component with { Parameters = parameters.ToImmutable() };
+            _components[i] = component with
+            {
+                Parameters = parameters.ToImmutable(),
+                SizingPoint = PublishSizingPoint(component.Name),
+            };
         }
     }
 
@@ -965,7 +982,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 {
                     var curve = new ValueId.Curve(head);
 
-                    return _curveValues.GetValueOrDefault(head) is { } y
+                    return CurveValueFor(head) is { } y
                         ? new ScopeLookup.Value(
                             Quantity.FromSi(y, Dimension.Dimensionless), IsBare: true, curve)
                         : new ScopeLookup.Deferred(curve);

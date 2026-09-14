@@ -197,6 +197,8 @@ What is left, and stays where `08` put it:
 - **P3.8** keeps the half that needs sizing: `design` as the sizing point (`D-58`'s first job), and a
   curve as a live function of time in a transient run. Today the binder computes the design-point
   value and records the dynamic reference as deferred; the stage that consumes either does not exist.
+  **Re-scoped 2026-09-14**: the live-curve half moves to **P6.1**, where a clock first exists; P3.8
+  is the sizing half alone, and `D-94`'s `sized_at` is its content.
 
 **P2.9 exists because `18-script-compatibility` had no work package at all**, and M1's first exit
 criterion depends on one: an unversioned draft must get `FS1701` and must not be durably saveable.

@@ -57,6 +57,19 @@ public abstract record ValueId
         /// <inheritdoc/>
         public override string ToString() => $"design {Driver}";
     }
+
+    /// <summary>One driver's value at a component's own sizing point (<c>D-94</c>).</summary>
+    /// <param name="Component">The component that wrote the <c>sized_at</c> clause.</param>
+    /// <param name="Driver">The canonical driver name the clause's argument was keyed under.</param>
+    /// <remarks>
+    /// A node of its own so the component's parameters are ordered after it: a curve they read is
+    /// evaluated at this value rather than at the file's <see cref="Design"/>.
+    /// </remarks>
+    public sealed record SizingPoint(string Component, string Driver) : ValueId
+    {
+        /// <inheritdoc/>
+        public override string ToString() => $"{Component} sized_at {Driver}";
+    }
 }
 
 /// <summary>An expression held until sizing or solving supplies all of its inputs.</summary>

@@ -127,6 +127,11 @@ is legal.
 
 `|` is not used for anything, and is deliberately kept free.
 
+`sized_at` is not reserved either: it is recognised by its position, after a component's parameters
+and in front of at least one `driver=value` (`HP1 heater power=heating sized_at tout=-5`, see
+[`design`](design.md#sizing-one-component-somewhere-else-on-the-curve)). Written with an `=` it is an
+ordinary parameter name, which no component has.
+
 ## Your formatting is yours
 
 FluidScript never reformats what you wrote. Spacing, alignment, blank lines, the column your comments

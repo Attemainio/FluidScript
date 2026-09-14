@@ -39,6 +39,51 @@ The bare number takes the driver's usual unit, so `tout=-26` is −26 °C. Write
 design tout=-26 C
 ```
 
+## Sizing one component somewhere else on the curve
+
+A bivalent plant is a heat pump sized part-way up the heating curve and a boiler for the rest. The
+heat pump is not sized at the design day — that would mean a machine that cycles all winter — so it
+says where it *is* sized:
+
+```fluidscript
+design tout=-26
+curve heating tout
+-26  50
+ 20   0
+
+circuit heating
+fluid water
+
+HP1  heater power=heating sized_at tout=-5
+BL1  heater
+LOAD load power=heating in=70 out=40
+PU1  pump
+P1   pipe length=20 dn=32
+
+connections
+N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1
+```
+
+`sized_at` reads every curve on that line at its own point instead of the file's. `HP1.power` is the
+curve at −5 °C, 27.2 kW, and that is the heat pump's capacity. The load reads the same curve at −26
+and asks 50 kW, and the boiler, which wrote nothing, is sized to the 22.8 kW that remains. Two
+components can read one curve at two points; the curve itself does not change.
+
+The report tells you what fraction of the design day that was:
+
+```
+HP1.power   27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks
+```
+
+You choose the point, not the percentage — that is how a bivalent system is specified, and the
+percentage is what you check afterwards. A bivalence point near −5 °C typically leaves the backup a
+few percent of the year's heat; one at 0 °C hands it a third.
+
+Everything about `design` applies to `sized_at`: the same driver names, the same units, the same
+check that `tout=3 bar` is not a temperature. Name more than one driver on the clause if the curves
+need them. A component's own point is enough for its own curves even when the file states no
+`design` at all.
+
 ## When you need it
 
 Whenever a static circuit reads a curve. FluidScript will tell you which driver has no value rather

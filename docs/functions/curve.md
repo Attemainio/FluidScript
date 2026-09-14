@@ -109,7 +109,9 @@ A curve is a value that changes, so it needs something to change with.
 - **Solving in time** (`fluid dynamic`) — a curve of time follows the clock, and everything reading
   it follows along.
 - **Solving a steady state** (`fluid static`) — there is no clock, so say the condition instead with
-  [`design`](design.md). Every curve is then read once at that condition and stays there.
+  [`design`](design.md). Every curve is then read once at that condition and stays there. A
+  component may read it somewhere else with `sized_at` on its own line — see
+  [`design`](design.md#sizing-one-component-somewhere-else-on-the-curve).
 
 Without either, a curve has no value and FluidScript says so rather than picking one.
 

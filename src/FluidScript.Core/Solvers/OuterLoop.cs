@@ -182,7 +182,10 @@ public sealed class OuterLoop(
         var (sized, bases, notes) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
 
         return new PreparedModel(
-            Lowering.Lower(model, substance, new ComponentFactory(bores, sized), name), sized, bases, notes);
+            Lowering.Lower(model, substance, new ComponentFactory(bores, sized), name),
+            sized,
+            WithStated(model, bases),
+            notes);
     }
 
     /// <summary>Compiles a bound model to a solved circuit, sizing whatever it left open.</summary>
@@ -285,7 +288,8 @@ public sealed class OuterLoop(
 
             if (next.Matches(overlay))
             {
-                return Result.Success(Report(lowered.Graph, solve, next, bases, notes, passes, settled: true));
+                return Result.Success(
+                    Report(lowered.Graph, solve, next, WithStated(model, bases), notes, passes, settled: true));
             }
 
             overlay = next;
@@ -298,7 +302,8 @@ public sealed class OuterLoop(
                 ("property", "a solution"),
                 ("name", name),
                 ("state", "the pass cap is not positive")))
-            : Result.Success(Report(lowered.Graph, solve, overlay, bases, notes, passes, settled: false));
+            : Result.Success(
+                Report(lowered.Graph, solve, overlay, WithStated(model, bases), notes, passes, settled: false));
     }
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
@@ -341,6 +346,35 @@ public sealed class OuterLoop(
             Passes = passes,
             Settled = settled,
         };
+
+    /// <summary>Adds the bases the script states itself to the ones a sizing rule chose.</summary>
+    /// <param name="model">The bound model.</param>
+    /// <param name="bases">What sizing chose this pass, keyed <c>"P1.dn"</c>.</param>
+    /// <returns>The same map with every parameter read at its component's own sizing point added (<c>D-94</c>).</returns>
+    /// <remarks>
+    /// A stated parameter is not sized, but one read at a <c>sized_at</c> point was arrived at rather
+    /// than typed, and the report is where an engineer checks the bivalent fraction it implies. Sizing
+    /// never writes a stated parameter, so the two sets cannot collide.
+    /// </remarks>
+    private static ImmutableDictionary<string, string> WithStated(
+        SemanticModel model,
+        ImmutableDictionary<string, string> bases)
+    {
+        var merged = bases.ToBuilder();
+
+        foreach (var component in model.Components)
+        {
+            foreach (var (parameter, value) in component.Parameters)
+            {
+                if (value.Basis is { } basis)
+                {
+                    merged[$"{component.Name}.{parameter}"] = basis;
+                }
+            }
+        }
+
+        return merged.ToImmutable();
+    }
 
     private static readonly string[] SideOneTerminals = ["in", "out"];
 

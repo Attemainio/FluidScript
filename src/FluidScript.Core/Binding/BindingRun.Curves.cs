@@ -483,7 +483,9 @@ internal sealed partial class BindingRun
 
             foreach (var curve in curves.OrderBy(static curve => curve.Name, StringComparer.Ordinal))
             {
-                if (_curveValues.GetValueOrDefault(curve.Name) is not null)
+                // As this reader saw it: a component's own `sized_at` positions the curve for its
+                // parameters even when the file states no `design` at all (`D-94`).
+                if (CurveValueSeenBy(pending.Id, curve.Name) is not null)
                 {
                     continue;
                 }
