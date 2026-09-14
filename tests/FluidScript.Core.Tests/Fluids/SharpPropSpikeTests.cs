@@ -149,19 +149,26 @@ public sealed class SharpPropSpikeTests
 
     [Fact]
     [Trait("Category", "Property")]
-    public void WithState_OnASharedInstance_IsSafeAcrossThreads()
+    public void UpdateOnAPerThreadInstance_IsSafeAcrossThreads()
     {
-        var shared = new Fluid(FluidsList.Water);
+        // This was `WithState_OnASharedInstance_IsSafeAcrossThreads`, and it proved what its name said
+        // while measuring nothing else: every `WithState` clones a native state of ~540 KB that nothing
+        // frees, so this test alone held 8.6 GB for the rest of the suite and the design it endorsed
+        // took the machine down on the 800-unknown fixture (`C-76`). The pattern Core uses now is one
+        // instance per thread, updated in place; this checks the threads still cannot disturb each other.
         var perThreadTotals = new double[8];
 
         Parallel.For(0, perThreadTotals.Length, thread =>
         {
+            var own = new Fluid(FluidsList.Water);
             double total = 0;
+
             for (var step = 0; step < 2_000; step++)
             {
-                total += shared.WithState(
+                own.Update(
                     Input.Temperature(Temperature.FromDegreesCelsius(20 + (step % 30))),
-                    Input.Pressure(Pressure.FromBars(2))).Density.KilogramsPerCubicMeter;
+                    Input.Pressure(Pressure.FromBars(2)));
+                total += own.Density.KilogramsPerCubicMeter;
             }
 
             perThreadTotals[thread] = total;

@@ -267,7 +267,13 @@ public sealed class BackendPairDiagnostics
         {
             var instance = new Fluid(fluid, fraction is { } f ? Ratio.FromDecimalFractions(f) : null);
 
-            candidates.Add(new Candidate(family, label, instance.WithState));
+            // Updated in place rather than `WithState`, which clones a native state per call and never
+            // frees it (`C-76`): the grid below makes thousands of calls.
+            candidates.Add(new Candidate(family, label, (a, b) =>
+            {
+                instance.Update(a, b);
+                return instance;
+            }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -294,7 +300,11 @@ public sealed class BackendPairDiagnostics
                 components.Select(component => component!.Value),
                 [Ratio.FromPercent(percent), Ratio.FromPercent(100 - percent)]);
 
-            candidates.Add(new Candidate("HEOS mixture", label, instance.WithState));
+            candidates.Add(new Candidate("HEOS mixture", label, (a, b) =>
+            {
+                instance.Update(a, b);
+                return instance;
+            }));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
@@ -378,7 +388,7 @@ public sealed class BackendPairDiagnostics
                     candidate.Label,
                     $"({Symbol(a)}, {Symbol(b)})",
                     () => candidate.Fix(InputFor(a, values[a]), InputFor(b, values[b])).Temperature.Kelvins,
-                    reference.Temperature.Kelvins);
+                    values[Property.Temperature]);
             }
         }
     }
@@ -498,23 +508,39 @@ public sealed class BackendPairDiagnostics
             return;
         }
 
-        for (var i = 0; i < warmup; i++)
-        {
-            fix();
-        }
-
+        // The warm calls update the same instance in place, so each starts where the last one ended, and
+        // a mixture flash that converged cold can refuse from there -- `HSU_D_flash ... no T bracket
+        // found` on an HEOS mixture's (s, rho). That is a fact about the backend worth a cell, not an
+        // exception out of the harness.
         var perCall = new double[samples];
 
-        for (var sample = 0; sample < samples; sample++)
+        try
         {
-            var started = Stopwatch.GetTimestamp();
-
-            for (var iteration = 0; iteration < batch; iteration++)
+            for (var i = 0; i < warmup; i++)
             {
                 fix();
             }
 
-            perCall[sample] = Microseconds(Stopwatch.GetTimestamp() - started) / batch;
+            for (var sample = 0; sample < samples; sample++)
+            {
+                var started = Stopwatch.GetTimestamp();
+
+                for (var iteration = 0; iteration < batch; iteration++)
+                {
+                    fix();
+                }
+
+                perCall[sample] = Microseconds(Stopwatch.GetTimestamp() - started) / batch;
+            }
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            var warm = $"fixed once cold in {cold:F0} µs, then refused from its own previous state: {Trim(exception.Message)}";
+
+            Log($"  - {warm}");
+            _cells.Add(new Cell(family, fluid, pair, 0, cold, [cold], error, warm));
+
+            return;
         }
 
         _cells.Add(new Cell(family, fluid, pair, batch, cold, perCall, error, null));

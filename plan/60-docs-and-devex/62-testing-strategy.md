@@ -147,6 +147,25 @@ answer that has always been wrong. Every golden file's *initial* value must be j
 hand-check or a validation case — a golden file accepted because "that's what it printed" bakes in
 whatever bug existed that day.
 
+## Memory
+
+Two tests, of different kinds, because `C-76` passed every test the suite had: a property read that
+cloned a 540 KB native CoolProp state and dropped it leaked half a megabyte the managed heap never
+saw, and the suite's allocation-free assertions (`EvaluateResiduals` allocates nothing) were all
+true while the process grew to 31 GB.
+
+- **`Fluids/NativeMemoryTests`**, unit tier: two thousand state reads per substance must not grow
+  the working set by more than 64 MB. Working set rather than GC statistics, and no forced
+  collection, because a solve collects nothing between residual sweeps either; the leaking backend
+  measured 1 059 MB on this test, the fixed one under 10. It runs in under a second.
+- **`Performance/MemoryFootprintDiagnostics`**, diagnostic tier: per sample, managed allocation for
+  bind, prepare and solve, what the process still holds after ten repeated solves, and that as a
+  per-solve slope; fails above 8 MB kept per solve. `SolverScaleDiagnostics` reports the same two
+  columns up the unknown-count ladder.
+
+The rule the two encode: **a resource assertion measures the resource, not a proxy for it.** An
+allocation counter is a proxy for memory; the working set is the memory.
+
 ## Physical validation cases
 
 The tests that would catch a wrong model. Each asserts something true of reality, not of the code.

@@ -12,6 +12,8 @@ timing invites it to be quoted without them.
 | `backend-pair-matrix.md` | `BackendPairDiagnostics` | Which of the ten (T, p, h, s, d) input pairs each fluid *family* supports — pure, pseudo-pure, incompressible substance, incompressible solution, HEOS mixture and humid air — the backend's refusal message for the rest, and what each supported pair costs |
 | `backend-pair-log.md` | `BackendPairDiagnostics` | Its running log, appended and flushed before and after every call |
 | `circuit-reports.md` | `CircuitDiagnostics` | What a circuit actually is, per script: the counting table, the hydraulic partition, what answers each constraint, every unknown seeded against solved, the worst residuals, and what sizing chose. Covers `samples/` plus anything dropped in `scratch/` |
+| `solver-scale.md` | `SolverScaleDiagnostics` | How the solver scales with unknown count — the distribution header with 2, 8, 15, 30 and 61 pumped consumers (35 to 861 unknowns): prepare and solve time, iterations, passes, managed allocation and working set. `FLUIDSCRIPT_SCALE_SIZES=2,8` picks the sizes; run a suspect size under `DOTNET_GCHeapHardLimit` |
+| `memory-footprint.md` | `MemoryFootprintDiagnostics` | Where the memory goes per sample — managed allocation for bind, prepare and solve, what the process still holds after ten repeated solves and that as a per-solve slope, working set against GC heap. A `held` far above `allocated` is native memory (`C-76`); the test fails above 8 MB kept per solve |
 | `pipeline-timings.md` | `PipelineTimingDiagnostics` | Where the time goes between a script and a solved circuit — parse, bind, lower and solve per sample, and inside one Newton step the cost of a residual evaluation, the `N+1` of them a finite-difference Jacobian needs, and the dense LU of the same order |
 
 ## Running them
@@ -23,6 +25,12 @@ dotnet test --filter-class FluidScript.Core.Tests.Performance.StateTimingDiagnos
 
 They are traited `Diagnostic` so the unit tier stays under `08`'s two-second invariant. They are
 ordinary tests otherwise, and `dotnet test` with no filter runs them.
+
+**A test whose memory is in doubt runs under a cap**, so that a runaway fails in-process with a
+stack trace instead of the kernel killing whatever launched it (`C-76` took 31 GB and three agent
+sessions before anyone saw a number): `DOTNET_GCHeapHardLimit=0x40000000 timeout 120 <binary> -filter ...`.
+The cap is on the managed heap; native growth shows as a working set far above it, which is the
+signature to look for.
 
 Add `-c Release` for a number worth quoting. A debug build is materially slower, and the report says
 so in its header rather than leaving you to remember.
