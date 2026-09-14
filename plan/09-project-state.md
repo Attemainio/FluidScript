@@ -54,11 +54,12 @@ would be filled with nothing.
 
 ## Where the project stands
 
-> **Phase P3, milestone M2a — the hydraulic core.**
-> P3.0 through P3.9 have shipped; **P3 is code-complete**. As of 2026-09-14 every M2a criterion in
-> `05` is ticked with the test that holds it, except one: the solver-scale baselines (the harness is
-> written; the run is the user's, see `60`'s third environment trap). The R-17 coverage row is
-> `62`'s governing-equation table, audited 2026-09-14.
+> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is next and not started.**
+> P3.0 through P3.9 shipped and every M2a criterion in `05` is ticked with the test that holds it.
+> The last one, the solver-scale baseline, found `C-76`: every real-water property read leaked a
+> 540 KB native CoolProp state, which is what had been killing the machine and the agent sessions
+> with it. Fixed the same day; 861 unknowns now solve in 5.4 s at 165 MB, and every solve in the
+> corpus is 4× faster. The R-17 coverage row is `62`'s governing-equation table.
 > `C-75` closed with `D-96` the same day: a bootstrap provisional counts as free, so `head=15` is
 > absorbed by the balancing valve (Kv 0.77) instead of refused. `S-61` (`FS3008` on a bound the
 > path merely crossed) was found and closed with it.
@@ -88,7 +89,7 @@ that test rather than quietly improving.
 | P0 | pre-M0 | 3 | **Complete** | 2026-09-01 |
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
-| P3 | M2a | 10 | **In progress** — every package shipped; M2a's exit checklist is what remains | — |
+| P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | Not started | — |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
@@ -142,7 +143,7 @@ P2 is where most of tier 10 was found and closed — 35 of its 42 entries are in
 each names the package that closed it. Seven remain open; see
 [`10-language/defects.md`](10-language/defects.md).
 
-### P3 — M2a, the hydraulic core · in progress
+### P3 — M2a, the hydraulic core · complete 2026-09-14
 
 | # | Package | Commit(s) | State |
 |---|---|---|---|
@@ -239,7 +240,7 @@ valve's inlet legs when the source outlet is omitted), `S-55` (driver analysis m
 pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow),
 `S-52` (`FS2211` sends the user to the balanced half) and `S-45`'s residue, which `FS2218` now
 makes visible without deciding. `L-47` (closed) records the sign discussion of 2026-09-14: `power`
-never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. What still stands between here and M2a's exit is the scale measurement — not the solver. P3.8 closed `C-51` with `D-94` on 2026-09-14; the M2a
+never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. Nothing stands between here and M2a's exit any more; it exited 2026-09-14 with `C-76` closed. P3.8 closed `C-51` with `D-94` on 2026-09-14; the M2a
 sweep of 2026-09-14 filed `C-74` (no `FS23xx` code is registered; sizing speaks in notes) and `C-75`,
 and closed `F-24` by moving the model-contract payload criterion to M3.
 
@@ -257,12 +258,12 @@ and closed `F-24` by moving the model-contract payload criterion to M3.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **M2a's last item**, then M2a exits and P4 begins: the solver-scale baselines (the user runs
-   `SolverScaleDiagnostics` and the p50/max figures go into `benchmarks/reference-environment.json`
-   and here). Two small follow-ons `C-75`'s closure names, neither blocking: a promoted Kv seeds at
-   the bootstrap's 630 rather than from the Kv law, and a solved Kv has no basis line saying what it
-   absorbed. `C-51`'s DHW half — a draw profile as a design condition — is `C-73`, deferred to P4's
-   substation work.
+4. **P4.1 — the rated two-sided exchanger**, ε-NTU and LMTD as two routes sharing no code, against
+   the substation's UA = 12.07 kW/K. Read `21`/`22`'s rated-mode contract, `S-32`, `S-14b` and
+   `C-73` first, and look the ε-NTU relations up rather than deriving them. Two small follow-ons
+   `C-75`'s closure names, neither blocking: a promoted Kv seeds at the bootstrap's 630 rather than
+   from the Kv law, and a solved Kv has no basis line saying what it absorbed. `F-19`'s budget
+   re-derivation now has real numbers to work from (16 µs per water state, not 63).
 
 ## Standing baselines
 
@@ -271,7 +272,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1518 passed, 0 failed, 4 skipped** with `SolverScaleDiagnostics` excluded (`-filter "/*/*/!SolverScaleDiagnostics/*"`; it kills an agent session, `60`) | `FluidScript.Core.Tests` |
+| Core test suite | **1519 passed, 0 failed, 4 skipped**, ~60 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

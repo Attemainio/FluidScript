@@ -54,6 +54,14 @@ operations on every supported OS before M1 starts:
 | `HumidAir` | Psychrometrics (`R-08`) |
 | `Input` / `InputHumidAir` | Specifying the two independent properties that fix a state |
 
+**A `Fluid` is a native CoolProp state, ~540 KB, and the adapter owns exactly one per thread and
+updates it in place.** `IFluid.WithState` returns a *new* instance, and neither its `Dispose` nor the
+garbage collector returns the native half: 20 000 calls measured +10.8 GB of working set, against
++0 MB for 20 000 `Update` calls on one instance (`C-76`, which took the machine to 31 GB on the
+800-unknown fixture). Per thread rather than shared, because `Update` is a mutation and the API
+solves concurrently; `Read` copies every property out before the next call. `HumidAir` is stateless
+(`HAPropsSI`) and may be shared.
+
 SharpProp returns UnitsNet quantities. If confirmed, `Directory.Packages.props` takes UnitsNet as a
 direct dependency and `Quantity` ([`13-type-and-unit-system`](../10-language/13-type-and-unit-system.md)) converts at
 the adapter boundary rather than Core inventing a parallel unit system.

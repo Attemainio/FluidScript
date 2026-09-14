@@ -204,11 +204,12 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
 - [x] `circuit AHU 101` resolves the role through the registry, and an unknown role name yields a
       `Neutral` role plus an info diagnostic rather than an error (`D-35`). —
       `BinderTests.ACircuitNameResolvesToARole`, `.FS1519_ACircuitNameThatIsNoRoleIsNeutralAndNotAnError`
-- [ ] The solver-scale baselines deferred from M0 by `D-45` are recorded on the reference
+- [x] The solver-scale baselines deferred from M0 by `D-45` are recorded on the reference
       environment: 200 solver unknowns, and the 800-unknown limit's refusal/support behaviour. —
-      `SolverScaleDiagnostics` writes `diagnostics/solver-scale.md`; the figures are folded into
-      `benchmarks/reference-environment.json` once run. The 800 refusal is the API's input limit
-      (`40`), so Core records support only.
+      `benchmarks/reference-environment.json` `m2a_solverUnknowns_200` (217 unknowns, 412 ms, 2
+      iterations) and `_800_refusal` (861 unknowns, 5.4 s, support; the refusal is the API's input
+      limit, `40`), from `SolverScaleDiagnostics`. Measuring it found `C-76`, a native leak per
+      property read that had been killing the machine.
 
 ## M2b — Coupled thermal rating
 

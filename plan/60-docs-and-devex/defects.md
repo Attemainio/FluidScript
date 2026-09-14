@@ -71,20 +71,19 @@ belongs beside it: a plain `dotnet build` otherwise leaves nine Linux MSBuild wo
 and only `pkill -f 'MSBuild.dll.*nodemode:1'` does.
 
 
-**A test that solves for more than about thirty seconds terminates the agent's session, not the
-test** (2026-09-14). `SolverScaleDiagnostics` — the D-45 scale fixture, 61 consumers on one header,
-~800 unknowns, seven timed outer-loop runs in a Debug build — ended with exit code 137 and took
-Claude Code down with it; relaunched detached, the same. The user's report: it terminates the session
-"always, even if the process is a subprocess", and the reload costs the whole model context. The
-suite as a whole (1500 tests, ~15 s) is unaffected; it is one long-running test that dies, which is
-what makes it the third environment trap rather than a variant of the first two. The consequence is
-procedural: an agent does not run the `Diagnostic`-traited scale or timing tests. It writes the
-command — `~/.dotnet-artifacts/bin/FluidScript.Core.Tests/debug/FluidScript.Core.Tests -filter
-"/*/*/SolverScaleDiagnostics/*"` — the human runs it, and the agent reads the file the test wrote
-(`diagnostics/solver-scale.md`). The agent memory carries the same hook, for the reason the first
-paragraph of this section gives. Whether this is a Claude Code fault (its own issue tracker has the
-shape: anthropics/claude-code#84935) or a WSL2 memory limit is not settled and does not change the
-procedure.
+**A runaway test takes the whole WSL instance's memory with it, and the session dies as
+collateral** (2026-09-14). `SolverScaleDiagnostics` ended with exit 137 and took Claude Code down;
+relaunched detached, the same; in a plain WSL shell, `Killed`. It was recorded here first as an
+environment trap and in the agent's memory as a rule never to run the test --- both wrong, and the
+kernel log said so: `Out of memory: Killed process (FluidScript.Cor) anon-rss:31511772kB`. The test
+process itself had taken all 31 GB, and the OOM killer takes the largest tree, which is whichever
+one launched it. The cause was `C-76`, a native-memory leak per property read. What is worth keeping:
+**run any test whose memory is in doubt under `DOTNET_GCHeapHardLimit`** (`0x40000000` for 1 GB) and
+`timeout` --- the runtime then throws `OutOfMemoryException` inside the process, with a stack, and
+the kernel is never involved. Two probes at `n = 2` and `n = 4` under that cap found the leak in ten
+minutes, where three sessions had died without a clue. The harness's `FLUIDSCRIPT_SCALE_SIZES` and
+its allocation and working-set columns exist for the same reason. The Claude Code issue that was cited
+(anthropics/claude-code#84935) describes the symptom, not this cause.
 
 **Regenerating a page in place, and failing the test that did it, is the right shape for a generated
 region.** Adding eight diagnostic codes was one test run: the gate rewrote

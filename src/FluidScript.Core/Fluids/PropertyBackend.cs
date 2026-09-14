@@ -74,11 +74,16 @@ internal readonly record struct BackendHumidAirState(
 /// catches whatever still escapes.
 /// </para>
 /// <para>
-/// <strong>One <c>Fluid</c> is shared, because constructing one per call costs more than the
-/// measurement does.</strong> On a debug build, a state fixed on a fresh instance took 535 µs and the
-/// same state on a shared one 336 µs — the constructor was 37 % of the call. The M0 spike had already
-/// measured that <c>WithState</c> on a shared instance is safe across threads: it returns a new
-/// instance rather than mutating the receiver.
+/// <strong>One <c>Fluid</c> per thread, updated in place — never <c>WithState</c>.</strong> <c>WithState</c>
+/// returns a new instance, and every instance owns a native CoolProp state of about 540 KB that the
+/// managed heap knows nothing about: 20 000 evaluations measured +10.8 GB of working set, and disposing
+/// the wrapper freed none of it. A Newton solve reads a state at every node on every one of its N+1
+/// residual sweeps, so the 30-consumer header took the machine to 31 GB in seconds and the kernel
+/// killed the process (<c>C-76</c>). <c>Update</c> on one instance measured +0 MB over the same 20 000
+/// calls and five times the speed, and it recomputes every property — SharpProp clears its lazy cache
+/// on update, and a rejected state leaves the instance ready for the next. The instance is thread-static
+/// because updating is a mutation and the API solves concurrently; the earlier sharing of a single
+/// static across threads was only ever safe because <c>WithState</c> cloned, which is the leak.
 /// </para>
 /// <para>
 /// <strong>Fixing a state is expensive and reading one is free</strong>, which is what shapes
@@ -87,19 +92,25 @@ internal readonly record struct BackendHumidAirState(
 /// all seven. CoolProp's own documentation gives the reason — "the equations of state are based on T
 /// and ρ as state variables, so T, ρ will always be the fastest inputs", and "P,T will be a bit
 /// slower (3-10 times), followed by input pairs where neither T nor ρ are specified, like P,H".
-/// Those ratios are about the flash; here they are nearly hidden by the ~320 µs SharpProp charges per
-/// <c>WithState</c> whatever the pair. Two consequences: <see cref="FluidState"/> reads every property
-/// at once rather than lazily, and <c>21</c>'s per-solve cache is a requirement rather than an
-/// optimisation.
+/// Those ratios are about the flash; most of the ~320 µs was the clone, and an in-place update
+/// measures 64 µs for a <c>(p, h)</c> fix and three reads. Two consequences stand: <see cref="FluidState"/>
+/// reads every property at once rather than lazily, and <c>21</c>'s per-solve cache is a requirement
+/// rather than an optimisation.
 /// </para>
 /// </remarks>
 internal static class PropertyBackend
 {
-    private static readonly Fluid SharedWater = new(FluidsList.Water);
+    [ThreadStatic]
+    private static Fluid? water;
+
+    [ThreadStatic]
+    private static Dictionary<RefrigerantKind, Fluid>? refrigerants;
+
     private static readonly HumidAir SharedAir = new();
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<RefrigerantKind, Fluid>
-        SharedRefrigerants = new();
+    /// <summary>This thread's water instance, constructed on first use.</summary>
+    private static Fluid Water => water ??= new Fluid(FluidsList.Water);
+
 
     /// <summary>Measures water at an absolute pressure and a temperature.</summary>
     /// <param name="absolutePressure">Pa absolute.</param>
@@ -109,9 +120,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(SharedWater.WithState(
+            var fluid = Water;
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature))));
+                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -127,9 +142,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(SharedWater.WithState(
+            var fluid = Water;
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy))));
+                Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -144,9 +163,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return SharedWater.WithState(
+            var fluid = Water;
+
+            fluid.Update(
                 Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)),
-                Input.Quality(Ratio.FromPercent(0))).Pressure.Pascals;
+                Input.Quality(Ratio.FromPercent(0)));
+
+            return fluid.Pressure.Pascals;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -165,9 +188,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return SharedWater.WithState(
+            var fluid = Water;
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Quality(Ratio.FromPercent(0))).Temperature.Kelvins;
+                Input.Quality(Ratio.FromPercent(0)));
+
+            return fluid.Temperature.Kelvins;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -230,9 +257,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(SharedWater.WithState(
+            var fluid = Water;
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy))));
+                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -250,9 +281,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(Shared(kind).WithState(
+            var fluid = Shared(kind);
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature))));
+                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -274,9 +309,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(Shared(kind).WithState(
+            var fluid = Shared(kind);
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy))));
+                Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -294,9 +333,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Read(Shared(kind).WithState(
+            var fluid = Shared(kind);
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy))));
+                Input.Entropy(SpecificEntropy.FromJoulesPerKilogramKelvin(entropy)));
+
+            return Read(fluid);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -312,9 +355,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Shared(kind).WithState(
+            var fluid = Shared(kind);
+
+            fluid.Update(
                 Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)),
-                Input.Quality(Ratio.FromPercent(0))).Pressure.Pascals;
+                Input.Quality(Ratio.FromPercent(0)));
+
+            return fluid.Pressure.Pascals;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -330,9 +377,13 @@ internal static class PropertyBackend
     {
         try
         {
-            return Shared(kind).WithState(
+            var fluid = Shared(kind);
+
+            fluid.Update(
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Quality(Ratio.FromPercent(0))).Temperature.Kelvins;
+                Input.Quality(Ratio.FromPercent(0)));
+
+            return fluid.Temperature.Kelvins;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -358,8 +409,12 @@ internal static class PropertyBackend
             var fluid = Shared(kind);
             var pressure = Input.Pressure(Pressure.FromPascals(absolutePressure));
 
-            return (fluid.WithState(pressure, Input.Quality(Ratio.FromPercent(0))).Enthalpy.JoulesPerKilogram,
-                fluid.WithState(pressure, Input.Quality(Ratio.FromPercent(100))).Enthalpy.JoulesPerKilogram);
+            fluid.Update(pressure, Input.Quality(Ratio.FromPercent(0)));
+            var liquid = fluid.Enthalpy.JoulesPerKilogram;
+
+            fluid.Update(pressure, Input.Quality(Ratio.FromPercent(100)));
+
+            return (liquid, fluid.Enthalpy.JoulesPerKilogram);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
@@ -390,24 +445,32 @@ internal static class PropertyBackend
         }
     }
 
-    /// <summary>Gets the shared instance for one refrigerant.</summary>
+    /// <summary>Gets this thread's instance for one refrigerant.</summary>
     /// <param name="kind">Which refrigerant.</param>
-    /// <returns>The instance, constructed once per kind.</returns>
+    /// <returns>The instance, constructed once per kind per thread.</returns>
     /// <remarks>
-    /// One instance per kind for the reason the water one is shared: the constructor was 37 % of a
-    /// measurement. <c>WithState</c> returns a new instance rather than mutating the receiver, so the
-    /// sharing is safe across threads.
+    /// One instance per kind for the reason the water one is kept: the constructor was 37 % of a
+    /// measurement. Per thread because it is updated in place (<c>C-76</c>).
     /// </remarks>
-    private static Fluid Shared(RefrigerantKind kind) => SharedRefrigerants.GetOrAdd(
-        kind,
-        static key => new Fluid(key switch
-        {
-            RefrigerantKind.Ammonia => FluidsList.Ammonia,
-            RefrigerantKind.Propane => FluidsList.nPropane,
-            _ => FluidsList.CarbonDioxide,
-        }));
+    private static Fluid Shared(RefrigerantKind kind)
+    {
+        refrigerants ??= [];
 
-    private static BackendState Read(IFluid fluid) =>
+        if (!refrigerants.TryGetValue(kind, out var fluid))
+        {
+            fluid = new Fluid(kind switch
+            {
+                RefrigerantKind.Ammonia => FluidsList.Ammonia,
+                RefrigerantKind.Propane => FluidsList.nPropane,
+                _ => FluidsList.CarbonDioxide,
+            });
+            refrigerants[kind] = fluid;
+        }
+
+        return fluid;
+    }
+
+    private static BackendState Read(Fluid fluid) =>
         new(fluid.Temperature.Kelvins,
             fluid.Enthalpy.JoulesPerKilogram,
             fluid.Entropy.JoulesPerKilogramKelvin,

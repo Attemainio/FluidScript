@@ -45,7 +45,19 @@ public sealed class SolverScaleDiagnostics
         int Iterations,
         int Passes,
         string Termination,
-        double Residual);
+        double Residual,
+        double AllocatedMb,
+        double WorkingSetMb);
+
+    /// <summary>The consumer counts to measure: <c>FLUIDSCRIPT_SCALE_SIZES</c> as a comma list, or the default ladder.</summary>
+    /// <remarks>
+    /// Overridable so that one size can be probed on its own under <c>DOTNET_GCHeapHardLimit</c> when the
+    /// ladder as a whole exhausts the machine (2026-09-14: 31 GB resident before the kernel killed it).
+    /// </remarks>
+    private static int[] Sizes =>
+        Environment.GetEnvironmentVariable("FLUIDSCRIPT_SCALE_SIZES") is { Length: > 0 } stated
+            ? [.. stated.Split(',').Select(static s => int.Parse(s.Trim(), CultureInfo.InvariantCulture))]
+            : [2, 8, 15, 30, 61];
 
     [Fact]
     public async Task HowTheSolverScales()
@@ -56,7 +68,7 @@ public sealed class SolverScaleDiagnostics
 
         var rows = new List<Row>();
 
-        foreach (var consumers in new[] { 2, 8, 15, 30, 61 })
+        foreach (var consumers in Sizes)
         {
             rows.Add(await Measure(consumers, resolved.Value.Catalog));
         }
@@ -114,6 +126,7 @@ public sealed class SolverScaleDiagnostics
         var model = GraphFixture.Bind(source);
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog), 10);
 
+        var before = GC.GetTotalAllocatedBytes(precise: true);
         var prepared = loop.Prepare(model, Water.Instance, "scale");
         var counting = WellPosedness.Check(prepared.Lowered.Graph).Counting;
 
@@ -129,6 +142,9 @@ public sealed class SolverScaleDiagnostics
             last = run.Value;
         });
 
+        var allocated = (GC.GetTotalAllocatedBytes(precise: true) - before) / (1024.0 * 1024.0);
+        var workingSet = Environment.WorkingSet / (1024.0 * 1024.0);
+
         await Task.CompletedTask;
 
         return new Row(
@@ -141,7 +157,9 @@ public sealed class SolverScaleDiagnostics
             last!.Solve.Iterations,
             last.Passes,
             last.Solve.Termination.ToString(),
-            last.Solve.ResidualNorm);
+            last.Solve.ResidualNorm,
+            allocated,
+            workingSet);
     }
 
     private static double Time(Action action)
@@ -179,14 +197,15 @@ public sealed class SolverScaleDiagnostics
             .AppendLine("bootstrap, closure and first sizing pass; `solve` is the whole outer loop from the bound model.")
             .AppendLine()
             .AppendLine("| Consumers | Decls | Unknowns | Equations | Prepare ms | Solve ms | Iters | Passes | Termination | Residual |")
-            .AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|");
+            .AppendLine("| Consumers | Decls | Unknowns | Equations | Prepare ms | Solve ms | Iters | Passes | Termination | Residual | Allocated MB | Working set MB |")
+            .AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|");
 
         foreach (var row in rows)
         {
             text.AppendLine(
                 CultureInfo.InvariantCulture,
                 $"| {row.Consumers} | {row.Declarations} | {row.Unknowns} | {row.Equations} | {row.PrepareMs:F1} | {row.SolveMs:F1} "
-                + $"| {row.Iterations} | {row.Passes} | {row.Termination} | {row.Residual:E2} |");
+                + $"| {row.Iterations} | {row.Passes} | {row.Termination} | {row.Residual:E2} | {row.AllocatedMb:F0} | {row.WorkingSetMb:F0} |");
         }
 
         return text.ToString();
