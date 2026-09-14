@@ -605,6 +605,15 @@ individually reasonable and the interaction is invisible.
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
 | `FS2217` | A subcircuit's attachment endpoint resolves to its own circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
+| `FS2218` | A flow constraint answered by a pump on none of its owner's branches | Warning | `'{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it.` |
+
+**`FS2218` reports a reach and does not stop it.** Promotion reaches across the plant on purpose: two
+parallel branches below one shared pump are both served by it, the first taking its head and the
+second falling to its own balancing valve (`S-45`). What the reach cannot tell apart is a shared
+upstream pump from a sibling consumer's, and the case it was written for was silent — a source whose
+own pump had been sized before its constraint was matched took a consumer's pump, that consumer took
+the next, and the plant reported over-specified by one three promotions later with nothing naming
+the first wrong claim (`S-59`). A warning, because the count is still right and the solve may be.
 
 **`FS2214` is a warning, not info.** A loop with no driver is almost always a mis-placed pump — the
 mistake the cooling loop's own history records ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) —

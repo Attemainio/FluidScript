@@ -738,4 +738,25 @@ public sealed class WellPosednessTests
             ? $"unresolved {string.Join(",", lowered.Unresolved)}"
             : table.Excess.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
+
+    [Fact]
+    public void AFlowConstraintHeldByAPumpOffItsOwnBranchSaysSo()
+    {
+        // `S-45`'s original measurement, now reported rather than silent: with `PU_AHU`'s head stated,
+        // `HE_AHU`'s flow constraint has no free pump on its branch and takes the radiator's. The reach is
+        // allowed -- a shared upstream pump is claimed the same way and is right to be -- so this is a
+        // warning naming the claim, not a refusal. The sample as written reaches nowhere and says nothing.
+        var sample = FluidScript.Fixtures.ScriptCorpus.Samples()
+            .Single(static candidate => candidate.Name.EndsWith("m2-distribution-header.fluid", StringComparison.Ordinal))
+            .Text;
+
+        Assert.DoesNotContain("FS2218", Codes(Check(sample)));
+
+        var stated = sample.Replace("PU_AHU  pump", "PU_AHU  pump head=6", StringComparison.Ordinal);
+        var result = Check(stated);
+        var reach = Assert.Single(result.Diagnostics, static d => d.Code == "FS2218");
+
+        Assert.Contains("HE_AHU.out", reach.Message, StringComparison.Ordinal);
+        Assert.Contains("PU_RAD", reach.Message, StringComparison.Ordinal);
+    }
 }

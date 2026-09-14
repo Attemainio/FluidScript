@@ -141,6 +141,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2215` | Error | Topology | {substance} cannot be at {state}. |
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
 | `FS2217` | Error | Topology | '{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit. |
+| `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
 | `FS2603` | Error | Catalog | No catalogue '{name}'. Available: {list}. |
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |

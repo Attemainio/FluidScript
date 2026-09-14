@@ -82,8 +82,53 @@ public static class WellPosedness
         var counting = Count(graph, hydraulics, constraints, promotions);
 
         ReportBalance(graph, hydraulics, counting, promotions, diagnostics);
+        ReportReaches(graph, promotions, diagnostics);
 
         return new WellPosednessResult(counting, hydraulics, diagnostics.ToImmutable());
+    }
+
+    /// <summary>Names each flow constraint whose pump sits on no branch its owner does.</summary>
+    /// <remarks>
+    /// The locality <c>Candidates</c> prefers, checked after the fact: a local pump is offered first, so a
+    /// promotion that landed elsewhere means none was free. Whether that is a shared upstream pump doing
+    /// its job or a sibling's pump doing the wrong one is not decidable here (<c>S-45</c>), so it is said
+    /// rather than judged.
+    /// </remarks>
+    private static void ReportReaches(
+        CircuitGraph graph,
+        ImmutableArray<Promotion> promotions,
+        ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        foreach (var promotion in promotions)
+        {
+            if (promotion.Constraint.Kind is not ConstraintKind.FixedFlow
+                || !string.Equals(promotion.Parameter, "head", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var owner = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, promotion.Constraint.Component, StringComparison.Ordinal));
+            var pump = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, promotion.Component, StringComparison.Ordinal));
+
+            if (owner is null || pump is null)
+            {
+                continue;
+            }
+
+            var shared = graph.Branches.Any(branch =>
+                branch.Path.Contains(owner) && branch.Path.Contains(pump));
+
+            if (!shared)
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    TopologyDiagnostics.ConstraintReachesAcross,
+                    span: null,
+                    new DiagnosticArgument("constraint", promotion.Constraint.Label),
+                    new DiagnosticArgument("pump", pump.Name)));
+            }
+        }
     }
 
     // ---- the counting argument ---------------------------------------------------------------------

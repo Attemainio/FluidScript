@@ -350,15 +350,13 @@ public static class BranchFlows
     /// <returns>kg/s, or <see langword="null"/> when the rule does not apply here.</returns>
     /// <remarks>
     /// <para>
-    /// <c>ṁ = |Q̇| / |h(out) − h(in)|</c>, evaluated at the substance rather than at a constant
-    /// specific heat: water's <c>cp</c> moves 1 % between 20 °C and 90 °C and the whole point of this
-    /// number is that a user can check it against the enthalpy table.
-    /// </para>
-    /// <para>
     /// An automatically closed duty lives in <c>SizedParameters</c>, not <c>StatedParameters</c>. For a
     /// positive source with only its outlet stated, a common outlet temperature on every opposing load is
     /// the return design temperature. Using it here seeds a flow; it does not add a constraint to the solve.
     /// If the returns disagree, the estimate declines rather than inventing a mixed temperature.
+    /// </para>
+    /// <para>
+    /// The arithmetic is <see cref="RatedFlow"/>'s; this decides which inlet to hand it.
     /// </para>
     /// </remarks>
     private static double? Duty(CircuitGraph graph, IFlowComponent component)
@@ -376,22 +374,44 @@ public static class BranchFlows
             ? statedInlet
             : CommonReturn(graph, exchanger);
 
-        if (inlet is null)
-        {
-            return null;
-        }
+        return inlet is null ? null : RatedFlow(graph.Substance, exchanger.Power, inlet.Value, outlet);
+    }
+
+    /// <summary>The flow a duty moves between two terminal temperatures.</summary>
+    /// <param name="substance">The fluid, for its enthalpy table.</param>
+    /// <param name="power">W, signed as the core carries it; only its magnitude matters here.</param>
+    /// <param name="inlet">The entering temperature.</param>
+    /// <param name="outlet">The leaving temperature.</param>
+    /// <returns>kg/s, or <see langword="null"/> when the two temperatures coincide or the substance cannot be at one of them.</returns>
+    /// <remarks>
+    /// <para>
+    /// <c>ṁ = |Q̇| / |h(out) − h(in)|</c>, evaluated at the substance rather than at a constant
+    /// specific heat: water's <c>cp</c> moves 1 % between 20 °C and 90 °C and the whole point of this
+    /// number is that a user can check it against the enthalpy table.
+    /// </para>
+    /// <para>
+    /// <strong>One home for the arithmetic, on purpose</strong> (<c>S-57</c>). The seed uses it to start a
+    /// branch and the equation system uses it as a fixed-flow row's target; until they shared it the row
+    /// read the seed's <em>estimate</em> for the branch, which is this number only when nothing has
+    /// propagated over it, and a row in the Jacobian that depends on a seeding heuristic is a coupling in
+    /// the wrong direction.
+    /// </para>
+    /// </remarks>
+    public static double? RatedFlow(ISubstance substance, double power, Quantity inlet, Quantity outlet)
+    {
+        ArgumentNullException.ThrowIfNull(substance);
 
         var reference = Quantity.FromSi(0, Dimension.Pressure);
 
-        if (!graph.Substance.FromPressureTemperature(reference, inlet.Value).TryGetValue(out var entering)
-            || !graph.Substance.FromPressureTemperature(reference, outlet).TryGetValue(out var leaving))
+        if (!substance.FromPressureTemperature(reference, inlet).TryGetValue(out var entering)
+            || !substance.FromPressureTemperature(reference, outlet).TryGetValue(out var leaving))
         {
             return null;
         }
 
         var rise = Math.Abs(leaving.Enthalpy.SiValue - entering.Enthalpy.SiValue);
 
-        return rise > 0 ? Math.Abs(exchanger.Power) / rise : null;
+        return rise > 0 ? Math.Abs(power) / rise : null;
     }
 
     /// <summary>Finds the one return temperature all opposing loads state.</summary>

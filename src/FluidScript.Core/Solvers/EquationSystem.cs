@@ -428,11 +428,14 @@ public sealed class EquationSystem
     /// <param name="byComponent">Each node component's index among the graph's nodes.</param>
     /// <returns>One entry per constraint, in row order.</returns>
     /// <remarks>
-    /// A fixed-flow outlet with known duty and inlet is evaluated in its derived flow form. This is
-    /// algebraically equivalent to the outlet-temperature form away from zero, but it does not admit the
-    /// artificial near-zero-flow root created when duty upwinding blends a finite duty across both ports.
-    /// The flow residual is multiplied by ΔT/ṁ so the existing kelvin scale and diagnostics remain valid.
-    /// Other absolute and difference constraints continue to read node temperatures directly.
+    /// A fixed-flow outlet with known duty and inlet is evaluated in its derived flow form (<c>D-92</c>).
+    /// This is algebraically equivalent to the outlet-temperature form away from zero, but it does not
+    /// admit the artificial near-zero-flow root created when duty upwinding blends a finite duty across
+    /// both ports. The target is the duty ratio from the three stated constants —
+    /// <see cref="Sizing.BranchFlows.RatedFlow"/>, the same arithmetic the seed uses, and not the seed's
+    /// estimate for the branch (<c>S-57</c>). The flow residual is multiplied by ΔT/ṁ so the existing
+    /// kelvin scale and diagnostics remain valid. Other absolute and difference constraints continue to
+    /// read node temperatures directly.
     /// </remarks>
     private static Constraint[] Constraints(
         CircuitGraph graph,
@@ -469,15 +472,12 @@ public sealed class EquationSystem
                 && exchanger.StatedParameters.TryGetValue("out", out var outlet))
             {
                 var binding = ports[element, 0];
-                var estimate = binding.CarriesFlow
-                    ? FluidScript.Core.Sizing.BranchFlows.Estimate(graph)[binding.Branch]
-                    : default;
+                var rated = binding.CarriesFlow
+                    ? Sizing.BranchFlows.RatedFlow(graph.Substance, exchanger.Power, inlet, outlet)
+                    : null;
                 var temperatureSpan = Math.Abs(outlet.SiValue - inlet.SiValue);
 
-                if (binding.CarriesFlow
-                    && estimate.Basis > FluidScript.Core.Sizing.FlowBasis.Nominal
-                    && estimate.Magnitude > Tolerances.FlowZero
-                    && temperatureSpan > 0)
+                if (rated is { } magnitude && magnitude > Tolerances.FlowZero && temperatureSpan > 0)
                 {
                     resolved[index] = new Constraint(
                         row,
@@ -486,8 +486,8 @@ public sealed class EquationSystem
                         0,
                         binding.Sign,
                         binding.Branch,
-                        estimate.Magnitude,
-                        temperatureSpan / estimate.Magnitude);
+                        magnitude,
+                        temperatureSpan / magnitude);
                     continue;
                 }
             }

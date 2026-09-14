@@ -194,6 +194,31 @@ public static class TopologyDiagnostics
         "'{circuit}' attaches to '{node}', which is one of its own components. "
         + "A subcircuit attaches to another circuit.");
 
+    /// <summary>A flow constraint answered by a pump on none of its owner's branches.</summary>
+    /// <value><c>FS2218</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>Reaching across the plant is allowed and this does not stop it</strong> (<c>S-45</c>). Two
+    /// parallel branches below one shared pump are both served by it: the first takes its head, the second
+    /// falls to its own balancing valve, and that is what a balancing valve is for. What the reach cannot
+    /// tell apart is a shared <em>upstream</em> pump from a sibling consumer's, which holds the constrained
+    /// branch only weakly through the header pressure.
+    /// </para>
+    /// <para>
+    /// A warning rather than a refusal because the count is still right and the solve may still be; it
+    /// is here because the case it was written for was silent. A source whose own pump had been sized
+    /// before its constraint was matched reached for a consumer's pump, that consumer's constraint reached
+    /// for the next, and the plant reported over-specified by one three promotions later with nothing
+    /// naming the first wrong claim (<c>S-59</c>).
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor ConstraintReachesAcross { get; } = new(
+        "FS2218",
+        DiagnosticSeverity.Warning,
+        "'{constraint}' is held by '{pump}', which is not on its branch. "
+        + "Every pump on that branch is stated or already claimed; if one was meant to hold this flow, "
+        + "free it.");
+
     /// <summary>Gets every code this area registers.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -209,5 +234,6 @@ public static class TopologyDiagnostics
         StateOutsideRange,
         AmbiguousOwnership,
         SelfAttachment,
+        ConstraintReachesAcross,
     ];
 }
