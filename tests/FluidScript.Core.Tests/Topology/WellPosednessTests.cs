@@ -311,6 +311,41 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void AStatedPumpHeadConstrainsRatherThanSeedsAndTheMismatchIsReported()
+    {
+        // M2a, `R-02`: `head=15` on the simple loop, whose ring needs 5.28 m. A stated value is never
+        // promoted, so the count that would have solved for the head now has one constraint too many, and
+        // the mismatch is reported rather than the 15 m being quietly used as a starting guess.
+        //
+        // **What is reported is the wrong pair, and that is `C-75`.** An engineer expects the balancing
+        // valve to close and absorb the 9.7 m the pump has to spare; `23`'s kv promotion exists for exactly
+        // this and never fires, because the bootstrap Kv lands in `SizedParameters` before the first count
+        // and `IsFree(CV1, "kv")` is false from then on. So the report names `HE1.in`/`HE1.out`. This
+        // pins the constraint and the report; when `C-75` closes, the assertions become a converged solve
+        // at 15 m with `CV1.kv` below its unconstrained 1.6.
+        var result = Check("""
+            fluidscript 1
+            circuit simpleLoop
+            fluid water
+
+            HE1  heat_exchanger power=30 in=20 out=50
+            LOAD heat_exchanger power=-30 dp=0
+            CV1  valve
+            PU1  pump head=15
+            P1   pipe length=25
+
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+            """);
+
+        Assert.DoesNotContain(result.Counting.Promotions, static p => p.Label == "PU1.head");
+        Assert.False(result.CanSolve);
+
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
+        Assert.Contains("over-specified by 1", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AnUnderSpecifiedTableCountsAsOneEvenThoughNoScriptReachesIt()
     {
         // Hand-built, to check the arithmetic in both directions at a magnitude no script produces. A

@@ -7,6 +7,7 @@ using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
+using FluidScript.Core.Units;
 
 using CoreTopology = FluidScript.Core.Topology;
 
@@ -361,6 +362,69 @@ public sealed class OuterLoopTests
         }
     }
 
+    [Fact]
+    public async Task TheCoolingLoopMixesTo20DegreesAndRecirculatesTheFiguresFlow()
+    {
+        // **`01`'s cooling loop, reached by the pipeline.** 0.2392 kg/s round the secondary, 0.1630 drawn
+        // from the 6 C primary, and 0.0763 kg/s of 50 C return recirculated through the valve's `a` leg to
+        // make the 20 C the exchanger states at its inlet (`23`'s branch table names the legs). The mixing
+        // node `N2` is where the three meet, so its temperature is the whole of the criterion: 20 C, between
+        // the 6 C supply and the 50 C return.
+        var run = await RunAsync("m2-cooling-loop.fluid");
+
+        Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
+        Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string branch) =>
+            Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
+
+        Assert.Equal(ReferenceNumbers.CoolingLoop.RecirculationFlow, Flow("3WV.a->N2"), 0.001);
+        Assert.Equal(ReferenceNumbers.CoolingLoop.PrimaryFlow, Flow("N1->N2"), 0.001);
+        Assert.Equal(ReferenceNumbers.CoolingLoop.SecondaryFlow, Flow("3WV.ab->N2"), 0.001);
+
+        double Celsius(string node) =>
+            Water.Instance.FromPressureEnthalpy(
+                    Quantity.FromSi(solved[Index(layout, UnknownKind.NodePressure, node)], Dimension.Pressure),
+                    Quantity.FromSi(solved[Index(layout, UnknownKind.NodeEnthalpy, node)], Dimension.Enthalpy))
+                .Value.Temperature.SiValue - 273.15;
+
+        Assert.Equal(20.0, Celsius("N2"), 0.05);
+        Assert.Equal(6.0, Celsius("N1"), 0.05);
+        Assert.Equal(50.0, Celsius("N3"), 0.1);
+    }
+
+    [Fact]
+    public async Task AMixingValveDeliversTheInflowWeightedEnthalpyAndNotTheAverage()
+    {
+        // **`S-58`'s rule, checked by hand on the solved header.** A junction element's outlet carries
+        // Σ ṁᵢhᵢ / Σ ṁᵢ over the ports that flow in -- what a mixing tee does. Until `S-58` the weight was
+        // a 0-to-1 step, so any two inflows above a gram per second were averaged, and 0.167 kg/s of
+        // 80 C with 0.063 kg/s of 30 C delivered 55 C where the mix is 66 C. On the header `TV_AHU`
+        // blends 0.1914 kg/s of 60 C header water with 0.0957 kg/s of its own 30 C return: the
+        // mass-weighted mix is 50 C and the plain average 45 C, so the two rules are 5 K apart here.
+        var run = await RunAsync("m2-distribution-header.fluid");
+
+        Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string branch) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
+        double Enthalpy(string node) => solved[Index(layout, UnknownKind.NodeEnthalpy, node)];
+
+        var hot = Flow("TV_AHU.a->N3");
+        var cold = Flow("TV_AHU.b->NM_AHU");
+        var mixed = (hot * Enthalpy("PA1__TV_AHU") + cold * Enthalpy("NM_AHU")) / (hot + cold);
+        var average = (Enthalpy("PA1__TV_AHU") + Enthalpy("NM_AHU")) / 2;
+
+        Assert.Equal(hot + cold, Flow("TV_AHU.ab->NM_AHU"), 1e-6);
+        Assert.Equal(mixed, Enthalpy("TV_AHU__PU_AHU"), 1.0);
+        Assert.True(Math.Abs(average - mixed) > 15_000, "the two rules must be told apart by this circuit");
+    }
+
     private static int Index(SystemLayout layout, UnknownKind kind, string owner, string? name = null)
     {
         // By label rather than by position, so a change in how the layout orders its unknowns cannot make
@@ -377,7 +441,10 @@ public sealed class OuterLoopTests
             }
         }
 
-        throw new Xunit.Sdk.XunitException($"No {kind} unknown owned by {owner}{(name is null ? "" : $" named {name}")}.");
+        var owners = string.Join(", ", layout.Unknowns.Where(u => u.Kind == kind).Select(static u => u.OwnerComponentId).Distinct(StringComparer.Ordinal));
+
+        throw new Xunit.Sdk.XunitException(
+            $"No {kind} unknown owned by {owner}{(name is null ? "" : $" named {name}")}; the layout has {owners}.");
     }
 
     [Fact]
@@ -869,5 +936,128 @@ public sealed class OuterLoopTests
             -9.80665 * 10,
             solved[Index(layout, UnknownKind.NodeEnthalpy, "N2")] - solved[Index(layout, UnknownKind.NodeEnthalpy, "N1")],
             0.5);
+    }
+
+    // ---- M2a exit criteria that had no test (05) ----------------------------------------------------
+
+    private const string SimpleLoop = """
+        fluidscript 1
+        circuit simpleLoop
+        fluid water
+
+        HE1  heat_exchanger power=30 in=20 out=50
+        LOAD heat_exchanger power=-30 dp=0
+        CV1  valve
+        PU1  pump
+        P1   pipe length=25
+
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+        """;
+
+    private static async Task<OuterLoopResult> Solve(string script, string name)
+    {
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(script), Water.Instance, name, TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+
+        return result.Value;
+    }
+
+    [Fact]
+    public async Task APipeWithFourInternalNodesShowsAMonotonicProfileAlongItsLength()
+    {
+        // `05`: `nodes=4` is four thermal nodes and five hydraulic sub-pipes. In a steady solve with no
+        // heat loss the enthalpy is one number end to end -- friction is isenthalpic -- and the pressure
+        // falls in five equal steps. The temperature still moves: at constant h a falling p converts pv
+        // into u, so it *rises* along the run, by dP/(rho*cp) = 33.7 kPa / (998 * 4184) = 8 mK. That is
+        // the sign the Joule-Thomson coefficient of liquid water gives, and the one a model carrying h
+        // constant across a falling pressure would get wrong (`D-70`'s remark on friction).
+        var run = await Solve(SimpleLoop.Replace("P1   pipe length=25", "P1   pipe length=25 nodes=4", StringComparison.Ordinal), "cells");
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        string[] along = ["N5", "P1#n1", "P1#n2", "P1#n3", "P1#n4", "N1"];
+        var pressures = along.Select(node => solved[Index(layout, UnknownKind.NodePressure, node)]).ToArray();
+        var enthalpies = along.Select(node => solved[Index(layout, UnknownKind.NodeEnthalpy, node)]).ToArray();
+
+        for (var i = 1; i < along.Length; i++)
+        {
+            Assert.True(pressures[i] < pressures[i - 1], $"{along[i]} is not below {along[i - 1]}");
+            Assert.Equal(pressures[0] - pressures[1], pressures[i - 1] - pressures[i], 1.0);
+            Assert.Equal(enthalpies[0], enthalpies[i], 1e-6);
+        }
+
+        double Temperature(int i) => Water.Instance
+            .FromPressureEnthalpy(
+                Quantity.FromSi(pressures[i], Dimension.Pressure), Quantity.FromSi(enthalpies[i], Dimension.Enthalpy))
+            .Value.Temperature.SiValue;
+
+        var temperatures = Enumerable.Range(0, along.Length).Select(Temperature).ToArray();
+
+        for (var i = 1; i < along.Length; i++)
+        {
+            Assert.True(temperatures[i] >= temperatures[i - 1], $"the water cooled between {along[i - 1]} and {along[i]}");
+        }
+
+        Assert.Equal((pressures[0] - pressures[^1]) / (998 * 4184), temperatures[^1] - temperatures[0], 0.002);
+    }
+
+    [Fact]
+    public async Task AStatedMinorLossAddsExactlyKTimesTheVelocityHeadAndAnOmittedOneAddsNothing()
+    {
+        // `05`: `minor_loss` contributes the stated K and nothing invents one. The two loops differ in
+        // the one term K * v^2 / 2g: 0.2392 kg/s through DN25's 27.3 mm bore is 0.41 m/s, so K=5 is
+        // 5 * 0.41^2 / 19.6 = 0.043 m on a 5.26 m head. The sizing basis names the absence.
+        var plain = await Solve(SimpleLoop, "plain");
+        var fitted = await Solve(SimpleLoop.Replace("P1   pipe length=25", "P1   pipe length=25 minor_loss=5", StringComparison.Ordinal), "fitted");
+
+        static double Head(OuterLoopResult run)
+        {
+            var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+            return run.Solve.Solution.Values[layout.PromotionOffset];
+        }
+
+        var velocity = 0.2392 / (998 * Math.PI * 0.0273 * 0.0273 / 4);
+
+        Assert.Equal(5 * velocity * velocity / (2 * 9.80665), Head(fitted) - Head(plain), 0.002);
+
+        var pipe = Assert.IsType<Pipe>(plain.Graph.Components.Single(static c => c.Name == "P1"));
+        Assert.Equal(0, pipe.MinorLoss);
+        Assert.True(pipe.DefaultParameters.ContainsKey("minor_loss"), "an omitted K is a visible default, not a sized value");
+    }
+
+    [Fact]
+    public async Task APumpWithAKnownFlowAndNoResistanceSizesToZeroHeadAndSaysWhy()
+    {
+        // `05`: every connection ideal and both exchangers at dp=0, so the duty fixes 0.239 kg/s and
+        // nothing resists it. The criterion imagined the *sizer* reaching zero and saying FS2312; what
+        // happens is one step earlier: the duty's flow constraint promotes the head, the solver drives
+        // it to its floor of 0, and FS3008 says so and names the resistance. The sizer never runs for a
+        // promoted parameter, so `PumpSizer`'s own "no modelled resistance" note (`C-57`) is for the
+        // un-promoted case only, and FS2312 itself is one of thirteen FS23xx codes `24` specifies that
+        // nothing registers (`C-74`).
+        var run = await Solve("""
+            fluidscript 1
+            circuit loop
+            fluid water
+
+            HE1  heat_exchanger power=30 in=20 out=50 dp=0
+            LOAD heat_exchanger power=-30 dp=0
+            PU1  pump
+
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N1
+            """, "no-resistance");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+
+        Assert.Equal(0, run.Solve.Solution.Values[layout.PromotionOffset], 1e-6);
+        var floor = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS3008");
+
+        Assert.StartsWith("PU1.head was held at 0", floor.Message, StringComparison.Ordinal);
+        Assert.Contains("the resistance", floor.Message, StringComparison.Ordinal);
     }
 }

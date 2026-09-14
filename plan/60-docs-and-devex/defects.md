@@ -71,6 +71,21 @@ belongs beside it: a plain `dotnet build` otherwise leaves nine Linux MSBuild wo
 and only `pkill -f 'MSBuild.dll.*nodemode:1'` does.
 
 
+**A test that solves for more than about thirty seconds terminates the agent's session, not the
+test** (2026-09-14). `SolverScaleDiagnostics` — the D-45 scale fixture, 61 consumers on one header,
+~800 unknowns, seven timed outer-loop runs in a Debug build — ended with exit code 137 and took
+Claude Code down with it; relaunched detached, the same. The user's report: it terminates the session
+"always, even if the process is a subprocess", and the reload costs the whole model context. The
+suite as a whole (1500 tests, ~15 s) is unaffected; it is one long-running test that dies, which is
+what makes it the third environment trap rather than a variant of the first two. The consequence is
+procedural: an agent does not run the `Diagnostic`-traited scale or timing tests. It writes the
+command — `~/.dotnet-artifacts/bin/FluidScript.Core.Tests/debug/FluidScript.Core.Tests -filter
+"/*/*/SolverScaleDiagnostics/*"` — the human runs it, and the agent reads the file the test wrote
+(`diagnostics/solver-scale.md`). The agent memory carries the same hook, for the reason the first
+paragraph of this section gives. Whether this is a Claude Code fault (its own issue tracker has the
+shape: anthropics/claude-code#84935) or a WSL2 memory limit is not settled and does not change the
+procedure.
+
 **Regenerating a page in place, and failing the test that did it, is the right shape for a generated
 region.** Adding eight diagnostic codes was one test run: the gate rewrote
 `docs/functions/diagnostics.md`, failed with "did not match what the code generates and has been

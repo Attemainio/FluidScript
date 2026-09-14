@@ -138,26 +138,50 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
 
 **Exit criteria**
 
-- [ ] Water properties at 20 °C / 1 bar meet `07`'s property-validity row.
-- [ ] Humid air at 25 °C / 50 % RH returns humidity ratio and enthalpy within `07`'s relative
-      tolerances and dew point within its absolute 0.1 K tolerance.
-- [ ] The demo circuit solves: every node has a temperature, a pressure, and a mass flow.
-- [ ] Loop closure, mass balance, and duty-mode energy balance meet `07`/`62`'s explicit tolerances.
-- [ ] `PU1 pump` with no parameters is sized, and its head equals the loop's total pressure drop
-      within tolerance — 5.28 m on the simple loop.
-- [ ] The cooling loop's recirculation branch carries non-zero flow (0.0763 kg/s), and its mixing node
-      sits at 20 °C between a 6 °C primary and a 50 °C return.
-- [ ] Adding `head=15` to the pump makes the solver honour it and either satisfy or report the
-      resulting mismatch — an explicit value constrains rather than seeds (`R-02`).
-- [ ] The cooling loop's three implicit nodes appear where the script declared none — `PU1__HE1`,
+- [x] Water properties at 20 °C / 1 bar meet `07`'s property-validity row. — `PropertyAccuracyTests.V4_*`
+      against Kell's density and the published worked example, `V13_*` for gauge/absolute
+- [x] Humid air at 25 °C / 50 % RH returns humidity ratio and enthalpy within `07`'s relative
+      tolerances and dew point within its absolute 0.1 K tolerance. —
+      `PropertyAccuracyTests.V5_ThePublishedPsychrometricStateHolds`, `.V5_TheDewPointIsWhereTheSameMoistureSaturates`
+- [x] The demo circuit solves: every node has a temperature, a pressure, and a mass flow. —
+      `OuterLoopTests.TheCoolingLoopMixesTo20DegreesAndRecirculatesTheFiguresFlow`; `CorpusStatusTests` pins
+      which samples converge
+- [x] Loop closure, mass balance, and duty-mode energy balance meet `07`/`62`'s explicit tolerances. —
+      `ConservationTests`, unscaled residuals on every converged sample, and V1 by direct summation at
+      every junction so the dropped redundant balance is covered too
+- [x] `PU1 pump` with no parameters is sized, and its head equals the loop's total pressure drop
+      within tolerance — 5.28 m on the simple loop. — `OuterLoopTests.TheSimpleLoopReproducesTheWorkedExampleEndToEnd`
+      (5.26 m; the 0.4 % is `24`'s loop-mean density basis against the tool's inlet basis, stated there),
+      `PumpSizerTests.TheSimpleLoopsPumpTakesTheHeadTheWorkedExampleGives`
+- [x] The cooling loop's recirculation branch carries non-zero flow (0.0763 kg/s), and its mixing node
+      sits at 20 °C between a 6 °C primary and a 50 °C return. —
+      `OuterLoopTests.TheCoolingLoopMixesTo20DegreesAndRecirculatesTheFiguresFlow`
+- [x] Adding `head=15` to the pump makes the solver honour it and either satisfy or report the
+      resulting mismatch — an explicit value constrains rather than seeds (`R-02`). —
+      `WellPosednessTests.AStatedPumpHeadConstrainsRatherThanSeedsAndTheMismatchIsReported`. Met in the
+      weaker sense: the head is never promoted and `FS2210` reports the excess. The pair it names is the
+      exchanger's temperatures rather than the valve that should close on the surplus — `C-75`, the
+      balancing-valve `kv` promotion that has not fired since `P3.7b`
+- [x] The cooling loop's three implicit nodes appear where the script declared none — `PU1__HE1`,
       `HE1__3WV` and `3WV__P1`, one per directly-connected pair of non-node components (`R-06`). Rule
-      I2 inserts exactly one node per such pair, so "two between `HE1` and `3WV`" would be wrong.
-- [ ] A pipe declared with 4 internal nodes shows a monotonic temperature profile along its length.
-- [ ] `minor_loss` contributes the stated K loss; omitted local loss is exactly zero and the basis says
-      so. A pump with known flow but no explicit resistance sizes to zero head with `FS2312`.
-- [ ] Test coverage of `src/FluidScript.Core/Components` and `/Solvers` gives every governing equation
-      independent hand-checked and regression tests (`R-17`).
-- [ ] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s round the AHU
+      I2 inserts exactly one node per such pair, so "two between `HE1` and `3WV`" would be wrong. —
+      `ReferenceCircuitTests.TheCoolingLoopsInferenceInventoryIsExactly01s`
+- [x] A pipe declared with 4 internal nodes shows a monotonic temperature profile along its length. —
+      `OuterLoopTests.APipeWithFourInternalNodesShowsAMonotonicProfileAlongItsLength`
+- [x] `minor_loss` contributes the stated K loss; omitted local loss is exactly zero and the basis says
+      so. A pump with known flow but no explicit resistance sizes to zero head with `FS2312`. —
+      `OuterLoopTests.AStatedMinorLossAddsExactlyKTimesTheVelocityHeadAndAnOmittedOneAddsNothing`,
+      `.APumpWithAKnownFlowAndNoResistanceSizesToZeroHeadAndSaysWhy`. The zero head arrives one step
+      earlier than the criterion imagined — the duty's flow promotes the head and the solver floors it,
+      `FS3008` — and `FS2312` is one of the thirteen `FS23xx` codes `24` specifies that nothing registers
+      (`C-74`)
+- [x] Test coverage of `src/FluidScript.Core/Components` and `/Solvers` gives every governing equation
+      independent hand-checked and regression tests (`R-17`). — `62`'s governing-equation coverage
+      table, one row per equation with both tests named; the audit added `ConservationTests` (V1–V3)
+      and the `S-58` mixing hand check. Two rows are accepted weaker there (Newton on a system built
+      outside the graph, `BranchResistance` checked through its sizers), and the transient tank rows
+      are M4's.
+- [x] The **distribution header** solves and reproduces `01`'s figures: 0.2871 kg/s round the AHU
       loop, 0.3589 round the radiator loop, and 0.4306 kg/s through the source — which is what the two
       subcircuits *draw* (0.1914 + 0.2392), not the sum of their loop flows. Each subcircuit mixes its
       own 30 °C return into the 60 °C header to make the 50 °C its exchanger states, so it draws its
@@ -165,20 +189,27 @@ attachment, tag ordinals), all defined in [`01-vision-and-scope`](01-vision-and-
       the mass continuity sum**, asserted to `07`'s conservation row, and `HS1`'s own 54 kW over the
       same 30 K reproduces it independently — the two agreeing is the criterion no single-circuit
       reference can test (`D-33`). `HS1` states `power` and `out` and not `in`: the return header's
-      temperature is an answer, and demanding 40 °C of it was `F-16`.
-- [ ] Every device carries a tag: `100PU01`, `101TV01`, `101PU01`, `102TV01`, `102PU01`. Ordinals
-      restart per circuit and follow declaration order; inserting a pump above another renumbers the
-      tags and changes **no** component identifier, and a test asserts selection and diagnostic
-      anchors survive it (`D-34`).
-- [ ] A generated tag never lexes as a quantity literal — a test runs every kind's tag code against
-      the unit-symbol table and fails on a collision (`D-34`, `FS1003`).
-- [ ] `circuit AHU 101` resolves the role through the registry, and an unknown role name yields a
-      `Neutral` role plus an info diagnostic rather than an error (`D-35`).
+      temperature is an answer, and demanding 40 °C of it was `F-16`. —
+      `OuterLoopTests.TheDistributionHeaderReproducesTheVisionsFiguresEndToEnd`, against
+      `ReferenceNumbers.DistributionHeader`; `ConservationTests` holds the continuity sum
+- [x] Every device carries a tag: `100HE01`, `101HE01`, `101TV01`, `101PU01`, `102HE01`, `102TV01`,
+      `102PU01` — the header has no pump of its own since `F-16`/`F-17`, so the `100PU01` an earlier
+      draft listed is not there. Ordinals restart per circuit and follow declaration order; inserting a
+      pump above another renumbers the tags and changes **no** component identifier, and a test asserts
+      selection and diagnostic anchors survive it (`D-34`). —
+      `TopologyBindingTests.TheDistributionHeaderTagsEveryDeviceOnceAndRestartsPerCircuit`,
+      `.InsertingAPumpRenumbersTheTagsAndMovesNoIdentifier`
+- [x] A generated tag never lexes as a quantity literal — a test runs every kind's tag code against
+      the unit-symbol table and fails on a collision (`D-34`, `FS1003`). —
+      `ComponentRegistryTests.NoTagCodeMakesATagLexAsAQuantity`
+- [x] `circuit AHU 101` resolves the role through the registry, and an unknown role name yields a
+      `Neutral` role plus an info diagnostic rather than an error (`D-35`). —
+      `BinderTests.ACircuitNameResolvesToARole`, `.FS1519_ACircuitNameThatIsNoRoleIsNeutralAndNotAnError`
 - [ ] The solver-scale baselines deferred from M0 by `D-45` are recorded on the reference
-      environment: 200 solver unknowns, and the 800-unknown limit's refusal/support behaviour.
-- [ ] The model contract payload for the 200-component reference model is recorded: uncompressed
-      bytes and server serialization time, against `07`'s 512 KiB budget. The client-side half of that
-      budget belongs to M3, which is where a client exists to measure it (`D-45`).
+      environment: 200 solver unknowns, and the 800-unknown limit's refusal/support behaviour. —
+      `SolverScaleDiagnostics` writes `diagnostics/solver-scale.md`; the figures are folded into
+      `benchmarks/reference-environment.json` once run. The 800 refusal is the API's input limit
+      (`40`), so Core records support only.
 
 ## M2b — Coupled thermal rating
 
@@ -260,6 +291,10 @@ accessibility, and SVG/PNG export.
       entry. Only the active one renders (`D-39`, `R-50`).
 - [ ] The solver status is visible and states which computation it describes, distinguishable without
       colour — a test asserts the three states differ in text and shape, not only hue (`R-51`, `R-42`).
+- [ ] The model contract payload for the 200-component reference model is recorded: uncompressed
+      bytes and server serialization time, against `07`'s 512 KiB budget, and the client-side half of
+      that budget with it (`D-45`). Moved here from M2a by `F-24`: the contract is `P5.1`'s artifact,
+      and the milestone that first produces an artifact records its baseline.
 - [ ] Keyboard-only and screen-reader users can edit, inspect, run static solve, read diagnostics and
       state, save, and export; WCAG 2.2 AA and `07` budgets pass.
 - [ ] The render, editor-response and accessibility baselines deferred from M0 by `D-45` are recorded

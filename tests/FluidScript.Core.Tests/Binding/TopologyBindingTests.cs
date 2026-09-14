@@ -477,6 +477,65 @@ public sealed class TopologyBindingTests
         Assert.All(model.Components, static component => Assert.Null(component.Tag));
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheDistributionHeaderTagsEveryDeviceOnceAndRestartsPerCircuit()
+    {
+        // M2a: every device on the header carries a tag, the ordinal restarts in each circuit and the
+        // circuit number the script states is the prefix. Read from the sample itself so the list cannot
+        // drift away from the one the documentation shows.
+        var model = Model(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid")));
+
+        Assert.Equal(
+            ["100HE01", "101HE01", "101TV01", "101PU01", "102HE01", "102TV01", "102PU01"],
+            model.Components
+                .Where(static component => component.Tag is not null)
+                .Select(static component => component.Tag));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void InsertingAPumpRenumbersTheTagsAndMovesNoIdentifier()
+    {
+        // `D-34`: a tag is a schedule number, and a schedule renumbers when a row is inserted above. The
+        // identifier the script, the canvas and every diagnostic hold on to is the name, which is why
+        // the anchor of a diagnostic on `HE1` reads `HE1` before and after -- never `100HE01`.
+        const string before = "fluidscript 1\ncircuit primary 100\nPU1 pump\nHE1 heat_exchanger power=30 flavour=1\n";
+        const string after = "fluidscript 1\ncircuit primary 100\nPU2 pump\nPU1 pump\nHE1 heat_exchanger power=30 flavour=1\n";
+
+        var first = Bind(before);
+        var second = Bind(after);
+
+        Assert.Equal(["100PU01", "100HE01"], Tags(first.Model));
+        Assert.Equal(["100PU01", "100PU02", "100HE01"], Tags(second.Model));
+
+        // The declared identifiers are the same set, and `PU1` is still `PU1` on both sides of its new tag.
+        // (The unconnected ports each grow an I3 node, which is inferred and so carries no tag.)
+        Assert.Equal(["PU1", "HE1"], Declared(first.Model));
+        Assert.Equal(["PU2", "PU1", "HE1"], Declared(second.Model));
+        Assert.Equal("100PU01", first.Model.Components.Single(static c => c.Name == "PU1").Tag);
+        Assert.Equal("100PU02", second.Model.Components.Single(static c => c.Name == "PU1").Tag);
+
+        // The diagnostic about the unknown parameter anchors on the same text in both -- the span still
+        // covers the offending word on `HE1`'s line after it moved down one -- and no tag leaks into it.
+        foreach (var (source, result) in ((string, BindResult)[])[(before, first), (after, second)])
+        {
+            var diagnostic = Assert.Single(result.Diagnostics, static d => d.Message.Contains("flavour", StringComparison.Ordinal));
+            var span = Assert.NotNull(diagnostic.Span);
+
+            Assert.Equal("flavour=1", source.Substring(span.Start, span.Length));
+            Assert.Contains("HE1", source[..span.Start].Split('\n')[^1], StringComparison.Ordinal);
+            Assert.DoesNotContain("100HE", diagnostic.Message, StringComparison.Ordinal);
+        }
+
+        static string[] Declared(SemanticModel model) =>
+            [.. model.Components.Where(static c => c.Origin is Origin.Declared).Select(static c => c.Name)];
+
+        static string[] Tags(SemanticModel model) =>
+            [.. model.Components.Where(static c => c.Tag is not null).Select(static c => c.Tag!)];
+    }
+
+    // ---- recovery, and the map ---------------------------------------------------------------------
     // ---- recovery, and the map ---------------------------------------------------------------------
 
     [Fact]
