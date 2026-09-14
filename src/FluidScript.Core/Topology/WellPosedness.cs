@@ -1216,19 +1216,21 @@ public static class WellPosedness
 
         foreach (var element in hydraulic.Elements)
         {
-            if (!string.Equals(element.Kind, "heat_exchanger", StringComparison.Ordinal))
+            if (element is not HeatExchanger exchanger)
             {
                 continue;
             }
 
-            if (HydraulicPartition.Stated(element, "power") is not { } power)
+            if (HydraulicPartition.Stated(exchanger, "power") is null)
             {
                 return null;
             }
 
-            scale += Math.Abs(power);
+            var power = exchanger.Power;
 
-            if (IsCoupled(hydraulics, element))
+                scale += Math.Abs(power);
+
+            if (IsCoupled(hydraulics, exchanger))
             {
                 coupled.Add(power);
             }

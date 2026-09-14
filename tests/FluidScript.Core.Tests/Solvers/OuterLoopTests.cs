@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
@@ -316,6 +317,70 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task TheDistributionHeaderReproducesTheVisionsFiguresEndToEnd()
+    {
+        // **`01`'s distribution header, reached by the pipeline rather than by hand.** Each coil's flow is
+        // its duty over its own 20 K; each header draw is the same duty over the header's 30 K, because the
+        // valve makes up the rest from the coil's own 30 C return; the source carries the two draws, which
+        // is also 54 kW over its 30 K rise. `ReferenceNumbers.DistributionHeader` holds the figures and
+        // `ReferenceNumberConsistencyTests` checks they agree with each other; this checks the solver
+        // agrees with them.
+        //
+        // The positions are the part worth a line: strictly inside the travel. Until `S-58` a junction
+        // delivered the plain average of its inlet enthalpies whatever the split, so the position column
+        // moved nothing a constraint could feel and Newton ran both valves to a stop.
+        var run = await RunAsync("m2-distribution-header.fluid");
+
+        Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
+        Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string branch) =>
+            Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
+
+        Assert.Equal(ReferenceNumbers.DistributionHeader.AhuBranchFlow, Flow("TV_AHU.ab->NM_AHU"), 0.001);
+        Assert.Equal(ReferenceNumbers.DistributionHeader.RadiatorBranchFlow, Flow("TV_RAD.ab->NM_RAD"), 0.001);
+        Assert.Equal(ReferenceNumbers.DistributionHeader.AhuHeaderFlow, Flow("TV_AHU.a->N3"), 0.001);
+        Assert.Equal(ReferenceNumbers.DistributionHeader.RadiatorHeaderFlow, Flow("TV_RAD.a->N3"), 0.001);
+        Assert.Equal(ReferenceNumbers.DistributionHeader.SourceFlow, Flow("N3->N5"), 0.001);
+
+        foreach (var valve in (string[])["TV_AHU", "TV_RAD"])
+        {
+            var position = solved[Index(layout, UnknownKind.Parameter, valve, $"{valve}.position")];
+
+            Assert.InRange(position, 0.05, 0.95);
+        }
+
+        foreach (var pump in (string[])["PU_AHU", "PU_RAD"])
+        {
+            Assert.True(
+                solved[Index(layout, UnknownKind.Parameter, pump, $"{pump}.head")] > 0,
+                $"{pump} runs backwards.");
+        }
+    }
+
+    private static int Index(SystemLayout layout, UnknownKind kind, string owner, string? name = null)
+    {
+        // By label rather than by position, so a change in how the layout orders its unknowns cannot make
+        // this test read a different branch and still pass.
+        for (var index = 0; index < layout.Unknowns.Length; index++)
+        {
+            var unknown = layout.Unknowns[index];
+
+            if (unknown.Kind == kind
+                && string.Equals(unknown.OwnerComponentId, owner, StringComparison.Ordinal)
+                && (name is null || string.Equals(unknown.Name, name, StringComparison.Ordinal)))
+            {
+                return index;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException($"No {kind} unknown owned by {owner}{(name is null ? "" : $" named {name}")}.");
+    }
+
+    [Fact]
     public async Task EveryExchangerResistsFlowAndSaysAtWhatFlowItWasMeasured()
     {
         // A `dp` is not a resistance until something says at what flow, so `ExchangerSizer` pairs the
@@ -327,6 +392,123 @@ public sealed class OuterLoopTests
         Assert.Equal(0.2392, run.Sizes.For("HE1", "flow")!.Value, 0.002);
         Assert.Contains("20 kPa is measured at", run.Bases["HE1.flow"], StringComparison.Ordinal);
         Assert.Contains("0 kPa is measured at", run.Bases["LOAD.flow"], StringComparison.Ordinal);
+    }
+
+    private const string OneUnstatedSourceAndOneLoad = """
+        fluidscript 1
+        circuit heating
+        fluid water
+
+        SOURCE heater in=30 out=80
+        LOAD   load power=20 in=80 out=30
+        PU1    pump
+        P1     pipe length=10 dn=25
+
+        connections
+        N1 - PU1 - SOURCE - N2 - LOAD - P1 - N1
+        """;
+
+    private const string OneUnstatedSourceAndTwoLoads = """
+        fluidscript 1
+        circuit heating
+        fluid water
+
+        SOURCE heater in=30 out=80
+        LOAD1  load power=20
+        LOAD2  load power=20
+        PU1    pump
+        P1     pipe length=10 dn=25
+
+        connections
+        N1 - PU1 - SOURCE - N2 - LOAD1 - N3 - LOAD2 - P1 - N1
+        """;
+
+    private const string DistributedHeaderWithAutomaticSourceDuty = """
+        fluidscript 1
+        project static plant_01
+
+        circuit heating
+        fluid water
+
+        PB      pipe length=4 dn=32
+        SOURCE  heater out=80
+        TV_MAIN three_way_valve kv=25
+
+        connections
+        N1 - SOURCE - TV_MAIN.a
+        N1 - PB - TV_MAIN.b
+        TV_MAIN.ab - N3
+
+        N1 node p=250
+        N3 node t=60
+
+        circuit AHU
+
+        HE_AHU load in=50 out=30 power=20 kW
+        TV_AHU three_way_valve kv=25
+        PU_AHU pump
+        PA1 pipe length=12 dn=25
+        PA2 pipe length=12 dn=25
+
+        connections
+        N3 - PA1 - TV_AHU.a
+        NM_AHU - TV_AHU.b
+        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+        NM_AHU - PA2 - N1
+
+        circuit radiators
+
+        HE_RAD load in=50 out=30 power=20 kW
+        TV_RAD three_way_valve kv=25
+        PU_RAD pump
+        PR1 pipe length=18 dn=25
+        PR2 pipe length=18 dn=25
+
+        connections
+        N3 - PR1 - TV_RAD.a
+        NM_RAD - TV_RAD.b
+        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+        NM_RAD - PR2 - N1
+        """;
+
+    [Fact]
+    public async Task TheDistributedHeaderFindsItsFortyKilowattSourceDutyAndConverges()
+    {
+        // `S-55`'s acceptance test, written before its fix. The fixture has no source pump on purpose: each
+        // distribution pump draws from the shared supply and discharges to the shared return, which is the
+        // pressure difference that drives both legs of `TV_MAIN`. The driver analysis looks for a pump on
+        // one cycle-local loop, finds none, and reports `FS2214` on a circuit the equations can solve.
+        // Skipped while that symptom is present rather than deleted, so the day the analysis is repaired
+        // this runs -- and `S-55` says in as many words that adding a source pump to pass it is wrong.
+        var model = GraphFixture.Bind(DistributedHeaderWithAutomaticSourceDuty);
+        var result = await Loop().RunAsync(
+            model,
+            Water.Instance,
+            "automatic-distribution-header",
+            TestContext.Current.CancellationToken);
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(
+            result,
+            GraphFixture.Lower(DistributedHeaderWithAutomaticSourceDuty).Graph,
+            "automatic-distribution-header");
+
+        Assert.SkipWhen(
+            report.Contains("FS2214", StringComparison.Ordinal),
+            "S-55: the driver analysis still reports FS2214 on the pump-free mixing header.");
+
+        Assert.True(result.IsSuccess, report);
+        Assert.True(result.Value.Solve.Converged, report);
+        Assert.Equal(40_000.0, result.Value.Sizes.For("SOURCE", "power"));
+    }
+
+    [Theory]
+    [InlineData(OneUnstatedSourceAndOneLoad, 20_000.0)]
+    [InlineData(OneUnstatedSourceAndTwoLoads, 40_000.0)]
+    public void TheOnlyUnstatedDutyClosesTheCircuitEnergyBalance(string script, double expectedPower)
+    {
+        var prepared = Loop().Prepare(GraphFixture.Bind(script), Water.Instance, "automatic-source-duty");
+
+        Assert.Equal(expectedPower, prepared.Sizes.For("SOURCE", "power"));
+        Assert.Contains("closed-circuit energy balance", prepared.Bases["SOURCE.power"], StringComparison.Ordinal);
     }
 
     [Fact]

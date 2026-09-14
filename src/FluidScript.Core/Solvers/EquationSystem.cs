@@ -37,6 +37,13 @@ internal readonly record struct ArrivingSource(int Node, int Component, int Port
 /// </remarks>
 public sealed class EquationSystem
 {
+    /// <summary>kg/s of the node's own enthalpy mixed into a junction's arriving stream.</summary>
+    /// <remarks>
+    /// One milligram per second. It keeps the mixing quotient defined while every other port of a
+    /// junction is an outflow -- a state the junction's mass balance forbids at the solution and Newton
+    /// passes through on the way -- and is a thousandth of the upwind band, so at any flow the circuit
+    /// can carry it is invisible.
+    /// </remarks>
     private const double MixingFloor = 1e-6;
 
     /// <summary>The state of a port with nothing on it: zeros, and never read by a residual.</summary>
@@ -73,13 +80,24 @@ public sealed class EquationSystem
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
 
-    /// <summary>One stated constraint, resolved to the node states its residual reads.</summary>
+    /// <summary>One stated constraint, resolved to either node temperatures or a derived branch flow.</summary>
     /// <param name="Row">The row it writes, or the row of one nothing resolved.</param>
-    /// <param name="Node">The node whose temperature it reads, or −1 when nothing resolved it.</param>
+    /// <param name="Node">The node whose temperature it reads, or −1 when this is a flow constraint.</param>
     /// <param name="Reference">The node subtracted from it, or −1 for an absolute temperature.</param>
     /// <param name="Target">K. An absolute temperature, or the magnitude of a difference.</param>
-    /// <param name="Sign">+1 where the difference is a rise across the component, −1 where it is a drop.</param>
-    private readonly record struct Constraint(int Row, int Node, int Reference, double Target, double Sign);
+    /// <param name="Sign">+1 where the difference is a rise, −1 where it is a drop.</param>
+    /// <param name="FlowBranch">The fixed-flow branch, or −1 for a temperature residual.</param>
+    /// <param name="FlowTarget">kg/s in the component's inlet-to-outlet direction.</param>
+    /// <param name="FlowScale">K per (kg/s), preserving this constraint row's temperature scaling.</param>
+    private readonly record struct Constraint(
+        int Row,
+        int Node,
+        int Reference,
+        double Target,
+        double Sign,
+        int FlowBranch = -1,
+        double FlowTarget = 0,
+        double FlowScale = 1);
     private readonly PortState[] _portScratch;
     private readonly double[] _flowScratch;
     private readonly double[] _ownScratch;
@@ -191,11 +209,16 @@ public sealed class EquationSystem
     /// <strong>Named rather than silently zero.</strong> A row of zeros makes a singular Jacobian, and
     /// a singular Jacobian with no explanation is the single most expensive thing to debug in a solver.
     /// </para>
+    /// <para>
+    /// A fixed-flow constraint carries no node on purpose — its residual is written against a branch
+    /// flow rather than a node temperature — so a missing node alone is not the test. A row is
+    /// unevaluated only when it names neither.
+    /// </para>
     /// </value>
     public ImmutableArray<EquationDeclaration> Unevaluated =>
         [.. Equations.Rows
             .Skip(Equations.ConstraintOffset)
-            .Where((_, index) => _constraints[index].Node < 0)];
+            .Where((_, index) => _constraints[index].Node < 0 && _constraints[index].FlowBranch < 0)];
 
     /// <summary>Assembles the system of a lowered graph.</summary>
     /// <param name="graph">The lowered graph.</param>
@@ -397,29 +420,19 @@ public sealed class EquationSystem
             parameters, [.. promoted], Constraints(graph, posedness, equations, ports, byComponent));
     }
 
-    /// <summary>Resolves each stated constraint to the node states its residual reads.</summary>
+    /// <summary>Resolves each stated constraint to the state its residual reads.</summary>
     /// <param name="graph">The lowered graph.</param>
     /// <param name="posedness">The counting table, whose constraint order the rows follow.</param>
     /// <param name="equations">The row layout, for the offset the constraint block starts at.</param>
-    /// <param name="ports">Which node each component port attaches to.</param>
+    /// <param name="ports">Which node and branch each component port attaches to.</param>
     /// <param name="byComponent">Each node component's index among the graph's nodes.</param>
-    /// <returns>One entry per constraint, in row order; <c>Node</c> is −1 for one nothing resolved.</returns>
+    /// <returns>One entry per constraint, in row order.</returns>
     /// <remarks>
-    /// <para>
-    /// <strong>Every constraint is a stated temperature, whatever <c>ConstraintKind</c> calls it.</strong>
-    /// The kind names what the statement <em>achieves</em> — <c>power</c> beside <c>out</c> determines a
-    /// flow — and the flow is determined through the node energy balances that already relate the two.
-    /// Writing a second, flow-shaped residual for it would need the duty and both terminal enthalpies as
-    /// constants, and a stated <c>out</c> alone supplies neither.
-    /// </para>
-    /// <para>
-    /// A parameter's name is its port's name (<c>in</c>, <c>out</c>, <c>in2</c>, <c>out2</c>), which is
-    /// why no kind-specific table appears here; <c>dt</c> and <c>dt2</c> are the difference across the
-    /// matching pair. <strong><c>dt</c> is a magnitude and <c>power</c> carries the sign</strong>
-    /// (<c>22</c>), so a consumer's residual reads <c>−(T_out − T_in) − dt</c> and a source's the other
-    /// way round; taking <c>|T_out − T_in|</c> instead would put a kink at the one place the solver
-    /// spends its time.
-    /// </para>
+    /// A fixed-flow outlet with known duty and inlet is evaluated in its derived flow form. This is
+    /// algebraically equivalent to the outlet-temperature form away from zero, but it does not admit the
+    /// artificial near-zero-flow root created when duty upwinding blends a finite duty across both ports.
+    /// The flow residual is multiplied by ΔT/ṁ so the existing kelvin scale and diagnostics remain valid.
+    /// Other absolute and difference constraints continue to read node temperatures directly.
     /// </remarks>
     private static Constraint[] Constraints(
         CircuitGraph graph,
@@ -449,22 +462,50 @@ public sealed class EquationSystem
 
             target = stated;
 
+            if (constraint.Kind is ConstraintKind.FixedFlow
+                && constraint.Parameter is "out"
+                && graph.Components[element] is HeatExchanger exchanger
+                && exchanger.StatedParameters.TryGetValue("in", out var inlet)
+                && exchanger.StatedParameters.TryGetValue("out", out var outlet))
+            {
+                var binding = ports[element, 0];
+                var estimate = binding.CarriesFlow
+                    ? FluidScript.Core.Sizing.BranchFlows.Estimate(graph)[binding.Branch]
+                    : default;
+                var temperatureSpan = Math.Abs(outlet.SiValue - inlet.SiValue);
+
+                if (binding.CarriesFlow
+                    && estimate.Basis > FluidScript.Core.Sizing.FlowBasis.Nominal
+                    && estimate.Magnitude > Tolerances.FlowZero
+                    && temperatureSpan > 0)
+                {
+                    resolved[index] = new Constraint(
+                        row,
+                        -1,
+                        -1,
+                        0,
+                        binding.Sign,
+                        binding.Branch,
+                        estimate.Magnitude,
+                        temperatureSpan / estimate.Magnitude);
+                    continue;
+                }
+            }
+
             if (graph.Components[element] is CircuitNode node)
             {
                 resolved[index] = new Constraint(row, byComponent[node], -1, target, 1);
-
                 continue;
             }
 
             var difference = constraint.Parameter is "dt" or "dt2";
             var suffix = constraint.Parameter.EndsWith('2') ? "2" : string.Empty;
-            var outlet = Attached(graph, ports, element, "out" + suffix);
+            var outletNode = Attached(graph, ports, element, "out" + suffix);
 
             if (!difference)
             {
                 resolved[index] = new Constraint(
                     row, Attached(graph, ports, element, constraint.Parameter), -1, target, 1);
-
                 continue;
             }
 
@@ -472,7 +513,7 @@ public sealed class EquationSystem
 
             resolved[index] = new Constraint(
                 row,
-                outlet,
+                outletNode,
                 Attached(graph, ports, element, "in" + suffix),
                 target,
                 duty < 0 ? -1 : 1);
@@ -756,19 +797,31 @@ public sealed class EquationSystem
             }
         }
 
-        // A stated temperature, held against the node it was stated about. The node states are current:
-        // every one of them was refreshed before this method ran, so this costs no property call.
-        foreach (var (row, node, reference, target, sign) in _constraints)
-        {
-            if (node < 0)
+            // A fixed-flow statement is the derived form of power + inlet + outlet. Other constraints
+            // retain their direct absolute- or difference-temperature residual.
+            foreach (var constraint in _constraints)
             {
-                continue;
-            }
+                if (constraint.FlowBranch >= 0)
+                {
+                    residuals[constraint.Row] =
+                        ((constraint.Sign * x[Unknowns.BranchFlow(constraint.FlowBranch)])
+                            - constraint.FlowTarget)
+                        * constraint.FlowScale;
+                    continue;
+                }
 
-            residuals[row] = reference < 0
-                ? _nodeStates[node].Temperature - target
-                : (sign * (_nodeStates[node].Temperature - _nodeStates[reference].Temperature)) - target;
-        }
+                if (constraint.Node < 0)
+                {
+                    continue;
+                }
+
+                residuals[constraint.Row] = constraint.Reference < 0
+                    ? _nodeStates[constraint.Node].Temperature - constraint.Target
+                    : (constraint.Sign
+                        * (_nodeStates[constraint.Node].Temperature
+                            - _nodeStates[constraint.Reference].Temperature))
+                        - constraint.Target;
+            }
 
         var assembly = Equations.LinkOffset;
 
@@ -949,13 +1002,19 @@ public sealed class EquationSystem
     /// the enthalpy an inflow carries. Crossing a two-port flow group gives that unambiguously — it is
     /// the node on the component's far side, and 68 of the corpus's 92 node ports are this case. A
     /// junction element has no single far side, so the arriving enthalpy is the **inflow-weighted mix**
-    /// of the nodes at its other ports, which is what a mixing tee physically does.
+    /// of the nodes at its other ports, which is what a mixing tee physically does:
+    /// <c>Σ ṁᵢ hᵢ / Σ ṁᵢ</c> over the ports that flow in.
     /// </para>
     /// <para>
-    /// The weights are <see cref="Smoothing.ForwardShare"/> rather than <c>max(0, ṁ)</c>, so the mix is
-    /// smooth through a reversal as <c>36</c> requires, and a small floor keeps the quotient defined
-    /// when every other port is an outflow — a state the junction's own mass balance forbids at the
-    /// solution but not on the path to it.
+    /// <strong>The weight is the inflow itself, smoothed to zero across a reversal</strong> —
+    /// <c>ṁ · ForwardShare(ṁ)</c>, which is <c>max(0, ṁ)</c> away from zero and C¹ through it as
+    /// <c>36</c> requires. It was <see cref="Smoothing.ForwardShare"/> alone until <c>S-58</c>, and
+    /// that is a 0-to-1 step that reads 1 for every inflow above one gram per second: a mixing valve
+    /// passing 0.167 kg/s of 80 °C water and 0.063 kg/s of 30 °C water then delivered <em>55 °C</em>,
+    /// the plain average, where the mass-weighted mix is 66 °C. Its position moved the split and the
+    /// split moved nothing, so every constraint on a mixed temperature drove the valve to a stop. A
+    /// small floor keeps the quotient defined when every other port is an outflow — a state the
+    /// junction's own mass balance forbids at the solution but not on the path to it.
     /// </para>
     /// </remarks>
     private double Arriving(int element, int port, ReadOnlySpan<double> x, int node)
@@ -982,7 +1041,7 @@ public sealed class EquationSystem
                 ? binding.Sign * x[Unknowns.BranchFlow(binding.Branch)]
                 : 0;
 
-            var weight = Smoothing.ForwardShare(inflow);
+            var weight = inflow * Smoothing.ForwardShare(inflow);
 
             numerator += weight * x[Unknowns.NodeEnthalpy(source.Node)];
             denominator += weight;

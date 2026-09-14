@@ -169,23 +169,27 @@ public sealed class NullDirectionTests
     }
 
     [Fact]
-    public async Task TheHeadersRedundancyIsNowCaughtBeforeTheSolverRatherThanAsAZeroPivot()
+    public async Task TheHeadersRedundancyIsNowPaidForByItsStatedSourceOutlet()
     {
-        // What `S-40` and `S-38` used to assert here, and why it moved.
+        // What `S-40` and `S-38` used to assert here, and why it moved twice.
         //
         // The header was square with rank 44 of 45, so `FS3009` and `FS3010` fired and this file held the
         // only end-to-end coverage of both. `S-41` then found that a stated pressure on an *interior*
         // datum was making a closed circuit read as open -- `D-86`'s rule, applied to `HasUnknownFlux` and
         // missed on `IsClosed`. A closed circuit's energy balances are one short of independent, because a
         // uniform enthalpy offset satisfies every one of them; nothing dropped that redundancy, and it sat
-        // in the matrix as the dependent row `FS3010` was naming.
+        // in the matrix as the dependent row `FS3010` was naming. With the level dropped the count was
+        // short by one and refused the circuit before the solver saw it.
         //
-        // The deficiency did not change. Where it is reported did: the count is now short by one and the
-        // check refuses the circuit, which is a message a user can act on instead of a zero pivot.
+        // The sample then stated its source outlet (`HS1 out=80`, `F-23`), which is an `EnthalpyLevel`
+        // constraint promoting nothing: it pays for the dropped level, the count is square at 39, and the
+        // matrix is full rank at every iterate. So neither code fires here any more for the opposite
+        // reason it used not to -- the deficiency is gone, not hidden. What the header does instead is
+        // recorded in `CorpusStatusTests`.
         //
-        // **This leaves `FS3009` and `FS3010` with no end-to-end subject in the corpus**, since no sample
-        // now reaches the solver singular. The matrix-level tests above still pin their content. A fixture
-        // that is square and singular on purpose is wanted, and is recorded as such.
+        // **This leaves `FS3009` and `FS3010` with no end-to-end subject in the corpus.** The matrix-level
+        // tests above still pin their content. A fixture that is square and singular on purpose is wanted,
+        // and is recorded as such.
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
@@ -198,7 +202,8 @@ public sealed class NullDirectionTests
         var run = await loop.RunAsync(
             GraphFixture.Bind(source), Water.Instance, "header", TestContext.Current.CancellationToken);
 
-        Assert.False(run.IsSuccess);
-        Assert.Contains("under-specified by 1", run.Error?.Message, StringComparison.Ordinal);
+        Assert.True(run.IsSuccess, run.Error?.Message);
+        Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
+        Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3010");
     }
 }

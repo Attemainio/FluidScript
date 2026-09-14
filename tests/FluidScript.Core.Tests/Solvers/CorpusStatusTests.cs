@@ -42,13 +42,12 @@ public sealed class CorpusStatusTests
         // 50, and 0.0763 kg/s recirculating. **An `M2a` exit criterion, met.**
         { "m2-cooling-loop.fluid", SolveTermination.Converged },
 
-        // `S-38`, and no longer `Singular`. It was square and rank 44 of 45; `S-41` found that a stated
-        // pressure on an interior datum was making this closed circuit read as open, so no energy balance
-        // was dropped as its level. With that fixed the count itself is short by one and the check refuses
-        // it before the solver sees it. The deficiency is the same one -- it is now named rather than met
-        // as a zero pivot.
-        { "m2-distribution-header.fluid", null },
-
+        // `D-91`: positive load capacity now reaches the signed core correctly. The experimental
+        // Converged, and on `01`'s own figures: 0.1914 and 0.2392 kg/s drawn from the 60 C header, 0.4306
+        // kg/s through the source, the coils at 50 C. `S-58` was the whole of it after `D-90`/`D-91`: a
+        // junction mixed its inlets by a plain average, so the valve positions moved nothing and Newton
+        // ran them to a stop. **The last `M2a` exit criterion, met** -- `OuterLoopTests` holds the numbers.
+        { "m2-distribution-header.fluid", SolveTermination.Converged },
         // `S-32`. The secondary's flow is not implied by its stated profile, so the loop runs at 2.21
         // kg/s where the duty implies 0.897 and the temperatures leave the property domain.
         { "m2-substation.fluid", SolveTermination.NonFinite },

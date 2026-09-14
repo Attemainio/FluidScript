@@ -1,10 +1,12 @@
 # heat_exchanger
 
-Heat source, heat consumer, or a real two-sided exchanger — one kind covers all three. A negative
-`power` is a consumer.
+Heat source, heat consumer, or a real two-sided exchanger — one physics model covers all three. Use
+a role word when you want to write a positive capacity, or `heat_exchanger` when you want an
+explicitly signed heat flow.
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
+RAD1 load power=30 in=50 out=30
+BLR1 heater power=30 in=30 out=50
 ```
 
 ## What it is doing depends on what you wrote
@@ -33,7 +35,7 @@ the solve makes it the cold side is worse than one that says nothing.
 
 | Parameter | A bare number means | Meaning |
 |---|---|---|
-| `power` | kW | Duty transferred. Positive adds heat to side 1 |
+| `power` | kW | Capacity on a role spelling; signed side-1 heat flow on `heat_exchanger`, `exchanger`, or `hx` |
 | `in`, `out` | °C | Side-1 inlet and outlet temperature |
 | `in2`, `out2` | °C | Side-2 inlet and outlet temperature |
 | `dt`, `dt2` | dK | Temperature change across that side. Always positive; the sign follows `power` |
@@ -63,9 +65,11 @@ Plate geometry is a fourth route to the same pair: it derives both `area` and `u
 | All three of `ua`, `area`, `u` | [`FS2101`](diagnostics.md) |
 | A negative `dt` or `dt2` | [`FS1307`](diagnostics.md) |
 
-**A cooler is written with a negative `power`, never a negative `dt`.** `dt` is how far the
-temperature moves and the duty's sign is which way, so `power=-70 dt=20` takes 70 kW out and leaves
-the outlet 20 K below the inlet. `dt=-20` has no second reading available to it.
+**`dt` is never negative.** It says how far the temperature moves, not which way. The component word
+supplies the direction when you use a role: `RAD1 load power=70 dt=20` removes 70 kW and leaves the
+outlet 20 K below the inlet; `BLR1 heater power=70 dt=20` adds 70 kW and raises it by 20 K. With the
+neutral spelling, direction stays explicit: `RAD1 heat_exchanger power=-70 dt=20` means the same
+consumer. `dt=-20` is rejected because it would encode direction twice.
 
 ## Pressure drop
 
@@ -88,7 +92,7 @@ the duties balance is not a physical exchanger and should not resist anything, a
 script can tell the two apart — so say so:
 
 ```fluidscript
-LOAD heat_exchanger power=-30 dp=0
+LOAD load power=30 dp=0
 ```
 
 Leaving it out is a common way to end up with twice the exchanger drop you meant and a pump sized to
@@ -122,8 +126,10 @@ to be met rather than merely reported.
 
 `exchanger`, `hx`, `heater`, `cooler`, `radiator`, `load`, `boiler`, `chiller`.
 
-Those are one kind, not eight: a radiator and a boiler differ in the sign of their duty and in nothing
-the model needs to know separately.
+Those lower to one physics kind. `load`, `cooler`, `radiator`, and `chiller` treat `power` as a
+positive cooling/heating-load capacity and pass a negative heat flow to side 1. `heater` and `boiler`
+pass a positive heat flow. `heat_exchanger`, `exchanger`, and `hx` keep the number signed for models
+where a neutral transfer block is the honest description.
 
 ## Tag
 

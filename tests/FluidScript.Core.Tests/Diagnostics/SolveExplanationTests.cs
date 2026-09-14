@@ -92,20 +92,40 @@ public sealed class SolveExplanationTests
     [Trait("Category", "Unit")]
     public async Task ACircuitTheCountRefusesIsStillRankedAndNamesTheUnknownNothingDetermines()
     {
-        // The header, since `S-41`. Gating the rank on a balanced count withheld the measurement from the
-        // only circuits that need it: the count can say the shortfall is one, and only the matrix can say
-        // *which* unknown nothing determines. `PU_RAD.head` at weight 1 against its valve's position is
-        // `S-38`, stated in one line instead of inferred from a dozen probes.
-        var report = await Explain("m2-distribution-header.fluid");
+        // Gating the rank on a balanced count withheld the measurement from the only circuits that need
+        // it: the count can say the shortfall is one, and only the matrix can say *which* unknown nothing
+        // determines. The header was the subject until it gained its stated source outlet and counted
+        // square, so the fixture is now the plainest deficient circuit there is: a closed loop with no
+        // temperature stated anywhere. Its level is dropped and nothing pays for it, and the unknown
+        // nothing determines is the uniform enthalpy offset -- every node's `h` at weight 1, which is the
+        // one answer a reader can check by hand.
+        const string source = """
+            fluidscript 1
+            circuit loop
+            fluid water
+            HE1  heat_exchanger power=30
+            LOAD heat_exchanger power=-30 dp=0
+            CV1  valve
+            PU1  pump
+            P1   pipe length=25
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+            """;
 
-        Assert.Contains("45 unknowns, 44 equations — under-specified by 1", report, StringComparison.Ordinal);
+        var report = await Explain(source, "loop-no-temperature");
+
+        Assert.Contains("11 unknowns, 10 equations — under-specified by 1", report, StringComparison.Ordinal);
         Assert.Contains("one energy balance dropped as its level", report, StringComparison.Ordinal);
-        Assert.Contains("44 equations x 45 unknowns", report, StringComparison.Ordinal);
+        Assert.Contains("10 equations x 11 unknowns", report, StringComparison.Ordinal);
         Assert.Contains(
-            "rank         44: 1 unknown(s) nothing determines, 0 equation(s) the others imply",
+            "rank         10: 1 unknown(s) nothing determines, 0 equation(s) the others imply",
             report,
             StringComparison.Ordinal);
-        Assert.Contains("PU_RAD.head", report, StringComparison.Ordinal);
+
+        foreach (var node in (string[])["N1", "N2", "N3", "N4", "N5"])
+        {
+            Assert.Contains($"           1  {node}.h", report, StringComparison.Ordinal);
+        }
 
         // Every row is independent here, so there is no redundancy section at all. When a rectangular
         // system does have one, it is reported only if squaring the matrix could not have invented it:
@@ -141,12 +161,14 @@ public sealed class SolveExplanationTests
         Assert.Contains("evaluated at the seed", report, StringComparison.Ordinal);
     }
 
-    private static async Task<string> Explain(string sample)
+    private static Task<string> Explain(string sample) =>
+        Explain(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample)), sample);
+
+    private static async Task<string> Explain(string source, string name)
     {
         // One call, whether or not the run produced a result. Every caller used to write this branch
         // itself and half of them wrote the fallback wrong -- a circuit refused before the solver is
         // exactly the one whose report is worth reading.
-        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));
         var resolved = PipeCatalogs.Resolve(pin: null);
         var run = await new OuterLoop(
                 new NewtonSolver(),
@@ -154,8 +176,8 @@ public sealed class SolveExplanationTests
                 OuterLoop.Rules(resolved.Value.Catalog),
                 10)
             .RunAsync(
-                GraphFixture.Bind(source), Water.Instance, sample, TestContext.Current.CancellationToken);
+                GraphFixture.Bind(source), Water.Instance, name, TestContext.Current.CancellationToken);
 
-        return SolveExplanation.Render(run, GraphFixture.Lower(source).Graph, sample);
+        return SolveExplanation.Render(run, GraphFixture.Lower(source).Graph, name);
     }
 }

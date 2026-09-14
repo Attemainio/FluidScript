@@ -235,6 +235,39 @@ public sealed class LoweringTests
             Describe(GraphFixture.Lower(instrumented).Graph));
     }
 
+    [Theory]
+    [InlineData("load", 24, -24_000)]
+    [InlineData("cooler", 24, -24_000)]
+    [InlineData("radiator", 24, -24_000)]
+    [InlineData("chiller", 24, -24_000)]
+    [InlineData("heater", 24, 24_000)]
+    [InlineData("boiler", 24, 24_000)]
+    [InlineData("heat_exchanger", -24, -24_000)]
+    public void ARoleAliasAcceptsPositiveCapacityButTheCoreReceivesSignedHeatFlow(
+        string writtenKind,
+        double writtenPower,
+        double expectedPower)
+    {
+        var source = $"""
+            fluidscript 1
+            circuit heating
+            fluid heating water
+
+            N1 node t=50 C p=300 kPa
+            N2 node t=30 C
+            HX1 {writtenKind} power={writtenPower} kW in=50 C out=30 C
+
+            connections
+            N1 - HX1
+            HX1 - N2
+            """;
+
+        var exchanger = Assert.Single(GraphFixture.Lower(source).Graph.Components.OfType<HeatExchanger>());
+
+        Assert.Equal(expectedPower, exchanger.Power);
+        Assert.Equal(writtenPower * 1_000, exchanger.StatedParameters["power"].SiValue);
+    }
+
     [Fact]
     public void AControllerIsNotInTheGraphEither()
     {

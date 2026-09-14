@@ -358,8 +358,11 @@ connection because auto-layout geometry is not physical routing.
 ## 3 · `heat_exchanger`
 
 Heat source, heat consumer, or a real two-sided exchanger (`R-09` item 3, `R-35`). One kind covers all
-three; a negative `power` is a consumer. Secondary properties promote it to Rated mode; secondary
-connections promote it to Coupled mode (`D-19`, which amends `D-17`).
+three. In the neutral `heat_exchanger`, `exchanger`, and `hx` spellings, a negative `power` is a
+consumer. The role spellings are capacities: `load`, `cooler`, `radiator`, and `chiller` take a
+positive number and lower it to negative side-1 heat flow, while `heater` and `boiler` lower a
+positive number to positive heat flow (`D-91`). Secondary properties promote it to Rated mode;
+secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 
 **Ports:** `in`, `out` (side 1) and optional `in2`, `out2` (side 2). Lowering computes exactly one
 mode; there is no script `mode=` parameter:
@@ -515,10 +518,12 @@ duty, and the thermal size are not independent** — ε-NTU relates them. Statin
 the temperatures imply. The normal script states the temperatures and the duty and leaves the size to
 be sized, which is `D-02` working exactly as intended.
 
-**`dt` is a magnitude; `power` carries the sign.** `RAD1 heat_exchanger power=-70 dt=20` is a
-consumer dropping 20 K, and `BLR heat_exchanger power=150 dt=20` is a source raising it by 20 K. The
-range excludes zero and negatives deliberately: `dt=-20` on a consumer would mean the same thing twice
-and `dt=-20` on a source would contradict `power`, so neither is accepted (`FS1307`).
+**`dt` is a magnitude; the signed core duty carries direction.** `RAD1 load power=70 dt=20` lowers to
+`-70 kW` and drops 20 K; `BLR heater power=150 dt=20` lowers to `+150 kW` and raises it by 20 K. The
+neutral spelling remains available when a signed quantity is what the model author actually has:
+`RAD1 heat_exchanger power=-70 dt=20`. The range excludes zero and negatives deliberately:
+`dt=-20` would encode direction a second time and could contradict the component role, so it is
+rejected (`FS1307`).
 
 ## 4 · `valve` / `three_way_valve`
 

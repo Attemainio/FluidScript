@@ -158,9 +158,46 @@ public sealed class ValveLegsTests
         // Either word settles it: a script that writes `b` on one switched leg has said the remaining one
         // varies, whether or not it also wrote `a`. This is the shape a user reaches for when the bypass
         // is the leg they are thinking about -- it is the one carrying the balancing valve.
-        var source = File.ReadAllText(
-            Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
-            .Replace("TV_AHU.a - PA2 - N5", "TV_AHU - PA2 - N5", StringComparison.Ordinal);
+        //
+        // The header's own shape, with the AHU's supply tap written bare. A bare connection takes the
+        // first free port in `ab`, `a`, `b` order, so it has to come after the line that names `ab` or it
+        // would take `ab` itself and the named one would then collide with it.
+        const string source = """
+            fluidscript 1
+            circuit heating 100
+            fluid water
+            HS1     heat_exchanger out=80
+            connections
+            N1 - HS1 - N3
+            N3 - N4
+            N6 - N5
+            N5 - N1
+            N1 node p=250
+
+            circuit AHU 101
+            HE_AHU  load in=50 out=30 power=24 kW
+            TV_AHU  three_way_valve
+            PU_AHU  pump
+            PA1     pipe length=12 dn=25
+            PA2     pipe length=12 dn=25
+            connections
+            TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+            NM_AHU - TV_AHU.b
+            N3 - PA1 - TV_AHU
+            NM_AHU - PA2 - N5
+
+            circuit radiators 102
+            HE_RAD  load in=50 out=30 power=30 kW
+            TV_RAD  three_way_valve
+            PU_RAD  pump
+            PR1     pipe length=18 dn=25
+            PR2     pipe length=18 dn=25
+            connections
+            N4 - PR1 - TV_RAD.a
+            NM_RAD - TV_RAD.b
+            TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+            NM_RAD - PR2 - N6
+            """;
 
         var graph = GraphFixture.Lower(source).Graph;
         var valve = graph.Components.OfType<ThreeWayValve>().Single(

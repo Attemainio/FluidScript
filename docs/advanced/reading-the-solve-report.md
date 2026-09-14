@@ -258,10 +258,13 @@ other residual in the report above.
 
 ```
 --- rank and conditioning
-    evaluated at the seed, 44 equations x 45 unknowns
-    pivots       largest 4.819, smallest 2.401E-09, ratio 4.982E-10
-    rank         44: 1 unknown(s) nothing determines, 0 equation(s) the others imply
+    evaluated at the seed, 10 equations x 11 unknowns
+    pivots       largest 4.388, smallest 0.7509, ratio 0.1711
+    rank         10: 1 unknown(s) nothing determines, 0 equation(s) the others imply
 ```
+
+That one is a closed loop — a source, a load, a valve, a pump and a pipe — with **no temperature
+stated anywhere**. It counts under-specified by one, and the section below it says which one.
 
 The section that answers "is this system actually solvable, and by how much is it not?".
 
@@ -288,10 +291,11 @@ When the rank is short, up to two lists follow, and **they answer different ques
 
 ```
     unknowns nothing separates (the column direction — where pivoting landed):
-               1  PU_RAD.head
-               1  PU_AHU.head
-          -0.124  TV_RAD.position
-          ...
+               1  N4.h
+               1  N2.h
+               1  N5.h
+               1  N1.h
+               1  N3.h
 
     equations that are not independent (the row direction — the redundancy):
                1  N1 energy balance
@@ -302,9 +306,12 @@ When the rank is short, up to two lists follow, and **they answer different ques
 ```
 
 The **column** direction is the set of unknowns that move together: change them all in that
-proportion and no equation notices. It tells you what is undetermined, and stating a value for any one
-of them determines the rest. It does **not** name the cause — the particular unknowns listed depend on
-where the elimination's pivoting happened to land.
+proportion and no equation notices. Here it is every node enthalpy at weight 1 — add the same amount
+to all five and every energy balance still holds, which is exactly what a circuit with no stated
+temperature leaves free. It tells you what is undetermined, and stating a value for any one of them
+determines the rest. It does **not** in general name the cause — the particular unknowns listed depend
+on where the elimination's pivoting happened to land, and on a larger circuit the list will be a
+pump head and a valve position that are merely where it stopped.
 
 The **row** direction is the defect. These equations are not independent; one of them is already
 implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something
@@ -314,7 +321,8 @@ the relation.
 Reading only the column list is the classic mistake, and it costs hours: it sends you to whichever
 pump the pivoting stopped at, when the answer is a redundant balance three sections up.
 
-That excerpt is worth keeping, because it is how a real defect was found. The row direction was almost
+The row excerpt is from an older run of the distribution header and is worth keeping, because it is
+how a real defect was found. The row direction was almost
 entirely **energy** balances at high weight, while the counting table for the same circuit said `less
 enthalpy levels 0` — no energy balance had been dropped. Those two lines together name the cause with
 no further searching: the circuit's energy relations were one short of independent and nothing removed

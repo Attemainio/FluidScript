@@ -4024,3 +4024,104 @@ already excluded it.
 - *Require `in` alongside every `out`.* Squares the count with no new machinery. Cost: it forces the
   user to state a return temperature the circuit is supposed to compute, which is `F-16` exactly, and
   on the header it produces a wrong answer that counts right.
+
+## D-91 · Role aliases state positive thermal capacity; the core duty remains signed
+
+**Accepted · 2026-09-10**
+
+`load`, `cooler`, `radiator`, and `chiller` read `power` as a positive capacity and lower it to a
+negative side-1 heat flow. `heater` and `boiler` read it as a positive capacity and lower it to a
+positive side-1 heat flow. The neutral `heat_exchanger`, `exchanger`, and `hx` spellings keep the
+existing signed convention. Internally there is still exactly one quantity: positive heat enters
+side 1, negative heat leaves it.
+
+`dt` and `dt2` remain positive magnitudes. Direction is already carried either by the role word at
+the script boundary or by the signed duty in the core; making a temperature difference negative
+would encode the same fact twice and create contradictory combinations.
+
+**Why.** A designer says “24 kW AHU load” and “54 kW boiler”, not “minus 24 kW load”. Requiring the
+minus sign exposed an implementation convention in the user language and made a visually reasonable
+`in=50 out=30 power=24` model inject heat. But the solver needs signed energy flux: nodes sum heat
+entering them, a coupled exchanger injects `+Q` on one side and `-Q` on the other, and a closed circuit
+checks that all duties sum to zero. Removing the sign from the core would merely move role-dependent
+branches into every energy equation.
+
+The conversion therefore happens once, while a bound component becomes a physics component.
+`ComponentSymbol.WrittenKind` is retained until this boundary; the lossless semantic model and
+`StatedParameters` still report the quantity the author wrote, while `HeatExchanger.Power` and every
+energy calculation receive the signed SI value. Applying the role direction to the magnitude also
+keeps an older `load power=-24` script physically unchanged, although the documented spelling is now
+positive.
+
+**Worked values.** With water and a 20 K drop, `HE_AHU load power=24 in=50 out=30` retains
+`24 000 W` as its stated capacity, lowers to `HeatExchanger.Power = -24 000 W`, and implies a positive
+flow magnitude of about `24 000 / (4 180 × 20) = 0.287 kg/s`. `HS1 heater power=54 in=60 out=80`
+lowers to `+54 000 W`. `HX1 heat_exchanger power=-24` remains `-24 000 W` with no reinterpretation.
+
+**Scope.** This changes only exact heat-exchanger role aliases. It does not create separate radiator
+or boiler physics, does not resolve `C-50`'s missing emitter surface model, and does not make an ideal
+`load` pressureless (`C-72` remains). A misspelled alias still carries its similarity diagnostic and
+must be corrected; only an exact role word supplies direction.
+
+**Rejected.**
+- *Make `power` unsigned everywhere and infer direction from `in` and `out`.* Convenient for one
+  stated triple, but no direction exists when either terminal is solved, a duty comes from a curve, or
+  a two-sided exchanger reverses. The same script would change meaning as parameters are omitted.
+- *Make `dt` signed.* It duplicates direction, permits `load power=24 dt=-20` and
+  `heater power=24 dt=-20` to look equally legal, and makes a reported temperature span cease to be a
+  magnitude.
+- *Keep every alias semantically neutral and require negative consumer power.* Smallest code change,
+  but preserves the usability failure: the most natural load declaration heats the circuit unless the
+  author knows an internal flux convention.
+- *Introduce a second `capacity` parameter now.* The clearest fully explicit surface in isolation,
+  but it adds another member to every parameter relation, curve binding, schedule, report, and
+  over-determination diagnostic. Role aliases already carry the missing intent at no grammar cost.
+
+## D-92 · A fixed-flow constraint is evaluated as a flow residual, not as an outlet temperature
+
+**Accepted · 2026-09-14** · working change of 2026-09-10, recorded here when the tree went green.
+
+When a heat exchanger states `power`, `in` and `out` together, its `FixedFlow` constraint row is
+written against the **branch flow**: `(sign · ṁ_branch − ṁ_target) · (ΔT / ṁ_target)`, where
+`ṁ_target` is the duty-derived design flow and the trailing factor keeps the row on the kelvin scale
+the constraint rows already use. The same statement used to be written as an outlet-temperature
+residual, `T_out − out`, and left the flow to follow through the node energy balances. Every other
+constraint kind — `MixedInlet`, `EnthalpyLevel`, `dt`, and a `FixedFlow` whose estimate is only
+`Nominal` — still reads node temperatures as before.
+
+**Why.** The two forms are the same equation away from zero flow: `Q̇ = ṁ (h_out − h_in)` with all
+three of `Q̇`, `h_in` and `h_out` constants *is* a statement about `ṁ`. They are not the same near
+zero. Duty upwinding blends a finite duty across both ports of a component as its flow passes
+through zero, and in that band the outlet-temperature form admits a spurious root at almost no flow —
+the outlet reads right because almost nothing passes and the duty is smeared, not because the
+component does its work. The flow form has no such root: it is linear in `ṁ` and its Jacobian entry
+is a constant. On the header this is the difference between Newton seeing the coil flow as a
+well-conditioned column and seeing it through a chain of energy balances that each pass through the
+same smoothing band.
+
+**Worked values.** `HE_AHU load in=50 out=30 power=24 kW`: `ṁ_target = 24 000 / (4 180 · 20) =
+0.2871 kg/s`, `ΔT = 20 K`, scale `69.7 K per kg/s`. At the seed the branch carries 0.2871 and the
+residual is 0 K; at 0.30 kg/s it is `(0.30 − 0.2871) · 69.7 = 0.90 K` — a 4.5 % flow error reads as
+a 0.9 K temperature error, which is what the old form would have reported through the node balance
+once it had converged.
+
+**What it does not change.** Counting: the constraint still promotes the same unknown (`PU_AHU.head`
+on the header). The report: `FixedFlow on HE_AHU -> solved for as PU_AHU.head` reads the same. The
+`Unevaluated` list: a flow-form row deliberately names no node, so a row is unevaluated only when it
+names neither a node nor a branch.
+
+**Cost, and the reason `S-57` is open.** `ṁ_target` is taken from `BranchFlows.Estimate(graph)` —
+the seed's own flow field — rather than computed from the three constants directly. On the header
+today the two agree to the last digit (0.287095 kg/s). They are not guaranteed to: `S-53` records
+the seed copying a whole circulation onto both inlet legs of a three-way valve, and an estimate
+corrupted that way would become the *equation's* target, not merely its starting point. A solver
+row that depends on a seeding heuristic is a coupling this project has spent two weeks removing in
+the other direction, and it belongs in the register until the target is the duty ratio itself.
+
+**Rejected.**
+- *Keep the outlet-temperature form and fix the smoothing band.* The band exists so that `m·|m|` has
+  a derivative at zero and cannot be narrowed without reintroducing the singularity; the spurious
+  root is a property of blending, not of its width.
+- *Write both rows and let the count drop one.* Two rows for one statement is exactly the
+  over-specification the counting scheme reports, and choosing which to drop is the same decision
+  as this one made less visibly.

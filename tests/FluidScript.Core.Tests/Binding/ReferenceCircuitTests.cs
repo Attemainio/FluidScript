@@ -13,10 +13,10 @@ namespace FluidScript.Core.Tests.Binding;
 /// <remarks>
 /// <para>
 /// The figures these fixtures exist for — 0.2392 kg/s of secondary flow, 5.28 m of pump head, the
-/// header's 0.2871 / 0.3589 / 0.6460 kg/s — need a solver and belong to <c>P3.4</c> onwards. What is
-/// checkable now is everything <em>structural</em>: how many components each script has, where each
-/// came from, which circuit owns it, and what tag it carries. Those are M2a exit criteria too, and
-/// they are the ones a later package would otherwise discover were wrong while trying to solve.
+/// header's 0.2871 / 0.3589 / 0.4306 kg/s — need a solver, and <c>OuterLoopTests</c> now reaches all
+/// three. What is checkable here is everything <em>structural</em>: how many components each script has,
+/// where each came from, which circuit owns it, and what tag it carries. Those are M2a exit criteria
+/// too, and they are the ones a later package would otherwise discover were wrong while trying to solve.
 /// </para>
 /// <para>
 /// Written before the physics on purpose, the same trade <c>08</c> records for the syntax tour: a
@@ -176,6 +176,8 @@ public sealed class ReferenceCircuitTests
     {
         // `D-34`, and the reason this fixture exists: `101HE01` and `102HE01` are two different
         // components with the same ordinal, which is what a plant drawing does. Nothing keys on a tag.
+        // The header has no pump of its own since the consumer pumps took over the whole loop, so the
+        // source circuit contributes one tag only.
         var model = Model("m2-distribution-header.fluid");
 
         var tags = model.Components
@@ -183,7 +185,7 @@ public sealed class ReferenceCircuitTests
             .ToDictionary(static c => c.Name, static c => c.Tag, StringComparer.Ordinal);
 
         Assert.Equal("100HE01", tags["HS1"]);
-        Assert.Equal("100PU01", tags["PU_MAIN"]);
+        Assert.DoesNotContain("PU_MAIN", tags.Keys);
         Assert.Equal("101HE01", tags["HE_AHU"]);
         Assert.Equal("101TV01", tags["TV_AHU"]);
         Assert.Equal("101PU01", tags["PU_AHU"]);
@@ -218,13 +220,15 @@ public sealed class ReferenceCircuitTests
         Assert.Empty(Named(model, "I3"));
 
         // The tap pipes are the wiring, so they are what this asserts: each consumer reaches the supply
-        // header through one and returns through another, both ends written out. The return tap starts at
-        // an inferred node rather than at the valve port -- `N3` is already a node so `N3 - PA1` needs
-        // none, while `TV_AHU.a - PA2` joins two component ports and I2 puts one between them.
+        // header through one and returns through another, both ends written out. The supply tap ends at
+        // the valve's hot port `a` and the return tap starts at the coil-return node, so the header water
+        // enters the valve and the coil return both recirculates through port `b` and leaves through the
+        // tap. `N3` is already a node so `N3 - PA1` needs none, while `PA1 - TV_AHU.a` joins two component
+        // ports and I2 puts one between them.
         Assert.Equal(
             [
-                "N3->PA1.in", "PA1.out->NM_AHU", "TV_AHU__PA2->PA2.in", "PA2.out->N5",
-                "N4->PR1.in", "PR1.out->NM_RAD", "TV_RAD__PR2->PR2.in", "PR2.out->N6",
+                "N3->PA1.in", "PA1.out->PA1__TV_AHU", "NM_AHU->PA2.in", "PA2.out->N5",
+                "N4->PR1.in", "PR1.out->PR1__TV_RAD", "NM_RAD->PR2.in", "PR2.out->N6",
             ],
             model.Connections
                 .Where(static connection => Tap(connection.From.Component)

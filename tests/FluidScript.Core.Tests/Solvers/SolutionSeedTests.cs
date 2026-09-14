@@ -156,6 +156,55 @@ public sealed class SolutionSeedTests
         Assert.Equal("HE1", duty.Source);
         Assert.Equal(0.2392, duty.Magnitude, 3);
     }
+    [Fact]
+    public void AThreeWayValvePartitionsTheCommonDutyFlowAcrossItsInletLegs()
+    {
+        var graph = GraphFixture.Lower(
+            """
+            fluidscript 1
+            circuit heating
+            fluid water
+
+            SOURCE heater in=30 out=80 power=24 kW
+            LOAD   load in=50 out=30 power=24 kW
+            TV     three_way_valve kv=25
+            PU     pump
+            P1     pipe length=10 dn=25
+
+            connections
+            N1 - SOURCE - TV.a
+            N2 - TV.b
+            TV.ab - PU - LOAD - N2
+            N2 - P1 - N1
+
+            N1 node p=250
+            """).Graph;
+        var valve = Assert.Single(graph.Components.OfType<ThreeWayValve>());
+        var estimates = BranchFlows.Estimate(graph);
+
+        var legs = graph.Branches
+            .Where(branch => ReferenceEquals(branch.From.Element, valve)
+                || ReferenceEquals(branch.To.Element, valve))
+            .Select(branch => (
+                Name: ValveLegs.PortName(branch, valve),
+                Estimate: estimates[branch.Index]))
+            .ToArray();
+
+        BranchFlow Leg(string name) => Assert.Single(
+            legs,
+            leg => string.Equals(leg.Name, name, StringComparison.Ordinal)).Estimate;
+
+        var common = Leg("ab");
+        var first = Leg("a");
+        var second = Leg("b");
+
+        Assert.Equal(0.2871, common.Magnitude, 3);
+        Assert.Equal(common.Magnitude, first.Magnitude + second.Magnitude, 9);
+        Assert.True(first.Magnitude < common.Magnitude);
+        Assert.True(second.Magnitude < common.Magnitude);
+        Assert.Equal(FlowBasis.Propagated, second.Basis);
+    }
+
 
     [Fact]
     public void ABranchNothingDeterminesFallsToTheNominalAndSaysSo()
@@ -255,19 +304,12 @@ public sealed class SolutionSeedTests
     }
 
     [Fact]
-    public void APromotedParameterBoundedOnOneSideKeepsTheValueItsComponentHolds()
+    public void APromotedBarePumpStartsWithProvisionalHead()
     {
-        // The other half of `S-50`, and the reason it is conditional rather than "seed every promotion at
-        // the middle". Only a parameter bounded on *both* sides has a middle to fall back to; one bounded
-        // on a single side has no non-arbitrary interior point, so its own value stands. `head` is the
-        // case: `Pump.Resolvable` bounds it below and not above, and this rule must leave it exactly
-        // where `S-26` put it.
-        //
-        // **It leaves it at zero, and that is a finding rather than an assertion of correctness.** An
-        // unsized pump holds head 0, so a promoted head still starts on the bound `S-26` warned about --
-        // "a pump seeded at zero head is a loop with no driver". `S-50` does not reach it, because the
-        // midpoint trick needs two bounds and there is only one. Recorded here so the day it is fixed
-        // shows up as this test failing rather than as nothing at all.
+        // A bare pump's head is solved from the complete circuit. Starting that promoted variable at zero
+        // also makes the pressure seed a loop with no driver, so the valve bypass sees the wrong pressure
+        // direction before Newton gets a useful derivative. Two-point-two metres is only a seed; it is not a sizing
+        // result or a constraint on the solved head.
         var graph = Lower("m2-distribution-header.fluid");
         var counting = WellPosedness.Check(graph).Counting;
         var layout = SystemLayout.Build(graph, counting);
@@ -275,21 +317,11 @@ public sealed class SolutionSeedTests
 
         var heads = Enumerable.Range(layout.PromotionOffset, layout.Count - layout.PromotionOffset)
             .Where(index => layout.Unknowns[index].Name.EndsWith(".head", StringComparison.Ordinal))
-            .Select(index => (layout.Unknowns[index].OwnerComponentId, Seed: seed.Values[index]))
+            .Select(index => seed.Values[index])
             .ToArray();
 
         Assert.NotEmpty(heads);
-
-        foreach (var (owner, value) in heads)
-        {
-            var pump = graph.Components.Single(
-                element => string.Equals(element.Name, owner, StringComparison.Ordinal));
-
-            var held = pump.Resolvable
-                .Single(parameter => string.Equals(parameter.Name, "head", StringComparison.Ordinal));
-
-            Assert.Equal(held.Value, value);
-        }
+        Assert.All(heads, head => Assert.Equal(2.2, head));
     }
 
     /// <remarks>

@@ -1,21 +1,18 @@
 # The distribution header reference from plan/00-foundation/01-vision-and-scope.md.
 #
-# Three circuits: a heat source on its own loop, and two consumers tapped off a supply/return header
-# pair. Every consumer runs cooler than the header, so each blends header water with its own return.
+# Three circuits: one source in the shared header and two pumped consumers. Every consumer runs cooler
+# than the 60 C supply, so each blends supply water with its own return.
 #
-# `F-21`: the source has a loop of its own rather than sitting in the header path. Without it the
-# source's flow *is* the network's flow, the plant has no freedom left to regulate with, and the
-# system is rank deficient -- measured, 37 unknowns and rank 36.
-#
-# `F-22`: that loop is an **uncontrolled bypass**, not a three-way valve. A diverting valve
-# recirculating into a fixed-duty source cannot change the source's outlet temperature at all --
-# T_out = T_return + Q/(m*cp) for every recirculation rate -- so a valve here would regulate nothing
-# and leave its own position constrained by nothing thermal. Holding a supply setpoint needs a mixing
-# valve and a controller, which is a later tier.
-#
-# `HS1` states no `out`, and must not: with the duty and the outlet both stated the source flow is
-# pinned to the network draw, the bypass carries exactly zero, and a zero-flow branch is `S-21`'s
-# singularity. The outlet floats and the primary flow is `PU_MAIN`'s own.
+# `HS1` states `power` and `out` and not `in`, as `01` says it must: `out=60` is the one absolute
+# temperature a closed circuit needs (`D-90`) -- it pays for the energy balance dropped as the level
+# and pins nothing else -- and the return header's 30 C is an answer, not a demand (`F-16`). Omit the
+# power and the two loads size it to +54 kW from the closed-circuit balance; both spellings solve.
+# The AHU and radiator pumps overcome the pressure drops in their complete circuits, including the
+# shared source path; there is no pump in the header (`S-55` is what the analysis still gets wrong
+# about that shape when a source valve is added). Solved, it reaches `01`'s figures: 0.2871 and
+# 0.3589 kg/s round the coils, 0.1914 and 0.2392 kg/s drawn from the header, 0.4306 kg/s through
+# HS1, the valves at 0.63 and 0.62 of travel. `S-58` is why it did not until 2026-09-14: a junction
+# mixed its inlets by a plain average, so no valve position could move a mixed temperature.
 #
 # `S-39`/`D-86`: the pressure datum sits on `N1`, the return header's junction, which is where an
 # engineer would put it -- the expansion vessel connection. It admits no mass: a `p=` on an interior
@@ -34,9 +31,8 @@
 # zero boundaries -- and no energy balance was dropped as its level. A closed circuit's energy balances
 # are one short of independent, because adding the same enthalpy to every node satisfies all of them.
 #
-# `C-67`: both loads carry a **negative** `power`. They cool the water -- `in=50 out=30` -- and a cooler
-# is written with a negative duty, never a negative `dt`. Written positive, the three duties summed to
-# 108 kW instead of zero, which nothing reported until the circuit was correctly read as closed.
+# `D-91`: a `load` states positive capacity and lowering supplies the negative side-1 heat flow. `dt`
+# remains a positive magnitude. The neutral `heat_exchanger` spelling remains explicitly signed.
 #
 # `C-66`: the tap branches carry real pipework. A branch written as a bare node-to-node connection
 # drops 0 kPa, and a valve sized against no resistance at all sits inside the solver's smoothing band,
@@ -48,14 +44,10 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54                   # the plant-side source; its outlet floats
-PU_MAIN pump head=10                              # constant speed, so the primary flow is its own
-BV      valve kv=2                                # the bypass takes the primary's surplus
-PB      pipe length=4 dn=32
+HS1     heat_exchanger power=54 kW out=60          # the plant-side source; the outlet is the level
 
 connections
-N1 - HS1 - N2 - PU_MAIN - N3
-N3 - PB - BV - N1                                 # what the network does not draw, recirculated
+N1 - HS1 - N3                                     # return is heated directly into the supply header
 N3 - N4                                           # supply header
 N6 - N5
 N5 - N1                                           # return header
@@ -64,28 +56,28 @@ N1 node p=250
 
 circuit AHU 101
 
-HE_AHU  heat_exchanger in=50 out=30 power=-24 kW
+HE_AHU  load in=50 out=30 power=24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
 PA1     pipe length=12 dn=25
 PA2     pipe length=12 dn=25
 
 connections
-NM_AHU - PU_AHU - HE_AHU - TV_AHU
-TV_AHU.b - NM_AHU                                 # recirculation, 30 C back to the mixing node
-N3 - PA1 - NM_AHU                                 # drawn from the supply header
-TV_AHU.a - PA2 - N5                               # and returned to it
+N3 - PA1 - TV_AHU.a                               # supply-header water enters the hot port
+NM_AHU - TV_AHU.b                                 # 30 C coil return recirculates to the cold port
+TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU              # pump follows the valve and drives the whole loop
+NM_AHU - PA2 - N5                                 # injected header flow returns to the plant
 
 circuit radiators 102
 
-HE_RAD  heat_exchanger in=50 out=30 power=-30 kW
+HE_RAD  load in=50 out=30 power=30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 PR1     pipe length=18 dn=25
 PR2     pipe length=18 dn=25
 
 connections
-NM_RAD - PU_RAD - HE_RAD - TV_RAD
-TV_RAD.b - NM_RAD
-N4 - PR1 - NM_RAD
-TV_RAD.a - PR2 - N6
+N4 - PR1 - TV_RAD.a
+NM_RAD - TV_RAD.b
+TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+NM_RAD - PR2 - N6

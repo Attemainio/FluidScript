@@ -112,6 +112,13 @@ dotnet test --filter-trait Category=Unit  # under 2 s — run it constantly
 cd frontend && npm run dev                # Vite dev server, proxies /api and /ws
 ```
 
+### FluidScript experiment protocol
+
+For every FluidScript experiment: execute the actual script; read the complete `SolveExplanation`
+report; trace its counting, constraints, seeds, solved values, residuals, sizing decisions, warnings,
+and conditioning together; change only what that full evidence supports; then rerun and repeat. A
+passing diagnostic harness means only that it wrote the report — convergence is stated inside it.
+
 ## Interaction protocol
 
 - **Get to 95 % certainty before non-trivial work.** Ask focused clarifying questions until you are

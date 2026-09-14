@@ -263,6 +263,12 @@ information the registry carries rather than a coincidence of edit distance —
 The canonical `heat_exchanger` name is fixed for v1; aliases keep familiar domain spellings explicit
 without multiplying component physics.
 
+`D-91` gives the heat-exchanger role aliases one deliberate boundary meaning without creating new
+physics kinds. `load`, `cooler`, `radiator`, and `chiller` read `power` as a positive capacity and
+lower it to negative side-1 heat flow; `heater` and `boiler` lower it to positive heat flow. The
+neutral `heat_exchanger`, `exchanger`, and `hx` spellings remain signed. `WrittenKind` is therefore
+not presentation-only for this family: lowering must retain it until the signed core duty is formed.
+
 `fan` and `duct` are deliberately absent (`D-28`). A pump/pipe alias would accept an air-side script
 while omitting humidity balance, condensation, leakage, fan curves, and compressibility. Unknown air
 kinds therefore fail clearly instead of producing a hydronic answer wearing air-side names.

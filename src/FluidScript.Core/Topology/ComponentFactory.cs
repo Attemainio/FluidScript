@@ -143,6 +143,12 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
     /// resistance is infinite. The bootstrap pass therefore builds a resistance-free exchanger and the
     /// first real pass replaces it, which is the same shape as every other provisional.
     /// </para>
+    /// <para>
+    /// Role aliases state a positive capacity while the physics core receives signed heat flow:
+    /// <c>load</c>, <c>cooler</c>, <c>radiator</c> and <c>chiller</c> remove heat; <c>heater</c> and
+    /// <c>boiler</c> add it. The neutral <c>heat_exchanger</c>, <c>exchanger</c> and <c>hx</c>
+    /// spellings retain an explicitly signed <c>power</c>.
+    /// </para>
     /// </remarks>
     /// <param name="wiring">How many ports the script connected, and by what names.</param>
     private HeatExchanger Exchanger(
@@ -155,6 +161,15 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
     {
         var design = Value(symbol, kind, "flow") ?? 0;
         var drop = design > 0 ? Value(symbol, kind, "dp") ?? 0 : 0;
+        var power = Value(symbol, kind, "power") ?? 0;
+        var writtenKind = NameResolution.Normalize(symbol.WrittenKind);
+
+        power = writtenKind switch
+        {
+            "load" or "cooler" or "radiator" or "chiller" => -Math.Abs(power),
+            "heater" or "boiler" => Math.Abs(power),
+            _ => power,
+        };
 
         // `S-14b`. Side 2's row exists whenever the script wired it, and its *resistance* only when a
         // script also states `flow2` -- no rule chooses that, because a rule sees one branch and this
@@ -166,7 +181,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
 
         return new HeatExchanger(
             symbol.Name,
-            Value(symbol, kind, "power") ?? 0,
+            power,
             drop,
             design,
             secondaryDrop,

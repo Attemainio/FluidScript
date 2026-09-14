@@ -56,17 +56,18 @@ would be filled with nothing.
 
 > **Phase P3, milestone M2a — the hydraulic core.**
 > P3.0 through P3.7 have shipped. **P3.8 and P3.9 have not been started.**
-> M2a's exit is blocked on one demo script: `samples/m2-distribution-header.fluid`.
-> As of `f11af8f`, 2026-09-09. The three commits since `0f8985e` are this record and the environment
-> traps beside it; no code moved, and the baselines below were re-checked, not assumed.
+> **All three M2a demo scripts converge**, as of 2026-09-14, and the header lands on `01`'s figures.
+> `S-58` was the last blocker: a junction mixed its inlets by a plain average, so no valve position
+> could move a mixed temperature. `D-91` (positive role capacities) and `D-92` (fixed flow as a flow
+> residual) are in; `S-53`, `S-55`–`S-57` record what measuring them found and stay open.
 
-M2a asks for three demo scripts to solve. Two do:
+M2a asks for three demo scripts to solve. All three do:
 
 | Sample | State | Note |
 |---|---|---|
 | `m2-simple-loop.fluid` | **Converged** | `24`'s worked example reached rather than transcribed — pump head 5.28 m from nothing but the loop |
 | `m2-cooling-loop.fluid` | **Converged** | Mixing node 19.99 °C against 20, return 49.94 against 50, 0.0763 kg/s recirculating |
-| `m2-distribution-header.fluid` | **Refused by the count** | Under-specified by 1; never reaches the solver. `S-48`, `S-51` |
+| `m2-distribution-header.fluid` | **Converged** | One Newton iteration, three sizing passes: 0.1914 / 0.2392 kg/s drawn from the 60 °C header, 0.4307 through the source against `01`'s 0.4306, valves at 0.63 / 0.62 of travel. `S-58` |
 | `m2-substation.fluid` | `NonFinite` | M2b's fixture, not M2a's. `S-32` |
 | `m4-storage-header.fluid` | **Converged** | Solves in one pass; nothing in it needs sizing |
 
@@ -180,6 +181,7 @@ The load-bearing ones, by what they settled:
 | Area | Entries | Outcome |
 |---|---|---|
 | Seeding | `S-26`, `S-30`, `S-35`, `S-46`, `S-49`, `S-50`, `S-51` | The seed went from "a number per unknown" to a construction with stated properties — mass-consistent, inside the property domain, off every bound, oriented by the pumps, and with no branch at rest |
+| Mixing | `S-58` | A junction's arriving enthalpy is the mass-weighted mix of its inlets, not their average — the one-line defect under `S-48` and `S-51`, found by stating a position and reading the converged number |
 | Three-way valves | `C-60`, `C-61`, `C-63`, `C-66`, `D-85`, `D-88` | Ports named `ab`/`a`/`b` as manufacturers label them, sized by authority, and identified by the port name the script *wrote* rather than by walking the graph |
 | Counting and rank | `S-33`, `S-36`, `S-39`, `S-41`, `S-43`, `D-86`, `D-90` | A singular system now names the equation its other rows imply, instead of naming a component to blame |
 | Pressure boundaries | `S-38`, `S-44`, `D-86`, `D-87` | A stated pressure is a boundary only on a boundary; a temperature on an interior node is a setpoint that promotes the split holding it |
@@ -196,34 +198,38 @@ Counts only. Every description lives in the file named.
 
 | Tier | Open | File |
 |---|---|---|
-| 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
+| 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **46** | |
+| | **47** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
 carries about its own unread documents.
 
-**The entries standing between here and M2a's exit** are `S-48` and `S-51` (the distribution header),
-with `S-45`, `S-47` and `S-29`/`S-37` behind them. `S-52` is adjacent rather than blocking: it is the
-diagnostic that misdirects anyone trying to fix `S-48` by following the tool's own suggestion. Everything else open is either explicitly *not* an
-M2a blocker in its own entry, or belongs to a tier M2a does not touch.
+**Nothing open blocks the three demo scripts any more.** The header's remaining entries were each
+measured on a *variant* and stay open on their own merits: `S-53` (the seed doubles a three-way
+valve's inlet legs when the source outlet is omitted), `S-55` (driver analysis misses distribution
+pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow),
+`S-57` (a fixed-flow row pinned to the seed's estimate) and `S-52` (`FS2211` sends the user to the
+balanced half). What still stands between here and M2a's exit is `05`'s other criteria — P3.8, P3.9
+and the coverage row — not the solver.
 
 ## What is next
 
-1. **The distribution header.** `S-51` moved it from `Singular` at iteration zero to an ordinary
-   convergence failure; the next lever named in that entry is `BranchFlows.Duty`, which needs
-   `power`, `in` and `out` together and so gives `D-90`'s canonical lone-`out` source no estimate.
-2. **A spec decision that is the user's, deliberately deferred.** If the header converges only as a
-   hydraulically separated plant, replacing `m2-distribution-header.fluid` changes a sample
-   [`01-vision-and-scope`](00-foundation/01-vision-and-scope.md) defines and whose figures M2a's exit
-   criteria quote. That is not a change a session makes on its own.
+1. **`01`'s header listing has drifted from the sample that meets its figures**, in three recorded
+   ways: attachment replaced by hand wiring (`F-16`/`F-17`), `PU_MAIN` removed because the consumer
+   pumps drive the whole loop (`S-55`'s subject), and `load` in place of `heat_exchanger` (`D-91`).
+   The figures and the tag table are unchanged. Updating the listing to the sample verbatim is a
+   spec edit and the user's call; until then the sample is the reference and `01` the intent.
+2. **`S-53`'s four ordered fixes and `S-57`**, the seed's side of the same subject, and the
+   valve-sizing observation under `S-58`: an equal-percentage valve sized for authority at full open
+   sits at 0.6 travel dropping 24–45 kPa, and the pump pays.
 3. **P3.8** — the design point as the sizing point. Holder: `C-51`.
-4. **P3.9** — elevation as an absolute height.
-5. Then M2a exits and P4 begins.
+5. **P3.9** — elevation as an absolute height.
+6. Then M2a exits and P4 begins.
 
 ## Standing baselines
 
@@ -232,7 +238,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1448 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
+| Core test suite | **1456 passed, 0 failed, 4 skipped** | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

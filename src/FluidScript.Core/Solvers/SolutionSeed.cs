@@ -53,6 +53,8 @@ public static class SolutionSeed
     /// any circuit; being non-zero is the whole of it.
     /// </value>
     public const double NominalDrop = 1e4;
+    /// <summary>Metres of head used only to keep a promoted bare pump inside a driven seed.</summary>
+    private const double NominalPumpHead = 2.2;
 
     /// <summary>The temperature step the seed puts between one node and the next along a branch.</summary>
     /// <value>
@@ -152,7 +154,7 @@ public static class SolutionSeed
         var level = pressures.Length > 0 ? pressures.Average() : Tolerances.PressureScale;
         var datum = Datum(graph);
         var steps = Steps(graph);
-        var levels = Levels(graph, datum);
+        var levels = Levels(graph, layout, values, datum);
         var integrated = Integrate(graph, layout, values, level, datum);
 
         for (var index = 0; index < graph.Nodes.Length; index++)
@@ -344,8 +346,9 @@ public static class SolutionSeed
                             running = Place(part, 0, running);
                             continue;
                         }
-
-                        var drop = BranchResistance.Of(graph, state, part, flow);
+                        var drop = part is Pump { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
+                            ? -state.Density.SiValue * UnitTable.StandardGravity * NominalPumpHead
+                            : BranchResistance.Of(graph, state, part, flow);
 
                         running += forward ? -drop : drop;
                     }
@@ -444,10 +447,19 @@ public static class SolutionSeed
                     continue;
                 }
 
-                values[index] = Interior(resolvable);
+                values[index] = owner is Pump && resolvable.Name is "head" && resolvable.Value == 0
+                            ? NominalPumpHead
+                            : Interior(resolvable);
             }
         }
     }
+    /// <summary>Whether a bare pump's head is an unknown this solve is expected to choose.</summary>
+    private static bool PromotesHead(SystemLayout layout, Pump pump) =>
+        layout.Unknowns
+            .Skip(layout.PromotionOffset)
+            .Any(declaration =>
+                string.Equals(declaration.OwnerComponentId, pump.Name, StringComparison.Ordinal)
+                && string.Equals(declaration.Name, $"{pump.Name}.head", StringComparison.Ordinal));
 
     /// <summary>Where a promoted parameter starts: its own value, unless that value is a bound.</summary>
     /// <param name="resolvable">The component's declaration of the parameter.</param>
@@ -477,6 +489,8 @@ public static class SolutionSeed
 
     /// <summary>The temperature level each node sits near, propagated downstream from what is known.</summary>
     /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the already-seeded branch flows are stored.</param>
+    /// <param name="values">The iterate whose flow signs establish upstream and downstream.</param>
     /// <param name="fallback">The level for a node no anchor reaches.</param>
     /// <returns>One level per node, in K, indexed as <c>graph.Nodes</c> is.</returns>
     /// <remarks>
@@ -506,12 +520,12 @@ public static class SolutionSeed
     /// node is the two streams it mixes and everywhere else is the one thing feeding it.
     /// </para>
     /// <para>
-    /// Direction is the declared path order, not the solved one. A seed cannot know which way a branch
-    /// runs before it solves, and does not need to: a reversed branch still lands its nodes on the right
-    /// level, because both ends of it are near the same temperature.
+    /// Direction comes from the mass-consistent branch-flow seed already built before this pass. A
+    /// negative flow reverses the stored branch orientation; ignoring that sign strands a return-temperature
+    /// anchor on the consumer side and can seed the source inlet tens of kelvins away from it.
     /// </para>
     /// </remarks>
-    private static double[] Levels(CircuitGraph graph, double fallback)
+    private static double[] Levels(CircuitGraph graph, SystemLayout layout, double[] values, double fallback)
     {
         var count = graph.Nodes.Length;
         var levels = new double[count];
@@ -538,7 +552,7 @@ public static class SolutionSeed
             }
         }
 
-        var flows = Downstream(graph, index);
+        var flows = Downstream(graph, index, layout, values);
 
         // Bounded by the node count: each pass fixes at least one node or stops, so a circuit whose
         // anchors reach everything settles well inside it and one whose anchors reach nothing exits at once.
@@ -645,9 +659,11 @@ public static class SolutionSeed
         return ported;
     }
 
-    /// <summary>Which node feeds which, in the nominal direction the script declared.</summary>
+    /// <summary>Which node feeds which, in the direction of the seeded branch flow.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="index">Node component to its position in <c>graph.Nodes</c>.</param>
+    /// <param name="layout">Where branch flows are stored.</param>
+    /// <param name="values">The iterate containing the mass-consistent flow seed.</param>
     /// <returns>Directed pairs, upstream first.</returns>
     /// <remarks>
     /// <strong>Branches meet at junction <em>elements</em>, not only at nodes, so consecutive nodes within
@@ -656,7 +672,11 @@ public static class SolutionSeed
     /// exchanger's outlet never reaches the pipe on the far side of the valve -- which is the 46 K jump
     /// that made placement alone worse than nothing.
     /// </remarks>
-    private static List<(int From, int To)> Downstream(CircuitGraph graph, Dictionary<object, int> index)
+    private static List<(int From, int To)> Downstream(
+        CircuitGraph graph,
+        Dictionary<object, int> index,
+        SystemLayout layout,
+        double[] values)
     {
         var flows = new List<(int From, int To)>();
         var into = new Dictionary<object, List<int>>(ReferenceEqualityComparer.Instance);
@@ -676,9 +696,24 @@ public static class SolutionSeed
                 }
             }
 
+            var forward = values[layout.BranchFlow(branch.Index)] >= 0;
+
+            if (!forward)
+            {
+                nodes.Reverse();
+            }
+
             for (var step = 1; step < nodes.Count; step++)
             {
                 flows.Add((nodes[step - 1], nodes[step]));
+            }
+
+            // A bare node-to-node connection is an ideal link, so its two temperatures are equal
+            // independently of the arbitrary branch orientation lowering chose. Let an anchor cross it
+            // in either direction; ordinary branches remain directed by their declared path.
+            if (branch.Path.IsEmpty && nodes.Count == 2)
+            {
+                flows.Add((nodes[1], nodes[0]));
             }
 
             if (nodes.Count == 0)
@@ -686,14 +721,17 @@ public static class SolutionSeed
                 continue;
             }
 
-            if (branch.From.Element is not CircuitNode)
+            var upstream = forward ? branch.From.Element : branch.To.Element;
+            var downstream = forward ? branch.To.Element : branch.From.Element;
+
+            if (upstream is not CircuitNode)
             {
-                Attach(outOf, branch.From.Element, nodes[0]);
+                Attach(outOf, upstream, nodes[0]);
             }
 
-            if (branch.To.Element is not CircuitNode)
+            if (downstream is not CircuitNode)
             {
-                Attach(into, branch.To.Element, nodes[^1]);
+                Attach(into, downstream, nodes[^1]);
             }
         }
 
@@ -940,7 +978,7 @@ public static class SolutionSeed
 
             foreach (var chord in chords)
             {
-                Flows[chord] = Orientation(graph.Branches[chord]) * estimates[chord].Magnitude;
+                Flows[chord] = Orientation(graph.Branches[chord], estimates[chord]) * estimates[chord].Magnitude;
             }
 
             // Leaves inward, so that when a vertex is reached everything at it but the branch joining
@@ -1015,57 +1053,122 @@ public static class SolutionSeed
 
             /// <summary>Which way a branch's estimated flow points, in the branch's own orientation.</summary>
             /// <param name="branch">The branch.</param>
+            /// <param name="estimate">The magnitude estimate and its provenance.</param>
             /// <returns>+1 along <see cref="Branch.From"/> to <see cref="Branch.To"/>, -1 against it.</returns>
             /// <remarks>
-            /// <para>
-            /// <strong>A branch estimate is a magnitude, and the orientation it gets applied in belongs to
-            /// the walk that lowered the graph rather than to the plant</strong> (<c>S-51</c>).
-            /// <see cref="Solve"/> hands each chord its estimate outright, and until this existed it handed
-            /// it over as <em>positive along the branch</em> -- so whether the seed described the circuit
-            /// running forwards or backwards came down to which end the lowering happened to start from.
-            /// </para>
-            /// <para>
-            /// <strong>Measured on <c>m2-cooling-loop</c></strong>, whose supply branch is lowered
-            /// <c>3WV</c> to <c>N2</c> while the water runs <c>N2</c>, <c>PU1</c>, <c>HE1</c>, <c>3WV</c>.
-            /// Seeding that branch at +0.239 kg/s seeds the pump running backwards through its own
-            /// exchanger. The loop converged anyway only because the branch that happened to become the
-            /// chord was the empty bypass, whose lowered orientation agrees with the flow; the moment
-            /// anything changed which branch that was, the seed inverted and the first Newton step walked
-            /// a node out of the water domain.
-            /// </para>
-            /// <para>
-            /// <strong>The pump is what settles it, and only the pump.</strong> A pipe carries an
-            /// <c>in</c> and an <c>out</c> too, but those record the order the author typed the connection
-            /// and assert nothing about the water; a pump asserts a direction physically, and is the one
-            /// element in a hydronic branch the solution may not run backwards. A branch with no pump
-            /// keeps +1, which is no worse than what it had.
-            /// </para>
+            /// A pump settles the branch containing it. A stated exchanger inlet or outlet supplies the same
+            /// seed-only clue when no source pump exists. A propagated branch meeting a junction next to a
+            /// pumped branch starts opposite that pump at the junction. Connections with no directional
+            /// evidence retain +1; none of these choices constrains the eventual signed solution.
             /// </remarks>
-            private int Orientation(Branch branch)
+            private int Orientation(Branch branch, BranchFlow estimate)
             {
-                for (var step = 0; step < branch.Path.Length; step++)
+                var direct = PumpDirection(branch) ?? TemperatureDirection(branch);
+                if (direct.HasValue)
                 {
-                    if (branch.Path[step] is not Pump pump
-                        || !_componentOf.TryGetValue(pump, out var element)
-                        || element >= graph.Adjacency.ComponentCount)
+                    return direct.Value;
+                }
+
+                if (estimate.Basis is FlowBasis.Propagated)
+                {
+                    foreach (var junction in new[] { branch.From.Element, branch.To.Element })
                     {
-                        continue;
+                        foreach (var candidate in graph.Branches)
+                        {
+                            if (candidate.Index == branch.Index
+                                || !ReferenceEquals(candidate.From.Element, junction)
+                                    && !ReferenceEquals(candidate.To.Element, junction))
+                            {
+                                continue;
+                            }
+
+                            var driven = PumpDirection(candidate);
+                            if (!driven.HasValue)
+                            {
+                                continue;
+                            }
+
+                            var pumpEnters = ReferenceEquals(candidate.To.Element, junction)
+                                ? driven.Value > 0
+                                : driven.Value < 0;
+                            var branchEnters = !pumpEnters;
+
+                            return ReferenceEquals(branch.To.Element, junction)
+                                ? branchEnters ? +1 : -1
+                                : branchEnters ? -1 : +1;
+                        }
+                    }
+                }
+
+                return +1;
+
+                int? PumpDirection(Branch candidate)
+                {
+                    for (var step = 0; step < candidate.Path.Length; step++)
+                    {
+                        if (candidate.Path[step] is Pump pump)
+                        {
+                            var direction = PortDirection(candidate, step, pump, sideOneOnly: false);
+                            if (direction.HasValue)
+                            {
+                                return direction;
+                            }
+                        }
                     }
 
-                    var before = step > 0 ? branch.Path[step - 1] : branch.From.Element;
-                    var after = step + 1 < branch.Path.Length ? branch.Path[step + 1] : branch.To.Element;
+                    return null;
+                }
 
-                    for (var port = 0; port < pump.Ports.Length; port++)
+                int? TemperatureDirection(Branch candidate)
+                {
+                    for (var step = 0; step < candidate.Path.Length; step++)
                     {
-                        var peer = graph.Adjacency.Peer(element, port);
+                        if (candidate.Path[step] is HeatExchanger exchanger
+                            && (exchanger.StatedParameters.ContainsKey("in")
+                                || exchanger.StatedParameters.ContainsKey("out")))
+                        {
+                            var direction = PortDirection(candidate, step, exchanger, sideOneOnly: true);
+                            if (direction.HasValue)
+                            {
+                                return direction;
+                            }
+                        }
+                    }
 
+                    return null;
+                }
+
+                int? PortDirection(
+                    Branch candidate,
+                    int step,
+                    IFlowComponent component,
+                    bool sideOneOnly)
+                {
+                    if (!_componentOf.TryGetValue(component, out var element)
+                        || element >= graph.Adjacency.ComponentCount)
+                    {
+                        return null;
+                    }
+
+                    var before = step > 0 ? candidate.Path[step - 1] : candidate.From.Element;
+                    var after =
+                        step + 1 < candidate.Path.Length ? candidate.Path[step + 1] : candidate.To.Element;
+
+                    for (var port = 0; port < component.Ports.Length; port++)
+                    {
+                        if (sideOneOnly && component.Ports[port].Name is not ("in" or "out"))
+                        {
+                            continue;
+                        }
+
+                        var peer = graph.Adjacency.Peer(element, port);
                         if (!peer.Exists)
                         {
                             continue;
                         }
 
                         var neighbour = graph.Components[peer.Component];
-                        var downstream = pump.Ports[port].Role is PortRole.Outlet;
+                        var downstream = component.Ports[port].Role is PortRole.Outlet;
 
                         if (ReferenceEquals(neighbour, after))
                         {
@@ -1077,9 +1180,9 @@ public static class SolutionSeed
                             return downstream ? -1 : +1;
                         }
                     }
-                }
 
-                return +1;
+                    return null;
+                }
             }
 
             /// <summary>Builds a spanning forest over the incidence lists already attached.</summary>

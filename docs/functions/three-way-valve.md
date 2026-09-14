@@ -24,6 +24,13 @@ mixing valve — the commonest in hydronics — takes two streams in at `a` and 
 the design point is its inlet. Note that a valve body is built for one service or the other and they
 are not interchangeable in the field; nothing here checks that yet.
 
+**What leaves a mixing valve is the mass-weighted mix of what enters it**:
+`h_ab = (ṁ_a·h_a + ṁ_b·h_b) / (ṁ_a + ṁ_b)`. So 0.19 kg/s of 60 °C water through `a` and 0.10 kg/s of
+30 °C water through `b` deliver 50 °C at `ab`, and moving the position moves that temperature — which
+is the whole reason a stated inlet on the coil downstream can be answered by this valve's position.
+The mix is smooth through a reversal of either inlet, so a leg that turns round mid-solve does not
+put a kink in the energy balance.
+
 Ports are named in a connection with a dot:
 
 ```fluidscript

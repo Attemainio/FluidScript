@@ -82,6 +82,22 @@ The consequence to hold on to is that **a regression here is invisible to CI by 
 by reading the reports. `F-19` is what that looks like when nobody does — a property-call cost 20 000×
 the figure the latency budget was set against, sitting in `diagnostics/` and contradicting `07`.
 
+### FluidScript experiment loop
+
+Every investigation of a circuit follows the same loop:
+
+1. Execute the actual FluidScript under investigation through the solution pipeline.
+2. Read its complete `SolveExplanation` report. A passing diagnostic harness means only that the report
+   was written; it does not mean the circuit converged.
+3. Trace counting, constraints and promotions, seeded and solved values, every residual, sizing choices
+   and notes, warnings, and rank and conditioning together. The largest final residual may be a symptom
+   of an earlier bad seed, sizing choice, bound, or flow direction.
+4. Change only what the complete report supports.
+5. Rerun the script and repeat from step 2.
+
+Do not diagnose a circuit from a grep excerpt, its termination headline, or only the largest residual.
+The report is one causal record and must be read as one.
+
 **The budget is execution time, not what `dotnet test` prints.** Measured on the reference
 environment, a run matching *no* tests still reports between 0.6 s and 1.3 s: that is host start,
 JIT and Microsoft.Testing.Platform discovery, and it varies by more than the entire budget from run

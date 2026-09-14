@@ -451,7 +451,7 @@ public sealed class WellPosednessTests
         fluid water
 
         HE1  heat_exchanger power=30 in=20 out=50
-        LOAD heat_exchanger power=-30
+        LOAD load power=30
         CV1  valve
         PU1  pump
         P1   pipe length=25 dn=25
@@ -706,11 +706,10 @@ public sealed class WellPosednessTests
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",
-                // `S-41`. It counted square and solved to a zero pivot; the square count was the wrong
-                // half of the story, because the closed circuit's redundant energy balance was never
-                // dropped. With the level dropped the count is honest and short by one, which is `S-38`'s
-                // deficiency stated where a user can act on it.
-                ["m2-distribution-header.fluid"] = "-1",
+                // `D-91` and the injection-header rewrite: positive load capacities lower to
+                // negative core duties and the prepared model is square. Newton still finds a zero pivot,
+                // so the remaining defect is rank rather than a missing equation.
+                ["m2-distribution-header.fluid"] = "0",
                 ["m2-substation.fluid"] = "0",
                 ["m4-storage-header.fluid"] = "0",
             },

@@ -389,6 +389,8 @@ public sealed class OuterLoop(
         var bases = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
         var notes = ImmutableArray.CreateBuilder<string>();
 
+        CloseEnergyBalance(graph, ref overlay, bases);
+
         foreach (var component in graph.Components)
         {
             foreach (var sizer in sizers)
@@ -698,6 +700,62 @@ public sealed class OuterLoop(
                     + "first pass as little as possible, not to suit this circuit — state it, or read the "
                     + "result knowing this one number is arbitrary.");
             }
+        }
+    }
+
+    /// <summary>Closes a steady circuit's duty sum when exactly one one-sided duty is omitted.</summary>
+    /// <param name="graph">The graph as lowered for this pass.</param>
+    /// <param name="overlay">The sizing choices to add the inferred duty to.</param>
+    /// <param name="bases">Where to explain the choice.</param>
+    /// <remarks>
+    /// <strong>One missing term in ΣQ̇ = 0 is determined; two are a design choice.</strong> Loads already
+    /// carry their physical negative sign, so negating the sum of every stated/defaulted duty produces
+    /// the source duty directly. Coupled exchangers are excluded because their transfer spans hydraulic
+    /// components; applying a per-component closure to either side would count the same transfer twice.
+    /// </remarks>
+    private static void CloseEnergyBalance(
+        CircuitGraph graph,
+        ref SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases)
+    {
+        var completed = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var hydraulic in HydraulicPartition.Of(graph))
+        {
+            if (!hydraulic.IsClosed)
+            {
+                continue;
+            }
+
+            var duties = hydraulic.Elements
+                .OfType<HeatExchanger>()
+                .DistinctBy(static exchanger => exchanger.Name)
+                .ToArray();
+
+            if (duties.Any(static exchanger => exchanger.SecondarySideConnected))
+            {
+                continue;
+            }
+
+            var omitted = duties
+                .Where(static exchanger =>
+                    !exchanger.StatedParameters.ContainsKey("power")
+                    && !exchanger.DefaultParameters.ContainsKey("power"))
+                .ToArray();
+
+            if (omitted.Length != 1 || !completed.Add(omitted[0].Name))
+            {
+                continue;
+            }
+
+            var source = omitted[0];
+            var power = -duties
+                .Where(exchanger => !ReferenceEquals(exchanger, source))
+                .Sum(static exchanger => exchanger.Power);
+
+            overlay = overlay.With(source.Name, "power", Quantity.FromSi(power, Dimension.Power));
+            bases[$"{source.Name}.power"] =
+                $"the closed-circuit energy balance: {-power / 1000:G4} kW from the other duties requires {power / 1000:G4} kW here";
         }
     }
 

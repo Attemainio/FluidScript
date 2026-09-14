@@ -88,7 +88,7 @@ public static class BranchFlows
         {
             foreach (var part in branch.Path)
             {
-                Offer(ref estimates[branch.Index], Duty(graph.Substance, part), FlowBasis.Duty, part.Name);
+                Offer(ref estimates[branch.Index], Duty(graph, part), FlowBasis.Duty, part.Name);
                 Offer(
                     ref estimates[branch.Index],
                     HydraulicPartition.Stated(part, HydraulicPartition.Flow),
@@ -155,6 +155,12 @@ public static class BranchFlows
 
             foreach (var junction in graph.JunctionElements)
             {
+                if (junction is ThreeWayValve { BypassConnected: true } valve)
+                {
+                    moved |= PropagateThreeWay(graph, estimates, valve);
+                    continue;
+                }
+
                 var best = 0.0;
                 var source = string.Empty;
 
@@ -176,7 +182,9 @@ public static class BranchFlows
 
                 foreach (var branch in graph.Branches)
                 {
-                    if (!Meets(branch, junction) || estimates[branch.Index].Basis > FlowBasis.Nominal)
+                    if (!Meets(branch, junction)
+                        || MeetsThreeWay(branch)
+                        || estimates[branch.Index].Basis > FlowBasis.Nominal)
                     {
                         continue;
                     }
@@ -193,6 +201,142 @@ public static class BranchFlows
         }
     }
 
+    /// <summary>Propagates one common circulation estimate as a partition across a three-way valve.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="estimates">The estimates being completed.</param>
+    /// <param name="valve">The mixing or diverting junction.</param>
+    /// <returns><see langword="true"/> when an estimate was added.</returns>
+    private static bool PropagateThreeWay(
+        CircuitGraph graph,
+        BranchFlow[] estimates,
+        ThreeWayValve valve)
+    {
+        var common = -1;
+        var first = -1;
+        var second = -1;
+
+        foreach (var branch in graph.Branches)
+        {
+            if (!Meets(branch, valve))
+            {
+                continue;
+            }
+
+            switch (FluidScript.Core.Solvers.ValveLegs.PortName(branch, valve))
+            {
+                case "ab":
+                    common = branch.Index;
+                    break;
+                case "a":
+                    first = branch.Index;
+                    break;
+                case "b":
+                    second = branch.Index;
+                    break;
+            }
+        }
+
+        if (common < 0 || first < 0 || second < 0)
+        {
+            return false;
+        }
+
+        var commonKnown = estimates[common].Basis > FlowBasis.Nominal;
+        var firstKnown = estimates[first].Basis > FlowBasis.Nominal;
+        var secondKnown = estimates[second].Basis > FlowBasis.Nominal;
+
+        if (commonKnown && !firstKnown && !secondKnown)
+        {
+                var firstMagnitude = estimates[common].Magnitude
+                    * (MixingFraction(graph, estimates[common].Source) ?? 0.5);
+                var secondMagnitude = estimates[common].Magnitude - firstMagnitude;
+
+                estimates[first] =
+                    new BranchFlow(firstMagnitude, FlowBasis.Propagated, estimates[common].Source);
+                estimates[second] =
+                    new BranchFlow(secondMagnitude, FlowBasis.Propagated, estimates[common].Source);
+
+            return true;
+        }
+
+        if (commonKnown && firstKnown != secondKnown)
+        {
+            var known = firstKnown ? first : second;
+            var missing = firstKnown ? second : first;
+            var remainder = estimates[common].Magnitude - estimates[known].Magnitude;
+
+            if (remainder > Solvers.Tolerances.FlowZero)
+            {
+                estimates[missing] =
+                    new BranchFlow(remainder, FlowBasis.Propagated, estimates[common].Source);
+                return true;
+            }
+        }
+
+        if (!commonKnown && firstKnown && secondKnown)
+        {
+            estimates[common] = new BranchFlow(
+                estimates[first].Magnitude + estimates[second].Magnitude,
+                FlowBasis.Propagated,
+                estimates[first].Source);
+            return true;
+        }
+
+        return false;
+    }
+    /// <summary>Returns the hot-leg fraction implied by a load's design temperatures and a source outlet.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="loadName">The exchanger that supplied the common-leg duty estimate.</param>
+    /// <returns>A fraction strictly between zero and one, or <see langword="null"/> without enough evidence.</returns>
+    private static double? MixingFraction(CircuitGraph graph, string loadName)
+    {
+        var load = graph.Components
+            .OfType<HeatExchanger>()
+            .SingleOrDefault(component => string.Equals(component.Name, loadName, StringComparison.Ordinal));
+
+        if (load is null
+            || !load.StatedParameters.TryGetValue("in", out var mixed)
+            || !load.StatedParameters.TryGetValue("out", out var cold))
+        {
+            return null;
+        }
+
+        Quantity? hot = null;
+        foreach (var source in graph.Components.OfType<HeatExchanger>())
+        {
+            if (source.Power > 0
+                && source.StatedParameters.TryGetValue("out", out var outlet)
+                && (hot is null || outlet.SiValue > hot.Value.SiValue))
+            {
+                hot = outlet;
+            }
+        }
+
+        if (hot is null)
+        {
+            return null;
+        }
+
+        var reference = Quantity.FromSi(0, Dimension.Pressure);
+        if (!graph.Substance.FromPressureTemperature(reference, cold).TryGetValue(out var coldState)
+            || !graph.Substance.FromPressureTemperature(reference, mixed).TryGetValue(out var mixedState)
+            || !graph.Substance.FromPressureTemperature(reference, hot.Value).TryGetValue(out var hotState))
+        {
+            return null;
+        }
+
+        var span = hotState.Enthalpy.SiValue - coldState.Enthalpy.SiValue;
+        var fraction = (mixedState.Enthalpy.SiValue - coldState.Enthalpy.SiValue) / span;
+
+        return span > 0 && fraction > 0 && fraction < 1 ? fraction : null;
+    }
+
+    /// <summary>Whether a branch terminates at any connected three-way valve.</summary>
+    /// <param name="branch">The branch.</param>
+    /// <returns><see langword="true"/> when either end is a three-way valve.</returns>
+    private static bool MeetsThreeWay(Branch branch) =>
+        branch.From.Element is ThreeWayValve || branch.To.Element is ThreeWayValve;
+
     /// <summary>Whether a branch has an end at a given junction element.</summary>
     /// <param name="branch">The branch.</param>
     /// <param name="junction">The element.</param>
@@ -200,36 +344,79 @@ public static class BranchFlows
     private static bool Meets(Branch branch, IFlowComponent junction) =>
         ReferenceEquals(branch.From.Element, junction) || ReferenceEquals(branch.To.Element, junction);
 
-    /// <summary>The flow an exchanger's stated duty and terminal temperatures imply.</summary>
-    /// <param name="substance">The circuit's fluid.</param>
+    /// <summary>The flow an exchanger's known duty and terminal temperatures imply.</summary>
+    /// <param name="graph">The lowered circuit, including sized duties and other design terminals.</param>
     /// <param name="component">The candidate component.</param>
     /// <returns>kg/s, or <see langword="null"/> when the rule does not apply here.</returns>
     /// <remarks>
+    /// <para>
     /// <c>ṁ = |Q̇| / |h(out) − h(in)|</c>, evaluated at the substance rather than at a constant
     /// specific heat: water's <c>cp</c> moves 1 % between 20 °C and 90 °C and the whole point of this
     /// number is that a user can check it against the enthalpy table.
+    /// </para>
+    /// <para>
+    /// An automatically closed duty lives in <c>SizedParameters</c>, not <c>StatedParameters</c>. For a
+    /// positive source with only its outlet stated, a common outlet temperature on every opposing load is
+    /// the return design temperature. Using it here seeds a flow; it does not add a constraint to the solve.
+    /// If the returns disagree, the estimate declines rather than inventing a mixed temperature.
+    /// </para>
     /// </remarks>
-    private static double? Duty(ISubstance substance, IFlowComponent component)
+    private static double? Duty(CircuitGraph graph, IFlowComponent component)
     {
-        var stated = component.StatedParameters;
+        if (component is not HeatExchanger exchanger
+            || (!component.StatedParameters.ContainsKey("power")
+                && !component.SizedParameters.ContainsKey("power")
+                && !component.DefaultParameters.ContainsKey("power"))
+            || !component.StatedParameters.TryGetValue("out", out var outlet))
+        {
+            return null;
+        }
 
-        if (!stated.TryGetValue("power", out var power)
-            || !stated.TryGetValue("in", out var inlet)
-            || !stated.TryGetValue("out", out var outlet))
+        var inlet = component.StatedParameters.TryGetValue("in", out var statedInlet)
+            ? statedInlet
+            : CommonReturn(graph, exchanger);
+
+        if (inlet is null)
         {
             return null;
         }
 
         var reference = Quantity.FromSi(0, Dimension.Pressure);
 
-        if (!substance.FromPressureTemperature(reference, inlet).TryGetValue(out var entering)
-            || !substance.FromPressureTemperature(reference, outlet).TryGetValue(out var leaving))
+        if (!graph.Substance.FromPressureTemperature(reference, inlet.Value).TryGetValue(out var entering)
+            || !graph.Substance.FromPressureTemperature(reference, outlet).TryGetValue(out var leaving))
         {
             return null;
         }
 
         var rise = Math.Abs(leaving.Enthalpy.SiValue - entering.Enthalpy.SiValue);
 
-        return rise > 0 ? Math.Abs(power.SiValue) / rise : null;
+        return rise > 0 ? Math.Abs(exchanger.Power) / rise : null;
+    }
+
+    /// <summary>Finds the one return temperature all opposing loads state.</summary>
+    private static Quantity? CommonReturn(CircuitGraph graph, HeatExchanger source)
+    {
+        if (source.Power <= 0)
+        {
+            return null;
+        }
+
+        var returns = graph.Components
+            .OfType<HeatExchanger>()
+            .Where(candidate => candidate.Power < 0)
+            .Select(candidate => candidate.StatedParameters.TryGetValue("out", out var outlet)
+                ? (Quantity?)outlet
+                : null)
+            .ToArray();
+
+        if (returns.Length == 0
+            || returns.Any(static candidate => candidate is null)
+            || returns.Any(candidate => !candidate!.Value.IsCloseTo(returns[0]!.Value)))
+        {
+            return null;
+        }
+
+        return returns[0];
     }
 }
