@@ -30,6 +30,7 @@ namespace FluidScript.Core.Tests.Performance;
 /// </para>
 /// </remarks>
 [Trait("Category", "Diagnostic")]
+[Collection(SoleOccupancy.Name)]
 public sealed class SolverScaleDiagnostics
 {
     private const int Warmup = 2;
@@ -126,7 +127,6 @@ public sealed class SolverScaleDiagnostics
         var model = GraphFixture.Bind(source);
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog), 10);
 
-        var before = GC.GetTotalAllocatedBytes(precise: true);
         var prepared = loop.Prepare(model, Water.Instance, "scale");
         var counting = WellPosedness.Check(prepared.Lowered.Graph).Counting;
 
@@ -142,6 +142,11 @@ public sealed class SolverScaleDiagnostics
             last = run.Value;
         });
 
+        // One solve, after the timed ones have warmed everything: the allocation of a solve, not of the
+        // ladder so far. Allocation and working set are both process-wide, which is why this class runs
+        // alone (`SoleOccupancy`); measured in parallel with the suite they were the suite's numbers.
+        var before = GC.GetTotalAllocatedBytes(precise: true);
+        await loop.RunAsync(model, Water.Instance, "scale", TestContext.Current.CancellationToken);
         var allocated = (GC.GetTotalAllocatedBytes(precise: true) - before) / (1024.0 * 1024.0);
         var workingSet = Environment.WorkingSet / (1024.0 * 1024.0);
 
@@ -196,7 +201,8 @@ public sealed class SolverScaleDiagnostics
             .AppendLine("through its own mixing valve and pump: thirteen unknowns per consumer. `prepare` is the")
             .AppendLine("bootstrap, closure and first sizing pass; `solve` is the whole outer loop from the bound model.")
             .AppendLine()
-            .AppendLine("| Consumers | Decls | Unknowns | Equations | Prepare ms | Solve ms | Iters | Passes | Termination | Residual |")
+            .AppendLine("`Allocated` is the managed allocation of one solve after warm-up; `working set` is the process total at the end of the row.")
+            .AppendLine()
             .AppendLine("| Consumers | Decls | Unknowns | Equations | Prepare ms | Solve ms | Iters | Passes | Termination | Residual | Allocated MB | Working set MB |")
             .AppendLine("|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---:|---:|");
 
