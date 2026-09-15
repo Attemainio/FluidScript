@@ -5,11 +5,13 @@ using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Tests.Components;
 
-/// <summary>The duty-mode exchanger: its energy relation, its drop, and the flow a duty implies.</summary>
+/// <summary>The exchanger: its energy relation, its drop, the flow a duty implies, and the rated relation.</summary>
 /// <remarks>
 /// <c>62</c>'s worked example lives here — 30 kW across 20 to 50 °C implying 0.239 kg/s — computed from
 /// the fake's own declared <c>cp</c> so the arithmetic in the comment and the arithmetic in the code
-/// use the same number. The rated and coupled modes are <c>P4.1</c>'s and are not exercised.
+/// use the same number. The rated relation (<c>P4.1</c>) is checked against the substation's design
+/// point; the sizing that produces its rating is <c>ThermalSizerTests</c>' and the solved circuit is
+/// <c>RatedExchangerSolveTests</c>'.
 /// </remarks>
 [Trait("Category", "Unit")]
 public sealed class HeatExchangerTests
@@ -274,6 +276,93 @@ public sealed class HeatExchangerTests
             for (var iteration = 0; iteration < 100; iteration++)
             {
                 exchanger.EvaluateResiduals(new SolveContext(Water, ports, flows), residuals);
+            }
+        }
+    }
+
+    // ---- the rated relation (P4.1) ----------------------------------------------------------------
+
+    /// <summary>The substation's HX1 as a Rated exchanger: UA 12 071 W/K against the 85/45 profile.</summary>
+    private static HeatExchanger Rated(double power = 150_000) =>
+        new("HX1", power)
+        {
+            Rating = new ExchangerRating
+            {
+                Mode = ExchangerMode.Rated,
+                Conductance = 12_071,
+                SecondaryInletTemperature = 85 + 273.15,
+                SecondaryCapacityRate = 3750,
+            },
+        };
+
+    [Fact]
+    public void ARatedExchangerDeliversItsDesignDutyAtItsDesignPoint()
+    {
+        // 7500 W/K entering at 40 C against 3750 W/K at 85 C through UA 12 071: NTU 3.219 on Cmin, Cr 0.5,
+        // ε 0.8889, and 0.8889 * 3750 * 45 = 150 kW. The number 01 sized the exchanger for, recovered
+        // from the rating rather than read from `power`.
+        var duty = HeatExchanger.Duty(Rated().Rating!, capacity1: 7500, inlet1: 40 + 273.15, capacity2: 3750, inlet2: 85 + 273.15);
+
+        Assert.Equal(150_000, duty, 150.0);
+    }
+
+    [Fact]
+    public void ARatedExchangersDutyFallsAsItsInletRisesAndStatedPowerIsNotConsulted()
+    {
+        // The whole reason a rated exchanger fixes a closed loop's temperature level: warm the inlet
+        // and it transfers less, cool it and it transfers more. A constant `power` could not do that.
+        var rating = Rated().Rating!;
+
+        var cold = HeatExchanger.Duty(rating, 7500, 35 + 273.15, 3750, 85 + 273.15);
+        var design = HeatExchanger.Duty(rating, 7500, 40 + 273.15, 3750, 85 + 273.15);
+        var warm = HeatExchanger.Duty(rating, 7500, 45 + 273.15, 3750, 85 + 273.15);
+
+        Assert.True(cold > design && design > warm, $"{cold} / {design} / {warm}");
+        Assert.Equal(0, HeatExchanger.Duty(rating, 7500, 85 + 273.15, 3750, 85 + 273.15), 1e-9);
+    }
+
+    [Fact]
+    public void TheDutyIsContinuousWhereTheCapacityRatesCross()
+    {
+        // Cr -> 1 is where the counterflow closed form divides by zero, and the crossover is where Cmin
+        // changes sides. Both are blended (Effectiveness.BalancedBand), so stepping C1 across C2 moves
+        // the duty by no more than the step deserves: no jump for Newton to fall into.
+        var rating = Rated().Rating!;
+
+        var below = HeatExchanger.Duty(rating, 3750 * (1 - 1e-5), 40 + 273.15, 3750, 85 + 273.15);
+        var at = HeatExchanger.Duty(rating, 3750, 40 + 273.15, 3750, 85 + 273.15);
+        var above = HeatExchanger.Duty(rating, 3750 * (1 + 1e-5), 40 + 273.15, 3750, 85 + 273.15);
+
+        Assert.Equal(at, below, at * 1e-4);
+        Assert.Equal(at, above, at * 1e-4);
+    }
+
+    [Fact]
+    public void ARatedInjectionReadsThePortStatesAndAllocatesNothing()
+    {
+        // 1.7932 kg/s of the fake's 4184 J/(kg K) water is 7503 W/K at 40 C: the design point, so the
+        // injection into the outlet node is the design 150 kW -- and the hot path stays allocation-free
+        // with the rating in play, which is the invariant every component shares (22).
+        var exchanger = Rated();
+        var ports = new[] { At(40), At(60) };
+        var flows = new[] { 1.7932, -1.7932 };
+        var injection = new double[exchanger.Ports.Length];
+
+        Run();
+
+        Assert.Equal(150_000, injection[1], 300.0);
+        Assert.Equal(0, injection[0], 1e-9);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        Run();
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+
+        void Run()
+        {
+            for (var iteration = 0; iteration < 100; iteration++)
+            {
+                exchanger.EvaluateEnergyInjection(new SolveContext(Water, ports, flows), injection);
             }
         }
     }

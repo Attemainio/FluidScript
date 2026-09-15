@@ -30,11 +30,14 @@ public enum ExchangerMode
 /// transferred, positive when side 1 gains heat.
 /// </para>
 /// <para>
-/// <strong>Only Duty mode is built here.</strong> The rated and coupled modes are <c>P4.1</c>'s, and
-/// deliberately so: that package builds ε-NTU <em>and</em> LMTD as two routes sharing no code, which is
-/// what turns the substation's UA = 12 071 W/K into a validation rather than a regression. Written here
-/// as one route with a switch, the agreement would prove nothing. A <c>Rated</c> or <c>Coupled</c>
-/// instance is refused rather than silently behaving like a Duty one.
+/// <strong>Three modes, decided by what the script wired and stated (<c>D-19</c>).</strong> Duty: a
+/// stated <c>power</c> crosses the model boundary. Rated: a second-side profile is stated and side 2 is
+/// a boundary, not a branch. Coupled: both secondary ports are wired and two solved streams meet here.
+/// In the extended modes the duty is <c>ε·Cmin·(T_in2 − T_in1)</c> from <see cref="Rating"/> and the
+/// port states (<see cref="Duty"/>), so a rated exchanger transfers less as its inlet warms -- which is
+/// what fixes a closed circuit's temperature level. ε-NTU is the residual route; <c>LMTD</c> is reported
+/// by <see cref="LogMeanTemperatureDifference"/>, sharing no code, so the substation's UA = 12 071 W/K
+/// is a validation rather than a restatement.
 /// </para>
 /// <para>
 /// <strong>The sides are numbered rather than named.</strong> Not <c>hot</c>/<c>cold</c> and not
@@ -141,8 +144,23 @@ public sealed class HeatExchanger : IFlowComponent
     public string Kind => "heat_exchanger";
 
     /// <inheritdoc/>
-    /// <value>The canonical mode name. Duty is the only one this class evaluates.</value>
-    public string? Mode => ExchangerMode.Duty.ToString().ToLowerInvariant();
+    /// <value>The canonical mode name, lower-case: <c>duty</c>, <c>rated</c> or <c>coupled</c>.</value>
+    public string? Mode => ResolvedMode.ToString().ToLowerInvariant();
+
+    /// <summary>Gets the mode lowering resolved (<c>D-19</c>).</summary>
+    /// <value>
+    /// <see cref="ExchangerMode.Coupled"/> when the secondary ports are wired, otherwise the rating's mode,
+    /// otherwise <see cref="ExchangerMode.Duty"/>.
+    /// </value>
+    public ExchangerMode ResolvedMode =>
+        SecondarySideConnected ? ExchangerMode.Coupled : Rating?.Mode ?? ExchangerMode.Duty;
+
+    /// <summary>Gets what an extended-mode exchanger transfers heat with, or <see langword="null"/> for a duty block.</summary>
+    /// <value>
+    /// The size, the arrangement and -- in Rated mode -- the side-2 profile. With one whose
+    /// <see cref="ExchangerRating.CanRate"/> is true the duty is ε-NTU's; without, it is <see cref="Power"/>.
+    /// </value>
+    public ExchangerRating? Rating { get; init; }
 
     /// <inheritdoc/>
     public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
@@ -308,7 +326,7 @@ public sealed class HeatExchanger : IFlowComponent
         injection.Clear();
 
         var forward = Smoothing.ForwardShare(context.Flows[0]);
-        var duty = context.Parameter(PowerIndex, Power);
+        var duty = Transferred(in context, forward);
 
         injection[0] = duty * (1 - forward);
         injection[1] = duty * forward;
@@ -324,6 +342,81 @@ public sealed class HeatExchanger : IFlowComponent
         injection[3] = -duty * secondary;
     }
 
+    /// <summary>The duty crossing the wall at this iterate: stated in Duty mode, ε-NTU in the extended ones.</summary>
+    /// <param name="context">The iterate.</param>
+    /// <param name="forward">Side 1's forward share, already computed for the split.</param>
+    /// <returns>W, positive when side 1 gains heat.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The inlet is whichever port the flow arrives at, and the share blends the two</strong> so
+    /// that a reversal is C¹ here for the same reason it is in the split (<c>D-69</c>). Each solved side's
+    /// capacity rate is <c>|ṁ| · cp</c> at its inlet, read off the port state -- no property call, so
+    /// this stays allocation-free on the N+1 sweeps. In Rated mode side 2 is the fixed profile.
+    /// </para>
+    /// <para>
+    /// Without a size to rate against -- the bootstrap pass, or a design point too thin to size from --
+    /// the stated duty stands in, which is exactly Duty mode's behaviour.
+    /// </para>
+    /// </remarks>
+    private double Transferred(in SolveContext context, double forward)
+    {
+        if (Rating is not { CanRate: true } rating || !context.HasPortStates)
+        {
+            return context.Parameter(PowerIndex, Power);
+        }
+
+        var inlet1 = (forward * context.Ports[0].Temperature) + ((1 - forward) * context.Ports[1].Temperature);
+        var heat1 = (forward * context.Ports[0].SpecificHeat) + ((1 - forward) * context.Ports[1].SpecificHeat);
+        var capacity1 = Math.Abs(context.Flows[0]) * heat1;
+
+        double inlet2, capacity2;
+
+        if (SecondarySideConnected)
+        {
+            var share = Smoothing.ForwardShare(context.Flows[2]);
+
+            inlet2 = (share * context.Ports[2].Temperature) + ((1 - share) * context.Ports[3].Temperature);
+            capacity2 = Math.Abs(context.Flows[2])
+                * ((share * context.Ports[2].SpecificHeat) + ((1 - share) * context.Ports[3].SpecificHeat));
+        }
+        else
+        {
+            inlet2 = rating.SecondaryInletTemperature;
+            capacity2 = rating.SecondaryCapacityRate;
+        }
+
+        return Duty(rating, capacity1, inlet1, capacity2, inlet2);
+    }
+
+    /// <summary>The ε-NTU duty of a rated exchanger between two entering streams.</summary>
+    /// <param name="rating">The size and arrangement.</param>
+    /// <param name="capacity1">W/K, side 1's capacity rate <c>ṁ₁ cp₁</c>.</param>
+    /// <param name="inlet1">K, the temperature side 1 enters at.</param>
+    /// <param name="capacity2">W/K, side 2's capacity rate.</param>
+    /// <param name="inlet2">K, the temperature side 2 enters at.</param>
+    /// <returns>W, positive when side 1 gains heat: <c>ε · Cmin · (T_in2 − T_in1)</c>.</returns>
+    /// <remarks>
+    /// <c>Cmin</c> is taken here, every call, from the two capacity rates handed in: which side it is can
+    /// switch during a solve -- a substation at part load does exactly this -- and caching it at
+    /// assembly silently changes the residual (<c>22</c>). A side with no flow has no capacity, and the
+    /// duty goes to zero with it rather than to a division.
+    /// </remarks>
+    public static double Duty(ExchangerRating rating, double capacity1, double inlet1, double capacity2, double inlet2)
+    {
+        ArgumentNullException.ThrowIfNull(rating);
+
+        var minimum = Math.Min(capacity1, capacity2);
+        var maximum = Math.Max(capacity1, capacity2);
+
+        if (!(minimum > 0))
+        {
+            return 0;
+        }
+
+        var effectiveness = Effectiveness.Of(rating.Conductance / minimum, minimum / maximum, rating.Arrangement);
+
+        return effectiveness * minimum * (inlet2 - inlet1);
+    }
     /// <summary>The flow a stated duty implies across a stated temperature rise.</summary>
     /// <param name="specificHeat">J/(kg·K), positive.</param>
     /// <param name="temperatureRise">K, the magnitude of the change across side 1.</param>

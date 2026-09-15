@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
+using FluidScript.Core.Fluids;
 using FluidScript.Core.Language;
 using FluidScript.Core.Units;
 
@@ -101,7 +102,14 @@ public interface IComponentFactory
 /// than a component being mutated, which is what keeps a solve a pure function of its graph
 /// (<c>31</c>'s invariant 6) and what <c>08</c> means by lowering having to be re-runnable.
 /// </param>
-public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = null) : IComponentFactory
+/// <param name="substance">
+/// The fluid, for the one thing a component is built <em>from</em> a property of: a Rated exchanger's
+/// side-2 capacity rate, <c>ṁ₂ cp₂</c>, which is a boundary condition fixed at lowering rather than a
+/// solved quantity (<c>D-19</c>). <see langword="null"/> leaves a Rated exchanger unable to rate, and it
+/// then transfers its stated duty.
+/// </param>
+
+public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = null, ISubstance? substance = null) : IComponentFactory
 {
     private readonly SizingOverlay _sizes = sizes ?? SizingOverlay.Empty;
 
@@ -202,6 +210,123 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             StatedParameters = stated,
             SizedParameters = sized,
             DefaultParameters = defaults,
+            Rating = Rating(symbol, kind, secondary, power),
+        };
+    }
+
+    /// <summary>The names whose statement is evidence of a second side (<c>D-19</c>).</summary>
+    private static readonly ImmutableArray<string> SecondaryProfile = ["in2", "out2", "dt2", "flow2"];
+
+    /// <summary>Whether a declaration states any of the side-2 profile, which is what promotes Duty to Rated.</summary>
+    /// <param name="symbol">The bound declaration.</param>
+    /// <returns><see langword="true"/> when <c>in2</c>, <c>out2</c>, <c>dt2</c> or <c>flow2</c> is written.</returns>
+    public static bool StatesSecondaryProfile(ComponentSymbol symbol)
+    {
+        ArgumentNullException.ThrowIfNull(symbol);
+
+        foreach (var name in SecondaryProfile)
+        {
+            if (symbol.Parameters.ContainsKey(name))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>What an exchanger rates against, or <see langword="null"/> for a duty block.</summary>
+    /// <param name="symbol">The bound declaration.</param>
+    /// <param name="kind">Its registry entry.</param>
+    /// <param name="coupled">Whether the secondary ports are wired.</param>
+    /// <param name="power">W, the signed duty the script stated, for the direction a side-2 profile runs.</param>
+    /// <returns>The rating, whose <see cref="ExchangerRating.CanRate"/> says whether it is complete.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The mode is evidence of a second side, in <c>D-19</c>'s precedence.</strong> Wired secondary
+    /// ports are Coupled whatever else is stated; a stated <c>in2</c>, <c>out2</c>, <c>dt2</c> or
+    /// <c>flow2</c> with open ports is Rated; and <c>ua</c>, <c>u</c>, <c>area</c> or geometry alone promote
+    /// nothing, because they say how heat crosses and not what it crosses to.
+    /// </para>
+    /// <para>
+    /// <strong>The size is whatever is known first:</strong> a stated or sized <c>ua</c>, else
+    /// <c>u · area</c> when both are known. Nothing here sizes; the thermal rule does, and this reads its
+    /// answer back through the overlay like every other sized value.
+    /// </para>
+    /// <para>
+    /// <strong>A Rated profile is resolved to the two numbers ε-NTU needs</strong>: the temperature side 2
+    /// enters at, and its capacity rate. <c>in2</c> gives the first outright; <c>out2</c> with <c>dt2</c>
+    /// gives it in the direction the duty runs -- a side that gives heat enters hotter. The flow is
+    /// <c>flow2</c> when stated, else what the duty implies across the side's temperature change, at
+    /// the fluid's specific heat at the side's mean temperature (<c>S-32</c>).
+    /// </para>
+    /// </remarks>
+    private ExchangerRating? Rating(ComponentSymbol symbol, ComponentKindInfo kind, bool coupled, double power)
+    {
+        if (!coupled && !StatesSecondaryProfile(symbol))
+        {
+            return null;
+        }
+
+        var conductance = Value(symbol, kind, "ua")
+            ?? (Value(symbol, kind, "u") is { } u && Value(symbol, kind, "area") is { } area ? u * area : 0);
+
+        var arrangement = symbol.Parameters.TryGetValue("arrangement", out var stated) && stated.Symbol is { } name
+            ? name switch
+            {
+                "parallel" => ExchangerArrangement.Parallel,
+                "crossflow" => ExchangerArrangement.Crossflow,
+                _ => ExchangerArrangement.Counter,
+            }
+            : ExchangerArrangement.Counter;
+
+        if (coupled)
+        {
+            return new ExchangerRating
+            {
+                Mode = ExchangerMode.Coupled,
+                Arrangement = arrangement,
+                Conductance = conductance,
+            };
+        }
+
+        var inlet = Value(symbol, kind, "in2");
+        var outlet = Value(symbol, kind, "out2");
+        var change = Value(symbol, kind, "dt2");
+
+        // Side 2 loses what side 1 gains: with power > 0 it enters hotter than it leaves.
+        var direction = power >= 0 ? 1 : -1;
+
+        inlet ??= outlet is { } leaving && change is { } across ? leaving + (direction * across) : null;
+        outlet ??= inlet is { } entering && change is { } across2 ? entering - (direction * across2) : null;
+
+        var capacity = 0.0;
+
+        if (inlet is { } entering2 && substance is not null)
+        {
+            var mean = outlet is { } leaving2 ? 0.5 * (entering2 + leaving2) : entering2;
+            var state = substance.FromPressureTemperature(
+                Quantity.FromSi(0, Dimension.Pressure), Quantity.FromSi(mean, Dimension.Temperature));
+
+            if (state.IsSuccess)
+            {
+                var heat = state.Value.SpecificHeat.SiValue;
+                var flow = Value(symbol, kind, "flow2")
+                    ?? (outlet is { } leaving3 && Math.Abs(entering2 - leaving3) > 0
+                        ? Math.Abs(power) / (heat * Math.Abs(entering2 - leaving3))
+                        : null);
+
+                capacity = flow is { } rate ? rate * heat : 0;
+            }
+        }
+
+        return new ExchangerRating
+        {
+            Mode = ExchangerMode.Rated,
+            Arrangement = arrangement,
+            Conductance = conductance,
+            SecondaryInletTemperature = inlet ?? double.NaN,
+            SecondaryCapacityRate = capacity,
         };
     }
 

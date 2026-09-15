@@ -24,11 +24,12 @@ namespace FluidScript.Core.Diagnostics;
 /// <para>
 /// The binder also raises the component-model codes that are decided by counting and comparing what a
 /// script <em>stated</em> — <c>FS2101</c>, <c>FS2103</c>, <c>FS2105</c>, <c>FS2107</c>, <c>FS2108</c>
-/// and <c>FS2113</c>–<c>FS2115</c>. The rest of that range needs a stage this one is not:
-/// <c>FS2102</c> needs the sizing loop; <c>FS2104</c>, <c>FS2111</c> and <c>FS2116</c> each need a
-/// resolved substance, and the binder holds a fluid's <em>name</em>; <c>FS2106</c> belongs to whatever
-/// actually clamps a pipe's discretization, which is lowering; and <c>FS2109</c>, <c>FS2110</c> and
-/// <c>FS2112</c> are the exchanger's Rated and Coupled modes (<c>C-23</c>).
+/// and <c>FS2113</c>–<c>FS2115</c>; and, since <c>P4.1</c>, the exchanger's mode codes <c>FS2109</c>,
+/// <c>FS2110</c> and <c>FS2112</c>, which are decided by what is stated and what is wired. The rest of
+/// that range needs a stage this one is not: <c>FS2102</c> needs the sizing loop; <c>FS2104</c> and
+/// <c>FS2116</c> need a resolved substance, and the binder holds a fluid's <em>name</em>; <c>FS2106</c>
+/// belongs to whatever actually clamps a pipe's discretization, which is lowering. <c>FS2111</c> is
+/// registered here and raised by the thermal sizing rule, for the same specific-heat reason.
 /// </para>
 /// </remarks>
 public static class BinderDiagnostics
@@ -507,6 +508,59 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}': a {kind} must state {count} of {parameters}.");
 
+    /// <summary>An extended exchanger stating four terminal temperatures, the duty, and a thermal size.</summary>
+    /// <value><c>FS2109</c>, an error.</value>
+    /// <remarks>
+    /// The third over-determination trap (<c>22</c>), and the one that bites: ε-NTU relates the four
+    /// temperatures, the duty and <c>UA</c>, so stating all six is one too many. The normal script states
+    /// the temperatures and the duty and leaves the size to be sized, which is <c>D-02</c> working as
+    /// intended. The implied size is not quoted here for <c>C-21</c>'s reason: it needs a specific heat,
+    /// and the binder holds a fluid's name.
+    /// </remarks>
+    public static DiagnosticDescriptor ExchangerOverDetermined { get; } = new(
+        "FS2109",
+        DiagnosticSeverity.Error,
+        "'{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved.");
+
+    /// <summary>A rating parameter on an exchanger with no second side to rate against.</summary>
+    /// <value><c>FS2110</c>, a warning.</value>
+    /// <remarks>
+    /// <c>ua</c>, <c>area</c>, <c>u</c>, <c>approach</c>, <c>arrangement</c> and plate geometry say how heat
+    /// crosses, not what it crosses to, so none of them promotes a duty block (<c>D-19</c>). The value is
+    /// inert rather than wrong, hence a warning: the component stays a duty block and behaves exactly as
+    /// it did without the parameter.
+    /// </remarks>
+    public static DiagnosticDescriptor RatingWithoutASecondSide { get; } = new(
+        "FS2110",
+        DiagnosticSeverity.Warning,
+        "'{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.");
+
+    /// <summary>A duty larger than the two inlet temperatures allow any exchanger to move.</summary>
+    /// <value><c>FS2111</c>, an error.</value>
+    /// <remarks>
+    /// <c>Qmax = Cmin · (T_hot,in − T_cold,in)</c> is what an infinitely large exchanger transfers; a duty
+    /// above it is thermodynamically impossible, not merely large. Raised by the thermal sizing rule
+    /// <em>before</em> it inverts ε (<c>24</c>, step 3), because past that point the impossibility surfaces
+    /// as an enormous area that reads as an expensive design rather than a wrong one. Not the binder's:
+    /// it needs a specific heat.
+    /// </remarks>
+    public static DiagnosticDescriptor DutyBeyondInlets { get; } = new(
+        "FS2111",
+        DiagnosticSeverity.Error,
+        "{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.");
+
+    /// <summary>Exactly one of an exchanger's secondary ports is connected.</summary>
+    /// <value><c>FS2112</c>, an error.</value>
+    /// <remarks>
+    /// Coupled mode is a second solved stream, and a stream needs both ends. One port wired is neither a
+    /// duty block nor a coupled one, and inventing a node for the other end would put a branch in the
+    /// graph nobody wrote (<c>22</c>).
+    /// </remarks>
+    public static DiagnosticDescriptor OneSecondaryPortOpen { get; } = new(
+        "FS2112",
+        DiagnosticSeverity.Error,
+        "'{name}': Coupled mode requires both in2 and out2 connections; {port} is open.");
+
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>
     /// <remarks>
@@ -595,7 +649,7 @@ public static class BinderDiagnostics
         "'{name}' observes nothing. Place it with 'at' and the name of a node.");
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Forty-five descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScheduleWithoutTime,
@@ -654,5 +708,10 @@ public static class BinderDiagnostics
         LevelOutsideRange,
         MissingRequiredParameter,
         UnderDetermined,
+        ExchangerOverDetermined,
+        RatingWithoutASecondSide,
+        DutyBeyondInlets,
+        OneSecondaryPortOpen,
     ];
+
 }

@@ -113,6 +113,7 @@ public static class DiagnosticRegistry
         .. TopologyDiagnostics.All,
         .. SolverDiagnostics.All,
         .. CatalogDiagnostics.All,
+        .. DesignDiagnostics.All,
     ];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>

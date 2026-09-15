@@ -230,11 +230,11 @@ public sealed class OuterLoopTests
         // **`S-14b`, closed.** Two branches cross `HX1`, so the counting table credited it with two
         // pressure relations while it declared one -- 23 counted, 22 assembled, and a circuit that could
         // not be handed to a solver at all. Side 2 has a momentum relation now, the two agree at 23, and
-        // this sample reaches the Newton iteration for the first time.
+        // this sample reaches the Newton iteration.
         //
-        // It does not converge yet, and that is a different defect from this one. What is asserted here
-        // is the shape: the table's prediction and the assembly agree, so the run gets past the guard
-        // rather than being refused by it.
+        // What is asserted here is the shape: the table's prediction and the assembly agree, so the run
+        // gets past the guard rather than being refused by it. That it also converges, and to 01's
+        // figures, is `P4.1`'s claim and `RatedExchangerSolveTests` holds it.
         //
         // Note also what this removes: `S-28`'s second guard -- the one comparing `Rows` to `Columns` on
         // the built system -- no longer has a sample that trips it. It stays as a backstop, because the

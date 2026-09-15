@@ -125,6 +125,10 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |
 | `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
 | `FS2108` | Error | Components | '{name}': efficiency must be between 0 and 1. |
+| `FS2109` | Error | Components | '{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
+| `FS2110` | Warning | Components | '{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it. |
+| `FS2111` | Error | Components | {name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW. |
+| `FS2112` | Error | Components | '{name}': Coupled mode requires both in2 and out2 connections; {port} is open. |
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
@@ -161,6 +165,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3010` | Error | Solver | {combination} are not independent: one of them is already implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something elsewhere will not help — one of these has to change. |
 | `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
 | `FS3013` | Warning | Solver | {component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}. |
+| `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

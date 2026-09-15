@@ -402,9 +402,16 @@ any future block-decomposition experiment in
 ### The datum is mandatory and usually implicit
 
 A closed loop with no stated pressure has a singular system — every solution shifted by a constant is
-also a solution. Rather than erroring, the graph **picks one and says so** (`FS2201`, info): the node
-with the most connections, ties broken by declaration order, so the choice is deterministic and stable
-across edits.
+also a solution. Rather than erroring, the graph **picks one and says so** (`FS2201`, info): the
+suction node of the first pump in graph order, and where the circuit has no pump, the node with the
+most connections, ties broken by declaration order — deterministic and stable across edits either way.
+
+**Why the suction (`D-98`).** The datum sits at 0 gauge and the property backend has a floor — water
+has no state below 100 kPa absolute — so the pick is not arbitrary to the solver even though it is
+arbitrary to the physics. The most-connected node is usually a header downstream of the pump, and
+the suction then sits *below* the datum by the losses between them; on the substation that was
+−21 kPa gauge, and the first property read there failed before Newton took a step. The suction is
+the loop's low point, so a datum there keeps every other node at or above zero gauge.
 
 This is a deliberate softening of principle P3 ("infer only what is unambiguous"). The choice of *which*
 node is arbitrary, but the choice's *consequence* is not — every pressure in the result is relative,
@@ -571,6 +578,7 @@ together, so the system stays square.
 | A heat exchanger's `power` + `out` (fixing the flow) on a loop whose flow the pump sets | that pump's `head` | Only the head can move the loop flow |
 | A node `t` downstream of a controlled branch | the controlling element's setting | Same argument, one component further away |
 | **A duty that fixes the flow of a branch in a parallel set** | **that branch's `kv`**, on the first unsized valve along it | Parallel branches share their endpoint pressure difference, so a branch's flow can only be moved by changing its own resistance |
+| **An extended-mode exchanger's design point, on a side nothing else pins** (`D-97`) | whatever the rows above would promote for a `FixedFlow` there — the substation's primary has stated boundary pressures, so its balancing valve's `kv` | The design point says what the side runs at; where a load's `dt` or a stated `flow` already says so, the exchanger's is design information only |
 
 **The parallel row is the one that makes the common case work**, and it was missing. Two radiators on
 two branches, each stating `power` and `dt`, pin two flows; nothing in the first three rows can move

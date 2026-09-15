@@ -64,4 +64,21 @@ public static class SizingDefaults
     /// is usually to the branch rather than to the valve, and the rule is not the thing that can decide.
     /// </remarks>
     public const double ValveAuthorityMinimum = 0.25;
+
+    /// <summary>The closest approach an extended exchanger is sized to without a stated <c>approach</c>.</summary>
+    /// <value>K. <c>24</c>'s <c>hx.approach_min</c>, the threshold for <c>FS4008</c>.</value>
+    /// <remarks>
+    /// Below roughly 3 K a water/water plate exchanger's area grows faster than any plate count can
+    /// follow, and the selection stops being a selection: approach → 0 is NTU → ∞ (<c>22</c>). A stated
+    /// <c>approach</c> replaces it, as a constraint (<c>D-02</c>).
+    /// </remarks>
+    public const double ExchangerApproachMinimum = 3;
+
+    /// <summary>The surplus duty above which a discrete plate count's overshoot is reported.</summary>
+    /// <value>Dimensionless. <c>24</c>'s <c>hx.overshoot_report</c>, 2 %.</value>
+    /// <remarks>
+    /// Rounding a plate count up always delivers more than was asked; below this it is rounding, above
+    /// it the designer should know the unit is larger than the duty needs.
+    /// </remarks>
+    public const double ExchangerOvershootReport = 0.02;
 }

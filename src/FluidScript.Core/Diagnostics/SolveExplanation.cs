@@ -2,7 +2,9 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 
+using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
+using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Topology;
 
@@ -96,8 +98,10 @@ public static class SolveExplanation
         var system = Assemble(graph, posedness, seed);
 
         Unknowns(report, layout, seed, solve);
+        Unknowns(report, layout, seed, solve);
         Equations(report, system, seed, solve);
         Sized(report, bases, notes);
+        Ratings(report, graph, layout, solve);
         Conditioning(report, system, seed, solve);
 
         return report.ToString();
@@ -430,6 +434,156 @@ public static class SolveExplanation
         }
     }
 
+    /// <summary>What every extended-mode exchanger achieves at the solved state, by both routes.</summary>
+    /// <param name="report">The report.</param>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">The unknown layout the solution is addressed by.</param>
+    /// <param name="solve">The solve, or <see langword="null"/> when none ran.</param>
+    /// <remarks>
+    /// <para>
+    /// <strong>LMTD is a reported property, never a residual (<c>22</c>).</strong> The solve transferred
+    /// <c>ε·Cmin·(T_in2 − T_in1)</c>; this section takes the terminal temperatures that solve produced,
+    /// forms the log-mean difference from them, and divides the duty by it. The conductance that comes
+    /// out must be the one the exchanger was rated with, and the two share no code -- which is what makes
+    /// printing both a check rather than a restatement. A crossflow exchanger is reported against the
+    /// counterflow log-mean with no correction factor, and the line says so.
+    /// </para>
+    /// <para>
+    /// Read only at a converged solution: the terminals of an unconverged iterate rate nothing.
+    /// </para>
+    /// </remarks>
+    private static void Ratings(StringBuilder report, CircuitGraph graph, SystemLayout layout, SolveResult? solve)
+    {
+        if (solve is not { Converged: true })
+        {
+            return;
+        }
+
+        var written = false;
+
+        for (var index = 0; index < graph.Components.Length; index++)
+        {
+            if (graph.Components[index] is not HeatExchanger { Rating: { CanRate: true } rating } exchanger
+                || SideAtSolution(graph, layout, solve, index, exchanger, side: 1) is not { } one)
+            {
+                continue;
+            }
+
+            double inlet2, capacity2;
+
+            if (exchanger.SecondarySideConnected)
+            {
+                if (SideAtSolution(graph, layout, solve, index, exchanger, side: 2) is not { } two)
+                {
+                    continue;
+                }
+
+                (inlet2, capacity2) = two;
+            }
+            else
+            {
+                (inlet2, capacity2) = (rating.SecondaryInletTemperature, rating.SecondaryCapacityRate);
+            }
+
+            var duty = HeatExchanger.Duty(rating, one.Capacity, one.Inlet, capacity2, inlet2);
+            var minimum = Math.Min(one.Capacity, capacity2);
+            var ratio = minimum / Math.Max(one.Capacity, capacity2);
+            var ntu = rating.Conductance / minimum;
+            var effectiveness = Effectiveness.Of(ntu, ratio, rating.Arrangement);
+            var outlet1 = one.Inlet + (duty / one.Capacity);
+            var outlet2 = inlet2 - (duty / capacity2);
+            var hotSide1 = one.Inlet >= inlet2;
+            var (hotIn, hotOut, coldIn, coldOut) = hotSide1
+                ? (one.Inlet, outlet1, inlet2, outlet2)
+                : (inlet2, outlet2, one.Inlet, outlet1);
+            var lmtd = rating.Arrangement == ExchangerArrangement.Parallel
+                ? LogMeanTemperatureDifference.Parallel(hotIn, hotOut, coldIn, coldOut)
+                : LogMeanTemperatureDifference.Counterflow(hotIn, hotOut, coldIn, coldOut);
+            var byLogMean = LogMeanTemperatureDifference.Conductance(Math.Abs(duty), lmtd);
+            var approach = rating.Arrangement == ExchangerArrangement.Parallel
+                ? hotOut - coldOut
+                : Math.Min(hotIn - coldOut, hotOut - coldIn);
+
+            if (!written)
+            {
+                report.AppendLine();
+                report.AppendLine("--- exchanger ratings at the solution");
+                written = true;
+            }
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {exchanger.Name,-12} {duty / 1000:0.###} kW {exchanger.Mode}: side 1 {one.Inlet - 273.15:0.##} -> {outlet1 - 273.15:0.##} °C at {one.Capacity / 1000:0.###} kW/K, side 2 {inlet2 - 273.15:0.##} -> {outlet2 - 273.15:0.##} °C at {capacity2 / 1000:0.###} kW/K");
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {string.Empty,-12} NTU {ntu:0.###}, ε {effectiveness:0.####}, Cr {ratio:0.###}, approach {approach:0.##} K; UA {rating.Conductance / 1000:0.###} kW/K rated, {byLogMean / 1000:0.###} kW/K by LMTD {lmtd:0.###} K{(rating.Arrangement == ExchangerArrangement.Crossflow ? " (counterflow log-mean, no F correction)" : string.Empty)}");
+        }
+    }
+
+    /// <summary>One side of an exchanger as the solution left it: where it enters and what it carries.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">The unknown layout.</param>
+    /// <param name="solve">The solve.</param>
+    /// <param name="index">The exchanger's index in the graph.</param>
+    /// <param name="exchanger">The exchanger.</param>
+    /// <param name="side">1 or 2.</param>
+    /// <returns>K and W/K, or <see langword="null"/> when the side is not wired or its state cannot be read.</returns>
+    /// <remarks>
+    /// The inlet is the port the solved flow arrives by, not the port named <c>in</c>: a branch's path
+    /// direction and its solved sign together say which end the stream enters at.
+    /// </remarks>
+    private static (double Inlet, double Capacity)? SideAtSolution(
+        CircuitGraph graph, SystemLayout layout, SolveResult solve, int index, HeatExchanger exchanger, int side)
+    {
+        var branch = graph.Branches.FirstOrDefault(
+            candidate => candidate.Path.Contains(exchanger) && BranchFlows.Side(graph, candidate, exchanger) == side);
+
+        if (branch is null)
+        {
+            return null;
+        }
+
+        var position = branch.Path.IndexOf(exchanger);
+        var before = position > 0 ? branch.Path[position - 1] : branch.From.Element;
+        var arrival = graph.Components.IndexOf(before);
+        var first = side == 1 ? 0 : 2;
+        var arrivalPort = graph.Adjacency.Peer(index, first).Component == arrival ? first : first + 1;
+        var flow = solve.Solution.Values[layout.BranchFlow(branch.Index)];
+        var inletPort = flow >= 0 ? arrivalPort : (arrivalPort == first ? first + 1 : first);
+        var peer = graph.Adjacency.Peer(index, inletPort);
+
+        if (!peer.Exists)
+        {
+            return null;
+        }
+
+        var node = -1;
+
+        for (var candidate = 0; candidate < graph.Nodes.Length; candidate++)
+        {
+            if (ReferenceEquals(graph.Nodes[candidate].Component, graph.Components[peer.Component]))
+            {
+                node = candidate;
+                break;
+            }
+        }
+
+        if (node < 0)
+        {
+            return null;
+        }
+
+        var state = graph.Substance.FromPressureEnthalpy(
+            Units.Quantity.FromSi(solve.Solution.Values[layout.NodePressure(node)], Units.Dimension.Pressure),
+            Units.Quantity.FromSi(solve.Solution.Values[layout.NodeEnthalpy(node)], Units.Dimension.Enthalpy));
+
+        if (!state.IsSuccess)
+        {
+            return null;
+        }
+
+        var capacity = Math.Abs(flow) * state.Value.SpecificHeat.SiValue;
+
+        return capacity > 0 ? (state.Value.Temperature.SiValue, capacity) : null;
+    }
     private static void Conditioning(
         StringBuilder report,
         EquationSystem? system,

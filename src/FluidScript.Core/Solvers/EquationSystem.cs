@@ -475,13 +475,15 @@ public sealed class EquationSystem
 
             target = stated;
 
+            // Either side: `out` with `in` pins side 1's branch through port 0, `out2` with `in2` pins side
+            // 2's through port 2 (`D-97`).
             if (constraint.Kind is ConstraintKind.FixedFlow
-                && constraint.Parameter is "out"
+                && constraint.Parameter is "out" or "out2"
                 && graph.Components[element] is HeatExchanger exchanger
-                && exchanger.StatedParameters.TryGetValue("in", out var inlet)
-                && exchanger.StatedParameters.TryGetValue("out", out var outlet))
+                && exchanger.StatedParameters.TryGetValue(constraint.Parameter is "out" ? "in" : "in2", out var inlet)
+                && exchanger.StatedParameters.TryGetValue(constraint.Parameter, out var outlet))
             {
-                var binding = ports[element, 0];
+                var binding = ports[element, constraint.Parameter is "out" ? 0 : 2];
                 var rated = binding.CarriesFlow
                     ? Sizing.BranchFlows.RatedFlow(graph.Substance, exchanger.Power, inlet, outlet)
                     : null;

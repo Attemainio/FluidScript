@@ -1094,6 +1094,88 @@ internal sealed partial class BindingRun
 
         ReportIslands(mentioned);
         ReportDeadEnds();
+        ReviewExchangerModes();
+    }
+
+    /// <summary>The parameters that describe how heat crosses an exchanger, and so promote nothing (<c>D-19</c>).</summary>
+    private static readonly ImmutableArray<string> RatingParameters =
+        ["ua", "area", "u", "approach", "arrangement", "plates", "lamella", "plate_area", "fouling"];
+
+    /// <summary>Reports the exchanger's mode codes: <c>FS2112</c>, <c>FS2110</c> and <c>FS2109</c>.</summary>
+    /// <remarks>
+    /// <para>
+    /// Here rather than in step 3 because the mode is evidence of a second side, and half of that
+    /// evidence is what the connections wired (<c>D-19</c>). Exactly one secondary port claimed is
+    /// <c>FS2112</c>; a rating parameter on a component with neither secondary connections nor a
+    /// secondary profile is <c>FS2110</c>, once per parameter, on the parameter; and an extended
+    /// exchanger stating all four terminals, the duty and a thermal size is <c>FS2109</c>, on the size.
+    /// </para>
+    /// <para>
+    /// A thermal size is <c>ua</c>, or <c>u</c> with an area -- stated outright or as a plate count and
+    /// a plate area. Geometry alone (<c>plates</c>, <c>lamella</c>) is not one until the correlation that
+    /// turns it into <c>u</c> ships, which <c>P4.1</c> defers.
+    /// </para>
+    /// </remarks>
+    private void ReviewExchangerModes()
+    {
+        foreach (var component in _components)
+        {
+            if (component.Kind is not { Keyword: "heat_exchanger" })
+            {
+                continue;
+            }
+
+            var claimed = _claimed.TryGetValue(component.Name, out var used) ? used : [];
+            var inletWired = claimed.ContainsKey("in2");
+            var outletWired = claimed.ContainsKey("out2");
+
+            if (inletWired != outletWired)
+            {
+                Report(
+                    BinderDiagnostics.OneSecondaryPortOpen,
+                    component.DeclarationSpan ?? default,
+                    ("name", component.Name),
+                    ("port", inletWired ? "out2" : "in2"));
+            }
+
+            var stated = component.Parameters;
+            var profile = stated.ContainsKey("in2") || stated.ContainsKey("out2")
+                || stated.ContainsKey("dt2") || stated.ContainsKey("flow2");
+
+            if (!inletWired && !outletWired && !profile)
+            {
+                foreach (var name in RatingParameters)
+                {
+                    if (stated.TryGetValue(name, out var inert))
+                    {
+                        Report(
+                            BinderDiagnostics.RatingWithoutASecondSide,
+                            inert.Span,
+                            ("name", component.Name),
+                            ("param", name));
+                    }
+                }
+
+                continue;
+            }
+
+            var terminals = stated.ContainsKey("in") && stated.ContainsKey("out")
+                && stated.ContainsKey("in2") && stated.ContainsKey("out2") && stated.ContainsKey("power");
+
+            string? size = stated.ContainsKey("ua") ? "ua"
+                : stated.ContainsKey("u") && stated.ContainsKey("area") ? "area"
+                : stated.ContainsKey("u") && stated.ContainsKey("plates") && stated.ContainsKey("plate_area") ? "plates"
+                : null;
+
+            if (terminals && size is not null)
+            {
+                Report(
+                    BinderDiagnostics.ExchangerOverDetermined,
+                    stated[size].Span,
+                    ("name", component.Name),
+                    ("param", size));
+            }
+        }
     }
 
     private void ReportIslands(HashSet<string> mentioned)

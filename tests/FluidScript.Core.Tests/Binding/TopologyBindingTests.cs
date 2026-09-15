@@ -197,9 +197,11 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void ThatSamePairConnectedTwiceGetsAnOrdinal()
     {
+        // A closed loop rather than an exchanger with one secondary port open: since P4.1 that is FS2112,
+        // an error, and this test is about ordinals.
         var model = Model(
             "fluidscript 1\nHE1 heat_exchanger power=30\nPU1 pump\n"
-            + "connections\nHE1.out - PU1.in\nHE1.out2 - PU1.out\n");
+            + "connections\nHE1.out - PU1.in\nHE1.in - PU1.out\n");
 
         Assert.Contains(model.Components, static component => component.Name == "HE1__PU1");
         Assert.Contains(model.Components, static component => component.Name == "HE1__PU1_2");

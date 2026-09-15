@@ -204,6 +204,44 @@ public static class HydraulicPartition
             : null;
     }
 
+    /// <summary>The node at the first pump's inlet, in declaration order, or <see langword="null"/> when the part has no pump.</summary>
+    /// <remarks>
+    /// The inlet is port 0 by the pump's own declaration, and rule I2 puts a node on it. A pump whose
+    /// inlet is wired to something that is not a node -- an expansion, a junction element -- yields
+    /// nothing rather than a guess, and the pick falls back to <c>23</c>'s rule.
+    /// </remarks>
+    private static GraphNode? Suction(CircuitGraph graph, HashSet<IFlowComponent> elements, ImmutableArray<GraphNode>.Builder nodes)
+    {
+        for (var index = 0; index < graph.Components.Length; index++)
+        {
+            var component = graph.Components[index];
+
+            if (component is not Pump || !elements.Contains(component) || index >= graph.Adjacency.ComponentCount)
+            {
+                continue;
+            }
+
+            var peer = graph.Adjacency.Peer(index, 0);
+
+            if (!peer.Exists)
+            {
+                continue;
+            }
+
+            var inlet = graph.Components[peer.Component];
+
+            foreach (var node in nodes)
+            {
+                if (ReferenceEquals(node.Component, inlet))
+                {
+                    return node;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Builds one component, choosing its datum.</summary>
     private static HydraulicComponent Assemble(
         CircuitGraph graph, int number, HashSet<IFlowComponent> elements, List<Branch> branches)
@@ -227,12 +265,16 @@ public static class HydraulicPartition
         }
 
         // The first stated pressure is the datum as well as a boundary condition, so a circuit with
-        // one needs no auto-pick. Otherwise the node with the most connections, ties broken by
-        // declaration order: arbitrary, but deterministic and stable across edits, which is what stops
-        // an unrelated keystroke renumbering every pressure in the result.
+        // one needs no auto-pick. Otherwise the first pump's suction (`D-98`): the picked datum sits
+        // at 0 Pa gauge, the fluid's validated floor is a bar absolute, and in a pumped loop the
+        // suction is the low point -- so every other node comes out at or above the datum. Picking the
+        // most-connected node instead put the substation's pump suction 21 kPa below water's floor,
+        // unsolvable however the solver was seeded. Without a pump, the node with the most connections,
+        // ties broken by declaration order: arbitrary, but deterministic and stable across edits.
         var datum = stated.Count > 0
             ? stated[0]
-            : nodes.OrderByDescending(static node => node.Component.Ports.Length).FirstOrDefault();
+            : Suction(graph, elements, nodes)
+            ?? nodes.OrderByDescending(static node => node.Component.Ports.Length).FirstOrDefault();
 
         return new HydraulicComponent
         {

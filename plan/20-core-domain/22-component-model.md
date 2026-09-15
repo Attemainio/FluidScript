@@ -885,7 +885,7 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2106` | Pipe discretization above the cap | Warning | `Using {cap} internal nodes instead of {n}.` |
 | `FS2107` | Node with a single connection and no boundary parameter | Warning | `'{name}' is a dead end. Set t, p or flow to make it a boundary.` |
 | `FS2108` | Efficiency outside 0–1 | Error | `'{name}': efficiency must be between 0 and 1.` |
-| `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `{name}: those four temperatures and {power} kW already fix UA at {implied} kW/K. Remove {param}, or let a temperature be solved.` |
+| `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `'{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved.` — shipped without the implied `UA`, which needs a `cp` the binder does not hold (`C-23`'s line); the sized value's basis carries it |
 | `FS2110` | A rating parameter stated in Duty mode | Warning | `{name}: '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.` |
 | `FS2111` | Requested duty exceeds what the inlet temperatures allow | Error | `{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.` |
 | `FS2112` | Exactly one secondary port is connected | Error | `{name}: Coupled mode requires both in2 and out2 connections; {port} is open.` |
@@ -955,28 +955,40 @@ such row.
 - [ ] `dn` is not assignable from, or to, a `Length`; a test asserts the kinds do not convert.
 - [ ] A node's `EquationCount` is the same before and after a solved flow reverses direction.
 - [ ] `FS2101` fires for a heat exchanger with all four of power/in/out/flow, and names the implied value.
-- [ ] **ε-NTU and LMTD agree to within rounding on a counterflow case**, computed independently from the
+- [x] **ε-NTU and LMTD agree to within rounding on a counterflow case**, computed independently from the
       same solved state — the substation gives UA = 12 071 W/K by both routes
       ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)). This is the strongest check on
-      a `Cmin` or sign error, because the two formulations share no code.
-- [ ] ε is C¹ across `Cr = 1`, verified by finite differences either side of the blend — the case an
-      LMTD residual could not evaluate at all.
+      a `Cmin` or sign error, because the two formulations share no code. `P4.1`:
+      `EffectivenessTests.TheTwoRoutesAgreeOnTheSubstationToRounding` on the design point,
+      `ThermalSizerTests.TheLogMeanRouteReachesTheSameConductanceSharingNoCode` through the sizer, and
+      the solve report's *exchanger ratings at the solution* section on the solved substation —
+      `12.071 kW/K rated, 12.071 kW/K by LMTD 12.427 K`.
+- [x] ε is C¹ across `Cr = 1`, verified by finite differences either side of the blend — the case an
+      LMTD residual could not evaluate at all. `EffectivenessIsContinuouslyDifferentiableAcrossTheBalancedBlend`.
 - [ ] `Cmin` is recomputed per iteration: a test drives a substation from full to part load across the
-      `C₁ = C₂` crossover and asserts the residual stays continuous.
-- [ ] An exchanger with no secondary thermal-profile properties or connections behaves identically to
+      `C₁ = C₂` crossover and asserts the residual stays continuous. **Partly**: `Cmin` is recomputed
+      on every call and `HeatExchangerTests.TheDutyIsContinuousWhereTheCapacityRatesCross` steps
+      `C₁` across `C₂` on the duty relation; no solve is driven through the crossover.
+- [x] An exchanger with no secondary thermal-profile properties or connections behaves identically to
       the original Duty block, even if `ua` or geometry is stated; those fields emit `FS2110`.
-- [ ] `in2=85 out2=45 flow2=0.90` with open secondary ports selects Rated mode, assembles no side-2
-      hydraulic branch, and sizes/reports the same thermal relation as an equivalent boundary profile.
-- [ ] Connecting both secondary ports selects Coupled mode and creates two flow groups; connecting
-      exactly one produces `FS2112` and no solve.
-- [ ] `plates=39` with `plate_area=0.10` gives **3.70 m²**, not 3.90 — the two end plates transfer
-      nothing.
+      `ExchangerModeTests`.
+- [x] `in2=85 out2=45` with open secondary ports selects Rated mode, assembles no side-2 hydraulic
+      branch, and sizes/reports the same thermal relation as an equivalent boundary profile.
+      `RatedExchangerSolveTests.ARatedExchangerReachesTheSameDesignPointWithNoSecondBranch` — one
+      branch, 1.793 kg/s at 40/60, UA 12 071, the coupled substation's answer. (`flow2=0.90` beside
+      `in2`/`out2` and `power` is the side-2 over-determination `FS2101` now catches, so the criterion
+      is met without it.)
+- [x] Connecting both secondary ports selects Coupled mode and creates two flow groups; connecting
+      exactly one produces `FS2112` and no solve. `ExchangerModeTests`.
+- [x] `plates=39` with `plate_area=0.10` gives **3.70 m²**, not 3.90 — the two end plates transfer
+      nothing. `ThermalSizerTests.APlateAreaTurnsTheAreaIntoAPlateCountRoundedUp`.
 - [ ] Halving `lamella` raises `u` and roughly quadruples `dp`, asserted as a direction and a rough
-      magnitude rather than an exact figure.
-- [ ] A duty exceeding `Cmin·(T_h,in − T_c,in)` produces `FS2111` naming the thermodynamic maximum,
-      never a converged solution.
-- [ ] `ua`, `area` and `u` all stated produces `FS2101`; four temperatures plus `power` plus `ua`
-      produces `FS2109`.
+      magnitude rather than an exact figure. **Deferred with the plate catalogue** (`D-99`): `lamella`
+      is read and unused, and no `u` is derived from geometry.
+- [x] A duty exceeding `Cmin·(T_h,in − T_c,in)` produces `FS2111` naming the thermodynamic maximum,
+      never a converged solution. `ThermalSizerTests.FS2111_…`.
+- [x] `ua`, `area` and `u` all stated produces `FS2101`; four temperatures plus `power` plus `ua`
+      produces `FS2109`. `ExchangerModeTests.FS2109_…`.
 - [ ] A valve at Δp = 0 evaluates a finite residual and a finite derivative.
 - [ ] Friction factor matches Colebrook–White within 0.01 % over Re = 4×10³…10⁸ and ε/D = 0…0.05.
 - [ ] The laminar–turbulent transition is continuous in value and first derivative.

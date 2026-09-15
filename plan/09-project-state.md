@@ -54,7 +54,14 @@ would be filled with nothing.
 
 ## Where the project stands
 
-> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is next and not started.**
+> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is in progress: P4.1 shipped
+> 2026-09-15, uncommitted at the time of writing.** The substation converges on `01`'s figures —
+> UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
+> four changes that were one defect from the outside (`S-32`): the exchanger's duty is
+> `ε·Cmin·(T_in2 − T_in1)` from the port states, its design point pins a side's flow where nothing
+> else does (`D-97`), the picked datum is the pump suction so the seed stays inside the property
+> domain (`D-98`, `S-62`), and the promoted Kv seeds from the Kv law. `FS2109`–`FS2112` and `FS4008`
+> are live; `hx.u_default` is withdrawn until it has a source (`D-99`, `C-78`).
 > P3.0 through P3.9 shipped and every M2a criterion in `05` is ticked with the test that holds it.
 > The last one, the solver-scale baseline, found `C-76`: every real-water property read leaked a
 > 540 KB native CoolProp state, which is what had been killing the machine and the agent sessions
@@ -75,7 +82,7 @@ M2a asks for three demo scripts to solve. All three do:
 | `m2-simple-loop.fluid` | **Converged** | `24`'s worked example reached rather than transcribed — pump head 5.28 m from nothing but the loop |
 | `m2-cooling-loop.fluid` | **Converged** | Mixing node 19.99 °C against 20, return 49.94 against 50, 0.0763 kg/s recirculating |
 | `m2-distribution-header.fluid` | **Converged** | One Newton iteration, three sizing passes: 0.1914 / 0.2392 kg/s drawn from the 60 °C header, 0.4307 through the source against `01`'s 0.4306, valves at 0.63 / 0.62 of travel. `S-58` |
-| `m2-substation.fluid` | `NonFinite` | M2b's fixture, not M2a's. `S-32` |
+| `m2-substation.fluid` | **Converged** | Two Newton iterations, two sizing passes: `HX1.ua` 12.071 kW/K, `HX1.area` 3.658 m², primary 0.895 kg/s at 85/45, secondary 1.793 kg/s at 60/40, `PCV.kv` 2.13, `SP.head` 10.2 m. `S-32`, `S-62`, `D-97`, `D-98` |
 | `m4-storage-header.fluid` | **Converged** | Solves in one pass; nothing in it needs sizing |
 
 The recorded status of every sample is asserted by `CorpusStatusTests.EachSampleStandsWhereItStood`,
@@ -90,7 +97,7 @@ that test rather than quietly improving.
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
-| P4 | M2b | 3 | Not started | — |
+| P4 | M2b | 3 | **In progress** — P4.1 shipped 2026-09-15 | — |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
@@ -193,6 +200,35 @@ it became `FS2220` the same day, arithmetic before the seed.
 P3 is where tiers 20 and 30 were largely written and largely corrected: 49 of tier 20's 68 entries and
 41 of tier 30's 56 are closed. Both Closed tables carry the attribution.
 
+### P4 — M2b, coupled thermal rating · in progress
+
+| # | Package | Commit(s) | State |
+|---|---|---|---|
+| P4.1 | The rated two-sided exchanger: ε-NTU as the residual route, LMTD as the reported one (`D-97`, `D-98`, `D-99`) | uncommitted | Shipped 2026-09-15 |
+| P4.2 | Two coupled hydraulic graphs, two pressure datums | — | **Its `05` criterion is already ticked** — the substation's partition, `FS2201` on the picked side and no `FS2213` were `D-17`'s in P3.4, and P4.1 solved through them. Whether anything remains for a package is the user's call; nothing in `08`'s description is unbuilt |
+| P4.3 | `D-36` circuit ownership from the enthalpy-losing side | — | Not started |
+
+**P4.1 was four changes wearing one defect.** `S-32` was filed as "nothing computes the side-2
+flow", a registry group and an `ImpliedFlow` away. Measured, that would have seeded the right flow
+and constrained nothing: the substation's primary has stated pressures at both ends and a promoted
+valve, and its flow was whatever Kv 630 passed. What closed it: (1) `ExchangerRating` on the lowered
+component and `HeatExchanger.Duty` — `ε(UA/Cmin, Cr)·Cmin·(T_in2 − T_in1)` from the port states,
+allocation-free, with `Effectiveness` (counterflow blended C¹ across `Cr → 1`, parallel, crossflow by
+bisection) and `LogMeanTemperatureDifference` sharing no code; (2) `D-97`, the design point as a
+flow pin on a side nothing else pins, the same rule giving Rated mode its pin; (3) `D-98`, the
+picked datum at the pump suction, found by a scratch experiment after everything else was right
+and the seed still died at 80 kPa absolute (`S-62`); (4) `SolutionSeed.PromotedKv` and per-side
+duty shifts in the seed's temperature levels, so `PCV.kv` starts at 2.88 for a solved 2.13.
+`ThermalSizer` sizes `ua` (and `area` from a stated `u`, `plates` from a stated `plate_area`) from
+the design point alone, checks feasibility before inverting (`FS2111`), holds the approach to
+`hx.approach_min` (`FS4008`, the first `FS4xxx` code to fire), and returns diagnostics the outer loop
+merges into the solve's. The solve report gained *exchanger ratings at the solution*, printing
+`UA … rated, … by LMTD` side by side. `BranchFlows.Duty` learned `dt`/`dt2` so a rated loop stated
+as `in`+`dt` seeds at its design flow rather than 0.1 kg/s. What was deliberately not done: no `U`
+is invented (`D-99`), `lamella` is unused, side-2 `dp` stays the duty-mode default, and the plate
+step is not applied — all `C-78`, all waiting on `27`'s plate catalogue. 50 new tests; every sample
+in the corpus converged or unchanged; only the `FS2201` text moved on closed loops.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -225,8 +261,8 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 17 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 21 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
 | | **47** | |
 
@@ -263,12 +299,13 @@ unassessed, not clean.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P4.1 — the rated two-sided exchanger**, ε-NTU and LMTD as two routes sharing no code, against
-   the substation's UA = 12.07 kW/K. Read `21`/`22`'s rated-mode contract, `S-32`, `S-14b` and
-   `C-73` first, and look the ε-NTU relations up rather than deriving them. Two small follow-ons
-   `C-75`'s closure names, neither blocking: a promoted Kv seeds at the bootstrap's 630 rather than
-   from the Kv law, and a solved Kv has no basis line saying what it absorbed. `F-19`'s budget
-   re-derivation now has real numbers to work from (16 µs per water state, not 63).
+4. **Commit P4.1**, then **P4.3 — `D-36` circuit ownership** from the enthalpy-losing side, with the
+   swap test `05` asks for. P4.2's criterion is already met (see the P4 table). Behind them, `C-78`
+   is the plate catalogue's shopping list — a cited `U`, a plate step, the `lamella` correlation,
+   `FS2311` — and `22`'s unticked crossover criterion wants a solve driven across `C₁ = C₂`, not
+   just the duty relation stepped over it. One follow-on from `C-75` still stands: a solved Kv has
+   no basis line saying what it absorbed. `F-19`'s budget re-derivation has real numbers to work
+   from (16 µs per water state, not 63).
 
 ## Standing baselines
 
@@ -277,7 +314,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1542 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~60 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1594 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

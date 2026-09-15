@@ -271,6 +271,49 @@ public sealed class SolutionSeedTests
         GraphFixture.Lower(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
 
     [Fact]
+    public void APromotedValveKvIsSeededFromTheDropItHasToSpend()
+    {
+        // `C-75`'s follow-on. The bootstrap gave the substation's `PCV.kv` the provisional Kv 630 -- a valve
+        // that drops nothing -- and Newton had to walk it down three orders of magnitude to the 2.1 m3/h
+        // that spends 600 - 350 kPa at 0.895 kg/s. The seed now reads the branch's stated end pressures
+        // and offers the valve half the difference, so the column starts within a factor of two of the
+        // answer rather than a factor of three hundred.
+        var graph = Lower("m2-substation.fluid");
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        var kv = Enumerable.Range(layout.PromotionOffset, layout.Count - layout.PromotionOffset)
+            .Single(index => layout.Unknowns[index].Name == "PCV.kv");
+
+        Assert.InRange(seed.Values[kv], 1.0, 5.0);
+    }
+
+    [Fact]
+    public void ACoupledExchangerSeedsBothSidesTemperaturesFromTheirOwnDesignPoints()
+    {
+        // `S-32`'s other half. The primary's 85 C enters at `NPS` and must leave near 45 C, not at 85 C
+        // minus the *secondary's* 20 K; the secondary's supply must sit near 60 C and its return near 40 C.
+        // A seed with either side's level wrong by tens of kelvin is a seed whose first property read is
+        // outside the domain, which is how the substation stayed NonFinite for so long.
+        var graph = Lower("m2-substation.fluid");
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        double Celsius(string node)
+        {
+            var index = Enumerable.Range(0, layout.Count)
+                .Single(i => layout.Unknowns[i].Kind == UnknownKind.NodeEnthalpy && layout.Unknowns[i].OwnerComponentId == node);
+
+            return seed.Values[index] / FluidScript.Core.Fluids.ConstantPropertyWater.SpecificHeatValue;
+        }
+
+        Assert.InRange(Celsius("NPR"), 35, 55);
+        Assert.InRange(Celsius("NSUP"), 50, 65);
+        Assert.InRange(Celsius("NRET"), 35, 50);
+        Assert.True(Celsius("NSUP") - Celsius("NRET") > 8, "the secondary's supply and return are seeded on top of each other");
+    }
+
+    [Fact]
     public void APromotedPositionStartsAtMidTravelRatherThanOnEitherBound()
     {
         // `S-26` then `S-50`, and they are one argument applied twice. Promoted columns first fell to

@@ -33,6 +33,15 @@ public sealed record SizingResult
     /// diagnostic is a sentence somebody acts on).
     /// </value>
     public required ImmutableArray<string> Notes { get; init; }
+
+    /// <summary>Gets what the rule has to report as a registered code rather than a sentence.</summary>
+    /// <value>
+    /// Empty for most rules, whose findings are notes (see <see cref="Notes"/>). The thermal rule raises
+    /// <c>FS2111</c> and <c>FS4008</c>, both errors a user acts on, and an error a user cannot look up is
+    /// the case <c>C-44</c> warns against -- so those two are registered and carried here, anchored to
+    /// the component, for the outer loop to attach to the run.
+    /// </value>
+    public ImmutableArray<Diagnostics.Diagnostic> Diagnostics { get; init; } = [];
 }
 
 /// <summary>Everything a sizing rule is allowed to read.</summary>

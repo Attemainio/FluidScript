@@ -209,6 +209,20 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void AClosedCircuitsPickedDatumIsThePumpSuction()
+    {
+        // D-98. The most-connected node (`NSUP`, 23's old rule) is downstream of the pump, so putting it at
+        // zero gauge put the suction 21 kPa *below* zero -- and water's validated range starts at 100 kPa
+        // absolute, so the first property read there failed and the substation was NonFinite before
+        // Newton took a step. The suction is the loop's low point; a datum there keeps every other node
+        // above it, which is what a datum at zero gauge has to do to stay inside the property domain.
+        var result = Check(Substation);
+
+        Assert.Equal("SR__SP", result.Hydraulics[1].Datum);
+        Assert.Contains("SR__SP", Assert.Single(result.Diagnostics, static d => d.Code == "FS2201").Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheSubstationIsNotReportedAsTwoIsolatedSubgraphs()
     {
         // D-17. The two sides share no node and no flow -- only HX1, and only thermally. Reporting that
@@ -235,10 +249,13 @@ public sealed class WellPosednessTests
     public void ACoupledExchangersTerminalTemperaturesAreADesignPointNotConstraints()
     {
         // D-19: once both sides are wired, in/out/in2/out2 are what 24 sizes UA from. Counting them as
-        // demands on the solved state reports the substation over-specified by three.
+        // demands on the solved state reports the substation over-specified by three. D-97 keeps one of
+        // them as a flow pin: the primary loop has no other constraint on its flow, so the design point
+        // 85/45 at 150 kW is what fixes it, and `HX1.out2` is that pin -- a derived-flow row, not a
+        // temperature demand.
         var table = Check(Substation).Counting;
 
-        Assert.Equal(["LOAD.dt"], table.Constraints.Select(static c => c.Label).ToArray());
+        Assert.Equal(["LOAD.dt", "HX1.out2"], table.Constraints.Select(static c => c.Label).ToArray());
         Assert.Equal(0, table.Excess);
     }
 

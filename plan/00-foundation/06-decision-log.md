@@ -4321,3 +4321,110 @@ the flag travels the same path the value does.
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *promotion*,
 [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *bootstrap*; `OuterLoop.Bootstrap`,
 `OuterLoop.Apply`, `CircuitGraph.ProvisionalParameters`, `WellPosedness.IsFree`.
+
+## D-97 · An extended-mode exchanger's design point pins the flow of a side nothing else pins
+
+**Accepted · 2026-09-15** · amends `D-19`; constrains `22`, `23`, `24`
+
+`D-19` made a coupled exchanger's four terminals a *design point* — what `24` sizes UA from — rather
+than four demands on the solved state, because counting them as constraints reported the substation
+over-specified by three. Read literally, that left the primary with nothing saying what it runs at:
+`NPS p=600` and `NPR p=350` fix the pressures, the promoted valve absorbs whatever they imply, and
+the flow was whatever Kv 630 let through — 2.21 kg/s where 150 kW over 85/45 implies 0.895 (`S-32`).
+The secondary never had the problem because `LOAD dt=20` pins it.
+
+**The rule.** A design point says what each side runs at as surely as `LOAD.dt` does: `power` with
+`in2`/`out2` (or `dt2`) is a flow on side 2, and `power` with `in`/`out` (or `dt`) one on side 1.
+After the ordinary constraints are collected, `WellPosedness.Constraints` makes a second pass over
+every exchanger that *rates* — coupled, or Rated with a rating that can rate — and for each side finds
+the hydraulic component that side's inlet port peers into. If that hydraulic already holds a
+`FixedFlow` or `EnthalpyLevel` constraint, or a boundary with a stated `flow`, the exchanger's is
+design information only; otherwise the terminal (`out2`, `out` or the `dt`) is added as `FixedFlow`
+on that hydraulic, and `EquationSystem` assembles it as the derived-flow row `ṁ = Q / (h_out − h_in)`
+on the side's own ports. On the substation: `LOAD.dt` pins the secondary, `HX1.out2` pins the
+primary, and the row is answered by `PCV.kv`.
+
+**Why the load's pin wins.** Two pins on one hydraulic are one constraint too many, and of the two
+the exchanger's is the one a designer would drop: the load's `dt` is what the circuit exists to
+deliver; the exchanger's design point is a rating condition it will be *near*.
+
+**What it changes for Rated mode.** The same rule with one side. A Rated exchanger's terminals were
+still counted as Duty-mode constraints — `in` a mixed-inlet demand, `out` a flow pin — which with a
+`dt` load made a rated loop over-specified by two, and without one gave the loop no pin at all. They
+are the design point now, and `Rates()` — coupled, or `Rating.CanRate` — is the one predicate both
+passes and `NeedsEnthalpyLevel` read. A Rated exchanger whose rating cannot rate (no size, or a
+profile too thin to fix its second side) delivers its stated duty and is counted exactly as Duty.
+
+**Rejected.**
+- *State `flow2` on the sample.* Solves the substation and nothing else; every rated exchanger would
+  need a flow the design point already contains.
+- *Pin from side 1's `in`/`out` always, as Duty mode does.* That is what over-specified the loop:
+  the load already pins it.
+- *A side-2 `ImpliedFlow` for the seed only (`S-32`'s original sketch).* Seeds the right flow and
+  constrains nothing; the solve drifts back to what the pressures imply.
+
+**Constrains.** [`22-component-model`](../20-core-domain/22-component-model.md) *modes*,
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *constraints*,
+[`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *the extended-mode rule*;
+`WellPosedness.Constraints`, `WellPosedness.Rates`, `EquationSystem.Constraints`.
+
+## D-98 · A closed circuit's picked pressure datum is the first pump's suction
+
+**Accepted · 2026-09-15** · amends `23` *The datum is mandatory and usually implicit*, refines `D-86`
+
+`23` picked the node with the most connections, ties by declaration order — deterministic, stable
+across edits, and arbitrary by design, because every pressure in a closed loop is relative. It is not
+arbitrary to the property backend. The datum sits at **0 gauge**, and water's validated range
+(`Water.ValidRange`) starts at 100 kPa absolute: a node below the datum by more than the atmosphere
+has no state. On the substation the most-connected node was `NSUP`, downstream of the pump; the
+pump's suction sat 21 kPa below it, the seed put it at −21 kPa gauge, the first property read there
+failed, and the sample was `NonFinite` after 0 iterations for reasons the report could not name.
+Moving the datum to `NSUP p=150` in a scratch experiment converged the same circuit in two
+iterations, which is how the cause was separated from the three other things `P4.1` changed.
+
+**The rule.** `HydraulicPartition.Assemble` picks, in order: the first node with a stated `p`
+(unchanged); else the node at the **suction of the first pump** in graph order; else the
+most-connected node as before. The suction is the loop's low point — every other node is
+downstream of a pump head and upstream of the losses that spend it — so a datum there keeps the
+whole loop at or above zero gauge, which is what a datum at zero gauge has to do to stay inside the
+property domain. It is also where an engineer connects the expansion vessel, for the same reason.
+
+**What it does not change.** A stated `p` still wins wherever it is; `FS2201` still names the pick;
+the pressures are still relative and the diagram still says so. `S-60`'s static-head check is
+unaffected: it measures from the datum, wherever the datum is.
+
+**Rejected.**
+- *Datum at the most-connected node, seed at a positive offset.* Hides the same problem behind a
+  number: the offset needed is the loop's head, which is the thing being solved for.
+- *Report `FS3007` with the node's pressure.* Names the symptom, not the fix, and the fix is not the
+  user's to make in a loop with no meaningful absolute pressure.
+
+**Constrains.** [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *The datum is
+mandatory and usually implicit*; `HydraulicPartition.Assemble`, `HydraulicPartition.Suction`.
+
+## D-99 · No overall heat-transfer coefficient is invented: `hx.u_default` is withdrawn until a sourced figure replaces it
+
+**Accepted · 2026-09-15** · amends `24` *sizing defaults*; refines `D-02`, `D-32`
+
+`24`'s defaults table carried `hx.u_default = 3000 W/(m²·K)`, "water/water brazed plate, clean", with
+no source. The operating contract says a coefficient reaches the specification by citation and not
+by plausibility, and the cost of this one is specific: `area = UA / U` is the number a user quotes to
+a supplier, and an area from an uncited `U` is an area nobody can trace. Two thousand and five
+thousand are both defensible for a water/water plate at design velocities, which is a factor of 2.5
+on the quoted area.
+
+**The rule.** The thermal sizer sizes `ua` from the design point whatever else is stated, and derives
+`area` only from a stated `u` (or a stated `area` from `ua`). With neither, the basis reports the
+`UA` and a note says that no area follows from it without a `u`. `lamella` is read and unused; the
+chevron correlation that would turn plate geometry into `u` waits for `27`'s plate catalogue, where
+the coefficient can arrive with its source. `D-32` is untouched — a visible decided default is still
+the right shape for `dp` — but a default that decides a quoted area has to be one the catalogue can
+stand behind.
+
+**Rejected.**
+- *Keep 3000 and label it `default` in the basis.* Honest about provenance, and still an area on the
+  sized-values list that the user did not ask for and cannot check.
+- *Size `area` from the catalogue's first plate row.* There is no plate catalogue yet.
+
+**Constrains.** [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *sizing defaults*, *extended
+modes* step 6; `ThermalSizer`.

@@ -43,11 +43,15 @@ public sealed record WellPosednessResult(
 /// </remarks>
 public static class WellPosedness
 {
-    /// <summary>A heat exchanger's stated inlet temperatures, in the order they are matched.</summary>
-    private static readonly string[] Inlets = ["in", "in2"];
+    /// <summary>A heat exchanger's stated side-1 inlet temperature.</summary>
+    /// <remarks>
+    /// Side 1 only. Side 2 is either not in the graph (Duty, Rated) or a coupled stream whose design
+    /// point is handled as a pair (<c>D-97</c>), so <c>in2</c> is never a demand on a node here.
+    /// </remarks>
+    private static readonly string[] Inlets = ["in"];
 
-    /// <summary>A heat exchanger's statements that pin a flow, in the order they are matched.</summary>
-    private static readonly string[] FlowPins = ["out", "out2", "dt", "dt2"];
+    /// <summary>A heat exchanger's side-1 statements that pin a flow, in the order they are matched.</summary>
+    private static readonly string[] FlowPins = ["out", "dt"];
 
     /// <summary>A heat exchanger's statements that fix an absolute temperature rather than a difference.</summary>
     /// <remarks><c>dt</c> is deliberately absent: it is the difference the level is free of.</remarks>
@@ -412,13 +416,16 @@ public static class WellPosedness
     /// something has to move to meet it.
     /// </para>
     /// <para>
-    /// <strong>Nor are a coupled exchanger's terminal temperatures.</strong> Once both sides are wired,
-    /// <c>in</c>, <c>out</c>, <c>in2</c> and <c>out2</c> are the <em>rating design point</em> that
-    /// <c>24</c> sizes UA from (<c>D-19</c>), not demands on the solved state. Counting them as
-    /// constraints reports the substation over-specified by three, on the reference circuit written to
-    /// demonstrate that two circuits can be solved together.
+    /// <strong>Nor are a coupled or rated exchanger's terminal temperatures.</strong> Once both sides are
+    /// wired, or a second-side profile is stated, <c>in</c>, <c>out</c>, <c>in2</c> and <c>out2</c> are the
+    /// <em>rating design point</em> that <c>24</c> sizes UA from (<c>D-19</c>), not demands on the solved
+    /// state. Counting them as constraints reports the substation over-specified by three, on the
+    /// reference circuit written to demonstrate that two circuits can be solved together. A rated
+    /// exchanger that cannot rate -- no size, or a profile too thin to fix its second side -- delivers
+    /// its stated duty and is counted exactly as a Duty one.
     /// </para>
     /// </remarks>
+
     private static ImmutableArray<ComponentConstraint> Constraints(
         CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics)
     {
@@ -450,7 +457,7 @@ public static class WellPosedness
             }
 
             if (!string.Equals(element.Kind, "heat_exchanger", StringComparison.Ordinal)
-                || IsCoupled(hydraulics, element))
+                || Rates(hydraulics, element))
             {
                 continue;
             }
@@ -493,7 +500,92 @@ public static class WellPosedness
             }
         }
 
+        // `D-97`. A coupled exchanger's design point is what sizes UA, and it also says what each side
+        // runs at: `power` with `in2`/`out2` is a flow on the side-2 branch as surely as `LOAD.dt` is one
+        // on the secondary. It pins a side only where nothing else already does -- the substation's
+        // secondary is pinned by `LOAD.dt`, its primary by `HX1`'s 85/45 -- because two pins on one
+        // hydraulic are one constraint too many, and the exchanger's is the one a designer would drop.
+        // A rated exchanger has the same design point and one wired side, so side 2 finds no hydraulic
+        // and side 1 is pinned by the same rule.
+        foreach (var element in graph.Components)
+        {
+            if (element is not HeatExchanger || !Rates(hydraulics, element))
+            {
+                continue;
+            }
+            foreach (var (inlet, outlet, change, port) in CoupledSides)
+            {
+                var pin = HydraulicPartition.Stated(element, outlet) is not null
+                    && HydraulicPartition.Stated(element, inlet) is not null
+                        ? outlet
+                        : HydraulicPartition.Stated(element, change) is not null ? change : null;
+
+                if (pin is null || SideHydraulic(graph, hydraulics, element, port) is not { } side)
+                {
+                    continue;
+                }
+
+                var pinned = constraints.Any(existing =>
+                    existing.Hydraulic == side
+                    && existing.Kind is ConstraintKind.FixedFlow or ConstraintKind.EnthalpyLevel)
+                    || hydraulics[side].Boundaries.Any(static boundary =>
+                        HydraulicPartition.Stated(boundary.Component, HydraulicPartition.Flow) is not null);
+
+                if (!pinned)
+                {
+                    constraints.Add(new ComponentConstraint(element.Name, pin, ConstraintKind.FixedFlow, side));
+                }
+            }
+        }
+
         return constraints.ToImmutable();
+    }
+
+    /// <summary>A coupled exchanger's two sides: the terminals that pin each, and the port that finds its hydraulic.</summary>
+    private static readonly (string Inlet, string Outlet, string Change, int Port)[] CoupledSides =
+    [
+        ("in", "out", "dt", 0),
+        ("in2", "out2", "dt2", 2),
+    ];
+
+    /// <summary>The hydraulic component one side of a coupled exchanger runs in.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="hydraulics">The partition.</param>
+    /// <param name="element">The exchanger.</param>
+    /// <param name="port">The side's inlet port index: 0 for side 1, 2 for side 2.</param>
+    /// <returns>The hydraulic's index, or <see langword="null"/> when the port is not connected.</returns>
+    /// <remarks>
+    /// The exchanger itself belongs to both hydraulics, so its membership says nothing; the element on the
+    /// other end of the port -- a node, by rule I2 -- belongs to exactly one.
+    /// </remarks>
+    private static int? SideHydraulic(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, IFlowComponent element, int port)
+    {
+        var index = graph.Components.IndexOf(element);
+
+        if (index < 0)
+        {
+            return null;
+        }
+
+        var peer = graph.Adjacency.Peer(index, port);
+
+        if (!peer.Exists)
+        {
+            return null;
+        }
+
+        var neighbour = graph.Components[peer.Component];
+
+        foreach (var hydraulic in hydraulics)
+        {
+            if (hydraulic.Elements.Contains(neighbour))
+            {
+                return hydraulic.Index;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The terminal at the other end of the same side, whose value makes a flow computable.</summary>
@@ -535,6 +627,20 @@ public static class WellPosedness
         return sides > 1;
     }
 
+    /// <summary>Whether a component's duty follows from the temperatures it sees rather than from a stated number.</summary>
+    /// <param name="hydraulics">The hydraulic partition.</param>
+    /// <param name="element">The component to classify.</param>
+    /// <returns><see langword="true"/> for a coupled exchanger, or a rated one whose rating can rate.</returns>
+    /// <remarks>
+    /// The condition the energy block actually runs under: a coupled exchanger reads both sides' inlets,
+    /// and a rated one reads its side-1 inlet against the profile it was given. Either way its duty
+    /// depends on the absolute temperature level, which is what fixes a closed circuit's level and what
+    /// turns its stated terminals from demands into a design point. A rated exchanger with no size yet,
+    /// or a profile that does not fix its second side, delivers its stated duty and is not this.
+    /// </remarks>
+    private static bool Rates(ImmutableArray<HydraulicComponent> hydraulics, IFlowComponent element) =>
+        IsCoupled(hydraulics, element) || element is HeatExchanger { Rating.CanRate: true };
+
     /// <summary>Whether a component's energy block leaves its own temperature level free.</summary>
     /// <param name="graph">The graph, which is what says whether time is being integrated.</param>
     /// <param name="hydraulics">The hydraulic partition.</param>
@@ -564,7 +670,10 @@ public static class WellPosedness
 
         foreach (var element in hydraulic.Elements)
         {
-            if (IsCoupled(hydraulics, element))
+            // A rated exchanger's duty depends on the temperature its side 1 enters at, which is what fixes
+            // the level a closed circuit's own balances leave free (`P4.1`); a coupled one couples it to
+            // the other circuit's. Without a size to rate against the duty is a constant and fixes nothing.
+            if (Rates(hydraulics, element))
             {
                 return false;
             }
@@ -825,9 +934,13 @@ public static class WellPosedness
                 continue;
             }
 
+            // On the constraint's own hydraulic: a coupled exchanger sits on a branch of each, and a valve on
+            // the other circuit cannot move this one's flow.
             foreach (var element in branch.Path)
             {
-                if (element.Kind is "valve" or "three_way_valve" && IsFree(graph, element, "kv"))
+                if (element.Kind is "valve" or "three_way_valve"
+                    && IsFree(graph, element, "kv")
+                    && hydraulic.Elements.Contains(element))
                 {
                     yield return (element.Name, "kv");
                 }

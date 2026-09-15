@@ -481,13 +481,23 @@ differential-pressure controller exists to absorb.
 The `dp` default is the weakest number in the whole catalogue: real exchangers range from 5 to 60 kPa.
 It must be labelled `default` rather than `sized` in hover, and `/docs` must say so. In an extended
 mode it is replaced by a computed side-1 drop from channel geometry; Coupled mode additionally computes
-side 2, while Rated mode reports no hydraulic result for its external profile.
+side 2, while Rated mode reports no hydraulic result for its external profile. **Not yet**: `P4.1`
+left `dp` and `dp2` as the duty-mode defaults in every mode, because the channel-geometry drop needs
+the same plate catalogue `u` does.
 
 ### Heat exchanger — extended modes: `ua`, `area`, `plates`
 
 `D-17` establishes the rated exchanger; `D-19` refines its Rated/Coupled sizing trigger. This is the first rule here that answers a genuinely thermal
 question. The same thermal steps apply to both; Rated reads side 2 from its boundary profile, while
 Coupled reads it from the second hydraulic flow group.
+
+**The rule reads the design point, not the solve** (`ThermalSizer`, `P4.1`). Every step below follows
+from what the script stated about the exchanger — the four terminals, or a terminal with a `dt`, and
+the duty — which is why the substation's 12 071 W/K is checkable by hand and why a rule that sees one
+branch can size a component on two. The one thing it takes from the circuit is a Rated exchanger's
+side-1 flow, when the script states neither that flow nor both of that side's temperatures. The
+design point also *pins* each side's flow where nothing else does (`D-97`), so the solved circuit runs
+at the point the size was chosen for.
 
 1. **Flows** from each side's energy balance, as in duty mode but twice.
 2. **Capacity rates** `C₁ = ṁ₁cp₁`, `C₂ = ṁ₂cp₂`; `Cmin = min`, `Cr = Cmin/Cmax`.
@@ -506,7 +516,8 @@ Coupled reads it from the second hydraulic flow group.
    `parallel` inverts in closed form too; `crossflow` does not, and is inverted by bisection on NTU
    over `[0, 50]` — monotone in ε, so bisection is safe and about twenty evaluations.
 5. **`UA` = NTU · Cmin.** This is the thermal size, and it is the number the rest follows from.
-6. **`area` = UA / U**, with `U` stated, derived from geometry, or from the catalogue default.
+6. **`area` = UA / U**, with `U` stated. Geometry-derived `U` waits for the plate catalogue, and there
+   is no default (`D-99`): with no `u` the rule stops at `ua` and the basis says so.
 7. **Plate count** `plates = ceil(area / plate_area) + 2`, rounded **up** to the catalogue's step.
 8. **Approach check.** Compute the achieved approach at the selected size; if it is below `approach`
    (stated) or `hx.approach_min` (default), report `FS4008`.
@@ -597,7 +608,7 @@ and a table with a source column is that answer.
 | `pump.efficiency_motor` | 0.6 | Small wet-rotor circulator. Wire-to-water is the product, 0.42 here — **the energy-cost number**, and not the row above |
 | `pump.loss_destination` | `fluid` | A wet-rotor circulator dumps its motor into the water; a dry-rotor one dumps it into the room. Per component, never global (`D-82`) |
 | `hx.dp_default` | 20 kPa | Typical plate exchanger — duty mode only |
-| `hx.u_default` | 3000 W/(m²·K) | Water/water brazed plate, clean. Used when neither `u` nor geometry is given |
+| `hx.u_default` | **withdrawn** (`D-99`) | Was 3000 W/(m²·K), uncited. No `U` is invented: without a stated `u` the rule sizes `ua` and says that no area follows. Returns with `27`'s plate catalogue and a source |
 | `hx.fouling_default` | 1e-5 m²·K/W | Combined, clean closed-circuit water |
 | `hx.arrangement_default` | `counter` | A plate exchanger is counterflow unless built otherwise |
 | `hx.plate_step` | 2 | Catalogue plate counts advance in twos, keeping the channel split even |
@@ -785,18 +796,26 @@ three of those numbers are engineering, and one is a guess.
 - [ ] Sizing twice on a converged model produces identical output (idempotence).
 - [ ] Every sized diameter is in the nominal table; a test asserts no continuous value escapes.
 - [ ] A circuit with no determinable flow produces `FS2304` naming the component.
-- [ ] The **substation** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) sizes to
+- [x] The **substation** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) sizes to
       **UA 12.07 kW/K**, **3.658 m²** required, **39 plates**, and an achieved approach of **4.90 K**,
-      each within 1 %.
-- [ ] The required `UA` computed by ε-NTU inversion equals `Q̇ / LMTD` for that counterflow case to
+      each within 1 %. `P4.1`: `ThermalSizerTests` and `RatedExchangerSolveTests`. The sample states
+      `u=3300` and no `plate_area`, so the shipped script sizes `ua` and `area`; the plate count and
+      the 4.90 K are reached when `plate_area=0.1` is stated.
+- [x] The required `UA` computed by ε-NTU inversion equals `Q̇ / LMTD` for that counterflow case to
       within rounding — the two routes are checked against each other, not against a stored number.
-- [ ] A duty above `Cmin·(T_h,in − T_c,in)` produces `FS2111` **before** any NTU inversion runs,
+- [x] A duty above `Cmin·(T_h,in − T_c,in)` produces `FS2111` **before** any NTU inversion runs,
       asserted by a test that would otherwise see an overflow or a negative area.
 - [ ] Plate count rounds **up**: a case needing 36.1 effective plates selects 38 total, never 36.
+      **Rounds up, but not to the step**: 36.58 effective selects 37 + 2 = 39, which is `01`'s figure
+      and `22`'s criterion; `hx.plate_step = 2` would make it 40, and the two documents disagree.
+      Left as written until the plate catalogue decides what a step is (`D-99`).
 - [ ] Halving `plate_area` roughly doubles the selected plate count, and the achieved approach moves
-      the same direction as the area.
+      the same direction as the area. Not asserted.
 - [ ] A Rated exchanger with an incomplete secondary boundary profile produces `FS2311`; a complete
       external profile sizes without secondary connections, and `ua=` alone stays Duty with `FS2110`.
+      **Second and third parts met** (`RatedExchangerSolveTests`, `ExchangerModeTests`). An incomplete
+      profile sizes nothing and says so in a note — *the design point does not fix both sides* — and
+      the exchanger delivers its stated duty; `FS2311` has no descriptor yet.
 - [ ] The default catalogue is rendered into `/docs` from the same table the code reads.
 - [ ] Omitted tank volume/layers/elevations bypass the sizing loop and are reported as defaults with
       `D-32`'s basis; no sizing pass changes them, and explicit values remain stated constraints.

@@ -88,7 +88,7 @@ public static class BranchFlows
         {
             foreach (var part in branch.Path)
             {
-                Offer(ref estimates[branch.Index], Duty(graph, part), FlowBasis.Duty, part.Name);
+                Offer(ref estimates[branch.Index], Duty(graph, branch, part), FlowBasis.Duty, part.Name);
                 Offer(
                     ref estimates[branch.Index],
                     HydraulicPartition.Stated(part, HydraulicPartition.Flow),
@@ -346,6 +346,7 @@ public static class BranchFlows
 
     /// <summary>The flow an exchanger's known duty and terminal temperatures imply.</summary>
     /// <param name="graph">The lowered circuit, including sized duties and other design terminals.</param>
+    /// <param name="branch">The branch being estimated, which decides which side of a coupled exchanger it crosses.</param>
     /// <param name="component">The candidate component.</param>
     /// <returns>kg/s, or <see langword="null"/> when the rule does not apply here.</returns>
     /// <remarks>
@@ -356,18 +357,34 @@ public static class BranchFlows
     /// If the returns disagree, the estimate declines rather than inventing a mixed temperature.
     /// </para>
     /// <para>
-    /// The arithmetic is <see cref="RatedFlow"/>'s; this decides which inlet to hand it.
+    /// The arithmetic is <see cref="RatedFlow"/>'s; this decides which inlet to hand it. A side stated as
+    /// a difference (<c>dt</c>, <c>dt2</c>) rather than two terminals is <c>Q / (cp · dt)</c> with <c>cp</c> at
+    /// whichever terminal it did state, and at 50 °C when it stated none -- a seed, not a rating.
     /// </para>
     /// </remarks>
-    private static double? Duty(CircuitGraph graph, IFlowComponent component)
+    private static double? Duty(CircuitGraph graph, Branch branch, IFlowComponent component)
     {
         if (component is not HeatExchanger exchanger
             || (!component.StatedParameters.ContainsKey("power")
                 && !component.SizedParameters.ContainsKey("power")
-                && !component.DefaultParameters.ContainsKey("power"))
-            || !component.StatedParameters.TryGetValue("out", out var outlet))
+                && !component.DefaultParameters.ContainsKey("power")))
         {
             return null;
+        }
+
+        // A coupled exchanger sits on a branch of each side, and each side's design point is its own:
+        // the substation's primary is 150 kW over 85/45, not over the secondary's 40/60 (`S-32`).
+        if (Side(graph, branch, exchanger) == 2)
+        {
+            return component.StatedParameters.TryGetValue("in2", out var entering)
+                && component.StatedParameters.TryGetValue("out2", out var leaving)
+                    ? RatedFlow(graph.Substance, exchanger.Power, entering, leaving)
+                    : DifferenceFlow(graph.Substance, exchanger, "in2", "out2", "dt2");
+        }
+
+        if (!component.StatedParameters.TryGetValue("out", out var outlet))
+        {
+            return DifferenceFlow(graph.Substance, exchanger, "in", "out", "dt");
         }
 
         var inlet = component.StatedParameters.TryGetValue("in", out var statedInlet)
@@ -375,6 +392,66 @@ public static class BranchFlows
             : CommonReturn(graph, exchanger);
 
         return inlet is null ? null : RatedFlow(graph.Substance, exchanger.Power, inlet.Value, outlet);
+    }
+
+    /// <summary>The flow a duty over a stated temperature difference implies, in kg/s.</summary>
+    /// <param name="substance">The circuit's substance, for <c>cp</c>.</param>
+    /// <param name="exchanger">The exchanger.</param>
+    /// <param name="inlet">The side's inlet parameter name.</param>
+    /// <param name="outlet">The side's outlet parameter name.</param>
+    /// <param name="change">The side's difference parameter name.</param>
+    /// <returns>kg/s, or <see langword="null"/> when no difference is stated or <c>cp</c> cannot be read.</returns>
+    private static double? DifferenceFlow(
+        ISubstance substance, HeatExchanger exchanger, string inlet, string outlet, string change)
+    {
+        if (!exchanger.StatedParameters.TryGetValue(change, out var difference))
+        {
+            return null;
+        }
+
+        var at = exchanger.StatedParameters.TryGetValue(inlet, out var entering) ? entering
+            : exchanger.StatedParameters.TryGetValue(outlet, out var leaving) ? leaving
+            : Quantity.FromSi(323.15, Dimension.Temperature);
+
+        if (!substance.FromPressureTemperature(Quantity.FromSi(0, Dimension.Pressure), at).TryGetValue(out var state))
+        {
+            return null;
+        }
+
+        var implied = exchanger.ImpliedFlow(state.SpecificHeat.SiValue, difference.SiValue);
+
+        return double.IsFinite(implied) ? implied : null;
+    }
+
+    /// <summary>Which side of an exchanger a branch runs through.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="branch">The branch, which holds the exchanger in its path.</param>
+    /// <param name="exchanger">The exchanger.</param>
+    /// <returns>1 or 2. Read from the port the branch arrives by; 1 when it cannot be told.</returns>
+    public static int Side(CircuitGraph graph, Branch branch, HeatExchanger exchanger)
+    {
+        var position = branch.Path.IndexOf(exchanger);
+        var index = graph.Components.IndexOf(exchanger);
+
+        if (position < 0 || index < 0)
+        {
+            return 1;
+        }
+
+        var before = position > 0 ? branch.Path[position - 1] : branch.From.Element;
+        var arrival = graph.Components.IndexOf(before);
+
+        for (var port = 0; port < exchanger.Ports.Length; port++)
+        {
+            var peer = graph.Adjacency.Peer(index, port);
+
+            if (peer.Exists && peer.Component == arrival)
+            {
+                return port >= 2 ? 2 : 1;
+            }
+        }
+
+        return 1;
     }
 
     /// <summary>The flow a duty moves between two terminal temperatures.</summary>

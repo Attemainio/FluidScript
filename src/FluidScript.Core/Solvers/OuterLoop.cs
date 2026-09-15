@@ -126,6 +126,7 @@ public sealed class OuterLoop(
         new PipeSizer(pipes),
         new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance),
         new ExchangerSizer(),
+        new ThermalSizer(),
         new PumpSizer(),
     ];
 
@@ -161,7 +162,7 @@ public sealed class OuterLoop(
         ArgumentNullException.ThrowIfNull(substance);
 
         var overlay = Bootstrap(model);
-        var bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay), name);
+        var bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
 
         if (!bootstrap.Unresolved.IsEmpty)
         {
@@ -176,13 +177,13 @@ public sealed class OuterLoop(
         if (!ReferenceEquals(closed, overlay))
         {
             overlay = closed;
-            bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay), name);
+            bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
         }
 
-        var (sized, bases, notes) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
+        var (sized, bases, notes, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
 
         return new PreparedModel(
-            Lowering.Lower(model, substance, new ComponentFactory(bores, sized), name),
+            Lowering.Lower(model, substance, new ComponentFactory(bores, sized, substance), name),
             sized,
             WithStated(model, bases),
             notes);
@@ -231,7 +232,7 @@ public sealed class OuterLoop(
             passes++;
             cancellationToken.ThrowIfCancellationRequested();
 
-            lowered = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay), name);
+            lowered = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
             var posedness = WellPosedness.Check(lowered.Graph);
 
             // A malformed script is the normal case while one is being edited, and a script whose
@@ -281,7 +282,7 @@ public sealed class OuterLoop(
                 break;
             }
 
-            var (next, chosen, said) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
+            var (next, chosen, said, raised) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
 
             bases = chosen;
             notes = said;
@@ -289,7 +290,7 @@ public sealed class OuterLoop(
             if (next.Matches(overlay))
             {
                 return Result.Success(
-                    Report(lowered.Graph, solve, next, WithStated(model, bases), notes, passes, settled: true));
+                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised) }, next, WithStated(model, bases), notes, passes, settled: true));
             }
 
             overlay = next;
@@ -511,7 +512,7 @@ public sealed class OuterLoop(
     /// <see cref="ValveSizer"/> reports an <c>authority</c> for the Kv it chose, and a Kv the solver is
     /// choosing instead would make that authority a number about a valve that does not exist (<c>C-75</c>).
     /// </remarks>
-    private (SizingOverlay Overlay, ImmutableDictionary<string, string> Bases, ImmutableArray<string> Notes) Apply(
+    private (SizingOverlay Overlay, ImmutableDictionary<string, string> Bases, ImmutableArray<string> Notes, ImmutableArray<Diagnostics.Diagnostic> Raised) Apply(
         CircuitGraph graph,
         StateVector iterate,
         SizingOverlay previous,
@@ -525,6 +526,7 @@ public sealed class OuterLoop(
         var overlay = previous;
         var bases = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
         var notes = ImmutableArray.CreateBuilder<string>();
+        var raised = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
 
         CloseEnergyBalance(graph, ref overlay, bases);
 
@@ -566,13 +568,14 @@ public sealed class OuterLoop(
                 }
 
                 notes.AddRange(sized.Value.Notes);
+                raised.AddRange(sized.Value.Diagnostics);
             }
         }
 
         ThreeWay(graph, places, iterate, ref overlay, bases, notes, promoted);
         Unsized(graph, overlay, bases, notes);
 
-        return (overlay, bases.ToImmutable(), notes.ToImmutable());
+        return (overlay, bases.ToImmutable(), notes.ToImmutable(), raised.ToImmutable());
     }
 
     /// <summary>Sizes every three-way valve that stands as a junction element (<c>24</c>, <c>C-63</c>).</summary>
@@ -948,7 +951,11 @@ public sealed class OuterLoop(
     private static SizingContext? Context(
         CircuitGraph graph, SystemLayout layout, StateVector iterate, IFlowComponent component)
     {
-        var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(component));
+        // A coupled exchanger sits on a branch of each side, and every rule that reads a flow through it
+        // means side 1's -- the side the unsuffixed parameters describe.
+        var branch = graph.Branches.FirstOrDefault(candidate =>
+            candidate.Path.Contains(component)
+            && (component is not HeatExchanger exchanger || BranchFlows.Side(graph, candidate, exchanger) == 1));
 
         if (branch is null || Inlet(graph, layout, iterate, component) is not { } state)
         {

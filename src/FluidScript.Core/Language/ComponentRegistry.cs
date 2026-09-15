@@ -446,11 +446,13 @@ public sealed class ComponentRegistry : IComponentRegistry
         DrivesFlow = false,
         TagCode = "HE",
 
-        // Two relations, counted rather than solved. Q = m . cp . (out - in) makes any three of
-        // power/in/out/flow fix the fourth, and UA = U . A makes any two of ua/area/u fix the third.
+        // Three relations, counted rather than solved. Q = m . cp . (out - in) makes any three of
+        // power/in/out/flow fix the fourth, side 2 has the same relation with its own terminals and
+        // flow (S-32), and UA = U . A makes any two of ua/area/u fix the third.
         ParameterGroups =
         [
             Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in", "out", "flow"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in2", "out2", "flow2"),
             Group(BinderDiagnostics.OverDetermined, freedoms: 2, "ua", "area", "u"),
         ],
         Parameters = Parameters(

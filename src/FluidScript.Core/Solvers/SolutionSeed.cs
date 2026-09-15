@@ -154,7 +154,7 @@ public static class SolutionSeed
         var level = pressures.Length > 0 ? pressures.Average() : Tolerances.PressureScale;
         var datum = Datum(graph);
         var steps = Steps(graph);
-        var levels = Levels(graph, layout, values, datum);
+        var levels = Levels(graph, layout, values, datum, SpecificHeat(graph, level, datum));
         var integrated = Integrate(graph, layout, values, level, datum);
 
         for (var index = 0; index < graph.Nodes.Length; index++)
@@ -262,6 +262,55 @@ public static class SolutionSeed
         var across = new Dictionary<object, double[]>(ReferenceEqualityComparer.Instance);
         var reference = new Dictionary<object, double>(ReferenceEqualityComparer.Instance);
         var walked = new bool[graph.Branches.Length];
+        var anchored = new Dictionary<object, bool>(ReferenceEqualityComparer.Instance);
+
+        // Whether anything the branch graph connects to an element states a pressure.
+        bool Anchored(IFlowComponent start)
+        {
+            if (anchored.TryGetValue(start, out var known))
+            {
+                return known;
+            }
+
+            var seen = new HashSet<IFlowComponent>();
+            var pending = new Queue<IFlowComponent>();
+            var found = false;
+
+            pending.Enqueue(start);
+            seen.Add(start);
+
+            while (pending.Count > 0)
+            {
+                var element = pending.Dequeue();
+
+                found |= HydraulicPartition.Stated(element, HydraulicPartition.Pressure) is not null;
+
+                if (!incident.TryGetValue(element, out var edges))
+                {
+                    continue;
+                }
+
+                foreach (var edge in edges)
+                {
+                    var branch = graph.Branches[edge];
+
+                    foreach (var next in new[] { branch.From.Element, branch.To.Element })
+                    {
+                        if (seen.Add(next))
+                        {
+                            pending.Enqueue(next);
+                        }
+                    }
+                }
+            }
+
+            foreach (var element in seen)
+            {
+                anchored[element] = found;
+            }
+
+            return found;
+        }
 
         // What an element's own laws put between its ports, at the flows it is carrying. A node has one
         // pressure and comes back flat; a three-way valve comes back with its two legs where its Kv laws
@@ -305,7 +354,13 @@ public static class SolutionSeed
                 continue;
             }
 
-            _ = Place(start, 0, level);
+            // A part with no stated pressure anywhere is a closed circuit whose datum well-posedness picks,
+            // and it starts where a lone closed circuit always has: at the pressure scale, not at the
+            // average of pressures stated in some other circuit. The substation's secondary was seeded
+            // at 475 kPa from its primary's 600/350, and Newton's step to the datum row 475 kPa away was
+            // what its line search kept cutting (`P4.1`). Not at the datum's own 0 Pa: the walk descends
+            // from its start through every law, and from 0 that reaches pressures water refuses.
+            _ = Place(start, 0, Anchored(start) ? level : Tolerances.PressureScale);
 
             var queue = new Queue<IFlowComponent>();
 
@@ -421,6 +476,14 @@ public static class SolutionSeed
     /// It applies to nothing else in the corpus: <c>kv</c> is bounded below only and <c>head</c> not at
     /// all, so both keep the component's own value, which is what the paragraph above is about.
     /// </para>
+    /// <para>
+    /// <strong>A promoted <c>kv</c> is the exception, and it is seeded from the Kv law</strong>
+    /// (<see cref="PromotedKv"/>). Its own value is the bootstrap's provisional -- the catalogue's largest
+    /// row, 630, chosen to disturb the bootstrap least (<c>D-96</c>) -- which puts a few pascals across a
+    /// valve the solve has to close to a hundred kilopascals. The law's slope in <c>√Δp</c> is steepest
+    /// exactly there, and on the substation Newton never recovered from it (<c>P4.1</c>); on the
+    /// <c>head=15</c> loop it cost six iterations where two suffice (<c>C-75</c>).
+    /// </para>
     /// </remarks>
     private static void Promoted(CircuitGraph graph, SystemLayout layout, double[] values)
     {
@@ -449,6 +512,8 @@ public static class SolutionSeed
 
                 values[index] = owner is Pump && resolvable.Name is "head" && resolvable.Value == 0
                             ? NominalPumpHead
+                            : owner is Valve && resolvable.Name is "kv" && PromotedKv(graph, layout, values, owner) is { } kv
+                            ? kv
                             : Interior(resolvable);
             }
         }
@@ -460,6 +525,63 @@ public static class SolutionSeed
             .Any(declaration =>
                 string.Equals(declaration.OwnerComponentId, pump.Name, StringComparison.Ordinal)
                 && string.Equals(declaration.Name, $"{pump.Name}.head", StringComparison.Ordinal));
+
+    /// <summary>The Kv a promoted valve is seeded at: the Kv law at the seeded flow, taking half of what the circuit offers.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where branch flows are stored.</param>
+    /// <param name="values">The seed so far, with its flows and pressures laid.</param>
+    /// <param name="valve">The valve whose <c>kv</c> is promoted.</param>
+    /// <returns>Kv in m³/h, or <see langword="null"/> when nothing says what the circuit offers.</returns>
+    /// <remarks>
+    /// What the circuit offers is the difference between the stated pressures at the branch's two ends,
+    /// else the stated head of a pump on the valve's branch; the valve is seeded to take half
+    /// of it, which is the authority every sizing rule aims at (<c>24</c>). A seed, not a claim: the solve
+    /// moves it wherever the promotion's constraint needs, and this only starts it on the right side of
+    /// the square root.
+    /// </remarks>
+    private static double? PromotedKv(CircuitGraph graph, SystemLayout layout, double[] values, IFlowComponent valve)
+    {
+        var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(valve));
+
+        if (branch is null)
+        {
+            return null;
+        }
+
+        var flow = Math.Abs(values[layout.BranchFlow(branch.Index)]);
+
+        // The branch's own ends first -- an open circuit's supply and return, which is what the
+        // substation's primary offers its valve -- then a stated head on the branch.
+        double? offered =
+            HydraulicPartition.Stated(branch.From.Element, HydraulicPartition.Pressure) is { } from
+            && HydraulicPartition.Stated(branch.To.Element, HydraulicPartition.Pressure) is { } to
+                ? Math.Abs(from - to)
+                : null;
+
+        if (offered is null)
+        {
+            foreach (var element in branch.Path)
+            {
+                if (element is Pump && HydraulicPartition.Stated(element, "head") is { } head)
+                {
+                    offered = ReferenceDensity * UnitTable.StandardGravity * head;
+                    break;
+                }
+            }
+        }
+
+        if (offered is not { } drop || !(flow > 0))
+        {
+            return null;
+        }
+
+        var kv = ValveLaw.RequiredKv(flow, 0.5 * drop, ReferenceDensity);
+
+        return double.IsFinite(kv) && kv > 0 ? kv : null;
+    }
+
+    /// <summary>Water's density at the reference state, kg/m³, for a seed that needs one before any state is fixed.</summary>
+    private const double ReferenceDensity = 1000;
 
     /// <summary>Where a promoted parameter starts: its own value, unless that value is a bound.</summary>
     /// <param name="resolvable">The component's declaration of the parameter.</param>
@@ -492,6 +614,7 @@ public static class SolutionSeed
     /// <param name="layout">Where the already-seeded branch flows are stored.</param>
     /// <param name="values">The iterate whose flow signs establish upstream and downstream.</param>
     /// <param name="fallback">The level for a node no anchor reaches.</param>
+    /// <param name="specificHeat">J/(kg·K), for what a duty does to the temperature of the seeded flow.</param>
     /// <returns>One level per node, in K, indexed as <c>graph.Nodes</c> is.</returns>
     /// <remarks>
     /// <para>
@@ -525,7 +648,8 @@ public static class SolutionSeed
     /// anchor on the consumer side and can seed the source inlet tens of kelvins away from it.
     /// </para>
     /// </remarks>
-    private static double[] Levels(CircuitGraph graph, SystemLayout layout, double[] values, double fallback)
+    private static double[] Levels(
+        CircuitGraph graph, SystemLayout layout, double[] values, double fallback, double specificHeat)
     {
         var count = graph.Nodes.Length;
         var levels = new double[count];
@@ -552,7 +676,7 @@ public static class SolutionSeed
             }
         }
 
-        var flows = Downstream(graph, index, layout, values);
+        var flows = Downstream(graph, index, layout, values, specificHeat);
 
         // Bounded by the node count: each pass fixes at least one node or stops, so a circuit whose
         // anchors reach everything settles well inside it and one whose anchors reach nothing exits at once.
@@ -570,11 +694,14 @@ public static class SolutionSeed
                 var sum = 0.0;
                 var arriving = 0;
 
-                foreach (var (from, to) in flows)
+                // What arrives is the upstream level plus what the segment's duties do to it: a load between
+                // two nodes drops the fluid by Q/(m·cp), and a level laid across it without that drop is a
+                // seed 20 K wrong at every node past it (`P4.1`).
+                foreach (var (from, to, shift) in flows)
                 {
                     if (to == node && known[from])
                     {
-                        sum += levels[from];
+                        sum += levels[from] + shift;
                         arriving++;
                     }
                 }
@@ -659,32 +786,48 @@ public static class SolutionSeed
         return ported;
     }
 
-    /// <summary>Which node feeds which, in the direction of the seeded branch flow.</summary>
+    /// <summary>Which node feeds which, in the direction of the seeded branch flow, and by how much the fluid's temperature changes on the way.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="index">Node component to its position in <c>graph.Nodes</c>.</param>
     /// <param name="layout">Where branch flows are stored.</param>
     /// <param name="values">The iterate containing the mass-consistent flow seed.</param>
-    /// <returns>Directed pairs, upstream first.</returns>
+    /// <param name="specificHeat">J/(kg·K), the fluid's, for turning a duty into a temperature change.</param>
+    /// <returns>Directed triples, upstream first, with the shift in K the segment's duties make.</returns>
     /// <remarks>
+    /// <para>
     /// <strong>Branches meet at junction <em>elements</em>, not only at nodes, so consecutive nodes within
     /// a path are not the whole adjacency.</strong> A three-way valve is a junction: the node before it on
     /// one branch feeds the nodes after it on the others, and without that link the level anchored on an
     /// exchanger's outlet never reaches the pipe on the far side of the valve -- which is the 46 K jump
     /// that made placement alone worse than nothing.
+    /// </para>
+    /// <para>
+    /// The shift is every exchanger's stated duty between the two nodes, divided by the seeded flow's
+    /// capacity rate: a 150 kW load on 1.79 kg/s of water is −20 K, whichever way the branch was walked,
+    /// since a duty heats or cools the fluid however it runs. A coupled exchanger contributes its duty to
+    /// side 1 and the negative of it to side 2. A seed is not a claim, and a duty from a stated
+    /// <c>power</c> is the designer's own statement of what the load does -- the same standing the port
+    /// temperatures have (<c>S-30</c>).
+    /// </para>
     /// </remarks>
-    private static List<(int From, int To)> Downstream(
+    private static List<(int From, int To, double Shift)> Downstream(
         CircuitGraph graph,
         Dictionary<object, int> index,
         SystemLayout layout,
-        double[] values)
+        double[] values,
+        double specificHeat)
     {
-        var flows = new List<(int From, int To)>();
+        var flows = new List<(int From, int To, double Shift)>();
         var into = new Dictionary<object, List<int>>(ReferenceEqualityComparer.Instance);
         var outOf = new Dictionary<object, List<int>>(ReferenceEqualityComparer.Instance);
 
         foreach (var branch in graph.Branches)
         {
             var nodes = new List<int>();
+            var shifts = new List<double>();
+            var flow = values[layout.BranchFlow(branch.Index)];
+            var capacity = Math.Abs(flow) * specificHeat;
+            var pending = 0.0;
 
             foreach (var part in new[] { branch.From.Element }
                 .Concat(branch.Path)
@@ -692,20 +835,32 @@ public static class SolutionSeed
             {
                 if (part is CircuitNode && index.TryGetValue(part, out var node))
                 {
+                    if (nodes.Count > 0)
+                    {
+                        shifts.Add(pending);
+                    }
+
                     nodes.Add(node);
+                    pending = 0;
+                    continue;
+                }
+
+                if (part is HeatExchanger exchanger && capacity > 0
+                    && (exchanger.StatedParameters.ContainsKey("power") || exchanger.SizedParameters.ContainsKey("power")))
+                {
+                    var sign = Sizing.BranchFlows.Side(graph, branch, exchanger) == 2 ? -1 : 1;
+
+                    pending += sign * exchanger.Power / capacity;
                 }
             }
 
-            var forward = values[layout.BranchFlow(branch.Index)] >= 0;
-
-            if (!forward)
-            {
-                nodes.Reverse();
-            }
+            var forward = flow >= 0;
 
             for (var step = 1; step < nodes.Count; step++)
             {
-                flows.Add((nodes[step - 1], nodes[step]));
+                flows.Add(forward
+                    ? (nodes[step - 1], nodes[step], shifts[step - 1])
+                    : (nodes[step], nodes[step - 1], shifts[step - 1]));
             }
 
             // A bare node-to-node connection is an ideal link, so its two temperatures are equal
@@ -713,7 +868,7 @@ public static class SolutionSeed
             // in either direction; ordinary branches remain directed by their declared path.
             if (branch.Path.IsEmpty && nodes.Count == 2)
             {
-                flows.Add((nodes[1], nodes[0]));
+                flows.Add(forward ? (nodes[1], nodes[0], 0) : (nodes[0], nodes[1], 0));
             }
 
             if (nodes.Count == 0)
@@ -726,12 +881,12 @@ public static class SolutionSeed
 
             if (upstream is not CircuitNode)
             {
-                Attach(outOf, upstream, nodes[0]);
+                Attach(outOf, upstream, forward ? nodes[0] : nodes[^1]);
             }
 
             if (downstream is not CircuitNode)
             {
-                Attach(into, downstream, nodes[^1]);
+                Attach(into, downstream, forward ? nodes[^1] : nodes[0]);
             }
         }
 
@@ -746,13 +901,21 @@ public static class SolutionSeed
             {
                 foreach (var downstream in leaving)
                 {
-                    flows.Add((upstream, downstream));
+                    flows.Add((upstream, downstream, 0));
                 }
             }
         }
 
         return flows;
     }
+
+    /// <summary>The fluid's specific heat at the seed's level and datum, or water's when it cannot be fixed there.</summary>
+    private static double SpecificHeat(CircuitGraph graph, double level, double datum) =>
+        graph.Substance.FromPressureTemperature(
+            Quantity.FromSi(level, Dimension.Pressure), Quantity.FromSi(datum, Dimension.Temperature))
+            .TryGetValue(out var state)
+            ? state.SpecificHeat.SiValue
+            : 4180;
 
     /// <summary>Records one node against the junction element it meets.</summary>
     /// <param name="sides">The map being built.</param>

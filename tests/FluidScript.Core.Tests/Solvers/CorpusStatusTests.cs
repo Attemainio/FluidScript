@@ -47,10 +47,10 @@ public sealed class CorpusStatusTests
         // kg/s through the source, the coils at 50 C. `S-58` was the whole of it after `D-90`/`D-91`: a
         // junction mixed its inlets by a plain average, so the valve positions moved nothing and Newton
         // ran them to a stop. **The last `M2a` exit criterion, met** -- `OuterLoopTests` holds the numbers.
-        { "m2-distribution-header.fluid", SolveTermination.Converged },
-        // `S-32`. The secondary's flow is not implied by its stated profile, so the loop runs at 2.21
-        // kg/s where the duty implies 0.897 and the temperatures leave the property domain.
-        { "m2-substation.fluid", SolveTermination.NonFinite },
+        // `S-32` closed by `P4.1`: the coupled exchanger's design point pins the primary's flow (`D-97`),
+        // the datum sits at the pump suction (`D-98`), and the solve reaches `01`'s figures -- UA 12.07
+        // kW/K, 3.66 m2, 0.895 kg/s primary. `OuterLoopTests` holds the numbers.
+        { "m2-substation.fluid", SolveTermination.Converged },
     };
 
     [Theory]

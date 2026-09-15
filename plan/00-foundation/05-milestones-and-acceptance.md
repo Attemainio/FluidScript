@@ -219,11 +219,14 @@ The two-sided rated heat exchanger (`R-35`, `D-17`) and two thermally coupled hy
 
 **Exit criteria**
 
-- [ ] **The substation sizes to 39 plates and a 4.90 K approach**, and its ε-NTU and LMTD routes agree
+- [x] **The substation sizes to 39 plates and a 4.90 K approach**, and its ε-NTU and LMTD routes agree
       on UA = 12.07 kW/K to within rounding — two formulations sharing no code, which is what makes it
-      a validation rather than a regression test.
-- [ ] The substation solves as **two hydraulic circuits** with two pressure datums, one stated and one
-      auto-picked, and produces no `FS2213`.
+      a validation rather than a regression test. `P4.1`, 2026-09-15: 12.071 kW/K by both routes on
+      the design point and again at the solved state; 39 plates and 4.9 K with `plate_area=0.1`
+      stated (`24`'s criterion says how the shipped sample differs).
+- [x] The substation solves as **two hydraulic circuits** with two pressure datums, one stated and one
+      auto-picked, and produces no `FS2213`. Converges in two Newton iterations and two sizing passes
+      on `01`'s figures (`RatedExchangerSolveTests`); the picked datum is the pump suction (`D-98`).
 - [ ] The substation's exchanger is tagged into exactly one circuit — the one on its enthalpy-losing
       side — and a test asserts the tag does not change when the two circuit blocks are swapped in
       the source, since declaration order must not renumber equipment (`D-36`).
@@ -231,10 +234,12 @@ The two-sided rated heat exchanger (`R-35`, `D-17`) and two thermally coupled hy
       rule is computed from the heat-transfer edge with no layout input of any kind (`D-36`, `D-03`).
 - [ ] A one-sided `heat_exchanger` behaves exactly as it did before `D-17` on both other demo scripts —
       the rated model must not change a duty-mode answer.
-- [ ] A duty above what the inlet temperatures allow reports `FS2111` naming the thermodynamic maximum,
-      rather than sizing an enormous exchanger.
-- [ ] `FS4008` fires on a design below the minimum approach. It was allocated in M1 and dead until now;
-      an allocated-but-unreachable code is a specification that never got finished.
+- [x] A duty above what the inlet temperatures allow reports `FS2111` naming the thermodynamic maximum,
+      rather than sizing an enormous exchanger. `ThermalSizerTests.FS2111_…`.
+- [x] `FS4008` fires on a design below the minimum approach. It was allocated in M1 and dead until now;
+      an allocated-but-unreachable code is a specification that never got finished. Live in
+      `DesignDiagnostics`, raised by `ThermalSizer`, carried to the solve's diagnostics by
+      `OuterLoop.Apply` (`RatedExchangerSolveTests.FS4008_…`).
 - [ ] An under-determined circuit is reported as such, not solved to garbage; a closed loop with no
       stated pressure is *not* one of those — it gets an auto-picked datum and solves (`FS2201`). A
       closed loop with no stated *temperature* is, and reports `FS2211` (`D-65`): a pressure datum can
