@@ -374,6 +374,16 @@ the source") checkable at all.
 balance depends on it. A test asserts the solved state is identical with ownership forced either way,
 because an ownership rule that leaked into the physics would make a drawing convention change results.
 
+**Where it is computed (`P4.3`).** In the binder, as the step before tags: `BindingRun.ResolveOwnership`
+walks each side's ports through inferred nodes to the first declared component and takes its circuit,
+reads the losing side from the duty's sign (a role word carries it, `D-91`) or from whichever side's
+stated terminals drop, and rewrites `ComponentSymbol.CircuitName` — which is what the tag, the graph's
+`CircuitOf` and the layout hints then read. The "heat-transfer edge" `25` builds for thermal staging
+is the same information, read before the graph exists rather than from it, because a tag is a binder
+product and the binder runs on every keystroke whether or not anything lowers. The fallbacks are as
+tabled, with one precision: a side wired to nothing is a boundary *profile* (Rated mode), so the
+declaring circuit keeps the component; `FS2216` is raised from the binder, anchored on the
+declaration.
 ### Hydraulically separate, thermally coupled
 
 A rated heat exchanger joins two streams that never mix, so a circuit containing one has **more than

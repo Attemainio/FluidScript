@@ -227,26 +227,38 @@ The two-sided rated heat exchanger (`R-35`, `D-17`) and two thermally coupled hy
 - [x] The substation solves as **two hydraulic circuits** with two pressure datums, one stated and one
       auto-picked, and produces no `FS2213`. Converges in two Newton iterations and two sizing passes
       on `01`'s figures (`RatedExchangerSolveTests`); the picked datum is the pump suction (`D-98`).
-- [ ] The substation's exchanger is tagged into exactly one circuit — the one on its enthalpy-losing
+- [x] The substation's exchanger is tagged into exactly one circuit — the one on its enthalpy-losing
       side — and a test asserts the tag does not change when the two circuit blocks are swapped in
-      the source, since declaration order must not renumber equipment (`D-36`).
+      the source, since declaration order must not renumber equipment (`D-36`). `P4.3`, 2026-09-15:
+      `OwnershipTests.SwappingTheCircuitBlocksMovesNoTag` and
+      `.TheExchangerBelongsToTheCircuitLosingEnthalpyWhicheverBlockDeclaresIt` — `400HE01` from
+      either block, in either order.
 - [ ] A heat pump cooling circuit 400 and heating circuit 100 tags as `400HP01`, not `100HP01`; the
       rule is computed from the heat-transfer edge with no layout input of any kind (`D-36`, `D-03`).
-- [ ] A one-sided `heat_exchanger` behaves exactly as it did before `D-17` on both other demo scripts —
-      the rated model must not change a duty-mode answer.
+      **The rule is met; the kind is not built.** `BindingRun.ResolveOwnership` reads the duty's sign
+      and the stated terminals — no geometry — for any kind with `in2`/`out2`, and a `chiller` between
+      400 and 100 tags `100HE01` (`OwnershipTests.AConsumerOnSideOneIsOwnedByTheCircuitOnSideOne`).
+      There is no `heat_pump` kind yet (`D-80`, M4), so `400HP01` itself cannot be asserted.
+- [x] A one-sided `heat_exchanger` behaves exactly as it did before `D-17` on both other demo scripts —
+      the rated model must not change a duty-mode answer. `CorpusStatusTests` and the figure tests in
+      `OuterLoopTests` are unchanged by `P4.1`; only the `FS2201` datum text moved (`D-98`).
 - [x] A duty above what the inlet temperatures allow reports `FS2111` naming the thermodynamic maximum,
       rather than sizing an enormous exchanger. `ThermalSizerTests.FS2111_…`.
 - [x] `FS4008` fires on a design below the minimum approach. It was allocated in M1 and dead until now;
       an allocated-but-unreachable code is a specification that never got finished. Live in
       `DesignDiagnostics`, raised by `ThermalSizer`, carried to the solve's diagnostics by
       `OuterLoop.Apply` (`RatedExchangerSolveTests.FS4008_…`).
-- [ ] An under-determined circuit is reported as such, not solved to garbage; a closed loop with no
+- [x] An under-determined circuit is reported as such, not solved to garbage; a closed loop with no
       stated pressure is *not* one of those — it gets an auto-picked datum and solves (`FS2201`). A
       closed loop with no stated *temperature* is, and reports `FS2211` (`D-65`): a pressure datum can
-      be picked and a temperature datum cannot.
-- [ ] A closed circuit whose duties do not sum to zero reports `FS2203` **while counting square**, and
+      be picked and a temperature datum cannot. `WellPosednessTests.AClosedLoopWithNoStatedPressurePicksADatumAndSolves`,
+      `.AClosedCircuitWithNoTemperatureAnywhereIsUnderSpecified` (excess −1, `FS2211` naming the node).
+      Built in P3.4c; ticked at M2b's close, 2026-09-15.
+- [x] A closed circuit whose duties do not sum to zero reports `FS2203` **while counting square**, and
       a boundary with no counterpart reports `FS2204`. Both are consistency rather than squareness,
       and a test that reaches them through an unbalanced count is testing the wrong thing.
+      `WellPosednessTests.AClosedCircuitWhoseHeatDoesNotBalanceIsReported` asserts excess 0 beside the
+      code; `.ASupplyPairedWithAReturnIsNotReported` the same for `FS2204`.
 
 The "hand-checked numbers" phrasing is deliberate: a test asserting the solver's own output is a
 regression test, not a validation test, and both are needed.

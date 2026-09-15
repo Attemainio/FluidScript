@@ -227,4 +227,70 @@ public sealed class RatedExchangerSolveTests
         Assert.Equal(0, posedness.Counting.Excess);
         Assert.Equal(["LOAD.dt"], posedness.Counting.Constraints.Select(static c => c.Label).ToArray());
     }
+
+    // ---- ownership never reaches the physics (D-36, 23) ------------------------------------------------
+
+    /// <summary>The substation as two circuit blocks, with HX1's declaration placed by the caller.</summary>
+    private static string TwoCircuits(bool exchangerInDistrict)
+    {
+        const string exchanger = "HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300";
+
+        return $"""
+            fluidscript 1
+            circuit district 400
+            fluid water
+
+            NPS supply t=85 p=600
+            NPR return p=350
+            PCV valve
+            PP  pipe length=12 dn=25
+            {(exchangerInDistrict ? exchanger : string.Empty)}
+
+            connections
+            NPS - PCV - PP - HX1.in2
+            HX1.out2 - NPR
+
+            circuit heating 100
+            fluid water
+
+            SP   pump
+            SS   pipe length=30 dn=32
+            SR   pipe length=30 dn=32
+            LOAD heat_exchanger power=-150 dt=20
+            {(exchangerInDistrict ? string.Empty : exchanger)}
+
+            connections
+            HX1.out - SS - NSUP
+            NSUP - LOAD - NRET
+            NRET - SR - SP - HX1.in
+
+            """;
+    }
+
+    [Fact]
+    public async Task TheSolvedStateIsIdenticalWhicheverCircuitDeclaresTheExchanger()
+    {
+        // 23: ownership is a tagging and grouping question, never a solver one. The exchanger is owned by
+        // the district either way (D-36), and the solve must not care where its line sits -- no equation,
+        // unknown, datum or balance reads a circuit name.
+        var district = await RunAsync(TwoCircuits(exchangerInDistrict: true), "district");
+        var heating = await RunAsync(TwoCircuits(exchangerInDistrict: false), "heating");
+
+        Assert.True(district.Solve.Converged, $"stopped at {district.Solve.Termination}: {district}");
+        Assert.True(heating.Solve.Converged, $"stopped at {heating.Solve.Termination}: {heating}");
+        Assert.Equal("district", district.Graph.CircuitOf["HX1"]);
+        Assert.Equal("district", heating.Graph.CircuitOf["HX1"]);
+
+        var a = Read(district);
+        var b = Read(heating);
+
+        foreach (var node in (string[])["NSUP", "NRET", "NPR"])
+        {
+            Assert.Equal(a.Celsius(node), b.Celsius(node), 1e-6);
+        }
+
+        Assert.Equal(a.Flow("NPS->NPR"), b.Flow("NPS->NPR"), 1e-9);
+        Assert.Equal(a.Parameter("PCV", "PCV.kv"), b.Parameter("PCV", "PCV.kv"), 1e-9);
+        Assert.Equal(ReferenceNumbers.Substation.RequiredUa, district.Sizes.For("HX1", "ua")!.Value, 1.0);
+    }
 }

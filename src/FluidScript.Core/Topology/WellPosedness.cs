@@ -78,7 +78,6 @@ public static class WellPosedness
         ReportDriverlessLoops(graph, diagnostics);
         ReportStates(graph, diagnostics);
         ReportStaticHead(graph, hydraulics, diagnostics);
-        ReportOwnership(graph, hydraulics, diagnostics);
         ReportClosure(graph, hydraulics, diagnostics);
         ReportBoundaries(graph, hydraulics, diagnostics);
 
@@ -1380,55 +1379,6 @@ public static class WellPosedness
         }
 
         return string.Join(" and ", parts);
-    }
-
-    /// <summary>Reports a two-sided component whose owning circuit is not read off its heat direction.</summary>
-    /// <remarks>
-    /// <c>D-36</c>: the owner is the circuit on the side <em>losing</em> nominal enthalpy. Ownership is a
-    /// tagging and grouping question and never a solver one — no equation, unknown, datum or balance
-    /// depends on it — so the fallback of the lower circuit number is safe as well as deterministic.
-    /// </remarks>
-    private static void ReportOwnership(
-        CircuitGraph graph,
-        ImmutableArray<HydraulicComponent> hydraulics,
-        ImmutableArray<Diagnostic>.Builder diagnostics)
-    {
-        foreach (var element in graph.Components)
-        {
-            var sides = hydraulics.Where(hydraulic => hydraulic.Elements.Contains(element)).ToArray();
-
-            if (sides.Length < 2)
-            {
-                continue;
-            }
-
-            var one = HydraulicPartition.Stated(element, "in");
-            var oneOut = HydraulicPartition.Stated(element, "out");
-            var two = HydraulicPartition.Stated(element, "in2");
-            var twoOut = HydraulicPartition.Stated(element, "out2");
-
-            // A determinate direction needs both sides' terminal temperatures: without them there is
-            // nothing to read a losing side off, and D-31's "the leftmost circuit owns it" is a layout
-            // outcome that D-03 forbids Core from computing.
-            if (one is { } a && oneOut is { } b && two is { } c && twoOut is { } d && (b - a) * (d - c) < 0)
-            {
-                continue;
-            }
-
-            var circuits = sides
-                .Select(side => graph.CircuitOf.GetValueOrDefault(element.Name, string.Empty))
-                .ToArray();
-
-            diagnostics.Add(Diagnostic.Create(
-                TopologyDiagnostics.AmbiguousOwnership,
-                span: null,
-                new DiagnosticArgument("component", element.Name),
-                new DiagnosticArgument("a", Name(graph, sides[0])),
-                new DiagnosticArgument("b", Name(graph, sides[1])),
-                new DiagnosticArgument("chosen", circuits[0]))
-                with
-            { ComponentName = element.Name });
-        }
     }
 
     /// <summary>A hydraulic component's reportable name: the circuit its first element belongs to.</summary>

@@ -725,11 +725,12 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
-    public void ATwoSidedComponentWithNoHeatDirectionSaysWhichCircuitItLandedIn()
+    public void ATwoSidedComponentInOneCircuitIsTwoHydraulicsAndNoOwnershipQuestion()
     {
-        // D-36: the owner is the circuit on the side losing nominal enthalpy. With no terminal
-        // temperatures there is nothing to read that off, and the fallback is reported rather than
-        // silent because the diagram groups by circuit.
+        // D-36's second fallback: both sides in one circuit is that circuit, with nothing to report.
+        // Ownership itself is the binder's (`OwnershipTests`); what the partition owes is the two
+        // hydraulics that make it a question at all. Until P4.3 this circuit raised FS2216 from here,
+        // for a fallback the check did not apply.
         var result = Check("""
             fluidscript 1
             circuit pair
@@ -746,9 +747,7 @@ public sealed class WellPosednessTests
             HX1.out2 - NB1
             """);
 
-        var reported = result.Diagnostics.Single(static d => d.Code == "FS2216");
-
-        Assert.Equal("HX1", reported.ComponentName);
+        Assert.DoesNotContain("FS2216", Codes(result));
         Assert.Equal(2, result.Hydraulics.Length);
     }
 

@@ -54,8 +54,10 @@ would be filled with nothing.
 
 ## Where the project stands
 
-> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is in progress: P4.1 (`c275bd9`)
-> and P4.2 shipped 2026-09-15; P4.3 remains.** The substation converges on `01`'s figures —
+> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — shipped 2026-09-15: P4.1
+> (`c275bd9`), P4.2 (`bdf78f6`), P4.3.** Every M2b exit criterion in `05` is ticked except one that
+> cannot be: `400HP01` needs a `heat_pump` kind, which is `D-80`'s and M4's. The ownership rule it
+> tests is built and checked on a `chiller`. Whether M2b exits on that is the user's call. The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
 > `ε·Cmin·(T_in2 − T_in1)` from the port states, its design point pins a side's flow where nothing
@@ -97,7 +99,7 @@ that test rather than quietly improving.
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
-| P4 | M2b | 3 | **In progress** — P4.1 and P4.2 shipped 2026-09-15; P4.3 remains | — |
+| P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4 | 2026-09-15 |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
@@ -206,7 +208,21 @@ P3 is where tiers 20 and 30 were largely written and largely corrected: 49 of ti
 |---|---|---|---|
 | P4.1 | The rated two-sided exchanger: ε-NTU as the residual route, LMTD as the reported one (`D-97`, `D-98`, `D-99`) | `c275bd9` | Shipped 2026-09-15 |
 | P4.2 | Two coupled hydraulic graphs, two pressure datums | (with P4.1's follow-up) | **Shipped 2026-09-15, as a verification.** The partition, the two datums and `D-17`'s `FS2213` exemption were built in P3.4 and P4.1 solved through them; what remained was `23`'s three unticked substation criteria, one of which had no test — a coupled exchanger on two `Branch.Path`s, no junction, no mass balance. Added and ticked. |
-| P4.3 | `D-36` circuit ownership from the enthalpy-losing side | — | Not started |
+| P4.3 | `D-36` circuit ownership from the enthalpy-losing side | (this commit) | Shipped 2026-09-15 |
+
+**P4.3 is a binder step, not a graph one.** `D-36` and `25` describe ownership as read off the
+heat-transfer edge the layout hints build, but a tag is a binder product computed on every keystroke,
+before anything lowers. `BindingRun.ResolveOwnership` runs after `Validate` and before `AssignTags`:
+it walks each side's ports through inferred nodes to the first declared component and takes its
+circuit, reads the losing side from the duty's sign (role words carry it, `D-91`) or from whichever
+side's stated terminals drop, and rewrites `ComponentSymbol.CircuitName` — so the tag, the graph's
+`CircuitOf` and the layout hints all agree without a second traversal. The substation as two blocks
+tags `HX1` `400HE01` from either block in either order; `LOAD` stays `100HE01`; a `chiller` between
+the same circuits is `100HE01`; two circuits with no readable direction fall back to the lower number
+with `FS2216` anchored on the declaration. `WellPosedness.ReportOwnership`, which raised `FS2216`
+for a fallback it never applied and against the wrong fallback order (both sides in one circuit is
+not ambiguous), is gone. `RatedExchangerSolveTests.TheSolvedStateIsIdenticalWhicheverCircuitDeclaresTheExchanger`
+is `23`'s "ownership never reaches the physics" test. Nine new tests, 1604/0/4.
 
 **P4.1 was four changes wearing one defect.** `S-32` was filed as "nothing computes the side-2
 flow", a registry group and an `ImpliedFlow` away. Measured, that would have seeded the right flow
@@ -299,8 +315,9 @@ unassessed, not clean.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P4.3 — `D-36` circuit ownership** from the enthalpy-losing side, with the swap test `05` asks
-   for; it is the last M2b package. Behind them, `C-78`
+4. **P5 — M3, the usable static product** (`08`), once the user calls M2b exited. Before it, two
+   things `P4` left: `C-78` (the plate catalogue's shopping list) and `22`'s unticked crossover
+   criterion (a solve driven across `C₁ = C₂`). Behind them, `C-78`
    is the plate catalogue's shopping list — a cited `U`, a plate step, the `lamella` correlation,
    `FS2311` — and `22`'s unticked crossover criterion wants a solve driven across `C₁ = C₂`, not
    just the duty relation stepped over it. One follow-on from `C-75` still stands: a solved Kv has
@@ -314,7 +331,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1595 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1604 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
