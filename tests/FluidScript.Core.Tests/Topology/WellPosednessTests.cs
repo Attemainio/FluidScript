@@ -246,6 +246,21 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void TheCoupledExchangerLiesOnTwoBranchesAndIsNeitherAJunctionNorABalance()
+    {
+        // 23's criterion for D-17, and the one that separates an exchanger from a three-way valve: both have
+        // more than two ports, but the exchanger's are two groups of two, so it is interior to a branch of
+        // each side, appears in both paths, and carries no mass balance -- the substation's two balances
+        // are NPS's and NPR's, the primary's boundaries.
+        var graph = GraphFixture.Lower(Substation).Graph;
+        var exchanger = graph.Components.OfType<HeatExchanger>().Single(static x => x.Name == "HX1");
+
+        Assert.DoesNotContain(exchanger, graph.JunctionElements);
+        Assert.Equal(2, graph.Branches.Count(branch => branch.Path.Contains(exchanger)));
+        Assert.Equal(2, WellPosedness.Check(graph).Counting.MassBalances);
+    }
+
+    [Fact]
     public void ACoupledExchangersTerminalTemperaturesAreADesignPointNotConstraints()
     {
         // D-19: once both sides are wired, in/out/in2/out2 are what 24 sizes UA from. Counting them as

@@ -54,8 +54,8 @@ would be filled with nothing.
 
 ## Where the project stands
 
-> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is in progress: P4.1 shipped
-> 2026-09-15, uncommitted at the time of writing.** The substation converges on `01`'s figures —
+> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — is in progress: P4.1 (`c275bd9`)
+> and P4.2 shipped 2026-09-15; P4.3 remains.** The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
 > `ε·Cmin·(T_in2 − T_in1)` from the port states, its design point pins a side's flow where nothing
@@ -97,7 +97,7 @@ that test rather than quietly improving.
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
-| P4 | M2b | 3 | **In progress** — P4.1 shipped 2026-09-15 | — |
+| P4 | M2b | 3 | **In progress** — P4.1 and P4.2 shipped 2026-09-15; P4.3 remains | — |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
@@ -204,8 +204,8 @@ P3 is where tiers 20 and 30 were largely written and largely corrected: 49 of ti
 
 | # | Package | Commit(s) | State |
 |---|---|---|---|
-| P4.1 | The rated two-sided exchanger: ε-NTU as the residual route, LMTD as the reported one (`D-97`, `D-98`, `D-99`) | uncommitted | Shipped 2026-09-15 |
-| P4.2 | Two coupled hydraulic graphs, two pressure datums | — | **Its `05` criterion is already ticked** — the substation's partition, `FS2201` on the picked side and no `FS2213` were `D-17`'s in P3.4, and P4.1 solved through them. Whether anything remains for a package is the user's call; nothing in `08`'s description is unbuilt |
+| P4.1 | The rated two-sided exchanger: ε-NTU as the residual route, LMTD as the reported one (`D-97`, `D-98`, `D-99`) | `c275bd9` | Shipped 2026-09-15 |
+| P4.2 | Two coupled hydraulic graphs, two pressure datums | (with P4.1's follow-up) | **Shipped 2026-09-15, as a verification.** The partition, the two datums and `D-17`'s `FS2213` exemption were built in P3.4 and P4.1 solved through them; what remained was `23`'s three unticked substation criteria, one of which had no test — a coupled exchanger on two `Branch.Path`s, no junction, no mass balance. Added and ticked. |
 | P4.3 | `D-36` circuit ownership from the enthalpy-losing side | — | Not started |
 
 **P4.1 was four changes wearing one defect.** `S-32` was filed as "nothing computes the side-2
@@ -299,8 +299,8 @@ unassessed, not clean.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **Commit P4.1**, then **P4.3 — `D-36` circuit ownership** from the enthalpy-losing side, with the
-   swap test `05` asks for. P4.2's criterion is already met (see the P4 table). Behind them, `C-78`
+4. **P4.3 — `D-36` circuit ownership** from the enthalpy-losing side, with the swap test `05` asks
+   for; it is the last M2b package. Behind them, `C-78`
    is the plate catalogue's shopping list — a cited `U`, a plate step, the `lamella` correlation,
    `FS2311` — and `22`'s unticked crossover criterion wants a solve driven across `C₁ = C₂`, not
    just the duty relation stepped over it. One follow-on from `C-75` still stands: a solved Kv has
@@ -314,7 +314,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1594 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1595 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

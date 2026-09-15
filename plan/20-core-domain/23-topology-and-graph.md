@@ -826,14 +826,18 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 - [ ] A pipe with `nodes=4` produces four internal thermodynamic graph nodes and five hydraulic
       sub-pipes; the four cells each own one quarter of pipe volume, the five sub-pipe lengths sum to
       the declared length, and one `ComponentGroup` contains all nine expanded child ids.
-- [ ] The **substation** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) lowers to
+- [x] The **substation** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) lowers to
       two hydraulic components, gets two pressure datums — one stated, one auto-picked with `FS2201` —
-      and produces **no** `FS2213`.
-- [ ] A rated heat exchanger is **not** a junction element, appears in two `Branch.Path`s, and
+      and produces **no** `FS2213`. `WellPosednessTests.TheSubstationHasTwoHydraulicComponentsOneStatedDatumAndOnePicked`,
+      `.TheSubstationIsNotReportedAsTwoIsolatedSubgraphs`; the picked datum is `SR__SP` (`D-98`).
+- [x] A rated heat exchanger is **not** a junction element, appears in two `Branch.Path`s, and
       contributes no mass balance. A three-way valve, with the same "more than two ports", is a
       junction element — the flow-group test separates them and a port-count test does not.
-- [ ] Removing the exchanger from the substation leaves two genuinely isolated subgraphs and **does**
+      `LoweringTests.AThreeWayValveIsAJunctionAndAFourPortExchangerIsNot`,
+      `WellPosednessTests.TheCoupledExchangerLiesOnTwoBranchesAndIsNeitherAJunctionNorABalance` (P4.2).
+- [x] Removing the exchanger from the substation leaves two genuinely isolated subgraphs and **does**
       produce `FS2213`, so the check still catches what it was written for.
+      `WellPosednessTests.RemovingTheExchangerLeavesTwoGenuinelyIsolatedSubgraphs`.
 - [ ] The storage header materializes four tank ports, decomposes into four branches meeting at `T1`,
       and assembles one tank mass balance plus three pressure equalities. No hydrostatic term appears.
       Every one of its four boundaries states a flow, so it has no unknown external flux and one of
