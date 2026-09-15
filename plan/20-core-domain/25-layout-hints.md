@@ -238,7 +238,7 @@ public sealed record NonFlowElementHint
     public required string ComponentId { get; init; }
     public required string PlacementAnchorId { get; init; }
     public required string MeasurementTargetId { get; init; }
-    public required string ActuationTargetId { get; init; }
+    public string? ActuationTargetId { get; init; }   // null for an instrument: it drives nothing
     public required int NavigationOrder { get; init; }
 }
 ```
@@ -277,6 +277,29 @@ Thermal staging is computed on a separate **thermal group graph** (`D-31`):
    component id. With no classified vertex, put the entire connected component in one rank-0
    `Neutral` stage. This prevents an undirected shortcut through a return branch from moving a
    source-side boundary to a consumer stage.
+
+**How P5.1 read steps 1–5 (implementation precision, 2026-09-15).** Three places where the text
+above admits more than one reading, and what shipped:
+
+- *Loops are banded, not collapsed.* A cycle-basis loop is not always the small recirculation loop:
+  on the distribution header the basis holds four loops and two of them run through both consumers'
+  headers. One vertex spanning two circuits could carry neither's role, so step 1 collapses pipe
+  expansions only, classifies per component, and then gives a loop's non-pivot members the highest
+  rank among them (a recirculation loop off an exchanger sits wholly on its cold side).
+- *Classification is relative to a pivot.* A pivot is an extended exchanger — one with its second
+  side wired, or one that can be rated (`ua`, `area`, `u`) — or a tank. What reaches a pivot's losing
+  or charging side without crossing another pivot is `Source`; what its gaining or discharging side
+  reaches is `Consumer`; a vertex both reach, or neither, is not classified by topology. With no
+  pivot in a part nothing is, which is what makes the cooling loop one `Neutral` stage even though it
+  has a supply and a return boundary: the "boundary classified from nominal connection direction"
+  sentence in step 3 is **not** applied on its own, because every open loop would then split into a
+  source and a consumer either side of nothing.
+- *A role is used only where it is `Source` or `Consumer`.* A registered `Neutral` role (`heating`,
+  `cooling`, `distribution`) classifies nothing and is never contradicted by a duty sign: whether a
+  positive duty is a source or a load depends on which of those two the circuit is, and the role is
+  what says so. `FS2403` therefore fires only for a `Source`/`Consumer` role whose members' net stated
+  duty has the other sign. This is project reasoning; the renderer work in P5.3 is where it gets
+  tested against real diagrams, and the open question below records what it leaves undecided.
 
 **Ownership of a two-sided vertex follows `D-36`, and it is read off the same edge.** Step 2 already
 adds a directed heat-transfer edge from the side losing nominal enthalpy to the side gaining it; the
@@ -369,7 +392,10 @@ document.
 8. Every component belongs to exactly one thermal stage. Stage ranks never decrease along a nominal
    heat-transfer edge; parallel source or consumer groups may share a rank.
 9. Every rendered non-flow component appears exactly once in `NonFlowElements`; its placement anchor
-   is its actuation target's component, and `NavigationOrder` is unique after the anchored component.
+   is its actuation target's component (its measured node, for an instrument), and `NavigationOrder`
+   is its position in one tab order over flow components and non-flow elements together: a flow
+   component sits at its `Order` index plus the elements anchored before it, and each element follows
+   its anchor immediately. Unique across the scene.
 10. Every component in the graph appears exactly once in `CircuitOf`, and its value names a circuit in
     `Circuits`.
 11. `DistributionGroups` are disjoint; every circuit appears in at most one, a group's
@@ -447,7 +473,7 @@ adds only the hints derived from them.
 
 ```
 Circuits:
-  { Name: heating,   Number: 100, Role: null,     ParentCircuit: null }
+  { Name: heating,   Number: 100, Role: heating (Neutral), ParentCircuit: null }
   { Name: AHU,       Number: 101, Role: ahu,      ParentCircuit: heating,
     SupplyAnchorId: N3, ReturnAnchorId: N5 }
   { Name: radiators, Number: 102, Role: radiator, ParentCircuit: heating,
@@ -462,9 +488,33 @@ CircuitOf:
   TV_RAD → radiators · PU_RAD → radiators
 
 ThermalStages:
-  0 Source   [heating's boundary]
-  1 Consumer [AHU, radiators]      ← both roles resolve to Consumer, so they share a rank
+  0 Consumer [AHU's members, radiators' members]   ← both roles resolve to Consumer, so they share a rank
+  0 Neutral  [HS1, N1, N3, N4, N5, N6]             ← `heating` is a registered Neutral role, and HS1 is not extended
+
+BranchShapes:
+  AHU       → [pipe, three_way_valve, pump, heat_exchanger, pipe]
+  radiators → [pipe, three_way_valve, pump, heat_exchanger, pipe]
 ```
+
+The parent ring has no boundary — `01`'s sample heats the return header directly through `HS1` — and
+`heating` is a Neutral role, so the ring is not a `Source` stage: it shares rank 0 with the branches
+it feeds, and `DistributionGroups` is what tells the renderer to draw it as their header. An earlier
+draft of this example showed `0 Source [heating's boundary]` for a sample that had one.
+
+**The attachment is read off the graph when the script wrote none.** `supply`/`return` lines bind
+`ParentCircuit` and the two anchors (`D-33`), but a mixing branch has to be written as connections
+(`F-16`), and the header sample is. A circuit with no stated parent takes the one it touches: its
+components connect to another circuit's *nodes* and to no other circuit's, and that circuit does not
+in turn touch only this one. Touching through a node and not through a component is what separates
+hanging off a header from being coupled across an exchanger; touching one circuit rather than two is
+what separates a branch from a bridge. The supply anchor is the parent node feeding one of the
+circuit's inlets, the return anchor the one fed by one of its outlets, and connection order decides
+where port roles cannot (a three-way valve's ports are all bidirectional).
+
+`BranchShapes` is the depth-first walk from the supply anchor inside the circuit, ports in declaration
+order, listing the *kinds* (`load` is a spelling of `heat_exchanger`) of declared non-node components
+as they are met. Not the shortest path: on a mixing branch the shortest walk from supply to return
+goes through the valve's recirculation port and misses the pump and the coil.
 
 Three things this fixture pins that the storage header does not:
 
@@ -498,41 +548,49 @@ scaffolding the language put in.
 
 ## Acceptance criteria
 
-- [ ] The worked example's `Order`, `Rank`, `Loops`, `LoopOrientations`, and `Inferred` are reproduced exactly, including
+- [x] The worked example's `Order`, `Rank`, `Loops`, `LoopOrientations`, and `Inferred` are reproduced exactly, including
       the **four** inferred components of ten — `N1` and `N3` are declared boundary nodes, not I1
       inferences ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)).
-- [ ] A test asserts no field of `LayoutHints` has a length, position, or pixel dimension.
-- [ ] Permuting independent statements in a sample leaves `Order` unchanged.
-- [ ] Every non-loop component in every sample has a `Rank`; no loop member does.
-- [ ] A pipe with `nodes=4` produces exactly one group containing the four internal-node ids and five
+- [x] A test asserts no field of `LayoutHints` has a length, position, or pixel dimension.
+- [x] Permuting independent statements in a sample leaves `Order` unchanged.
+- [x] Every non-loop component in every sample has a `Rank`; no loop member does.
+- [x] A pipe with `nodes=4` produces exactly one group containing the four internal-node ids and five
       hydraulic sub-pipe ids; the declared logical pipe id remains the group's stable parent id.
 - [ ] Reverse flow in a bypass produces `Reverse`, and the canvas draws the arrow reversed.
 - [ ] The renderer's eight-step consumption above runs on the payload with no additional graph query.
-- [ ] The storage header produces the three thermal stages above. `S1`/`S2` share the left rank,
+- [x] The storage header produces the three thermal stages above. `S1`/`S2` share the left rank,
       `T1` is central, and both network boundaries share the right rank.
-- [ ] The cooling loop becomes one rank-0 Neutral stage; the substation places its source-side circuit
+- [x] The cooling loop becomes one rank-0 Neutral stage; the substation places its source-side circuit
       before `HX1`'s Conversion stage and its heating circuit after it; the result is byte-identical
       across 100 builds.
-- [ ] A demand-step controller has one `NonFlowElementHint`, anchored to `3WV`, with its measurement
+- [x] A demand-step controller has one `NonFlowElementHint`, anchored to `3WV`, with its measurement
       target at `N2` and a navigation position immediately after `3WV`.
 - [ ] Reversing a solved flow or duty in a transient changes `Flow` but leaves `ThermalStages`
       byte-identical to the run snapshot.
-- [ ] The distribution header produces one `DistributionGroup` with both subcircuits as members, and
+- [x] The distribution header produces one `DistributionGroup` with both subcircuits as members, and
       `CircuitOf` reports each pump's owning circuit.
 - [ ] Declaring `PU1` in two circuits produces exactly one `FS1501`, not two silently-merged components.
-- [ ] Both subcircuits share a `Consumer` stage rank; neither is ranked upstream of the other.
-- [ ] A circuit whose role says `radiator` but whose duty sign says source classifies as `Source` and
+- [x] Both subcircuits share a `Consumer` stage rank; neither is ranked upstream of the other.
+- [x] A circuit whose role says `radiator` but whose duty sign says source classifies as `Source` and
       emits `FS2403` — the name never overrules the physics.
-- [ ] The substation's exchanger appears in `CircuitOf` under the circuit on its enthalpy-losing side,
+- [x] The substation's exchanger appears in `CircuitOf` under the circuit on its enthalpy-losing side,
       and swapping the two circuit blocks in the source leaves that value unchanged.
-- [ ] A test asserts no field of `LayoutHints` holds a tag, a spacing value, or a mode name — the same
+- [x] A test asserts no field of `LayoutHints` holds a tag, a spacing value, or a mode name — the same
       reflection test that already asserts it holds no dimension.
-- [ ] The distribution header's two subcircuits have equal `BranchShapes` entries; renaming every
+- [x] The distribution header's two subcircuits have equal `BranchShapes` entries; renaming every
       component in one of them leaves the entries equal; inserting a valve in one makes them differ
       (`D-100`).
 
 ## Open questions
 
-None. `Loops` owns loop-member placement, so `Rank` excludes them. Core supplies one deterministic
+One, from P5.1. A registered Neutral role (`heating`) with a positive-duty exchanger in its ring is
+drawn in the same band as the consumers it feeds, because no rule classifies it. Whether the parent
+ring of a distribution header should be a `Source` band on the strength of its duty sign alone — the
+heating-side reading of the sign — is left for P5.3 to decide with a rendered diagram in front of it;
+the derivation's own note explains why the sign is not read without a role to say which way is up.
+
+`Loops` owns loop-member placement, so `Rank` excludes them. Each loop walk starts at the member
+`Order` meets first and runs the way `Order` runs, so which chord the cycle basis closed on cannot
+rotate or reverse it. Core supplies one deterministic
 `LoopOrientation` per loop from flow leaving its first flow driver; the renderer places supply above
 return. These choices prevent pressure-datum changes from rotating a diagram (`D-30`).

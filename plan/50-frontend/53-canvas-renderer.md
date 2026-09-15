@@ -255,6 +255,13 @@ Core supplies each symbol in a normalised unit box with named port anchors (`D-2
 how that box is **oriented and where it sits on a run** is the renderer's, and it is what separates a
 diagram a designer recognises from one that is merely correct.
 
+**The box is what layout sees; the primitives are what the canvas draws** (P5.1, 2026-09-15). Every
+placement, spacing, routing and overlap decision above works on a symbol's rectangular bounding box
+and its port anchors, never on its lines, circles and curves. The primitives inside the box exist for
+the canvas and the layout report's own drawing, and a symbol definition that changes its primitives
+without changing its box or its anchors changes no layout. This is also what keeps the layout report
+(`62`) readable: a component is one line — id, kind, box, anchors — not an inventory of strokes.
+
 | Kind | Default orientation | Why |
 |---|---|---|
 | `heat_exchanger` | **Vertical** — flow enters one end and leaves the other along a vertical run | This is how exchangers are drawn on nearly every P&I diagram: the two sides read as two stacked passes, and a rated exchanger's second side attaches horizontally without crossing anything |

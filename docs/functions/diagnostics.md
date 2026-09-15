@@ -150,6 +150,9 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
 | `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2220` | Error | Topology | '{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa. |
+| `FS2401` | Info | Layout hints | The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum. |
+| `FS2402` | Info | Layout hints | '{group}' has {count} members and will start collapsed; expand it on the canvas to see them. |
+| `FS2403` | Info | Layout hints | '{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn. |
 | `FS2603` | Error | Catalog | No catalogue '{name}'. Available: {list}. |
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |

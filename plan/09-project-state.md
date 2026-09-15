@@ -60,7 +60,8 @@ would be filled with nothing.
 > on a `chiller`. The audit of open defects before `P5.1` closed `C-4` (already met by P4.1),
 > `L-36` (a `13` correction) and `C-67` — the last with `FS2119`, which found seventeen test
 > fixtures and four syntax-tour lines writing a cooling load as a positive neutral duty.
-> **P5 — M3, the usable static product — is next; P5.1 starts now.**
+> **P5 — M3, the usable static product — is in progress: P5.1a (layout hints) shipped 2026-09-15;
+> P5.1b (the model contract) is next.**
 > The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
@@ -249,6 +250,39 @@ is invented (`D-99`), `lamella` is unused, side-2 `dp` stays the duty-mode defau
 step is not applied — all `C-78`, all waiting on `27`'s plate catalogue. 50 new tests; every sample
 in the corpus converged or unchanged; only the `FS2201` text moved on closed loops.
 
+### P5 — M3, the usable static product · in progress
+
+| # | Package | Commit(s) | State |
+|---|---|---|---|
+| P5.1a | `LayoutHints` per `25`, with `BranchShapes` (`D-100`) and `FS2401`–`FS2403` | (this commit) | Shipped 2026-09-15 |
+| P5.1b | `ModelContract` per `26`: wire records, JSON, goldens | — | Next |
+| P5.1c | Symbol definitions per `D-24`; the 200-component payload baseline | — | After 5.1b |
+
+**P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
+lowered graph, its model and the solved branch flows, returning the hints and its three
+informational codes. Every one of `25`'s worked examples is a test: the cooling loop's `Order`,
+`Rank`, one loop walk `[N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV]`, four inferred of ten and one
+Neutral stage; the storage header's `Source [S1, S2] · Storage [T1] · Consumer [RAD_NETWORK,
+AHU_NETWORK]`; the distribution header's one group of two, equal `BranchShapes`
+(`[pipe, three_way_valve, pump, heat_exchanger, pipe]`) that survive renaming and differ on an
+inserted valve; the substation's source side before `HX1` and its heating side after, stable under
+block swap. Three things `25` had to be made precise about while implementing, all written into it:
+loops are *banded* rather than collapsed (the header's cycle basis holds four loops, two of them
+through both consumers); classification is *relative to a pivot* (an extended exchanger or a tank),
+which is why an open loop with no pivot is one Neutral stage rather than a source and a consumer
+either side of nothing; and a registered Neutral role classifies nothing, so `FS2403` fires only for
+a `Source`/`Consumer` role contradicted by its members' duty sign. The header sample's parent ring
+therefore shares rank 0 with its branches — `25`'s example said `Source [heating's boundary]` for a
+sample that has none and is corrected — and whether it should be a Source band on its duty sign
+alone is `25`'s one open question, left for P5.3 to answer with a diagram in front of it. A
+subcircuit written as connections (`F-16`'s mixing branch) gets its parent and anchors read off the
+graph — node contacts with exactly one other circuit, not mutual — because the binder binds them
+only from `supply`/`return` lines. `NavigationOrder` became one tab order over flow components and
+instruments together. Docs: `advanced/how-the-diagram-is-arranged.md` and a role table on
+`circuit.md`. Nineteen tests, 1629/0/4. The user's two addenda to `D-100` — the layout report is
+columnar text like the solve report, not JSON; layout reasons on a bounding box and port anchors,
+strokes are for drawing — are recorded in `62` and `53`. Filed `C-79`: the cycle basis is the solver's, not the drawing's, and on the header every component is a loop member.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -281,10 +315,10 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **44** | |
+| | **45** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -340,7 +374,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1610 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1629 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

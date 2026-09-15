@@ -412,6 +412,13 @@ every fixture to `diagnostics/layout-reports.md`, as `CircuitDiagnostics` writes
 fixture, read the whole report, change only what it supports. It is the reason a session with no
 canvas can look at a layout.
 
+Its form is `SolveExplanation`'s, not JSON (decided with the user, 2026-09-15): aligned columns under
+a heading per section, one line per symbol, route, label and predicate, with names stated once in a
+column header rather than repeated on every row. A symbol's line carries its bounding box and port
+anchors and nothing of its strokes, because the box is all the layout ever reasoned about (`53`);
+the occupancy raster is the one part that is a picture rather than a table. A JSON dump of the same
+scene is several times longer and the reader is a model with a context budget.
+
 #### Metrics, which are trended rather than gated
 
 `SceneMetrics` records per fixture and is committed: `symbolCrossings`, `routeCrossings`,
