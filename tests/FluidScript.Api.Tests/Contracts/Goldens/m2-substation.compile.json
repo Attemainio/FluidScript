@@ -1,0 +1,1494 @@
+{
+  "contractVersion": "2.0",
+  "provenance": {
+    "sourceHash": "sha256:1cffbe795925505786c9c08c30383cbe801b43454bd2680e1a30fa4205491fa0",
+    "languageMajor": 1,
+    "catalog": {
+      "id": "steel_en10255",
+      "version": "2026.1"
+    },
+    "propertyBackend": {
+      "id": "sharp-prop",
+      "version": "1.0.0.0"
+    },
+    "atmosphereKPaAbsolute": 101.325
+  },
+  "style": {
+    "tokens": [],
+    "spacing": null
+  },
+  "circuits": [
+    {
+      "name": "substation",
+      "number": 100,
+      "numberIsExplicit": false,
+      "substance": "water",
+      "mode": "steady",
+      "role": null,
+      "parentCircuit": null,
+      "supplyAnchorId": null,
+      "returnAnchorId": null,
+      "solved": false,
+      "statesOmitted": false
+    }
+  ],
+  "pressureDatums": [
+    "NPS",
+    "SR__SP"
+  ],
+  "components": [
+    {
+      "id": "NPS",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 897,
+        "length": 21
+      },
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "p": {
+          "value": 600,
+          "unit": "kPa",
+          "source": "stated"
+        },
+        "t": {
+          "value": 85,
+          "unit": "°C",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PCV"
+        }
+      ]
+    },
+    {
+      "id": "NPR",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 919,
+        "length": 16
+      },
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "p": {
+          "value": 350,
+          "unit": "kPa",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HX1"
+        }
+      ]
+    },
+    {
+      "id": "PCV",
+      "kind": "valve",
+      "symbolId": "valve.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 936,
+        "length": 9
+      },
+      "circuit": "substation",
+      "tag": "100V01",
+      "parameters": {
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "kv": {
+          "value": 630,
+          "unit": "m3/h",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NPS"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PCV__PP"
+        }
+      ]
+    },
+    {
+      "id": "PP",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 946,
+        "length": 24
+      },
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 12,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "PCV__PP"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PP__HX1"
+        }
+      ]
+    },
+    {
+      "id": "SP",
+      "kind": "pump",
+      "symbolId": "pump.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 1042,
+        "length": 9
+      },
+      "circuit": "substation",
+      "tag": "100PU01",
+      "parameters": {
+        "efficiency": {
+          "value": 0.7,
+          "unit": null,
+          "source": "default",
+          "basis": "a typical wet-rotor circulator"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "margin": {
+          "value": 1,
+          "unit": null,
+          "source": "default",
+          "basis": "size to the computed duty, with no spare"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "SR__SP"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "SP__HX1"
+        }
+      ]
+    },
+    {
+      "id": "SS",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 1052,
+        "length": 25
+      },
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 32,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 30,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "HX1__SS"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NSUP"
+        }
+      ]
+    },
+    {
+      "id": "SR",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 1078,
+        "length": 25
+      },
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 32,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 30,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NRET"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "SR__SP"
+        }
+      ]
+    },
+    {
+      "id": "LOAD",
+      "kind": "heat_exchanger",
+      "mode": "duty",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 1104,
+        "length": 36
+      },
+      "circuit": "substation",
+      "tag": "100HE01",
+      "parameters": {
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "dt": {
+          "value": 20,
+          "unit": "dK",
+          "source": "stated"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 1.79368,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "power": {
+          "value": -150,
+          "unit": "kW",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NSUP"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NRET"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": null
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": null
+        }
+      ]
+    },
+    {
+      "id": "HX1",
+      "kind": "heat_exchanger",
+      "mode": "coupled",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 1212,
+        "length": 63
+      },
+      "circuit": "substation",
+      "tag": "100HE02",
+      "parameters": {
+        "area": {
+          "value": 3.65781,
+          "unit": "m2",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        },
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 1.79368,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "in": {
+          "value": 40,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "in2": {
+          "value": 85,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "out": {
+          "value": 60,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "out2": {
+          "value": 45,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "power": {
+          "value": 150,
+          "unit": "kW",
+          "source": "stated"
+        },
+        "u": {
+          "value": 3300,
+          "unit": null,
+          "source": "stated"
+        },
+        "ua": {
+          "value": 12070.8,
+          "unit": "W/K",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "SP__HX1"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "HX1__SS"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": "PP__HX1"
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": "NPR"
+        }
+      ]
+    },
+    {
+      "id": "NSUP",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "SS"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "LOAD"
+        }
+      ]
+    },
+    {
+      "id": "NRET",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "LOAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "SR"
+        }
+      ]
+    },
+    {
+      "id": "PCV__PP",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PCV"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PP"
+        }
+      ]
+    },
+    {
+      "id": "PP__HX1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PP"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HX1"
+        }
+      ]
+    },
+    {
+      "id": "HX1__SS",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HX1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "SS"
+        }
+      ]
+    },
+    {
+      "id": "SR__SP",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "SR"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "SP"
+        }
+      ]
+    },
+    {
+      "id": "SP__HX1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {},
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "SP"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HX1"
+        }
+      ]
+    }
+  ],
+  "symbols": [
+    {
+      "id": "node.junction",
+      "viewBox": [
+        -0.15,
+        -0.15,
+        0.3,
+        0.3
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.35
+      ]
+    },
+    {
+      "id": "pipe.standard",
+      "viewBox": [
+        -0.5,
+        -0.1,
+        1,
+        0.2
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.3
+      ]
+    },
+    {
+      "id": "heat_exchanger.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ],
+        "in2": [
+          0,
+          -0.5
+        ],
+        "out2": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.3,
+        1,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.45
+      ]
+    },
+    {
+      "id": "three_way_valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "ab": [
+          -0.5,
+          0
+        ],
+        "a": [
+          0,
+          -0.5
+        ],
+        "b": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "pump.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "tank.stratified",
+      "viewBox": [
+        -0.5,
+        -0.8,
+        1,
+        1.6
+      ],
+      "primitives": [],
+      "portAnchors": {},
+      "indexedPortAnchors": [
+        {
+          "prefix": "in",
+          "side": "west",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        },
+        {
+          "prefix": "out",
+          "side": "east",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        }
+      ],
+      "labelAnchor": [
+        0,
+        -0.95
+      ]
+    },
+    {
+      "id": "t_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "p_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flow_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "controller.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c0",
+      "from": {
+        "component": "NPS",
+        "port": null
+      },
+      "to": {
+        "component": "PCV",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c1",
+      "from": {
+        "component": "PCV",
+        "port": "out"
+      },
+      "to": {
+        "component": "PCV__PP",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c2",
+      "from": {
+        "component": "PCV__PP",
+        "port": null
+      },
+      "to": {
+        "component": "PP",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c3",
+      "from": {
+        "component": "PP",
+        "port": "out"
+      },
+      "to": {
+        "component": "PP__HX1",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c4",
+      "from": {
+        "component": "PP__HX1",
+        "port": null
+      },
+      "to": {
+        "component": "HX1",
+        "port": "in2"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c5",
+      "from": {
+        "component": "HX1",
+        "port": "out2"
+      },
+      "to": {
+        "component": "NPR",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c6",
+      "from": {
+        "component": "HX1",
+        "port": "out"
+      },
+      "to": {
+        "component": "HX1__SS",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c7",
+      "from": {
+        "component": "HX1__SS",
+        "port": null
+      },
+      "to": {
+        "component": "SS",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c8",
+      "from": {
+        "component": "SS",
+        "port": "out"
+      },
+      "to": {
+        "component": "NSUP",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c9",
+      "from": {
+        "component": "NSUP",
+        "port": null
+      },
+      "to": {
+        "component": "LOAD",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c10",
+      "from": {
+        "component": "LOAD",
+        "port": "out"
+      },
+      "to": {
+        "component": "NRET",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c11",
+      "from": {
+        "component": "NRET",
+        "port": null
+      },
+      "to": {
+        "component": "SR",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c12",
+      "from": {
+        "component": "SR",
+        "port": "out"
+      },
+      "to": {
+        "component": "SR__SP",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c13",
+      "from": {
+        "component": "SR__SP",
+        "port": null
+      },
+      "to": {
+        "component": "SP",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c14",
+      "from": {
+        "component": "SP",
+        "port": "out"
+      },
+      "to": {
+        "component": "SP__HX1",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c15",
+      "from": {
+        "component": "SP__HX1",
+        "port": null
+      },
+      "to": {
+        "component": "HX1",
+        "port": "in"
+      },
+      "flow": "none",
+      "state": null
+    }
+  ],
+  "layout": {
+    "order": [
+      "NPS",
+      "PCV",
+      "PCV__PP",
+      "PP",
+      "PP__HX1",
+      "HX1",
+      "SP__HX1",
+      "SP",
+      "SR__SP",
+      "SR",
+      "NRET",
+      "LOAD",
+      "NSUP",
+      "SS",
+      "HX1__SS",
+      "NPR"
+    ],
+    "rank": {
+      "NPR": 1,
+      "NPS": 5,
+      "PCV": 4,
+      "PCV__PP": 3,
+      "PP": 2,
+      "PP__HX1": 1
+    },
+    "thermalStages": [
+      {
+        "rank": 0,
+        "role": "source",
+        "components": [
+          "NPS",
+          "NPR",
+          "PCV",
+          "PP",
+          "PCV__PP",
+          "PP__HX1"
+        ]
+      },
+      {
+        "rank": 1,
+        "role": "conversion",
+        "components": [
+          "HX1"
+        ]
+      },
+      {
+        "rank": 2,
+        "role": "consumer",
+        "components": [
+          "SP",
+          "SS",
+          "SR",
+          "LOAD",
+          "NSUP",
+          "NRET",
+          "HX1__SS",
+          "SR__SP",
+          "SP__HX1"
+        ]
+      }
+    ],
+    "flow": {
+      "c0": "none",
+      "c1": "none",
+      "c2": "none",
+      "c3": "none",
+      "c4": "none",
+      "c5": "none",
+      "c6": "none",
+      "c7": "none",
+      "c8": "none",
+      "c9": "none",
+      "c10": "none",
+      "c11": "none",
+      "c12": "none",
+      "c13": "none",
+      "c14": "none",
+      "c15": "none"
+    },
+    "portSides": {
+      "HX1.in": "west",
+      "HX1.in2": "north",
+      "HX1.out": "east",
+      "HX1.out2": "south",
+      "LOAD.in": "west",
+      "LOAD.in2": "north",
+      "LOAD.out": "east",
+      "LOAD.out2": "south",
+      "PCV.in": "west",
+      "PCV.out": "east",
+      "PP.in": "west",
+      "PP.out": "east",
+      "SP.in": "west",
+      "SP.out": "east",
+      "SR.in": "west",
+      "SR.out": "east",
+      "SS.in": "west",
+      "SS.out": "east"
+    },
+    "loops": [
+      [
+        "HX1",
+        "SP__HX1",
+        "SP",
+        "SR__SP",
+        "SR",
+        "NRET",
+        "LOAD",
+        "NSUP",
+        "SS",
+        "HX1__SS"
+      ]
+    ],
+    "loopOrientations": [
+      "clockwise"
+    ],
+    "groups": [],
+    "nonFlowElements": [],
+    "circuitOf": {
+      "HX1": "substation",
+      "HX1__SS": "substation",
+      "LOAD": "substation",
+      "NPR": "substation",
+      "NPS": "substation",
+      "NRET": "substation",
+      "NSUP": "substation",
+      "PCV": "substation",
+      "PCV__PP": "substation",
+      "PP": "substation",
+      "PP__HX1": "substation",
+      "SP": "substation",
+      "SP__HX1": "substation",
+      "SR": "substation",
+      "SR__SP": "substation",
+      "SS": "substation"
+    },
+    "distributionGroups": [],
+    "inferred": [
+      "HX1__SS",
+      "NRET",
+      "NSUP",
+      "PCV__PP",
+      "PP__HX1",
+      "SP__HX1",
+      "SR__SP"
+    ],
+    "branchShapes": {}
+  },
+  "visualization": {
+    "active": "temperature",
+    "available": [
+      "temperature",
+      "pressure",
+      "flow"
+    ],
+    "scale": {
+      "property": "temperature",
+      "displayName": "Temperature",
+      "unit": "°C",
+      "kind": "sequential",
+      "domain": null,
+      "degenerate": false
+    }
+  },
+  "bindings": [],
+  "diagnostics": [
+    {
+      "code": "FS1519",
+      "severity": "info",
+      "message": "'substation' is not a known circuit role, so it is placed neutrally. Known roles: ahu, cooling, district, distribution, ground_loop, heat_pump, heating, hot_water, radiator, solar, storage, underfloor.",
+      "range": {
+        "start": {
+          "line": 13,
+          "character": 0
+        },
+        "end": {
+          "line": 13,
+          "character": 18
+        },
+        "offset": 778,
+        "length": 18
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PCV__PP' (I2).",
+      "range": {
+        "start": {
+          "line": 33,
+          "character": 0
+        },
+        "end": {
+          "line": 33,
+          "character": 24
+        },
+        "offset": 1289,
+        "length": 24
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PP__HX1' (I2).",
+      "range": {
+        "start": {
+          "line": 33,
+          "character": 0
+        },
+        "end": {
+          "line": 33,
+          "character": 24
+        },
+        "offset": 1289,
+        "length": 24
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'HX1__SS' (I2).",
+      "range": {
+        "start": {
+          "line": 36,
+          "character": 0
+        },
+        "end": {
+          "line": 36,
+          "character": 19
+        },
+        "offset": 1330,
+        "length": 19
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'NSUP' (I1).",
+      "range": {
+        "start": {
+          "line": 36,
+          "character": 15
+        },
+        "end": {
+          "line": 36,
+          "character": 19
+        },
+        "offset": 1345,
+        "length": 4
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'NRET' (I1).",
+      "range": {
+        "start": {
+          "line": 37,
+          "character": 14
+        },
+        "end": {
+          "line": 37,
+          "character": 18
+        },
+        "offset": 1364,
+        "length": 4
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'SR__SP' (I2).",
+      "range": {
+        "start": {
+          "line": 38,
+          "character": 0
+        },
+        "end": {
+          "line": 38,
+          "character": 23
+        },
+        "offset": 1369,
+        "length": 23
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'SP__HX1' (I2).",
+      "range": {
+        "start": {
+          "line": 38,
+          "character": 0
+        },
+        "end": {
+          "line": 38,
+          "character": 23
+        },
+        "offset": 1369,
+        "length": 23
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS2401",
+      "severity": "info",
+      "message": "The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum.",
+      "range": null,
+      "component": null,
+      "suggestion": null,
+      "related": []
+    }
+  ],
+  "solve": null
+}

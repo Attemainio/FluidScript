@@ -1,0 +1,2792 @@
+{
+  "contractVersion": "2.0",
+  "provenance": {
+    "sourceHash": "sha256:22598a809de3d3153747344c8561c0380694581401b0fa0253005f20dbc066e6",
+    "languageMajor": 1,
+    "catalog": {
+      "id": "steel_en10255",
+      "version": "2026.1"
+    },
+    "propertyBackend": {
+      "id": "sharp-prop",
+      "version": "1.0.0.0"
+    },
+    "atmosphereKPaAbsolute": 101.325
+  },
+  "project": {
+    "name": "plant_01",
+    "defaultMode": "steady"
+  },
+  "style": {
+    "tokens": [],
+    "spacing": null
+  },
+  "circuits": [
+    {
+      "name": "heating",
+      "number": 100,
+      "numberIsExplicit": true,
+      "substance": "water",
+      "mode": "steady",
+      "role": "heating",
+      "parentCircuit": null,
+      "supplyAnchorId": null,
+      "returnAnchorId": null,
+      "solved": true,
+      "statesOmitted": false
+    },
+    {
+      "name": "AHU",
+      "number": 101,
+      "numberIsExplicit": true,
+      "substance": "water",
+      "mode": "steady",
+      "role": "ahu",
+      "parentCircuit": "heating",
+      "supplyAnchorId": "N3",
+      "returnAnchorId": "N5",
+      "solved": true,
+      "statesOmitted": false
+    },
+    {
+      "name": "radiators",
+      "number": 102,
+      "numberIsExplicit": true,
+      "substance": "water",
+      "mode": "steady",
+      "role": "radiator",
+      "parentCircuit": "heating",
+      "supplyAnchorId": "N4",
+      "returnAnchorId": "N6",
+      "solved": true,
+      "statesOmitted": false
+    }
+  ],
+  "pressureDatums": [
+    "N1"
+  ],
+  "components": [
+    {
+      "id": "HS1",
+      "kind": "heat_exchanger",
+      "mode": "duty",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3141,
+        "length": 41
+      },
+      "circuit": "heating",
+      "tag": "100HE01",
+      "parameters": {
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 0.430672,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "0.4307 kg/s — the flow HS1's 20 kPa is measured at, 0.433 l/s"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "out": {
+          "value": 60,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "power": {
+          "value": 54,
+          "unit": "kW",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.430672,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 30.0014,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 250,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 230,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 20,
+          "unit": "kPa"
+        },
+        "power": {
+          "value": 54,
+          "unit": "kW"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "N1"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "N3"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": null
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": null
+        }
+      ]
+    },
+    {
+      "id": "N1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3496,
+        "length": 13
+      },
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {
+        "p": {
+          "value": 250,
+          "unit": "kPa",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "t": {
+          "value": 30.0014,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HS1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "N5"
+        }
+      ]
+    },
+    {
+      "id": "HE_AHU",
+      "kind": "heat_exchanger",
+      "mode": "duty",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3528,
+        "length": 37
+      },
+      "circuit": "AHU",
+      "tag": "101HE01",
+      "parameters": {
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "0.2871 kg/s — the flow HE_AHU's 20 kPa is measured at, 0.291 l/s"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "in": {
+          "value": 50,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "out": {
+          "value": 30,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "power": {
+          "value": 24,
+          "unit": "kW",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 30.0012,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 270.768,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 250.768,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 20,
+          "unit": "kPa"
+        },
+        "power": {
+          "value": -24,
+          "unit": "kW"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "PU_AHU__HE_AHU"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NM_AHU"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": null
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": null
+        }
+      ]
+    },
+    {
+      "id": "TV_AHU",
+      "kind": "three_way_valve",
+      "mode": "three_way",
+      "symbolId": "three_way_valve.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3566,
+        "length": 23
+      },
+      "circuit": "AHU",
+      "tag": "101TV01",
+      "parameters": {
+        "authority": {
+          "value": 0.627514,
+          "unit": null,
+          "source": "sized",
+          "basis": "0.63 achieved against a target of 0.5 — Kv 6.3 drops 1.2 kPa of the branch's 1.9 kPa"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "kv": {
+          "value": 6.3,
+          "unit": "m3/h",
+          "source": "sized",
+          "basis": "Kv 6.3 (R5 preferred numbers) — authority 0.63 at 0.194 l/s, 1.2 kPa — chosen against the branch's own resistance, which a free pump absorbs, so the selection rounds down"
+        },
+        "position": {
+          "value": 0.633488,
+          "unit": null,
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": -0.287095,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 60.0001,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50.013,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 229.298,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 207.943,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 21.3544,
+          "unit": "kPa"
+        },
+        "solved": {
+          "position": {
+            "value": 0.633488,
+            "unit": ""
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "ab",
+          "role": "bidirectional",
+          "connectedTo": "TV_AHU__PU_AHU"
+        },
+        {
+          "name": "a",
+          "role": "bidirectional",
+          "connectedTo": "PA1__TV_AHU"
+        },
+        {
+          "name": "b",
+          "role": "bidirectional",
+          "connectedTo": "NM_AHU"
+        }
+      ]
+    },
+    {
+      "id": "PU_AHU",
+      "kind": "pump",
+      "symbolId": "pump.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3590,
+        "length": 12
+      },
+      "circuit": "AHU",
+      "tag": "101PU01",
+      "parameters": {
+        "efficiency": {
+          "value": 0.7,
+          "unit": null,
+          "source": "default",
+          "basis": "a typical wet-rotor circulator"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "head": {
+          "value": 6.48319,
+          "unit": "m",
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        },
+        "margin": {
+          "value": 1,
+          "unit": null,
+          "source": "default",
+          "basis": "size to the computed duty, with no spare"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50.013,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 207.943,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 270.768,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": -62.8241,
+          "unit": "kPa"
+        },
+        "head": {
+          "value": 6.4833,
+          "unit": "m"
+        },
+        "solved": {
+          "head": {
+            "value": 6.48319,
+            "unit": "m"
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "TV_AHU__PU_AHU"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PU_AHU__HE_AHU"
+        }
+      ]
+    },
+    {
+      "id": "PA1",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3603,
+        "length": 28
+      },
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 12,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 60.0001,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 230,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 229.298,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 0.70212,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "N3"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PA1__TV_AHU"
+        }
+      ]
+    },
+    {
+      "id": "PA2",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 3632,
+        "length": 28
+      },
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 12,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 30.0012,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 30.0014,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 250.768,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 250,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 0.767567,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NM_AHU"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "N5"
+        }
+      ]
+    },
+    {
+      "id": "HE_RAD",
+      "kind": "heat_exchanger",
+      "mode": "duty",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 4084,
+        "length": 37
+      },
+      "circuit": "radiators",
+      "tag": "102HE01",
+      "parameters": {
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "0.3589 kg/s — the flow HE_RAD's 20 kPa is measured at, 0.363 l/s"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "in": {
+          "value": 50,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "out": {
+          "value": 30,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "power": {
+          "value": 30,
+          "unit": "kW",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 30.0011,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 271.721,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 251.721,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 20,
+          "unit": "kPa"
+        },
+        "power": {
+          "value": -30,
+          "unit": "kW"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "PU_RAD__HE_RAD"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NM_RAD"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": null
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": null
+        }
+      ]
+    },
+    {
+      "id": "TV_RAD",
+      "kind": "three_way_valve",
+      "mode": "three_way",
+      "symbolId": "three_way_valve.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 4122,
+        "length": 23
+      },
+      "circuit": "radiators",
+      "tag": "102TV01",
+      "parameters": {
+        "authority": {
+          "value": 0.538718,
+          "unit": null,
+          "source": "sized",
+          "basis": "0.54 achieved against a target of 0.5 — Kv 6.3 drops 1.9 kPa of the branch's 3.5 kPa"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "kv": {
+          "value": 6.3,
+          "unit": "m3/h",
+          "source": "sized",
+          "basis": "Kv 6.3 (R5 preferred numbers) — authority 0.54 at 0.242 l/s, 1.9 kPa — chosen against the branch's own resistance, which a free pump absorbs, so the selection rounds down"
+        },
+        "position": {
+          "value": 0.620233,
+          "unit": null,
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": -0.358869,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 60.0003,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50.0166,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 228.414,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 191.401,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 37.013,
+          "unit": "kPa"
+        },
+        "solved": {
+          "position": {
+            "value": 0.620233,
+            "unit": ""
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "ab",
+          "role": "bidirectional",
+          "connectedTo": "TV_RAD__PU_RAD"
+        },
+        {
+          "name": "a",
+          "role": "bidirectional",
+          "connectedTo": "PR1__TV_RAD"
+        },
+        {
+          "name": "b",
+          "role": "bidirectional",
+          "connectedTo": "NM_RAD"
+        }
+      ]
+    },
+    {
+      "id": "PU_RAD",
+      "kind": "pump",
+      "symbolId": "pump.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 4146,
+        "length": 12
+      },
+      "circuit": "radiators",
+      "tag": "102PU01",
+      "parameters": {
+        "efficiency": {
+          "value": 0.7,
+          "unit": null,
+          "source": "default",
+          "basis": "a typical wet-rotor circulator"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "head": {
+          "value": 8.28871,
+          "unit": "m",
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        },
+        "margin": {
+          "value": 1,
+          "unit": null,
+          "source": "default",
+          "basis": "size to the computed duty, with no spare"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50.0166,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 191.401,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 271.721,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": -80.3199,
+          "unit": "kPa"
+        },
+        "head": {
+          "value": 8.28889,
+          "unit": "m"
+        },
+        "solved": {
+          "head": {
+            "value": 8.28871,
+            "unit": "m"
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "TV_RAD__PU_RAD"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PU_RAD__HE_RAD"
+        }
+      ]
+    },
+    {
+      "id": "PR1",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 4159,
+        "length": 28
+      },
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 18,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 60.0003,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 230,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 228.414,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 1.5863,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "N4"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PR1__TV_RAD"
+        }
+      ]
+    },
+    {
+      "id": "PR2",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 4188,
+        "length": 28
+      },
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 18,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 30.0011,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 30.0015,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 251.721,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 250,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 1.72061,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NM_RAD"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "N6"
+        }
+      ]
+    },
+    {
+      "id": "N3",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 230,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HS1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "N4"
+        },
+        {
+          "name": "2",
+          "role": "bidirectional",
+          "connectedTo": "PA1"
+        }
+      ]
+    },
+    {
+      "id": "N4",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 60,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 230,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N3"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PR1"
+        }
+      ]
+    },
+    {
+      "id": "N6",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0015,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N5"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PR2"
+        }
+      ]
+    },
+    {
+      "id": "N5",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "heating",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0014,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N6"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "N1"
+        },
+        {
+          "name": "2",
+          "role": "bidirectional",
+          "connectedTo": "PA2"
+        }
+      ]
+    },
+    {
+      "id": "NM_AHU",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0012,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 250.768,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "TV_AHU"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HE_AHU"
+        },
+        {
+          "name": "2",
+          "role": "bidirectional",
+          "connectedTo": "PA2"
+        }
+      ]
+    },
+    {
+      "id": "NM_RAD",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 30.0011,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 251.721,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "TV_RAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HE_RAD"
+        },
+        {
+          "name": "2",
+          "role": "bidirectional",
+          "connectedTo": "PR2"
+        }
+      ]
+    },
+    {
+      "id": "PA1__TV_AHU",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 60.0001,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 229.298,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PA1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "TV_AHU"
+        }
+      ]
+    },
+    {
+      "id": "TV_AHU__PU_AHU",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50.013,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 207.943,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "TV_AHU"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PU_AHU"
+        }
+      ]
+    },
+    {
+      "id": "PU_AHU__HE_AHU",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "AHU",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 270.768,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PU_AHU"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HE_AHU"
+        }
+      ]
+    },
+    {
+      "id": "PR1__TV_RAD",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 60.0003,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 228.414,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PR1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "TV_RAD"
+        }
+      ]
+    },
+    {
+      "id": "TV_RAD__PU_RAD",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50.0166,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 191.401,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "TV_RAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PU_RAD"
+        }
+      ]
+    },
+    {
+      "id": "PU_RAD__HE_RAD",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "radiators",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 271.721,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PU_RAD"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HE_RAD"
+        }
+      ]
+    }
+  ],
+  "symbols": [
+    {
+      "id": "node.junction",
+      "viewBox": [
+        -0.15,
+        -0.15,
+        0.3,
+        0.3
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.35
+      ]
+    },
+    {
+      "id": "pipe.standard",
+      "viewBox": [
+        -0.5,
+        -0.1,
+        1,
+        0.2
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.3
+      ]
+    },
+    {
+      "id": "heat_exchanger.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ],
+        "in2": [
+          0,
+          -0.5
+        ],
+        "out2": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.3,
+        1,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.45
+      ]
+    },
+    {
+      "id": "three_way_valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "ab": [
+          -0.5,
+          0
+        ],
+        "a": [
+          0,
+          -0.5
+        ],
+        "b": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "pump.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "tank.stratified",
+      "viewBox": [
+        -0.5,
+        -0.8,
+        1,
+        1.6
+      ],
+      "primitives": [],
+      "portAnchors": {},
+      "indexedPortAnchors": [
+        {
+          "prefix": "in",
+          "side": "west",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        },
+        {
+          "prefix": "out",
+          "side": "east",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        }
+      ],
+      "labelAnchor": [
+        0,
+        -0.95
+      ]
+    },
+    {
+      "id": "t_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "p_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flow_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "controller.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c0",
+      "from": {
+        "component": "N1",
+        "port": null
+      },
+      "to": {
+        "component": "HS1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.430672,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c1",
+      "from": {
+        "component": "HS1",
+        "port": "out"
+      },
+      "to": {
+        "component": "N3",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.430672,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c2",
+      "from": {
+        "component": "N3",
+        "port": null
+      },
+      "to": {
+        "component": "N4",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c3",
+      "from": {
+        "component": "N6",
+        "port": null
+      },
+      "to": {
+        "component": "N5",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c4",
+      "from": {
+        "component": "N5",
+        "port": null
+      },
+      "to": {
+        "component": "N1",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.430672,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c5",
+      "from": {
+        "component": "N3",
+        "port": null
+      },
+      "to": {
+        "component": "PA1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c6",
+      "from": {
+        "component": "PA1",
+        "port": "out"
+      },
+      "to": {
+        "component": "PA1__TV_AHU",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c7",
+      "from": {
+        "component": "PA1__TV_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "TV_AHU",
+        "port": "a"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c8",
+      "from": {
+        "component": "NM_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "TV_AHU",
+        "port": "b"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.095686,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c9",
+      "from": {
+        "component": "TV_AHU",
+        "port": "ab"
+      },
+      "to": {
+        "component": "TV_AHU__PU_AHU",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c10",
+      "from": {
+        "component": "TV_AHU__PU_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "PU_AHU",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c11",
+      "from": {
+        "component": "PU_AHU",
+        "port": "out"
+      },
+      "to": {
+        "component": "PU_AHU__HE_AHU",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c12",
+      "from": {
+        "component": "PU_AHU__HE_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "HE_AHU",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c13",
+      "from": {
+        "component": "HE_AHU",
+        "port": "out"
+      },
+      "to": {
+        "component": "NM_AHU",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.287095,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c14",
+      "from": {
+        "component": "NM_AHU",
+        "port": null
+      },
+      "to": {
+        "component": "PA2",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c15",
+      "from": {
+        "component": "PA2",
+        "port": "out"
+      },
+      "to": {
+        "component": "N5",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.191409,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c16",
+      "from": {
+        "component": "N4",
+        "port": null
+      },
+      "to": {
+        "component": "PR1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c17",
+      "from": {
+        "component": "PR1",
+        "port": "out"
+      },
+      "to": {
+        "component": "PR1__TV_RAD",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c18",
+      "from": {
+        "component": "PR1__TV_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "TV_RAD",
+        "port": "a"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c19",
+      "from": {
+        "component": "NM_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "TV_RAD",
+        "port": "b"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.119606,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c20",
+      "from": {
+        "component": "TV_RAD",
+        "port": "ab"
+      },
+      "to": {
+        "component": "TV_RAD__PU_RAD",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c21",
+      "from": {
+        "component": "TV_RAD__PU_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "PU_RAD",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c22",
+      "from": {
+        "component": "PU_RAD",
+        "port": "out"
+      },
+      "to": {
+        "component": "PU_RAD__HE_RAD",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c23",
+      "from": {
+        "component": "PU_RAD__HE_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "HE_RAD",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c24",
+      "from": {
+        "component": "HE_RAD",
+        "port": "out"
+      },
+      "to": {
+        "component": "NM_RAD",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.358869,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c25",
+      "from": {
+        "component": "NM_RAD",
+        "port": null
+      },
+      "to": {
+        "component": "PR2",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c26",
+      "from": {
+        "component": "PR2",
+        "port": "out"
+      },
+      "to": {
+        "component": "N6",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239263,
+          "unit": "kg/s"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "order": [
+      "N1",
+      "HS1",
+      "N3",
+      "N4",
+      "PR1",
+      "PR1__TV_RAD",
+      "TV_RAD",
+      "TV_RAD__PU_RAD",
+      "PU_RAD",
+      "PU_RAD__HE_RAD",
+      "HE_RAD",
+      "NM_RAD",
+      "PR2",
+      "N6",
+      "N5",
+      "PA2",
+      "NM_AHU",
+      "TV_AHU",
+      "TV_AHU__PU_AHU",
+      "PU_AHU",
+      "PU_AHU__HE_AHU",
+      "HE_AHU",
+      "PA1__TV_AHU",
+      "PA1"
+    ],
+    "rank": {},
+    "thermalStages": [
+      {
+        "rank": 0,
+        "role": "consumer",
+        "components": [
+          "HE_AHU",
+          "TV_AHU",
+          "PU_AHU",
+          "PA1",
+          "PA2",
+          "HE_RAD",
+          "TV_RAD",
+          "PU_RAD",
+          "PR1",
+          "PR2",
+          "NM_AHU",
+          "NM_RAD",
+          "PA1__TV_AHU",
+          "TV_AHU__PU_AHU",
+          "PU_AHU__HE_AHU",
+          "PR1__TV_RAD",
+          "TV_RAD__PU_RAD",
+          "PU_RAD__HE_RAD"
+        ]
+      },
+      {
+        "rank": 0,
+        "role": "neutral",
+        "components": [
+          "HS1",
+          "N1",
+          "N3",
+          "N4",
+          "N6",
+          "N5"
+        ]
+      }
+    ],
+    "flow": {
+      "c0": "forward",
+      "c1": "forward",
+      "c2": "forward",
+      "c3": "forward",
+      "c4": "forward",
+      "c5": "forward",
+      "c6": "forward",
+      "c7": "forward",
+      "c8": "forward",
+      "c9": "forward",
+      "c10": "forward",
+      "c11": "forward",
+      "c12": "forward",
+      "c13": "forward",
+      "c14": "forward",
+      "c15": "forward",
+      "c16": "forward",
+      "c17": "forward",
+      "c18": "forward",
+      "c19": "forward",
+      "c20": "forward",
+      "c21": "forward",
+      "c22": "forward",
+      "c23": "forward",
+      "c24": "forward",
+      "c25": "forward",
+      "c26": "forward"
+    },
+    "portSides": {
+      "HE_AHU.in": "west",
+      "HE_AHU.in2": "north",
+      "HE_AHU.out": "east",
+      "HE_AHU.out2": "south",
+      "HE_RAD.in": "west",
+      "HE_RAD.in2": "north",
+      "HE_RAD.out": "east",
+      "HE_RAD.out2": "south",
+      "HS1.in": "west",
+      "HS1.in2": "north",
+      "HS1.out": "east",
+      "HS1.out2": "south",
+      "PA1.in": "west",
+      "PA1.out": "east",
+      "PA2.in": "west",
+      "PA2.out": "east",
+      "PR1.in": "west",
+      "PR1.out": "east",
+      "PR2.in": "west",
+      "PR2.out": "east",
+      "PU_AHU.in": "west",
+      "PU_AHU.out": "east",
+      "PU_RAD.in": "west",
+      "PU_RAD.out": "east",
+      "TV_AHU.a": "north",
+      "TV_AHU.ab": "west",
+      "TV_AHU.b": "south",
+      "TV_RAD.a": "north",
+      "TV_RAD.ab": "west",
+      "TV_RAD.b": "south"
+    },
+    "loops": [
+      [
+        "NM_AHU",
+        "TV_AHU",
+        "TV_AHU__PU_AHU",
+        "PU_AHU",
+        "PU_AHU__HE_AHU",
+        "HE_AHU"
+      ],
+      [
+        "N3",
+        "N4",
+        "PR1",
+        "PR1__TV_RAD",
+        "TV_RAD",
+        "TV_RAD__PU_RAD",
+        "PU_RAD",
+        "PU_RAD__HE_RAD",
+        "HE_RAD",
+        "NM_RAD",
+        "PR2",
+        "N6",
+        "N5",
+        "PA2",
+        "NM_AHU",
+        "HE_AHU",
+        "PU_AHU__HE_AHU",
+        "PU_AHU",
+        "TV_AHU__PU_AHU",
+        "TV_AHU",
+        "PA1__TV_AHU",
+        "PA1"
+      ],
+      [
+        "N3",
+        "N4",
+        "PR1",
+        "PR1__TV_RAD",
+        "TV_RAD",
+        "NM_RAD",
+        "PR2",
+        "N6",
+        "N5",
+        "PA2",
+        "NM_AHU",
+        "HE_AHU",
+        "PU_AHU__HE_AHU",
+        "PU_AHU",
+        "TV_AHU__PU_AHU",
+        "TV_AHU",
+        "PA1__TV_AHU",
+        "PA1"
+      ],
+      [
+        "N1",
+        "HS1",
+        "N3",
+        "PA1",
+        "PA1__TV_AHU",
+        "TV_AHU",
+        "TV_AHU__PU_AHU",
+        "PU_AHU",
+        "PU_AHU__HE_AHU",
+        "HE_AHU",
+        "NM_AHU",
+        "PA2",
+        "N5"
+      ]
+    ],
+    "loopOrientations": [
+      "clockwise",
+      "clockwise",
+      "counterclockwise",
+      "clockwise"
+    ],
+    "groups": [],
+    "nonFlowElements": [],
+    "circuitOf": {
+      "HE_AHU": "AHU",
+      "HE_RAD": "radiators",
+      "HS1": "heating",
+      "N1": "heating",
+      "N3": "heating",
+      "N4": "heating",
+      "N5": "heating",
+      "N6": "heating",
+      "NM_AHU": "AHU",
+      "NM_RAD": "radiators",
+      "PA1": "AHU",
+      "PA1__TV_AHU": "AHU",
+      "PA2": "AHU",
+      "PR1": "radiators",
+      "PR1__TV_RAD": "radiators",
+      "PR2": "radiators",
+      "PU_AHU": "AHU",
+      "PU_AHU__HE_AHU": "AHU",
+      "PU_RAD": "radiators",
+      "PU_RAD__HE_RAD": "radiators",
+      "TV_AHU": "AHU",
+      "TV_AHU__PU_AHU": "AHU",
+      "TV_RAD": "radiators",
+      "TV_RAD__PU_RAD": "radiators"
+    },
+    "distributionGroups": [
+      {
+        "parentCircuit": "heating",
+        "members": [
+          "AHU",
+          "radiators"
+        ]
+      }
+    ],
+    "inferred": [
+      "N3",
+      "N4",
+      "N5",
+      "N6",
+      "NM_AHU",
+      "NM_RAD",
+      "PA1__TV_AHU",
+      "PR1__TV_RAD",
+      "PU_AHU__HE_AHU",
+      "PU_RAD__HE_RAD",
+      "TV_AHU__PU_AHU",
+      "TV_RAD__PU_RAD"
+    ],
+    "branchShapes": {
+      "AHU": [
+        "pipe",
+        "three_way_valve",
+        "pump",
+        "heat_exchanger",
+        "pipe"
+      ],
+      "radiators": [
+        "pipe",
+        "three_way_valve",
+        "pump",
+        "heat_exchanger",
+        "pipe"
+      ]
+    }
+  },
+  "visualization": {
+    "active": "temperature",
+    "available": [
+      "temperature",
+      "pressure",
+      "flow"
+    ],
+    "scale": {
+      "property": "temperature",
+      "displayName": "Temperature",
+      "unit": "°C",
+      "kind": "sequential",
+      "domain": {
+        "min": 30,
+        "max": 70,
+        "nice": true
+      },
+      "degenerate": false
+    }
+  },
+  "bindings": [],
+  "diagnostics": [
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N3' (I1).",
+      "range": {
+        "start": {
+          "line": 49,
+          "character": 11
+        },
+        "end": {
+          "line": 49,
+          "character": 13
+        },
+        "offset": 3265,
+        "length": 2
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N4' (I1).",
+      "range": {
+        "start": {
+          "line": 50,
+          "character": 5
+        },
+        "end": {
+          "line": 50,
+          "character": 7
+        },
+        "offset": 3360,
+        "length": 2
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N6' (I1).",
+      "range": {
+        "start": {
+          "line": 51,
+          "character": 0
+        },
+        "end": {
+          "line": 51,
+          "character": 2
+        },
+        "offset": 3421,
+        "length": 2
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N5' (I1).",
+      "range": {
+        "start": {
+          "line": 51,
+          "character": 5
+        },
+        "end": {
+          "line": 51,
+          "character": 7
+        },
+        "offset": 3426,
+        "length": 2
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PA1__TV_AHU' (I2).",
+      "range": {
+        "start": {
+          "line": 65,
+          "character": 0
+        },
+        "end": {
+          "line": 65,
+          "character": 19
+        },
+        "offset": 3674,
+        "length": 19
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'NM_AHU' (I1).",
+      "range": {
+        "start": {
+          "line": 66,
+          "character": 0
+        },
+        "end": {
+          "line": 66,
+          "character": 6
+        },
+        "offset": 3766,
+        "length": 6
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'TV_AHU__PU_AHU' (I2).",
+      "range": {
+        "start": {
+          "line": 67,
+          "character": 0
+        },
+        "end": {
+          "line": 67,
+          "character": 36
+        },
+        "offset": 3865,
+        "length": 36
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PU_AHU__HE_AHU' (I2).",
+      "range": {
+        "start": {
+          "line": 67,
+          "character": 0
+        },
+        "end": {
+          "line": 67,
+          "character": 36
+        },
+        "offset": 3865,
+        "length": 36
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PR1__TV_RAD' (I2).",
+      "range": {
+        "start": {
+          "line": 79,
+          "character": 0
+        },
+        "end": {
+          "line": 79,
+          "character": 19
+        },
+        "offset": 4230,
+        "length": 19
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'NM_RAD' (I1).",
+      "range": {
+        "start": {
+          "line": 80,
+          "character": 0
+        },
+        "end": {
+          "line": 80,
+          "character": 6
+        },
+        "offset": 4250,
+        "length": 6
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'TV_RAD__PU_RAD' (I2).",
+      "range": {
+        "start": {
+          "line": 81,
+          "character": 0
+        },
+        "end": {
+          "line": 81,
+          "character": 36
+        },
+        "offset": 4268,
+        "length": 36
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PU_RAD__HE_RAD' (I2).",
+      "range": {
+        "start": {
+          "line": 81,
+          "character": 0
+        },
+        "end": {
+          "line": 81,
+          "character": 36
+        },
+        "offset": 4268,
+        "length": 36
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS2401",
+      "severity": "info",
+      "message": "The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum.",
+      "range": null,
+      "component": null,
+      "suggestion": null,
+      "related": []
+    }
+  ],
+  "solve": {
+    "converged": true,
+    "iterations": 1,
+    "residualNorm": 6.17E-09,
+    "elapsedMs": null,
+    "sizingPasses": 2
+  }
+}

@@ -153,6 +153,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2401` | Info | Layout hints | The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum. |
 | `FS2402` | Info | Layout hints | '{group}' has {count} members and will start collapsed; expand it on the canvas to see them. |
 | `FS2403` | Info | Layout hints | '{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn. |
+| `FS2501` | Error | Model contract | '{component}.{field}' is {value} and cannot be written in {unit}; the field is sent empty. |
+| `FS2502` | Warning | Model contract | The model is {size} KiB with states, over the {cap} KiB cap; states are omitted and can be fetched per component. |
 | `FS2603` | Error | Catalog | No catalogue '{name}'. Available: {list}. |
 | `FS2604` | Error | Catalog | Catalogue '{name}' is invalid: {reason}. |
 | `FS2605` | Error | Catalog | Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see. |

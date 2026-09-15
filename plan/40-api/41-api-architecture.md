@@ -37,7 +37,7 @@ FluidScript.Api/
 ├── Program.cs               composition root: DI, middleware, endpoint mapping
 ├── Endpoints/               one file per endpoint group
 ├── Realtime/                WebSocket handler and frame serialization
-├── Contracts/               wire DTOs — never a Core type on the wire
+├── Contracts/               the serializer and endpoint DTOs — never a domain type on the wire (D-101)
 ├── Sessions/                session store and lifetime
 └── wwwroot/                 built frontend, production only
 ```
@@ -168,7 +168,8 @@ reproduce. It must be verified during the SharpProp spike
 
 ## Invariants
 
-1. No Core type appears on the wire; every response is a `Contracts/` DTO.
+1. No Core *domain* type appears on the wire; every response is a wire record (`Core.Model` for the
+   model contract, `Contracts/` for endpoint shapes) that names no domain type (`D-101`).
 2. A session holds no authoritative state — deleting every session changes no result.
 3. At most one solve per session runs at a time.
 4. Every request's cancellation token reaches the solver.
@@ -225,7 +226,8 @@ the editor feel live rather than laggy — which is the whole of `R-21`.
 - [ ] A script with errors returns 200 with diagnostics and a topology-only model.
 - [ ] Warm start reduces iteration count on an unchanged topology, measured.
 - [ ] Deleting all sessions changes no response body.
-- [ ] An architecture test asserts no Core type is reachable from a `Contracts/` type.
+- [x] An architecture test asserts no Core domain type is reachable from a wire record
+      (`Core.Tests/Model`, P5.1b; `D-101`).
 - [ ] Development runs against the Vite proxy with no CORS configuration present.
 - [ ] 100 concurrent compiles of different scripts produce correct, independent results — the property
       backend thread-safety check.

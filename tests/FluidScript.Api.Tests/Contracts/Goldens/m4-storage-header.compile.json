@@ -1,0 +1,690 @@
+{
+  "contractVersion": "2.0",
+  "provenance": {
+    "sourceHash": "sha256:0e605e081ebe3eba312215de42058b4e29067bbedd7cd3056d92acc1c07f5bca",
+    "languageMajor": 1,
+    "catalog": {
+      "id": "steel_en10255",
+      "version": "2026.1"
+    },
+    "propertyBackend": {
+      "id": "sharp-prop",
+      "version": "1.0.0.0"
+    },
+    "atmosphereKPaAbsolute": 101.325
+  },
+  "style": {
+    "tokens": [],
+    "spacing": null
+  },
+  "circuits": [
+    {
+      "name": "storageHeader",
+      "number": 100,
+      "numberIsExplicit": false,
+      "substance": "water",
+      "mode": "transient",
+      "role": null,
+      "parentCircuit": null,
+      "supplyAnchorId": null,
+      "returnAnchorId": null,
+      "solved": false,
+      "statesOmitted": false
+    }
+  ],
+  "pressureDatums": [
+    "S1"
+  ],
+  "components": [
+    {
+      "id": "S1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 772,
+        "length": 24
+      },
+      "circuit": "storageHeader",
+      "tag": null,
+      "parameters": {
+        "flow": {
+          "value": 0.12,
+          "unit": "kg/s",
+          "source": "stated"
+        },
+        "t": {
+          "value": 60,
+          "unit": "°C",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "T1"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 797,
+        "length": 24
+      },
+      "circuit": "storageHeader",
+      "tag": null,
+      "parameters": {
+        "flow": {
+          "value": 0.08,
+          "unit": "kg/s",
+          "source": "stated"
+        },
+        "t": {
+          "value": 45,
+          "unit": "°C",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "T1"
+        }
+      ]
+    },
+    {
+      "id": "T1",
+      "kind": "tank",
+      "symbolId": "tank.stratified",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 822,
+        "length": 115
+      },
+      "circuit": "storageHeader",
+      "tag": "100S01",
+      "parameters": {
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "in1_level": {
+          "value": 0.9,
+          "unit": null,
+          "source": "stated"
+        },
+        "in2_level": {
+          "value": 0.3,
+          "unit": null,
+          "source": "stated"
+        },
+        "layers": {
+          "value": 5,
+          "unit": null,
+          "source": "stated"
+        },
+        "out1_level": {
+          "value": 0.9,
+          "unit": null,
+          "source": "stated"
+        },
+        "out2_level": {
+          "value": 0.3,
+          "unit": null,
+          "source": "stated"
+        },
+        "t1": {
+          "value": 25,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "t2": {
+          "value": 30,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "t3": {
+          "value": 40,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "t4": {
+          "value": 50,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "t5": {
+          "value": 60,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "volume": {
+          "value": 300,
+          "unit": "dm3",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "in1",
+          "role": "bidirectional",
+          "connectedTo": "S1",
+          "elevation": 0.9,
+          "layer": 5
+        },
+        {
+          "name": "in2",
+          "role": "bidirectional",
+          "connectedTo": "S2",
+          "elevation": 0.3,
+          "layer": 2
+        },
+        {
+          "name": "out1",
+          "role": "bidirectional",
+          "connectedTo": "RAD_NETWORK",
+          "elevation": 0.9,
+          "layer": 5
+        },
+        {
+          "name": "out2",
+          "role": "bidirectional",
+          "connectedTo": "AHU_NETWORK",
+          "elevation": 0.3,
+          "layer": 2
+        }
+      ]
+    },
+    {
+      "id": "RAD_NETWORK",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 938,
+        "length": 28
+      },
+      "circuit": "storageHeader",
+      "tag": null,
+      "parameters": {
+        "flow": {
+          "value": 0.12,
+          "unit": "kg/s",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "T1"
+        }
+      ]
+    },
+    {
+      "id": "AHU_NETWORK",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 967,
+        "length": 28
+      },
+      "circuit": "storageHeader",
+      "tag": null,
+      "parameters": {
+        "flow": {
+          "value": 0.08,
+          "unit": "kg/s",
+          "source": "stated"
+        }
+      },
+      "state": null,
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "T1"
+        }
+      ]
+    }
+  ],
+  "symbols": [
+    {
+      "id": "node.junction",
+      "viewBox": [
+        -0.15,
+        -0.15,
+        0.3,
+        0.3
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.35
+      ]
+    },
+    {
+      "id": "pipe.standard",
+      "viewBox": [
+        -0.5,
+        -0.1,
+        1,
+        0.2
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.3
+      ]
+    },
+    {
+      "id": "heat_exchanger.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ],
+        "in2": [
+          0,
+          -0.5
+        ],
+        "out2": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.3,
+        1,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.45
+      ]
+    },
+    {
+      "id": "three_way_valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "ab": [
+          -0.5,
+          0
+        ],
+        "a": [
+          0,
+          -0.5
+        ],
+        "b": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "pump.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "tank.stratified",
+      "viewBox": [
+        -0.5,
+        -0.8,
+        1,
+        1.6
+      ],
+      "primitives": [],
+      "portAnchors": {},
+      "indexedPortAnchors": [
+        {
+          "prefix": "in",
+          "side": "west",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        },
+        {
+          "prefix": "out",
+          "side": "east",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        }
+      ],
+      "labelAnchor": [
+        0,
+        -0.95
+      ]
+    },
+    {
+      "id": "t_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "p_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flow_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "controller.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c0",
+      "from": {
+        "component": "S1",
+        "port": null
+      },
+      "to": {
+        "component": "T1",
+        "port": "in1"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c1",
+      "from": {
+        "component": "S2",
+        "port": null
+      },
+      "to": {
+        "component": "T1",
+        "port": "in2"
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c2",
+      "from": {
+        "component": "T1",
+        "port": "out1"
+      },
+      "to": {
+        "component": "RAD_NETWORK",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    },
+    {
+      "id": "c3",
+      "from": {
+        "component": "T1",
+        "port": "out2"
+      },
+      "to": {
+        "component": "AHU_NETWORK",
+        "port": null
+      },
+      "flow": "none",
+      "state": null
+    }
+  ],
+  "layout": {
+    "order": [
+      "S1",
+      "T1",
+      "S2",
+      "RAD_NETWORK",
+      "AHU_NETWORK"
+    ],
+    "rank": {
+      "AHU_NETWORK": 2,
+      "RAD_NETWORK": 2,
+      "S1": 0,
+      "S2": 2,
+      "T1": 1
+    },
+    "thermalStages": [
+      {
+        "rank": 0,
+        "role": "source",
+        "components": [
+          "S1",
+          "S2"
+        ]
+      },
+      {
+        "rank": 1,
+        "role": "storage",
+        "components": [
+          "T1"
+        ]
+      },
+      {
+        "rank": 2,
+        "role": "consumer",
+        "components": [
+          "RAD_NETWORK",
+          "AHU_NETWORK"
+        ]
+      }
+    ],
+    "flow": {
+      "c0": "none",
+      "c1": "none",
+      "c2": "none",
+      "c3": "none"
+    },
+    "portSides": {
+      "T1.in1": "west",
+      "T1.in2": "west",
+      "T1.out1": "east",
+      "T1.out2": "east"
+    },
+    "loops": [],
+    "loopOrientations": [],
+    "groups": [],
+    "nonFlowElements": [],
+    "circuitOf": {
+      "AHU_NETWORK": "storageHeader",
+      "RAD_NETWORK": "storageHeader",
+      "S1": "storageHeader",
+      "S2": "storageHeader",
+      "T1": "storageHeader"
+    },
+    "distributionGroups": [],
+    "inferred": [],
+    "branchShapes": {}
+  },
+  "visualization": {
+    "active": "temperature",
+    "available": [
+      "temperature",
+      "pressure",
+      "flow"
+    ],
+    "scale": {
+      "property": "temperature",
+      "displayName": "Temperature",
+      "unit": "°C",
+      "kind": "sequential",
+      "domain": null,
+      "degenerate": false
+    }
+  },
+  "bindings": [],
+  "diagnostics": [
+    {
+      "code": "FS1519",
+      "severity": "info",
+      "message": "'storageHeader' is not a known circuit role, so it is placed neutrally. Known roles: ahu, cooling, district, distribution, ground_loop, heat_pump, heating, hot_water, radiator, solar, storage, underfloor.",
+      "range": {
+        "start": {
+          "line": 12,
+          "character": 0
+        },
+        "end": {
+          "line": 12,
+          "character": 21
+        },
+        "offset": 712,
+        "length": 21
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    }
+  ],
+  "solve": null
+}

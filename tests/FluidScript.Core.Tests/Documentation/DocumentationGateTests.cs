@@ -129,6 +129,11 @@ public sealed class DocumentationGateTests
     public void TheTagsPageIsGeneratedFromTheRegistry() =>
         AssertGenerated("tags.md", (RegistryPages.TagsRegion, RegistryPages.RenderTags()));
 
+    [Fact]
+    [Trait("Category", "Docs")]
+    public void TheModelContractPageIsGeneratedFromTheWireRecords() =>
+        AssertGenerated("model-contract.md", (ContractPage.FieldsRegion, ContractPage.Render()));
+
     private static void AssertGenerated(string page, params (string Region, string Content)[] regions)
     {
         var path = Path.Combine(DocsRoot, "functions", page);

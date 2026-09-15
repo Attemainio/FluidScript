@@ -60,8 +60,8 @@ would be filled with nothing.
 > on a `chiller`. The audit of open defects before `P5.1` closed `C-4` (already met by P4.1),
 > `L-36` (a `13` correction) and `C-67` — the last with `FS2119`, which found seventeen test
 > fixtures and four syntax-tour lines writing a cooling load as a positive neutral duty.
-> **P5 — M3, the usable static product — is in progress: P5.1a (layout hints) shipped 2026-09-15;
-> P5.1b (the model contract) is next.**
+> **P5 — M3, the usable static product — is in progress: P5.1a (layout hints) and P5.1b (the model
+> contract) shipped 2026-09-15; P5.1c (symbols and the payload baseline) is next.**
 > The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
@@ -255,7 +255,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | # | Package | Commit(s) | State |
 |---|---|---|---|
 | P5.1a | `LayoutHints` per `25`, with `BranchShapes` (`D-100`) and `FS2401`–`FS2403` | (this commit) | Shipped 2026-09-15 |
-| P5.1b | `ModelContract` per `26`: wire records, JSON, goldens | — | Next |
+| P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol definitions per `D-24`; the 200-component payload baseline | — | After 5.1b |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -282,6 +282,23 @@ instruments together. Docs: `advanced/how-the-diagram-is-arranged.md` and a role
 `circuit.md`. Nineteen tests, 1629/0/4. The user's two addenda to `D-100` — the layout report is
 columnar text like the solve report, not JSON; layout reasons on a bounding box and port anchors,
 strokes are for drawing — are recorded in `62` and `53`. Filed `C-79`: the cycle basis is the solver's, not the drawing's, and on the header every component is a loop member.
+
+**P5.1b is `ModelContractBuilder.Build(input)` in `FluidScript.Core.Model` and
+`ModelContractJson` in `FluidScript.Api/Contracts`.** The builder projects the bound model, the
+lowered graph and the outer-loop result into `26`'s records -- every number in the script's canonical
+unit beside its unit, six significant digits, `stated`/`sized`/`default` with a basis, the solved
+operating point per component and connection read back through the new `SolvedStates`, `25`'s hints
+field for field, `44`'s diagnostics in both position forms, provenance, and the `show` directive
+resolved to a scale. The serializer is the Api's because `D-47` says Core names no serializer and
+the architecture tests enforce it: the first draft had it in Core and three tests said so, which is
+what they are for; `D-101` records the split and reads `41`'s invariant 1 as *no domain type on the
+wire*. Eight golden files (four samples, compile-only and solved) are checked in under
+`FluidScript.Api.Tests/Contracts/Goldens` and regenerate only with `FLUIDSCRIPT_UPDATE_GOLDENS=1`;
+the round trip is byte-identical in both forms. `26` records ten precisions the shape needed, the
+one that matters most being that a promoted head or Kv is `sized` on the wire with the solver as its
+basis. `L-50` filed: the binder does not bind `show`, so `FS1210`–`FS1214` are unregistered and the
+contract reads the directive off the syntax. Docs: `functions/model-contract.md`, generated from the
+records' own XML docs by the docs gate, and `show.md`'s resolution table. Core 1648/0/4; Api 15/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -314,11 +331,11 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **45** | |
+| | **46** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -374,8 +391,8 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1629 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
-| API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
+| Core test suite | **1648 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| API test suite | **15 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 

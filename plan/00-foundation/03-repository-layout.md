@@ -58,7 +58,7 @@ FluidScript/
 │   ├── FluidScript.Api/             ASP.NET Core host. References Core.      (tier 40)
 │   │   ├── Endpoints/
 │   │   ├── Realtime/
-│   │   └── Contracts/               wire DTOs — never Core types on the wire
+│   │   └── Contracts/               the serializer and endpoint DTOs — never a domain type on the wire (D-101)
 │   │
 │   └── FluidScript.Export/          M6 DXF/model writers using posted placements + Core symbols; not created before an approved exporter
 │

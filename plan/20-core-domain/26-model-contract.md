@@ -157,8 +157,6 @@ converting there costs one pass and removes a whole class of consumer bug.
     "inferred": ["N2", "PU1__HE1", "HE1__3WV", "3WV__P1"]
   },
 
-  "style": { "stroke": "#2f6f9f", "width": 2, "corners": "fillet", "pattern": "dashed" },
-
   "visualization": {                     // the `show` directive's resolution — owned by 57
     "active": "temperature",
     "available": ["temperature", "pressure", "flow"],
@@ -235,6 +233,62 @@ An unsolved tank still carries resolved defaults, materialized ports, elevations
 only `state` is null. The symbol definition provides an indexed-anchor rule for `in{n}` on the west
 wall and `out{n}` on the east wall at their normalized elevation, rather than enumerating 32 anchors
 in every payload (`D-32`).
+
+### What P5.1b shipped against this shape (2026-09-15)
+
+The shape above is the contract; these are the places the implementation had to be more precise than
+it, each recorded here rather than left for a reader of the golden files to discover:
+
+- **The records are Core's, the serializer is the Api's** (`D-46`, `D-47`). `FluidScript.Core.Model`
+  holds the hand-written wire records, `ModelContractBuilder` (the projection) and `SymbolCatalog`,
+  and names no serialization type; `FluidScript.Api/Contracts/ModelContractJson` is System.Text.Json
+  with one options object -- camelCase, declaration order, nulls written, non-ASCII unescaped -- and
+  a contract modifier that turns Core's `[AbsentWhenNull]` into the serializer's ignore condition.
+  The architecture tests caught the first draft with the serializer in Core; the split is what `03`
+  always drew. `D-46`'s emitted schema and the generated TypeScript mirror are not built: P5.2's,
+  with the endpoints that carry the payload. The golden files and the round trip are Api tests.
+
+- **The unit strings are the language's canonical spellings**: `°C` not `C`, `dK` for a temperature
+  difference, `kPa` gauge. A dimension with no canonical spelling -- head, Kv -- goes out in its SI
+  unit (`m`, `m3/h`), which is what a bare number meant for it. A dimensionless value has `unit: null`.
+  Confirmed 2026-09-15: the wire carries `°C`, `kPa`, `kW` and `kg/s` **always**, and the frontend
+  shows the wire's unit as it is -- it formats the number and never converts it. SI stays inside
+  Core; the wire is the one place the language's units reappear, and there is one unit boundary, not
+  two.
+- **Six significant digits, and a clean zero.** A Newton solution's trailing digits are noise below
+  `36`'s tolerances and made two runs of one script differ in the golden file; the wire carries six
+  digits, rounded through the shortest decimal so the writer prints exactly those. A magnitude under a
+  nano-unit -- the gauge pressure at the datum, solved as −1.7 × 10⁻²¹ kPa -- is written as `0`.
+  `solve.residualNorm` carries three. Project reasoning: six is beyond any instrument on the plant.
+- **A promoted parameter is `sized`.** A pump head or valve Kv the solver was asked to find is not in
+  the sizing overlay with a rule's basis; it is a solved unknown. On the wire it is `sized` with the
+  basis *"found by the solver, to hold the stated constraints"* unless the outer loop wrote one, and it
+  outranks the overlay's entry for the same name because that entry is the seed. The same number
+  appears under `state.solved`, which is the operating-point half of the design/operating pair.
+- **`circuits[].role` is the resolved canonical name, `null` only when the name matched nothing.**
+  A registered Neutral role (`heating`) is its name; `25`'s precision on what Neutral means is why.
+- **A subcircuit written as connections gets `parentCircuit` and its anchors** from `25`'s node-contact
+  rule, not only from `supply`/`return` lines.
+- **`components[]` also lists instruments and controllers**, with no ports and no state, so a canvas
+  can key everything it draws by one id. Invariant 3 is read as: a component with ports appears in
+  `layout.order`, one without appears in `layout.nonFlowElements`. Pipe-expansion children carry
+  `origin: "expanded"`; they are neither declared nor inferred by I1–I3.
+- **A node's symbol has one anchor, `"*"`, at its centre**, because its ports are not named in
+  advance; instruments and controllers likewise. Invariant 9's "every port resolves to an anchor" is
+  satisfied by a named anchor, the wildcard, or an indexed rule.
+- **A tank in a steady solve carries `state.t` and `state.p`**, not `layers`: the steady tank has one
+  mixed enthalpy unknown, and writing it into five layers would draw a stratification the solver did
+  not compute. `layers` is the transient's, and arrives with it.
+- **The size cap is measured, not estimated**, and therefore lives in the Api: `ModelContractJson.Build`
+  serializes compact, and if the bytes exceed `MaxPayloadBytes` (1 MiB, twice `07`'s budget for the
+  reference model) asks `ModelContractBuilder` for the payload again with states omitted and `FS2502`
+  in the diagnostics. `solved` stays `true`; `statesOmitted` is what changed. Compile-only payloads
+  carry no states and are never capped. One 100-node pipe is 210 components and well under; the cap
+  is for the several-thousand-component case, which the test reaches by lowering it.
+- **`show` is read off the syntax**, not the model, because the binder does not bind it (`L-50`).
+- The duplicate `style` object the shape carried -- one of tokens, one of resolved stroke and
+  pattern -- was a drafting slip; the tokens form is what Core carries and never interprets (`D-37`).
+- `solve.elapsedMs` is `null` unless the caller timed the run; Core does not.
 
 ### `parameters[].source` is the field that carries `D-02`
 
@@ -390,28 +444,37 @@ stated head.
 
 ## Acceptance criteria
 
-- [ ] The M2 demo circuit serializes to a payload matching the shape above, validated against a schema.
-- [ ] Every dimensioned field carries a `unit` and its value is in the canonical unit.
-- [ ] An unsolved circuit serializes with `solved: false` and null states, and the canvas renders it.
-- [ ] A golden-file test pins the full payload for the demo circuit; a contract change fails it visibly.
-- [ ] Deserialize/re-serialize is byte-identical.
-- [ ] Changing a field's unit fails a test that asserts the version was bumped.
-- [ ] A 100-node discretized pipe triggers `FS2502` rather than emitting the full payload.
+- [x] The M2 demo circuit serializes to a payload matching the shape above, validated against a schema.
+      (P5.1b: the golden files are the schema; the wire records are what a JSON Schema would be
+      generated from, and none is generated yet.)
+- [x] Every dimensioned field carries a `unit` and its value is in the canonical unit.
+- [x] An unsolved circuit serializes with `solved: false` and null states, and the canvas renders it.
+      (The canvas half is P5.3's.)
+- [x] A golden-file test pins the full payload for the demo circuit; a contract change fails it visibly.
+- [x] Deserialize/re-serialize is byte-identical.
+- [x] Changing a field's unit fails a test that asserts the version was bumped.
+- [x] A 100-node discretized pipe triggers `FS2502` rather than emitting the full payload. (Read as
+      the size cap, measured: one such pipe is 210 components and fits; the test that reaches
+      `FS2502` lowers the cap, and a scene of fifty such pipes is what the real one is for.)
 - [ ] Every component symbol resolves, every port has an anchor, and the same definitions drive canvas
-      and SVG export golden files.
-- [ ] Duty, Rated, and Coupled exchanger fixtures serialize their canonical `mode`; frontend and agents
+      and SVG export golden files. (P5.1b: resolves and anchored, on every sample; the strokes and the
+      export are P5.1c's and P5.3's.)
+- [x] Duty, Rated, and Coupled exchanger fixtures serialize their canonical `mode`; frontend and agents
       do not derive mode from port count.
-- [ ] Provenance contains source hash, language major, exact catalogue/property versions, and the
+- [x] Provenance contains source hash, language major, exact catalogue/property versions, and the
       pressure atmosphere used.
-- [ ] The storage header serializes source/storage/consumer thermal stages in ranks 0/1/2, and its
+- [x] The storage header serializes source/storage/consumer thermal stages in ranks 0/1/2, and its
       tank ports/layers match the shape above in compile-only and transient payloads.
-- [ ] A `nodes=4` pipe serializes one group with its declared pipe id as `parentComponentId` and all
+- [x] A `nodes=4` pipe serializes one group with its declared pipe id as `parentComponentId` and all
       nine lowered children in deterministic order; cooling-loop, substation, storage-header, and
       multi-conversion fixtures serialize Core's exact stage roles, ranks, and component order.
-- [ ] `container v=300` round-trips as source text while the contract contains `kind: "tank"` and
+- [x] `container v=300` round-trips as source text while the contract contains `kind: "tank"` and
       parameter `volume`; a bare/default tank volume is carried as dm³, never m³.
 
 ## Open questions
 
-None. Realtime uses validated delta frames (`43`), and evaluated `bindings` ship in contract 1.0 so
-agents and hover can explain derived values.
+Realtime uses validated delta frames (`43`), and evaluated `bindings` ship in contract 1.0 so
+agents and hover can explain derived values. One from P5.1b: `parameters[].unit` is `null` for a
+value whose registry dimension is dimensionless, and that includes `u` (`W/(m²·K)`), because the
+registry declares it so. The wire is honest about what the registry says; the registry is what
+should say more (`C-78`'s neighbour).

@@ -70,6 +70,13 @@ Server Protocol. Scripts are near-always ASCII, but a comment containing an emoj
 misplace every squiggle after it on that line — a bug that appears once, in a user's file, and is
 mystifying.
 
+**Where it is computed (P5.1b).** `ModelContractBuilder.Diagnostics` renders this shape from
+`Diagnostic` and one `SourceText`: `range` from `TextSpan` through `SourceText.GetLinePosition` at
+both ends, `suggestion` and `related` through the same function, severity lowercased, and the list
+ordered by severity then offset then code, a diagnostic with no span last within its severity. A span
+past the end of the text is clamped rather than thrown. The `occurrences`/`components` grouping in
+invariant 5 is the client's and is not on the wire.
+
 ## Severity mapping
 
 | Core | Wire | Editor | Canvas | Log |

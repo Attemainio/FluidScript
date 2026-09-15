@@ -114,6 +114,14 @@ internal static class PropertyBackend
 
     private static readonly HumidAir SharedAir = new();
 
+    /// <summary>The property package's version, for the model contract's provenance (<c>26</c>).</summary>
+    /// <remarks>
+    /// Read here and nowhere else, because this is the one file allowed to know the package's name
+    /// (<c>D-47</c>): the contract carries <c>sharp-prop</c> and this string without naming the type.
+    /// </remarks>
+    public static string PackageVersion { get; } =
+        typeof(Fluid).Assembly.GetName().Version?.ToString() ?? "unknown";
+
     /// <summary>This thread's water instance, constructed on first use.</summary>
     private static Fluid Water => water ??= new Fluid(FluidsList.Water);
 

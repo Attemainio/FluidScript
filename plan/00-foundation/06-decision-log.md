@@ -4509,3 +4509,56 @@ value change (`53` invariant 2).
 *Routing*, *Component spacing*; [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md)
 L17–L19, *the layout report*; [`25-layout-hints`](../20-core-domain/25-layout-hints.md)
 `BranchShapes`; `08` P5.1 and P5.7.
+
+## D-101 · The Api serializes Core's wire records directly; `41`'s "no Core type on the wire" means no domain type, and the generated `Contracts/` mirror is not built
+
+**Accepted · 2026-09-15** · refines `D-46` step 3 and `41` invariant 1; leaves `D-46` steps 1, 2 and 4 and `D-47` as they are
+
+`D-46` placed the hand-written `ModelContract` in Core and, to keep `41`'s invariant 1 ("no Core type
+appears on the wire; every response is a `Contracts/` DTO"), said the Api's `Contracts/` mirror would
+be *generated* from the emitted schema. P5.1b built the records and found the mirror would be a second
+copy of the same thirty types, identical member for member, existing only so that the serializer's
+input is declared in a different assembly. There is no generator yet (`D-46` step 2's schema emission
+is P5.2's), so the mirror would have been hand-copied, which is the drift `D-46` was written to
+prevent.
+
+**What is decided.**
+
+1. The wire records in `FluidScript.Core.Model` (`ModelContract`, `ComponentWire`, `LayoutWire`, …)
+   are the contract and are serialized by the Api as they are. `FluidScript.Api/Contracts/` holds the
+   serializer (`ModelContractJson`: one `System.Text.Json` options object, camelCase, declaration
+   order, nulls written, non-ASCII unescaped, and the measured size cap) and, later, endpoint-shaped
+   DTOs that are not the model contract.
+2. `41` invariant 1 is read as *no domain type on the wire*: nothing in `Components`, `Topology`,
+   `Solvers`, `Binding` or `Syntax` is reachable from a wire record, and an architecture test in
+   `Core.Tests/Model` asserts it by reflection over every wire record's properties. The wire records
+   are the mapped shape `41` asked for; `ModelContractBuilder` is the explicit mapping, and a rename
+   inside the domain does not reach the wire because the builder, not a mapper, names every field.
+3. Core carries one attribute of its own, `[AbsentWhenNull]`, which states `26`'s distinction between
+   *absent* (not applicable) and `null` (not computed). It is not a serialization attribute: the docs
+   generator reads it to write "absent when not applicable", and the Api's resolver modifier turns it
+   into the serializer's ignore condition. `D-47` stands: Core names no serializer, and
+   `ArchitectureTests` enforce it.
+4. `D-46` step 2 — the emitted, committed schema and the CI check that it has not drifted — is still
+   the anti-drift mechanism and still P5.2's. Until it exists, the checked-in golden files under
+   `FluidScript.Api.Tests/Contracts/Goldens`, regenerated only under an explicit flag, are the drift
+   check: a change to a record's name, order or nullability changes a golden and fails the test.
+
+**Why.** `41`'s reason for the mirror was that auto-mapping from Core's domain types would let a
+Core rename silently reshape the API. That reason is met by the wire records being a separate,
+hand-written shape from the domain with an explicit projection between them; it is not met any better
+by copying that shape into a second assembly. The copy would cost a generator, or hand maintenance
+of thirty types, and would buy nothing the golden files and the schema check do not.
+
+**Rejected.**
+- *A generated `Contracts/` mirror per `D-46` step 3.* Shape-identical to Core's records; only
+  worth building when a schema and a generator exist, and even then it is generated code that the
+  Api would deserialize into and map, member for member, onto Core's records. Revisit in P5.2 if the
+  TypeScript generator wants a mirror for its own reasons; otherwise the TypeScript is generated from
+  the schema and the C# side stays as it is.
+- *Serialization attributes on Core's records.* Would let `System.Text.Json` read the absent-when-null
+  rule without a resolver modifier. `D-47` forbids it and the architecture tests would fail.
+
+**Constrains.** [`41-api-architecture`](../40-api/41-api-architecture.md) invariant 1 and its
+architecture-test criterion; [`03-repository-layout`](03-repository-layout.md) `Contracts/`;
+[`26-model-contract`](../20-core-domain/26-model-contract.md) *What P5.1b shipped*.

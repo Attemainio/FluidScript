@@ -53,3 +53,4 @@ Every part of the script language, one page each. Start with the
 | [Units](units.md) | What a bare number means, and every unit you can write |
 | [Properties](properties.md) | Every value you can read back off a component |
 | [Equipment tags](tags.md) | Every kind's tag code, and the tag it produces |
+| [The model contract](model-contract.md) | The one JSON document every consumer receives, field by field |

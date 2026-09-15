@@ -1,0 +1,1279 @@
+{
+  "contractVersion": "2.0",
+  "provenance": {
+    "sourceHash": "sha256:b25d23dba63d710f599e787e811a1b8079f2cc560ff1a6b979b66f0c7b17b925",
+    "languageMajor": 1,
+    "catalog": {
+      "id": "steel_en10255",
+      "version": "2026.1"
+    },
+    "propertyBackend": {
+      "id": "sharp-prop",
+      "version": "1.0.0.0"
+    },
+    "atmosphereKPaAbsolute": 101.325
+  },
+  "style": {
+    "tokens": [
+      "blue",
+      "2px",
+      "fillet",
+      "--"
+    ],
+    "spacing": null
+  },
+  "circuits": [
+    {
+      "name": "coolingLoop",
+      "number": 100,
+      "numberIsExplicit": false,
+      "substance": "water",
+      "mode": "steady",
+      "role": "cooling",
+      "parentCircuit": null,
+      "supplyAnchorId": null,
+      "returnAnchorId": null,
+      "solved": true,
+      "statesOmitted": false
+    }
+  ],
+  "pressureDatums": [
+    "N1"
+  ],
+  "components": [
+    {
+      "id": "HE1",
+      "kind": "heat_exchanger",
+      "mode": "duty",
+      "symbolId": "heat_exchanger.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 501,
+        "length": 40
+      },
+      "circuit": "coolingLoop",
+      "tag": "100HE01",
+      "parameters": {
+        "dp": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "a plate exchanger at its design flow; write dp=0 for an ideal block"
+        },
+        "dp2": {
+          "value": 20,
+          "unit": "kPa",
+          "source": "default",
+          "basis": "the secondary side, on the same basis as dp"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s",
+          "source": "sized",
+          "basis": "0.2392 kg/s — the flow HE1's 20 kPa is measured at, 0.24 l/s"
+        },
+        "fouling": {
+          "value": 1E-05,
+          "unit": null,
+          "source": "default",
+          "basis": "clean surfaces"
+        },
+        "in": {
+          "value": 20,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "out": {
+          "value": 50,
+          "unit": "°C",
+          "source": "stated"
+        },
+        "power": {
+          "value": 30,
+          "unit": "kW",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 20,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50.0109,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 362.241,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 342.241,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 20,
+          "unit": "kPa"
+        },
+        "power": {
+          "value": 30,
+          "unit": "kW"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "PU1__HE1"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "HE1__3WV"
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "connectedTo": null
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "connectedTo": null
+        }
+      ]
+    },
+    {
+      "id": "3WV",
+      "kind": "three_way_valve",
+      "mode": "three_way",
+      "symbolId": "three_way_valve.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 542,
+        "length": 19
+      },
+      "circuit": "coolingLoop",
+      "tag": "100TV01",
+      "parameters": {
+        "authority": {
+          "value": 0.660572,
+          "unit": null,
+          "source": "sized",
+          "basis": "0.66 achieved against a target of 0.5 — Kv 4 drops 2.2 kPa of the branch's 3.3 kPa"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "kv": {
+          "value": 4,
+          "unit": "m3/h",
+          "source": "sized",
+          "basis": "Kv 4 (R5 preferred numbers) — authority 0.66 at 0.165 l/s, 2.2 kPa — chosen against the branch's own resistance, which a free pump absorbs, so the selection rounds down"
+        },
+        "position": {
+          "value": 0.426315,
+          "unit": null,
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50.0109,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 20.014,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 342.241,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 300,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 42.2406,
+          "unit": "kPa"
+        },
+        "solved": {
+          "position": {
+            "value": 0.426315,
+            "unit": ""
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "ab",
+          "role": "bidirectional",
+          "connectedTo": "HE1__3WV"
+        },
+        {
+          "name": "a",
+          "role": "bidirectional",
+          "connectedTo": "N2"
+        },
+        {
+          "name": "b",
+          "role": "bidirectional",
+          "connectedTo": "3WV__P1"
+        }
+      ]
+    },
+    {
+      "id": "PU1",
+      "kind": "pump",
+      "symbolId": "pump.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 562,
+        "length": 8
+      },
+      "circuit": "coolingLoop",
+      "tag": "100PU01",
+      "parameters": {
+        "efficiency": {
+          "value": 0.7,
+          "unit": null,
+          "source": "default",
+          "basis": "a typical wet-rotor circulator"
+        },
+        "elevation": {
+          "value": 0,
+          "unit": "m",
+          "source": "default",
+          "basis": "no elevation stated"
+        },
+        "head": {
+          "value": 6.35722,
+          "unit": "m",
+          "source": "sized",
+          "basis": "found by the solver, to hold the stated constraints"
+        },
+        "margin": {
+          "value": 1,
+          "unit": null,
+          "source": "default",
+          "basis": "size to the computed duty, with no spare"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 20.014,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 20,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 300,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 362.241,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": -62.2406,
+          "unit": "kPa"
+        },
+        "head": {
+          "value": 6.35732,
+          "unit": "m"
+        },
+        "solved": {
+          "head": {
+            "value": 6.35722,
+            "unit": "m"
+          }
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "N2"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PU1__HE1"
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 571,
+        "length": 24
+      },
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 25,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.162921,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 50.0235,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 50.0238,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 281.118,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 280,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 1.11796,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "3WV__P1"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "N3"
+        }
+      ]
+    },
+    {
+      "id": "N1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 898,
+        "length": 19
+      },
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {
+        "p": {
+          "value": 300,
+          "unit": "kPa",
+          "source": "stated"
+        },
+        "t": {
+          "value": 6,
+          "unit": "°C",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "t": {
+          "value": 6,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 300,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N2"
+        }
+      ]
+    },
+    {
+      "id": "N3",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "declared",
+      "sourceSpan": {
+        "start": 977,
+        "length": 15
+      },
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {
+        "p": {
+          "value": 280,
+          "unit": "kPa",
+          "source": "stated"
+        }
+      },
+      "state": {
+        "t": {
+          "value": 50.0238,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 280,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "P1"
+        }
+      ]
+    },
+    {
+      "id": "N2",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I1",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 20.014,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 300,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "N1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "PU1"
+        },
+        {
+          "name": "2",
+          "role": "bidirectional",
+          "connectedTo": "3WV"
+        }
+      ]
+    },
+    {
+      "id": "PU1__HE1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 20,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 362.241,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "PU1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "HE1"
+        }
+      ]
+    },
+    {
+      "id": "HE1__3WV",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50.0109,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 342.241,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "HE1"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "3WV"
+        }
+      ]
+    },
+    {
+      "id": "3WV__P1",
+      "kind": "node",
+      "symbolId": "node.junction",
+      "origin": "inferred:I2",
+      "sourceSpan": null,
+      "circuit": "coolingLoop",
+      "tag": null,
+      "parameters": {},
+      "state": {
+        "t": {
+          "value": 50.0235,
+          "unit": "°C"
+        },
+        "p": {
+          "value": 281.118,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "0",
+          "role": "bidirectional",
+          "connectedTo": "3WV"
+        },
+        {
+          "name": "1",
+          "role": "bidirectional",
+          "connectedTo": "P1"
+        }
+      ]
+    }
+  ],
+  "symbols": [
+    {
+      "id": "node.junction",
+      "viewBox": [
+        -0.15,
+        -0.15,
+        0.3,
+        0.3
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.35
+      ]
+    },
+    {
+      "id": "pipe.standard",
+      "viewBox": [
+        -0.5,
+        -0.1,
+        1,
+        0.2
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.3
+      ]
+    },
+    {
+      "id": "heat_exchanger.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ],
+        "in2": [
+          0,
+          -0.5
+        ],
+        "out2": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.3,
+        1,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.45
+      ]
+    },
+    {
+      "id": "three_way_valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "ab": [
+          -0.5,
+          0
+        ],
+        "a": [
+          0,
+          -0.5
+        ],
+        "b": [
+          0,
+          0.5
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "pump.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "in": [
+          -0.5,
+          0
+        ],
+        "out": [
+          0.5,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        -0.65
+      ]
+    },
+    {
+      "id": "tank.stratified",
+      "viewBox": [
+        -0.5,
+        -0.8,
+        1,
+        1.6
+      ],
+      "primitives": [],
+      "portAnchors": {},
+      "indexedPortAnchors": [
+        {
+          "prefix": "in",
+          "side": "west",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        },
+        {
+          "prefix": "out",
+          "side": "east",
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        }
+      ],
+      "labelAnchor": [
+        0,
+        -0.95
+      ]
+    },
+    {
+      "id": "t_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "p_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "flow_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "controller.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [],
+      "portAnchors": {
+        "*": [
+          0,
+          0
+        ]
+      },
+      "labelAnchor": [
+        0,
+        0
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "c0",
+      "from": {
+        "component": "N1",
+        "port": null
+      },
+      "to": {
+        "component": "N2",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.162921,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c1",
+      "from": {
+        "component": "N2",
+        "port": null
+      },
+      "to": {
+        "component": "PU1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c2",
+      "from": {
+        "component": "PU1",
+        "port": "out"
+      },
+      "to": {
+        "component": "PU1__HE1",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c3",
+      "from": {
+        "component": "PU1__HE1",
+        "port": null
+      },
+      "to": {
+        "component": "HE1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c4",
+      "from": {
+        "component": "HE1",
+        "port": "out"
+      },
+      "to": {
+        "component": "HE1__3WV",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c5",
+      "from": {
+        "component": "HE1__3WV",
+        "port": null
+      },
+      "to": {
+        "component": "3WV",
+        "port": "ab"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.239213,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c6",
+      "from": {
+        "component": "3WV",
+        "port": "a"
+      },
+      "to": {
+        "component": "N2",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.0762922,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c7",
+      "from": {
+        "component": "3WV",
+        "port": "b"
+      },
+      "to": {
+        "component": "3WV__P1",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.162921,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c8",
+      "from": {
+        "component": "3WV__P1",
+        "port": null
+      },
+      "to": {
+        "component": "P1",
+        "port": "in"
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.162921,
+          "unit": "kg/s"
+        }
+      }
+    },
+    {
+      "id": "c9",
+      "from": {
+        "component": "P1",
+        "port": "out"
+      },
+      "to": {
+        "component": "N3",
+        "port": null
+      },
+      "flow": "forward",
+      "state": {
+        "flow": {
+          "value": 0.162921,
+          "unit": "kg/s"
+        }
+      }
+    }
+  ],
+  "layout": {
+    "order": [
+      "N1",
+      "N2",
+      "PU1",
+      "PU1__HE1",
+      "HE1",
+      "HE1__3WV",
+      "3WV",
+      "3WV__P1",
+      "P1",
+      "N3"
+    ],
+    "rank": {
+      "3WV__P1": 1,
+      "N1": 1,
+      "N3": 3,
+      "P1": 2
+    },
+    "thermalStages": [
+      {
+        "rank": 0,
+        "role": "neutral",
+        "components": [
+          "HE1",
+          "3WV",
+          "PU1",
+          "P1",
+          "N1",
+          "N3",
+          "N2",
+          "PU1__HE1",
+          "HE1__3WV",
+          "3WV__P1"
+        ]
+      }
+    ],
+    "flow": {
+      "c0": "forward",
+      "c1": "forward",
+      "c2": "forward",
+      "c3": "forward",
+      "c4": "forward",
+      "c5": "forward",
+      "c6": "forward",
+      "c7": "forward",
+      "c8": "forward",
+      "c9": "forward"
+    },
+    "portSides": {
+      "3WV.a": "north",
+      "3WV.ab": "west",
+      "3WV.b": "south",
+      "HE1.in": "west",
+      "HE1.in2": "north",
+      "HE1.out": "east",
+      "HE1.out2": "south",
+      "P1.in": "west",
+      "P1.out": "east",
+      "PU1.in": "west",
+      "PU1.out": "east"
+    },
+    "loops": [
+      [
+        "N2",
+        "PU1",
+        "PU1__HE1",
+        "HE1",
+        "HE1__3WV",
+        "3WV"
+      ]
+    ],
+    "loopOrientations": [
+      "clockwise"
+    ],
+    "groups": [],
+    "nonFlowElements": [],
+    "circuitOf": {
+      "3WV": "coolingLoop",
+      "3WV__P1": "coolingLoop",
+      "HE1": "coolingLoop",
+      "HE1__3WV": "coolingLoop",
+      "N1": "coolingLoop",
+      "N2": "coolingLoop",
+      "N3": "coolingLoop",
+      "P1": "coolingLoop",
+      "PU1": "coolingLoop",
+      "PU1__HE1": "coolingLoop"
+    },
+    "distributionGroups": [],
+    "inferred": [
+      "3WV__P1",
+      "HE1__3WV",
+      "N2",
+      "PU1__HE1"
+    ],
+    "branchShapes": {}
+  },
+  "visualization": {
+    "active": "temperature",
+    "available": [
+      "temperature",
+      "pressure",
+      "flow"
+    ],
+    "scale": {
+      "property": "temperature",
+      "displayName": "Temperature",
+      "unit": "°C",
+      "kind": "sequential",
+      "domain": {
+        "min": 0,
+        "max": 60,
+        "nice": true
+      },
+      "degenerate": false
+    }
+  },
+  "bindings": [],
+  "diagnostics": [
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N2' (I1).",
+      "range": {
+        "start": {
+          "line": 19,
+          "character": 5
+        },
+        "end": {
+          "line": 19,
+          "character": 7
+        },
+        "offset": 614,
+        "length": 2
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'PU1__HE1' (I2).",
+      "range": {
+        "start": {
+          "line": 21,
+          "character": 0
+        },
+        "end": {
+          "line": 21,
+          "character": 9
+        },
+        "offset": 742,
+        "length": 9
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'HE1__3WV' (I2).",
+      "range": {
+        "start": {
+          "line": 22,
+          "character": 0
+        },
+        "end": {
+          "line": 22,
+          "character": 9
+        },
+        "offset": 752,
+        "length": 9
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node '3WV__P1' (I2).",
+      "range": {
+        "start": {
+          "line": 24,
+          "character": 0
+        },
+        "end": {
+          "line": 24,
+          "character": 8
+        },
+        "offset": 842,
+        "length": 8
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS2401",
+      "severity": "info",
+      "message": "The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum.",
+      "range": null,
+      "component": null,
+      "suggestion": null,
+      "related": []
+    }
+  ],
+  "solve": {
+    "converged": true,
+    "iterations": 2,
+    "residualNorm": 4.33E-11,
+    "elapsedMs": null,
+    "sizingPasses": 2
+  }
+}
