@@ -393,7 +393,7 @@ public sealed class TopologyBindingTests
         // canonical unit — `HE4.power = 45` is 45 kW, exactly as `power=45` would be (`D-14`).
         var model = Model(
             "fluidscript 1\ncircuit demandStep 400\nfluid dynamic water\n"
-            + "HE4 heat_exchanger in=50 out=30 power=30 kW\n"
+            + "HE4 load in=50 out=30 power=30 kW\n"
             + "schedule\nat 60 s HE4.power = 45\nover 60 s .. 120 s HE4.power = 30 .. 45\n");
 
         Assert.Equal(2, model.Disturbances.Length);

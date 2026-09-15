@@ -113,6 +113,7 @@ the substation that is 60 °C out and 40 °C back.
 | A duty above what the two inlet temperatures allow, `Cmin · (T_hot,in − T_cold,in)` | [`FS2111`](diagnostics.md), naming the maximum — checked before anything is sized |
 | One of `in2`/`out2` connected without the other | [`FS2112`](diagnostics.md) |
 | A design whose approach comes out under 3 K, or under your stated `approach` | [`FS4008`](diagnostics.md) — the size is still reported; the design is what is questioned |
+| A neutral spelling whose signed `power` disagrees with its temperatures — `heat_exchanger in=50 out=30 power=24` says the water cools while the duty says it is heated | [`FS2119`](diagnostics.md) — flip the sign, swap the temperatures, or use a role word |
 | A negative `dt` or `dt2` | [`FS1307`](diagnostics.md) |
 | A negative `power` on `load`, `cooler`, `radiator`, `chiller`, `heater` or `boiler` | [`FS1308`](diagnostics.md) — the word carries the sign; the magnitude is taken |
 | Water running through it from `out` to `in` at a converged solve | [`FS3013`](diagnostics.md) — a warning naming any stated terminal now on the wrong end |

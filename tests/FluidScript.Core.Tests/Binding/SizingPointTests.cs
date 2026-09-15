@@ -22,8 +22,8 @@ public sealed class SizingPointTests
 
         circuit ahu 300
         fluid static water
-        HP1 heat_exchanger in=50 out=30 power=heating sized_at tout=-5
-        BL1 heat_exchanger in=50 out=30 power=heating
+        HP1 load in=50 out=30 power=heating sized_at tout=-5
+        BL1 load in=50 out=30 power=heating
         """;
 
     private static BindResult Bind(string text) =>
@@ -141,8 +141,8 @@ public sealed class SizingPointTests
 
             circuit ahu 300
             fluid static water
-            HP1 heat_exchanger in=50 out=30 power=heating sized_at tout=-5
-            BL1 heat_exchanger in=50 out=30 power=heating
+            HP1 load in=50 out=30 power=heating sized_at tout=-5
+            BL1 load in=50 out=30 power=heating
             """);
 
         Assert.Equal(27_173.913, Power(model, "HP1"), 3);

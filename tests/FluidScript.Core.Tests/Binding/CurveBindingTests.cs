@@ -48,7 +48,7 @@ public sealed class CurveBindingTests
 
         circuit ahu 300
         fluid static water
-        HX1 heat_exchanger in=50 out=30 power=heating
+        HX1 load in=50 out=30 power=heating
 
         """;
 
@@ -182,7 +182,7 @@ public sealed class CurveBindingTests
         // one usable is that something supplies its number.
         var model = Model(
             "fluidscript 1\ndesign flueTemp=180\ncurve recovery flueTemp\n100 5\n200 20\n"
-            + "circuit hr 100\nHX1 heat_exchanger in=50 out=30 power=recovery\n");
+            + "circuit hr 100\nHX1 load in=50 out=30 power=recovery\n");
 
         Assert.Equal(CurveDriverKind.DesignOnly, Curve(model, "recovery").DriverKind);
         Assert.Equal(17_000, Power(model, "HX1"), 6);
@@ -206,7 +206,7 @@ public sealed class CurveBindingTests
 
             circuit ahu 300
             fluid static water
-            HX1 heat_exchanger in=50 out=30 power=heating
+            HX1 load in=50 out=30 power=heating
 
             design time=3600
             """);
@@ -245,7 +245,7 @@ public sealed class CurveBindingTests
         // the same point on a table whose own x column says −26, and `outdoor` is the same driver.
         var model = Model(
             $"fluidscript 1\n{design}\ncurve heating tout\n-26 50\n20 0\n"
-            + "circuit ahu 300\nfluid static water\nHX1 heat_exchanger in=50 out=30 power=heating\n");
+            + "circuit ahu 300\nfluid static water\nHX1 load in=50 out=30 power=heating\n");
 
         Assert.Equal(50_000, Power(model, "HX1"), 6);
         Assert.Equal(-26, model.Project.Design["tout"].Number);
@@ -281,7 +281,7 @@ public sealed class CurveBindingTests
 
             circuit ahu 300
             fluid static water
-            HX1 heat_exchanger in=50 out=30 power=heating
+            HX1 load in=50 out=30 power=heating
             """);
 
         Assert.Equal(50_000, Power(model, "HX1"), 6);
@@ -306,7 +306,7 @@ public sealed class CurveBindingTests
 
                 circuit ahu 300
                 fluid static water
-                HX1 heat_exchanger in=50 out=30 power=heating
+                HX1 load in=50 out=30 power=heating
                 """).Diagnostics,
             static d => d.Code == "FS1528");
 
@@ -334,7 +334,7 @@ public sealed class CurveBindingTests
 
             circuit ahu 300
             fluid dynamic water
-            HX1 heat_exchanger in=50 out=30 power=heating
+            HX1 load in=50 out=30 power=heating
             """);
 
         Assert.DoesNotContain("FS1528", result.Diagnostics.Select(static d => d.Code));
@@ -351,7 +351,7 @@ public sealed class CurveBindingTests
         // dynamic circuit still carries the design-point value as the number it was sized for.
         var result = Bind(
             "fluidscript 1\ndesign tout=-26\ncurve heating tout\n-26 50\n20 0\n"
-            + "circuit ahu 300\nfluid dynamic water\nHX1 heat_exchanger in=50 out=30 power=heating\n");
+            + "circuit ahu 300\nfluid dynamic water\nHX1 load in=50 out=30 power=heating\n");
 
         Assert.Equal(50_000, Power(result.Model, "HX1"), 6);
         Assert.Contains(result.Model.Deferred, deferred => deferred.CurrentEstimate is not null);
@@ -373,7 +373,7 @@ public sealed class CurveBindingTests
 
             circuit ahu 300
             fluid static water
-            HX1 heat_exchanger in=50 out=30 power=shared
+            HX1 load in=50 out=30 power=shared
             TV1 valve position=shared
             """);
 
@@ -431,7 +431,7 @@ public sealed class CurveBindingTests
         var model = Model("""
             fluidscript 1
             circuit ahu 300
-            HX1 heat_exchanger in=50 out=30 power=24
+            HX1 load in=50 out=30 power=24
             TE1 t_sensor at N2
 
             connections
@@ -484,7 +484,7 @@ public sealed class CurveBindingTests
         var model = Model("""
             fluidscript 1
             circuit ahu 300
-            HX1  heat_exchanger in=50 out=30 power=24
+            HX1  load in=50 out=30 power=24
             TV1  valve
             PID1 pid kp=3
             TE1  t_sensor at N2
@@ -533,7 +533,7 @@ public sealed class CurveBindingTests
             Bind("""
                 fluidscript 1
                 circuit ahu 300
-                HX1  heat_exchanger in=50 out=30 power=24
+                HX1  load in=50 out=30 power=24
                 PID1 pid kp=3
                 TE1  t_sensor at N2
 

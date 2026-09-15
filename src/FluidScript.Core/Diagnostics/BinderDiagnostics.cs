@@ -561,6 +561,20 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}': Coupled mode requires both in2 and out2 connections; {port} is open.");
 
+    /// <summary>A neutral exchanger's signed duty contradicts the direction its stated terminals give.</summary>
+    /// <value><c>FS2119</c>, an error.</value>
+    /// <remarks>
+    /// <c>power</c> is positive when side 1 gains heat, so <c>in=50 out=30 power=+24</c> says the water
+    /// cools while the duty says it is heated, and the component's own energy balance cannot satisfy
+    /// both (<c>C-67</c>). Only the neutral spellings can write it: a role word carries the sign
+    /// (<c>D-91</c>) and its magnitude cannot contradict anything. Side 2 is the mirror -- with a
+    /// positive duty it loses heat, so <c>in2</c> must be the warmer end.
+    /// </remarks>
+    public static DiagnosticDescriptor DutyContradictsTerminals { get; } = new(
+        "FS2119",
+        DiagnosticSeverity.Error,
+        "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
+
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>
     /// <remarks>
@@ -649,7 +663,7 @@ public static class BinderDiagnostics
         "'{name}' observes nothing. Place it with 'at' and the name of a node.");
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty-one descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScheduleWithoutTime,
@@ -712,6 +726,7 @@ public static class BinderDiagnostics
         RatingWithoutASecondSide,
         DutyBeyondInlets,
         OneSecondaryPortOpen,
+        DutyContradictsTerminals,
     ];
 
 }

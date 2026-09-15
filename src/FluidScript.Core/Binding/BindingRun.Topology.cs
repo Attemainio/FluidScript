@@ -1096,6 +1096,67 @@ internal sealed partial class BindingRun
         ReportIslands(mentioned);
         ReportDeadEnds();
         ReviewExchangerModes();
+        ReviewDutyDirection();
+    }
+
+    /// <summary>Reports a neutral exchanger whose signed duty contradicts its stated terminals (<c>FS2119</c>).</summary>
+    /// <remarks>
+    /// <c>C-67</c>. <c>power</c> is positive when side 1 gains heat (<c>22</c>), so on side 1 the outlet must
+    /// then be the warmer end and on side 2 the cooler one. Only the neutral spellings are checked: a role
+    /// word carries the sign (<c>D-91</c>) and lowering applies it, so <c>load power=24 in=50 out=30</c>
+    /// is consistent by construction. A stated <c>dt</c> is a magnitude and cannot contradict anything.
+    /// Arithmetic on stated values, nothing more -- the fluid is not needed to compare two temperatures.
+    /// </remarks>
+    private void ReviewDutyDirection()
+    {
+        foreach (var component in _components)
+        {
+            if (component.Kind is not { Keyword: "heat_exchanger" }
+                || NameResolution.Normalize(component.WrittenKind) is "load" or "cooler" or "radiator" or "chiller" or "heater" or "boiler"
+                || !component.Parameters.TryGetValue("power", out var duty)
+                || duty.Value is not { } power
+                || power.SiValue == 0)
+            {
+                continue;
+            }
+
+            var gains = power.SiValue > 0;
+
+            foreach (var (inlet, outlet, side) in ((string, string, int)[])[("in", "out", 1), ("in2", "out2", 2)])
+            {
+                if (!component.Parameters.TryGetValue(inlet, out var entering) || entering.Value is not { } a
+                    || !component.Parameters.TryGetValue(outlet, out var leaving) || leaving.Value is not { } b
+                    || a.SiValue == b.SiValue)
+                {
+                    continue;
+                }
+
+                // Side 1 gains what the duty says; side 2 gives it.
+                var warms = b.SiValue > a.SiValue;
+                var shouldWarm = side == 1 ? gains : !gains;
+
+                if (warms == shouldWarm)
+                {
+                    continue;
+                }
+
+                var unit = UnitTable.CanonicalUnitFor(power.Dimension);
+                var celsius = UnitTable.CanonicalUnitFor(a.Dimension);
+
+                Report(
+                    BinderDiagnostics.DutyContradictsTerminals,
+                    duty.Span,
+                    ("name", component.Name),
+                    ("power", Format(unit is null ? power.SiValue : power.ValueIn(unit), unit?.Text)),
+                    ("side", side.ToString(CultureInfo.InvariantCulture)),
+                    ("duty", (side == 1 ? gains : !gains) ? "gains heat" : "loses heat"),
+                    ("inlet", inlet),
+                    ("in", Format(celsius is null ? a.SiValue : a.ValueIn(celsius), celsius?.Text)),
+                    ("outlet", outlet),
+                    ("out", Format(celsius is null ? b.SiValue : b.ValueIn(celsius), celsius?.Text)),
+                    ("change", warms ? "warms" : "cools"));
+            }
+        }
     }
 
     /// <summary>The parameters that describe how heat crosses an exchanger, and so promote nothing (<c>D-19</c>).</summary>

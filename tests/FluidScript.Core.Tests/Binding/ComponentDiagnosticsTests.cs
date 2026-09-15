@@ -68,6 +68,60 @@ public sealed class ComponentDiagnosticsTests
     public void FS1307_DoesNotFireOnANegativeDuty() =>
         None("HE1 heat_exchanger power=-70 dt=20", "FS1307");
 
+    // ---- FS2119: a signed duty against the direction its terminals give ------------------------
+
+    [Fact]
+    public void FS2119_APositiveDutyWithACoolingSideOne()
+    {
+        // C-67. `power` is positive when side 1 gains heat; 50 -> 30 is the water cooling. The two cannot
+        // both hold, and until now the contradiction surfaced only as a convergence residual.
+        var diagnostic = Only("HE1 heat_exchanger in=50 out=30 power=24", "FS2119");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("side 1 gains heat", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("cools", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in=50 °C", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2119_ANegativeDutyWithAWarmingSideOne() =>
+        Assert.Contains("side 1 loses heat", Only("HE1 heat_exchanger in=30 out=50 power=-24", "FS2119").Message, StringComparison.Ordinal);
+
+    [Fact]
+    public void FS2119_SideTwoIsTheMirror()
+    {
+        // A positive duty leaves side 2, so in2 must be the warmer end: 45 -> 85 on side 2 is wrong.
+        var diagnostic = Only("HX1 heat_exchanger in=40 out=60 in2=45 out2=85 power=150", "FS2119");
+
+        Assert.Contains("side 2 loses heat", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in2=45 °C", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2119_DoesNotFireWhenTheSignsAgree()
+    {
+        None("HE1 heat_exchanger in=30 out=50 power=24", "FS2119");
+        None("HE1 heat_exchanger in=50 out=30 power=-24", "FS2119");
+        None("HX1 heat_exchanger in=40 out=60 in2=85 out2=45 power=150", "FS2119");
+    }
+
+    [Fact]
+    public void FS2119_ARoleWordCarriesTheSignAndCannotContradict()
+    {
+        // D-91: `load power=24 in=50 out=30` lowers to -24 kW. The word decided the direction; the
+        // magnitude has nothing to contradict, and a check here would be second-guessing the word.
+        None("HE1 load in=50 out=30 power=24", "FS2119");
+        None("HE1 heater in=30 out=50 power=24", "FS2119");
+    }
+
+    [Fact]
+    public void FS2119_NeedsBothTerminalsAndADuty()
+    {
+        None("HE1 heat_exchanger in=50 power=24", "FS2119");
+        None("HE1 heat_exchanger in=50 out=30", "FS2119");
+        None("HE1 heat_exchanger dt=20 power=24", "FS2119");
+    }
+
     [Fact]
     public void FS1307_DoesNotFireOnAParameterWhoseRangeGoesNegative() =>
         // A pipe that falls two metres is ordinary, and `elevation` is declared -500 to 500.

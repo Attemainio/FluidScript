@@ -328,9 +328,13 @@ generated record equality, which is a trap; `Quantity` therefore overrides `Equa
 
 ## Timestamps
 
-A timestamp is a lexical unit, not a quantity, and it exists only inside a `curve` section whose
-driver is `time` (`D-60`). It is **not** a dimension: it never takes part in arithmetic, never carries
-a unit, and converts to seconds on the SI side like everything else.
+A timestamp is a **line-level** unit, not a quantity, and it exists only inside a `curve` section
+whose driver is `time` (`D-60`). It is **not** a dimension: it never takes part in arithmetic, never
+carries a unit, and converts to seconds on the SI side like everything else. It is not a lexical
+unit either, and cannot be: `2026-01-01` is also a valid subtraction, so no context-free lexer can
+tell the two apart. A curve row keeps its raw tokens and the binder splits the row's *text* at its
+last run of whitespace; the lexer's only part is a `Colon` token, so that a clock time does not raise
+`FS1002` (`L-36`).
 
 Two forms need no declaration — ISO 8601 (`2026-01-01T00:00:00`) and a bare number of Unix seconds.
 Anything else is stated on the curve:
