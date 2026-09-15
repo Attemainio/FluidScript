@@ -36,6 +36,56 @@ You never write it. It is what a script becomes.
 - Payloads over 1 MiB arrive without per-component states and with `FS2502`; `statesOmitted` on each
   circuit says so, and the layout is still whole.
 
+## Symbols
+
+Every component names a symbol, and `symbols` carries each definition once: a bounding box in symbol
+units, named port anchors on the box edge -- each with the outward direction a connection leaves it
+in -- the strokes inside, and where the label sits. The canvas scales the box to the diagram and draws
+the strokes; the layout engine and the exporter work from the box and the anchors alone, so a symbol
+whose strokes change without its box changing moves nothing
+([How the diagram is arranged](../advanced/how-the-diagram-is-arranged.md)).
+
+A symbol is placed by turning its box in quarter turns, and the anchor directions turn with it: a
+pump's `out` faces east in the definition and faces south once the pump sits on a downward run. Some
+symbols also offer `alternatives` -- other complete arrangements of the same ports on the same box.
+The exchanger's default is the *through-pass*, each side entering at one end and leaving at the other,
+primary on the left flank and secondary on the right; its alternative `u` brings each side in and out
+on its own flank, which is what a substation drawn with the primary to the left and the secondary to
+the right wants. The diagram picks the arrangement and the rotation for each instance so that the
+connections it has to draw are shortest, measured as they will be routed, along the grid; the
+definition offers, it does not choose.
+
+The glyphs follow the notation an engineering office draws by hand -- ISO 10628 for the process
+diagram, ISO 14617 for the equipment symbols, ANSI/ISA-5.1 for the instrument bubbles -- as this
+project reads them: a filled dot for a junction, the line itself for a pipe, a crossed rectangle for an
+exchanger with its second side entering at the top, opposed triangles for a valve with a general
+actuator drawn as a stem and bar, three triangles meeting at the centre for a three-way valve, a
+circle with a triangle pointing the flow's way for a pump, a tall vessel for a tank, and a circle for
+an instrument -- dashed when it is a controller. The standards' own figures are paywalled and were not
+reproduced; where a glyph here differs from your office standard, the box and anchors are what the
+diagram depends on and the strokes can be changed without moving anything.
+
+A stroke with `fill: "state"` is the slot the active colour scale paints
+([`show`](show.md)); one with `fill: "stroke"` is a solid mark in the line colour; the rest are
+outlines. What the strokes do not carry is drawn by the canvas from the state: a valve's position bar,
+a tank's layer bands, an exchanger's heat arrow, badges, and the sized-versus-stated marker.
+
+<!-- BEGIN GENERATED: symbol-catalog -->
+| Symbol | Box `[x, y, w, h]` | Port anchors, facing | Strokes | Label at |
+|---|---|---|---|---|
+| `node.junction` | `-0.15, -0.15, 0.3, 0.3` | `*` (0, 0) | circle (solid) | (0, -0.35) |
+| `pipe.standard` | `-0.5, -0.1, 1, 0.2` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | line | (0, -0.3) |
+| `heat_exchanger.standard` | `-0.25, -0.5, 0.5, 1` | `in` (-0.15, -0.5) ↑, `in2` (0.15, 0.5) ↓, `out` (-0.15, 0.5) ↓, `out2` (0.15, -0.5) ↑<br>*or `u`:* `in` (-0.25, -0.3) ←, `in2` (0.25, 0.3) →, `out` (-0.25, 0.3) ←, `out2` (0.25, -0.3) → | rect (state fill), 2 lines | (0, -0.65) |
+| `valve.standard` | `-0.5, -0.3, 1, 0.6` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | 2 polygons (state fill), 4 lines | (0, -0.45) |
+| `three_way_valve.standard` | `-0.5, -0.5, 1, 1` | `a` (0, -0.5) ↑, `ab` (-0.5, 0) ←, `b` (0, 0.5) ↓ | 3 polygons (state fill), 5 lines | (0, -0.65) |
+| `pump.standard` | `-0.5, -0.5, 1, 1` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | circle (state fill), polygon (solid), 2 lines | (0, -0.65) |
+| `tank.stratified` | `-0.5, -0.8, 1, 1.6` | `in{1..16}` on the west at `port.elevation` ←, `out{1..16}` on the east at `port.elevation` → | rect (state fill) | (0, -0.95) |
+| `t_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
+| `p_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
+| `flow_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
+| `controller.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle (dashed) | (0, 0) |
+<!-- END GENERATED: symbol-catalog -->
+
 ## Fields
 
 Generated from the contract's own definitions; the first table is the document, the rest are what
@@ -131,14 +181,15 @@ One graph component.
 
 ### `Symbol`
 
-A symbol definition in a normalized box (`D-20`).
+A symbol definition in a normalized box (`D-20`, `D-102`).
 
 | Field | Type | Meaning |
 |---|---|---|
 | `id` | string | The id components reference, `kind.variant`. |
 | `viewBox` | array of number | The bounding box as `[x, y, width, height]` in symbol units; what layout reasons on. |
 | `primitives` | array of [`Primitive`](#primitive) | What the canvas draws inside the box. Never executable. |
-| `portAnchors` | object of array of number | Named port anchors as `[x, y]` on the box edge. |
+| `portAnchors` | object of [`Anchor`](#anchor) | The default arrangement: each named port's anchor on the box edge and its outward direction. |
+| `alternatives` | object of object of [`Anchor`](#anchor) or `null` | Other complete arrangements of the same ports on the same box, by name; the renderer may pick one per instance, with a rotation, to shorten the connections it has to draw. Absent when there is one. Absent when not applicable. |
 | `indexedPortAnchors` | array of [`IndexedAnchor`](#indexedanchor) or `null` | Rules for indexed ports such as a tank's `in{n}`; absent for a fixed-port symbol. Absent when not applicable. |
 | `labelAnchor` | array of number | Where the label sits, `[x, y]`. |
 
@@ -298,6 +349,17 @@ One drawing primitive; the fields a kind does not use are absent.
 | `from` | array of number or `null` | A line's start. Absent when not applicable. |
 | `to` | array of number or `null` | A line's end. Absent when not applicable. |
 | `points` | array of number or `null` | A polyline's or polygon's points, flattened `[x0, y0, x1, y1, …]`. Absent when not applicable. |
+| `fill` | string or `null` | What fills a closed shape: `state` for the active colour scale's slot (`57`), `stroke` for a solid mark in the line colour; absent for an outline. Absent when not applicable. |
+| `dashed` | boolean or `null` | `true` for a dashed stroke; absent for a solid one. Absent when not applicable. |
+
+### `Anchor`
+
+Where a port meets its symbol, and which way a connection leaves it.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `at` | array of number | The point on the box edge, `[x, y]` in symbol units. |
+| `direction` | array of number or `null` | The outward unit vector a connection leaves along, `[dx, dy]` with `y` down; rotates with the box. Absent for the wildcard anchor, whose direction the renderer chooses. Absent when not applicable. |
 
 ### `IndexedAnchor`
 
@@ -307,6 +369,7 @@ An anchor rule for an indexed port family.
 |---|---|---|
 | `prefix` | string | The port name prefix, `in` or `out`. |
 | `side` | string | The box side the family sits on. |
+| `direction` | array of number | The outward unit vector every anchor of the family leaves along, `[dx, dy]`. |
 | `verticalCoordinate` | string | Which port field gives the position along that side. |
 | `minIndex` | integer | The smallest index the rule covers. |
 | `maxIndex` | integer | The largest index the rule covers. |

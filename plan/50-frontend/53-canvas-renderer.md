@@ -262,9 +262,27 @@ the canvas and the layout report's own drawing, and a symbol definition that cha
 without changing its box or its anchors changes no layout. This is also what keeps the layout report
 (`62`) readable: a component is one line — id, kind, box, anchors — not an inventory of strokes.
 
+**Anchors carry directions, and the rotation is chosen, not defaulted (`D-102`, 2026-09-15).**
+Every named anchor on the wire has an outward unit vector, the tank's elevation ports face west
+and east, and the wildcard anchor of a node or an instrument has none. A symbol may also offer
+*alternative* arrangements of the same ports -- the exchanger's `u` beside its through-pass default.
+For each instance the renderer picks the arrangement and one of the four quarter turns, and the
+directions turn with the box; it picks by the cost of the connections the instance has to make:
+
+```
+cost(instance) = Σ over its connections of  |Δx| + |Δy|  +  λ · bends(d_out, d_in, q − p)
+```
+
+where *p*, *q* are the two anchors after placement, *d_out*, *d_in* their directions, and `bends`
+is 0 when the two face each other along the displacement, 1 when perpendicular and facing, 2 when
+either faces away. Sample: a pump's `out` at (10, 0) facing east and an exchanger's `in` at (14, 0)
+facing west cost 4 with no bend; rotate the exchanger so `in` sits at (14, 2) facing north and the
+same connection costs 6 with one bend. The table below is the tie-break and the starting point, not a
+rule that outranks a shorter run; `hints.portSides` is the default arrangement unrotated.
+
 | Kind | Default orientation | Why |
 |---|---|---|
-| `heat_exchanger` | **Vertical** — flow enters one end and leaves the other along a vertical run | This is how exchangers are drawn on nearly every P&I diagram: the two sides read as two stacked passes, and a rated exchanger's second side attaches horizontally without crossing anything |
+| `heat_exchanger` | **Vertical** — flow enters one end and leaves the other along a vertical run (the through-pass default set); the `u` arrangement brings each side in and out on its own flank | This is how exchangers are drawn on nearly every P&I diagram: the two sides read as two stacked passes, and a rated exchanger's second side attaches horizontally without crossing anything; `u` is the substation drawn primary-left, secondary-right |
 | `tank` | **Vertical**, always | Its layers are stratified by elevation (`D-32`); a horizontal tank would make layer 1 mean nothing |
 | `pump` | **Horizontal**, on a horizontal run, triangle pointing along flow | A pump is read by its flow direction, which is only legible on a horizontal run |
 | `valve`, `three_way_valve` | Along the run it sits on; the third stub perpendicular | The controlled leg has to be visually distinct from the through leg |
@@ -515,9 +533,17 @@ kinds delivered through M2b; M4 adds its two rows before M4 exits.
 | `pump` | M3 | Circle with an internal triangle pointing in the flow direction |
 | `tank` | M4 | `D-32` vessel divided into `layers` bands; materialized inlet/outlet anchors sit at their normalized elevations, and layer fills use their own temperatures |
 | `controller` | M4 | Dashed circle with the loop tag, connected to its actuator by a dashed line, and to its measurement point by a second, lighter one. Both ends come from the `control` binding (`D-40`) via `hints.nonFlowElements`; the renderer infers neither from the graph, where a controller has no ports |
+| `t_sensor`, `p_sensor`, `flow_sensor` | M3 | ISA-5.1's instrument bubble -- a circle with the tag letters (`TE`, `PE`, `FE`) as its label -- at its `attachedTo` node via `hints.nonFlowElements`. `D-61` added the kinds after `D-23` had deferred them; this row replaced a sentence that still said there was no sensor symbol (2026-09-15) |
 
-There is no v1 persistent sensor symbol: `D-23` defers the component, while pinned readouts and the
-accessible state table provide its current UI use case.
+**Shipped in P5.1c (2026-09-15):** every row above has its strokes in Core's `SymbolCatalog`, on
+the wire as `symbols[].primitives`, and the table in
+[`docs/functions/model-contract.md`](../../docs/functions/model-contract.md) is generated from it.
+A primitive carries `fill: "state"` where the colour scale paints and `fill: "stroke"` for a solid
+mark, and the controller's bubble is `dashed`; the position bar, layer bands, heat arrow, badges and
+the sized-versus-stated marker below are the renderer's, drawn from the state and not from the
+symbol. The standards' figures were not reproduced -- the glyphs are this project's reading of the
+conventions, and the user has said the symbols can be adjusted later; because layout works on the
+box and anchors alone, adjusting them moves nothing.
 
 Conventions applied to every symbol:
 

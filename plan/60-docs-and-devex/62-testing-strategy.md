@@ -390,7 +390,9 @@ a sweep rather than a list of per-sample expectations that grows one assertion a
 correctness, and its breach is the only one on this list that a reader cannot see. A scene can be
 disjoint, corner-free, deterministic and beautifully routed while connecting the wrong ports.
 
-**Fixtures.** The six reference circuits; every sample script; the supported 200-component fixture; a
+**Fixtures.** The six reference circuits; every sample script; the supported 200-component fixture
+(generated, not checked in: `FluidScript.Fixtures.ReferenceModels.DistributionHeader(18)`, `01`'s
+header with eighteen pumped consumers -- a file that size would be solved by every corpus test); a
 crowded fixture built to force reflow; an explicitly over-limit fixture. Plus **corpus mutation over
 the sample scripts** — the same argument this document already makes for the parser fuzz applies here:
 mutations of real scripts produce near-valid topologies, which is where a layout engine breaks, and a

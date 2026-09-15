@@ -60,8 +60,8 @@ would be filled with nothing.
 > on a `chiller`. The audit of open defects before `P5.1` closed `C-4` (already met by P4.1),
 > `L-36` (a `13` correction) and `C-67` — the last with `FS2119`, which found seventeen test
 > fixtures and four syntax-tour lines writing a cooling load as a positive neutral duty.
-> **P5 — M3, the usable static product — is in progress: P5.1a (layout hints) and P5.1b (the model
-> contract) shipped 2026-09-15; P5.1c (symbols and the payload baseline) is next.**
+> **P5 — M3, the usable static product — is in progress: P5.1 (layout hints, the model contract,
+> symbols and the payload baseline) shipped 2026-09-15; P5.2 is next.**
 > The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
@@ -256,7 +256,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 |---|---|---|---|
 | P5.1a | `LayoutHints` per `25`, with `BranchShapes` (`D-100`) and `FS2401`–`FS2403` | (this commit) | Shipped 2026-09-15 |
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
-| P5.1c | Symbol definitions per `D-24`; the 200-component payload baseline | — | After 5.1b |
+| P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | (this commit) | Shipped 2026-09-15 |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -299,6 +299,20 @@ one that matters most being that a promoted head or Kv is `sized` on the wire wi
 basis. `L-50` filed: the binder does not bind `show`, so `FS1210`–`FS1214` are unregistered and the
 contract reads the directive off the syntax. Docs: `functions/model-contract.md`, generated from the
 records' own XML docs by the docs gate, and `show.md`'s resolution table. Core 1648/0/4; Api 15/0.
+
+**P5.1c is the strokes inside `SymbolCatalog` and the payload baseline.** Every symbol `53`'s
+inventory lists now carries its primitives on the wire -- with `fill: "state"` marking the slot the
+colour scale paints, `fill: "stroke"` a solid mark, and `dashed` on the controller's bubble -- and
+`docs/functions/model-contract.md` gains a symbols section whose table the docs gate generates from
+the catalogue. `53`'s inventory gained the sensor row it had been missing since `D-61`. The
+200-component reference model is generated, not checked in: `ReferenceModels.DistributionHeader(18)`
+in `FluidScript.Fixtures`, `01`'s header with eighteen pumped consumers, exactly 200 components and
+19 circuits. Measured: 189.8 KiB compile, 237.6 KiB solved with every state, ~1.2 ms warm
+serialization, 1.1--1.5 s to solve; `05`'s M3 payload criterion is ticked on the server side and
+`26` holds the numbers. `D-102`, asked for by the user mid-package: every anchor carries its outward
+direction, a symbol may offer alternative arrangements of its ports (the exchanger's `u` beside its
+through-pass default), `25`'s `PortSides` is read off the default arrangement, and `53` states the
+Manhattan-plus-bends cost the renderer picks arrangement and rotation by. Core 1656/0/4; Api 18/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -391,8 +405,8 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1648 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
-| API test suite | **15 passed, 0 failed** | `FluidScript.Api.Tests` |
+| Core test suite | **1656 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 

@@ -80,8 +80,10 @@ public sealed class LayoutHintsTests
     }
 
     [Fact]
-    public void PortSidesFollowRoleAndTheThreeWayValveSeparatesItsOutlets()
+    public void PortSidesAreReadOffTheSymbolsDefaultAnchors()
     {
+        // D-102: the side is the default anchor's direction; the exchanger's through-pass runs top to
+        // bottom on the left flank and bottom to top on the right, and the renderer rotates from there.
         var (hints, _) = Unsolved(GraphFixture.CoolingLoop);
 
         Assert.Equal(PortSide.West, hints.PortSides["3WV.ab"]);
@@ -89,8 +91,10 @@ public sealed class LayoutHintsTests
         Assert.Equal(PortSide.South, hints.PortSides["3WV.b"]);
         Assert.Equal(PortSide.West, hints.PortSides["PU1.in"]);
         Assert.Equal(PortSide.East, hints.PortSides["PU1.out"]);
-        Assert.Equal(PortSide.North, hints.PortSides["HE1.in2"]);
-        Assert.Equal(PortSide.South, hints.PortSides["HE1.out2"]);
+        Assert.Equal(PortSide.North, hints.PortSides["HE1.in"]);
+        Assert.Equal(PortSide.South, hints.PortSides["HE1.out"]);
+        Assert.Equal(PortSide.South, hints.PortSides["HE1.in2"]);
+        Assert.Equal(PortSide.North, hints.PortSides["HE1.out2"]);
         Assert.DoesNotContain("N1.1", hints.PortSides.Keys);
     }
 

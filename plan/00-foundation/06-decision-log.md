@@ -4562,3 +4562,54 @@ of thirty types, and would buy nothing the golden files and the schema check do 
 **Constrains.** [`41-api-architecture`](../40-api/41-api-architecture.md) invariant 1 and its
 architecture-test criterion; [`03-repository-layout`](03-repository-layout.md) `Contracts/`;
 [`26-model-contract`](../20-core-domain/26-model-contract.md) *What P5.1b shipped*.
+
+## D-102 · An anchor is a point and an outward direction; a symbol may offer alternative arrangements; the renderer chooses arrangement and rotation by Manhattan cost
+
+**Accepted · 2026-09-15** · refines `D-20`, `D-24`; amends `25` `PortSides`, `26`, `53` *Symbol orientation*
+
+`D-20`'s symbol had named anchors on a box edge and nothing else. That left three things implicit
+that the layout engine (`53`, P5.7) and the exporter would each have had to reconstruct: which way a
+connection leaves an anchor, what happens to that when the box is turned, and whether a kind can be
+drawn with its ports arranged differently at all. The third is the one that matters: a heat exchanger
+is drawn through-pass on a vertical run and U-pass -- each side in and out on its own flank -- in a
+substation with the primary to the left, and those are different anchor positions, not a rotation of
+one another. With one anchor set, every substation would have had its secondary entering from above.
+
+**What is decided.**
+
+1. Every named anchor on the wire is `{ at: [x, y], direction: [dx, dy] }`, the direction the outward
+   unit normal of the edge the anchor sits on (a test holds this). The tank's indexed families carry
+   one direction each. The wildcard anchor `*` of a node or an instrument has none: a node's ports
+   attach at its centre from whichever side the run comes, and an instrument's leader line meets its
+   bubble from the side the renderer puts it on.
+2. A symbol may carry `alternatives`: other complete arrangements of the same port names on the same
+   box. The exchanger offers `u` beside its through-pass default; every other kind has one arrangement.
+   An arrangement changes anchors, never the box or the strokes.
+3. The renderer places an instance by choosing an arrangement and one of four quarter turns; the
+   directions turn with the box. It chooses by the Manhattan length of the instance's connections plus
+   a bend penalty computed from the two directions and the displacement (`53` states the cost and a
+   worked pair of numbers). Core offers; it does not choose, because the choice depends on where the
+   neighbours landed, which Core does not know.
+4. `25`'s `PortSides` is read off the default arrangement in `SymbolCatalog`, so it is a statement of
+   the unrotated default and can no longer disagree with the anchors. It remains a hint.
+
+**Why.** The alternative was to keep one arrangement per kind and let the renderer rotate. That
+cannot produce a U-pass from a through-pass, so the substation would have been drawn wrong for
+reasons no user could see or fix. Putting the alternatives in Core keeps `D-20`'s single source --
+the exporter draws the same arrangement the canvas chose, from the same definition -- and putting the
+choice in the renderer keeps `53`'s rule that orientation is a placement decision.
+
+**Rejected.**
+- *Separate symbol ids per arrangement (`heat_exchanger.through`, `heat_exchanger.u`).* Core assigns
+  `symbolId` per component, so Core would be choosing an arrangement it has no basis to choose.
+- *Directions derived by the consumer from the anchor's edge.* Works for an anchor at an edge, which
+  is all there is today, but is three copies of the same derivation and silently wrong the day an
+  anchor is not on the edge.
+- *A fixed default orientation per kind, no cost.* `53`'s table said "vertical" for the exchanger
+  while `25` said `in` West; the cost rule replaces a table two documents disagreed about with a
+  number, and keeps the table as the tie-break.
+
+**Constrains.** [`25-layout-hints`](../20-core-domain/25-layout-hints.md) `PortSides`;
+[`26-model-contract`](../20-core-domain/26-model-contract.md) `symbols`;
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) *Symbol orientation and the corner rule*;
+`08` P5.7.

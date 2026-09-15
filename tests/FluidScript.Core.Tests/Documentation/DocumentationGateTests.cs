@@ -132,7 +132,10 @@ public sealed class DocumentationGateTests
     [Fact]
     [Trait("Category", "Docs")]
     public void TheModelContractPageIsGeneratedFromTheWireRecords() =>
-        AssertGenerated("model-contract.md", (ContractPage.FieldsRegion, ContractPage.Render()));
+        AssertGenerated(
+            "model-contract.md",
+            (SymbolsPage.Region, SymbolsPage.Render()),
+            (ContractPage.FieldsRegion, ContractPage.Render()));
 
     private static void AssertGenerated(string page, params (string Region, string Content)[] regions)
     {

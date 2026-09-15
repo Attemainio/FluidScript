@@ -100,6 +100,11 @@ public sealed record LayoutHints
     /// know which run it will land on. A renderer that draws an exchanger vertically reassigns these
     /// to North/South, which is expected and is not a contract breach
     /// (<see href="../50-frontend/53-canvas-renderer.md">53</see>'s orientation conventions).
+    /// Since <c>D-102</c> (P5.1c) the side is read off the symbol's default anchor set in
+    /// <c>SymbolCatalog</c>, so it cannot disagree with the anchors on the wire; the exchanger's default
+    /// is therefore the through-pass -- <c>in</c> North, <c>out</c> South on the left flank, <c>in2</c>
+    /// South, <c>out2</c> North on the right -- and the renderer rotates, or takes the symbol's
+    /// alternative arrangement, from there.
     /// </remarks>
     public required ImmutableDictionary<PortId, PortSide> PortSides { get; init; }
 
@@ -367,7 +372,9 @@ payload can be judged against a real consumer:
 2. `Rank` gives local columns within a band; components sharing a rank stack vertically.
 3. `Loops` overrides local columns for loop members, which are laid out as a closed circuit without
    violating the global thermal-stage order.
-4. `PortSides` orients each symbol.
+4. `PortSides` orients each symbol -- as a starting point. The renderer turns the box in quarter
+   turns and may take an alternative anchor arrangement the symbol offers, choosing by the Manhattan
+   length of the connections it has to draw (`D-102`, `53`); the anchor directions turn with the box.
 5. `Flow` orients arrows.
 6. `Groups` collapse into a single glyph until expanded.
 7. `NonFlowElements` places controllers beside their actuation targets and orders them for keyboard
@@ -436,7 +443,8 @@ Rank:   N1 1 · 3WV__P1 1 · P1 2 · N3 3
 Flow:   every connection Forward — this circuit has no dead legs and no
         reverse flow at the design point.
 
-PortSides:  PU1.in West · PU1.out East · HE1.in West · HE1.out East
+PortSides:  PU1.in West · PU1.out East · HE1.in North · HE1.out South
+            HE1.in2 South · HE1.out2 North   (the through-pass default, D-102)
             3WV.ab West · 3WV.a North · 3WV.b South
             P1.in West · P1.out East
 

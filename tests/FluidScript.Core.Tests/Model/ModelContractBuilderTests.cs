@@ -228,7 +228,7 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void PortSidesAndAnchorsAgree()
     {
-        // 25's PortSides and D-24's anchors are one fact in two forms; this is what holds them together.
+        // 25's PortSides is read off the default anchor set (D-102); this holds the two together on the wire.
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-substation.fluid")));
         var symbols = contract.Symbols.ToDictionary(static s => s.Id, StringComparer.Ordinal);
 
@@ -236,9 +236,10 @@ public sealed class ModelContractBuilderTests
         {
             var (id, port) = (key[..key.IndexOf('.')], key[(key.IndexOf('.') + 1)..]);
             var anchor = symbols[contract.Components.Single(c => c.Id == id).SymbolId].PortAnchors[port];
-            var expected = side switch { "west" => (-0.5, 0.0), "east" => (0.5, 0.0), "north" => (0.0, -0.5), _ => (0.0, 0.5) };
+            var expected = side switch { "west" => (-1.0, 0.0), "east" => (1.0, 0.0), "north" => (0.0, -1.0), _ => (0.0, 1.0) };
 
-            Assert.Equal(expected, (anchor[0], anchor[1]));
+            Assert.True(anchor.Direction.HasValue);
+            Assert.Equal(expected, (anchor.Direction.Value[0], anchor.Direction.Value[1]));
         }
     }
 

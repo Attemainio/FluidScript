@@ -1496,12 +1496,22 @@
         0.3,
         0.3
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.12,
+          "fill": "stroke"
+        }
+      ],
       "portAnchors": {
-        "*": [
-          0,
-          0
-        ]
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1516,16 +1526,40 @@
         1,
         0.2
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        }
+      ],
       "portAnchors": {
-        "in": [
-          -0.5,
-          0
-        ],
-        "out": [
-          0.5,
-          0
-        ]
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1535,29 +1569,128 @@
     {
       "id": "heat_exchanger.standard",
       "viewBox": [
+        -0.25,
         -0.5,
-        -0.5,
-        1,
+        0.5,
         1
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "rect",
+          "x": -0.25,
+          "y": -0.5,
+          "width": 0.5,
+          "height": 1,
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.25,
+            -0.5
+          ],
+          "to": [
+            0.25,
+            0.5
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.25,
+            0.5
+          ],
+          "to": [
+            0.25,
+            -0.5
+          ]
+        }
+      ],
       "portAnchors": {
-        "in": [
-          -0.5,
-          0
-        ],
-        "out": [
-          0.5,
-          0
-        ],
-        "in2": [
-          0,
-          -0.5
-        ],
-        "out2": [
-          0,
-          0.5
-        ]
+        "in": {
+          "at": [
+            -0.15,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        },
+        "out": {
+          "at": [
+            -0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        },
+        "in2": {
+          "at": [
+            0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        },
+        "out2": {
+          "at": [
+            0.15,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        }
+      },
+      "alternatives": {
+        "u": {
+          "in": {
+            "at": [
+              -0.25,
+              -0.3
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              -0.25,
+              0.3
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "in2": {
+            "at": [
+              0.25,
+              0.3
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "out2": {
+            "at": [
+              0.25,
+              -0.3
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        }
       },
       "labelAnchor": [
         0,
@@ -1572,16 +1705,97 @@
         1,
         0.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "polygon",
+          "points": [
+            -0.45,
+            -0.22,
+            0,
+            0,
+            -0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            0.45,
+            -0.22,
+            0,
+            0,
+            0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.45,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0
+          ],
+          "to": [
+            0,
+            -0.22
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.12,
+            -0.22
+          ],
+          "to": [
+            0.12,
+            -0.22
+          ]
+        }
+      ],
       "portAnchors": {
-        "in": [
-          -0.5,
-          0
-        ],
-        "out": [
-          0.5,
-          0
-        ]
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1596,20 +1810,130 @@
         1,
         1
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "polygon",
+          "points": [
+            -0.45,
+            -0.22,
+            0,
+            0,
+            -0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.22,
+            -0.45,
+            0,
+            0,
+            0.22,
+            -0.45
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.22,
+            0.45,
+            0,
+            0,
+            0.22,
+            0.45
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            -0.5
+          ],
+          "to": [
+            0,
+            -0.45
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0.45
+          ],
+          "to": [
+            0,
+            0.5
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0
+          ],
+          "to": [
+            0.28,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.28,
+            -0.12
+          ],
+          "to": [
+            0.28,
+            0.12
+          ]
+        }
+      ],
       "portAnchors": {
-        "ab": [
-          -0.5,
-          0
-        ],
-        "a": [
-          0,
-          -0.5
-        ],
-        "b": [
-          0,
-          0.5
-        ]
+        "ab": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "a": {
+          "at": [
+            0,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        },
+        "b": {
+          "at": [
+            0,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1624,16 +1948,70 @@
         1,
         1
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.45,
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.2,
+            -0.28,
+            0.36,
+            0,
+            -0.2,
+            0.28
+          ],
+          "fill": "stroke"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.45,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        }
+      ],
       "portAnchors": {
-        "in": [
-          -0.5,
-          0
-        ],
-        "out": [
-          0.5,
-          0
-        ]
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1648,12 +2026,25 @@
         1,
         1.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "rect",
+          "x": -0.4,
+          "y": -0.75,
+          "width": 0.8,
+          "height": 1.5,
+          "fill": "state"
+        }
+      ],
       "portAnchors": {},
       "indexedPortAnchors": [
         {
           "prefix": "in",
           "side": "west",
+          "direction": [
+            -1,
+            0
+          ],
           "verticalCoordinate": "port.elevation",
           "minIndex": 1,
           "maxIndex": 16
@@ -1661,6 +2052,10 @@
         {
           "prefix": "out",
           "side": "east",
+          "direction": [
+            1,
+            0
+          ],
           "verticalCoordinate": "port.elevation",
           "minIndex": 1,
           "maxIndex": 16
@@ -1679,12 +2074,21 @@
         0.6,
         0.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
       "portAnchors": {
-        "*": [
-          0,
-          0
-        ]
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1699,12 +2103,21 @@
         0.6,
         0.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
       "portAnchors": {
-        "*": [
-          0,
-          0
-        ]
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1719,12 +2132,21 @@
         0.6,
         0.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
       "portAnchors": {
-        "*": [
-          0,
-          0
-        ]
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -1739,12 +2161,22 @@
         0.6,
         0.6
       ],
-      "primitives": [],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28,
+          "dashed": true
+        }
+      ],
       "portAnchors": {
-        "*": [
-          0,
-          0
-        ]
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
       },
       "labelAnchor": [
         0,
@@ -2336,18 +2768,18 @@
       "c26": "forward"
     },
     "portSides": {
-      "HE_AHU.in": "west",
-      "HE_AHU.in2": "north",
-      "HE_AHU.out": "east",
-      "HE_AHU.out2": "south",
-      "HE_RAD.in": "west",
-      "HE_RAD.in2": "north",
-      "HE_RAD.out": "east",
-      "HE_RAD.out2": "south",
-      "HS1.in": "west",
-      "HS1.in2": "north",
-      "HS1.out": "east",
-      "HS1.out2": "south",
+      "HE_AHU.in": "north",
+      "HE_AHU.in2": "south",
+      "HE_AHU.out": "south",
+      "HE_AHU.out2": "north",
+      "HE_RAD.in": "north",
+      "HE_RAD.in2": "south",
+      "HE_RAD.out": "south",
+      "HE_RAD.out2": "north",
+      "HS1.in": "north",
+      "HS1.in2": "south",
+      "HS1.out": "south",
+      "HS1.out2": "north",
       "PA1.in": "west",
       "PA1.out": "east",
       "PA2.in": "west",

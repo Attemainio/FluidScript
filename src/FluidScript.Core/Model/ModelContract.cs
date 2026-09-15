@@ -298,7 +298,7 @@ public sealed record PortWire
     public int? Layer { get; init; }
 }
 
-/// <summary>A symbol definition in a normalized box (<c>D-20</c>).</summary>
+/// <summary>A symbol definition in a normalized box (<c>D-20</c>, <c>D-102</c>).</summary>
 public sealed record SymbolWire
 {
     /// <summary>The id components reference, <c>kind.variant</c>.</summary>
@@ -310,8 +310,15 @@ public sealed record SymbolWire
     /// <summary>What the canvas draws inside the box. Never executable.</summary>
     public required ImmutableArray<PrimitiveWire> Primitives { get; init; }
 
-    /// <summary>Named port anchors as <c>[x, y]</c> on the box edge.</summary>
-    public required IReadOnlyDictionary<string, ImmutableArray<double>> PortAnchors { get; init; }
+    /// <summary>The default arrangement: each named port's anchor on the box edge and its outward direction.</summary>
+    public required IReadOnlyDictionary<string, AnchorWire> PortAnchors { get; init; }
+
+    /// <summary>
+    /// Other complete arrangements of the same ports on the same box, by name; the renderer may pick one
+    /// per instance, with a rotation, to shorten the connections it has to draw. Absent when there is one.
+    /// </summary>
+    [AbsentWhenNull]
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, AnchorWire>>? Alternatives { get; init; }
 
     /// <summary>Rules for indexed ports such as a tank's <c>in{n}</c>; absent for a fixed-port symbol.</summary>
     [AbsentWhenNull]
@@ -358,6 +365,31 @@ public sealed record PrimitiveWire
     /// <summary>A polyline's or polygon's points, flattened <c>[x0, y0, x1, y1, …]</c>.</summary>
     [AbsentWhenNull]
     public ImmutableArray<double>? Points { get; init; }
+
+    /// <summary>
+    /// What fills a closed shape: <c>state</c> for the active colour scale's slot (<c>57</c>), <c>stroke</c>
+    /// for a solid mark in the line colour; absent for an outline.
+    /// </summary>
+    [AbsentWhenNull]
+    public string? Fill { get; init; }
+
+    /// <summary><see langword="true"/> for a dashed stroke; absent for a solid one.</summary>
+    [AbsentWhenNull]
+    public bool? Dashed { get; init; }
+}
+
+/// <summary>Where a port meets its symbol, and which way a connection leaves it.</summary>
+public sealed record AnchorWire
+{
+    /// <summary>The point on the box edge, <c>[x, y]</c> in symbol units.</summary>
+    public required ImmutableArray<double> At { get; init; }
+
+    /// <summary>
+    /// The outward unit vector a connection leaves along, <c>[dx, dy]</c> with <c>y</c> down; rotates with
+    /// the box. Absent for the wildcard anchor, whose direction the renderer chooses.
+    /// </summary>
+    [AbsentWhenNull]
+    public ImmutableArray<double>? Direction { get; init; }
 }
 
 /// <summary>An anchor rule for an indexed port family.</summary>
@@ -368,6 +400,9 @@ public sealed record IndexedAnchorWire
 
     /// <summary>The box side the family sits on.</summary>
     public required string Side { get; init; }
+
+    /// <summary>The outward unit vector every anchor of the family leaves along, <c>[dx, dy]</c>.</summary>
+    public required ImmutableArray<double> Direction { get; init; }
 
     /// <summary>Which port field gives the position along that side.</summary>
     public required string VerticalCoordinate { get; init; }

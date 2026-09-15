@@ -308,10 +308,12 @@ accessibility, and SVG/PNG export.
       entry. Only the active one renders (`D-39`, `R-50`).
 - [ ] The solver status is visible and states which computation it describes, distinguishable without
       colour — a test asserts the three states differ in text and shape, not only hue (`R-51`, `R-42`).
-- [ ] The model contract payload for the 200-component reference model is recorded: uncompressed
+- [x] The model contract payload for the 200-component reference model is recorded: uncompressed
       bytes and server serialization time, against `07`'s 512 KiB budget, and the client-side half of
       that budget with it (`D-45`). Moved here from M2a by `F-24`: the contract is `P5.1`'s artifact,
-      and the milestone that first produces an artifact records its baseline.
+      and the milestone that first produces an artifact records its baseline. **Server side recorded
+      2026-09-15 (P5.1c):** 189.8 KiB compile, 237.6 KiB solved, ~1.2 ms warm serialization; the
+      numbers and the fixture are in `26`. The client-side parse waits for the frontend (P5.2+).
 - [ ] Keyboard-only and screen-reader users can edit, inspect, run static solve, read diagnostics and
       state, save, and export; WCAG 2.2 AA and `07` budgets pass.
 - [ ] The render, editor-response and accessibility baselines deferred from M0 by `D-45` are recorded

@@ -285,6 +285,10 @@ it, each recorded here rather than left for a reader of the golden files to disc
   in the diagnostics. `solved` stays `true`; `statesOmitted` is what changed. Compile-only payloads
   carry no states and are never capped. One 100-node pipe is 210 components and well under; the cap
   is for the several-thousand-component case, which the test reaches by lowering it.
+- **An anchor is a point and a direction, and a symbol may offer alternatives** (`D-102`, P5.1c):
+  `portAnchors` is `{ port: { at, direction } }`, `alternatives` names other complete arrangements of
+  the same ports, and `layout.portSides` is read off the default arrangement so the two cannot
+  disagree. The example above predates this and shows the `[x, y]` form.
 - **`show` is read off the syntax**, not the model, because the binder does not bind it (`L-50`).
 - The duplicate `style` object the shape carried -- one of tokens, one of resolved stroke and
   pattern -- was a drafting slip; the tokens form is what Core carries and never interprets (`D-37`).
@@ -423,6 +427,15 @@ components, each with a state block. A size cap with a documented degradation is
 payload arriving once per debounce interval. `07` budgets that payload at 512 KiB uncompressed for
 the 200-component reference model, with serialization and client parse inside the end-to-end gate
 (`D-48`).
+
+**Measured 2026-09-15 (P5.1c)** on `ReferenceModels.DistributionHeader(18)` -- `01`'s header with
+eighteen pumped consumers, exactly 200 components as the contract counts them, 19 circuits: the
+compile response is **194 388 bytes (189.8 KiB)**, the solved response **243 319 bytes (237.6 KiB)**
+with every state present; serialization is 1.1--1.3 ms warm and about 65 ms for the first call in a
+process, which is `System.Text.Json` building its type metadata once. Both are well inside the 512 KiB
+budget and the 1 MiB cap, so `FS2502` is for the discretized-pipe case above, not for a large plant.
+The solve itself takes 1.1--1.5 s on the reference environment, which is the number the editor
+debounce (`D-48`) will have to live with, not the payload's.
 
 ## Worked example
 

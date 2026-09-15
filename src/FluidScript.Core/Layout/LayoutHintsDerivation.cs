@@ -426,14 +426,14 @@ public static class LayoutHintsDerivation
 
             foreach (var port in component.Ports)
             {
-                sides[$"{component.Name}.{port.Name}"] = (component.Kind, port.Name) switch
+                // The symbol's default anchor set is the one source (D-102); a port the symbol does not
+                // name falls back to its role.
+                sides[$"{component.Name}.{port.Name}"] = FluidScript.Core.Model.SymbolCatalog.SideOf(component.Kind, port.Name) switch
                 {
-                    ("three_way_valve", "a") => PortSide.North,
-                    ("three_way_valve", "b") => PortSide.South,
-                    ("heat_exchanger", "in2") => PortSide.North,
-                    ("heat_exchanger", "out2") => PortSide.South,
-                    (_, var name) when port.Role == PortRole.Bidirectional && name.StartsWith("out", StringComparison.Ordinal) => PortSide.East,
-                    (_, var name) when port.Role == PortRole.Bidirectional && name.StartsWith("in", StringComparison.Ordinal) => PortSide.West,
+                    "west" => PortSide.West,
+                    "east" => PortSide.East,
+                    "north" => PortSide.North,
+                    "south" => PortSide.South,
                     _ => port.Role == PortRole.Outlet ? PortSide.East : PortSide.West,
                 };
             }
