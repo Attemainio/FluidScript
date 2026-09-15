@@ -99,7 +99,7 @@ that test rather than quietly improving.
 | P1 | M0 | 4 | **Complete** | 2026-09-01 |
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
-| P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4 | 2026-09-15 |
+| P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 11 | Not started | — |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
@@ -276,11 +276,11 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 21 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **47** | |
+| | **44** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -331,7 +331,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1604 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1610 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **2 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
