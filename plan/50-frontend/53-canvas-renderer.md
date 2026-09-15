@@ -119,6 +119,58 @@ a header stacks them between two rails. Parameterising a single algorithm to do 
 force-directed layout represents one level up — it would be tuned until it did one of them acceptably
 and the other badly. `D-38` records the alternatives.
 
+### The layout standard (`D-100`)
+
+The engine above is a procedure; this is what the procedure is held to, in the form an engineering
+office would write it. The notation anchors are ISO 10628 (process flow and P&I diagram drafting
+rules), ISO 14617 (graphical symbols) and ANSI/ISA-5.1 (instrument symbols and identification); they
+fix how a symbol and an instrument are drawn and say nothing about automatic placement, which is
+this project's reasoning and is marked as such.
+
+**Hard constraints — absolute, never traded.**
+
+| # | Constraint | Enforced by |
+|---|---|---|
+| H1 | Symbols never overlap | invariant 3, L3 |
+| H2 | A label never covers a symbol but its owner | invariant 3a, L4 |
+| H3 | A route never passes through a symbol | invariant 3b, L8 |
+| H4 | A route starts and ends on the two ports its connection names | invariants 4, 4c, L2, L12 |
+| H5 | A route leaves a port perpendicular to the port's side | routing step 1, L7 |
+| H6 | A component stays inside its circuit's box | header/rectangle placement, L19 |
+| H7 | Adjacent boxes keep the minimum clearance | step 8, L3 |
+| H8 | Supply and return never share a route segment | L17 |
+
+**Priorities — in strict order, when a choice remains.**
+
+1. Correct topology (H4 is the one whose breach is invisible).
+2. No overlap, then the fewest crossings.
+3. The semantic hierarchy: `D-31`'s bands left to right, `D-38`'s rails above and below.
+4. Alignment and symmetry: equivalent assemblies drawn equivalently (below).
+5. Compactness — least route length and drawing area — **last**. A compact drawing is not a better
+   drawing than a readable one.
+
+**Equivalent assemblies are drawn equivalently.** Header members whose `hints.branchShapes` are
+equal — the same sequence of kinds from rail to rail — get equal widths, aligned columns and equal
+rail distances, so three branches of `3-way valve → pump → sensor → exchanger` read as three copies
+of one thing. This is the rule generic graph layout misses, because it does not know two branches
+are the same thing, and it is what makes a generated diagram look like one office drew it. The same
+topology produces the same visual grammar across projects.
+
+**Edit stability is an invariant.** Adding an observer moves no process symbol. Adding a component
+to one branch moves only that branch and whatever it pushes along its rail. An edit inside one
+circuit leaves every other circuit identical up to translation. These are properties of a computed
+layout, asserted on fixtures that apply the edit and diff the scenes (L19), not a movement penalty
+in an optimiser — there is no optimiser (invariant 1, `D-72`).
+
+**Crossings, resolved by preference.** Avoid by placement of tree parts; then reroute; then widen
+the circuit spacing; then draw the hop. A component is never moved off its run to avoid a crossing.
+A junction is a dot, a crossing is a hop, and nothing is ever drawn as a bare `┼` where a reader
+cannot tell the two apart.
+
+**Deferred (`D-100`).** Ordering stacked branches by design temperature, and barycentre reordering
+before routing, both reorder a diagram on an edit elsewhere; members stay in declaration order. A
+secondary temperature key for members the user did not order is an open question below.
+
 ### Header layout
 
 The mode that makes a plant look like a plant, and the reason `D-33` added the **distribution header**
@@ -281,6 +333,11 @@ zoom.
 The gap comes from `spacing` in the serialized style payload (`D-37`), defaulting to the design
 system's token when the script says nothing. It is in world units and it is **not** a layout hint.
 
+**Three tiers of it (`D-100`).** Adjacent components on a run keep 1× `spacing`; a functional
+boundary — the assembly `valve → pump → sensor` against the exchanger it feeds — keeps 2×; circuit
+boxes keep 4× from each other and from the rails. Grouping falls out of the gaps without a box being
+drawn. All three are multiples of the one token, so `D-37`'s isolation test is unchanged.
+
 **The isolation test has to be stated precisely, because the obvious phrasing is impossible.** Spacing
 must reach the renderer, so it is serialized, so the model contract is *not* byte-identical across two
 spacing values — `style.spacing` differs, and must. What is identical is everything Core computes:
@@ -415,6 +472,14 @@ Orthogonal (Manhattan) segments, matching P&I convention:
 3. Avoid crossing symbols; crossing another route is acceptable and drawn with a hop.
 4. Apply the `style` corner treatment — `fillet` rounds the corners
    ([`12-grammar`](../10-language/12-grammar.md)'s style directive).
+
+**The objective, in order (`D-100`):** a bend costs more than length — a straight run beats a
+shorter route with four corners on every drawing an engineer has seen — and a crossing costs far
+more than a bend, without being forbidden. Proximity to a symbol and running parallel to another
+route are minor costs. An occupancy grid over the circuit box (free, symbol, symbol margin, route,
+label, reserved rail) is the natural internal representation for this and the engine may use one;
+it is guidance, not a contract — the prepared scene carries resolved world coordinates (`D-71`), and
+nothing downstream sees a cell.
 
 **Route caching.** Routes recompute only when placements change — not when values change. A transient
 run changes values 600 times and placements zero times
@@ -748,6 +813,10 @@ back toward the tank and may point left; that is correct fluid flow inside a lef
       right-to-left return is never relabelled or drawn as rightward merely to satisfy the heat order.
 
 ## Open questions
+
+- A secondary ordering key for header members the user did not order — design temperature, hot at
+  the top — deferred by `D-100` because declaration order is what the user controls and what keeps
+  an edited setpoint from moving a branch. Revisit with a fixture that wants it.
 
 None. Core supplies loop orientation; shared loops render side-by-side around their shared component.
 Groups over 10 members and all collapsible groups in a scene over 500 elements start collapsed. The M3

@@ -360,7 +360,7 @@ re-baseline.
 
 #### The predicate sweep
 
-One loop: every predicate against every fixture. Adding a fixture tests it against all sixteen
+One loop: every predicate against every fixture. Adding a fixture tests it against all nineteen
 predicates, and adding a predicate applies it to every fixture already there — which is what makes this
 a sweep rather than a list of per-sample expectations that grows one assertion at a time.
 
@@ -382,6 +382,9 @@ a sweep rather than a list of per-sample expectations that grows one assertion a
 | L14 | Two spacing values change placements and change nothing Core computes | inv 1b, `D-37` |
 | L15 | No DOM key, selection key, or export id contains an equipment tag | inv 1c, `D-34` |
 | L16 | `metrics.reflowIterations` under half of `D-72`'s cap | `D-72` |
+| L17 | No route segment is shared by a supply route and a return route | `53` H8, `D-100` |
+| L18 | Header members with equal `hints.branchShapes` have congruent relative geometry — equal widths, aligned columns, equal rail distances | `53` *equivalent assemblies*, `D-100` |
+| L19 | Edit stability: adding an observer moves no process symbol; adding a component to a branch moves only that branch and what it pushes; an edit in one circuit leaves every other circuit identical up to translation | `53` *edit stability*, `D-100` |
 
 **L2 is the one to keep if only one survives.** Every other predicate protects legibility; L2 protects
 correctness, and its breach is the only one on this list that a reader cannot see. A scene can be
@@ -396,6 +399,18 @@ pure random graph generator produces shapes no plant has.
 Cost is not a concern at this scale. 200 components is 19,900 symbol pairs, and roughly 250 routes of
 four segments against 200 boxes is about 200,000 segment-box tests — naive `O(n²)` in JavaScript, well
 under a second. No spatial index.
+
+#### The layout report
+
+`SolveExplanation` is what made the solver debuggable from a terminal, and the layout engine gets the
+same instrument (`D-100`): `LayoutExplanation` renders a prepared scene as text — every symbol with
+its id, kind, origin, orientation, bounds and port anchors; every route with its segments, bends,
+hops and length ratio; every label box; the occupancy grid as a character raster; the metrics; and
+each of L1–L19 with its verdict and the offending ids. A `Diagnostic`-tier harness writes it for
+every fixture to `diagnostics/layout-reports.md`, as `CircuitDiagnostics` writes
+`circuit-reports.md`, and the experiment protocol in `CLAUDE.md` applies to it unchanged: run the
+fixture, read the whole report, change only what it supports. It is the reason a session with no
+canvas can look at a layout.
 
 #### Metrics, which are trended rather than gated
 
@@ -575,7 +590,7 @@ prove one of the three.
 - [ ] Every diagnostic code has a triggering test.
 - [ ] The fuzz corpus produces no exception from any pipeline stage.
 - [ ] The end-to-end write-back test passes in Playwright.
-- [ ] All sixteen layout predicates run against every fixture in the sweep, and adding a fixture
+- [ ] All nineteen layout predicates run against every fixture in the sweep, and adding a fixture
       requires no new assertion.
 - [ ] The prepared scene builds with no DOM, no font and no browser, and is byte-identical across 100
       builds (`D-71`).

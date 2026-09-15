@@ -319,8 +319,13 @@ unassessed, not clean.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P5 — M3, the usable static product** (`08`), once the user calls M2b exited; `P5.1`, the
-   model contract and layout hints, is Core-side and closed by golden files before a pixel exists.
+4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
+   Core-side and closed by golden files before a pixel exists. `D-100` (2026-09-15) triaged a
+   proposed layout standard before P5.1 started: hard constraints as a named class, an explicit
+   priority order, equivalent assemblies drawn congruently (`25` gains `BranchShapes`, P5.1's),
+   edit stability as an invariant, three spacing tiers, and a text layout report
+   (`LayoutExplanation`, P5.7's) so a session can read a placement it cannot see. Temperature
+   ordering of branches and barycentre reordering are deferred with reasons.
    What `P4` left behind, none of it blocking: `C-78` (the plate catalogue's shopping list — a cited
    `U`, a plate step, the `lamella` correlation, `FS2311`), `22`'s unticked crossover criterion (a
    solve driven across `C₁ = C₂`, not just the duty relation stepped over it), `C-75`'s last

@@ -4428,3 +4428,84 @@ stand behind.
 
 **Constrains.** [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *sizing defaults*, *extended
 modes* step 6; `ThermalSizer`.
+
+## D-100 · The layout standard: hard constraints, an explicit priority order, aligned assemblies, edit stability, and a layout report a session can read
+
+**Accepted · 2026-09-15** · amends `53`, `62`, `25`; refines `D-31`, `D-38`, `D-44`, `D-71`, `D-72`
+
+A review of `53`'s layout engine against a proposed HVAC diagram standard, triaged item by item.
+Most of the proposal was already in the plan under other names; four things were not, and one
+conflicts with settled decisions and is deferred with its reason. The standard's anchors — ISO 10628
+(process flow and P&I diagram drafting), ISO 14617 (graphical symbols) and ANSI/ISA-5.1 (instrument
+symbols and identification) — are the right references for symbol and instrument *notation* and are
+cited as such in `53`; **none of them says anything about automatic placement**, and a specific ISA
+technical report on PFD/P&ID content named in the proposal could not be verified and is not cited.
+
+**Already in the plan, no change.** Left-to-right heat progression with supply on top and return
+below (`D-31`, `53` header layout); ports fixed by topology with the router solving port to port
+(`D-20`, `D-24`, `25` `PortSides`); orthogonal routing with hops at crossings (`53` routing); rails as
+trunks rather than fan-out (`D-38`); hierarchical placement — circuits, then groups, then members
+(`53` steps 1–6); instrumentation placed after the process graph (`D-40`, `D-61`,
+`NonFlowElements`); colour as an enhancement never the only carrier (`R-42`, `57`); no layout on a
+value change (`53` invariant 2).
+
+**Accepted, and new.**
+
+1. **Hard constraints are a named list, not weights.** `53` gains a *Layout standard* section stating
+   the absolute constraints — no symbol overlap, no label over a symbol, no route through a symbol,
+   routes end on ports, orthogonal port entry, a component stays inside its circuit's box, minimum
+   clearance, and **supply and return never share a route** — each mapped to the invariant and the
+   `62` predicate that enforces it. The last one is the only new constraint (L17). Everything else
+   was already an invariant; naming them as a class says what an optimiser may never trade.
+2. **The priority order is explicit.** Correct topology; then no overlap and fewest crossings; then
+   the semantic hierarchy (`D-31`'s bands, `D-38`'s rails); then alignment and symmetry; then
+   compactness last. The routing objective is stated in that order too: bends before length,
+   crossings expensive but not forbidden, and a crossing resolved by preference — reroute, then widen
+   the circuit spacing, then hop — never by moving a component out of its run.
+3. **Equivalent assemblies are drawn equivalently.** A header's members that share a branch shape —
+   the same sequence of kinds from rail to rail — get equal widths, aligned columns and equal rail
+   distances. This is the rule that makes generated diagrams look like one office drew them, and
+   graph algorithms miss it because they do not know two branches are the same thing. Core can say
+   so without geometry: `25` gains `BranchShapes`, a signature per member circuit (the kind sequence
+   along its supply-to-return path, with observers excluded) so the renderer aligns equal signatures.
+   Structural, deterministic, no dimension — it passes `25`'s test for what belongs there. `62` gains
+   L18: members with equal signatures have congruent relative geometry.
+4. **Edit stability is an invariant, not an optimiser term.** Adding an observer moves no process
+   symbol; adding a component to one branch moves only that branch and whatever it pushes along its
+   rail; an edit inside one circuit leaves every other circuit's placement identical up to
+   translation. Stated that way it is a deterministic property of a computed layout and `62` gains
+   L19 for it, with fixtures that apply each edit and diff the scenes.
+5. **A layout report a session can read.** `SolveExplanation` is what made the solver debuggable
+   from a terminal, and the layout engine needs the same instrument: `LayoutExplanation` renders a
+   prepared scene as text — every symbol with its origin, orientation, bounds and port anchors; every
+   route with its segments, bends, hops and length ratio; every label box; the occupancy grid as a
+   character raster; the metrics; and each predicate's verdict with the offending ids — written to
+   `diagnostics/layout-reports.md` for every fixture by a `Diagnostic`-tier harness, exactly as
+   `circuit-reports.md` is. Every component is its own drawing object in the scene already
+   (`PreparedSymbol`); the report is the reason a session can look at a layout it cannot see.
+6. **Three spacing tiers.** Component, functional-group and circuit gaps as 1×, 2× and 4× the
+   `spacing` token (`55`), so the assembly `valve → pump → sensor` reads as one thing and the
+   exchanger it feeds as another. Presentation only; nothing Core computes changes (`D-37`).
+
+**Deferred, with the reason.**
+
+- *Ordering stacked branches by design temperature* (hot at the top, cold at the bottom). Declaration
+  order is what the user controls and what keeps a diagram from reordering when a setpoint is edited;
+  `25` sorts members by it and `D-34`'s whole argument is that text position must not renumber
+  equipment. A temperature order would also move a branch when its `out=` changes. Left as an open
+  question in `53`: a *secondary* key for members the user did not order is worth considering when
+  there is a fixture that wants it.
+- *Barycentre reordering of branches before routing.* Same objection: it reorders on an edit
+  elsewhere. Crossing minimisation stays in placement of tree parts and in routing.
+- *A weighted optimiser with a movement term.* The layout is a computed, deterministic function of
+  hints and spacing (`53` invariant 1, `D-72`); item 4 above states the stability the movement term
+  was for, as a property that can be asserted rather than a weight that can be tuned.
+- *User-pinned components.* `D-29`: manual placement is post-v1.
+- *A quantised routing grid as the contract.* An occupancy grid is a fine internal representation
+  for the router and `53` says so as guidance; it is not a contract, because `D-71` makes the
+  prepared scene the artefact and the scene carries resolved world coordinates.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) *Layout standard*,
+*Routing*, *Component spacing*; [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md)
+L17–L19, *the layout report*; [`25-layout-hints`](../20-core-domain/25-layout-hints.md)
+`BranchShapes`; `08` P5.1 and P5.7.

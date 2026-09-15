@@ -156,6 +156,18 @@ public sealed record LayoutHints
     /// <remarks>Rendered differently — lighter, or hidden behind a toggle — so the user can tell
     /// what they wrote from what the language added (principle P3).</remarks>
     public required ImmutableHashSet<string> Inferred { get; init; }
+
+    /// <summary>Each attached circuit's branch shape: the sequence of component kinds along its path
+    /// from supply anchor to return anchor, observers and inferred nodes excluded (`D-100`).</summary>
+    /// <remarks>
+    /// Two members of a distribution group with equal shapes are the same assembly — three branches of
+    /// <c>three_way_valve, pump, heat_exchanger</c> — and the renderer draws them congruently: equal
+    /// widths, aligned columns, equal rail distances. This is structure a renderer cannot cheaply
+    /// recover (it would have to walk the graph again) and Core cannot mis-state (it is read off the
+    /// branch). It carries no dimension and names no shape, so it passes the test above. Keyed by
+    /// circuit name; a circuit that is not attached has no entry.
+    /// </remarks>
+    public required ImmutableDictionary<string, ImmutableArray<string>> BranchShapes { get; init; }
 }
 
 /// <summary>One circuit's structural facts (`D-33`, `D-35`).</summary>
@@ -364,6 +376,9 @@ document.
     `ParentCircuit` is never also one of its own `Members`, and every group has **at least two**
     members.
 12. No field of `LayoutHints` holds an equipment tag, a spacing value, or a layout mode name.
+13. `BranchShapes` has an entry for every attached circuit and none for any other; each entry lists
+    kinds only — no ids, no tags — and two circuits whose branches are the same kind sequence have
+    equal entries, whatever they are named.
     Invariant 1 already forbids the spacing on dimensional grounds; the other two are forbidden for
     the separate reason that they are not structure — a tag is display metadata (`D-34`) and a mode is
     a shape (`D-38`).
@@ -512,6 +527,9 @@ scaffolding the language put in.
       and swapping the two circuit blocks in the source leaves that value unchanged.
 - [ ] A test asserts no field of `LayoutHints` holds a tag, a spacing value, or a mode name — the same
       reflection test that already asserts it holds no dimension.
+- [ ] The distribution header's two subcircuits have equal `BranchShapes` entries; renaming every
+      component in one of them leaves the entries equal; inserting a valve in one makes them differ
+      (`D-100`).
 
 ## Open questions
 
