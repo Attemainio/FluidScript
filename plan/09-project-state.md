@@ -315,13 +315,13 @@ unassessed, not clean.
 3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
    equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
    and the pump pays.
-4. **P5 — M3, the usable static product** (`08`), once the user calls M2b exited. Before it, two
-   things `P4` left: `C-78` (the plate catalogue's shopping list) and `22`'s unticked crossover
-   criterion (a solve driven across `C₁ = C₂`). Behind them, `C-78`
-   is the plate catalogue's shopping list — a cited `U`, a plate step, the `lamella` correlation,
-   `FS2311` — and `22`'s unticked crossover criterion wants a solve driven across `C₁ = C₂`, not
-   just the duty relation stepped over it. One follow-on from `C-75` still stands: a solved Kv has
-   no basis line saying what it absorbed. `F-19`'s budget re-derivation has real numbers to work
+4. **P5 — M3, the usable static product** (`08`), once the user calls M2b exited; `P5.1`, the
+   model contract and layout hints, is Core-side and closed by golden files before a pixel exists.
+   What `P4` left behind, none of it blocking: `C-78` (the plate catalogue's shopping list — a cited
+   `U`, a plate step, the `lamella` correlation, `FS2311`), `22`'s unticked crossover criterion (a
+   solve driven across `C₁ = C₂`, not just the duty relation stepped over it), `C-75`'s last
+   follow-on (a solved Kv has no basis line saying what it absorbed), and the `400HP01` criterion
+   that waits on M4's `heat_pump` kind. `F-19`'s budget re-derivation has real numbers to work
    from (16 µs per water state, not 63).
 
 ## Standing baselines
