@@ -54,10 +54,14 @@ would be filled with nothing.
 
 ## Where the project stands
 
-> **M2a exited 2026-09-14; P4 — M2b, coupled thermal rating — shipped 2026-09-15: P4.1
-> (`c275bd9`), P4.2 (`bdf78f6`), P4.3.** Every M2b exit criterion in `05` is ticked except one that
-> cannot be: `400HP01` needs a `heat_pump` kind, which is `D-80`'s and M4's. The ownership rule it
-> tests is built and checked on a `chiller`. Whether M2b exits on that is the user's call. The substation converges on `01`'s figures —
+> **M2a exited 2026-09-14; M2b exited 2026-09-15** — P4.1 (`c275bd9`), P4.2 (`bdf78f6`), P4.3
+> (`17fbe3a`) — on the user's call, with one criterion deferred rather than ticked: `400HP01` needs
+> a `heat_pump` kind, which is `D-80`'s and M4's; the ownership rule it tests is built and checked
+> on a `chiller`. The audit of open defects before `P5.1` closed `C-4` (already met by P4.1),
+> `L-36` (a `13` correction) and `C-67` — the last with `FS2119`, which found seventeen test
+> fixtures and four syntax-tour lines writing a cooling load as a positive neutral duty.
+> **P5 — M3, the usable static product — is next; P5.1 starts now.**
+> The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
 > `ε·Cmin·(T_in2 − T_in1)` from the port states, its design point pins a side's flow where nothing
