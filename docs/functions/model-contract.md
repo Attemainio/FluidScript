@@ -197,6 +197,7 @@ A symbol definition in a normalized box (`D-20`, `D-102`).
 | `alternatives` | object of object of [`Anchor`](#anchor) or `null` | Other complete arrangements of the same ports on the same box, by name; the renderer may pick one per instance, with a rotation, to shorten the connections it has to draw. Absent when there is one. Absent when not applicable. |
 | `indexedPortAnchors` | array of [`IndexedAnchor`](#indexedanchor) or `null` | Rules for indexed ports such as a tank's `in{n}`; absent for a fixed-port symbol. Absent when not applicable. |
 | `labelAnchor` | array of number | Where the label sits, `[x, y]`. |
+| `transformClass` | string | Which transforms the kind admits (`28` A4, `D-108`): `free` turns by any quarter, mirrored or not; `standing` is never turned, only mirrored left-right, up-down or both (every exchanger); `upright` admits only the left-right mirror (a tank, whose layers are a vertical order). A fact about the kind, never a preference. |
 
 ### `Connection`
 

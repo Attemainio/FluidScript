@@ -84,7 +84,9 @@ would be filled with nothing.
 > line is mirrored, not half-turned) is in; pipe properties on a connection line is decided,
 > `D-110` (option A: an implicit pipe per connection carrying properties, bare connections
 > unchanged), as package P5.1e in `08`; C7 aligns a return under its supply. Step 5 stands.
-> Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts. The
+> Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
+> `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
+> transform class is on the wire. The
 > seven layout samples run through the engine's fallback and their layout gates are skipped until
 > the ladder reaches them.**
 > The substation converges on `01`'s figures —
@@ -472,10 +474,10 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 8 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 23 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 21 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **50** | |
+| | **48** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -519,9 +521,8 @@ unassessed, not clean.
    ordering of branches and barycentre reordering are deferred with reasons.
 5. **The layout ladder's next step** (`29`): the user's corrections to step 2 -- a pump into an exchanger -- which exercised C3
    (the standing class) and C4 and puts `28`'s open question 1 (does a node's boundary take
-   clearance?) in front of the user. Before step 3, close `C-88` (H4, H5, H7, H9, H10 in the
-   audit) and `C-90` (the transform class), or a counter-clockwise loop passes every gate. `C-89`
-   (the text into Core, the raster) is the same package. The planned steps are `29`'s table; the
+   clearance?) in front of the user. `C-88` and `C-90` closed 2026-09-17; `C-89` (the text into Core, the
+   raster) stays open. The planned steps are `29`'s table; the
    candidates in `28` part D enter C only when a step proves them, and the loop search is now
    only over which free-turning members take a vertical. The seven layout samples' routing and
    audit gates come off skip when the ladder reaches them.

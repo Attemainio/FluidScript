@@ -112,7 +112,12 @@ internal static class SceneText
         text.Append(" hard ").Append(findings.Count(f => f.Hard))
             .Append(" (inner-in-inner ").Append(findings.Count(f => f.Kind == "inner-in-inner"))
             .Append(", clearance ").Append(findings.Count(f => f.Kind == "clearance"))
-            .Append(", pipe-in-inner ").Append(findings.Count(f => f.Kind == "pipe-in-inner")).Append(")\n");
+            .Append(", pipe-in-inner ").Append(findings.Count(f => f.Kind == "pipe-in-inner"))
+            .Append(", ends-off-port ").Append(findings.Count(f => f.Kind == "ends-off-port"))
+            .Append(", stub-short ").Append(findings.Count(f => f.Kind == "stub-short"))
+            .Append(", pipes-overlap ").Append(findings.Count(f => f.Kind == "pipes-overlap"))
+            .Append(", loop-counter-clockwise ").Append(findings.Count(f => f.Kind == "loop-counter-clockwise"))
+            .Append(", losing-side-right ").Append(findings.Count(f => f.Kind == "losing-side-right")).Append(")\n");
         text.Append(" soft ").Append(findings.Count(f => !f.Hard))
             .Append(" (pipe-in-outer ").Append(findings.Count(f => f.Kind == "pipe-in-outer"))
             .Append(", pipe-beside-pipe ").Append(findings.Count(f => f.Kind == "pipe-beside-pipe"))

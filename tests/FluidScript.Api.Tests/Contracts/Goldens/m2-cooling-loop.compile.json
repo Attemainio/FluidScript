@@ -463,7 +463,8 @@
       "labelAnchor": [
         0,
         0.3
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "pipe.standard",
@@ -511,7 +512,8 @@
       "labelAnchor": [
         0,
         0.3
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "heat_exchanger.standard",
@@ -642,7 +644,8 @@
       "labelAnchor": [
         0,
         0.65
-      ]
+      ],
+      "transformClass": "standing"
     },
     {
       "id": "valve.standard",
@@ -747,7 +750,8 @@
       "labelAnchor": [
         0,
         0.45
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "three_way_valve.standard",
@@ -885,7 +889,8 @@
       "labelAnchor": [
         0,
         0.65
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "pump.standard",
@@ -963,7 +968,8 @@
       "labelAnchor": [
         0,
         0.65
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "tank.stratified",
@@ -1011,7 +1017,8 @@
       "labelAnchor": [
         0,
         0.95
-      ]
+      ],
+      "transformClass": "upright"
     },
     {
       "id": "t_sensor.standard",
@@ -1040,7 +1047,8 @@
       "labelAnchor": [
         0,
         0
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "p_sensor.standard",
@@ -1069,7 +1077,8 @@
       "labelAnchor": [
         0,
         0
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "flow_sensor.standard",
@@ -1098,7 +1107,8 @@
       "labelAnchor": [
         0,
         0
-      ]
+      ],
+      "transformClass": "free"
     },
     {
       "id": "controller.standard",
@@ -1128,7 +1138,8 @@
       "labelAnchor": [
         0,
         0
-      ]
+      ],
+      "transformClass": "free"
     }
   ],
   "connections": [

@@ -825,10 +825,10 @@ internal sealed class LayoutEngine
     {
         var symbol = _symbol[j];
 
-        var admitted = _graph.Components[j] switch
+        var admitted = symbol.TransformClass switch
         {
-            HeatExchanger => Transform.All(symbol).Where(static t => t.Rotation is 0 or 180),
-            Tank => Transform.All(symbol).Where(static t => t.Rotation == 0),
+            "standing" => Transform.All(symbol).Where(static t => t.Rotation is 0 or 180),
+            "upright" => Transform.All(symbol).Where(static t => t.Rotation == 0),
             _ => Transform.All(symbol),
         };
 

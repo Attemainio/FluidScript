@@ -328,6 +328,13 @@ public sealed record SymbolWire
 
     /// <summary>Where the label sits, <c>[x, y]</c>.</summary>
     public required ImmutableArray<double> LabelAnchor { get; init; }
+
+    /// <summary>
+    /// Which transforms the kind admits (<c>28</c> A4, <c>D-108</c>): <c>free</c> turns by any quarter, mirrored or not;
+    /// <c>standing</c> is never turned, only mirrored left-right, up-down or both (every exchanger); <c>upright</c>
+    /// admits only the left-right mirror (a tank, whose layers are a vertical order). A fact about the kind, never a preference.
+    /// </summary>
+    public string TransformClass { get; init; } = "free";
 }
 
 /// <summary>One drawing primitive; the fields a kind does not use are absent.</summary>

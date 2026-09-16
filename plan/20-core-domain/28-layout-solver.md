@@ -202,9 +202,12 @@ moves only that branch and what it pushes along; an edit inside one group leaves
 identical up to translation; a change to a value moves nothing.
 
 **The audit.** `SceneAudit` measures every hard constraint and every soft class on every scene; the
-tests assert hard = 0 on every ladder step and, when the ladder reaches them, on every sample. Today
-it measures H1–H3 and H6 and the soft classes; H4, H5, H7, H9 and H10 are unmeasured (`C-88`), and
-a hard constraint nobody measures is a preference.
+tests assert hard = 0 on every ladder step and, when the ladder reaches them, on every sample. Since
+the `C-88` package (2026-09-17) that is all ten: H1–H3 and H6 as box and pipe tests, H4 and H5 on the
+route's ends (H5 followed through inline points, since a node on a straight line is not a bend), H7 as
+collinear overlap, H9 as the signed area of every simple directed cycle of the flow-oriented graph,
+H10 as the losing side's flank where a duty is stated. A hard constraint nobody measures would be a
+preference; none is left.
 
 ## C. The rules
 
@@ -339,7 +342,7 @@ for it.
 
 | Part | Code |
 |---|---|
-| A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (the transform class is not carried yet: `C-90`) |
+| A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
 | A5, A6, C | `Layout/LayoutEngine.cs` |
 | A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core.Tests today and belongs in Core (`C-89`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
 | D (router) | `Layout/OrthogonalRouter.cs` |

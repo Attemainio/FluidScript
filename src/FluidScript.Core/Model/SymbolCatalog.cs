@@ -94,6 +94,7 @@ public static class SymbolCatalog
                     ("out2", [0.25, 0.3], Right)),
             },
             LabelAnchor = [0, 0.65],
+            TransformClass = "standing",
         },
         new()
         {
@@ -157,6 +158,7 @@ public static class SymbolCatalog
                 new() { Prefix = "out", Side = "east", Direction = Right, VerticalCoordinate = "port.elevation", MinIndex = 1, MaxIndex = 16 },
             ],
             LabelAnchor = [0, 0.95],
+            TransformClass = "upright",
         },
         Instrument("t_sensor.standard"),
         Instrument("p_sensor.standard"),
