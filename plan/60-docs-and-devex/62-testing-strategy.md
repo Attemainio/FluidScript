@@ -342,8 +342,9 @@ at a time ([`29`](../20-core-domain/29-layout-ladder.md)), `LayoutLadderTests` i
 for every `tests/FluidScript.Core.Tests/Layout/Ladder/step-NN-*.fluid` it writes the scene's SVG
 and its `28` A10 text to `diagnostics/layout-ladder/` *first*, then asserts that every component is
 placed and `SceneAudit` finds no hard finding. The seven layout samples' routing and audit
-assertions in `LayoutSolverTests`, and `LayoutTimingTests`, are skipped with a reason naming the
-ladder until it reaches them; they are not deleted, and they come off skip sample by sample.
+assertions in `LayoutSolverTests` run over `Reached`, the samples the ladder has drawn (the simple
+loop, the substation and the cooling loop as of step 6, 2026-09-17), and `LayoutTimingTests` is
+skipped until the ladder reaches headers; the rest join `Reached` sample by sample.
 
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
 string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a

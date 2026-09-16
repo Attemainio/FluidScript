@@ -96,6 +96,7 @@ internal sealed class LayoutEngine
     private readonly bool[] _placed;
     private readonly bool[] _fallback;
     private readonly bool[] _loop;
+    private Point _loopCentre;
     private readonly bool[] _inline;
     
     private readonly Point[] _centre;
@@ -249,6 +250,11 @@ internal sealed class LayoutEngine
                 {
                     // The run closes on two placed elements: no rule yet; the router draws it.
                     continue;
+                }
+
+                if (Wildcard(i) && !_inline[i] && !_side.ContainsKey((i, p)))
+                {
+                    _side[(i, p)] = FreeSide(i);
                 }
 
                 var anchor = AnchorOf(i, p);
@@ -531,6 +537,15 @@ internal sealed class LayoutEngine
             }
         }
 
+        for (var k = 1; k < cycle.Count && consumerAt < 0; k++)
+        {
+            // No standing consumer: the member the loop's flow leaves by -- a valve or a junction with an off-loop outlet -- takes the right side.
+            if (LeavesLoop(cycle[k]))
+            {
+                consumerAt = k;
+            }
+        }
+
         if (consumerAt < 0)
         {
             return false;
@@ -539,12 +554,16 @@ internal sealed class LayoutEngine
         var s = cycle[0];
         var c = cycle[consumerAt];
         var ts = Admitted(s.Component).Where(t => t.Arrangement == "default" && Outward(s.Component, s.OutPort, t) == Direction.Up && Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
-        var tc = Admitted(c.Component).Where(t => t.Arrangement == "default" && Outward(c.Component, c.InPort, t) == Direction.Up && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
+        var tc = Wildcard(c.Component)
+            ? [Transform.Identity]
+            : Admitted(c.Component).Where(t => t.Arrangement == "default" && Outward(c.Component, c.InPort, t) == Direction.Up && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
 
         if (ts.Count == 0 || tc.Count == 0)
         {
             return false;
         }
+
+        _loopCentre = new Point(0, 0);
 
         foreach (var member in cycle)
         {
@@ -570,7 +589,7 @@ internal sealed class LayoutEngine
         {
             var m = cycle[k];
 
-            if (PlaceFrom(cursor, m.Component, m.InPort) is not { } points)
+            if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
             {
                 return false;
             }
@@ -596,7 +615,7 @@ internal sealed class LayoutEngine
         {
             var m = cycle[k];
 
-            if (PlaceFrom(cursor, m.Component, m.OutPort) is not { } points)
+            if (OnRail(cursor, m, m.OutPort, m.InPort) is not { } points)
             {
                 return false;
             }
@@ -609,10 +628,17 @@ internal sealed class LayoutEngine
         }
 
         // The consumer's column: as far right as the longer rail needs, its inlet corner on the top rail.
-        var inOffset = AnchorOffset(c.Component, c.InPort, tc[0])!.Value.Offset;
+        var (_, cHeight) = tc[0].Size(_symbol[c.Component]);
+        var inOffset = Wildcard(c.Component) ? new Point(0, cHeight / 2) : AnchorOffset(c.Component, c.InPort, tc[0])!.Value.Offset;
         var origin = new Point(Math.Max(topEnd.At.X, cursor.At.X), top.Y);
         var corner = Clear(c.Component, tc[0], origin, Direction.Right, new Point(-inOffset.X, -inOffset.Y - _margin));
         Place(c.Component, tc[0], corner.Offset(-inOffset.X, -inOffset.Y - _margin));
+
+        if (Wildcard(c.Component))
+        {
+            _side[(c.Component, c.InPort)] = Direction.Up;
+            _side[(c.Component, c.OutPort)] = Direction.Down;
+        }
         var cIn = AnchorOf(c.Component, c.InPort);
         var cOut = AnchorOf(c.Component, c.OutPort);
         topPending.AddRange([corner, cIn.At]);
@@ -635,6 +661,66 @@ internal sealed class LayoutEngine
         return true;
     }
 
+    /// <summary>A loop member placed on a rail from the cursor: a component by <see cref="PlaceFrom"/> through the port facing the cursor, a junction by <see cref="PlaceNode"/> with its other loop port turned on along the rail.</summary>
+    /// <param name="cursor">Where the rail has reached.</param>
+    /// <param name="m">The member.</param>
+    /// <param name="facing">Its port towards the cursor.</param>
+    /// <param name="onward">Its other loop port.</param>
+    /// <returns>The pipe from the cursor to the facing port, or null when nothing admitted fits.</returns>
+    private ImmutableArray<Point>? OnRail(PlacedAnchor cursor, Member m, int facing, int onward)
+    {
+        if (!Wildcard(m.Component))
+        {
+            return PlaceFrom(cursor, m.Component, facing);
+        }
+
+        var points = PlaceNode(cursor, m.Component, facing);
+        _side[(m.Component, onward)] = cursor.Outward;
+        return points;
+    }
+
+    /// <summary>Whether a loop member has a connection off the loop the fluid leaves by.</summary>
+    private bool LeavesLoop(Member m)
+    {
+        var ports = _graph.Components[m.Component].Ports;
+
+        for (var p = 0; p < ports.Length; p++)
+        {
+            if (p != m.InPort && p != m.OutPort && !Enters(m.Component, p, ports[p].Role) && _links.Any(l => (l.From == m.Component && l.FromPort == p) || (l.To == m.Component && l.ToPort == p)))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>A junction's side for a port no rule has placed: one no other port uses, the side facing away from the loop's centre first for a loop member -- vertical where the rail is level, level where it is vertical -- else the first free from right, up, left, down.</summary>
+    private Direction FreeSide(int i)
+    {
+        var used = new HashSet<Direction>();
+
+        for (var p = 0; p < _graph.Components[i].Ports.Length; p++)
+        {
+            if (_side.TryGetValue((i, p), out var s))
+            {
+                used.Add(s);
+            }
+        }
+
+        var preferred = new List<Direction>();
+
+        if (_loop[i])
+        {
+            var away = _centre[i].Offset(-_loopCentre.X, -_loopCentre.Y);
+            var levelRail = used.Contains(Direction.Left) || used.Contains(Direction.Right);
+            preferred.Add(levelRail ? (away.Y >= 0 ? Direction.Up : Direction.Down) : (away.X >= 0 ? Direction.Right : Direction.Left));
+        }
+
+        preferred.AddRange([Direction.Right, Direction.Up, Direction.Left, Direction.Down]);
+        return preferred.First(d => !used.Contains(d));
+    }
+
     /// <summary>The simple flow loop through <paramref name="source"/>: from each component the first connected port the fluid leaves by, through inline nodes, until the walk returns; null where it reaches a junction, a boundary or a dead end first.</summary>
     /// <param name="source">Where the walk starts.</param>
     /// <returns>The members in flow order, the source first, or null.</returns>
@@ -653,53 +739,51 @@ internal sealed class LayoutEngine
         return null;
     }
 
-    /// <summary>The simple flow loop that leaves <paramref name="source"/> by <paramref name="leaving"/>, if that port is on one.</summary>
+    /// <summary>The simple flow loop that leaves <paramref name="source"/> by <paramref name="leaving"/>, if that port is on one: a depth-first walk over the ports the fluid leaves by, through inline elements and junctions alike, back to the source.</summary>
     /// <param name="source">Where the walk starts.</param>
     /// <param name="leaving">The source's port to leave by.</param>
     /// <returns>The members in flow order, the source first, or null.</returns>
     private List<Member>? Cycle(int source, int leaving)
     {
-        var members = new List<Member>();
-        var component = source;
-        var inPort = -1;
+        var path = new List<Member>();
+        var visited = new HashSet<int> { source };
+        return Extend(source, -1, leaving, source, path, visited) ? path : null;
+    }
 
-        for (var guard = 0; guard <= _n; guard++)
+    private bool Extend(int component, int inPort, int outPort, int source, List<Member> path, HashSet<int> visited)
+    {
+        var (next, nextPort) = Follow(component, outPort);
+
+        if (next < 0)
         {
-            var ports = _graph.Components[component].Ports;
-            var outPort = component == source ? leaving : -1;
+            return false;
+        }
 
-            for (var p = 0; p < ports.Length && outPort < 0; p++)
+        path.Add(new Member(component, inPort, outPort));
+
+        if (next == source)
+        {
+            path[0] = path[0] with { InPort = nextPort };
+            return true;
+        }
+
+        if (visited.Add(next))
+        {
+            var ports = _graph.Components[next].Ports;
+
+            for (var p = 0; p < ports.Length; p++)
             {
-                if (p != inPort && !Enters(component, p, ports[p].Role) && _links.Any(l => (l.From == component && l.FromPort == p) || (l.To == component && l.ToPort == p)))
+                if (p != nextPort && !Enters(next, p, ports[p].Role) && _links.Any(l => (l.From == next && l.FromPort == p) || (l.To == next && l.ToPort == p)) && Extend(next, nextPort, p, source, path, visited))
                 {
-                    outPort = p;
+                    return true;
                 }
             }
 
-            if (outPort < 0 || !_links.Any(l => (l.From == component && l.FromPort == outPort) || (l.To == component && l.ToPort == outPort)))
-            {
-                return null;
-            }
-
-            var (next, nextPort) = Follow(component, outPort);
-            members.Add(new Member(component, inPort, outPort));
-
-            if (next == source)
-            {
-                members[0] = members[0] with { InPort = nextPort };
-                return members;
-            }
-
-            if (next < 0 || Wildcard(next))
-            {
-                return null;
-            }
-
-            component = next;
-            inPort = nextPort;
+            visited.Remove(next);
         }
 
-        return null;
+        path.RemoveAt(path.Count - 1);
+        return false;
     }
 
     /// <summary>The component and port a connection reaches from a port, passing through inline nodes.</summary>

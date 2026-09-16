@@ -240,6 +240,34 @@ port runs level, away from the loop on that flank's side, after the port's strai
 and for a chain of inline elements. `D-109` (mirror before half turn) and `D-110` (pipe
 properties on a connection line) came out of this step.
 
+### Step 6 · the cooling loop
+
+`step-06-cooling.fluid`: the `m2-cooling-loop` sample verbatim -- `HE1` (power 30), `3WV`,
+`PU1`, `P1`, the junction `N2`, `N1 supply`, `N3 return`; `HE1 - 3WV` binds the valve's common
+port `ab`, so it diverts: in at `ab`, out at `a` to the recirculation and at `b` to the return.
+
+**Drawn (2026-09-17):** three engine changes first, none of them a new picture rule. The loop
+walk is a depth-first search over the ports the fluid leaves by, through junctions as well as
+inline elements, because this loop runs `HE1 → 3WV → N2 → PU1 → HE1` through a junction and
+the valve's first leaving port is not the one on the loop. The loop has no standing consumer, so
+C2 takes as its right side the first member the flow *leaves the loop by* -- the valve, whose `b`
+goes to the return. A junction sits on a rail like a component (`OnRail`) and its free port takes
+the side facing away from the loop's centre (`FreeSide`). The picture: `HE1` left flowing up,
+rotation 180; `3WV` right flowing down, rotation 180 so `ab` is on top, `a` below and `b` to
+the right; `N2` on the bottom rail at `[(2.25, −1.1), (2.45, −0.9)]`, `PU1` mirrored pumping
+left; `N1` hangs below `N2` at `(2.35, −1.7)`; `N3` hangs right of `3WV.b` at `(4.55, 0)` with
+`P1` inline between. Loop rectangle `[(0.15, −1), (3.45, 1)]`, four bends, length 8.4, hard 0,
+soft 0. The `m2-cooling-loop` sample draws identically.
+
+**User's corrections:** *(awaiting)*. The supply below the junction and the return to the right
+of the valve do not align (C7 pairs only level approaches on one side); whether the primary
+should read as one pair of terminals is the question this step puts.
+
+**Rules established:** C2 amended (the consumer fallback); C8 *(step 6, provisional)*: a
+junction on a loop rail takes its two loop ports along the rail and its free port on the side
+facing away from the loop. The valve's body did decide the side: its straight run `a`–`ab`
+had to be vertical for the loop to pass through it, which is what put it on a vertical side.
+
 ## What the ladder has not reached
 
 Everything in `28` part D past a chain and one loop: direction-changing free-turning components, the loop search's residue (open question 2), rigid groups, branches, the router as a last resort. Inline

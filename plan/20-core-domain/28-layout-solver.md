@@ -232,7 +232,10 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   rightwards from the inlet corner *against* the flow, each by its outlet facing the source; the
   consumer's column stands at the longer rail's end, its inlet corner on the top rail, slid right
   until H2 holds; every run's inline nodes sit at the midpoints of their longest segments. Which
-  free-turning members leave the bottom for a vertical is open (below).
+  free-turning members leave the bottom for a vertical is open (below). *Step 6*: a loop with no
+  standing consumer takes as its right side the first member in flow order the loop's fluid
+  leaves by -- a diverting valve, a junction with an outlet off the loop; the loop is found by a
+  depth-first walk over leaving ports that passes through junctions.
 - **C3** *(stated 2026-09-16, `D-108`; exercised by step 2)* -- **A standing kind is never
   turned.** Its transform is chosen among the class's mirrors (A4) so that the port the pipe
   arrives at faces the pipe: a chain reaching an exchanger from the left enters its left flank's
@@ -262,6 +265,10 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   one is moved out to the farther one's line when no placed box or margin lies in the way, and
   its run is laid again over the longer pipe; the two then read as one pair of terminals, the
   return under the supply. Where something is in the way, each stays where its own rule put it.
+- **C8** *(step 6, provisional)* -- **A junction on a loop rail.** Its two loop ports lie along
+  the rail; its free port takes a side no port uses, the one facing away from the loop's centre
+  first -- vertical on a level rail, level on a vertical side -- and what hangs from it is placed
+  by C5 from there.
 
 ## D. The candidates
 

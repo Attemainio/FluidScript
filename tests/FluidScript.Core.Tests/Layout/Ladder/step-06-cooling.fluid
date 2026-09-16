@@ -1,0 +1,23 @@
+# Layout ladder, step 6 (plan/20-core-domain/29-layout-ladder.md): the cooling loop -- a junction, a
+# three-way valve and its recirculation, a supply and a return. The m2-cooling-loop sample verbatim.
+
+fluidscript 1
+circuit coolingLoop
+fluid water
+
+HE1 heat_exchanger power=30 in=20 out=50
+3WV three_way_valve
+PU1 pump
+P1  pipe length=25 dn=25
+
+connections
+N1 - N2
+N2 - PU1
+PU1 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - P1
+P1 - N3
+
+N1 supply t=6 p=300
+N3 return p=280

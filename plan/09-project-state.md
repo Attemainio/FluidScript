@@ -86,7 +86,10 @@ would be filled with nothing.
 > unchanged), as package P5.1e in `08`; C7 aligns a return under its supply. Step 5 stands.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
-> transform class is on the wire. The
+> transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
+> junctions, the consumer fallback, C8 junctions on a rail; hard 0) and awaits corrections. The
+> simple loop, the substation and the cooling loop samples are reached: their routing, corner and
+> audit gates are live and pass. The
 > seven layout samples run through the engine's fallback and their layout gates are skipped until
 > the ladder reaches them.**
 > The substation converges on `01`'s figures —
@@ -285,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 5 of ten drawn; step 5 awaits corrections |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 6 of ten drawn; step 6 awaits corrections |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -540,7 +543,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1691 total, 0 failed, 8 skipped** (four of them the layout samples' routing and audit gates and the timing test, skipped until the ladder reaches them; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1691 total, 0 failed, 5 skipped** (the timing test until the ladder reaches headers, and four unrelated; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

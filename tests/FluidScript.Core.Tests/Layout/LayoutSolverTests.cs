@@ -13,6 +13,12 @@ public sealed class LayoutSolverTests
         "m2-cooling-loop", "m2-simple-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "m1-syntax-tour", "header-200",
     ];
 
+    /// <summary>The samples the layout ladder (29) has reached, whose routing and audit gates are live: the simple loop (step 4), the substation (step 5), the cooling loop (step 6). The rest join as their steps land.</summary>
+    public static TheoryData<string> Reached =>
+    [
+        "m2-simple-loop", "m2-substation", "m2-cooling-loop",
+    ];
+
     private static string Source(string name) =>
         name == "header-200" ? ReferenceModels.DistributionHeader(ReferenceModels.TwoHundredComponentConsumers) : ContractFixture.Sample(name + ".fluid");
 
@@ -56,8 +62,8 @@ public sealed class LayoutSolverTests
         }
     }
 
-    [Theory(Skip = "Until the layout ladder (29) reaches the samples: the engine is being rebuilt one rule at a time.")]
-    [MemberData(nameof(Samples))]
+    [Theory]
+    [MemberData(nameof(Reached))]
     public void EveryConnectionIsRoutedFromAnchorToAnchorLeavingPerpendicularly(string name)
     {
         var input = ContractFixture.Compile(Source(name));
@@ -77,14 +83,13 @@ public sealed class LayoutSolverTests
                 Assert.True(Math.Abs(a.X - b.X) < 1e-9 || Math.Abs(a.Y - b.Y) < 1e-9, $"{name} {route.ConnectionId}: segment {a}→{b} is not orthogonal.");
             }
 
-            // The stubs: a whole margin along the anchor's direction at both ends that have a box -- inner boundary
-            // straight to outer boundary, no turn between -- and every route starts and ends on an anchor of its own.
+            // Every route starts and ends on an anchor of its own. The stub -- a whole margin straight out of every
+            // port that has a box (28 H5) -- is the audit's, measured on the run through inline points, and
+            // TheAuditFindsNoInterference asserts it; a per-link check here would call a run an inline node cuts short.
             var first = scene.Placements.FirstOrDefault(p => p.Anchors.Values.Any(a => a.At == route.Points[0]));
             var last = scene.Placements.FirstOrDefault(p => p.Anchors.Values.Any(a => a.At == route.Points[^1]));
             Assert.True(first is not null, $"{name} {route.ConnectionId}: starts at {route.Points[0]}, which is no anchor.");
             Assert.True(last is not null, $"{name} {route.ConnectionId}: ends at {route.Points[^1]}, which is no anchor.");
-            Assert.True(first.IsInline || route.Points[0].ManhattanTo(route.Points[1]) >= scene.Margin - 1e-9, $"{name} {route.ConnectionId}: first stub too short.");
-            Assert.True(last.IsInline || route.Points[^1].ManhattanTo(route.Points[^2]) >= scene.Margin - 1e-9, $"{name} {route.ConnectionId}: last stub too short.");
         }
     }
 
@@ -118,7 +123,7 @@ public sealed class LayoutSolverTests
         Assert.Equal(a.Placements.Select(static p => (p.ComponentId, p.Inner)), b.Placements.Select(static p => (p.ComponentId, p.Inner)));
     }
 
-    [Fact(Skip = "Until the layout ladder (29) reaches the loop samples.")]
+    [Fact]
     public void TheRingKeepsItsCornersBare()
     {
         // D-44: on the loop samples no route bends inside any component's inner box.
@@ -137,8 +142,8 @@ public sealed class LayoutSolverTests
         }
     }
 
-    [Theory(Skip = "Until the layout ladder (29) reaches the samples: the engine is being rebuilt one rule at a time.")]
-    [MemberData(nameof(Samples))]
+    [Theory]
+    [MemberData(nameof(Reached))]
     public void TheAuditFindsNoInterference(string name)
     {
         // D-105 as restated: margins may overlap, inner boundaries may not be entered -- by a symbol or by a pipe,
