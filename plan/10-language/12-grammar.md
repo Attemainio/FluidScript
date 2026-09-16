@@ -282,7 +282,7 @@ control-short       = endpoint , "with" , endpoint , "by" , identifier , { param
 fluid-directive     = "fluid" , [ "dynamic" | "static" ] , identifier ;
 catalog-directive   = "catalog" , identifier , [ "@" , catalog-version ] ;
 catalog-version     = unsigned-integer , "." , unsigned-integer ;
-style-directive     = "style" , { style-token } ;
+style-directive     = "style" , [ identifier , "=" ] , { style-token } ;      (* D-104: a name and "=" define *)
 show-directive      = "show" , property-name , { property-name } , [ range ] ;
 property-name       = identifier ;   (* resolved against the property registry — see 57 *)
 let-binding         = "let" , identifier , "=" , expression ;
@@ -319,7 +319,8 @@ target              = identifier , "." , identifier ;       (* component.paramet
 range               = expression , ".." , expression ;
 
 expression          = (* see 14-expressions-and-references *) ;
-style-token         = identifier | quantity | number | string | "-" | "--" | ".." | "-." ;
+style-token         = identifier | quantity | number | string | "-" | "--" | ".." | "-."
+                    | "fill" , "=" , ( identifier | string ) ;                  (* the one keyed token *)
 unsigned-integer    = digit , { digit } ;
 timestamp           = (* one lexical unit; ISO 8601 or Unix seconds unless `format=` says
                          otherwise, and recognised only inside a curve section -- D-60 *) ;
@@ -478,7 +479,7 @@ say what they mean, so the parser recognises the `in`/`out` shape only to reject
 ```fluidscript
 fluidscript 1
 project dynamic plant_01
-spacing 20
+spacing 0.75
 ```
 
 `project [dynamic|static] <name>` names the project and sets the **default** solve mode for every
@@ -537,6 +538,18 @@ class of value. Named colours are unaffected and remain the common case.
 Order-independence is a P1 decision: the user should not have to remember whether width comes before
 colour. The cost is that an unrecognised token cannot be attributed to a position, so `FS1201` says
 what it could not classify and lists the categories.
+
+**Named styles (`D-104`, P5.1d).** `style hot = "#c0392b" 2px -` defines a style; the `=` after the
+first word is what makes it a definition, so the parser needs one token of lookahead and no new
+reserved word. `style hot` applies it to everything declared after it in the current circuit, and a
+circuit starts from the project-level style, which is whatever `style` lines precede the first
+`circuit` header. `style=<name>` on a component declaration overrides for that component; `style` is
+the one reserved word a parameter may be named after. A bare `style <word>` is an application when
+the word is a defined name and an anonymous token list otherwise, decided by the binder, which is why
+a colour name can never be a style name in practice: `style blue` is blue. `fill=<colour>` is the
+one keyed token; the positional colour is the stroke. Definitions may follow their use, as a `let`
+may. `FS1204` and `FS1205` are the binder's; `FS1201` and `FS1202` now are too, with the colour
+names being the CSS named colours and the corner words `fillet`, `round` and `sharp`.
 
 ### Show directive
 
@@ -898,6 +911,8 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
+| `FS1204` | A style applied by a name no definition gave (`D-104`) | Warning | `No style called '{name}' is defined; the components keep their previous style.` |
+| `FS1205` | A style name defined twice (`D-104`) | Warning | `Style '{name}' is defined again; the later definition is used.` |
 
 **`FS1103` was previously "Declare components before the 'connections' line" and is redefined here
 rather than retired**, because its trigger has widened rather than changed meaning: it still fires on

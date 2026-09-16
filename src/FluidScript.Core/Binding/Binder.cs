@@ -78,6 +78,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly List<DeferredExpression> _deferred = [];
     private readonly HashSet<ValueId> _deferredTargets = [];
     private readonly List<StyleTokenSyntax> _styleTokens = [];
+    private readonly Dictionary<string, StyleSpec> _styleDefinitions = new(StringComparer.Ordinal);
+    private readonly Dictionary<StatementSyntax, StyleSpec> _styleAt = new(ReferenceEqualityComparer.Instance);
+    private StyleSpec _currentStyle = StyleSpec.Empty;
+    private StyleSpec _projectStyle = StyleSpec.Empty;
 
     // Where each `let` was written, which is the only thing that can say whether a curve it reads is
     // read in a static circuit or a dynamic one.
@@ -103,7 +107,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Project = _project with { Design = PublishDesign() },
             Components = [.. _components],
             Bindings = [.. _bindings],
-            Style = new StyleSettings([.. _styleTokens], _spacing),
+            Style = new StyleSettings([.. _styleTokens], _spacing, _projectStyle, _styleDefinitions.ToImmutableDictionary(StringComparer.Ordinal)),
             Connections = [.. _connections],
             ControlBindings = [.. _controlBindings],
             Disturbances = [.. _disturbances],
@@ -123,6 +127,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         var blocks = new List<CircuitBlock>();
         CircuitBlock? current = null;
 
+        // Definitions first, so `style hot` may precede `style hot = ...` the way a `let` may be used
+        // before its line (D-104).
+        foreach (var definition in parse.Root.Statements.OfType<StyleDirectiveSyntax>().Where(static s => s.IsDefinition))
+        {
+            ReadStyle(definition);
+        }
+
         foreach (var statement in parse.Root.Statements)
         {
             switch (statement)
@@ -130,6 +141,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 case CircuitHeaderSyntax header:
                     current = new CircuitBlock(header, []);
                     blocks.Add(current);
+
+                    // A circuit starts from the project's style, not from the previous circuit's.
+                    _currentStyle = _projectStyle;
                     break;
 
                 case ProjectDirectiveSyntax project:
@@ -140,8 +154,18 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     _spacing = spacing.Value.Value;
                     break;
 
+                case StyleDirectiveSyntax { IsDefinition: true }:
+                    break;
+
                 case StyleDirectiveSyntax style:
                     _styleTokens.AddRange(style.Parts);
+                    ReadStyle(style);
+
+                    if (current is null)
+                    {
+                        _projectStyle = _currentStyle;
+                    }
+
                     break;
 
                 // File-wide, and therefore not a circuit's contents. Reaching the default arm would
@@ -165,6 +189,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     {
                         current = new CircuitBlock(null, []);
                         blocks.Insert(0, current);
+                    }
+
+                    if (!_currentStyle.IsEmpty)
+                    {
+                        _styleAt[statement] = _currentStyle;
                     }
 
                     current.Statements.Add(statement);
@@ -418,6 +447,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             DeclarationSpan = declaration.Span,
             CircuitName = circuitName,
             AttachedTo = declaration.AttachedTo?.Text,
+            Style = StyleOf(declaration),
         };
 
         _components.Add(symbol);
@@ -476,6 +506,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         {
             var written = parameter.Name.Token.Text;
 
+            // `style=name` is presentation every kind accepts (D-104); it is read by DeclareComponent
+            // and is not a registry parameter, so it is neither bound nor reported here.
+            if (string.Equals(written, "style", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
             // With no kind there is nothing to check a parameter against, so it is kept as written and
             // nothing is reported: the user already has one error on this line about the kind, and a
             // second one per parameter would bury it.
@@ -503,6 +540,68 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         }
 
         return bound.ToImmutable();
+    }
+
+    /// <summary>The style a declaration carries: the one in force where it was written, then its own <c>style=</c>.</summary>
+    private StyleSpec? StyleOf(ComponentDeclarationSyntax declaration)
+    {
+        var style = _styleAt.GetValueOrDefault(declaration);
+
+        foreach (var parameter in declaration.Parameters)
+        {
+            if (!string.Equals(parameter.Name.Token.Text, "style", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var name = (parameter.Value as ReferenceSyntax)?.Head.Token.Text ?? parse.Source.ToString(parameter.Value.Span).Trim();
+
+            if (_styleDefinitions.TryGetValue(name, out var defined))
+            {
+                style = (style ?? StyleSpec.Empty).Merge(defined);
+            }
+            else
+            {
+                Report(StyleDiagnostics.UndefinedStyle, parameter.Span, ("name", name));
+            }
+        }
+
+        return style;
+    }
+
+    private void ReadStyle(StyleDirectiveSyntax style)
+    {
+        var reported = (DiagnosticDescriptor descriptor, TextSpan span, (string Name, string Value)[] arguments) => Report(descriptor, span, arguments);
+
+        if (style.Name is { } name)
+        {
+            if (_styleDefinitions.ContainsKey(name.Text))
+            {
+                Report(StyleDiagnostics.RedefinedStyle, name.Span, ("name", name.Text));
+            }
+
+            _styleDefinitions[name.Text] = StyleTokens.Classify(style.Parts, reported);
+            return;
+        }
+
+        // A single bare word that names a defined style applies it; any other token list is an
+        // anonymous style read for what its tokens are.
+        if (style.Parts is [{ Kind: StyleTokenKind.Word } word] && !NamedColours.TryGet(word.Text, out _)
+            && word.Text is not ("fillet" or "round" or "sharp"))
+        {
+            if (_styleDefinitions.TryGetValue(word.Text, out var defined))
+            {
+                _currentStyle = _currentStyle.Merge(defined);
+            }
+            else
+            {
+                Report(StyleDiagnostics.UndefinedStyle, word.Span, ("name", word.Text));
+            }
+
+            return;
+        }
+
+        _currentStyle = _currentStyle.Merge(StyleTokens.Classify(style.Parts, reported));
     }
 
     private ParameterInfo? ResolveParameter(

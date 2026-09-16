@@ -1,0 +1,346 @@
+---
+id: 28-layout-solver
+title: Layout solver
+tier: 20-core-domain
+status: draft
+owns: [the layout model (coordinates, flow vectors, anchors, margins, transform classes, inline elements, nodes), the layout standard the engine is held to, the layout rules as the ladder establishes them, the candidate algorithms, the layout diagnostic text, determinism]
+depends_on: [23-topology-and-graph, 25-layout-hints, 26-model-contract, 27-component-catalog]
+traces_to: [R-22, R-27, R-44, R-45, R-46, R-47, R-48]
+open_questions: 1
+last_review_pass: 0
+---
+
+# Layout solver
+
+Core computes where every component sits and where every pipe runs (`D-103`), in world units, and
+hands the frontend a finished drawing. This document is the specification of how, in four parts:
+
+- **A. The model** -- what a drawing is made of. Settled.
+- **B. The standard** -- what every drawing is held to. Settled; it is the acceptance test.
+- **C. The rules** -- how a drawing is produced. Established one at a time by the ladder
+  ([`29`](29-layout-ladder.md)): the user corrects a picture, the correction becomes a rule, the
+  rule is numbered here and in the code. A rule the user states ahead of a step enters here at once,
+  marked *stated*, and becomes *exercised* at the first step that draws it.
+- **D. The candidates** -- the algorithms the user's specification
+  ([`28-layout-solver.source`](28-layout-solver.source.md), verbatim) proposes for the parts that
+  need a search. Each is admitted into C when a ladder step proves it, and deleted if none does.
+
+Nothing in D is used by the engine until it is numbered in C. A picture the engine produces
+therefore shows exactly how far the rules reach: what no rule covers is put in a fallback column
+below everything placed and left to the router, never guessed.
+
+## A. The model
+
+### A1. Coordinates
+
+World units: a pump is 1 × 1. `y` grows **upward**; `(0, 1)` is up, a box's `Y` is its bottom edge.
+The frontend flips once, where it maps units to pixels. Every direction the engine reasons with is
+one of the four axis vectors `(1,0) (0,1) (-1,0) (0,-1)`; every rotation is a multiple of 90°;
+mirroring is a separate transformation. Every coordinate that leaves the engine is rounded to a
+millionth of a unit, so a point reached two ways is one point.
+
+### A2. Components: two boxes
+
+Every component has an **inner box** -- its symbol, after the arrangement and transform chosen for
+it -- and an **outer box**, the inner grown by the margin *m* on every side. *m* is `0.5` unless
+the script's `spacing` says otherwise. The inner box is hard geometry: no other symbol and no pipe
+that does not serve it ever enters it. The outer box is soft: two outer boxes may overlap and a
+pipe may cross a margin; that is counted, never rejected.
+
+**Clearance:** two components are placed correctly when their inner boxes are at least `max(m_A,
+m_B)` apart, which is the same as "neither inner box enters the other's outer box".
+
+### A3. Ports: inner anchor, outer anchor, flow vector
+
+Every port has an **inner anchor** on the inner box's edge, an **outward direction** (the unit
+normal of that edge, carried by the catalogue and turned with the box), and an **outer anchor** one
+margin along the outward direction, on the outer box's edge. The stub between them is a straight
+pipe a whole margin long; a pipe never bends inside a margin.
+
+Every port also has a **flow vector**: the direction the fluid moves at the port. It is *not* the
+outward direction. For an outlet the flow is outward; for an inlet it is inward; a supply boundary
+sends, a return boundary receives; a port that says nothing (a junction's side, a `Bidirectional`
+port) takes its flow from the port it is joined to, and failing that from the way the connection was
+written. A pump pumping left to right has `inlet.flow = (1,0)` and `outlet.flow = (1,0)`; a
+standing exchanger fed at the top has `in.flow = (0,-1)`. A component that turns the flow is one
+whose inlet and outlet flow vectors differ.
+
+The **flow-oriented graph** is the graph with every connection directed by these vectors. It is
+what B's H9 and H10 are measured on and what D's classification runs over. It is nominal --
+roles and propagation, never the solved flow -- so the compile and the solved drawings are one
+drawing (`D-105`).
+
+### A4. Symbols, transforms and the transform class
+
+The catalogue (`27`) gives each kind one symbol: a box, strokes, and named anchors with outward
+directions in symbol space, y up. A symbol may offer **alternative arrangements** of the same ports
+on the same box; the exchanger has `u` (each side in and out on its own flank) beside its
+through-pass default. An instance is drawn by a **transform**: arrangement × mirror × quarter turn.
+
+**Which transforms a kind admits is a fact about the kind, and hard** (`D-107`, `D-108`). The
+catalogue carries it as the kind's **transform class**:
+
+| Class | Transforms | Kinds | Why |
+|---|---|---|---|
+| `free` | four quarter turns, each mirrored or not: 8 | `pump`, `valve`, `three_way_valve`, `pipe`, `node` | Nothing about the glyph is up or down |
+| `standing` | no quarter turn; identity, left-right mirror, up-down mirror, both: 4 | `heat_exchanger` (every spelling: `load`, `boiler`, `chiller`, …), `heat_pump` when M4 adds it | An exchanger is drawn upright on every P&I diagram; its flanks and its flow sense are chosen by mirroring |
+| `upright` | identity and the left-right mirror: 2 | `tank` | The layers and the port elevations are a vertical order; an up-down mirror would put the hot layer at the bottom |
+
+Nothing in A prefers one admitted transform over another; C decides. On the wire (`26`) an up-down
+mirror is written as `rotation: 180, mirrored: true`, which is the same transform; the diagnostic
+text names the mirrors (`mirror-x`, `mirror-y`, `mirror-xy`) for a standing or upright kind and the
+turn for a free one.
+
+### A5. Inline elements
+
+A declared `pipe`, a pipe-expansion child, and **a node the language inferred with exactly two
+connections** are **inline**: they have no box and no clearance of their own. The chain of
+connections through them is one **run** between the two elements that do have boxes; the run is
+one polyline; the inline elements are points on it, spread evenly along the run's longest segment
+(`D-105`). Since `D-110` a connection line may carry the pipe's properties itself, and the implicit
+pipe it lowers to is inline the same way. The drawing shows only a pipe's label and, in the ladder picture, a hollow dot
+with the node's name -- the line *is* the pipe. (The user's step 2 correction: `PU1 - HE1` puts a
+node between the two that the script never wrote, and the pump and the exchanger must sit at the
+clearance from each other, not from it.)
+
+### A6. Nodes
+
+Every node that is not inline (A5) is laid out as an element (`D-108`): the junction's inner box
+(0.2 across), an outer boundary of one margin, a place of its own, its name in the picture and in
+the text. That holds for a declared node whatever its degree, a junction, and a boundary node the
+binder added to terminate an open port (`23`, rule I3); `PU1 pump` alone is one pump and two
+nodes, drawn so. What the *canvas* draws for a node is `53`'s: a junction (three or more
+connections) is a dot with at most one pipe per side, a two-port node draws nothing.
+
+### A7. Pipes
+
+A pipe is an orthogonal polyline from inner anchor to inner anchor, normalised: no duplicate points,
+no collinear interior points, no backtracking, so `bends = points − 2`. Where a later pipe crosses
+an earlier one it carries a **hop** at the crossing. A pipe's **envelope** is the union of the
+rectangles one margin around each segment; it is what the standard's clearance tests measure.
+
+### A8. Groups
+
+Once a set of components has been laid out together it is a **group** with bounds, ports and
+allowed transforms, and its parent treats it as one object: translated, turned, mirrored where
+allowed, never re-laid inside. A change elsewhere in the system cannot disturb a correct group. A
+group's kind and members are on the wire (`layout.groups`).
+
+### A9. Determinism
+
+Identical input gives identical output. Never dictionary or hash order, timing, randomness, or a
+floating-point near-tie without a rule. Ties break by: script order, lower component id, the default
+arrangement, the **smaller clockwise turn, then unmirrored before mirrored** (`D-109`: a symbol
+reversing on a line is mirrored, so a valve's stem and a pump's badge stay on top), lower x, lower y.
+
+### A10. The diagnostic text
+
+**The layout is read from its text, not from its picture** (`D-106` item 10, `D-108` item 4). The
+text is a Core output -- the layout report `D-100` asked for and `62` describes, one text and not
+two -- and for every scene it lists:
+
+- each component with its group, transform (the class's vocabulary, A4), arrangement, inner and
+  outer boxes, and each port's inner anchor, outer anchor and flow vector;
+- each connection with its points, length, bends, crossings, hops and envelope;
+- the groups, with kind, orientation, members and bounds;
+- **a character raster of the arrangement**: the scene's extent at four cells per unit, outer
+  boxes as `.`, inner boxes as `#`, a node as `o`, pipe as `-` and `|`, a port's flow as `<>^v`,
+  a crossing as `+`, so a session sees the arrangement a picture would show;
+- the audit's verdict: every hard constraint of B with its count, every soft class with its
+  count, totals of bends and length;
+- every finding, one per line.
+
+A test writes the text *before* it asserts anything, so the file on disk is always the layout that
+failed. The SVG beside it shows the same facts -- margin areas, symbol areas, every node, every
+port's flow arrow, every pipe -- and is for the user; a session that renders or reads a picture to
+check a layout is doing the wrong thing.
+
+## B. The standard
+
+What every drawing is held to, whatever rules produce it. The notation references are ISO 10628,
+ISO 14617 and ANSI/ISA-5.1, which fix how symbols and instruments are drawn and say nothing about
+placement; the placement standard is this project's reasoning, and H9–H10 are the user's convention
+stated as constraints (`D-108`).
+
+**Hard -- a drawing that breaks one is wrong, not worse.**
+
+| # | Constraint |
+|---|---|
+| H1 | No inner box enters another inner box |
+| H2 | No inner box enters another component's outer box (the clearance, A2) |
+| H3 | No pipe passes through an inner box it does not serve |
+| H4 | A pipe starts and ends on the two ports its connection names |
+| H5 | A pipe leaves a port along the port's outward direction for a whole margin |
+| H6 | A pipe turns on bare pipe: no inline element sits on a corner |
+| H7 | Supply and return never share a pipe segment |
+| H8 | Every component and every connection is drawn; nothing is dropped |
+| H9 | **Every flow loop runs clockwise**: each simple directed cycle of the flow-oriented graph (A3), walked in flow order through its members' centres, encloses negative signed area (y up) |
+| H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right |
+
+H9 and H10 together fix, for a loop with a standing source and a standing consumer: the source on
+the left side flowing up, the consumer on the right side flowing down, supply along the top to the
+right, return along the bottom to the left. For a closed distribution ring the same pair puts the
+supply header along the top and the return header along the bottom with the branches hanging
+between them, which is `R-48`'s picture re-derived from topology; for an open supply-to-return
+path with no ring, `D-107`'s stacked branches remain the candidate (D).
+
+**Soft -- counted, and the fewer the better.** A pipe through a margin; a pipe running beside another
+closer than a margin; two pipes crossing; two outer boxes overlapping.
+
+**Priorities, in strict order, when a choice remains.**
+
+1. The hard constraints.
+2. The fewest bends. A straight pipe beats a shorter pipe with corners on every drawing an engineer
+   has seen; four short bends never beat one slightly longer one.
+3. The fewest crossings, then the fewest soft findings.
+4. What stands, stands; a free-turning member keeps its drawn default where the pipe leaves it open.
+5. Alignment: equivalent assemblies -- the same kinds in the same order -- are drawn congruently.
+6. Compactness -- least pipe, least area -- **last**.
+
+**Edit stability.** Adding an instrument moves no process symbol; adding a component to one branch
+moves only that branch and what it pushes along; an edit inside one group leaves every other group
+identical up to translation; a change to a value moves nothing.
+
+**The audit.** `SceneAudit` measures every hard constraint and every soft class on every scene; the
+tests assert hard = 0 on every ladder step and, when the ladder reaches them, on every sample. Today
+it measures H1–H3 and H6 and the soft classes; H4, H5, H7, H9 and H10 are unmeasured (`C-88`), and
+a hard constraint nobody measures is a preference.
+
+## C. The rules
+
+Numbered in the order they were established; each names its step and is marked in `LayoutEngine`
+with the same number. *Stated* means the user gave the rule ahead of the step that draws it;
+*exercised* names the step that did; *provisional* means drawn but not yet corrected.
+
+- **C1** *(step 1, corrected 2026-09-16; amended by step 3)* -- **The first component placed sits
+  at the origin in its drawn default**: identity transform, the default arrangement, flowing left
+  to right -- unless it is a loop's source, whose transform is C2's (outlet up). Which
+  component is first is H10's: the fragment's heat source, else the first component of `Order`
+  (`25`), never an inferred one. (Step 1 drew it as "the first the script declares", which is the
+  same component on one pump and the wrong one on a loop whose source is declared second.)
+- **C2** *(stated 2026-09-16, `D-108`; exercised by step 3, provisional)* -- **A flow loop is
+  laid out clockwise, its source member on the left side flowing up and its consumer member on the
+  right side flowing down.** H9 and H10 as construction: the two standing members take the
+  verticals; the members between them in flow order take the top (source → consumer) and the
+  bottom (consumer → source). As built: the source sits at the origin in the first admitted
+  transform of its default arrangement that sends its loop outlet up and takes its loop inlet from
+  below; the rails lie one margin outside those two ports (the bottom rail lower if the consumer is
+  taller); the top members are placed rightwards from the outlet corner by C5, the bottom members
+  rightwards from the inlet corner *against* the flow, each by its outlet facing the source; the
+  consumer's column stands at the longer rail's end, its inlet corner on the top rail, slid right
+  until H2 holds; every run's inline nodes sit at the midpoints of their longest segments. Which
+  free-turning members leave the bottom for a vertical is open (below).
+- **C3** *(stated 2026-09-16, `D-108`; exercised by step 2)* -- **A standing kind is never
+  turned.** Its transform is chosen among the class's mirrors (A4) so that the port the pipe
+  arrives at faces the pipe: a chain reaching an exchanger from the left enters its left flank's
+  top port, turning once at the port's outer anchor; the exchanger does not lie down and the chain
+  does not turn vertical. A two-sided exchanger's left-right mirror is H10's (losing side left).
+  *Exercised by step 2*: the pipe turns at the node's outer anchor and drops into `in`.
+- **C4** *(stated 2026-09-16, `D-108`; exercised and narrowed by step 2)* -- **Every node that
+  is not inline is placed with its boundaries** (A6): a boundary node sits one clearance past the
+  port it terminates, on the port's axis. An inferred two-connection node is a point on its run
+  (A5) and the far element is placed as if piped directly.
+- **C5** *(step 2, provisional)* -- **Sequential placement.** From every placed port, the element
+  at the other end of its connection is placed along the port's axis, one clearance out or as far
+  as H2 needs (slack goes into the pipe, in tenths of a unit): a node on the axis; a component in
+  the first admitted transform of its *default* arrangement whose port faces the pipe; a standing
+  component that cannot face a level pipe by C3's turn; and only then an alternative arrangement,
+  because an arrangement that faces the pipe by sending the outlet back the way the pipe came
+  reverses the path (H10) -- B's bend count does not get to buy that.
+- **C6** *(step 5, provisional)* -- **What hangs from a loop member's flank port runs level, away
+  from the loop.** A standing exchanger on a loop has its loop side on one flank (C2) and its
+  other side on the outer flank; whatever is piped to the outer flank -- a chain, a boundary node
+  -- leaves the port along its straight margin, turns towards that flank's side and continues
+  level: the substation's primary arrives from the left into `in2` at the top and its return
+  leaves `out2` at the bottom back to the left. Off a chain's exchanger (step 2) a port's
+  continuation hangs straight.
+- **C7** *(step 5, provisional)* -- **An open end aligns with its supply.** Where a supply and a
+  return boundary hang level off the same component on the same side (both by C6), the nearer
+  one is moved out to the farther one's line when no placed box or margin lies in the way, and
+  its run is laid again over the longer pipe; the two then read as one pair of terminals, the
+  return under the supply. Where something is in the way, each stays where its own rule put it.
+
+## D. The candidates
+
+The user's specification proposes these for the parts of a layout that need a search. Each is a
+candidate until a ladder step needs it, at which point it is written into C in the form the step
+proved; a candidate no step ever needs is deleted.
+
+- **Sequential placement** (source §7–10): the first process path flows to the right; each next
+  component is placed along the current flow vector at the clearance, in a transform whose inlet
+  faces the pipe; a component that turns the flow turns everything after it. A chain lays itself out
+  with no search. Under C3 a standing component never turns the chain; the pipe turns into it.
+- **Topology before geometry** (source §11): Tarjan's strongly connected components classify the
+  flow-oriented graph before anything is placed -- sequential paths, splits, merges, simple loops,
+  complex cycles. A **simple loop** is a cycle where every member has one internal predecessor and
+  one internal successor.
+- **The loop search** (source §12–19, narrowed by `D-108`): a simple loop is a rectangle. The
+  orientation is clockwise (H9), the standing members' sides are C2's, so what remains to search is
+  which contiguous run of the free-turning members between them sits on each side and each member's
+  transform; candidates are scored lexicographically -- valid, then bends, crossings, clearance,
+  vertices, length, area, interference, mirrors, preference, tie-break. A member may take a corner
+  with its own geometry. For the substation's secondary (HX1, SS, LOAD, SR, SP: two standing, one
+  pump, two inline pipes) the search is over where the pump sits -- on the bottom pumping left, or
+  on the left vertical under the exchanger pumping up -- and nothing else.
+- **Rigid groups and hierarchy** (source §24–25): a solved loop, chain or branch set is one object
+  to its parent (A8).
+- **Branches** (source §26, narrowed by `D-108`): a closed ring's branches hang between its top and
+  bottom sides in script order (H9 makes the ring a clockwise loop, so the rails are given); an open
+  supply-to-return path's branches stack perpendicular to the main flow in script order, the parent
+  placing the split and the merge and routing with minimum bends.
+- **The router**: for whatever connection the rules leave, an orthogonal path over the placed boxes
+  and pipes, bends before length, crossings dear but not forbidden. It is never asked to discover a
+  layout.
+
+## Worked example
+
+The injection branch of `m2-distribution-header`, under H9, H10, C2–C4 and the catalogue as
+shipped; every number is world units with *m* = 0.5. Members in flow order: `TV_AHU.ab → PU_AHU →
+HE_AHU → NM_AHU → TV_AHU.b`, with supply arriving at `TV_AHU.a` from above and `NM_AHU` also
+leaving downward to the return rail.
+
+The three-way valve's straight run is `a`–`ab` (`D-105`), so wherever the valve sits the flow
+through it is straight, and with supply arriving from above that run is vertical and downward.
+Downward is the right side of a clockwise loop (H9), so the valve, the pump and the load -- the
+load standing, C3 -- are the right side in that order, and the three other sides are the bare
+recirculation pipe back into `b`, which faces west:
+
+| Element | Transform | Inner box | Port on the run |
+|---|---|---|---|
+| `TV_AHU` | identity (`a` up, `ab` down, `b` west) | `[(−0.5, −0.5), (0.5, 0.5)]` | `ab` at `(0, −0.5)`, flow `(0, −1)` |
+| `PU_AHU` | rotation 90 (`in` up, `out` down) | `[(−0.5, −2), (0.5, −1)]` | `in` at `(0, −1)`, `out` at `(0, −2)` |
+| `HE_AHU` | identity, slid `+0.15` so `in` sits on `x = 0` (`D-105` item 3) | `[(−0.1, −3.5), (0.4, −2.5)]` | `in` at `(0, −2.5)`, `out` at `(0, −3.5)` |
+| `NM_AHU` | node | `[(−0.1, −4.2), (0.1, −4.0)]` | west port `(−0.1, −4.1)`, south port on to the return |
+
+Every gap on the column is exactly one clearance (0.5) and every pipe on it is a straight stub:
+`TV.ab → PU.in` 0.5, `PU.out → HE.in` 0.5, `HE.out → NM` 0.5, no bends. The recirculation leaves
+`NM` west for a whole margin (H5), runs to `x = −1.0` -- one clearance outside the widest inner box
+on the column, `x = −0.5` -- climbs to `y = 0` and enters `b` from the west along its own stub:
+`[(−0.1, −4.1), (−1.0, −4.1), (−1.0, 0), (−0.5, 0)]`, length 5.5, **two bends**, and the loop is the
+rectangle `[(−1.0, −4.1), (0, 0)]`. Walked in flow order (down the right, left along the bottom,
+up the left, right along the top) its signed area is negative: clockwise, H9 holds. No search ran:
+H9 fixed the orientation, the valve's body fixed which side is vertical, C3 kept the load standing,
+and everything else followed. What a designer draws for an injection circuit is exactly this column
+with its bypass down the near side, which is `53`'s "bypass junction under its valve" without a rule
+for it.
+
+## Open questions
+
+1. *Closed by step 2 (2026-09-16).* Does an inferred node's outer boundary take clearance? No: the
+   user saw `PU1 - HE1` drawn with a boxed node between them and said the pump and the exchanger
+   should meet directly. A5 and C4 record it. A *declared* node keeps its box; `N1 - PU1 - N2 -
+   HE1` is the step 4 question.
+2. **Which free-turning members leave a loop's bottom for a vertical?** C2 fixes the verticals'
+   standing members and the top; on the simple loop `CV1`, `P1` and `PU1` all fit on the bottom,
+   and the user's earlier sketch put the pump on the vertical under the source exchanger. Step 3
+   draws the bottom-only form; the correction becomes the rule and the residual search in D.
+
+## Mapping to code
+
+| Part | Code |
+|---|---|
+| A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (the transform class is not carried yet: `C-90`) |
+| A5, A6, C | `Layout/LayoutEngine.cs` |
+| A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core.Tests today and belongs in Core (`C-89`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
+| D (router) | `Layout/OrthogonalRouter.cs` |
+| the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |

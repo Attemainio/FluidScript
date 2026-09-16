@@ -9,8 +9,11 @@ namespace FluidScript.Core.Model;
 /// reasons on <see cref="SymbolWire.ViewBox"/> and <see cref="SymbolWire.PortAnchors"/> and never on a
 /// primitive (<c>53</c>), so a symbol whose strokes change without its box or anchors changing moves
 /// nothing. Every anchor carries the outward direction a connection leaves it in, and the box may be
-/// rotated by the renderer in quarter turns, which rotates the directions with it. <c>25</c>'s
-/// <c>PortSides</c> is read off the default anchor set here, so the two cannot disagree.
+/// nothing. Every anchor carries the outward direction a connection leaves it in, and the box may be
+/// rotated by the layout in quarter turns, which rotates the directions with it. Symbol space
+/// is the layout plane's: <c>y</c> grows upward (<c>28</c> §1, <c>D-106</c>), so <c>Up</c> is
+/// <c>(0, 1)</c> and a rectangle's <c>Y</c> is its bottom edge; the renderer flips once, where it maps
+/// units to pixels.
 /// </para>
 /// <para>
 /// A symbol may offer <see cref="SymbolWire.Alternatives"/>: other complete arrangements of the same
@@ -31,12 +34,12 @@ public static class SymbolCatalog
     private const string State = "state";
     private const string Stroke = "stroke";
     private static readonly ImmutableArray<double> UnitBox = [-0.5, -0.5, 1, 1];
-    private static readonly ImmutableArray<double> Above = [0, -0.65];
+    private static readonly ImmutableArray<double> Above = [0, 0.65];
     private static readonly ImmutableArray<double> Centre = [0, 0];
     private static readonly ImmutableArray<double> Left = [-1, 0];
     private static readonly ImmutableArray<double> Right = [1, 0];
-    private static readonly ImmutableArray<double> Up = [0, -1];
-    private static readonly ImmutableArray<double> Down = [0, 1];
+    private static readonly ImmutableArray<double> Up = [0, 1];
+    private static readonly ImmutableArray<double> Down = [0, -1];
 
     /// <summary>Gets every definition, in kind order.</summary>
     /// <remarks>
@@ -53,10 +56,10 @@ public static class SymbolCatalog
         new()
         {
             Id = "node.junction",
-            ViewBox = [-0.15, -0.15, 0.3, 0.3],
-            Primitives = [Circle(0, 0, 0.12, Stroke)],
+            ViewBox = [-0.1, -0.1, 0.2, 0.2],
+            Primitives = [Circle(0, 0, 0.08, Stroke)],
             PortAnchors = Anchors(("*", Centre, null)),
-            LabelAnchor = [0, -0.35],
+            LabelAnchor = [0, 0.3],
         },
         new()
         {
@@ -64,7 +67,7 @@ public static class SymbolCatalog
             ViewBox = [-0.5, -0.1, 1, 0.2],
             Primitives = [Line(-0.5, 0, 0.5, 0)],
             PortAnchors = Anchors(("in", [-0.5, 0], Left), ("out", [0.5, 0], Right)),
-            LabelAnchor = [0, -0.3],
+            LabelAnchor = [0, 0.3],
         },
         new()
         {
@@ -78,19 +81,19 @@ public static class SymbolCatalog
                 Line(-0.25, 0.5, 0.25, -0.5),
             ],
             PortAnchors = Anchors(
-                ("in", [-0.15, -0.5], Up),
-                ("out", [-0.15, 0.5], Down),
-                ("in2", [0.15, 0.5], Down),
-                ("out2", [0.15, -0.5], Up)),
+                ("in", [-0.15, 0.5], Up),
+                ("out", [-0.15, -0.5], Down),
+                ("in2", [0.15, -0.5], Down),
+                ("out2", [0.15, 0.5], Up)),
             Alternatives = new Dictionary<string, IReadOnlyDictionary<string, AnchorWire>>(StringComparer.Ordinal)
             {
                 ["u"] = Anchors(
-                    ("in", [-0.25, -0.3], Left),
-                    ("out", [-0.25, 0.3], Left),
-                    ("in2", [0.25, 0.3], Right),
-                    ("out2", [0.25, -0.3], Right)),
+                    ("in", [-0.25, 0.3], Left),
+                    ("out", [-0.25, -0.3], Left),
+                    ("in2", [0.25, -0.3], Right),
+                    ("out2", [0.25, 0.3], Right)),
             },
-            LabelAnchor = [0, -0.65],
+            LabelAnchor = [0, 0.65],
         },
         new()
         {
@@ -102,11 +105,11 @@ public static class SymbolCatalog
                 Polygon(State, 0.45, -0.22, 0, 0, 0.45, 0.22),
                 Line(-0.5, 0, -0.45, 0),
                 Line(0.45, 0, 0.5, 0),
-                Line(0, 0, 0, -0.22),
-                Line(-0.12, -0.22, 0.12, -0.22),
+                Line(0, 0, 0, 0.22),
+                Line(-0.12, 0.22, 0.12, 0.22),
             ],
             PortAnchors = Anchors(("in", [-0.5, 0], Left), ("out", [0.5, 0], Right)),
-            LabelAnchor = [0, -0.45],
+            LabelAnchor = [0, 0.45],
         },
         new()
         {
@@ -115,15 +118,17 @@ public static class SymbolCatalog
             Primitives =
             [
                 Polygon(State, -0.45, -0.22, 0, 0, -0.45, 0.22),
-                Polygon(State, -0.22, -0.45, 0, 0, 0.22, -0.45),
                 Polygon(State, -0.22, 0.45, 0, 0, 0.22, 0.45),
+                Polygon(State, -0.22, -0.45, 0, 0, 0.22, -0.45),
                 Line(-0.5, 0, -0.45, 0),
-                Line(0, -0.5, 0, -0.45),
-                Line(0, 0.45, 0, 0.5),
+                Line(0, 0.5, 0, 0.45),
+                Line(0, -0.45, 0, -0.5),
                 Line(0, 0, 0.28, 0),
                 Line(0.28, -0.12, 0.28, 0.12),
             ],
-            PortAnchors = Anchors(("ab", [-0.5, 0], Left), ("a", [0, -0.5], Up), ("b", [0, 0.5], Down)),
+            // The body a manufacturer builds: A to AB is the straight run, B the angle port (Belimo G2/G3 manual;
+            // Siemens VXG: port I = AB, II = A straight through, III = B). The angle port takes the bypass.
+            PortAnchors = Anchors(("a", [0, 0.5], Up), ("ab", [0, -0.5], Down), ("b", [-0.5, 0], Left)),
             LabelAnchor = Above,
         },
         new()
@@ -151,7 +156,7 @@ public static class SymbolCatalog
                 new() { Prefix = "in", Side = "west", Direction = Left, VerticalCoordinate = "port.elevation", MinIndex = 1, MaxIndex = 16 },
                 new() { Prefix = "out", Side = "east", Direction = Right, VerticalCoordinate = "port.elevation", MinIndex = 1, MaxIndex = 16 },
             ],
-            LabelAnchor = [0, -0.95],
+            LabelAnchor = [0, 0.95],
         },
         Instrument("t_sensor.standard"),
         Instrument("p_sensor.standard"),
@@ -170,37 +175,6 @@ public static class SymbolCatalog
         _ => "node.junction",
     };
 
-    /// <summary>The side a port's default anchor faces, for <c>25</c>'s <c>PortSides</c>.</summary>
-    /// <param name="kind">The registry keyword.</param>
-    /// <param name="port">The port name; an indexed family member such as <c>in3</c> matches its rule.</param>
-    /// <returns><c>west</c>, <c>east</c>, <c>north</c> or <c>south</c>, or <see langword="null"/> when the symbol has no directed anchor for the port.</returns>
-    public static string? SideOf(string kind, string port)
-    {
-        var symbol = All.First(s => string.Equals(s.Id, IdFor(kind), StringComparison.Ordinal));
-
-        if (symbol.PortAnchors.TryGetValue(port, out var anchor))
-        {
-            return anchor.Direction is { } direction ? SideOf(direction) : null;
-        }
-
-        foreach (var rule in symbol.IndexedPortAnchors ?? [])
-        {
-            if (port.StartsWith(rule.Prefix, StringComparison.Ordinal)
-                && int.TryParse(port.AsSpan(rule.Prefix.Length), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index)
-                && index >= rule.MinIndex
-                && index <= rule.MaxIndex)
-            {
-                return rule.Side;
-            }
-        }
-
-        return null;
-    }
-
-    private static string SideOf(ImmutableArray<double> direction) =>
-        Math.Abs(direction[0]) >= Math.Abs(direction[1])
-            ? (direction[0] < 0 ? "west" : "east")
-            : (direction[1] < 0 ? "north" : "south");
 
     private static SymbolWire Instrument(string id, bool dashed = false) => new()
     {

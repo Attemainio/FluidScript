@@ -117,9 +117,11 @@ public enum StyleTokenKind
 
     /// <summary>Quoted text, which is how a hex colour is written (<c>D-13</c>).</summary>
     Quoted,
-
     /// <summary>A line pattern: <c>-</c>, <c>--</c>, <c>..</c> or <c>-.</c>.</summary>
     /// <remarks>Recombined here from the two tokens the lexer produced. It is the one place the
     /// grammar is not context-free, and it is contained to this production deliberately.</remarks>
     Pattern,
+
+    /// <summary>A keyed token, <c>fill=&quot;#e8f1f8&quot;</c>: the key, the <c>=</c>, and the value (<c>D-104</c>).</summary>
+    Keyed,
 }

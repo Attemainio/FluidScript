@@ -67,9 +67,11 @@ converting there costs one pass and removes a whole class of consumer bug.
     "defaultMode": "dynamic"           // "steady" | "transient" | null
   },
 
-  "style": {                           // presentation Core carries and never interprets
+  "style": {                           // D-104: Core resolves, the renderer draws
     "tokens": ["blue", "2px", "fillet", "--"],
-    "spacing": 20                      // world units, or null — D-37
+    "spacing": 20,                     // world units, or null — D-37; the layout margin since D-103
+    "default": { "stroke": "#0000ff", "strokeWidth": 2, "pattern": "dashed", "fill": null, "corner": "fillet" },
+    "named": { "trace": { "stroke": "#ff0000", "strokeWidth": null, "pattern": "solid", "fill": null, "corner": null } }
   },
 
   "circuits": [                        // D-33; always at least one, in declaration order
@@ -145,16 +147,32 @@ converting there costs one pass and removes a whole class of consumer bug.
 
   "layout": {
     "order": ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"],
-    "rank":  { "N1": 1, "3WV__P1": 1, "P1": 2, "N3": 3 },
     "thermalStages": [
       { "rank": 0, "role": "neutral", "components": ["N1", "N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV", "3WV__P1", "P1", "N3"] }
     ],
-    "portSides": { "HE1.in": "west", "HE1.out": "east",
-                   "3WV.ab": "west", "3WV.a": "north", "3WV.b": "south" },
-    "loops": [["N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV"]],
-    "loopOrientations": ["clockwise"],
+    "flow": { "c0": "forward", "c1": "forward" },   // per connection, as the binder wrote it or as the solved loop turned it
     "groups": [],
-    "inferred": ["N2", "PU1__HE1", "HE1__3WV", "3WV__P1"]
+    "nonFlowElements": [],
+    "circuitOf": { "N1": "main", "PU1": "main" },
+    "distributionGroups": [],
+    "inferred": ["N2", "PU1__HE1", "HE1__3WV", "3WV__P1"],
+
+    "margin": 0.5,                     // D-103: the outer box is the inner box grown by this
+    "extent": [0, 0, 7.5, 4.0],        // [x, y, w, h] of the union of every outer box, world units
+    "placements": [                    // one per component, instruments and controllers included
+      { "componentId": "HE1", "symbolId": "heat_exchanger",
+        "inner": [3.0, 1.5, 0.5, 1.0], "outer": [2.5, 1.0, 1.5, 2.0],
+        "rotation": 0, "mirrored": false, "arrangement": "u",
+        "anchors": { "in": { "at": [3.0, 1.7], "direction": [-1, 0] }, "out": { "at": [3.0, 2.3], "direction": [-1, 0] },
+                     "in2": { "at": [3.5, 2.3], "direction": [1, 0] }, "out2": { "at": [3.5, 1.7], "direction": [1, 0] } },
+        "labelAt": [3.25, 2.65], "source": "computed",
+        "style": { "stroke": "#ff0000", "strokeWidth": null, "pattern": "solid", "fill": null, "corner": null },
+        "scale": 0.62 }                // position on the active `show` scale, 0..1; absent when unsolved
+    ],
+    "routes": [                        // one per connection: the stubs of margin/2 and the orthogonal join
+      { "id": "c0", "kind": "pipe", "points": [2.25, 1.7, 3.0, 1.7], "hops": [],
+        "scaleFrom": 0.62, "scaleTo": 0.62 }
+    ]
   },
 
   "visualization": {                     // the `show` directive's resolution — owned by 57
@@ -286,13 +304,63 @@ it, each recorded here rather than left for a reader of the golden files to disc
   carry no states and are never capped. One 100-node pipe is 210 components and well under; the cap
   is for the several-thousand-component case, which the test reaches by lowering it.
 - **An anchor is a point and a direction, and a symbol may offer alternatives** (`D-102`, P5.1c):
-  `portAnchors` is `{ port: { at, direction } }`, `alternatives` names other complete arrangements of
-  the same ports, and `layout.portSides` is read off the default arrangement so the two cannot
-  disagree. The example above predates this and shows the `[x, y]` form.
+  `portAnchors` is `{ port: { at, direction } }` and `alternatives` names other complete arrangements
+  of the same ports. The example above predates this and shows the `[x, y]` form.
+- **The layout hints are the nine fields the example shows and nothing more** (`D-107`, 2026-09-16):
+  `order`, `thermalStages`, `flow`, `groups`, `nonFlowElements`, `circuitOf`, `circuits`,
+  `distributionGroups`, `inferred`. The `rank`, `portSides`, `loops`, `loopOrientations` and
+  `branchShapes` fields P5.1a added were derived for a solver that no longer exists and left the
+  wire with it; [`25`](25-layout-hints.md) names each field's reader.
 - **`show` is read off the syntax**, not the model, because the binder does not bind it (`L-50`).
 - The duplicate `style` object the shape carried -- one of tokens, one of resolved stroke and
-  pattern -- was a drafting slip; the tokens form is what Core carries and never interprets (`D-37`).
+  pattern -- was a drafting slip; the tokens form is what Core carried and did not interpret
+  (`D-37`). Superseded by `D-104` below: Core now resolves, and the object carries both.
 - `solve.elapsedMs` is `null` unless the caller timed the run; Core does not.
+
+### What P5.1d-1 shipped against this shape (2026-09-15)
+
+`D-103` moved the layout into Core and `D-104` the style resolution with it; `layout` and `style`
+grew, and nothing else moved.
+
+- **`layout.margin`, `layout.extent`, `layout.placements[]`, `layout.routes[]`** are the solved
+  scene. A placement is one component -- instruments and controllers included, keyed by the same id
+  as `components[]` -- with its `inner` box (the symbol's bounds after the transform) and its
+  `outer` box (the inner grown by `margin` on every side), the transform that produced them
+  (`rotation` in quarter turns clockwise, `mirrored`, `arrangement` naming the `D-102` alternative
+  in use or `null` for the default), every anchor in world coordinates with its outward direction,
+  `labelAt`, and `source: "computed"`; `"pinned"` is reserved for the write-back loop and never
+  emitted yet. Boxes are `[x, y, w, h]` with `y` growing **upward** and `y` the bottom edge
+  (`D-106`, [`28`](28-layout-solver.md) A1); the renderer flips once where it maps units to pixels.
+  The invariant is `D-103`'s as `28` H1–H2 state it: no inner box intersects another placement's
+  inner box or comes closer than the clearance, asserted through `SceneAudit`; outer boxes may
+  overlap (soft).
+- **A route is a flat polyline** `[x0, y0, x1, y1, …]` from one anchor point to the other; its
+  first and last segments are the stubs, a whole `margin` long along the anchor directions, so the
+  polyline runs straight from the inner boundary to the outer one and turns only from there
+  (`28` A3, A7, H5); the segments between are axis-aligned and the polyline is normalised (no
+  duplicate, collinear or backtracking points). `hops` holds the points where this route crosses
+  an earlier one, in `[x, y, …]` pairs, for the renderer's crossing mark. `kind` is `pipe` or
+  `signal` (dashed, instrument to its anchor). `scaleFrom` / `scaleTo` are the two ends' positions
+  on the active `show` scale. An anchor's `direction` is the outward normal; the flow direction is
+  not on the wire, because `connections[].flow` already says which way each connection runs and the
+  renderer's arrow follows the route.
+- **`style.default` and `style.named` are resolved** (`ResolvedStyleWire`): `stroke` and `fill`
+  as `#rrggbb` (named CSS colours resolved by Core, `NamedColours`), `strokeWidth` in px, `pattern`,
+  `corner`; a null field means the theme's default, and a placement or route carries `style` only
+  when the script said something about it, so an unstyled model is byte-identical to before on
+  every component. `show` overrides a placement's fill only; the stroke it stated stays (`D-104`).
+- **`scale` is a position, not a colour.** `57` owns the ramp; the wire carries where on it the
+  component's active property sits, 0..1, six digits. The frontend maps that to a colour and does
+  not recompute the domain.
+- The example above shows the `u` arrangement on the exchanger because that is what the cooling
+  loop's ring chooses; the through-pass default is drawn in a header branch.
+- **An inline element's placement is a point** (`D-105`, 2026-09-16): a pipe, a pipe-expansion
+  child, or a node with two connections has `inner` and `outer` of zero size at its point on the
+  run, both port anchors at that point facing along the run, and no clearance; a renderer draws
+  nothing for such a node and only the label for such a pipe, because the routes through it are the
+  pipe. Zero size *is* the signal; there is no separate flag on the wire. A junction -- three or
+  more connections -- keeps a 0.2 × 0.2 box and one route per side.
+- **The three-way valve's anchors** are `a` north, `ab` south, `b` west (`D-105`).
 
 ### `parameters[].source` is the field that carries `D-02`
 
@@ -436,6 +504,12 @@ process, which is `System.Text.Json` building its type metadata once. Both are w
 budget and the 1 MiB cap, so `FS2502` is for the discretized-pipe case above, not for a large plant.
 The solve itself takes 1.1--1.5 s on the reference environment, which is the number the editor
 debounce (`D-48`) will have to live with, not the payload's.
+
+**Re-measured 2026-09-16 (P5.1d-1)** with the solved layout on the wire (`D-103`, `D-104`,
+`D-105`): the compile response is **278.5 KiB**, the solved response **325.7 KiB**; serialization
+~2 ms warm. The layout adds 89 KiB -- 200 placements with their anchors and 250 routes -- and the
+budget still holds with 187 KiB to spare. `ModelContractBuilder.Build` including the layout solve is
+34--46 ms warm, of which the solver is 24 ms (`07`'s layout row).
 
 ## Worked example
 

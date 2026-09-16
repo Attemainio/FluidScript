@@ -14,7 +14,7 @@
 
 fluidscript 1
 project plant_01
-spacing 20
+spacing 0.75
 design tout=-26                           # D-58: the condition the plant is sized for
 
 # ---------------------------------------------------------------------------------------------

@@ -15,7 +15,15 @@
   },
   "style": {
     "tokens": [],
-    "spacing": null
+    "spacing": null,
+    "default": {
+      "stroke": null,
+      "strokeWidth": null,
+      "pattern": "solid",
+      "fill": null,
+      "corner": null
+    },
+    "named": {}
   },
   "circuits": [
     {
@@ -979,17 +987,17 @@
     {
       "id": "node.junction",
       "viewBox": [
-        -0.15,
-        -0.15,
-        0.3,
-        0.3
+        -0.1,
+        -0.1,
+        0.2,
+        0.2
       ],
       "primitives": [
         {
           "kind": "circle",
           "x": 0,
           "y": 0,
-          "r": 0.12,
+          "r": 0.08,
           "fill": "stroke"
         }
       ],
@@ -1003,7 +1011,7 @@
       },
       "labelAnchor": [
         0,
-        -0.35
+        0.3
       ]
     },
     {
@@ -1051,7 +1059,7 @@
       },
       "labelAnchor": [
         0,
-        -0.3
+        0.3
       ]
     },
     {
@@ -1098,34 +1106,24 @@
         "in": {
           "at": [
             -0.15,
-            -0.5
+            0.5
           ],
           "direction": [
             0,
-            -1
+            1
           ]
         },
         "out": {
           "at": [
             -0.15,
-            0.5
+            -0.5
           ],
           "direction": [
             0,
-            1
+            -1
           ]
         },
         "in2": {
-          "at": [
-            0.15,
-            0.5
-          ],
-          "direction": [
-            0,
-            1
-          ]
-        },
-        "out2": {
           "at": [
             0.15,
             -0.5
@@ -1133,6 +1131,16 @@
           "direction": [
             0,
             -1
+          ]
+        },
+        "out2": {
+          "at": [
+            0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
           ]
         }
       },
@@ -1141,7 +1149,7 @@
           "in": {
             "at": [
               -0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               -1,
@@ -1151,7 +1159,7 @@
           "out": {
             "at": [
               -0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               -1,
@@ -1161,7 +1169,7 @@
           "in2": {
             "at": [
               0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               1,
@@ -1171,7 +1179,7 @@
           "out2": {
             "at": [
               0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               1,
@@ -1182,7 +1190,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -1248,18 +1256,18 @@
           ],
           "to": [
             0,
-            -0.22
+            0.22
           ]
         },
         {
           "kind": "line",
           "from": [
             -0.12,
-            -0.22
+            0.22
           ],
           "to": [
             0.12,
-            -0.22
+            0.22
           ]
         }
       ],
@@ -1287,7 +1295,7 @@
       },
       "labelAnchor": [
         0,
-        -0.45
+        0.45
       ]
     },
     {
@@ -1315,11 +1323,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            -0.45,
+            0.45,
             0,
             0,
             0.22,
-            -0.45
+            0.45
           ],
           "fill": "state"
         },
@@ -1327,11 +1335,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            0.45,
+            -0.45,
             0,
             0,
             0.22,
-            0.45
+            -0.45
           ],
           "fill": "state"
         },
@@ -1350,22 +1358,22 @@
           "kind": "line",
           "from": [
             0,
-            -0.5
+            0.5
           ],
           "to": [
             0,
-            -0.45
+            0.45
           ]
         },
         {
           "kind": "line",
           "from": [
             0,
-            0.45
+            -0.45
           ],
           "to": [
             0,
-            0.5
+            -0.5
           ]
         },
         {
@@ -1392,17 +1400,17 @@
         }
       ],
       "portAnchors": {
-        "ab": {
+        "a": {
           "at": [
-            -0.5,
-            0
+            0,
+            0.5
           ],
           "direction": [
-            -1,
-            0
+            0,
+            1
           ]
         },
-        "a": {
+        "ab": {
           "at": [
             0,
             -0.5
@@ -1414,18 +1422,18 @@
         },
         "b": {
           "at": [
-            0,
-            0.5
+            -0.5,
+            0
           ],
           "direction": [
-            0,
-            1
+            -1,
+            0
           ]
         }
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -1503,7 +1511,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -1551,7 +1559,7 @@
       ],
       "labelAnchor": [
         0,
-        -0.95
+        0.95
       ]
     },
     {
@@ -1981,14 +1989,6 @@
       "HX1__SS",
       "NPR"
     ],
-    "rank": {
-      "NPR": 1,
-      "NPS": 5,
-      "PCV": 4,
-      "PCV__PP": 3,
-      "PP": 2,
-      "PP__HX1": 1
-    },
     "thermalStages": [
       {
         "rank": 0,
@@ -2043,43 +2043,6 @@
       "c14": "forward",
       "c15": "forward"
     },
-    "portSides": {
-      "HX1.in": "north",
-      "HX1.in2": "south",
-      "HX1.out": "south",
-      "HX1.out2": "north",
-      "LOAD.in": "north",
-      "LOAD.in2": "south",
-      "LOAD.out": "south",
-      "LOAD.out2": "north",
-      "PCV.in": "west",
-      "PCV.out": "east",
-      "PP.in": "west",
-      "PP.out": "east",
-      "SP.in": "west",
-      "SP.out": "east",
-      "SR.in": "west",
-      "SR.out": "east",
-      "SS.in": "west",
-      "SS.out": "east"
-    },
-    "loops": [
-      [
-        "HX1",
-        "SP__HX1",
-        "SP",
-        "SR__SP",
-        "SR",
-        "NRET",
-        "LOAD",
-        "NSUP",
-        "SS",
-        "HX1__SS"
-      ]
-    ],
-    "loopOrientations": [
-      "counterclockwise"
-    ],
     "groups": [],
     "nonFlowElements": [],
     "circuitOf": {
@@ -2110,7 +2073,1009 @@
       "SP__HX1",
       "SR__SP"
     ],
-    "branchShapes": {}
+    "margin": 0.5,
+    "extent": [
+      -2.95,
+      -2,
+      6.2,
+      3.8
+    ],
+    "placements": [
+      {
+        "componentId": "NPS",
+        "symbolId": "node.junction",
+        "inner": [
+          -2.45,
+          0.9,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -2.95,
+          0.4,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -2.25,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -2.35,
+          1.25
+        ],
+        "source": "computed",
+        "scale": 0.9
+      },
+      {
+        "componentId": "PCV",
+        "symbolId": "valve.standard",
+        "inner": [
+          -1.75,
+          0.7,
+          1,
+          0.6
+        ],
+        "outer": [
+          -2.25,
+          0.2,
+          2,
+          1.6
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              -1.75,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              -0.75,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -1.25,
+          1.45
+        ],
+        "source": "computed",
+        "scale": 0.9009
+      },
+      {
+        "componentId": "PCV__PP",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.6,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          -0.6,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -0.6,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              -0.6,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -0.6,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.9009
+      },
+      {
+        "componentId": "PP",
+        "symbolId": "pipe.standard",
+        "inner": [
+          -0.45,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          -0.45,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              -0.45,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              -0.45,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -0.45,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.9009
+      },
+      {
+        "componentId": "PP__HX1",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.3,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          -0.3,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -0.3,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              -0.3,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -0.3,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.9009
+      },
+      {
+        "componentId": "HX1",
+        "symbolId": "heat_exchanger.standard",
+        "inner": [
+          -0.25,
+          -0.5,
+          0.5,
+          1
+        ],
+        "outer": [
+          -0.75,
+          -1,
+          1.5,
+          2
+        ],
+        "rotation": 180,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              0.15,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "in2": {
+            "at": [
+              -0.15,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "out": {
+            "at": [
+              0.15,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "out2": {
+            "at": [
+              -0.15,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          }
+        },
+        "labelAt": [
+          0,
+          0.65
+        ],
+        "source": "computed",
+        "scale": 0.4027
+      },
+      {
+        "componentId": "SP__HX1",
+        "symbolId": "node.junction",
+        "inner": [
+          0.45,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          0.45,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.45,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              0.45,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.45,
+          -0.85
+        ],
+        "source": "computed",
+        "scale": 0.0025
+      },
+      {
+        "componentId": "SP",
+        "symbolId": "pump.standard",
+        "inner": [
+          0.75,
+          -1.5,
+          1,
+          1
+        ],
+        "outer": [
+          0.25,
+          -2,
+          2,
+          2
+        ],
+        "rotation": 0,
+        "mirrored": true,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              1.75,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              0.75,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          1.25,
+          -0.35
+        ],
+        "source": "computed",
+        "scale": 0.0025
+      },
+      {
+        "componentId": "SR__SP",
+        "symbolId": "node.junction",
+        "inner": [
+          1.9,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          1.9,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              1.9,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              1.9,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          1.9,
+          -0.85
+        ],
+        "source": "computed",
+        "scale": 0.0029
+      },
+      {
+        "componentId": "SR",
+        "symbolId": "pipe.standard",
+        "inner": [
+          2.05,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          2.05,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              2.05,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              2.05,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          2.05,
+          -0.85
+        ],
+        "source": "computed",
+        "scale": 0.0029
+      },
+      {
+        "componentId": "NRET",
+        "symbolId": "node.junction",
+        "inner": [
+          2.2,
+          -1,
+          0,
+          0
+        ],
+        "outer": [
+          2.2,
+          -1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              2.2,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              2.2,
+              -1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          2.2,
+          -0.85
+        ],
+        "source": "computed",
+        "scale": 0.0028
+      },
+      {
+        "componentId": "LOAD",
+        "symbolId": "heat_exchanger.standard",
+        "inner": [
+          2.25,
+          -0.5,
+          0.5,
+          1
+        ],
+        "outer": [
+          1.75,
+          -1,
+          1.5,
+          2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              2.35,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "in2": {
+            "at": [
+              2.65,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "out": {
+            "at": [
+              2.35,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "out2": {
+            "at": [
+              2.65,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          2.5,
+          0.65
+        ],
+        "source": "computed",
+        "scale": 0.0028
+      },
+      {
+        "componentId": "NSUP",
+        "symbolId": "node.junction",
+        "inner": [
+          1.8,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          1.8,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              1.8,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              1.8,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          1.8,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.4028
+      },
+      {
+        "componentId": "SS",
+        "symbolId": "pipe.standard",
+        "inner": [
+          1.25,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          1.25,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              1.25,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              1.25,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          1.25,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.4028
+      },
+      {
+        "componentId": "HX1__SS",
+        "symbolId": "node.junction",
+        "inner": [
+          0.7,
+          1,
+          0,
+          0
+        ],
+        "outer": [
+          0.7,
+          1,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.7,
+              1
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              0.7,
+              1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.7,
+          1.15
+        ],
+        "source": "computed",
+        "scale": 0.4027
+      },
+      {
+        "componentId": "NPR",
+        "symbolId": "node.junction",
+        "inner": [
+          -2.45,
+          -1.1,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -2.95,
+          -1.6,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -2.25,
+              -1
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -2.35,
+          -0.75
+        ],
+        "source": "computed",
+        "scale": 0.1008
+      }
+    ],
+    "routes": [
+      {
+        "id": "c0",
+        "kind": "pipe",
+        "points": [
+          -2.25,
+          1,
+          -1.75,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.9,
+        "scaleTo": 0.9009
+      },
+      {
+        "id": "c1",
+        "kind": "pipe",
+        "points": [
+          -0.75,
+          1,
+          -0.6,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.9009,
+        "scaleTo": 0.9009
+      },
+      {
+        "id": "c2",
+        "kind": "pipe",
+        "points": [
+          -0.6,
+          1,
+          -0.45,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.9009,
+        "scaleTo": 0.9009
+      },
+      {
+        "id": "c3",
+        "kind": "pipe",
+        "points": [
+          -0.45,
+          1,
+          -0.3,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.9009,
+        "scaleTo": 0.9009
+      },
+      {
+        "id": "c4",
+        "kind": "pipe",
+        "points": [
+          -0.3,
+          1,
+          -0.15,
+          1,
+          -0.15,
+          0.5
+        ],
+        "hops": [],
+        "scaleFrom": 0.9009,
+        "scaleTo": 0.4027
+      },
+      {
+        "id": "c5",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          -0.5,
+          -0.15,
+          -1,
+          -2.25,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.4027,
+        "scaleTo": 0.1008
+      },
+      {
+        "id": "c6",
+        "kind": "pipe",
+        "points": [
+          0.15,
+          0.5,
+          0.15,
+          1,
+          0.7,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.4027,
+        "scaleTo": 0.4027
+      },
+      {
+        "id": "c7",
+        "kind": "pipe",
+        "points": [
+          0.7,
+          1,
+          1.25,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.4027,
+        "scaleTo": 0.4028
+      },
+      {
+        "id": "c8",
+        "kind": "pipe",
+        "points": [
+          1.25,
+          1,
+          1.8,
+          1
+        ],
+        "hops": [],
+        "scaleFrom": 0.4028,
+        "scaleTo": 0.4028
+      },
+      {
+        "id": "c9",
+        "kind": "pipe",
+        "points": [
+          1.8,
+          1,
+          2.35,
+          1,
+          2.35,
+          0.5
+        ],
+        "hops": [],
+        "scaleFrom": 0.4028,
+        "scaleTo": 0.0028
+      },
+      {
+        "id": "c10",
+        "kind": "pipe",
+        "points": [
+          2.35,
+          -0.5,
+          2.35,
+          -1,
+          2.2,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.0028,
+        "scaleTo": 0.0028
+      },
+      {
+        "id": "c11",
+        "kind": "pipe",
+        "points": [
+          2.2,
+          -1,
+          2.05,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.0028,
+        "scaleTo": 0.0029
+      },
+      {
+        "id": "c12",
+        "kind": "pipe",
+        "points": [
+          2.05,
+          -1,
+          1.9,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.0029,
+        "scaleTo": 0.0029
+      },
+      {
+        "id": "c13",
+        "kind": "pipe",
+        "points": [
+          1.9,
+          -1,
+          1.75,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.0029,
+        "scaleTo": 0.0025
+      },
+      {
+        "id": "c14",
+        "kind": "pipe",
+        "points": [
+          0.75,
+          -1,
+          0.45,
+          -1
+        ],
+        "hops": [],
+        "scaleFrom": 0.0025,
+        "scaleTo": 0.0025
+      },
+      {
+        "id": "c15",
+        "kind": "pipe",
+        "points": [
+          0.45,
+          -1,
+          0.15,
+          -1,
+          0.15,
+          -0.5
+        ],
+        "hops": [],
+        "scaleFrom": 0.0025,
+        "scaleTo": 0.4027
+      }
+    ]
   },
   "visualization": {
     "active": "temperature",

@@ -2,8 +2,8 @@
 id: 25-layout-hints
 title: Layout hints
 tier: 20-core-domain
-status: reviewed
-owns: [the layout hint payload, topological ordering, thermal stages, port sides, grouping, stable component ids, circuit membership, distribution grouping]
+status: draft
+owns: [the classification the layout engine starts from (order, circuits and their attachment, distribution groups, non-flow elements, inferred components), the flow direction per connection for the arrows, thermal-stage classification and FS2403, stable component ids, ordering determinism]
 depends_on: [23-topology-and-graph]
 traces_to: [R-22, R-27, R-44, R-45, R-46, R-47, R-48]
 open_questions: 0
@@ -14,241 +14,41 @@ last_review_pass: 6
 
 ## Purpose
 
-Implements `D-03`'s backend half while consuming `D-20`'s Core-owned symbol identity: Core tells the renderer everything it knows about *structure*, and
-nothing about *pixels*. The line between those two is the whole content of this document, and it is
-worth drawing carefully — put too little here and the frontend re-derives topology from a flat graph
-(badly); put too much and Core is a layout engine that cannot be tested without a canvas.
+`LayoutHints` is what Core knows about the graph's *structure* before any geometry exists: the
+order components are read in, which circuit each belongs to and how circuits attach to their
+parents, which circuits share a header, where instruments and controllers belong, and what the
+language inferred. The layout engine ([`28`](28-layout-solver.md)) starts from it; the frontend
+reads the parts that are not geometry (tab order, arrows, groups to fold).
 
-## Responsibilities
-
-**Owns.** The `LayoutHints` payload, topological ordering, port-side assignment, grouping, and the
-stable-id scheme the renderer keys placements to.
-
-**Explicitly does not own.** Coordinates, routing, symbol shapes, or anything measured in pixels
-([`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md)); the graph itself
-([`23-topology-and-graph`](23-topology-and-graph.md)); the wire format
-([`26-model-contract`](26-model-contract.md), which carries this payload).
-
-## The test for what belongs here
-
-> **Would two competent renderers, given only the graph, disagree about it? And is the disagreement a
-> topology question rather than a taste question?**
-
-Both yes → it belongs in hints. "Which node is upstream" is a topology fact the renderer would have to
-re-derive by walking the graph. "How far apart to place them" is taste, and Core has no business
-holding an opinion.
-
-| Fact | In hints? | Why |
-|---|---|---|
-| Flow direction along a branch | **Yes** | Topology. Determines arrow direction; recovering it needs the solved flow sign. |
-| Rank (distance from the source) | **Yes** | Topology. Every layered layout needs it; computing it means a graph traversal. |
-| Thermal stage (source → conversion/storage → consumer) | **Yes** | Thermodynamic structure. Keeps heat progression left-to-right across coupled and parallel circuits (`D-31`). |
-| Which port is inlet vs outlet | **Yes** | Component metadata the renderer does not otherwise have. |
-| Loop membership | **Yes** | Already computed for the solver; recomputing it in TypeScript is duplicated cycle detection. |
-| Grouping (subsystem) | **Yes** | Semantic. Only Core knows a set of components is a subsystem. |
-| Component `x`, `y` | **No** | Pixels. `D-03`. |
-| Pipe route polyline | **No** | Pixels. |
-| Symbol size | **No** | Presentation. |
-| Label placement | **No** | Presentation. |
-| Colour | **No** | Style; comes from the `style` directive, not from hints. |
-| Circuit membership | **Yes** | Structural. Only Core knows which circuit a component was declared in, and `D-36` decides which one owns a two-sided component. |
-| Which circuits form a distribution group | **Yes** | Topology. Whether a set of subcircuits shares one supply/return pair is a graph question the renderer would re-derive by walking attachments. |
-| Which layout mode to use | **Yes**, as structure | Core states the grouping; the renderer chooses the mode from it (`D-38`). Core never names a mode, because "header" and "rectangle" are shapes and shapes are pixels. |
-| Component spacing | **No** | A distance. `spacing` travels in style settings and never enters this payload (`D-37`, invariant 1). |
-| Equipment tag | **No** | Not structure. Tags are component metadata and cross the wire in the model contract ([`26`](26-model-contract.md)), not as a placement hint (`D-34`). |
+**What this document used to be.** Until `D-103` the frontend laid the diagram out from these
+hints, and the payload carried everything a layered layout needs: a rank per component, a side per
+port, every loop of the cycle basis with an orientation, a shape signature per branch. Core now
+draws the diagram itself, and those fields had no reader left; `D-107` removed them from Core, the
+wire and the tests. The rule for what belongs here is the one that survives: **only Core knows it,
+it is a fact about the graph, and something reads it.**
 
 ## The payload
 
-```csharp
-/// <summary>Structural advice for a renderer. Contains no geometry (D-03).</summary>
-public sealed record LayoutHints
-{
-    /// <summary>Components in a stable topological order, sources first.</summary>
-    /// <remarks>
-    /// A left-to-right or top-to-bottom layout can follow this directly. Cyclic graphs — every
-    /// closed circuit — have no true topological order, so this is the order of a depth-first
-    /// walk from the pressure datum with back edges deferred. Deterministic, and stable
-    /// under edits that do not change the graph.
-    /// </remarks>
-    public required ImmutableArray<string> Order { get; init; }
+| Field | What it is | Who reads it |
+|---|---|---|
+| `Order` | Every graph component once, in a stable depth-first walk from each hydraulic part's pressure datum, ports in declaration order, back edges deferred (`FS2401`) | The engine (which component is placed first; ties); the frontend (tab order) |
+| `Circuits` | Every circuit in declaration order: name, number, resolved role, parent, and for an attached circuit the parent's component it takes flow from and the one it returns to | The engine (a branch's entry and exit) |
+| `DistributionGroups` | Sets of circuits sharing one supply/return pair on one parent (`D-33`); never fewer than two members (invariant 11) | The engine (a header) |
+| `CircuitOf` | The owning circuit per component (`D-33`; the enthalpy-losing side of a two-sided component, `D-36`) | The engine (which components a branch has); the frontend (grouping, tags) |
+| `NonFlowElements` | For each controller and placed instrument: the component it is drawn beside, what it reads, what it drives, its position in the tab order | The engine (instrument placement, signal lines) |
+| `Inferred` | Components the language added rather than the script wrote | The engine (an inferred node is placed as a node, `28` A6, and is never the first component, C1); the frontend (hover) |
+| `Groups` | Every graph element one written component expanded into (a pipe's internal nodes) | The frontend (folding, `FS2402`) |
+| `Flow` | Per connection, the solved flow direction: `forward` as written, `reverse`, or `none` inside the zero-flow tolerance or unsolved | The frontend (the arrows) |
+| `ThermalStages` | The heat-progression classification below | `FS2403` only; nothing places by it |
 
-    /// <summary>Rank for non-loop components. Pure trees use hops from the pressure datum; a tree
-    /// attached to a loop uses hops from its attachment. Loop members are deliberately absent.</summary>
-    /// <remarks>The local layer index in a layered layout. Components in a parallel branch share a rank.</remarks>
-    public required ImmutableDictionary<string, int> Rank { get; init; }
+Everything is a pure function of the graph, the model and the solved branch flows, byte-identical
+for one input (invariant 4).
 
-    /// <summary>Nominal heat-progression stages, ordered left to right (`D-31`).</summary>
-    /// <remarks>
-    /// Stages are fixed at compile/design point and do not change during a transient. Existing
-    /// hydraulic <see cref="Rank"/> is local ordering within or around a stage; it cannot move a
-    /// source to the right of a consumer. Parallel groups share a stage rank.
-    /// </remarks>
-    public required ImmutableArray<ThermalStage> ThermalStages { get; init; }
+## Thermal-stage classification
 
-    /// <summary>Per-connection flow direction at the solved operating point.</summary>
-    /// <value>
-    /// <c>Forward</c> as written, <c>Reverse</c> when the solved flow is negative,
-    /// <c>None</c> when it is within the zero-flow tolerance (a dead leg draws no arrow).
-    /// </value>
-    public required ImmutableDictionary<ConnectionId, FlowDirection> Flow { get; init; }
+Not a placement input any more (`D-107`): the classification exists because it is how `FS2403`
+knows a circuit's name contradicts its duties. It stays as specified.
 
-    /// <summary>Suggested side for each port, from its role and the component's orientation.</summary>
-    /// <value>Inlets <c>West</c>, outlets <c>East</c>, a three-way valve's bypass <c>South</c>.
-    /// A hint, not a constraint — the renderer may rotate a component and reassign.</value>
-    /// <remarks>
-    /// The default is stated as though every component sat on a horizontal run, because Core does not
-    /// know which run it will land on. A renderer that draws an exchanger vertically reassigns these
-    /// to North/South, which is expected and is not a contract breach
-    /// (<see href="../50-frontend/53-canvas-renderer.md">53</see>'s orientation conventions).
-    /// Since <c>D-102</c> (P5.1c) the side is read off the symbol's default anchor set in
-    /// <c>SymbolCatalog</c>, so it cannot disagree with the anchors on the wire; the exchanger's default
-    /// is therefore the through-pass -- <c>in</c> North, <c>out</c> South on the left flank, <c>in2</c>
-    /// South, <c>out2</c> North on the right -- and the renderer rotates, or takes the symbol's
-    /// alternative arrangement, from there.
-    /// </remarks>
-    public required ImmutableDictionary<PortId, PortSide> PortSides { get; init; }
-
-    /// <summary>Components forming each independent loop, in traversal order.</summary>
-    /// <remarks>
-    /// A renderer can lay a loop out as a closed circuit rather than a tree. This is deliberately an
-    /// <i>order</i> and not a set of positions: `D-44` forbids a component at a corner, so the
-    /// renderer has to size each perimeter to fit its members clear of the bends. A hint that named
-    /// positions would decide that sizing here, without knowing any symbol's extent.
-    /// </remarks>
-    public required ImmutableArray<ImmutableArray<string>> Loops { get; init; }
-
-    /// <summary>Orientation per loop, aligned by index with Loops.</summary>
-    /// <remarks>Derived from solved flow leaving the loop's first flow-driving component; ties use
-    /// declaration order. Supply is placed on top and return below (`D-30`).</remarks>
-    public required ImmutableArray<LoopOrientation> LoopOrientations { get; init; }
-
-    /// <summary>Semantic groupings — all expanded children of a discretized pipe, a future subsystem.</summary>
-    /// <remarks>
-    /// A group should be drawable as one collapsible unit. Backs the collapse/expand
-    /// interaction for a pipe with 20 internal nodes, without which the diagram is unreadable.
-    /// </remarks>
-    public required ImmutableArray<ComponentGroup> Groups { get; init; }
-
-    /// <summary>Placement/navigation anchors for rendered non-flow elements such as controllers.</summary>
-    /// <remarks>
-    /// These elements are absent from the hydraulic graph. Each is placed beside the component that
-    /// owns its actuated parameter; the measurement target is routed as an observer line and does not
-    /// affect thermal stage or hydraulic rank.
-    /// </remarks>
-    public required ImmutableArray<NonFlowElementHint> NonFlowElements { get; init; }
-
-    /// <summary>Which circuit each component belongs to, by component id (`D-33`).</summary>
-    /// <remarks>
-    /// For a two-sided component this is the owning circuit under `D-36` — the side losing nominal
-    /// enthalpy — which may differ from the circuit block its declaration sits in. Every component in
-    /// the graph appears exactly once.
-    /// </remarks>
-    public required ImmutableDictionary<string, string> CircuitOf { get; init; }
-
-    /// <summary>Every circuit, in declaration order, with the structure a renderer needs (`D-33`).</summary>
-    public required ImmutableArray<CircuitHint> Circuits { get; init; }
-
-    /// <summary>Sets of circuits sharing one supply/return pair (`D-38`).</summary>
-    /// <remarks>
-    /// A renderer draws a group of two or more as a header — supply along one edge, return along the
-    /// other, members stacked between — and anything else as a loop rectangle. <b>Core states the
-    /// grouping and never the mode</b>: "header" is a shape, and shapes are the renderer's under
-    /// `D-03`. Groups are disjoint and every circuit appears in at most one.
-    /// </remarks>
-    public required ImmutableArray<DistributionGroup> DistributionGroups { get; init; }
-
-    /// <summary>Components created by inference (I1/I2/I3) rather than written.</summary>
-    /// <remarks>Rendered differently — lighter, or hidden behind a toggle — so the user can tell
-    /// what they wrote from what the language added (principle P3).</remarks>
-    public required ImmutableHashSet<string> Inferred { get; init; }
-
-    /// <summary>Each attached circuit's branch shape: the sequence of component kinds along its path
-    /// from supply anchor to return anchor, observers and inferred nodes excluded (`D-100`).</summary>
-    /// <remarks>
-    /// Two members of a distribution group with equal shapes are the same assembly — three branches of
-    /// <c>three_way_valve, pump, heat_exchanger</c> — and the renderer draws them congruently: equal
-    /// widths, aligned columns, equal rail distances. This is structure a renderer cannot cheaply
-    /// recover (it would have to walk the graph again) and Core cannot mis-state (it is read off the
-    /// branch). It carries no dimension and names no shape, so it passes the test above. Keyed by
-    /// circuit name; a circuit that is not attached has no entry.
-    /// </remarks>
-    public required ImmutableDictionary<string, ImmutableArray<string>> BranchShapes { get; init; }
-}
-
-/// <summary>One circuit's structural facts (`D-33`, `D-35`).</summary>
-public sealed record CircuitHint
-{
-    public required string Name { get; init; }
-
-    /// <summary>The circuit's number, stated or resolved. The leading part of every tag it owns.</summary>
-    public required int Number { get; init; }
-
-    /// <summary>Resolved role, or null when the name matched no registry entry (`D-35`).</summary>
-    /// <remarks>Feeds thermal classification: a consumer role biases the circuit's stage rightward,
-    /// a source role leftward. Null means Neutral and is not an error.</remarks>
-    public CircuitRoleHint? Role { get; init; }
-
-    /// <summary>Parent circuit name, or null when this circuit stands alone (`D-33`).</summary>
-    public string? ParentCircuit { get; init; }
-
-    /// <summary>The parent's component this circuit takes flow from, when attached.</summary>
-    public string? SupplyAnchorId { get; init; }
-
-    /// <summary>The parent's component this circuit returns flow to, when attached.</summary>
-    public string? ReturnAnchorId { get; init; }
-}
-
-public sealed record CircuitRoleHint(string CanonicalName, ThermalStageRole Stage);
-
-/// <summary>Circuits sharing one supply/return pair, in stacking order (`D-38`).</summary>
-/// <remarks>
-/// <see cref="Members"/> is ordered by each member's declaration order, which is what keeps the
-/// stacked branches from reordering between renders. <see cref="ParentCircuit"/> owns the two header
-/// lines themselves.
-/// </remarks>
-public sealed record DistributionGroup
-{
-    public required string ParentCircuit { get; init; }
-
-    /// <summary>The member circuits, at least two, in declaration order.</summary>
-    /// <remarks>
-    /// A parent with exactly one subcircuit produces <b>no group at all</b> rather than a group of
-    /// one. One branch off a pair of rails is a tree, not a header, and drawing two rails for it
-    /// wastes most of the canvas. Emitting the singleton and expecting the renderer to ignore it
-    /// would put the same threshold in two places, where it would eventually disagree.
-    /// </remarks>
-    public required ImmutableArray<string> Members { get; init; }
-}
-
-public sealed record ComponentGroup
-{
-    /// <summary>Stable logical id of the declared component represented by the group.</summary>
-    public required string ParentComponentId { get; init; }
-
-    /// <summary>All lowered graph children owned by that component, in deterministic local order.</summary>
-    /// <remarks>For a pipe with <c>nodes=4</c>, this contains its four thermal-node ids followed by
-    /// its five hydraulic sub-pipe ids. Child ids occur in exactly one group.</remarks>
-    public required ImmutableArray<string> Children { get; init; }
-}
-
-public sealed record ThermalStage
-{
-    public required int Rank { get; init; }
-    public required ThermalStageRole Role { get; init; } // Source | Conversion | Storage | Consumer | Neutral
-    public required ImmutableArray<string> Components { get; init; }
-}
-
-public sealed record NonFlowElementHint
-{
-    public required string ComponentId { get; init; }
-    public required string PlacementAnchorId { get; init; }
-    public required string MeasurementTargetId { get; init; }
-    public string? ActuationTargetId { get; init; }   // null for an instrument: it drives nothing
-    public required int NavigationOrder { get; init; }
-}
-```
-
-### Thermal-stage derivation
 
 Thermal staging is computed on a separate **thermal group graph** (`D-31`):
 
@@ -273,7 +73,7 @@ Thermal staging is computed on a separate **thermal group graph** (`D-31`):
    an edge entering it makes it `Consumer`. Only a directionally ambiguous boundary remains `Neutral`;
    source order breaks ties but never reverses a nominal boundary role.
 4. Condense strongly connected transport components. Within one condensed component, preserve
-   `Rank`/`Loops` local order. Across heat-transfer edges and classified storage progression, assign
+   the members' local order. Across heat-transfer edges and classified storage progression, assign
    stage rank by longest path from any `Source`, with equal-role parallel vertices sharing the same
    rank. `Conversion` and `Storage` precede every downstream `Consumer`.
 5. Attach a `Neutral` vertex using directed nominal-flow distance. Prefer its nearest classified
@@ -349,7 +149,7 @@ directly is remove-plus-add; computed layout remains deterministic in either cas
 
 ## Ordering determinism
 
-`Order` and `Rank` must be identical for identical graphs, because an unstable order makes the diagram
+`Order` must be identical for identical graphs, because an unstable order makes the diagram
 jump on every keystroke — the single most annoying possible failure of the live-render loop.
 
 Sources of nondeterminism to eliminate:
@@ -363,242 +163,29 @@ This is invariant 6 of [`23-topology-and-graph`](23-topology-and-graph.md) exten
 it deserves its own test: build a graph, permute the input statement order in ways that do not change
 the topology, and assert `Order` is unchanged for the components that did not move.
 
-## What the renderer does with this
-
-Not normative — [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) owns it — but stated so the
-payload can be judged against a real consumer:
-
-1. `ThermalStages` gives the global left-to-right band; parallel groups at one stage stack vertically.
-2. `Rank` gives local columns within a band; components sharing a rank stack vertically.
-3. `Loops` overrides local columns for loop members, which are laid out as a closed circuit without
-   violating the global thermal-stage order.
-4. `PortSides` orients each symbol -- as a starting point. The renderer turns the box in quarter
-   turns and may take an alternative anchor arrangement the symbol offers, choosing by the Manhattan
-   length of the connections it has to draw (`D-102`, `53`); the anchor directions turn with the box.
-5. `Flow` orients arrows.
-6. `Groups` collapse into a single glyph until expanded.
-7. `NonFlowElements` places controllers beside their actuation targets and orders them for keyboard
-   navigation; observer lines route to `MeasurementTargetId`.
-8. `Inferred` renders at reduced emphasis.
-
-If the payload cannot drive those eight steps, it is under-specified. That is the review test for this
-document.
 
 ## Invariants
 
-1. `LayoutHints` contains no coordinate, dimension, or pixel value. `spacing` is the case most likely
-   to be added here by mistake, because it reads as a layout input; it is a distance, it travels in
-   style settings, and Core never interprets it (`D-37`).
-2. Every component in the graph appears exactly once in `Order`.
-3. `Rank` is defined for every non-loop component and absent for every loop member. Pure trees anchor
-   rank 0 at the pressure datum; attached trees anchor rank 1 next to the loop attachment.
-4. `Order` and `Rank` are deterministic functions of the graph.
-5. Every `ConnectionId` in `Flow` exists in the graph.
-6. Groups are disjoint — no component is in two.
-7. `Inferred` is exactly the set of components whose `Origin` is not `Declared`.
-8. Every component belongs to exactly one thermal stage. Stage ranks never decrease along a nominal
-   heat-transfer edge; parallel source or consumer groups may share a rank.
-9. Every rendered non-flow component appears exactly once in `NonFlowElements`; its placement anchor
-   is its actuation target's component (its measured node, for an instrument), and `NavigationOrder`
-   is its position in one tab order over flow components and non-flow elements together: a flow
-   component sits at its `Order` index plus the elements anchored before it, and each element follows
-   its anchor immediately. Unique across the scene.
-10. Every component in the graph appears exactly once in `CircuitOf`, and its value names a circuit in
-    `Circuits`.
-11. `DistributionGroups` are disjoint; every circuit appears in at most one, a group's
-    `ParentCircuit` is never also one of its own `Members`, and every group has **at least two**
-    members.
-12. No field of `LayoutHints` holds an equipment tag, a spacing value, or a layout mode name.
-13. `BranchShapes` has an entry for every attached circuit and none for any other; each entry lists
-    kinds only — no ids, no tags — and two circuits whose branches are the same kind sequence have
-    equal entries, whatever they are named.
-    Invariant 1 already forbids the spacing on dimensional grounds; the other two are forbidden for
-    the separate reason that they are not structure — a tag is display metadata (`D-34`) and a mode is
-    a shape (`D-38`).
+1. No field carries a coordinate, a dimension, a pixel, a tag, a spacing or a layout-mode name.
+2. Every graph component appears in `Order` exactly once and in `CircuitOf` exactly once.
+3. `Circuits` lists every circuit in declaration order; an attached circuit names both anchors or
+   neither.
+4. Identical input, identical hints, across builds.
+5. A `DistributionGroup` has two or more members, in declaration order.
+6. `NonFlowElements` names only components that exist, and the navigation order is unique across
+   flow components and non-flow elements together.
+7. A transient reversal changes `Flow` and never anything else.
 
 ## Error cases
 
-Hints are advisory: a hint that cannot be computed is omitted, never an error. Two info-level cases
-exist because the user can see the consequence and would otherwise wonder:
-
-| Code | Trigger | Severity |
-|---|---|---|
-| `FS2401` | The graph has no clean topological order (always true for a closed loop) — a DFS order is used | Info, suppressed by default |
-| `FS2402` | A group exceeds 10 members or the scene exceeds 500 elements and will render collapsed | Info |
-| `FS2403` | A circuit's role contradicts its solved duty direction; the duty is used | Info |
-
-## Worked example
-
-The **cooling loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)). Graph:
-`N1 → N2 → PU1 → PU1__HE1 → HE1 → HE1__3WV → 3WV → {N2, 3WV__P1 → P1 → N3}`, pressure datum `N1`
-(the first node with a stated `p`).
-
-```
-Order:  [N1, N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV, 3WV__P1, P1, N3]
-        DFS from the datum, with the back edge 3WV→N2 deferred.
-
-Rank:   N1 1 · 3WV__P1 1 · P1 2 · N3 3
-        Loop members N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV are absent.
-
-Flow:   every connection Forward — this circuit has no dead legs and no
-        reverse flow at the design point.
-
-PortSides:  PU1.in West · PU1.out East · HE1.in North · HE1.out South
-            HE1.in2 South · HE1.out2 North   (the through-pass default, D-102)
-            3WV.ab West · 3WV.a North · 3WV.b South
-            P1.in West · P1.out East
-
-Loops:  [[N2, PU1, PU1__HE1, HE1, HE1__3WV, 3WV]]     one independent loop
-
-LoopOrientations: [Clockwise]                flow leaves PU1 along the top supply
-
-Groups: []                              no discretized pipes in this circuit
-
-Inferred: {N2, PU1__HE1, HE1__3WV, 3WV__P1}           four of ten — the user wrote six
-```
-
-The cooling loop is one local thermal group, so its existing rectangle is unchanged. The **storage
-header** reference is the cross-group case:
-
-```
-ThermalStages:
-  0 Source   [S1, S2]
-  1 Storage  [T1]
-  2 Consumer [RAD_NETWORK, AHU_NETWORK]
-
-PortSides: T1.in1 West · T1.in2 West · T1.out1 East · T1.out2 East
-```
-
-Sources and consumers at the same rank stack in source order. Their X coordinates do not interleave;
-fluid-flow arrows remain independently governed by `Flow`.
-
-### The distribution header
-
-The **distribution header** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)), which
-`D-33` added as the sixth reference circuit: parent `heating` (100) with subcircuits `AHU` (101) and
-`radiators` (102) on one supply/return pair. Node names, duties and flows are `01`'s; this document
-adds only the hints derived from them.
-
-```
-Circuits:
-  { Name: heating,   Number: 100, Role: heating (Neutral), ParentCircuit: null }
-  { Name: AHU,       Number: 101, Role: ahu,      ParentCircuit: heating,
-    SupplyAnchorId: N3, ReturnAnchorId: N5 }
-  { Name: radiators, Number: 102, Role: radiator, ParentCircuit: heating,
-    SupplyAnchorId: N4, ReturnAnchorId: N6 }
-
-DistributionGroups:
-  [ { ParentCircuit: heating, Members: [AHU, radiators] } ]
-
-CircuitOf:
-  N3 → heating · N5 → heating · PU_MAIN → heating
-  TV_AHU → AHU · PU_AHU → AHU
-  TV_RAD → radiators · PU_RAD → radiators
-
-ThermalStages:
-  0 Consumer [AHU's members, radiators' members]   ← both roles resolve to Consumer, so they share a rank
-  0 Neutral  [HS1, N1, N3, N4, N5, N6]             ← `heating` is a registered Neutral role, and HS1 is not extended
-
-BranchShapes:
-  AHU       → [pipe, three_way_valve, pump, heat_exchanger, pipe]
-  radiators → [pipe, three_way_valve, pump, heat_exchanger, pipe]
-```
-
-The parent ring has no boundary — `01`'s sample heats the return header directly through `HS1` — and
-`heating` is a Neutral role, so the ring is not a `Source` stage: it shares rank 0 with the branches
-it feeds, and `DistributionGroups` is what tells the renderer to draw it as their header. An earlier
-draft of this example showed `0 Source [heating's boundary]` for a sample that had one.
-
-**The attachment is read off the graph when the script wrote none.** `supply`/`return` lines bind
-`ParentCircuit` and the two anchors (`D-33`), but a mixing branch has to be written as connections
-(`F-16`), and the header sample is. A circuit with no stated parent takes the one it touches: its
-components connect to another circuit's *nodes* and to no other circuit's, and that circuit does not
-in turn touch only this one. Touching through a node and not through a component is what separates
-hanging off a header from being coupled across an exchanger; touching one circuit rather than two is
-what separates a branch from a bridge. The supply anchor is the parent node feeding one of the
-circuit's inlets, the return anchor the one fed by one of its outlets, and connection order decides
-where port roles cannot (a three-way valve's ports are all bidirectional).
-
-`BranchShapes` is the depth-first walk from the supply anchor inside the circuit, ports in declaration
-order, listing the *kinds* (`load` is a spelling of `heat_exchanger`) of declared non-node components
-as they are met. Not the shortest path: on a mixing branch the shortest walk from supply to return
-goes through the valve's recirculation port and misses the pump and the coil.
-
-Three things this fixture pins that the storage header does not:
-
-**Membership is not identity.** Each circuit's pump has its own identifier — `PU_AHU`, `PU_RAD` — and
-`CircuitOf` records which circuit owns it, for grouping and tagging (`D-41`). The drawing distinguishes
-them as `101PU01` and `102PU01`; the script distinguishes them by name. A reader who expects the
-circuit to act as a namespace is the one this example is written for: it does not, and the tag is what
-carries the circuit.
-
-**The group is one entry, not two.** `AHU` and `radiators` attach to the same parent through different
-nodes (`N3`/`N5` and `N4`/`N6`) and still form one distribution group, because grouping is by shared
-*parent circuit*, not by shared node. Grouping by node would produce two groups of one and lose the
-header entirely.
-
-**The subcircuits share a stage rank.** Both roles classify as `Consumer`, so neither is placed
-upstream of the other — they are parallel branches of one header, and a diagram that ranked `101`
-before `102` would imply heat flows through the AHU on its way to the radiators.
-
-Two observations. `3WV.a North` returns the recirculation branch to the junction it came from while
-`3WV.b South` sends the primary return downward, so the two outlets separate without the renderer
-having to guess which is which — a small hint doing real work. And **four of the ten components are
-inferred**: the user wrote six declarations — four flow components plus two boundary nodes — and got a
-ten-element graph, which is the ratio that makes `Inferred` worth carrying. A canvas that draws all ten
-at equal weight is unreadable; one that dims the four the user never wrote reads as the circuit they
-have in mind.
-
-`N1` and `N3` are **declared**, not inferred, because they carry boundary conditions and the user
-wrote them ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)'s inference inventory).
-They draw at full weight, which is right: a node with a stated pressure is a real decision, not
-scaffolding the language put in.
+Derivation reports and never throws. `FS2401` (a closed circuit has no first component; the walk
+starts at the datum), `FS2402` (a group past ten members, or a scene past five hundred elements,
+starts folded), `FS2403` (a circuit's name and its duties disagree). All informational.
 
 ## Acceptance criteria
 
-- [x] The worked example's `Order`, `Rank`, `Loops`, `LoopOrientations`, and `Inferred` are reproduced exactly, including
-      the **four** inferred components of ten — `N1` and `N3` are declared boundary nodes, not I1
-      inferences ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)).
-- [x] A test asserts no field of `LayoutHints` has a length, position, or pixel dimension.
-- [x] Permuting independent statements in a sample leaves `Order` unchanged.
-- [x] Every non-loop component in every sample has a `Rank`; no loop member does.
-- [x] A pipe with `nodes=4` produces exactly one group containing the four internal-node ids and five
-      hydraulic sub-pipe ids; the declared logical pipe id remains the group's stable parent id.
-- [ ] Reverse flow in a bypass produces `Reverse`, and the canvas draws the arrow reversed.
-- [ ] The renderer's eight-step consumption above runs on the payload with no additional graph query.
-- [x] The storage header produces the three thermal stages above. `S1`/`S2` share the left rank,
-      `T1` is central, and both network boundaries share the right rank.
-- [x] The cooling loop becomes one rank-0 Neutral stage; the substation places its source-side circuit
-      before `HX1`'s Conversion stage and its heating circuit after it; the result is byte-identical
-      across 100 builds.
-- [x] A demand-step controller has one `NonFlowElementHint`, anchored to `3WV`, with its measurement
-      target at `N2` and a navigation position immediately after `3WV`.
-- [ ] Reversing a solved flow or duty in a transient changes `Flow` but leaves `ThermalStages`
-      byte-identical to the run snapshot.
-- [x] The distribution header produces one `DistributionGroup` with both subcircuits as members, and
-      `CircuitOf` reports each pump's owning circuit.
-- [ ] Declaring `PU1` in two circuits produces exactly one `FS1501`, not two silently-merged components.
-- [x] Both subcircuits share a `Consumer` stage rank; neither is ranked upstream of the other.
-- [x] A circuit whose role says `radiator` but whose duty sign says source classifies as `Source` and
-      emits `FS2403` — the name never overrules the physics.
-- [x] The substation's exchanger appears in `CircuitOf` under the circuit on its enthalpy-losing side,
-      and swapping the two circuit blocks in the source leaves that value unchanged.
-- [x] A test asserts no field of `LayoutHints` holds a tag, a spacing value, or a mode name — the same
-      reflection test that already asserts it holds no dimension.
-- [x] The distribution header's two subcircuits have equal `BranchShapes` entries; renaming every
-      component in one of them leaves the entries equal; inserting a valve in one makes them differ
-      (`D-100`).
-
-## Open questions
-
-One, from P5.1. A registered Neutral role (`heating`) with a positive-duty exchanger in its ring is
-drawn in the same band as the consumers it feeds, because no rule classifies it. Whether the parent
-ring of a distribution header should be a `Source` band on the strength of its duty sign alone — the
-heating-side reading of the sign — is left for P5.3 to decide with a rendered diagram in front of it;
-the derivation's own note explains why the sign is not read without a role to say which way is up.
-
-`Loops` owns loop-member placement, so `Rank` excludes them. Each loop walk starts at the member
-`Order` meets first and runs the way `Order` runs, so which chord the cycle basis closed on cannot
-rotate or reverse it. Core supplies one deterministic
-`LoopOrientation` per loop from flow leaving its first flow driver; the renderer places supply above
-return. These choices prevent pressure-datum changes from rotating a diagram (`D-30`).
+- The hints tests cover order stability under statement permutation, the four inferred components
+  of the cooling loop, the header's one distribution group of two subcircuits, the substation's
+  circuit ownership either way round, the controller's anchoring, `FS2403`, `FS2402`, and the
+  no-geometry invariant by reflection over every hint type.
+- Every sample's components are all ordered and all staged.

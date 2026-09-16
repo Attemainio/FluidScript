@@ -26,7 +26,7 @@ Read the relevant document before working in that area; update it when you learn
 | What has shipped, which phase we are in, what is next — **the state** | `plan/09-project-state.md` |
 | Performance, scale, accuracy, execution isolation, stop, accessibility | `plan/00-foundation/07-quality-attributes.md` |
 | The script language: grammar, units, expressions, binding, diagnostics, printer | `plan/10-language/` |
-| Fluids, components, topology, sizing, catalogue, model contract | `plan/20-core-domain/` |
+| Fluids, components, topology, sizing, catalogue, model contract, the layout (`28`) and its ladder (`29`) | `plan/20-core-domain/` |
 | Solvers, controllers, tolerances, convergence | `plan/30-solver/` |
 | API hosting and the REST / WebSocket / diagnostics contracts | `plan/40-api/` |
 | Frontend, editor, canvas, design system, state visualization | `plan/50-frontend/` |
@@ -76,8 +76,9 @@ disagrees with itself.
 
 - **Every feature ships with its `/docs` page.** No exceptions. CI enforces it; do not work around the
   gate, and do not defer documentation to a later milestone.
-- **Core has no UI or hosting dependency.** Physics never moves to the frontend; the frontend computes
-  geometry and formats numbers, nothing else.
+- **Core has no UI or hosting dependency.** Physics never moves to the frontend, and neither does
+  geometry: Core solves the layout (`D-103`); the frontend maps world units to pixels, draws, and
+  formats numbers, nothing else.
 - **Everything is SI internally.** Canonical units exist only at the language boundary and on the wire.
 - **Exactly one type references SharpProp.** Everything else depends on `ISubstance`.
 - **Every dimensioned public member states its unit and sign convention** in its XML docs.

@@ -4,14 +4,12 @@ using FluidScript.Core.Binding;
 
 namespace FluidScript.Core.Layout;
 
-/// <summary>Structural advice for a renderer. Contains no geometry (<c>D-03</c>).</summary>
+/// <summary>The classification of the graph the layout engine (<c>28</c>) starts from: an order, the circuits and how they attach, the distribution groups, the non-flow elements, what was inferred, and the solved flow direction per connection for the arrows.</summary>
 /// <remarks>
 /// <para>
 /// <strong>Everything here is a fact about the graph, and nothing here is a fact about a drawing.</strong>
 /// <c>25</c>'s test for what belongs: only Core knows it, it is structural, and it carries no
-/// coordinate, dimension, pixel, tag, spacing or layout-mode name. The renderer (<c>53</c>) turns these
-/// into placements; the hints never say where anything goes, only what is next to what, which way
-/// heat nominally runs, and which things are the same kind of thing.
+/// coordinate. The engine places and routes from these; the hints never say where anything goes.
 /// </para>
 /// <para>
 /// A pure function of the graph, the model and the solved branch flows: byte-identical across builds
@@ -29,32 +27,17 @@ public sealed record LayoutHints
     /// </remarks>
     public required ImmutableArray<string> Order { get; init; }
 
-    /// <summary>Rank for non-loop components: hops from the nearest loop member, or from the datum when the part has no loop.</summary>
-    /// <remarks>The local column in a layered layout. Loop members are deliberately absent; <see cref="Loops"/> places them.</remarks>
-    public required ImmutableDictionary<string, int> Rank { get; init; }
-
-    /// <summary>Nominal heat-progression stages, ordered left to right (<c>D-31</c>).</summary>
-    /// <remarks>Fixed at the design point; a transient reversal changes <see cref="Flow"/> and never this.</remarks>
+    /// <summary>Nominal heat-progression stages, ordered left to right.</summary>
+    /// <remarks>Not a placement input: the classification carries <c>FS2403</c> (a circuit's name against its duties). Fixed at the design point; a transient reversal changes <see cref="Flow"/> and never this.</remarks>
     public required ImmutableArray<ThermalStage> ThermalStages { get; init; }
 
-    /// <summary>Per-connection flow direction at the solved operating point, keyed by connection id.</summary>
+    /// <summary>Per-connection flow direction at the solved operating point, keyed by connection id: what the arrows draw.</summary>
     /// <value>
     /// <see cref="FlowDirection.Forward"/> as written, <see cref="FlowDirection.Reverse"/> when the solved
     /// flow runs against the written direction, <see cref="FlowDirection.None"/> inside the zero-flow
     /// tolerance or when nothing is solved.
     /// </value>
     public required ImmutableDictionary<string, FlowDirection> Flow { get; init; }
-
-    /// <summary>Suggested side for each port, keyed <c>component.port</c>, as though every component sat on a horizontal run.</summary>
-    /// <value>Inlets west, outlets east, a three-way valve's legs north and south, an exchanger's second side north and south.</value>
-    public required ImmutableDictionary<string, PortSide> PortSides { get; init; }
-
-    /// <summary>Components forming each independent loop, in traversal order.</summary>
-    /// <remarks>An order and not positions: <c>D-44</c> forbids a component at a corner, and only the renderer knows a symbol's extent.</remarks>
-    public required ImmutableArray<ImmutableArray<string>> Loops { get; init; }
-
-    /// <summary>Orientation per loop, aligned by index with <see cref="Loops"/>.</summary>
-    public required ImmutableArray<LoopOrientation> LoopOrientations { get; init; }
 
     /// <summary>Semantic groupings: every graph element one written component expanded into.</summary>
     public required ImmutableArray<ComponentGroupHint> Groups { get; init; }
@@ -65,18 +48,14 @@ public sealed record LayoutHints
     /// <summary>Which circuit each component belongs to (<c>D-33</c>; the enthalpy-losing side for a two-sided one, <c>D-36</c>).</summary>
     public required ImmutableDictionary<string, string> CircuitOf { get; init; }
 
-    /// <summary>Every circuit, in declaration order, with the structure a renderer needs.</summary>
+    /// <summary>Every circuit, in declaration order, with the structure the engine needs.</summary>
     public required ImmutableArray<CircuitHint> Circuits { get; init; }
 
-    /// <summary>Sets of circuits sharing one supply/return pair (<c>D-38</c>); never fewer than two members.</summary>
+    /// <summary>Sets of circuits sharing one supply/return pair (<c>D-33</c>); never fewer than two members.</summary>
     public required ImmutableArray<DistributionGroup> DistributionGroups { get; init; }
 
     /// <summary>Components created by inference rather than written.</summary>
     public required ImmutableHashSet<string> Inferred { get; init; }
-
-    /// <summary>Each attached circuit's branch shape: the kinds along its path from supply anchor to return anchor (<c>D-100</c>).</summary>
-    /// <remarks>Equal shapes are the same assembly and are drawn congruently. Observers and nodes are excluded; keyed by circuit name.</remarks>
-    public required ImmutableDictionary<string, ImmutableArray<string>> BranchShapes { get; init; }
 }
 
 /// <summary>Which way a connection carries flow at the operating point.</summary>
@@ -90,32 +69,6 @@ public enum FlowDirection
 
     /// <summary>Against the written direction.</summary>
     Reverse,
-}
-
-/// <summary>The side of a component a port is suggested to sit on.</summary>
-public enum PortSide
-{
-    /// <summary>The left side, where inlets go on a horizontal run.</summary>
-    West = 1,
-
-    /// <summary>The right side, where outlets go.</summary>
-    East,
-
-    /// <summary>The top.</summary>
-    North,
-
-    /// <summary>The bottom.</summary>
-    South,
-}
-
-/// <summary>Which way round a loop is drawn, with supply on top (<c>D-30</c>).</summary>
-public enum LoopOrientation
-{
-    /// <summary>Flow leaves the loop's first driver rightward along the top.</summary>
-    Clockwise = 1,
-
-    /// <summary>Flow leaves the loop's first driver leftward along the top.</summary>
-    Counterclockwise,
 }
 
 /// <summary>One thermal stage: a rank on the heat-progression axis, its role, and its members.</summary>

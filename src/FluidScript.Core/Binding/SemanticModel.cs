@@ -176,13 +176,19 @@ public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode)
         ImmutableDictionary<string, DesignValue>.Empty;
 }
 
-/// <summary>Presentation values Core carries and never interprets.</summary>
-/// <param name="Tokens">The <c>style</c> directives' positional tokens, verbatim and in order.</param>
+/// <summary>Presentation values: the <c>style</c> directives read (<c>D-104</c>) and the <c>spacing</c>.</summary>
+/// <param name="Tokens">The applied <c>style</c> directives' positional tokens, verbatim and in order.</param>
 /// <param name="Spacing">
 /// The <c>spacing</c> directive's value in world units, or <see langword="null"/> when the script
-/// states none, in which case the renderer's own default applies.
+/// states none, in which case the layout's default margin applies (<c>D-103</c>).
 /// </param>
-public sealed record StyleSettings(ImmutableArray<StyleTokenSyntax> Tokens, double? Spacing);
+/// <param name="Default">The project-level style: every <c>style</c> applied before the first circuit header, merged.</param>
+/// <param name="Definitions">The named styles, <c>style name = ...</c>, by name.</param>
+public sealed record StyleSettings(
+    ImmutableArray<StyleTokenSyntax> Tokens,
+    double? Spacing,
+    StyleSpec Default,
+    ImmutableDictionary<string, StyleSpec> Definitions);
 
 /// <summary>How a component came to exist.</summary>
 public abstract record Origin
@@ -267,6 +273,10 @@ public sealed record ComponentSymbol
     /// finished declaration set, so a stage that read one would make identity circular.
     /// </remarks>
     public string? Tag { get; init; }
+
+    /// <summary>Gets the style the declaration carries: the circuit's in force where it was written, then its own <c>style=</c> (<c>D-104</c>).</summary>
+    /// <value><see langword="null"/> when nothing was stated; an inferred component has none and takes its neighbour's.</value>
+    public StyleSpec? Style { get; init; }
 
     /// <summary>Gets the component's own sizing point, from its <c>sized_at</c> clause (<c>D-94</c>).</summary>
     /// <value>

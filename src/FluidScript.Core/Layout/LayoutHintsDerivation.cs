@@ -45,9 +45,7 @@ public static class LayoutHintsDerivation
         var index = Index(graph);
         var order = Order(graph, hydraulics, index, graph.Loops.Length > 0, diagnostics);
         var loops = Loops(graph, order);
-        var loopMembers = loops.SelectMany(static loop => loop).ToImmutableHashSet(StringComparer.Ordinal);
 
-        var rank = Rank(graph, hydraulics, index, loopMembers);
         var circuits = Circuits(graph, model, index);
         var stages = ThermalStages(graph, model, index, loops, diagnostics);
 
@@ -73,12 +71,10 @@ public static class LayoutHintsDerivation
         return (new LayoutHints
         {
             Order = order,
-            Rank = rank,
+
             ThermalStages = stages,
             Flow = Flow(graph, model, index, branchFlows),
-            PortSides = PortSides(graph),
-            Loops = loops,
-            LoopOrientations = LoopOrientations(graph, index, loops, branchFlows),
+
             Groups = [.. graph.Groups.Select(static group => new ComponentGroupHint
             {
                 ParentComponentId = group.Source,
@@ -92,7 +88,7 @@ public static class LayoutHintsDerivation
                 .Where(static component => component.Origin is Origin.Inferred && component.Kind is not null)
                 .Select(static component => component.Name)
                 .Where(index.ContainsKey)],
-            BranchShapes = BranchShapes(graph, model, index, circuits),
+
         }, diagnostics.ToImmutable());
     }
 
@@ -185,69 +181,6 @@ public static class LayoutHintsDerivation
         return order.ToImmutable();
     }
 
-    /// <summary>Hops from the nearest loop member, or from the datum when the hydraulic part has no loop.</summary>
-    private static ImmutableDictionary<string, int> Rank(
-        CircuitGraph graph,
-        ImmutableArray<HydraulicComponent> hydraulics,
-        ImmutableDictionary<string, int> index,
-        ImmutableHashSet<string> loopMembers)
-    {
-        var distance = new int[graph.Components.Length];
-        Array.Fill(distance, -1);
-        var queue = new Queue<int>();
-
-        // Loop members are the rank-0 sources of the search; a part with no loop starts at its datum.
-        for (var i = 0; i < graph.Components.Length; i++)
-        {
-            if (loopMembers.Contains(graph.Components[i].Name))
-            {
-                distance[i] = 0;
-                queue.Enqueue(i);
-            }
-        }
-
-        foreach (var part in hydraulics)
-        {
-            if (!index.TryGetValue(part.Datum, out var datum) || distance[datum] >= 0)
-            {
-                continue;
-            }
-
-            if (!part.Elements.Any(element => loopMembers.Contains(element.Name)))
-            {
-                distance[datum] = 0;
-                queue.Enqueue(datum);
-            }
-        }
-
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-
-            foreach (var next in Neighbours(graph, current))
-            {
-                if (distance[next] < 0)
-                {
-                    distance[next] = distance[current] + 1;
-                    queue.Enqueue(next);
-                }
-            }
-        }
-
-        var rank = ImmutableDictionary.CreateBuilder<string, int>(StringComparer.Ordinal);
-
-        for (var i = 0; i < graph.Components.Length; i++)
-        {
-            var name = graph.Components[i].Name;
-
-            if (!loopMembers.Contains(name))
-            {
-                rank[name] = distance[i] < 0 ? 0 : distance[i];
-            }
-        }
-
-        return rank.ToImmutable();
-    }
 
     // ---- loops -----------------------------------------------------------------------------------------
 
@@ -305,61 +238,6 @@ public static class LayoutHintsDerivation
         return loops.ToImmutable();
     }
 
-    /// <summary>Clockwise when the solved flow leaves the loop's first driver along the walk; ties and unsolved loops are clockwise.</summary>
-    private static ImmutableArray<LoopOrientation> LoopOrientations(
-        CircuitGraph graph,
-        ImmutableDictionary<string, int> index,
-        ImmutableArray<ImmutableArray<string>> loops,
-        ImmutableArray<double>? branchFlows)
-    {
-        var orientations = ImmutableArray.CreateBuilder<LoopOrientation>(loops.Length);
-
-        foreach (var loop in loops)
-        {
-            var orientation = LoopOrientation.Clockwise;
-
-            if (branchFlows is { } flows)
-            {
-                // The first pump on the walk, then the branch it sits on and which way the walk crosses it.
-                for (var position = 0; position < loop.Length && orientation == LoopOrientation.Clockwise; position++)
-                {
-                    if (!index.TryGetValue(loop[position], out var component)
-                        || graph.Components[component] is not Pump pump)
-                    {
-                        continue;
-                    }
-
-                    foreach (var branch in graph.Branches)
-                    {
-                        var at = branch.Path.IndexOf(pump);
-
-                        if (at < 0 || branch.Index >= flows.Length)
-                        {
-                            continue;
-                        }
-
-                        var before = at > 0 ? branch.Path[at - 1].Name : branch.From.Element.Name;
-                        var previous = loop[(position + loop.Length - 1) % loop.Length];
-                        var walkAgreesWithBranch = string.Equals(before, previous, StringComparison.Ordinal);
-                        var flow = flows[branch.Index];
-
-                        if (Math.Abs(flow) > Tolerances.FlowZero && (flow > 0) != walkAgreesWithBranch)
-                        {
-                            orientation = LoopOrientation.Counterclockwise;
-                        }
-
-                        break;
-                    }
-
-                    break;
-                }
-            }
-
-            orientations.Add(orientation);
-        }
-
-        return orientations.ToImmutable();
-    }
 
     // ---- flow and ports -------------------------------------------------------------------------------
 
@@ -413,34 +291,6 @@ public static class LayoutHintsDerivation
         return flow.ToImmutable();
     }
 
-    private static ImmutableDictionary<string, PortSide> PortSides(CircuitGraph graph)
-    {
-        var sides = ImmutableDictionary.CreateBuilder<string, PortSide>(StringComparer.Ordinal);
-
-        foreach (var component in graph.Components)
-        {
-            if (component is CircuitNode)
-            {
-                continue;
-            }
-
-            foreach (var port in component.Ports)
-            {
-                // The symbol's default anchor set is the one source (D-102); a port the symbol does not
-                // name falls back to its role.
-                sides[$"{component.Name}.{port.Name}"] = FluidScript.Core.Model.SymbolCatalog.SideOf(component.Kind, port.Name) switch
-                {
-                    "west" => PortSide.West,
-                    "east" => PortSide.East,
-                    "north" => PortSide.North,
-                    "south" => PortSide.South,
-                    _ => port.Role == PortRole.Outlet ? PortSide.East : PortSide.West,
-                };
-            }
-        }
-
-        return sides.ToImmutable();
-    }
 
     // ---- circuits ---------------------------------------------------------------------------------------
 
@@ -567,68 +417,6 @@ public static class LayoutHintsDerivation
         return groups.ToImmutable();
     }
 
-    /// <summary>The kinds met walking each attached circuit from its supply anchor, depth-first within the circuit.</summary>
-    /// <remarks>
-    /// Not the shortest path: on a mixing branch the shortest walk from supply to return goes through
-    /// the valve's recirculation port and misses the pump and the coil. The depth-first walk, ports in
-    /// declaration order, takes the valve's outlet first and reaches everything, and two branches built
-    /// the same way produce the same sequence whatever their components are called.
-    /// </remarks>
-    private static ImmutableDictionary<string, ImmutableArray<string>> BranchShapes(
-        CircuitGraph graph,
-        SemanticModel model,
-        ImmutableDictionary<string, int> index,
-        ImmutableArray<CircuitHint> circuits)
-    {
-        var shapes = ImmutableDictionary.CreateBuilder<string, ImmutableArray<string>>(StringComparer.Ordinal);
-        var declared = model.Components
-            .Where(static component => component.Origin is Origin.Declared && component.Kind is { HasUnlimitedPorts: false })
-            .ToDictionary(static component => component.Name, static component => component.Kind!.Keyword, StringComparer.Ordinal);
-
-        foreach (var circuit in circuits)
-        {
-            if (circuit.SupplyAnchorId is null
-                || circuit.ReturnAnchorId is null
-                || !index.TryGetValue(circuit.SupplyAnchorId, out var start))
-            {
-                continue;
-            }
-
-            var kinds = new List<string>();
-            var visited = new HashSet<int> { start };
-            var stack = new Stack<IEnumerator<int>>();
-            stack.Push(Neighbours(graph, start).GetEnumerator());
-
-            while (stack.Count > 0)
-            {
-                if (!stack.Peek().MoveNext())
-                {
-                    stack.Pop();
-                    continue;
-                }
-
-                var next = stack.Peek().Current;
-                var name = graph.Components[next].Name;
-
-                if (!visited.Add(next)
-                    || !string.Equals(graph.CircuitOf.GetValueOrDefault(name), circuit.Name, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (declared.TryGetValue(name, out var kind))
-                {
-                    kinds.Add(kind);
-                }
-
-                stack.Push(Neighbours(graph, next).GetEnumerator());
-            }
-
-            shapes[circuit.Name] = [.. kinds];
-        }
-
-        return shapes.ToImmutable();
-    }
 
     // ---- non-flow elements ------------------------------------------------------------------------------
 

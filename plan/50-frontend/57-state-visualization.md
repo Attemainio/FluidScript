@@ -161,6 +161,11 @@ value is the volume-weighted mean across layers, while the vessel always colours
 
 ## Rendering
 
+**Since `D-103`/`D-104` (2026-09-15) the mapping from value to colour is Core's:** each placement
+carries its fill colour for the active `show` property and each route the colour at either end, and
+the renderer draws flat fills and two-stop gradients from those numbers. The rules below say what
+the colours are; where they say the renderer computes one, the solver does.
+
 ### Nodes
 
 Filled with the scale colour for their value. The symbol's stroke stays

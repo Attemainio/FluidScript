@@ -16,8 +16,10 @@ You never write it. It is what a script becomes.
 - **The operating point**, once solved: flows, temperatures, pressures and duties per component and
   per connection, and a pump's delivered head. Unsolved, every `state` is `null` and the diagram
   still draws.
-- **How to draw it**: the layout hints ([How the diagram is arranged](../advanced/how-the-diagram-is-arranged.md))
-  and each kind's symbol box and port anchors.
+- **How to draw it**: the finished layout -- every component's box, turned and arranged, every
+  pipe's polyline, every label's position, in world units -- with the hints it was solved from
+  ([How the diagram is arranged](../advanced/how-the-diagram-is-arranged.md)), each kind's symbol
+  to draw inside its box, and every [`style`](style.md) resolved to colours, widths and patterns.
 - **What the tool has to say**: every diagnostic, with its position in two forms and any fix it offers.
 - **What produced it**: the script's hash, the language version, the catalogue and property backend
   versions, and the atmosphere gauge pressures are relative to.
@@ -51,8 +53,9 @@ symbols also offer `alternatives` -- other complete arrangements of the same por
 The exchanger's default is the *through-pass*, each side entering at one end and leaving at the other,
 primary on the left flank and secondary on the right; its alternative `u` brings each side in and out
 on its own flank, which is what a substation drawn with the primary to the left and the secondary to
-the right wants. The diagram picks the arrangement and the rotation for each instance so that the
-connections it has to draw are shortest, measured as they will be routed, along the grid; the
+the right wants. Which turns a kind admits is fixed by the kind -- an exchanger stands, a tank
+stands upright, a pump and a valve turn freely -- and within that the diagram picks the arrangement
+and the rotation for each instance so that its ports face the pipes that reach them; the
 definition offers, it does not choose.
 
 The glyphs follow the notation an engineering office draws by hand -- ISO 10628 for the process
@@ -73,13 +76,13 @@ a tank's layer bands, an exchanger's heat arrow, badges, and the sized-versus-st
 <!-- BEGIN GENERATED: symbol-catalog -->
 | Symbol | Box `[x, y, w, h]` | Port anchors, facing | Strokes | Label at |
 |---|---|---|---|---|
-| `node.junction` | `-0.15, -0.15, 0.3, 0.3` | `*` (0, 0) | circle (solid) | (0, -0.35) |
-| `pipe.standard` | `-0.5, -0.1, 1, 0.2` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | line | (0, -0.3) |
-| `heat_exchanger.standard` | `-0.25, -0.5, 0.5, 1` | `in` (-0.15, -0.5) ↑, `in2` (0.15, 0.5) ↓, `out` (-0.15, 0.5) ↓, `out2` (0.15, -0.5) ↑<br>*or `u`:* `in` (-0.25, -0.3) ←, `in2` (0.25, 0.3) →, `out` (-0.25, 0.3) ←, `out2` (0.25, -0.3) → | rect (state fill), 2 lines | (0, -0.65) |
-| `valve.standard` | `-0.5, -0.3, 1, 0.6` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | 2 polygons (state fill), 4 lines | (0, -0.45) |
-| `three_way_valve.standard` | `-0.5, -0.5, 1, 1` | `a` (0, -0.5) ↑, `ab` (-0.5, 0) ←, `b` (0, 0.5) ↓ | 3 polygons (state fill), 5 lines | (0, -0.65) |
-| `pump.standard` | `-0.5, -0.5, 1, 1` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | circle (state fill), polygon (solid), 2 lines | (0, -0.65) |
-| `tank.stratified` | `-0.5, -0.8, 1, 1.6` | `in{1..16}` on the west at `port.elevation` ←, `out{1..16}` on the east at `port.elevation` → | rect (state fill) | (0, -0.95) |
+| `node.junction` | `-0.1, -0.1, 0.2, 0.2` | `*` (0, 0) | circle (solid) | (0, 0.3) |
+| `pipe.standard` | `-0.5, -0.1, 1, 0.2` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | line | (0, 0.3) |
+| `heat_exchanger.standard` | `-0.25, -0.5, 0.5, 1` | `in` (-0.15, 0.5) ↑, `in2` (0.15, -0.5) ↓, `out` (-0.15, -0.5) ↓, `out2` (0.15, 0.5) ↑<br>*or `u`:* `in` (-0.25, 0.3) ←, `in2` (0.25, -0.3) →, `out` (-0.25, -0.3) ←, `out2` (0.25, 0.3) → | rect (state fill), 2 lines | (0, 0.65) |
+| `valve.standard` | `-0.5, -0.3, 1, 0.6` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | 2 polygons (state fill), 4 lines | (0, 0.45) |
+| `three_way_valve.standard` | `-0.5, -0.5, 1, 1` | `a` (0, 0.5) ↑, `ab` (0, -0.5) ↓, `b` (-0.5, 0) ← | 3 polygons (state fill), 5 lines | (0, 0.65) |
+| `pump.standard` | `-0.5, -0.5, 1, 1` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | circle (state fill), polygon (solid), 2 lines | (0, 0.65) |
+| `tank.stratified` | `-0.5, -0.8, 1, 1.6` | `in{1..16}` on the west at `port.elevation` ←, `out{1..16}` on the east at `port.elevation` → | rect (state fill) | (0, 0.95) |
 | `t_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
 | `p_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
 | `flow_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |
@@ -136,12 +139,14 @@ The `project` line.
 
 ### `Style`
 
-Presentation tokens, verbatim.
+The script's presentation directives, resolved (`D-104`).
 
 | Field | Type | Meaning |
 |---|---|---|
-| `tokens` | array of string | The `style` tokens as written. |
+| `tokens` | array of string | The applied `style` tokens as written. |
 | `spacing` | number or `null` | The `spacing` value in world units, or `null` (`D-37`). |
+| `default` | [`ResolvedStyle`](#resolvedstyle) | The project-level style, applied where a circuit states none. |
+| `named` | object of [`ResolvedStyle`](#resolvedstyle) | The named styles, `style name = …`, resolved, for an editor to list. |
 
 ### `Circuit`
 
@@ -212,18 +217,17 @@ One adjacency.
 | Field | Type | Meaning |
 |---|---|---|
 | `order` | array of string | Depth-first order from each pressure datum. |
-| `rank` | object of integer | Hops from the nearest loop, for non-loop components only. |
 | `thermalStages` | array of [`ThermalStage`](#thermalstage) | The heat-progression bands, left to right. |
 | `flow` | object of string | Solved direction per connection id. |
-| `portSides` | object of string | Which box side each port leaves from, keyed `component.port`. |
-| `loops` | array of array of string | Each loop as a closed walk. |
-| `loopOrientations` | array of string | `clockwise` or `counterclockwise`, one per loop. |
 | `groups` | array of [`ComponentGroup`](#componentgroup) | Pipe expansions. |
 | `nonFlowElements` | array of [`NonFlowElement`](#nonflowelement) | Instruments and controllers. |
 | `circuitOf` | object of string | Owning circuit per component. |
 | `distributionGroups` | array of [`DistributionGroup`](#distributiongroup) | Subcircuits sharing one parent, in declaration order. |
 | `inferred` | array of string | Components the language added. |
-| `branchShapes` | object of array of string | Kind sequence per attached circuit (`D-100`). |
+| `margin` | number | The clearance every component keeps from every other, world units (`D-103`); the `spacing` directive or 0.5. |
+| `extent` | array of number | The bounds of the whole drawing as `[x, y, width, height]`, world units, outer boxes and routes included. |
+| `placements` | array of [`Placement`](#placement) | Where every component sits, in `Order` then the non-flow elements. |
+| `routes` | array of [`Route`](#route) | Every connection's path, in connection order, then the instruments' signal lines. |
 
 ### `Visualization`
 
@@ -279,6 +283,18 @@ A named thing and its version.
 |---|---|---|
 | `id` | string | The stable identifier. |
 | `version` | string | The exact version string. |
+
+### `ResolvedStyle`
+
+A style with every name resolved (`D-104`). A `null` colour or width is the theme's default.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `stroke` | string or `null` | The stroke colour, `#rrggbb`, or `null` for the theme's. |
+| `strokeWidth` | number or `null` | The stroke width in CSS pixels at scale 1, or `null` for the theme's. |
+| `pattern` | string | `solid`, `dashed`, `dotted` or `dash-dot`. |
+| `fill` | string or `null` | The static fill colour, or `null` for none; the colour scale paints over it while `show` is active. |
+| `corner` | string or `null` | `fillet`, `round`, `sharp` or `null` for the theme's. |
 
 ### `Span`
 
@@ -359,7 +375,7 @@ Where a port meets its symbol, and which way a connection leaves it.
 | Field | Type | Meaning |
 |---|---|---|
 | `at` | array of number | The point on the box edge, `[x, y]` in symbol units. |
-| `direction` | array of number or `null` | The outward unit vector a connection leaves along, `[dx, dy]` with `y` down; rotates with the box. Absent for the wildcard anchor, whose direction the renderer chooses. Absent when not applicable. |
+| `direction` | array of number or `null` | The outward unit vector a connection leaves along, `[dx, dy]` with `y` up (`28` A1); rotates with the box. Absent for the wildcard anchor, whose direction the layout chooses. Absent when not applicable. |
 
 ### `IndexedAnchor`
 
@@ -430,6 +446,39 @@ A distribution group.
 |---|---|---|
 | `parentCircuit` | string | The circuit owning the rails. |
 | `members` | array of string | The branches, at least two. |
+
+### `Placement`
+
+One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y` grows upward and a box's `y` is its bottom edge (`28` A1).
+
+| Field | Type | Meaning |
+|---|---|---|
+| `componentId` | string | The component. |
+| `symbolId` | string | The symbol drawn inside `Inner`. |
+| `inner` | array of number | The symbol's box as placed, `[x, y, width, height]`; the renderer draws the strokes inside it. |
+| `outer` | array of number | The inner box grown by the margin; no other component's inner box enters it. |
+| `rotation` | integer | The quarter turn applied, clockwise degrees: 0, 90, 180 or 270. |
+| `mirrored` | boolean | Whether the symbol is mirrored left-to-right before the turn. |
+| `arrangement` | string | `default` or one of the symbol's alternative arrangements (`D-102`). |
+| `anchors` | object of [`Anchor`](#anchor) | Every port's anchor in world coordinates with its outward direction; a node's ports are `#0`, `#1`, … |
+| `labelAt` | array of number | Where the label sits, `[x, y]`. |
+| `source` | string | `computed`; `pinned` is reserved for a placement the script states. |
+| `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style: the script's named or anonymous style (`D-104`); absent when the theme's defaults apply throughout. Absent when not applicable. |
+| `scale` | number or `null` | Where the component's representative value sits on the active colour scale, 0 to 1; `null` when not computed. |
+
+### `Route`
+
+One connection's path.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | `c{n}` for a connection; `{instrument}:measures` or `{controller}:actuates` for a signal line. |
+| `kind` | string | `pipe` or `signal`. |
+| `points` | array of number | The orthogonal polyline, flattened `[x0, y0, x1, y1, …]`; the first and last points are the anchors. |
+| `hops` | array of number | Where this route crosses an earlier one, flattened `[x0, y0, …]` in world units; the renderer draws a crossing mark at each. |
+| `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style, from the component the route leaves; absent when the theme's defaults apply throughout. Absent when not applicable. |
+| `scaleFrom` | number or `null` | The scale position at the start, for a gradient; `null` when not computed. |
+| `scaleTo` | number or `null` | The scale position at the end. |
 
 ### `Scale`
 

@@ -276,12 +276,14 @@ The largest phase and the one where scope creeps, because every package is visib
 | # | Package |
 |---|---|
 | P5.1 | Model contract and layout hints ([`26`](20-core-domain/26-model-contract.md), [`25`](20-core-domain/25-layout-hints.md)) — Core-side, closed by golden files before a pixel exists |
+| P5.1d | **The layout solver, in Core** (`D-103`): named styles (`D-104`), placements with inner and outer boxes, orthogonal routes, labels, the layout report (`D-100`) — staged as placements with straight routes, then the router, then the report and `62`'s gates |
+| P5.1e | **Pipe properties on a connection line** (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection with `length` defaulting to zero, the samples and the ladder scripts rewritten to it, `docs/functions/pipe.md` |
 | P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)) |
 | P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)) |
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](50-frontend/52-editor.md), [`17`](10-language/17-formatting-and-round-trip.md)) |
-| P5.6 | Canvas viewport and Core-owned symbols ([`53`](50-frontend/53-canvas-renderer.md), `D-24`) |
-| P5.7 | **The layout engine** ([`53`](50-frontend/53-canvas-renderer.md)) |
+| P5.6 | Canvas viewport and Core-owned symbols ([`53`](50-frontend/53-canvas-renderer.md), `D-24`) — draws `layout.placements` and `layout.routes` |
+| P5.7 | ~~The layout engine~~ — moved to Core as P5.1d by `D-103`; what remains here is the renderer's consumption of the prepared scene ([`53`](50-frontend/53-canvas-renderer.md)) |
 | P5.8 | Hover, selection, console log, status line ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)) |
 | P5.9 | File lifecycle and document tabs ([`58`](50-frontend/58-file-lifecycle.md), `D-39`) |
 | P5.10 | State visualization and colour scales ([`57`](50-frontend/57-state-visualization.md)) |
@@ -296,20 +298,38 @@ the pair that is allowed to move text had no home. It belongs with the command t
 than with the printer it must not become: written beside the printer it would share a code path, and
 `17`'s whole thesis is that these two operations stay separate.
 
-**P5.7 is the phase's schedule risk**, and it is placed after the viewport so it has something to
-render into but before hover and log so those are built against real placements. It carries two
+**P5.1d is the phase's schedule risk** (it was P5.7 until `D-103` moved the engine into Core; the
+paragraphs below were written for that placement and their reasons survive the move). It is placed
+before the API so the endpoint carries a finished layout from its first response, and it is built
+headless in Core, where its every property is a `dotnet test`. It carries two
 layout modes (`D-38`), the corner rule (`D-44`), mandatory collapse, non-overlap at 200 components,
 and deterministic ordering. It is built **headless against golden layout-hint fixtures** and
 unit-tested on placements before it is attached to a canvas;
 [`62-testing-strategy`](60-docs-and-devex/62-testing-strategy.md) is explicit that a screenshot
 alone cannot test it.
 
-**P5.7 also ships the layout report (`D-100`)** — `LayoutExplanation` and the `Diagnostic`-tier
+**P5.1d-2 is the layout engine built one rule at a time against a ladder of scripts (`D-107`).**
+P5.1d-1 shipped a working solver (`D-105`) and, with it, the evidence that a cost function choosing
+orientations and a router discovering paths reproduce the drift `D-106` names: four bends where one
+sentence of the user's rules gives one. A second engine built whole against `D-106`'s method list
+drifted the same way. So P5.1d-2 is not "the router" as the row above says, and not a staged build
+either: it is [`28`](20-core-domain/28-layout-solver.md)'s four parts -- the model (A), the standard
+(B), the rules (C, empty at the start) and the candidate algorithms of the user's specification
+([`28-layout-solver.source`](20-core-domain/28-layout-solver.source.md), verbatim) (D) -- with
+[`29-layout-ladder`](20-core-domain/29-layout-ladder.md) as the process that fills C: one script per
+step, one component more than the last, the picture and the `28` A10 text drawn before any assertion,
+the user's correction written as the next rule, the rule numbered in `28` and in the code. What no
+rule covers goes to a fallback column and is never guessed. The package completes when the ladder
+reaches the seven layout samples and their audit gates come off skip, with `header-200` inside `07`'s
+budget. P5.1d-3 (the report and `62`'s gates) is unchanged except that its report is `28` A10's
+text, which the ladder already writes per step.
+
+**P5.1d-3 also ships the layout report (`D-100`)** — `LayoutExplanation` and the `Diagnostic`-tier
 harness that writes `diagnostics/layout-reports.md` — before the engine is tuned, for the reason
 `SolveExplanation` was built before the solver was tuned: a session cannot see a canvas, and the
 report is how it observes a placement. `P5.1` carries `D-100`'s Core-side half, `BranchShapes`.
 
-**P5.7 ships the prepared scene and its predicate sweep together, because the sweep is what makes the
+**P5.1d-3 ships the scene's predicate sweep, and P5.7 the renderer that consumes it, because the sweep is what makes the
 engine reviewable at all.** `D-71` makes the scene a specified structure and the verification target,
 so the nineteen predicates in `62` are written against it before the canvas consumes it — the same
 order P5.1 uses for the model contract. Two of the package's exits are unusual and deliberate: the

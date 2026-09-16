@@ -15,7 +15,15 @@
   },
   "style": {
     "tokens": [],
-    "spacing": null
+    "spacing": null,
+    "default": {
+      "stroke": null,
+      "strokeWidth": null,
+      "pattern": "solid",
+      "fill": null,
+      "corner": null
+    },
+    "named": {}
   },
   "circuits": [
     {
@@ -265,17 +273,17 @@
     {
       "id": "node.junction",
       "viewBox": [
-        -0.15,
-        -0.15,
-        0.3,
-        0.3
+        -0.1,
+        -0.1,
+        0.2,
+        0.2
       ],
       "primitives": [
         {
           "kind": "circle",
           "x": 0,
           "y": 0,
-          "r": 0.12,
+          "r": 0.08,
           "fill": "stroke"
         }
       ],
@@ -289,7 +297,7 @@
       },
       "labelAnchor": [
         0,
-        -0.35
+        0.3
       ]
     },
     {
@@ -337,7 +345,7 @@
       },
       "labelAnchor": [
         0,
-        -0.3
+        0.3
       ]
     },
     {
@@ -384,34 +392,24 @@
         "in": {
           "at": [
             -0.15,
-            -0.5
+            0.5
           ],
           "direction": [
             0,
-            -1
+            1
           ]
         },
         "out": {
           "at": [
             -0.15,
-            0.5
+            -0.5
           ],
           "direction": [
             0,
-            1
+            -1
           ]
         },
         "in2": {
-          "at": [
-            0.15,
-            0.5
-          ],
-          "direction": [
-            0,
-            1
-          ]
-        },
-        "out2": {
           "at": [
             0.15,
             -0.5
@@ -419,6 +417,16 @@
           "direction": [
             0,
             -1
+          ]
+        },
+        "out2": {
+          "at": [
+            0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
           ]
         }
       },
@@ -427,7 +435,7 @@
           "in": {
             "at": [
               -0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               -1,
@@ -437,7 +445,7 @@
           "out": {
             "at": [
               -0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               -1,
@@ -447,7 +455,7 @@
           "in2": {
             "at": [
               0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               1,
@@ -457,7 +465,7 @@
           "out2": {
             "at": [
               0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               1,
@@ -468,7 +476,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -534,18 +542,18 @@
           ],
           "to": [
             0,
-            -0.22
+            0.22
           ]
         },
         {
           "kind": "line",
           "from": [
             -0.12,
-            -0.22
+            0.22
           ],
           "to": [
             0.12,
-            -0.22
+            0.22
           ]
         }
       ],
@@ -573,7 +581,7 @@
       },
       "labelAnchor": [
         0,
-        -0.45
+        0.45
       ]
     },
     {
@@ -601,11 +609,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            -0.45,
+            0.45,
             0,
             0,
             0.22,
-            -0.45
+            0.45
           ],
           "fill": "state"
         },
@@ -613,11 +621,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            0.45,
+            -0.45,
             0,
             0,
             0.22,
-            0.45
+            -0.45
           ],
           "fill": "state"
         },
@@ -636,22 +644,22 @@
           "kind": "line",
           "from": [
             0,
-            -0.5
+            0.5
           ],
           "to": [
             0,
-            -0.45
+            0.45
           ]
         },
         {
           "kind": "line",
           "from": [
             0,
-            0.45
+            -0.45
           ],
           "to": [
             0,
-            0.5
+            -0.5
           ]
         },
         {
@@ -678,17 +686,17 @@
         }
       ],
       "portAnchors": {
-        "ab": {
+        "a": {
           "at": [
-            -0.5,
-            0
+            0,
+            0.5
           ],
           "direction": [
-            -1,
-            0
+            0,
+            1
           ]
         },
-        "a": {
+        "ab": {
           "at": [
             0,
             -0.5
@@ -700,18 +708,18 @@
         },
         "b": {
           "at": [
-            0,
-            0.5
+            -0.5,
+            0
           ],
           "direction": [
-            0,
-            1
+            -1,
+            0
           ]
         }
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -789,7 +797,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -837,7 +845,7 @@
       ],
       "labelAnchor": [
         0,
-        -0.95
+        0.95
       ]
     },
     {
@@ -1020,13 +1028,6 @@
       "RAD_NETWORK",
       "AHU_NETWORK"
     ],
-    "rank": {
-      "AHU_NETWORK": 2,
-      "RAD_NETWORK": 2,
-      "S1": 0,
-      "S2": 2,
-      "T1": 1
-    },
     "thermalStages": [
       {
         "rank": 0,
@@ -1058,14 +1059,6 @@
       "c2": "none",
       "c3": "none"
     },
-    "portSides": {
-      "T1.in1": "west",
-      "T1.in2": "west",
-      "T1.out1": "east",
-      "T1.out2": "east"
-    },
-    "loops": [],
-    "loopOrientations": [],
     "groups": [],
     "nonFlowElements": [],
     "circuitOf": {
@@ -1077,7 +1070,284 @@
     },
     "distributionGroups": [],
     "inferred": [],
-    "branchShapes": {}
+    "margin": 0.5,
+    "extent": [
+      -0.6,
+      -1.94,
+      3.4,
+      2.6
+    ],
+    "placements": [
+      {
+        "componentId": "S1",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.1,
+          -0.1,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -0.6,
+          -0.6,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.1,
+              0
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0,
+          0.25
+        ],
+        "source": "computed",
+        "scale": null
+      },
+      {
+        "componentId": "T1",
+        "symbolId": "tank.stratified",
+        "inner": [
+          0.6,
+          -1.44,
+          1,
+          1.6
+        ],
+        "outer": [
+          0.1,
+          -1.94,
+          2,
+          2.6
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in1": {
+            "at": [
+              0.6,
+              0
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "in2": {
+            "at": [
+              0.6,
+              -0.96
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out1": {
+            "at": [
+              1.6,
+              0
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "out2": {
+            "at": [
+              1.6,
+              -0.96
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          1.1,
+          0.31
+        ],
+        "source": "computed",
+        "scale": null
+      },
+      {
+        "componentId": "S2",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.1,
+          -1.06,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -0.6,
+          -1.56,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.1,
+              -0.96
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0,
+          -0.71
+        ],
+        "source": "computed",
+        "scale": null
+      },
+      {
+        "componentId": "RAD_NETWORK",
+        "symbolId": "node.junction",
+        "inner": [
+          2.1,
+          -0.1,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          1.6,
+          -0.6,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              2.1,
+              0
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          2.2,
+          0.25
+        ],
+        "source": "computed",
+        "scale": null
+      },
+      {
+        "componentId": "AHU_NETWORK",
+        "symbolId": "node.junction",
+        "inner": [
+          2.1,
+          -1.06,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          1.6,
+          -1.56,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              2.1,
+              -0.96
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          2.2,
+          -0.71
+        ],
+        "source": "computed",
+        "scale": null
+      }
+    ],
+    "routes": [
+      {
+        "id": "c0",
+        "kind": "pipe",
+        "points": [
+          0.1,
+          0,
+          0.6,
+          0
+        ],
+        "hops": [],
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c1",
+        "kind": "pipe",
+        "points": [
+          0.1,
+          -0.96,
+          0.6,
+          -0.96
+        ],
+        "hops": [],
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c2",
+        "kind": "pipe",
+        "points": [
+          1.6,
+          0,
+          2.1,
+          0
+        ],
+        "hops": [],
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c3",
+        "kind": "pipe",
+        "points": [
+          1.6,
+          -0.96,
+          2.1,
+          -0.96
+        ],
+        "hops": [],
+        "scaleFrom": null,
+        "scaleTo": null
+      }
+    ]
   },
   "visualization": {
     "active": "temperature",

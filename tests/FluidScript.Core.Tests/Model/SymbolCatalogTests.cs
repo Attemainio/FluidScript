@@ -115,20 +115,17 @@ public sealed class SymbolCatalogTests
         var exchanger = Symbol("heat_exchanger.standard");
         var u = Assert.Contains("u", exchanger.Alternatives!);
 
-        // Through-pass: each side enters one end and leaves the other, primary left, secondary right.
-        Assert.Equal([0, -1], exchanger.PortAnchors["in"].Direction!.Value);
-        Assert.Equal([0, 1], exchanger.PortAnchors["out"].Direction!.Value);
+        // Through-pass, y up (28 §1): each side enters one end and leaves the other, primary left, secondary right.
+        Assert.Equal([0, 1], exchanger.PortAnchors["in"].Direction!.Value);
+        Assert.Equal([0, -1], exchanger.PortAnchors["out"].Direction!.Value);
         Assert.True(exchanger.PortAnchors["in"].At[0] < 0 && exchanger.PortAnchors["in2"].At[0] > 0);
 
         // U-pass: each side in and out on its own flank, counterflow.
         Assert.Equal([-1, 0], u["in"].Direction!.Value);
         Assert.Equal([-1, 0], u["out"].Direction!.Value);
         Assert.Equal([1, 0], u["in2"].Direction!.Value);
-        Assert.True(u["in"].At[1] < u["out"].At[1] && u["in2"].At[1] > u["out2"].At[1]);
+        Assert.True(u["in"].At[1] > u["out"].At[1] && u["in2"].At[1] < u["out2"].At[1]);
 
-        Assert.Equal("north", SymbolCatalog.SideOf("heat_exchanger", "in"));
-        Assert.Equal("west", SymbolCatalog.SideOf("tank", "in3"));
-        Assert.Null(SymbolCatalog.SideOf("node", "1"));
     }
 
     private static IEnumerable<(string Name, IReadOnlyDictionary<string, AnchorWire> Anchors)> Sets(SymbolWire symbol) =>

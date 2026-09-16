@@ -12,6 +12,11 @@ TV1 three_way_valve authority=0.5
 valve body: a mixing valve is **A + B → AB** and a diverting valve is **AB → A + B**, so the common
 port is the one written with both letters.
 
+On the diagram the valve is drawn the way the body is built: `a` and `ab` are in line and `b` is
+the side port. That is how Belimo and Siemens cast them -- the straight run is A to AB, B is the
+angle port -- so a mixing valve on a branch reads as it is piped: supply in at `a`, mixed water on to
+the pump from `ab`, the bypass into `b` from the side.
+
 `b` is optional — a three-way valve used as a two-way leaves it open. That is not a cosmetic choice:
 the valve then **is** a two-way valve. It has two ports, one Kv law, and no mixing to describe, so the
 circuit gets one equation from it rather than three. Which one you wrote is reported as its mode —

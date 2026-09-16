@@ -34,35 +34,18 @@ public sealed class LayoutHintsTests
     }
 
     [Fact]
-    public void RankCountsHopsFromTheLoopAndLoopMembersHaveNone()
+    public void TheFourInferredComponentsAreNamed()
     {
         var (hints, _) = Unsolved(GraphFixture.CoolingLoop);
 
-        Assert.Equal(1, hints.Rank["N1"]);
-        Assert.Equal(1, hints.Rank["3WV__P1"]);
-        Assert.Equal(2, hints.Rank["P1"]);
-        Assert.Equal(3, hints.Rank["N3"]);
-        Assert.DoesNotContain("PU1", hints.Rank.Keys);
-        Assert.DoesNotContain("3WV", hints.Rank.Keys);
-    }
-
-    [Fact]
-    public void TheLoopIsOneClosedWalkAndTheFourInferredComponentsAreNamed()
-    {
-        var (hints, _) = Unsolved(GraphFixture.CoolingLoop);
-
-        var loop = Assert.Single(hints.Loops);
-        Assert.Equal(["N2", "PU1", "PU1__HE1", "HE1", "HE1__3WV", "3WV"], loop);
-        Assert.Equal([LoopOrientation.Clockwise], hints.LoopOrientations);
         Assert.Equal(["3WV__P1", "HE1__3WV", "N2", "PU1__HE1"], hints.Inferred.Order(StringComparer.Ordinal));
     }
 
     [Fact]
-    public async Task ASolvedLoopHasAnOrientationAndEveryConnectionADirection()
+    public async Task ASolvedLoopGivesEveryConnectionADirection()
     {
         var (hints, _) = await SolvedAsync(GraphFixture.CoolingLoop, "cooling-loop");
 
-        Assert.Equal([LoopOrientation.Clockwise], hints.LoopOrientations);
         // Seven written lines, three of them split by I2 around an inferred node: ten adjacencies.
         Assert.Equal(10, hints.Flow.Count);
         Assert.All(hints.Flow.Values, static direction => Assert.Equal(FlowDirection.Forward, direction));
@@ -79,24 +62,6 @@ public sealed class LayoutHintsTests
         Assert.Equal(10, stage.Components.Length);
     }
 
-    [Fact]
-    public void PortSidesAreReadOffTheSymbolsDefaultAnchors()
-    {
-        // D-102: the side is the default anchor's direction; the exchanger's through-pass runs top to
-        // bottom on the left flank and bottom to top on the right, and the renderer rotates from there.
-        var (hints, _) = Unsolved(GraphFixture.CoolingLoop);
-
-        Assert.Equal(PortSide.West, hints.PortSides["3WV.ab"]);
-        Assert.Equal(PortSide.North, hints.PortSides["3WV.a"]);
-        Assert.Equal(PortSide.South, hints.PortSides["3WV.b"]);
-        Assert.Equal(PortSide.West, hints.PortSides["PU1.in"]);
-        Assert.Equal(PortSide.East, hints.PortSides["PU1.out"]);
-        Assert.Equal(PortSide.North, hints.PortSides["HE1.in"]);
-        Assert.Equal(PortSide.South, hints.PortSides["HE1.out"]);
-        Assert.Equal(PortSide.South, hints.PortSides["HE1.in2"]);
-        Assert.Equal(PortSide.North, hints.PortSides["HE1.out2"]);
-        Assert.DoesNotContain("N1.1", hints.PortSides.Keys);
-    }
 
     [Fact]
     public void PermutingIndependentStatementsLeavesTheOrderUnchanged()
@@ -118,10 +83,7 @@ public sealed class LayoutHintsTests
         Assert.Equal(
             [(0, ThermalStageRole.Source, "S1 S2"), (1, ThermalStageRole.Storage, "T1"), (2, ThermalStageRole.Consumer, "RAD_NETWORK AHU_NETWORK")],
             hints.ThermalStages.Select(static s => (s.Rank, s.Role, string.Join(' ', s.Components))));
-        Assert.Equal(PortSide.West, hints.PortSides["T1.in1"]);
-        Assert.Equal(PortSide.West, hints.PortSides["T1.in2"]);
-        Assert.Equal(PortSide.East, hints.PortSides["T1.out1"]);
-        Assert.Equal(PortSide.East, hints.PortSides["T1.out2"]);
+
     }
 
     // ---- the distribution header -------------------------------------------------------------------
@@ -161,31 +123,6 @@ public sealed class LayoutHintsTests
         Assert.Equal(consumer.Rank, hints.ThermalStages.Single(static s => s.Role == ThermalStageRole.Neutral).Rank);
     }
 
-    [Fact]
-    public void EquivalentBranchesHaveEqualShapesUntilOneGainsAValve()
-    {
-        var source = Sample("m2-distribution-header.fluid");
-        var (hints, _) = Unsolved(source);
-
-        // `load` is a spelling of `heat_exchanger`; the shape carries the kind, not the spelling.
-        Assert.Equal(["pipe", "three_way_valve", "pump", "heat_exchanger", "pipe"], hints.BranchShapes["AHU"]);
-        Assert.Equal(hints.BranchShapes["AHU"], hints.BranchShapes["radiators"]);
-
-        var renamed = source
-            .Replace("HE_RAD", "COIL_R").Replace("TV_RAD", "MIX_R").Replace("PU_RAD", "PMP_R")
-            .Replace("PR1", "PIPE_R1").Replace("PR2", "PIPE_R2").Replace("NM_RAD", "NODE_R");
-        var (renamedHints, _) = Unsolved(renamed);
-        Assert.Equal(renamedHints.BranchShapes["AHU"], renamedHints.BranchShapes["radiators"]);
-
-        var withValve = source
-            .Replace("PR2     pipe length=18 dn=25", "PR2     pipe length=18 dn=25\nBV_RAD  valve kv=10")
-            .Replace("NM_RAD - PR2 - N6", "NM_RAD - PR2 - BV_RAD - N6");
-        var (valved, _) = Unsolved(withValve);
-        Assert.NotEqual(valved.BranchShapes["AHU"], valved.BranchShapes["radiators"]);
-        Assert.Equal(["pipe", "three_way_valve", "pump", "heat_exchanger", "pipe", "valve"], valved.BranchShapes["radiators"]);
-    }
-
-    // ---- the substation ------------------------------------------------------------------------------
 
     [Fact]
     public void TheSubstationPlacesItsSourceSideBeforeTheExchangerAndTheHeatingSideAfter()
@@ -292,18 +229,12 @@ public sealed class LayoutHintsTests
     }
 
     [Fact]
-    public void EveryNonLoopComponentInEverySampleHasARank()
+    public void EveryComponentInEverySampleIsOrderedAndStaged()
     {
         foreach (var sample in Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal))
         {
             var lowered = GraphFixture.Lower(File.ReadAllText(sample));
             var (hints, _) = LayoutHintsDerivation.Derive(lowered.Graph, GraphFixture.Bind(File.ReadAllText(sample)), null);
-            var members = hints.Loops.SelectMany(static l => l).ToHashSet(StringComparer.Ordinal);
-
-            foreach (var component in lowered.Graph.Components)
-            {
-                Assert.Equal(!members.Contains(component.Name), hints.Rank.ContainsKey(component.Name));
-            }
 
             Assert.Equal(lowered.Graph.Components.Length, hints.Order.Length);
             Assert.Equal(lowered.Graph.Components.Length, hints.ThermalStages.Sum(static s => s.Components.Length));

@@ -60,8 +60,33 @@ would be filled with nothing.
 > on a `chiller`. The audit of open defects before `P5.1` closed `C-4` (already met by P4.1),
 > `L-36` (a `13` correction) and `C-67` — the last with `FS2119`, which found seventeen test
 > fixtures and four syntax-tour lines writing a cooling load as a positive neutral duty.
-> **P5 — M3, the usable static product — is in progress: P5.1 (layout hints, the model contract,
-> symbols and the payload baseline) shipped 2026-09-15; P5.2 is next.**
+> **P5 — M3, the usable static product — is in progress: P5.1a–c (layout hints, the model contract,
+> symbols and the payload baseline) and P5.1d-1 (the layout solver in Core, `D-103`, with named
+> styles, `D-104`) shipped 2026-09-15 and was taken to the user's pictures on 2026-09-16 (`D-105`,
+> the router, the audit); P5.1d-2 built the rule-based engine of `D-106` whole on 2026-09-16, and
+> the same day the user judged its pictures, the plan was re-evaluated and the engine restarted
+> from an empty rule set against a ladder of scripts (`D-107`, `28` rewritten in four parts, `29`
+> the step log). Step 1 -- one pump -- was drawn and corrected the same day: the user's four
+> directions are `D-108` (heat left to right and loops clockwise as hard constraints H9/H10, a
+> transform class per kind with exchangers and tanks mirrored never turned, every node laid out
+> with its boundaries, the layout checked from its text), written into `28` as C1–C4 and A4/A6/A10
+> and into `29` as a ten-step plan that reaches every sample; `C-88`–`C-90` filed for what the
+> code lacks (the audit's five unmeasured constraints, the text in tests not Core, no transform
+> class in the catalogue). Step 1 is redrawn with two nodes instead of ticks (hard 0); step 2 -- a
+> pump feeding an exchanger -- is drawn (C3 and C4 exercised, C5 sequential placement provisional,
+> hard 0, one bend); the user's first correction to it -- the inferred node between two
+> components takes no place -- is in `28` A5 and closed its open question 1. Step 3 -- the loop
+> closed with a load -- is drawn by C2 (source left flowing up, load right flowing down, the pump on
+> the bottom rail; four bends, hard 0), step 4 put a valve on the return with no engine change and
+> passed, and step 5 hung the primary off the exchanger's second side (C6: a loop member's flank
+> chain runs level away from the loop; a declared pipe and a chain of inline elements spread along
+> their run; hard 0, soft 0). The user's step 5 corrections: `D-109` (a symbol reversing on a
+> line is mirrored, not half-turned) is in; pipe properties on a connection line is decided,
+> `D-110` (option A: an implicit pipe per connection carrying properties, bare connections
+> unchanged), as package P5.1e in `08`; C7 aligns a return under its supply. Step 5 stands.
+> Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts. The
+> seven layout samples run through the engine's fallback and their layout gates are skipped until
+> the ladder reaches them.**
 > The substation converges on `01`'s figures —
 > UA 12.071 kW/K by ε-NTU and by LMTD at the solved state, 3.658 m², 0.895 / 1.793 kg/s — after
 > four changes that were one defect from the outside (`S-32`): the exchanger's duty is
@@ -256,7 +281,10 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 |---|---|---|---|
 | P5.1a | `LayoutHints` per `25`, with `BranchShapes` (`D-100`) and `FS2401`–`FS2403` | (this commit) | Shipped 2026-09-15 |
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
-| P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | (this commit) | Shipped 2026-09-15 |
+| P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
+| P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 5 of ten drawn; step 5 awaits corrections |
+| P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -314,6 +342,104 @@ direction, a symbol may offer alternative arrangements of its ports (the exchang
 through-pass default), `25`'s `PortSides` is read off the default arrangement, and `53` states the
 Manhattan-plus-bends cost the renderer picks arrangement and rotation by. Core 1656/0/4; Api 18/0.
 
+**P5.1d-1 is `LayoutSolver.Solve(graph, model, hints, margin)` in `FluidScript.Core.Layout`**, and
+it exists because the user stopped P5.1c's plan mid-sentence: the frontend was about to own
+placement, and *all solving and calculation should be made in Core* -- the frontend is a renderer.
+`D-103` records that; the `CLAUDE.md` non-negotiable now says geometry never moves to the frontend
+either. The solver is three passes over the hints. *Cells*: a distribution group's parent becomes two
+rails and each child branch a column between them (the longest simple path through the branch, so a
+bypass edge cannot shortcut it), a loop a ring with bare corners (`D-44`), a chain hangs outward,
+and a model with neither is placed by thermal stage. *Orientation*: every symbol's arrangement
+(`D-102`), quarter turn and mirror are chosen by Manhattan stub-to-target length plus a bend
+penalty, two passes so later neighbours can move earlier choices. *Coordinates and routes*: each
+column and row is sized to its widest and tallest symbol plus twice the margin, which is what makes
+`D-103`'s invariant -- no inner box inside another's outer box -- a property of the grid rather than
+a check; a route leaves each anchor for `margin / 2` along its direction and the two stubs are
+joined by the cleanest of the simple orthogonal joins (no box crossed first, then fewest bends, then
+shortest). The wire carries it as `layout.margin`, `extent`, `placements[]` and `routes[]` (`26`).
+`D-104` puts the styles beside it: `style name = tokens` defines, `style name` on a circuit and
+`style=name` on a component apply, `fill=` is keyed and `show` overrides only the fill; Core
+resolves named colours and the wire carries `#rrggbb`. `spacing` is the margin now, 0.5 by default,
+and the samples' `spacing 20` -- twenty pumps -- became `0.75` (`55` records why). Measured: the
+solver is 24 ms on the 200-component header after `D-105`, under `07`'s 30 ms; the payload grew
+to 278.5 / 325.7 KiB.
+Seven layout SVGs under `diagnostics/layout/` are what a session looks at, since it cannot see a
+canvas, each with a `.txt` beside it listing every placement and route in world units.
+**The user reviewed the first pictures on 2026-09-15 and named five things wrong with them**, which
+became `D-105` (2026-09-16): a declared pipe was a box, an inferred node a circle as big as a
+junction, an exchanger's off-centre pass met the pump with a jog, ties fell to enumeration order,
+and the three-way valve's body was not one a manufacturer builds. Now a pipe and a two-port node are
+points on their run (no cell, no box, nothing drawn for the node, a label for the pipe), a junction
+is a 0.2 dot with one pipe per side, a symbol slides in its cell so its run anchor sits on the line,
+a designer's orientation is a cost below a bend, routes are penalised for running along a drawn pipe,
+labels stay upright beside the placed box, and `three_way_valve` has `a`–`ab` straight with `b` the
+angle port (Belimo, Siemens VXG -- cited in `53`). **Then the user pointed at `53` itself**, and
+the cells were re-planned to its shape: every branch and every loop is one U (`ShapeU`/`PlaceU`) --
+supply run along the top, the last exchanger down the far side with its neighbouring valves, return
+along the bottom, the bypass junction under its valve, members that lead out of a loop climbing the
+near side, the entry junction in the top-left corner, all four corners reserved so no chain lands on
+one -- and a loop runs the way the plant is piped, read off port roles rather than the solved
+orientation hint so the compile and the solved drawings are the same drawing. `53`'s worked example
+was updated for the valve body (the valve climbs the left vertical instead of sitting on the corner)
+and three of its acceptance boxes are ticked; filed `C-83` (rail ends, where a chain hangs off a U, bypass-leg components). The 200-component header solves in 24 ms, under `07`'s
+30 ms, because two hundred fewer cells are routed. Filed `C-80` (bypass legs hug the branch line), `C-81` (orientation ties fall to enumeration
+order), `C-82` (nested headers are laid out as chains); closed `L-1`. Core 1695 total/0 failed/4 skipped, twice; Api 18/0.
+
+**P5.1d-1 continued on 2026-09-16 with the router and the audit, and ended with `D-106`.**
+`OrthogonalRouter` replaced the simple joins: a Hanan grid over every outer box and every laid pipe,
+Dijkstra with bends and pipe-following penalised and no doubling back, a straight join when two
+ports face each other with nothing between, hops recorded where a route crosses an earlier one,
+each port's stub reserved as a lane so no later pipe wraps it, and the stub a whole margin long from
+the inner boundary to the outer one, turning only from there. `SceneAudit` (Core) is the layout's
+validator: inner box inside an outer box, a pipe through an outer box, a pipe beside a pipe closer
+than the margin, with the run-ownership and port-pitch exemptions; `SceneText` (tests) writes the
+scene as text per sample -- rotation, inner and outer boxes, each port at both boundaries with its
+vector, every route with its band, the audit's findings -- because the user diagnoses text faster than
+SVG. Then the user reviewed the four pictures against sketches and named the drift: the substation
+and the simple loop were laid out by a cost and a router rediscovering what one rule states (the
+exchanger takes the flow down, so the pump is below it), and four bends appeared where there is
+one. Their specification of the rule-based engine is `28` (kept verbatim beside it) and `D-106`; the
+pictures were brought to the sketches by hand-tuned hints (`_approach`, `FlankStep`, `Jog` lanes) to
+prove the audit and the text, and those hints are what `28`'s stages replace. Measured after the
+router: `header-200` 21 ms (`07`'s 30 ms). Core 1702/0/4 twice; Layout 55/55; Api 18/0 with goldens
+regenerated. Filed `C-84` (labels are placed, not laid out) and `C-85` (the thermal-stage fallback
+stacks); `C-80`, `C-81`, `C-83` are answered by `28`'s stages rather than fixed in P5.1d-1's engine.
+
+**P5.1d-2 built the engine whole the same day, then started again.** The first build implemented
+all six stages of the `D-106` list: y up everywhere in Core, link directions by roles and
+propagation, inline elements contracted into runs, a header laid per `28`'s branch rule, simple
+loops by Tarjan SCC solved by a four-side partition search into rigid groups, everything else hung
+from placed ports, the router last. Seven samples audit-clean (hard 0 / soft 0), `header-200`
+23.5 ms, Layout 55/55. The user judged the pictures wrong in the same way the P5.1d-1 pictures were
+wrong -- exchangers lying down, a chain turning vertical, flow reading top to bottom -- and asked
+for the plan to be re-evaluated and the engine restarted one component at a time. The evaluation
+kept `D-103`, `D-100`'s standard and `D-106`'s principle; dropped `D-38`'s picture, `D-31`'s bands,
+and orientation-as-cost (`D-102`, `D-105` item 4); and found the P5.1a hints `Rank`, `PortSides`,
+`Loops`, `LoopOrientations` and `BranchShapes` to be the old engines in data form. `D-107` records
+all of it. The state now: `28` rewritten as model / standard / rules / candidates; `29` the ladder;
+`25` reduced to the nine hints that survive, the wire and goldens with it; `53` a renderer document;
+a fresh `LayoutEngine` with `28` A6 (boundary stubs) and C1 (the first component at the origin);
+the old engines parked in `~/fluidscript-attic/2026-09-16-engine/`. Step 1 is drawn: one pump,
+two stub ticks, hard 0. `LayoutSolverTests`' routing and audit gates and `LayoutTimingTests` are
+skipped until the ladder reaches the samples; `LayoutLadderTests` is the gate. `C-86` and `C-87`
+were filed against the first build and stay open as observations for the ladder to answer.
+
+**Step 1's correction came as four standing rules, not one picture note (`D-108`, 2026-09-16).**
+Heat flows left to right and every flow loop runs clockwise -- promoted from `28` B's fourth
+priority to hard constraints H9 and H10, which together fix a loop's source on the left flowing up,
+its consumer on the right flowing down, and re-derive `R-48`'s rails for a closed ring that
+`D-107` had withdrawn with `D-38`; an exchanger, a tank and a heat pump are mirrored and never
+turned, as a transform class the catalogue carries (`free`, `standing`, `upright` -- the tank's
+layers are why the last is not the second); every node, boundary nodes included, is laid out with
+its box and outer boundary, withdrawing the stub-and-tick `28` A6 a session had decided; and a
+layout is checked from its text, which moves into Core and gains a raster. `28` C now holds C1
+(corrected: the first component is the heat source) and C2–C4 *stated*; `29` gained the planned
+ten steps, each asking the user one question, ending at every sample. Two questions are left for
+the pictures: whether an inferred node's boundary takes clearance (step 2) and which free-turning
+members leave a loop's bottom for a vertical (step 3). Filed `C-88` (the audit measures four of ten
+hard constraints), `C-89` (`SceneText` in tests, `62`'s second text withdrawn), `C-90` (no
+transform class in the catalogue; `Transform.All` offers every kind eight).
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -345,11 +471,11 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 10 · Language | 8 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 23 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **46** | |
+| | **50** | |
 
 Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
 absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
@@ -387,10 +513,18 @@ unassessed, not clean.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
    Core-side and closed by golden files before a pixel exists. `D-100` (2026-09-15) triaged a
    proposed layout standard before P5.1 started: hard constraints as a named class, an explicit
-   priority order, equivalent assemblies drawn congruently (`25` gains `BranchShapes`, P5.1's),
-   edit stability as an invariant, three spacing tiers, and a text layout report
-   (`LayoutExplanation`, P5.7's) so a session can read a placement it cannot see. Temperature
+   priority order, equivalent assemblies drawn congruently (P5.1a's `BranchShapes`, withdrawn by
+   `D-107`), edit stability as an invariant, three spacing tiers (dropped by `D-107`), and a text layout report
+   (`LayoutExplanation`, P5.1d-3's since `D-103`) so a session can read a placement it cannot see. Temperature
    ordering of branches and barycentre reordering are deferred with reasons.
+5. **The layout ladder's next step** (`29`): the user's corrections to step 2 -- a pump into an exchanger -- which exercised C3
+   (the standing class) and C4 and puts `28`'s open question 1 (does a node's boundary take
+   clearance?) in front of the user. Before step 3, close `C-88` (H4, H5, H7, H9, H10 in the
+   audit) and `C-90` (the transform class), or a counter-clockwise loop passes every gate. `C-89`
+   (the text into Core, the raster) is the same package. The planned steps are `29`'s table; the
+   candidates in `28` part D enter C only when a step proves them, and the loop search is now
+   only over which free-turning members take a vertical. The seven layout samples' routing and
+   audit gates come off skip when the ladder reaches them.
    What `P4` left behind, none of it blocking: `C-78` (the plate catalogue's shopping list — a cited
    `U`, a plate step, the `lamella` correlation, `FS2311`), `22`'s unticked crossover criterion (a
    solve driven across `C₁ = C₂`, not just the duty relation stepped over it), `C-75`'s last
@@ -405,7 +539,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1656 passed, 0 failed, 4 skipped** (229 MB working set for the whole run; was 8.9 GB before `C-76`'s test-side half), ~68 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1691 total, 0 failed, 8 skipped** (four of them the layout samples' routing and audit gates and the timing test, skipped until the ladder reaches them; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

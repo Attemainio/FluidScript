@@ -37,9 +37,18 @@ public sealed class PayloadBaselineTests
 
         var bytes = ModelContractJson.MeasureBytes(contract);
         var first = Time(contract);
-        var warm = Enumerable.Range(0, 5).Select(_ => Time(contract)).Min();
+            var warm = Enumerable.Range(0, 5).Select(_ => Time(contract)).Min();
 
-        TestContext.Current.TestOutputHelper?.WriteLine($"compile payload: {bytes} bytes ({bytes / 1024.0:F1} KiB); serialized in {first:F1} ms cold, {warm:F1} ms warm (best of 5)");
+            // 07's layout-solve line (D-103): the whole projection, layout included, warm, best of five.
+            var build = Enumerable.Range(0, 5).Select(_ =>
+            {
+                var clock = Stopwatch.StartNew();
+                ModelContractJson.Build(input);
+                return clock.Elapsed.TotalMilliseconds;
+            }).Min();
+
+            TestContext.Current.TestOutputHelper?.WriteLine($"compile payload: {bytes} bytes ({bytes / 1024.0:F1} KiB); serialized in {first:F1} ms cold, {warm:F1} ms warm (best of 5); contract built with layout in {build:F1} ms warm (best of 5)");
+            Assert.True(build < 500, $"building the contract took {build:F0} ms.");
 
         Assert.True(bytes <= BudgetBytes, $"{bytes} bytes is over 07's {BudgetBytes} byte budget.");
         Assert.All(contract.Circuits, static c => Assert.False(c.StatesOmitted));

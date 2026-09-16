@@ -66,7 +66,11 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1116` | Error | Parser | 'curve {name}' needs what it depends on, such as 'curve {name} tout'. |
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
 | `FS1118` | Error | Parser | A 'design' line needs named values, such as 'design tout=-26'. |
+| `FS1201` | Warning | Style directive | Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern. |
+| `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
+| `FS1204` | Warning | Style directive | No style called '{name}' is defined; the components keep their previous style. |
+| `FS1205` | Warning | Style directive | Style '{name}' is defined again; the later definition is used. |
 | `FS1302` | Error | Units | Cannot add two {dimension}s. To offset by a difference, write '{example}'. |
 | `FS1304` | Error | Units | '{parameter}' is a {expected}; '{value}' is a {actual}. |
 | `FS1305` | Error | Units | Cannot {operation} a {left} and a {right}. |

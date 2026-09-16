@@ -1,0 +1,7 @@
+# Layout ladder, step 1 (plan/20-core-domain/29-layout-ladder.md): one component, nothing connected.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+PU1 pump

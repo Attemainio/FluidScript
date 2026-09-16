@@ -1,0 +1,14 @@
+# Layout ladder, step 3 (plan/20-core-domain/29-layout-ladder.md): the loop closed with a load.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+PU1  pump
+HE1  heat_exchanger power=30 in=20 out=50
+LOAD heat_exchanger power=-30
+
+connections
+PU1 - HE1
+HE1 - LOAD
+LOAD - PU1

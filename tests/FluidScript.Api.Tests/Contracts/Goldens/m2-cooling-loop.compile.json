@@ -20,7 +20,15 @@
       "fillet",
       "--"
     ],
-    "spacing": null
+    "spacing": null,
+    "default": {
+      "stroke": null,
+      "strokeWidth": null,
+      "pattern": "solid",
+      "fill": null,
+      "corner": null
+    },
+    "named": {}
   },
   "circuits": [
     {
@@ -430,17 +438,17 @@
     {
       "id": "node.junction",
       "viewBox": [
-        -0.15,
-        -0.15,
-        0.3,
-        0.3
+        -0.1,
+        -0.1,
+        0.2,
+        0.2
       ],
       "primitives": [
         {
           "kind": "circle",
           "x": 0,
           "y": 0,
-          "r": 0.12,
+          "r": 0.08,
           "fill": "stroke"
         }
       ],
@@ -454,7 +462,7 @@
       },
       "labelAnchor": [
         0,
-        -0.35
+        0.3
       ]
     },
     {
@@ -502,7 +510,7 @@
       },
       "labelAnchor": [
         0,
-        -0.3
+        0.3
       ]
     },
     {
@@ -549,34 +557,24 @@
         "in": {
           "at": [
             -0.15,
-            -0.5
+            0.5
           ],
           "direction": [
             0,
-            -1
+            1
           ]
         },
         "out": {
           "at": [
             -0.15,
-            0.5
+            -0.5
           ],
           "direction": [
             0,
-            1
+            -1
           ]
         },
         "in2": {
-          "at": [
-            0.15,
-            0.5
-          ],
-          "direction": [
-            0,
-            1
-          ]
-        },
-        "out2": {
           "at": [
             0.15,
             -0.5
@@ -584,6 +582,16 @@
           "direction": [
             0,
             -1
+          ]
+        },
+        "out2": {
+          "at": [
+            0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
           ]
         }
       },
@@ -592,7 +600,7 @@
           "in": {
             "at": [
               -0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               -1,
@@ -602,7 +610,7 @@
           "out": {
             "at": [
               -0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               -1,
@@ -612,7 +620,7 @@
           "in2": {
             "at": [
               0.25,
-              0.3
+              -0.3
             ],
             "direction": [
               1,
@@ -622,7 +630,7 @@
           "out2": {
             "at": [
               0.25,
-              -0.3
+              0.3
             ],
             "direction": [
               1,
@@ -633,7 +641,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -699,18 +707,18 @@
           ],
           "to": [
             0,
-            -0.22
+            0.22
           ]
         },
         {
           "kind": "line",
           "from": [
             -0.12,
-            -0.22
+            0.22
           ],
           "to": [
             0.12,
-            -0.22
+            0.22
           ]
         }
       ],
@@ -738,7 +746,7 @@
       },
       "labelAnchor": [
         0,
-        -0.45
+        0.45
       ]
     },
     {
@@ -766,11 +774,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            -0.45,
+            0.45,
             0,
             0,
             0.22,
-            -0.45
+            0.45
           ],
           "fill": "state"
         },
@@ -778,11 +786,11 @@
           "kind": "polygon",
           "points": [
             -0.22,
-            0.45,
+            -0.45,
             0,
             0,
             0.22,
-            0.45
+            -0.45
           ],
           "fill": "state"
         },
@@ -801,22 +809,22 @@
           "kind": "line",
           "from": [
             0,
-            -0.5
+            0.5
           ],
           "to": [
             0,
-            -0.45
+            0.45
           ]
         },
         {
           "kind": "line",
           "from": [
             0,
-            0.45
+            -0.45
           ],
           "to": [
             0,
-            0.5
+            -0.5
           ]
         },
         {
@@ -843,17 +851,17 @@
         }
       ],
       "portAnchors": {
-        "ab": {
+        "a": {
           "at": [
-            -0.5,
-            0
+            0,
+            0.5
           ],
           "direction": [
-            -1,
-            0
+            0,
+            1
           ]
         },
-        "a": {
+        "ab": {
           "at": [
             0,
             -0.5
@@ -865,18 +873,18 @@
         },
         "b": {
           "at": [
-            0,
-            0.5
+            -0.5,
+            0
           ],
           "direction": [
-            0,
-            1
+            -1,
+            0
           ]
         }
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -954,7 +962,7 @@
       },
       "labelAnchor": [
         0,
-        -0.65
+        0.65
       ]
     },
     {
@@ -1002,7 +1010,7 @@
       ],
       "labelAnchor": [
         0,
-        -0.95
+        0.95
       ]
     },
     {
@@ -1268,12 +1276,6 @@
       "P1",
       "N3"
     ],
-    "rank": {
-      "3WV__P1": 1,
-      "N1": 1,
-      "N3": 3,
-      "P1": 2
-    },
     "thermalStages": [
       {
         "rank": 0,
@@ -1304,32 +1306,6 @@
       "c8": "none",
       "c9": "none"
     },
-    "portSides": {
-      "3WV.a": "north",
-      "3WV.ab": "west",
-      "3WV.b": "south",
-      "HE1.in": "north",
-      "HE1.in2": "south",
-      "HE1.out": "south",
-      "HE1.out2": "north",
-      "P1.in": "west",
-      "P1.out": "east",
-      "PU1.in": "west",
-      "PU1.out": "east"
-    },
-    "loops": [
-      [
-        "N2",
-        "PU1",
-        "PU1__HE1",
-        "HE1",
-        "HE1__3WV",
-        "3WV"
-      ]
-    ],
-    "loopOrientations": [
-      "clockwise"
-    ],
     "groups": [],
     "nonFlowElements": [],
     "circuitOf": {
@@ -1351,7 +1327,783 @@
       "N2",
       "PU1__HE1"
     ],
-    "branchShapes": {}
+    "margin": 0.5,
+    "extent": [
+      -1.15,
+      -3.2,
+      2.7,
+      5.7
+    ],
+    "placements": [
+      {
+        "componentId": "N1",
+        "symbolId": "node.junction",
+        "inner": [
+          0.45,
+          -2.7,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -0.05,
+          -3.2,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.45,
+              -2.6
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.55,
+          -2.35
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "N2",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.25,
+          -2.7,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          -0.75,
+          -3.2,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -0.05,
+              -2.6
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              -0.25,
+              -2.6
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "2": {
+            "at": [
+              -0.15,
+              -2.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          -0.15,
+          -2.35
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "PU1",
+        "symbolId": "pump.standard",
+        "inner": [
+          -0.65,
+          1,
+          1,
+          1
+        ],
+        "outer": [
+          -1.15,
+          0.5,
+          2,
+          2
+        ],
+        "rotation": 90,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              -0.15,
+              2
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "out": {
+            "at": [
+              -0.15,
+              1
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          }
+        },
+        "labelAt": [
+          -0.15,
+          2.15
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "PU1__HE1",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.15,
+          0.75,
+          0,
+          0
+        ],
+        "outer": [
+          -0.15,
+          0.75,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -0.15,
+              0.75
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "1": {
+            "at": [
+              -0.15,
+              0.75
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          }
+        },
+        "labelAt": [
+          -0.15,
+          0.9
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "HE1",
+        "symbolId": "heat_exchanger.standard",
+        "inner": [
+          -0.25,
+          -0.5,
+          0.5,
+          1
+        ],
+        "outer": [
+          -0.75,
+          -1,
+          1.5,
+          2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              -0.15,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "in2": {
+            "at": [
+              0.15,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "out": {
+            "at": [
+              -0.15,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "out2": {
+            "at": [
+              0.15,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          }
+        },
+        "labelAt": [
+          0,
+          0.65
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "HE1__3WV",
+        "symbolId": "node.junction",
+        "inner": [
+          -0.15,
+          -0.75,
+          0,
+          0
+        ],
+        "outer": [
+          -0.15,
+          -0.75,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              -0.15,
+              -0.75
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "1": {
+            "at": [
+              -0.15,
+              -0.75
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          }
+        },
+        "labelAt": [
+          -0.15,
+          -0.6
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "3WV",
+        "symbolId": "three_way_valve.standard",
+        "inner": [
+          -0.65,
+          -2,
+          1,
+          1
+        ],
+        "outer": [
+          -1.15,
+          -2.5,
+          2,
+          2
+        ],
+        "rotation": 180,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "a": {
+            "at": [
+              -0.15,
+              -2
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "ab": {
+            "at": [
+              -0.15,
+              -1
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "b": {
+            "at": [
+              0.35,
+              -1.5
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          -0.15,
+          -0.85
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "3WV__P1",
+        "symbolId": "node.junction",
+        "inner": [
+          0.5167,
+          -1.5,
+          0,
+          0
+        ],
+        "outer": [
+          0.5167,
+          -1.5,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.516667,
+              -1.5
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "1": {
+            "at": [
+              0.516667,
+              -1.5
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.516667,
+          -1.35
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "P1",
+        "symbolId": "pipe.standard",
+        "inner": [
+          0.6833,
+          -1.5,
+          0,
+          0
+        ],
+        "outer": [
+          0.6833,
+          -1.5,
+          0,
+          0
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "in": {
+            "at": [
+              0.683333,
+              -1.5
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              0.683333,
+              -1.5
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.683333,
+          -1.35
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      },
+      {
+        "componentId": "N3",
+        "symbolId": "node.junction",
+        "inner": [
+          0.85,
+          -1.6,
+          0.2,
+          0.2
+        ],
+        "outer": [
+          0.35,
+          -2.1,
+          1.2,
+          1.2
+        ],
+        "rotation": 0,
+        "mirrored": false,
+        "arrangement": "default",
+        "anchors": {
+          "0": {
+            "at": [
+              0.85,
+              -1.5
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        },
+        "labelAt": [
+          0.95,
+          -1.25
+        ],
+        "source": "computed",
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scale": null
+      }
+    ],
+    "routes": [
+      {
+        "id": "c0",
+        "kind": "pipe",
+        "points": [
+          0.45,
+          -2.6,
+          -0.05,
+          -2.6
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c1",
+        "kind": "pipe",
+        "points": [
+          -0.25,
+          -2.6,
+          -1.15,
+          -2.6,
+          -1.15,
+          2.5,
+          -0.15,
+          2.5,
+          -0.15,
+          2
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c2",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          1,
+          -0.15,
+          0.75
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c3",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          0.75,
+          -0.15,
+          0.5
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c4",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          -0.5,
+          -0.15,
+          -0.75
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c5",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          -0.75,
+          -0.15,
+          -1
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c6",
+        "kind": "pipe",
+        "points": [
+          -0.15,
+          -2,
+          -0.15,
+          -2.5
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c7",
+        "kind": "pipe",
+        "points": [
+          0.35,
+          -1.5,
+          0.516667,
+          -1.5
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c8",
+        "kind": "pipe",
+        "points": [
+          0.516667,
+          -1.5,
+          0.683333,
+          -1.5
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      },
+      {
+        "id": "c9",
+        "kind": "pipe",
+        "points": [
+          0.683333,
+          -1.5,
+          0.85,
+          -1.5
+        ],
+        "hops": [],
+        "style": {
+          "stroke": "#0000ff",
+          "strokeWidth": 2,
+          "pattern": "dashed",
+          "fill": null,
+          "corner": "fillet"
+        },
+        "scaleFrom": null,
+        "scaleTo": null
+      }
+    ]
   },
   "visualization": {
     "active": "temperature",

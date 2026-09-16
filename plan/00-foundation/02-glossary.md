@@ -156,14 +156,27 @@ names.
 | Term | C# / TS | Meaning |
 |---|---|---|
 | **Layout hint** | `LayoutHint` | Core's advice about placement — ordering, port side, flow direction, grouping. Not coordinates. |
-| **Placement** | `Placement` (TS) | The frontend's decision about where a component actually sits, in world units. |
-| **World units** | — | The canvas coordinate system, independent of zoom. Not pixels, not millimetres. |
+| **Placement** | `Placement` | Core's decision about where a component sits (`D-103`): an inner box the symbol is drawn in and an outer box grown by the margin, in world units, with every anchor and the label position. On the wire as `layout.placements`. |
+| **World units** | — | The canvas coordinate system, independent of zoom. Not pixels, not millimetres; a pump is 1×1 (`D-103`). |
 | **Symbol** | `Symbol` (TS) | The drawn glyph for a component kind. |
-| **Route** | `Route` (TS) | The polyline a connection is drawn along. |
+| **Route** | `Route` | The orthogonal polyline a connection is drawn along, solved by Core and carried as `layout.routes` (`D-103`). |
 | **Thermal stage** | `ThermalStage` | A source, conversion/storage, consumer, or neutral component group assigned one left-to-right heat-progression rank. It does not replace fluid-flow direction (`D-31`). |
-| **Header layout** | — | The layout mode drawing a distribution circuit as a supply line along the top and a return line along the bottom with its subcircuits stacked between them. The alternative mode is the **loop rectangle** (`D-38`). |
-| **Loop rectangle** | — | The layout mode distributing one closed loop's components around the perimeter of a rectangle. The original and still the default for a circuit with no subcircuits (`D-38`). |
-| **Spacing** | `spacing` | The minimum gap between adjacent component bounding boxes, in world units. A presentation value carried through Core untouched — never a layout hint (`D-37`). |
+| **Header layout** | — | *Withdrawn* (`D-107`): the rails-and-U picture of `D-38`. A distribution circuit is now a set of stacked branches (`28` part D, source §26): the main direction stays left to right, each child branch is a rigid group, the children stack perpendicular to the main flow. |
+| **Loop rectangle** | — | The arrangement distributing one closed loop's components around the four sides of a rectangle; which side each member takes is the four-side partition search of `28` part D, a candidate until a ladder step proves it (`D-107`). |
+| **Spacing** | `spacing` | The margin every component keeps from every other, in world units: each inner box grown by it is the outer box no other inner box may enter (`D-103`). 0.5 unless the script states it. A presentation value — never a layout hint (`D-37`) — but since `D-103` the layout solver reads it, because the solver is Core's. |
+| **Flow vector** | `FlowDirection` | The direction the fluid flows at a port, one of the four unit vectors, rotated with the symbol (`D-106`). **Not** the outward normal of the box: a pump pumping right has `(1,0)` at both ports. On the wire as an anchor's `direction` once `28`'s stage 2 lands. |
+| **Inner anchor / outer anchor** | `PlacedAnchor.At`, `PlacedAnchor.Along(m)` | Where a port meets the symbol's boundary, and the same point moved one margin along the port's outward direction, on the outer box's edge (`28` A3). The stub between them is straight; a pipe turns only from the outer anchor. |
+| **Clearance** | — | The minimum gap between two components' inner boxes, `max` of their margins, hard (`D-106`). Outer boxes may overlap; that is a soft **interference**, counted, not rejected. |
+| **Envelope** | — | A route's clearance as the union of axis-aligned rectangles one margin around its segments (`28` A7). A pipe through an unrelated inner box is hard; through a margin, soft. |
+| **Sequential group** | — | A chain placed by direction propagation alone: each member's inlet flow equals the previous outlet flow, placed on one axis at the clearance (`28` part D, source §7–10). A candidate until the ladder proves it (`D-107`). |
+| **Loop group** | — | A simple loop solved once and then rigid: its parent may translate, rotate and, where allowed, mirror it, never re-lay it (`28` A8, part D). |
+| **Group** (layout) | `LayoutGroup` | A set of components laid out together and treated by its parent as one object with bounds, ports and allowed transforms (`28` A8); carried as `layout.groups`. |
+| **Layout diagnostic text** | `SceneText` | The text form of a scene — placements with inner/outer boxes and anchors with flow vectors, routes with their envelopes, groups, validation totals, interference — written per ladder step and per sample *before* any assertion, and read instead of the picture (`28` A10). |
+| **Layout ladder** | — | The process that builds the layout engine one rule at a time (`D-107`, [`29`](../20-core-domain/29-layout-ladder.md)): each **step** adds one component to the previous step's script, the engine draws it, the user corrects the picture, the correction becomes a numbered rule in `28` part C. |
+| **Boundary stub** | — | *Withdrawn* (`D-108`): a boundary node the binder added to terminate an open port (`23`, rule I3) is laid out as a node like any other -- the junction's box, an outer boundary, a place of its own, its name in the picture and the text (`28` A6). |
+| **Transform class** | `TransformClass` | Which transforms a kind admits, a fact about the kind and hard (`28` A4, `D-108`): `free` (four quarter turns, mirrored or not), `standing` (no turn; the two mirrors and both -- every exchanger, the heat pump), `upright` (identity and the left-right mirror -- the tank). |
+| **Flow-oriented graph** | — | The circuit graph with every connection directed by its ports' nominal flow vectors (`28` A3): roles, then propagation, never the solved flow. `28` B's H9 (every flow loop clockwise) and H10 (heat left to right) are measured on it. |
+| **Fallback column** | `group fallback` | Where the layout engine puts a component no rule covers yet: a column below everything placed, its connections drawn as plain L's, never guessed (`28`, `29`). |
 | **Equipment list** | `EquipmentList` | The per-circuit table of every device and its design-point values, projected from the model contract and exported for a contractor. **Never "equipment schedule"** — `schedule` is the time-domain block keyword. Post-v1 ([`73-equipment-list`](../70-future/73-equipment-list.md)). |
 | **Active document** | — | The one open document that performs presentation work — layout, colour, DOM. Others retain their state, and a running transient in one keeps receiving and reconstructing frames (`D-39`, `D-42`). |
 

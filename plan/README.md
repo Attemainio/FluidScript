@@ -92,9 +92,12 @@ Both sit above the tiers because both are about the whole project. `08` moved he
 | [22-component-model](20-core-domain/22-component-model.md) | component interfaces, v1 kinds, ports, governing equations | draft |
 | [23-topology-and-graph](20-core-domain/23-topology-and-graph.md) | graph construction, implicit nodes, well-posedness | draft |
 | [24-auto-sizing](20-core-domain/24-auto-sizing.md) | sizing rules, constraint propagation, default catalogue | draft |
-| [25-layout-hints](20-core-domain/25-layout-hints.md) | the topology + hint payload for the renderer | draft |
+| [25-layout-hints](20-core-domain/25-layout-hints.md) | the classification the layout starts from: order, thermal stages, flow, groups, circuits, inferred | draft |
 | [26-model-contract](20-core-domain/26-model-contract.md) | the serialized model shared by API, canvas, exporters | draft |
 | [27-component-catalog](20-core-domain/27-component-catalog.md) | standard pipe/valve dimension tables, sourcing policy, provenance | reviewed |
+| [28-layout-solver](20-core-domain/28-layout-solver.md) | the layout: the model, the standard, the rules the ladder establishes, the candidate algorithms, the diagnostic text (`D-103`, `D-106`, `D-107`) | draft |
+| [28-layout-solver.source](20-core-domain/28-layout-solver.source.md) | the user's specification `28` part D draws its candidates from, kept verbatim | draft |
+| [29-layout-ladder](20-core-domain/29-layout-ladder.md) | the step log of the layout ladder: what each step drew, what the user corrected, which rule came of it | draft |
 
 ### 30 · Solver
 
@@ -122,7 +125,7 @@ Both sit above the tiers because both are about the whole project. `08` moved he
 |---|---|---|
 | [51-frontend-architecture](50-frontend/51-frontend-architecture.md) | React/Vite layout, state, the debounce pipeline | reviewed |
 | [52-editor](50-frontend/52-editor.md) | script editor, highlighting, completion, squiggles | draft |
-| [53-canvas-renderer](50-frontend/53-canvas-renderer.md) | canvas, layout engine, routing, Core-symbol interpretation | draft |
+| [53-canvas-renderer](50-frontend/53-canvas-renderer.md) | the canvas: drawing Core's scene, symbols, labels, interaction | draft |
 | [54-interaction-and-writeback](50-frontend/54-interaction-and-writeback.md) | hover, edit-on-canvas, script mutation | reviewed |
 | [55-design-system](50-frontend/55-design-system.md) | themes, palette, tokens, typography, motion | reviewed |
 | [56-console-log](50-frontend/56-console-log.md) | the warning/log stream and its phrasing | reviewed |

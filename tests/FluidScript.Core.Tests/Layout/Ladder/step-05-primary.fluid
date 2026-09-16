@@ -1,0 +1,24 @@
+# Layout ladder, step 5 (plan/20-core-domain/29-layout-ladder.md): the primary on the exchanger's second side.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+NPS  supply t=85 p=600
+NPR  return p=350
+PCV  valve
+PP   pipe length=12 dn=25
+
+PU1  pump
+HE1  heat_exchanger power=30 in=20 out=50 in2=85 out2=45
+LOAD heat_exchanger power=-30
+CV1  valve
+
+connections
+NPS - PCV - PP - HE1.in2
+HE1.out2 - NPR
+
+PU1 - HE1.in
+HE1.out - LOAD
+LOAD - CV1
+CV1 - PU1

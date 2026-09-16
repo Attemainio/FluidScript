@@ -234,10 +234,14 @@ survives zoom and the UI scale does not.
 
 | Token | Default | Meaning |
 |---|---|---|
-| `--canvas-spacing-default` | 20 | The gap between adjacent component bounding boxes when the script says nothing (`D-37`) |
-| `--canvas-spacing-min` | 8 | Floor; a script asking for less is clamped and told so |
-| `--canvas-rail-gap` | 120 | Vertical distance between a header's supply and return rails (`D-38`) |
-| `--canvas-branch-stride` | 160 | Horizontal distance between adjacent members stacked on a header |
+| `--canvas-spacing-default` | 0.5 | The margin when the script says nothing (`D-37`). **Since `D-103` this is not a token the frontend sets**: the value is `LayoutSolver.DefaultMargin` in Core, and the row stays here so the design system states the number it draws to. |
+| `--canvas-spacing-min` | 0.05 | Floor; the solver clamps a smaller `spacing` to it |
+| `--canvas-rail-gap` | — | Superseded by `D-103`: a header's rails are a row of the solver's grid, sized by the tallest symbol in the row plus twice the margin |
+| `--canvas-branch-stride` | — | Superseded by `D-103`: columns are sized the same way |
+
+The old values (20, 8, 120, 160) were in a world unit that never existed: `D-103` fixed a pump at 1×1,
+and a diagram spaced 20 pumps apart is what `spacing 20` now draws, which is why the samples and
+`docs/functions/spacing.md` say `0.75`.
 
 **Sparse is the default and it is a deliberate cost.** Tight packing fits more on screen and is what a
 generic layout produces; the reference drawings this convention comes from leave valves, sensors and

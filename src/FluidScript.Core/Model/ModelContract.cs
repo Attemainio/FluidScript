@@ -100,10 +100,12 @@ public sealed record VersionedId(string Id, string Version);
 /// <param name="DefaultMode">The default solve mode, <c>steady</c>, <c>transient</c> or <see langword="null"/>.</param>
 public sealed record ProjectWire(string? Name, string? DefaultMode);
 
-/// <summary>Presentation tokens, verbatim.</summary>
-/// <param name="Tokens">The <c>style</c> tokens as written.</param>
+/// <summary>The script's presentation directives, resolved (<c>D-104</c>).</summary>
+/// <param name="Tokens">The applied <c>style</c> tokens as written.</param>
 /// <param name="Spacing">The <c>spacing</c> value in world units, or <see langword="null"/> (<c>D-37</c>).</param>
-public sealed record StyleWire(ImmutableArray<string> Tokens, double? Spacing);
+/// <param name="Default">The project-level style, applied where a circuit states none.</param>
+/// <param name="Named">The named styles, <c>style name = …</c>, resolved, for an editor to list.</param>
+public sealed record StyleWire(ImmutableArray<string> Tokens, double? Spacing, ResolvedStyleWire Default, IReadOnlyDictionary<string, ResolvedStyleWire> Named);
 
 /// <summary>One circuit.</summary>
 public sealed record CircuitWire
@@ -385,8 +387,8 @@ public sealed record AnchorWire
     public required ImmutableArray<double> At { get; init; }
 
     /// <summary>
-    /// The outward unit vector a connection leaves along, <c>[dx, dy]</c> with <c>y</c> down; rotates with
-    /// the box. Absent for the wildcard anchor, whose direction the renderer chooses.
+    /// The outward unit vector a connection leaves along, <c>[dx, dy]</c> with <c>y</c> up (<c>28</c> A1); rotates with
+    /// the box. Absent for the wildcard anchor, whose direction the layout chooses.
     /// </summary>
     [AbsentWhenNull]
     public ImmutableArray<double>? Direction { get; init; }
@@ -448,8 +450,6 @@ public sealed record LayoutWire
     /// <summary>Depth-first order from each pressure datum.</summary>
     public required ImmutableArray<string> Order { get; init; }
 
-    /// <summary>Hops from the nearest loop, for non-loop components only.</summary>
-    public required IReadOnlyDictionary<string, int> Rank { get; init; }
 
     /// <summary>The heat-progression bands, left to right.</summary>
     public required ImmutableArray<ThermalStageWire> ThermalStages { get; init; }
@@ -457,14 +457,6 @@ public sealed record LayoutWire
     /// <summary>Solved direction per connection id.</summary>
     public required IReadOnlyDictionary<string, string> Flow { get; init; }
 
-    /// <summary>Which box side each port leaves from, keyed <c>component.port</c>.</summary>
-    public required IReadOnlyDictionary<string, string> PortSides { get; init; }
-
-    /// <summary>Each loop as a closed walk.</summary>
-    public required ImmutableArray<ImmutableArray<string>> Loops { get; init; }
-
-    /// <summary><c>clockwise</c> or <c>counterclockwise</c>, one per loop.</summary>
-    public required ImmutableArray<string> LoopOrientations { get; init; }
 
     /// <summary>Pipe expansions.</summary>
     public required ImmutableArray<ComponentGroupWire> Groups { get; init; }
@@ -481,9 +473,94 @@ public sealed record LayoutWire
     /// <summary>Components the language added.</summary>
     public required ImmutableArray<string> Inferred { get; init; }
 
-    /// <summary>Kind sequence per attached circuit (<c>D-100</c>).</summary>
-    public required IReadOnlyDictionary<string, ImmutableArray<string>> BranchShapes { get; init; }
+
+    /// <summary>The clearance every component keeps from every other, world units (<c>D-103</c>); the <c>spacing</c> directive or 0.5.</summary>
+    public required double Margin { get; init; }
+
+    /// <summary>The bounds of the whole drawing as <c>[x, y, width, height]</c>, world units, outer boxes and routes included.</summary>
+    public required ImmutableArray<double> Extent { get; init; }
+
+    /// <summary>Where every component sits, in <see cref="Order"/> then the non-flow elements.</summary>
+    public required ImmutableArray<PlacementWire> Placements { get; init; }
+
+    /// <summary>Every connection's path, in connection order, then the instruments' signal lines.</summary>
+    public required ImmutableArray<RouteWire> Routes { get; init; }
 }
+
+/// <summary>One component's place in the drawing (<c>D-103</c>). World units: a pump is 1×1, <c>y</c> grows upward and a box's <c>y</c> is its bottom edge (<c>28</c> A1).</summary>
+public sealed record PlacementWire
+{
+    /// <summary>The component.</summary>
+    public required string ComponentId { get; init; }
+
+    /// <summary>The symbol drawn inside <see cref="Inner"/>.</summary>
+    public required string SymbolId { get; init; }
+
+    /// <summary>The symbol's box as placed, <c>[x, y, width, height]</c>; the renderer draws the strokes inside it.</summary>
+    public required ImmutableArray<double> Inner { get; init; }
+
+    /// <summary>The inner box grown by the margin; no other component's inner box enters it.</summary>
+    public required ImmutableArray<double> Outer { get; init; }
+
+    /// <summary>The quarter turn applied, clockwise degrees: 0, 90, 180 or 270.</summary>
+    public required int Rotation { get; init; }
+
+    /// <summary>Whether the symbol is mirrored left-to-right before the turn.</summary>
+    public required bool Mirrored { get; init; }
+
+    /// <summary><c>default</c> or one of the symbol's alternative arrangements (<c>D-102</c>).</summary>
+    public required string Arrangement { get; init; }
+
+    /// <summary>Every port's anchor in world coordinates with its outward direction; a node's ports are <c>#0</c>, <c>#1</c>, …</summary>
+    public required IReadOnlyDictionary<string, AnchorWire> Anchors { get; init; }
+
+    /// <summary>Where the label sits, <c>[x, y]</c>.</summary>
+    public required ImmutableArray<double> LabelAt { get; init; }
+
+    /// <summary><c>computed</c>; <c>pinned</c> is reserved for a placement the script states.</summary>
+    public required string Source { get; init; }
+
+    /// <summary>The resolved style: the script's named or anonymous style (<c>D-104</c>); absent when the theme's defaults apply throughout.</summary>
+    [AbsentWhenNull]
+    public ResolvedStyleWire? Style { get; init; }
+
+    /// <summary>Where the component's representative value sits on the active colour scale, 0 to 1; <see langword="null"/> when not computed.</summary>
+    public required double? Scale { get; init; }
+}
+
+/// <summary>One connection's path.</summary>
+public sealed record RouteWire
+{
+    /// <summary><c>c{n}</c> for a connection; <c>{instrument}:measures</c> or <c>{controller}:actuates</c> for a signal line.</summary>
+    public required string Id { get; init; }
+
+    /// <summary><c>pipe</c> or <c>signal</c>.</summary>
+    public required string Kind { get; init; }
+
+    /// <summary>The orthogonal polyline, flattened <c>[x0, y0, x1, y1, …]</c>; the first and last points are the anchors.</summary>
+    public required ImmutableArray<double> Points { get; init; }
+
+    /// <summary>Where this route crosses an earlier one, flattened <c>[x0, y0, …]</c> in world units; the renderer draws a crossing mark at each.</summary>
+    public required ImmutableArray<double> Hops { get; init; }
+
+    /// <summary>The resolved style, from the component the route leaves; absent when the theme's defaults apply throughout.</summary>
+    [AbsentWhenNull]
+    public ResolvedStyleWire? Style { get; init; }
+
+    /// <summary>The scale position at the start, for a gradient; <see langword="null"/> when not computed.</summary>
+    public required double? ScaleFrom { get; init; }
+
+    /// <summary>The scale position at the end.</summary>
+    public required double? ScaleTo { get; init; }
+}
+
+/// <summary>A style with every name resolved (<c>D-104</c>). A <see langword="null"/> colour or width is the theme's default.</summary>
+/// <param name="Stroke">The stroke colour, <c>#rrggbb</c>, or <see langword="null"/> for the theme's.</param>
+/// <param name="StrokeWidth">The stroke width in CSS pixels at scale 1, or <see langword="null"/> for the theme's.</param>
+/// <param name="Pattern"><c>solid</c>, <c>dashed</c>, <c>dotted</c> or <c>dash-dot</c>.</param>
+/// <param name="Fill">The static fill colour, or <see langword="null"/> for none; the colour scale paints over it while <c>show</c> is active.</param>
+/// <param name="Corner"><c>fillet</c>, <c>round</c>, <c>sharp</c> or <see langword="null"/> for the theme's.</param>
+public sealed record ResolvedStyleWire(string? Stroke, double? StrokeWidth, string Pattern, string? Fill, string? Corner);
 
 /// <summary>One thermal stage.</summary>
 /// <param name="Rank">The band index.</param>

@@ -4613,3 +4613,447 @@ choice in the renderer keeps `53`'s rule that orientation is a placement decisio
 [`26-model-contract`](../20-core-domain/26-model-contract.md) `symbols`;
 [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) *Symbol orientation and the corner rule*;
 `08` P5.7.
+
+## D-103 · Core solves the layout; the frontend is a renderer
+
+**Accepted · 2026-09-15** · supersedes `D-03`'s geometry half and `D-102` item 3; refines `D-20`, `D-24`, `D-44`, `D-71`, `D-72`, `D-100`; amends `08` P5.7, `25`, `26`, `53`, `57`, `62`, `07`, CLAUDE.md
+
+`D-03` gave Core the topology hints and the frontend the geometry, for interaction latency: a drag
+must not round-trip. The user's direction, and the argument this project had already made for
+symbols in `D-20`, is the other way: **everything that is solved is solved in Core**, and a layout
+is a solve. Compilation is milliseconds; a placement and routing pass over 200 components is
+milliseconds; neither is the bottleneck, and the interaction that needed local latency (`D-29`
+defers manual placement) does not exist in v1.
+
+**What is decided.**
+
+1. Core computes the placement of every component and the route of every connection, in *world
+   units* -- symbol units, a pump is 1×1 -- and puts them on the model contract as `layout.placements`,
+   `layout.routes`, `layout.labels` and `layout.extent`. The hints of `25` remain, as the solver's
+   own input and as what the report explains from.
+2. A placement is two boxes: the **inner** box, the symbol's box scaled, rotated by a quarter turn and
+   given an arrangement (`D-102`), and the **outer** box, the inner grown by the margin *m* on every
+   side. The invariant the solver holds and the tests assert: *no component's inner box intersects
+   another component's outer box*, which is "inner boxes are at least *m* apart" stated so the
+   check is one rectangle test. *m* is 0.5 by default and the `spacing` directive overrides it
+   (`D-37` said `spacing` is presentation and never a hint; it is exactly that).
+3. A route is an orthogonal polyline from anchor to anchor whose first and last segments are stubs of
+   length *m*/2 along the anchors' directions, so a pipe always leaves a symbol perpendicular to its
+   edge and the free polyline begins midway between inner and outer. Crossings carry hops.
+4. The frontend maps world units to pixels, draws each symbol's strokes inside its inner box, draws
+   each route's polyline, and places labels where it is told. It computes no placement and no route.
+   The exporter (`59`, M6) draws the same scene from the same contract.
+5. A placement carries `source: "computed"`. The value `"pinned"` is reserved for the write-back the
+   user has described and `D-29` defers -- `HX1 heat_exchanger ... pin (20, 50)` -- where a pinned
+   component is a fixed box the solver places everything else around, and an arrangement or a rotation
+   the user chooses on the canvas writes back as a parameter. The contract shape is chosen so that
+   arrives as a constraint on the same solver, not a second code path.
+6. `D-102` items 1, 2 and 4 stand; item 3's chooser is Core: the arrangement and rotation of each
+   instance is picked by the Manhattan-plus-bends cost `53` states, against the neighbours already
+   placed.
+
+**Why.** Three things `D-03` traded away come back. Every layout property `62` lists -- non-overlap
+at 200 components, the corner rule, determinism, edit stability -- becomes a `dotnet test` that a
+session can run and a layout report a session can read (`D-100`), instead of a browser test it
+cannot see. The exporter gets its geometry from the same place the canvas does, closing the question
+`D-20` opened. And the contract is the whole drawing: a consumer that is not this frontend -- an
+agent, a CAD writer, a diff tool -- reads a finished diagram, not a hint set it has to lay out
+itself. The cost `D-03` feared, a dumb renderer that cannot answer a drag at 60 fps, is a cost only
+when there is a drag; when there is one (`D-29`, post-v1) it writes back to the script and the
+solver answers, which is the feedback loop the user wants anyway.
+
+**Rejected.**
+- *Keep placement in the frontend, move only routing to Core.* Routing needs placements; splitting
+  them puts the solver's two halves on two sides of a wire.
+- *Core places, frontend picks rotation and arrangement.* Rotation changes the box, which changes
+  the non-overlap invariant Core has to hold; the chooser must be where the invariant is checked.
+
+**Constrains.** `08` (P5.7 becomes Core's P5.1d, before the API); [`25-layout-hints`](../20-core-domain/25-layout-hints.md);
+[`26-model-contract`](../20-core-domain/26-model-contract.md) `layout`;
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) becomes the renderer specification and
+keeps the layout standard as the solver's rules; [`57-state-visualization`](../50-frontend/57-state-visualization.md);
+[`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md) *Layout verification* moves to Core.Tests;
+[`07-quality-attributes`](07-quality-attributes.md) gains a layout-time line; CLAUDE.md's
+non-negotiable now reads *Core computes geometry; the frontend maps world units to pixels and draws.*
+
+## D-104 · Named styles: `style name = tokens` defines, `style name` applies, `style=name` overrides, and Core resolves every colour
+
+**Accepted · 2026-09-15** · extends the `style` directive of `12`; refines `D-13`, `D-37`; amends `12`, `15`, `26`, `57`, `docs/functions/style.md`
+
+The `style` directive existed as an anonymous, order-independent token set applying to what follows
+it, and Core never read it. The user asked for named styles a circuit can adopt, with a default for
+every component. Three forms, one keyword, no new reserved word:
+
+```fluidscript
+style hot = "#c0392b" 2px -              # define: a name, '=', the tokens; anywhere, like `let`
+style cold = "#2f6f9f" 2px - fill="#e8f1f8"
+
+circuit heating 100
+style hot                                # apply: a bare name; everything declared after it in this circuit
+
+circuit AHU 101
+style cold
+TV_AHU  three_way_valve style=trace      # override: the parameter grammar every component already has
+```
+
+1. `style <name> = tokens` defines a named style; `=` is what separates a definition from an
+   application, as it does for `let`. `style <name>` applies it. `style tokens` (the anonymous form)
+   still applies an unnamed style. `style=<name>` on a component overrides.
+2. Tokens: the positional colour is the **stroke**; `fill=<colour>` is the one keyed token, because a
+   second positional colour would break the order-independence `12` decided; width, corner and
+   pattern as before. A colour is a named colour or a quoted `#rrggbb` (`D-13`).
+3. Scope: a `style` before any circuit is the project default; a circuit's `style` overrides it for
+   the declarations after it; `style=` overrides that. A kind's own default (`53`'s inventory, `55`'s
+   tokens) applies where nothing is stated.
+4. Core resolves every name and puts the **resolved** `stroke`, `strokeWidth`, `pattern` and `fill`
+   on each placement and route; the frontend never resolves a name. The named definitions also go out
+   under `styles` so an editor can list them. While `show` is active the colour scale paints the
+   `state` slot instead of `fill` (`57`), and the stroke stays the style's; `show` therefore wins over
+   `fill` and only over `fill`.
+5. Diagnostics: an applied name that is not defined is `FS1204` (warning, the style is ignored); a
+   name defined twice is `FS1205` (warning, the later wins). The scale-to-colour mapping of `57`
+   moves to Core with the rest of the drawing, and a route carries the colour at each end so a
+   gradient is drawn by the renderer from two numbers Core produced.
+
+**Why.** The alternative was a `define` keyword. It buys nothing the `=` does not, costs a reserved
+word, and puts a style definition in a different syntax from the value definition (`let`) it most
+resembles.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md) *Style directive*;
+[`15-semantic-model`](../10-language/15-semantic-model.md) style settings;
+[`26-model-contract`](../20-core-domain/26-model-contract.md) `styles`, `layout`;
+[`57-state-visualization`](../50-frontend/57-state-visualization.md).
+
+## D-105 · Inline elements are points on their run, junctions take one pipe per side, symbols align to the run, and a designer's orientation is a cost
+
+**Accepted · 2026-09-16** · refines `D-103`, `D-102`, `D-44`; corrects the P5.1c `three_way_valve` symbol; amends `53`, `26`, `25`, `docs/advanced/how-the-diagram-is-arranged.md`
+
+The first pictures P5.1d-1 drew gave every graph element a cell: a declared pipe was a box on the
+run, an inferred two-port node was a filled circle as large as a header junction, an exchanger's
+through-pass anchors at x = ±0.15 met a pump's centred outlet with a jog, and orientation ties were
+settled by enumeration order. The user's review (2026-09-15) named each of these; this entry settles
+them.
+
+1. **An inline element has no cell and no box.** A `pipe`, a pipe-expansion child, and a node with
+   exactly two connections are *inline*: the chain of connections through them is one **run** between
+   the two components that do have cells, the run is routed as one polyline, and the inline elements
+   are placed on its longest straight segment at even spacing. On the wire each keeps its placement
+   -- the id, a zero-size `inner` and `outer` at its point, both ports' anchors at that point facing
+   along the run, a `labelAt` beside the line for a pipe -- so hover, colour and write-back still
+   have something to address; and it takes part in no clearance (`D-103`'s invariant is between
+   boxes with extent). The renderer draws **nothing** for a two-port node and only the label for a
+   pipe: the polyline *is* the pipe. One exception: a node a circuit hangs from -- a supply or return
+   anchor in `25`'s `Circuits` -- keeps its cell whatever its degree, because the header's rail turns
+   there; it is still drawn as a point.
+2. **A junction is a dot with one pipe per side.** A node with three or more connections is drawn as
+   a small filled circle (0.2 across) and each of its four sides carries at most one route; a fifth
+   connection reuses a side rather than inventing a fan-out symbol.
+3. **A symbol is aligned to its run, not to its cell centre.** Where a component's run leaves along
+   the column (or row) it shares with its peer, the component is translated within its cell so that
+   anchor lies on the column's (row's) line, and the column is widened by the shift so the invariant
+   holds by construction. An exchanger's primary pass at x = −0.15 therefore sits on the branch line
+   and the pump above meets it straight.
+4. **The orientation a designer expects is a cost term, in units of pipe.** Added to `53`'s Manhattan
+   cost: a pump pumping left to right 0, right to left 0.25, up or down 0.5; an exchanger or a `load`
+   standing 0, lying 0.5; a tank standing 0, lying 4 (never). Less than a bend (0.5), so it decides
+   only what the pipe leaves open; on a vertical branch every pump is vertical and the term cancels.
+   These weights are this project's reasoning and are marked so in `53`.
+5. **The three-way valve body.** P5.1c drew `a` and `b` opposite with `ab` on the side. Manufacturers
+   build the straight run from A to AB and put B on the angle: Belimo's globe-valve manual ("the
+   control port is always the straight main run") and Siemens VXG (port I = AB, II = A straight
+   through, III = B). The symbol now has `a` north, `ab` south, `b` west, and a mixing valve on a
+   vertical branch reads as it is piped: supply in at `a`, mixed water on to the pump from `ab`,
+   the bypass into `b` from the side.
+
+**Why.** Every one of these is what a P&I drawing does and what the first pictures did not: pipes are
+lines, tees are dots, a run is straight through the things on it, and a pump points the way the
+reader expects unless the pipe says otherwise. Filing them as router work would have left the
+placement wrong underneath a better router.
+
+**Constrains.** [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) inventory, orientation
+table and junction rule; [`26-model-contract`](../20-core-domain/26-model-contract.md) `placements`;
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md) `PortSides` of the three-way valve;
+`docs/advanced/how-the-diagram-is-arranged.md`, `docs/functions/three-way-valve.md`.
+
+
+## D-106 · The layout is a rule-based orthogonal engine: flow vectors, sequential placement, a four-side loop search, rigid groups, and the router last
+
+**Accepted · 2026-09-16** · refines `D-103` (Core solves the layout) and `D-105` (alignment, junction
+sides, orientation preference); replaces `D-102`'s "chooses by Manhattan cost" and `53`'s band-and-mode
+layout engine as the *method*. `D-100`'s standard (what a correct drawing is) stands unchanged; this
+decides how it is reached. The specification is
+[`28-layout-solver`](../20-core-domain/28-layout-solver.md); the source text is kept beside it.
+
+1. **Most geometry is not solved; it follows.** Order comes from topology, orientation from flow
+   vectors, spacing from margins, most coordinates from sequential placement. Search exists only for
+   loops, branches, group placement and collision resolution, and it is discrete and finite: no
+   continuous optimisation, no cost-driven global search, no packing.
+2. **A port vector is the fluid-flow direction, not the boundary normal**, and it is one of exactly
+   four unit vectors. A component changes the direction of everything downstream of it; the pipe never
+   does. The catalogue carries each anchor's outward normal (a three-way valve's roles are decided per
+   instance, so its flow cannot be catalogued); the flow vector is derived from it by the port's role
+   at placement, and a transform rotates both with the geometry. A `Bidirectional` or junction side
+   takes its direction from the connected directed end, propagated (`28` §2), then from the
+   connection as written -- nominal, as `D-105` requires the compile and solved drawings to agree.
+3. **Inner and outer anchors, by role.** The inner anchor is on the symbol; the outer anchor is derived,
+   `inner + flow·m` for an outlet and `inner − flow·m` for an inlet, never stored independently. The
+   stub between them is straight and a whole margin long; a pipe turns only from the outer anchor on.
+4. **The clearance rule is between inner boxes: `max(A.margin, B.margin)`, hard.** Outer boxes are
+   soft: they may overlap, it is counted, never rejected. Collisions are classed hard (inner ∩ inner,
+   clearance violated, pipe envelope ∩ unrelated inner, anchor off boundary, invalid vector,
+   irreconcilable directions) or soft (outer overlaps, pipe in a margin, envelopes cross, routes
+   cross, group margins overlap); a hard one invalidates a candidate, a soft one scores it.
+5. **Sequential placement is a rule, not a search.** Given the current direction `d`, the next
+   component's transforms are filtered to those with `inlet.flow == d`, the preferred one is placed
+   on the axis at the clearance, and its outlet's flow is the new `d`. A chain lays itself out.
+   **Allowed rotations are the kind's and hard**: an exchanger or load stands (0 or 180), a tank
+   stands upright (0), the rest turn freely -- for a member of a loop, a hung component, a header
+   child and a loop group's own transform alike. Where the next component cannot face the pipe under
+   that rule, the pipe bends once at the placed port's outer anchor and the chain keeps its
+   direction; it never turns vertical to meet a standing exchanger. The first process path flows
+   right (`28` §7), and a fragment's transform is chosen with that ranked directly after hard
+   collisions, above every preference.
+6. **A simple loop is a four-side partition search** over orientation (cw, ccw) × start member ×
+   contiguous partition into TOP/RIGHT/BOTTOM/LEFT × per-member transform, scored lexicographically:
+   hard validity, bends, crossings, clearance violations, vertices, length, area, margin
+   interference, mirrors, rotation preference, deterministic tie-break. Width is the larger of top and
+   bottom, height the larger of left and right, slack in pipe-only stretches. A member may turn a
+   corner with its own geometry, preferred over a bend.
+7. **A solved group is rigid.** `Component`, `SequentialGroup`, `LoopGroup`, `BranchGroup` expose
+   bounds, ports and allowed transforms; a parent translates, rotates, mirrors where allowed, and never
+   re-lays the inside. A change elsewhere in the system cannot disturb a correct loop.
+8. **Branches after loops** (`28` §26): children solved as groups, the parent places the split, stacks
+   the children perpendicular to the main flow, places the merge, routes with minimum bends, keeps
+   script order unless crossings materially drop. `D-38` stands.
+9. **The router runs last and only for what is left.** It is never asked to discover a layout; two
+   ports the solver put on one axis meet in a straight line.
+10. **The diagnostic text is a first-class Core output** in `28` §31's format, and the audit
+    (`SceneAudit`) that produces its findings is what the tests assert on; the SVG is secondary.
+11. **y grows upwards in world units.** The layout, the wire and the diagnostic text are Cartesian;
+    the frontend flips once, where it maps units to pixels (`53`), the same place it scales. Until
+    the flip lands in stage 2 the wire is y-down as `26` states today; `26` is corrected in the same
+    change, with the goldens.
+12. **Determinism is a rule set**, `28` §27: script order, lower id, unmirrored first, smaller
+    rotation, lower x, lower y; never dictionary order, timing or randomness.
+
+**Why.** P5.1d-1's engine chose orientations by cost, planned cells by shape (`ShapeU`, rails,
+flank steps) and then compacted, and every picture that came out wrong came out wrong the same way:
+a rule the user could state in one sentence ("the exchanger takes the flow down, so the pump is below
+it") had been left for a cost function and a router to rediscover, and they found four bends where
+there was one. The user's specification names the rules; making them the engine removes the search
+that produced the drift and leaves a finite one where a choice genuinely exists (which side of a loop,
+which order of branches). It also makes a layout explainable in text, which `D-100` §"a layout report a
+session can read" asked for and the SVG never delivered.
+
+**Constrains.** [`28-layout-solver`](../20-core-domain/28-layout-solver.md) (normative);
+[`27-component-catalog`](../20-core-domain/27-component-catalog.md) anchors carry outward normals in a
+y-up symbol space, and the kind its allowed rotations; [`26-model-contract`](../20-core-domain/26-model-contract.md) anchor direction semantics
+and the axis; [`25-layout-hints`](../20-core-domain/25-layout-hints.md) as input to `28` §11;
+[`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) keeps the standard and the pixel mapping
+and hands the engine to `28`; [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md)
+layout samples asserted through the audit; `docs/advanced/how-the-diagram-is-arranged.md`.
+
+## D-107 · The layout is rebuilt one rule at a time against a ladder of scripts; orientation is a rule, not a cost; boundary nodes are stubs; branches stack; the dead hints leave the wire
+
+**Accepted · 2026-09-16** · refines `D-106` (whose principle stands: geometry follows rules, search
+is finite) and replaces its numbered method list as the working specification; narrows `D-44`;
+withdraws `D-38` (rails-and-U branch drawing), `D-102` item "chooses by Manhattan cost" and
+`D-105` item 4 (a designer's orientation is a cost); withdraws the `Rank`, `PortSides`, `Loops`,
+`LoopOrientations` and `BranchShapes` hints that P5.1a (`D-100`, `25`) added. The specification is
+[`28-layout-solver`](../20-core-domain/28-layout-solver.md), now in four parts, and the process is
+[`29-layout-ladder`](../20-core-domain/29-layout-ladder.md).
+
+1. **The engine is rebuilt from an empty rule set.** P5.1d-1's engine and its loop solver are parked
+   outside the tree. The new `LayoutEngine` implements exactly the rules `28` part C numbers, and
+   part C is filled by the ladder: one script per step, one component more than the step before, the
+   picture and its text drawn *before* any assertion, the user's correction written as the next rule.
+   What no rule covers goes to a fallback column below everything placed and is drawn with the
+   plainest possible pipe, never guessed at. `28` part D holds the candidate algorithms of the user's
+   specification until a step proves each one.
+2. **Which transforms a kind admits is a fact about the kind, and hard.** An exchanger stands; a tank
+   stands upright; a pump, a valve, a three-way valve turn freely. No cost ranks one orientation
+   against another. When a level chain reaches a standing exchanger, the pipe bends once at the
+   placed port's outer anchor and enters the exchanger's port; the exchanger does not lie down and
+   the chain does not turn vertical.
+3. **A boundary node the binder adds (`23` rule I3) is a stub, not a component.** It is not drawn,
+   takes no place and no clearance; the port's pipe ends at the outer anchor and the node's placement
+   on the wire is that point. A declared dead-end node stays a node. Without this, `PU1 pump` alone
+   drew three components, and a user who added one symbol saw three.
+4. **A direction-changing component may take a loop's corner with its own geometry** (source §15);
+   everything else keeps `D-44`: a corner is a bend in bare pipe, never an inline element.
+5. **Branches stack** (source §26): the main direction stays left to right, each child branch is a
+   rigid group, the children stack perpendicular to the main flow in script order, the split and the
+   merge are placed by the parent. `D-38`'s rails-and-U picture is withdrawn.
+6. **The hints are the classification the engine starts from and nothing else:** `Order`,
+   `ThermalStages`, `Flow`, `Groups`, `NonFlowElements`, `CircuitOf`, `Circuits`,
+   `DistributionGroups`, `Inferred`. `Rank`, `PortSides`, `Loops`, `LoopOrientations`,
+   `BranchShapes`, the `PortSide` and `LoopOrientation` enums and `SymbolCatalog.SideOf` are removed
+   from Core and from `layout` on the wire; they described a solver that no longer exists.
+   `ThermalStages` keeps its private loop derivation.
+7. **`y` grows upward on the wire now**, not in a later stage: the scene, the wire, the goldens and
+   the diagnostic text are all Cartesian; the frontend has no pixel mapping yet to change.
+
+**Why.** Three engines in a row (`53`'s bands, `D-100`'s cells, `D-106`'s sequential search) were
+built whole against seven samples and corrected picture by picture, and each correction moved a cost
+weight or a special case that the next sample undid. The user could state every rule the pictures
+broke in one sentence; the engines could not, because a cost function has no sentence. Building
+from one component up makes each rule a sentence before it is code, keeps the rule set readable in
+one document, and gives the user the picture at the exact moment a rule is decided rather than after
+six have interacted. The hints that went with the old engines were the same drift in data form:
+`PortSides` read off a default arrangement the layout then rotated, `LoopOrientations` voted on a
+cycle basis that is not a flow cycle, `BranchShapes` encoded `D-38`'s picture. Removing them is
+what makes the classification that survives (`Order`, `Flow`, `ThermalStages`, the groups) trustworthy.
+
+**Constrains.** [`28-layout-solver`](../20-core-domain/28-layout-solver.md) (parts A–D, normative);
+[`29-layout-ladder`](../20-core-domain/29-layout-ladder.md) (the process and the step log);
+[`25-layout-hints`](../20-core-domain/25-layout-hints.md) (the nine fields and their readers);
+[`26-model-contract`](../20-core-domain/26-model-contract.md) (`layout` fields, y up);
+[`27-component-catalog`](../20-core-domain/27-component-catalog.md) (no side names, only outward
+directions); [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) (renders, draws no
+layout); [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md) (the ladder test
+tier); `docs/advanced/how-the-diagram-is-arranged.md`.
+
+## D-108 · Heat flows left to right and every flow loop runs clockwise; a standing kind is mirrored and never turned; every node is laid out with its boundaries; a layout is checked from its text
+
+**Accepted · 2026-09-16** · refines `D-107` (items 2, 3 and 5, and the loop search of `28` part D)
+and `D-106` item 6; promotes `28` part B's fourth priority to the hard constraints H9 and H10;
+narrows `D-107`'s withdrawal of `D-38`; withdraws `28` A6 (boundary stubs); amends `28`, `29`,
+`62`, `53`, the glossary and `docs/advanced/how-the-diagram-is-arranged.md`.
+
+The user gave four directions on 2026-09-16 as the correction to ladder step 1 and as standing rules
+for every step after it. They are recorded here because each alters something `D-106`/`D-107` had
+settled, and because the ladder ([`29`](../20-core-domain/29-layout-ladder.md)) needs them written
+*before* step 2 is drawn, not discovered by it.
+
+1. **Heat flows left to right, and every flow loop circulates clockwise.** These were the fourth
+   priority of `28` part B -- a reading convention traded below bends and crossings -- and are now
+   hard: a drawing that breaks one is wrong, not worse. In checkable form: **H9**, every simple
+   directed cycle of the flow-oriented graph (`28` A3) is drawn clockwise (walked in flow order, the
+   polygon through its members' centres has negative signed area in y-up coordinates); **H10**, a
+   two-sided exchanger's losing side is its left flank and its gaining side its right flank, read off
+   `D-36`'s heat-transfer edge, and a fragment's first process path starts at its heat source and
+   flows right. "By default" means no override exists in v1; an override would be a script directive
+   in `D-29`'s territory. What follows from the pair, and needs no rule of its own: the source member
+   of a loop is its left side flowing *up*, the consumer its right side flowing *down*, supply runs
+   along the top and return along the bottom -- so "supply above return" leaves the priorities as
+   implied -- and `28` part D's loop search loses its orientation dimension and, for a loop with a
+   standing source and a standing consumer, its corners.
+2. **An exchanger, a tank and a heat pump are never turned; they are mirrored.** The catalogue gains
+   a **transform class** per kind: `free` (four quarter turns, mirrored or not: eight transforms);
+   `standing` (no quarter turn: identity, a left-right mirror, an up-down mirror, both: four --
+   `heat_exchanger` in every spelling, and `heat_pump` when M4 adds it); `upright` (identity and the
+   left-right mirror only: two -- `tank`, because its layers and its port elevations are a vertical
+   order the picture must keep). `D-107` item 2 said "0 or 180" for the exchanger, which is the same
+   set as both mirrors for a symmetric glyph but the wrong vocabulary -- the user reasons in mirrors,
+   and the tank is where the two differ: a half turn would put the hot layer at the bottom. On the
+   wire an up-down mirror is written as `rotation 180, mirrored`, which is the same transform; the
+   text names the mirrors.
+3. **Every node is laid out with its inner box and its outer boundary, and shown.** `28` A6 is
+   withdrawn: a boundary node the binder adds (`23` rule I3) is a node like any other -- it has the
+   junction's box, an outer boundary of one margin, a place of its own, and its name in the picture
+   and the text. `A5` is narrowed to declared pipes and pipe-expansion children: a node with two
+   connections keeps its box for the layout and the diagnostic picture; what the *canvas* draws for
+   it stays `53`'s (nothing). A6 was decided by a session while drawing step 1 and hid the very
+   element the user reasons with. Whether a node's outer boundary takes clearance from its
+   neighbours -- the width a run through five inferred nodes costs -- is what step 2's picture will
+   show; until the user corrects it, H2 applies to every box.
+4. **A layout is checked from its text, never from its picture.** `28` A10 stands and is tightened:
+   the text is a Core output (`SceneText` moves from Core.Tests into Core as *the* layout report;
+   `62`'s `LayoutExplanation` is this text and not a second format), it gains a character raster of
+   the arrangement so a session sees boxes, nodes, pipes and flow arrows without rendering anything,
+   and the protocol is stated once: a session reads the text; the SVG is for the user's eyes.
+
+**Why.** Every one of the four is a sentence the user could say and the previous engines could not:
+P5.1d-1 put a pump on the wrong leg because clockwise was a preference below a bend; the first
+P5.1d-2 build laid exchangers down because "stands" was a rotation set and not a class; the step 1
+picture showed one pump and two ticks because a session had decided the nodes away; and an afternoon
+was spent reading PNGs. Writing them as constraints, a catalogue fact, a model rule and a protocol
+puts each where the ladder cannot lose it.
+
+**What this reconciles.** `R-48` (supply header along the top, return along the bottom, subcircuits
+stacked between) and `D-107` item 5 (branches stack perpendicular to the main flow, `D-38`
+withdrawn) disagreed. H9 settles it by topology rather than by picture: a closed distribution ring
+*is* a flow loop, so its supply runs along the top and its return along the bottom and its branches
+hang between them -- `R-48`'s picture, re-derived. `D-107`'s stacking survives for an open path
+(supply boundary → branches → return boundary), which has no ring to orient. The ladder's header
+step confirms which shape each sample takes; neither is a preference any more.
+
+**Rejected.**
+- *Clockwise and left-to-right as the top priority rather than as constraints.* A priority is traded
+  when a lower one is cheaper; the user wants these never traded, and a constraint is auditable.
+- *`rotation ∈ {0, 180}` as the standing class.* Right set for the exchanger, wrong for the tank, and
+  it names the transform by what it is not.
+- *Boundary nodes as ticks on the canvas and as nodes only in the diagnostic.* Two layouts of one
+  graph; the layout has one placement per node and the renderer decides what to draw.
+
+**Constrains.** [`28-layout-solver`](../20-core-domain/28-layout-solver.md) A4–A6, A10, B (H9,
+H10), C (C1–C4), D; [`29-layout-ladder`](../20-core-domain/29-layout-ladder.md) (step 1's
+correction, the planned steps); [`27-component-catalog`](../20-core-domain/27-component-catalog.md)
+(the transform class is a fact about the kind); [`62-testing-strategy`](../60-docs-and-devex/62-testing-strategy.md)
+(one layout text, in Core, with a raster); [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md)
+(H9/H10 are the solver's; a two-port node still draws nothing); `02` glossary;
+`docs/advanced/how-the-diagram-is-arranged.md`.
+
+## D-109 · A symbol that reverses on a line is mirrored, not half-turned: ties break by the smaller turn first, then unmirrored
+
+**Accepted · 2026-09-17** · amends `D-106` item 12 and `28` A9 (the source's §27 order); refines `D-108` item 2.
+
+`28` A9 broke a transform tie by *unmirrored before mirrored, then the smaller clockwise turn*, which
+is the source specification's order. On the ladder's step 4 that drew the return's pump and valve
+at rotation 180, and the user named the fault: a valve's glyph has a stem on top, and a half turn
+puts it underneath, where a mirror would have kept it up; the pump will carry an inverter badge
+above it later, and the same applies. The two transforms are indistinguishable for a symmetric
+glyph and different for every symbol with a top.
+
+**Decided.** Among the transforms a kind admits that face the pipe, the order is: the default
+arrangement first, then the **smaller clockwise turn**, then **unmirrored before mirrored**. A
+free-turning symbol reversing on a level line is therefore mirrored (rotation 0) and never
+half-turned; on a vertical run it takes the quarter turn that faces the pipe, the smaller one
+first. A standing kind's four mirrors keep their names (`D-108` item 2); with this order the
+half turn -- both mirrors -- still sorts after the single left-right mirror where both face.
+
+**Rejected.** *A per-kind "top" flag*: every glyph with a stem, a badge or a label slot has a top,
+which is all of them; ordering the turns is one rule for every kind.
+
+**Constrains.** [`28-layout-solver`](../20-core-domain/28-layout-solver.md) A9; `LayoutEngine.Admitted`.
+
+## D-110 · A connection line may carry pipe properties; each such connection lowers to an implicit pipe, and a bare connection stays a lossless link
+
+**Accepted · 2026-09-17** · refines `D-02` (omission policy) and `D-64`; amends `12`, `15`, `17`, `22`, `23`, `28` A5; answers `L-51`.
+
+On the layout ladder's step 5 a declared `PP pipe length=12 dn=25` sat as a point on a run that
+is itself the pipe, and the user asked for the pipe's properties on the connection line instead:
+`PU1 - HE1 - LOAD - PU1 dn=25` for a chain, `LOAD - PU1 dn=25` for a part of one. Option A of
+`L-51` is chosen.
+
+1. **Grammar.** A connection line may end in a property list, `name=value` pairs as on a
+   declaration, after its last endpoint. The properties apply to **every connection on that
+   line**. A bare designation (`DN25`) is not a literal form; it is `dn=25`, as every parameter
+   in the language is spelled, and the printer round-trips the line byte for byte (`17`).
+2. **Lowering.** A connection carrying properties lowers to an implicit `pipe` component between
+   its two ends, with the properties as its stated parameters, named deterministically after the
+   ends (the binder's naming, beside I2's); its inferred nodes follow. A connection carrying no
+   properties lowers as today, to a node, and **drops nothing**: no existing script changes.
+3. **Omission policy.** The implicit pipe is a `pipe`: `dn` omitted is sized (`D-02`); `length`
+   omitted is **zero**, stated as the pipe's decided default, so `dn=25` alone marks the drawing
+   and the catalogue bore and adds no friction until a `length` is written. A pipe with a length
+   and no `dn` is sized as a declared pipe is.
+4. **Layout.** Nothing changes: a pipe is inline (`28` A5), the line is the pipe, and its label
+   (the `dn`, when the zoom shows values) sits beside the line. Declared `pipe` components remain
+   valid and are drawn the same way; the ladder continues with them until the package lands.
+
+**Why.** The drawing already had the pipe as a line, so a component for it was a modelling
+artefact the user had to name and place in the chain; the properties belong to the line. Keeping
+a bare connection lossless is what keeps `01`'s figures and every corpus sample where they stand.
+
+**Rejected.** *Every connection is a pipe, sized when unstated* (`L-51` B): every bare connection
+in the corpus would gain a length it does not have. *Keep declared pipes only* (C): the layout
+already hides them, but the user's complaint was the declaration, not the drawing.
+
+**Constrains.** [`12-grammar`](../10-language/12-grammar.md) (the property list on a connection
+line), [`15-semantic-model`](../10-language/15-semantic-model.md) (the implicit pipe, its name, its
+place among I1–I3), [`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md),
+[`22-component-model`](../20-core-domain/22-component-model.md) (`length` default 0 for an implicit
+pipe), [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md), `08` (a language
+package, P5.1e, before the ladder's samples are rewritten to it), `docs/functions/pipe.md` and
+the connections page.

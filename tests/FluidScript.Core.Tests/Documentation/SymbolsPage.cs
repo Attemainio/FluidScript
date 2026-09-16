@@ -41,12 +41,13 @@ public static class SymbolsPage
             .OrderBy(static a => a.Key, StringComparer.Ordinal)
             .Select(static a => $"`{a.Key}` {Point(a.Value.At)}{(a.Value.Direction is { } d ? " " + Arrow(d) : string.Empty)}");
 
+    // Symbol space is y up (28 A1): (0, 1) points up the page.
     private static string Arrow(ImmutableArray<double> direction) =>
         (direction[0], direction[1]) switch
         {
             ( < 0, _) => "←",
             ( > 0, _) => "→",
-            (_, < 0) => "↑",
+            (_, > 0) => "↑",
             _ => "↓",
         };
 

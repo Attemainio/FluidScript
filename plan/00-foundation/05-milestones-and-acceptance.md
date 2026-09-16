@@ -312,8 +312,10 @@ accessibility, and SVG/PNG export.
       bytes and server serialization time, against `07`'s 512 KiB budget, and the client-side half of
       that budget with it (`D-45`). Moved here from M2a by `F-24`: the contract is `P5.1`'s artifact,
       and the milestone that first produces an artifact records its baseline. **Server side recorded
-      2026-09-15 (P5.1c):** 189.8 KiB compile, 237.6 KiB solved, ~1.2 ms warm serialization; the
-      numbers and the fixture are in `26`. The client-side parse waits for the frontend (P5.2+).
+      2026-09-15 (P5.1c):** 189.8 KiB compile, 237.6 KiB solved, ~1.2 ms warm serialization; with
+      the solved layout on the wire (P5.1d-1, `D-103`, `D-105`) 278.5 KiB compile, 325.7 KiB solved,
+      ~2 ms warm; the numbers and the fixture are in `26`. The client-side parse waits for the frontend
+      (P5.2+).
 - [ ] Keyboard-only and screen-reader users can edit, inspect, run static solve, read diagnostics and
       state, save, and export; WCAG 2.2 AA and `07` budgets pass.
 - [ ] The render, editor-response and accessibility baselines deferred from M0 by `D-45` are recorded

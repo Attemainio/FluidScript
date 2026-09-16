@@ -225,23 +225,7 @@ public sealed class ModelContractBuilderTests
         }
     }
 
-    [Fact]
-    public void PortSidesAndAnchorsAgree()
-    {
-        // 25's PortSides is read off the default anchor set (D-102); this holds the two together on the wire.
-        var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-substation.fluid")));
-        var symbols = contract.Symbols.ToDictionary(static s => s.Id, StringComparer.Ordinal);
 
-        foreach (var (key, side) in contract.Layout.PortSides)
-        {
-            var (id, port) = (key[..key.IndexOf('.')], key[(key.IndexOf('.') + 1)..]);
-            var anchor = symbols[contract.Components.Single(c => c.Id == id).SymbolId].PortAnchors[port];
-            var expected = side switch { "west" => (-1.0, 0.0), "east" => (1.0, 0.0), "north" => (0.0, -1.0), _ => (0.0, 1.0) };
-
-            Assert.True(anchor.Direction.HasValue);
-            Assert.Equal(expected, (anchor.Direction.Value[0], anchor.Direction.Value[1]));
-        }
-    }
 
     // ---- diagnostics --------------------------------------------------------------------------------------------------
 

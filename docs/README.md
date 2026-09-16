@@ -11,6 +11,7 @@ Three categories, and every user-visible feature has a page in exactly one of th
 The structure and page template are owned by
 [`plan/60-docs-and-devex/61-documentation-plan.md`](../plan/60-docs-and-devex/61-documentation-plan.md).
 
-**These directories are empty because no user-visible feature has shipped yet**, and that is the only
-reason they may be empty. `DocumentationGateTests` fails the build the moment a component kind, a
-statement-introducing reserved word or a reachable diagnostic code exists without its page.
+`DocumentationGateTests` fails the build the moment a component kind, a statement-introducing
+reserved word or a reachable diagnostic code exists without its page, and regenerates the tables that
+are read off the code -- the diagnostic index, the model contract's records, the symbol catalogue --
+in place.

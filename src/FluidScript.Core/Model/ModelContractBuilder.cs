@@ -126,6 +126,10 @@ public static class ModelContractBuilder
 
         var connections = Connections(model, graph, hints, ports, raised);
         var circuits = Circuits(model, graph, hints, solved, statesOmitted);
+        var scene = LayoutSolver.Solve(graph, model, hints, LayoutSolver.MarginOf(model));
+        var styles = new Styles(model, graph);
+        var visualization = Visualization(input.Root, graph, ports, raised);
+        var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
         var all = Diagnostics(input.Source, [.. diagnostics, .. raised]);
 
         return new ModelContract
@@ -142,14 +146,18 @@ public static class ModelContractBuilder
             Project = model.Project.Name is null && model.Project.DefaultMode is null
                 ? null
                 : new ProjectWire(model.Project.Name, ModeName(model.Project.DefaultMode)),
-            Style = new StyleWire([.. model.Style.Tokens.Select(static token => token.Text)], model.Style.Spacing),
+            Style = new StyleWire(
+                [.. model.Style.Tokens.Select(static token => token.Text)],
+                model.Style.Spacing,
+                Styles.Resolve(model.Style.Default),
+                model.Style.Definitions.OrderBy(static d => d.Key, StringComparer.Ordinal).ToDictionary(static d => d.Key, static d => Styles.Resolve(d.Value), StringComparer.Ordinal)),
             Circuits = circuits,
             PressureDatums = [.. HydraulicPartition.Of(graph).Select(static part => part.Datum).Where(static datum => datum.Length > 0)],
             Components = components.ToImmutable(),
             Symbols = SymbolCatalog.All,
             Connections = connections,
-            Layout = Layout(hints),
-            Visualization = Visualization(input.Root, graph, ports, raised),
+            Layout = Layout(hints, scene, styles, id => Styles.ScaleOf(states.GetValueOrDefault(id), visualization.Scale)),
+            Visualization = visualization,
             Bindings = [.. model.Bindings.Select(binding => BindingOf(binding, raised))],
             Diagnostics = all,
             Solve = run is null
@@ -531,24 +539,52 @@ public static class ModelContractBuilder
 
     // ---- layout ------------------------------------------------------------------------------------------
 
-    private static LayoutWire Layout(LayoutHints hints) => new()
+    private static LayoutWire Layout(LayoutHints hints, Scene scene, Styles styles, Func<string, double?> scale) => new()
     {
+        Margin = scene.Margin,
+        Extent = Styles.BoxOf(scene.Extent),
+        Placements = [.. scene.Placements.Select(p => new PlacementWire
+        {
+            ComponentId = p.ComponentId,
+            SymbolId = p.SymbolId,
+            Inner = Styles.BoxOf(p.Inner),
+            Outer = Styles.BoxOf(p.Outer),
+            Rotation = p.Rotation,
+            Mirrored = p.Mirrored,
+            Arrangement = p.Arrangement,
+            Anchors = p.Anchors.ToDictionary(
+                static a => a.Key,
+                static a => new AnchorWire { At = [Round(a.Value.At.X), Round(a.Value.At.Y)], Direction = [a.Value.Direction.X, a.Value.Direction.Y] },
+                StringComparer.Ordinal),
+            LabelAt = [Round(p.LabelAt.X), Round(p.LabelAt.Y)],
+            Source = p.Source,
+            Style = styles.Of(p.ComponentId),
+            Scale = scale(p.ComponentId),
+        })],
+        Routes = [.. scene.Routes.Select(r => new RouteWire
+        {
+            Id = r.ConnectionId,
+            Kind = r.Kind,
+            Points = [.. r.Points.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
+            Hops = [.. r.Hops.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
+            Style = styles.Of(styles.FromComponentOf(r.ConnectionId)),
+            ScaleFrom = r.Kind == "pipe" ? scale(styles.FromComponentOf(r.ConnectionId)) : null,
+            ScaleTo = r.Kind == "pipe" ? scale(styles.ToComponentOf(r.ConnectionId)) : null,
+        })],
         Order = hints.Order,
-        Rank = Ordered(hints.Rank, static rank => rank),
+
         ThermalStages = [.. hints.ThermalStages.Select(static stage => new ThermalStageWire(stage.Rank, stage.Role.ToString().ToLowerInvariant(), stage.Components))],
         Flow = hints.Flow
             .OrderBy(static pair => int.Parse(pair.Key[1..], CultureInfo.InvariantCulture))
             .ToDictionary(static pair => pair.Key, static pair => pair.Value.ToString().ToLowerInvariant(), StringComparer.Ordinal),
-        PortSides = Ordered(hints.PortSides, static side => side.ToString().ToLowerInvariant()),
-        Loops = hints.Loops,
-        LoopOrientations = [.. hints.LoopOrientations.Select(static orientation => orientation.ToString().ToLowerInvariant())],
+
         Groups = [.. hints.Groups.Select(static group => new ComponentGroupWire(group.ParentComponentId, group.Children))],
         NonFlowElements = [.. hints.NonFlowElements.Select(static element => new NonFlowElementWire(
             element.ComponentId, element.PlacementAnchorId, element.MeasurementTargetId, element.ActuationTargetId, element.NavigationOrder))],
         CircuitOf = Ordered(hints.CircuitOf, static circuit => circuit),
         DistributionGroups = [.. hints.DistributionGroups.Select(static group => new DistributionGroupWire(group.ParentCircuit, group.Members))],
         Inferred = [.. hints.Inferred.Order(StringComparer.Ordinal)],
-        BranchShapes = Ordered(hints.BranchShapes, static shape => shape),
+
     };
 
     private static Dictionary<string, TOut> Ordered<TIn, TOut>(IEnumerable<KeyValuePair<string, TIn>> pairs, Func<TIn, TOut> map) =>

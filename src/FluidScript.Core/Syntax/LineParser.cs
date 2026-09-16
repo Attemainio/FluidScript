@@ -299,6 +299,19 @@ internal sealed class LineParser(
     private StyleDirectiveSyntax ParseStyle()
     {
         var keyword = Advance();
+        Token? name = null;
+        Token? equals = null;
+
+        // `style hot = ...` defines a named style (D-104). The `=` is what tells a definition from an
+        // application, so a bare `style hot` stays a token list and the binder decides whether `hot`
+        // is a style it knows or a colour it does not.
+        if (Current is { Kind: TokenKind.Identifier or TokenKind.Keyword }
+            && tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Equals })
+        {
+            name = Advance();
+            equals = Advance();
+        }
+
         var parts = ImmutableArray.CreateBuilder<StyleTokenSyntax>();
 
         while (!AtEnd)
@@ -309,12 +322,12 @@ internal sealed class LineParser(
         // A directive whose whole token list was eaten by a comment beginning with a hex-shaped run is
         // legal, silent, and renders in the default colour. The lexer cannot know a colour was meant;
         // here we can see the comment sitting in the keyword's trailing trivia.
-        if (parts.Count == 0 && HexComment(keyword) is { } hex)
+        if (parts.Count == 0 && HexComment(equals ?? keyword) is { } hex)
         {
             Report(ParserDiagnostics.BareHexColour, keyword.Span, new DiagnosticArgument("hex", hex));
         }
 
-        return new StyleDirectiveSyntax(keyword, parts.ToImmutable());
+        return new StyleDirectiveSyntax(keyword, name, equals, parts.ToImmutable());
     }
 
     private StyleTokenSyntax TakeStyleToken()
@@ -339,6 +352,16 @@ internal sealed class LineParser(
             }
 
             return new StyleTokenSyntax(StyleTokenKind.Pattern, run.ToImmutable());
+        }
+
+        // `fill="#e8f1f8"`: the one keyed token (D-104), because a second positional colour would
+        // break the order-independence the directive was decided on.
+        if (first.Kind is TokenKind.Identifier or TokenKind.Keyword
+            && Current is { Kind: TokenKind.Equals } equals
+            && tokens.ElementAtOrDefault(_index + 1) is { Kind: not TokenKind.EndOfFile } value)
+        {
+            _index += 2;
+            return new StyleTokenSyntax(StyleTokenKind.Keyed, [first, equals, value]);
         }
 
         var kind = first.Kind switch
@@ -837,7 +860,8 @@ internal sealed class LineParser(
         var parameters = ImmutableArray.CreateBuilder<ParameterSyntax>();
         failed = false;
 
-        while (Current is { Kind: TokenKind.Identifier } nameToken)
+        // `style=` is the one reserved word a parameter may be named after (D-104).
+        while (Current is { Kind: TokenKind.Identifier } or { Kind: TokenKind.Keyword, Text: "style" } && Current is { } nameToken)
         {
             // The one bare identifier a parameter list may end in front of: a declaration's sizing
             // point begins here and the caller reads it (`D-94`).

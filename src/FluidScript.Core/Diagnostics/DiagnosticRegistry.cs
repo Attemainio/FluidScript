@@ -107,6 +107,7 @@ public static class DiagnosticRegistry
     [
         .. LexerDiagnostics.All,
         .. ParserDiagnostics.All,
+        .. StyleDiagnostics.All,
         .. BinderDiagnostics.All,
         .. CompatibilityDiagnostics.All,
         .. FluidDiagnostics.All,

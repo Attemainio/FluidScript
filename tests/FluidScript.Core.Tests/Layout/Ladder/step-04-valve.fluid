@@ -1,0 +1,16 @@
+# Layout ladder, step 4 (plan/20-core-domain/29-layout-ladder.md): a valve on the return.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+PU1  pump
+HE1  heat_exchanger power=30 in=20 out=50
+LOAD heat_exchanger power=-30
+CV1  valve
+
+connections
+PU1 - HE1
+HE1 - LOAD
+LOAD - CV1
+CV1 - PU1

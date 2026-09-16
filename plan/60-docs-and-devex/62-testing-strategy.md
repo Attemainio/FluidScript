@@ -332,6 +332,19 @@ states how.
 
 ### Layout verification
 
+**Since `D-103` the prepared scene is Core's `layout` on the model contract, and every tier below is
+a Core test** (`FluidScript.Core.Tests/Layout`), run by `dotnet test` and read through the layout
+report; the frontend tiers reduce to "the renderer draws what it is given". The paragraphs below were
+written when the scene was built in the browser; their targets and predicates are unchanged.
+
+**The ladder gate (`D-107`, 2026-09-16).** While the layout rules are being established one step
+at a time ([`29`](../20-core-domain/29-layout-ladder.md)), `LayoutLadderTests` is the layout gate:
+for every `tests/FluidScript.Core.Tests/Layout/Ladder/step-NN-*.fluid` it writes the scene's SVG
+and its `28` A10 text to `diagnostics/layout-ladder/` *first*, then asserts that every component is
+placed and `SceneAudit` finds no hard finding. The seven layout samples' routing and audit
+assertions in `LayoutSolverTests`, and `LayoutTimingTests`, are skipped with a reason naming the
+ladder until it reaches them; they are not deleted, and they come off skip sample by sample.
+
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
 string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a
 route is a `d` attribute; asking geometric questions of that requires the test to rebuild the
@@ -405,21 +418,23 @@ under a second. No spatial index.
 #### The layout report
 
 `SolveExplanation` is what made the solver debuggable from a terminal, and the layout engine gets the
-same instrument (`D-100`): `LayoutExplanation` renders a prepared scene as text — every symbol with
-its id, kind, origin, orientation, bounds and port anchors; every route with its segments, bends,
-hops and length ratio; every label box; the occupancy grid as a character raster; the metrics; and
-each of L1–L19 with its verdict and the offending ids. A `Diagnostic`-tier harness writes it for
-every fixture to `diagnostics/layout-reports.md`, as `CircuitDiagnostics` writes
-`circuit-reports.md`, and the experiment protocol in `CLAUDE.md` applies to it unchanged: run the
-fixture, read the whole report, change only what it supports. It is the reason a session with no
-canvas can look at a layout.
+same instrument (`D-100`). **It is one text, `28` A10's, and it is `SceneText` in Core** (`D-108`
+item 4; the move from Core.Tests is `C-89`): every component with its group, transform, arrangement,
+inner and outer boxes and each port's inner anchor, outer anchor and flow vector; every route with
+its points, length, bends, crossings, hops and envelope; the groups; a character raster of the
+arrangement; every hard constraint and soft class of `28` B with its count; every finding. The
+ladder writes it per step and the sample gates per sample to `diagnostics/`, *before* any
+assertion, and the experiment protocol in `CLAUDE.md` applies to it unchanged: run the fixture,
+read the whole text, change only what it supports. It is the reason a session with no canvas can
+look at a layout, and **a session checks a layout from this text and never from the SVG or a PNG**
+-- the afternoon P5.1d-2 spent reading rendered pictures is recorded in `20`'s observations as the
+drift this sentence exists to stop.
 
-Its form is `SolveExplanation`'s, not JSON (decided with the user, 2026-09-15): aligned columns under
-a heading per section, one line per symbol, route, label and predicate, with names stated once in a
-column header rather than repeated on every row. A symbol's line carries its bounding box and port
-anchors and nothing of its strokes, because the box is all the layout ever reasoned about (`53`);
-the occupancy raster is the one part that is a picture rather than a table. A JSON dump of the same
-scene is several times longer and the reader is a model with a context budget.
+The earlier `LayoutExplanation` -- a second, columnar text with the `L1`–`L19` verdicts -- is
+withdrawn as a separate artefact: the verdicts are `28` B's constraints and the audit's counts in
+the same text, and the raster the columnar form was to carry is A10's. Its form stays
+`SolveExplanation`'s where a section is a table (one line per element, names in a header), and the
+raster is the one part that is a picture rather than a table.
 
 #### Metrics, which are trended rather than gated
 

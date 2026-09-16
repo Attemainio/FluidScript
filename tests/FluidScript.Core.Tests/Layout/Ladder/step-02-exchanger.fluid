@@ -1,0 +1,11 @@
+# Layout ladder, step 2 (plan/20-core-domain/29-layout-ladder.md): a pump feeding an exchanger.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+PU1 pump
+HE1 heat_exchanger
+
+connections
+PU1 - HE1

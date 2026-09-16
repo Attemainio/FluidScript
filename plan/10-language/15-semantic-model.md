@@ -471,15 +471,23 @@ public sealed record BindingSymbol(
     Quantity? Value,
     TextSpan DeclarationSpan);
 
-/// <summary>Presentation values Core carries and never interprets.</summary>
+/// <summary>Presentation values: the project's default style, the named styles, and the spacing.</summary>
 /// <remarks>
-/// <see cref="Tokens"/> holds the <c>style</c> directive's positional tokens verbatim.
-/// <see cref="Spacing"/> is the <c>spacing</c> directive's value in world units, or null when the
-/// script states none, in which case the renderer's own default applies (`D-37`).
+/// <see cref="Tokens"/> holds the project-level <c>style</c> directive's tokens verbatim, for the
+/// printer. <see cref="Default"/> is the same directive classified (`D-104`): stroke, width, corner,
+/// pattern and fill, each null when unstated. <see cref="Definitions"/> holds every
+/// <c>style name = tokens</c> by name (FS1205 on a second definition). <see cref="Spacing"/> is the
+/// <c>spacing</c> directive's value in world units -- the layout margin since `D-103` -- or null
+/// when the script states none, in which case <c>LayoutSolver.DefaultMargin</c> (0.5) applies.
+/// A circuit's <c>style name</c> line and a component's <c>style=name</c> parameter resolve at
+/// bind time onto <c>ComponentSymbol.Style</c>, merged project -> circuit -> component; FS1204
+/// names an undefined style. Core resolves; the renderer draws what `26` carries.
 /// </remarks>
 public sealed record StyleSettings(
     ImmutableArray<StyleTokenSyntax> Tokens,
-    double? Spacing);
+    double? Spacing,
+    StyleSpec Default,
+    ImmutableDictionary<string, StyleSpec> Definitions);
 
 public abstract record Origin
 {
