@@ -565,6 +565,7 @@ public static class ModelContractBuilder
         {
             Id = r.ConnectionId,
             Kind = r.Kind,
+            Layer = r.Layer,
             Points = [.. r.Points.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
             Hops = [.. r.Hops.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
             Style = styles.Of(styles.FromComponentOf(r.ConnectionId)),

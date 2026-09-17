@@ -545,10 +545,13 @@ public sealed record RouteWire
     /// <summary><c>pipe</c> or <c>signal</c>.</summary>
     public required string Kind { get; init; }
 
+    /// <summary>The draw order (<c>28</c> C16): <c>supply</c> in front, <c>return</c> behind it, <c>signal</c> behind everything. A pipe is supply until the flow from a heat source has passed a losing side.</summary>
+    public required string Layer { get; init; }
+
     /// <summary>The orthogonal polyline, flattened <c>[x0, y0, x1, y1, …]</c>; the first and last points are the anchors.</summary>
     public required ImmutableArray<double> Points { get; init; }
 
-    /// <summary>Where this route crosses an earlier one, flattened <c>[x0, y0, …]</c> in world units; the renderer draws a crossing mark at each.</summary>
+    /// <summary>Where this route passes behind another it crosses, flattened <c>[x0, y0, …]</c> in world units; the renderer breaks this route around each so the one in front runs through (<c>28</c> C16).</summary>
     public required ImmutableArray<double> Hops { get; init; }
 
     /// <summary>The resolved style, from the component the route leaves; absent when the theme's defaults apply throughout.</summary>

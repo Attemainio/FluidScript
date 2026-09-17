@@ -1343,6 +1343,7 @@
       {
         "id": "c0",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.1,
           0,
@@ -1356,6 +1357,7 @@
       {
         "id": "c1",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.1,
           -0.96,
@@ -1369,6 +1371,7 @@
       {
         "id": "c2",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           1.6,
           0,
@@ -1382,6 +1385,7 @@
       {
         "id": "c3",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           1.6,
           -0.96,

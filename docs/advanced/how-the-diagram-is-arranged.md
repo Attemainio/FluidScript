@@ -93,8 +93,12 @@ is laid out first as a block of its own, its inlet and outlet side by side facin
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
 declared, each under the junction that feeds it and over the one it returns to; branches in series
-step down from one block's outlet to the next block's inlet. Where a component may sit is not
-something the script can steer today; pinning one is planned.
+step down from one block's outlet to the next block's inlet. A sensor stands just off the node it
+reads and a controller just off the component it drives, on its centre line; the controller's
+signal comes from the sensor, level and then down, and its own line goes straight into the
+actuator. Where lines cross, the one in front runs through and the one behind is broken around it:
+signal lines run behind pipes, and return pipes behind supply pipes. Where a component may sit is
+not something the script can steer today; pinning one is planned.
 
 ## What is read off the circuit
 

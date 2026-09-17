@@ -582,6 +582,47 @@ take it (a tank whose charging ports are declared `out` and drawn from the right
 storage header's sample gates are live (`Reached`). Steps 1–8e unchanged. **Accepted (2026-09-17):**
 "Looks correct."
 
+### Step 10 · a sensor and a controller on step 4's loop
+
+`step-10-instruments.fluid`: step 4 with `N1` written out between `HE1` and `LOAD` (inline,
+`D-114`), `TE1 t_sensor at N1`, `PID1 pid kp=2`, and `control CV1 with TE1 by PID1 setpoint=50`
+-- the syntax tour's short control form. It converges in two iterations.
+
+**Drawn (2026-09-17):** the loop is step 4's, byte for byte, with `N1` a point on the supply rail
+at `(2, 1)`. The instruments are placed by the rule P5.1d-1 left in `PlaceInstruments`: each
+non-flow element stands one margin off its anchor's box, above first, then below, left, right,
+and shifts right past another instrument. `TE1` stands above `N1` at `[(1.7, 1.5), (2.3, 2.1)]`
+with its signal dropping 0.8 to the node; `PID1` stands above its actuated valve, inside the loop,
+at `[(2.45, −0.2), (3.05, 0.4)]`, its actuation signal dropping 1.1 to the valve's centre and its
+measurement signal rising to `(2.75, 1)` and running 0.75 *along the supply rail* to `N1`. Process
+pipes hard 0, soft 0, four bends, length 7.4 -- the audit measures pipes and boxes, not signals. Two
+things the text shows that the audit does not: the measurement signal is drawn from the controller
+to the node rather than from the sensor, and it lies on a pipe; and the actuation signal ends at
+the valve's body rather than its actuator. Put to the user with the picture.
+
+**User's corrections (2026-09-17):** two. (1) A signal never leaves a sensor by the side the
+sensor's own line leaves by: `TE1` connects downward, so its signal goes up, left or right -- here
+right, the controller being to the right, then down: one bend, not the two drawn. And the sensor
+must be far enough left, or the valve and controller far enough right, that the level stub is not
+a scrap; "valve and PID must be aligned always"; which of the two moves was left to the session.
+(2) At a crossing the polyline in front is continuous and the one behind shows a slight
+discontinuity around it; signal lines are drawn behind, supply lines in front, return behind
+supply, and between two circuits the hotter wins. It applies to every crossing, pipes included.
+
+**Drawn again (2026-09-17):** C15 and C16. The sensor moves: its node `N1` is inline and free
+along the rail, the valve is a loop member. `TE1` slid 0.05 left to `[(1.65, 1.5), (2.25, 2.1)]`
+with `N1` under it at `(1.95, 1)`, so the stub to `PID1`'s column is a whole margin; the
+measurement signal is `(2.25, 1.8) → (2.75, 1.8) → (2.75, 0.4)`, sensor to controller, one bend,
+crossing the supply rail at `(2.75, 1)` where it is broken a quarter margin either side; the
+actuation signal `(2.75, −0.2) → (2.75, −0.7)` ends on the valve's box at its stem side; `TE1`'s
+own line `(1.95, 1.5) → (1.95, 1)`. Every route now carries a layer on the wire (`Route.Layer`:
+`supply`, `return`, `signal`), the crossing belongs to the route behind, and the diagnostic text
+names each pipe's layer -- the loop reads `supply` from `HE1.out` to `LOAD.in` and `return` from
+`LOAD.out` round to `HE1.in`, the header's supply rail and every branch's feed `supply`, every
+return and every recirculation `return`. The temperature rank between two circuits waits for a
+solved state (`28` open question 3). Steps 1–9 unchanged; the Api goldens carry the layer.
+**Accepted (2026-09-17):** "Yes, perfect."
+
 ## What the ladder has not reached
 
 Step 10: instruments with their signal lines; the `upright` class's mirror. From `28` part D: the loop search's residue (open question 2 for valves), branches in

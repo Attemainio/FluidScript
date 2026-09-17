@@ -77,7 +77,7 @@ internal static class SceneText
                 : $"{r.ConnectionId} {r.Kind}";
             var bends = r.Bends.Count();
             var crossings = findings.Count(f => f.Kind == "pipes-cross" && f.First == r.ConnectionId);
-            text.Append(name).Append('\n');
+            text.Append(name).Append(r.Kind == "pipe" ? " " + r.Layer : string.Empty).Append('\n');
             text.Append(" points ").Append(Text(r.Points)).Append('\n');
             text.Append(" length ").Append(N(r.Length)).Append(" bends ").Append(bends).Append(" crossings ").Append(crossings).Append('\n');
 

@@ -223,7 +223,10 @@ than an ugly one.
 ### Routing and placement
 
 Both are the solver's (`28`): a pipe is an orthogonal polyline from port to port, leaving each port
-along its outward direction for a whole margin, with a hop where it crosses an earlier pipe. The
+along its outward direction for a whole margin, with a hop where it passes behind another route
+(`28` C16: the picture is drawn from the back -- signals, then return pipes, then supply pipes, each
+route's `layer` on the wire -- and the route behind owns the crossing and is broken a quarter margin
+either side of it, so the route in front runs through; a route's `hops` are its own breaks). The
 `style` corner treatment (`fillet`) is applied when the polyline is drawn. Routes and placements are
 recomputed only when the graph changes -- never when a value changes -- so a transient run animates
 values over a fixed drawing ([`51-frontend-architecture`](51-frontend-architecture.md)). v1 has

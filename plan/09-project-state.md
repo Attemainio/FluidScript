@@ -288,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 9 accepted 2026-09-17 (step 9, the tank, with no rule added); step 10 next |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; the ladder has reached every layout sample but the syntax tour |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -498,7 +498,13 @@ rail) then drew with no rule touched, and the user accepted all of step 8; a par
 one branch in series (8e) needed C14 to read a branch as a chain of blocks, and draws clean. Step 9,
 the tank between two supplies and two returns, drew with no rule added -- the open fan is C5 from
 the head, the tank upright, every pipe straight -- and the storage header's sample gates are live.
-Step 10 (instruments) remains.
+Step 10, a sensor and a controller on step 4's loop, drew with the first engine's instrument rule
+and the user corrected it twice over: a signal leaves a sensor by a side other than its own
+connection and reaches the controller in one bend with a whole stub, the sensor sliding along its
+inline node's rail to make room (`28` C15); and at a crossing the route in front runs through while
+the one behind breaks -- signals behind return behind supply, the hotter circuit in front when two
+overlap (C16, the temperature rank open as `28` question 3). Every route carries a `layer` on the
+wire now. The user accepted the corrected picture: every planned rung is climbed.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -598,7 +604,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1710 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1722 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

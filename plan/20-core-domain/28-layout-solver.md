@@ -361,6 +361,28 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   the series header does (step 8e). The ring's right unit is slid until its own descent to the
   bottom rail clears every box as well. Not built yet: a branch off the bottom rail, a branch whose
   bottom member is not a junction, and a boxed member on a branch before its first block.
+- **C15** *(step 10, corrected once, provisional)* -- **Instruments stand off their anchors, and a
+  controller reads through its sensor.** A sensor stands one margin off the node it observes --
+  above a level rail -- with its signal a straight drop to the node's point. A controller stands one
+  margin off the component it actuates, on that component's centre line (above first, then below,
+  left, right), and its actuation signal runs straight into the component's facing edge, the valve's
+  stem side. Its measurement signal comes from the sensor on the node it reads, not from the node:
+  it leaves the sensor level, by the side facing the controller -- never by the side the sensor's own
+  line leaves by -- turns once and enters the controller's facing edge. When that level stub would
+  be shorter than a margin, the sensor and its node slide along the rail to make room: the node is
+  inline (`D-114`) and free along its run, the valve is fixed by its loop, and the user left the
+  choice between moving either. A signal may cross a pipe (C16); it never runs along one. Not
+  built: a controller directly under its sensor, through the node; a sensor on a boxed junction; a
+  controller that measures a node with no sensor placed on it (it still draws to the node).
+- **C16** *(step 10, provisional)* -- **At a crossing the route in front runs through and the one
+  behind breaks.** Every route carries a layer -- `supply`, `return`, `signal` -- and the picture is
+  drawn from the back: signals, then return pipes, then supply pipes. Where two routes cross, the
+  one drawn behind owns the crossing and is broken for a quarter margin either side of it; between
+  two of one layer, the later one. A pipe is supply from a heat source -- a supply boundary or an
+  exchanger's gaining outlet -- until the flow passes a losing side, a consumer's first side or a
+  source's second; every other pipe is return. The user's full rule ranks two overlapping circuits
+  by temperature, the hotter in front; the layout is solved before any temperature is, so the layer
+  stands in for it (open question 3).
 
 ## D. The candidates
 
@@ -439,6 +461,11 @@ for it.
    and the user's earlier sketch put the pump on the vertical under the source exchanger. Step 3
    draws the bottom-only form; the correction becomes the rule and the residual search in D.
    *Answered for pumps by step 7 (`D-113`, C13): never, unless nothing level fits. Open for valves.*
+3. **Between two pipes of one layer, which is in front?** The user's rule (step 10): the hotter.
+   The layout runs at compile, before a temperature is solved, so C16 takes the later route.
+   Candidates: rank by the temperatures the script states (`out=60`, `in=50`) where it states
+   them; or let the renderer re-rank crossings from the solved state, which moves a layout decision
+   into the frontend against `D-103`. No sample crosses two pipes yet, so nothing decides it.
 
 ## Mapping to code
 

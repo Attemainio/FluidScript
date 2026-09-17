@@ -475,8 +475,9 @@ One connection's path.
 |---|---|---|
 | `id` | string | `c{n}` for a connection; `{instrument}:measures` or `{controller}:actuates` for a signal line. |
 | `kind` | string | `pipe` or `signal`. |
+| `layer` | string | The draw order (`28` C16): `supply` in front, `return` behind it, `signal` behind everything. A pipe is supply until the flow from a heat source has passed a losing side. |
 | `points` | array of number | The orthogonal polyline, flattened `[x0, y0, x1, y1, …]`; the first and last points are the anchors. |
-| `hops` | array of number | Where this route crosses an earlier one, flattened `[x0, y0, …]` in world units; the renderer draws a crossing mark at each. |
+| `hops` | array of number | Where this route passes behind another it crosses, flattened `[x0, y0, …]` in world units; the renderer breaks this route around each so the one in front runs through (`28` C16). |
 | `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style, from the component the route leaves; absent when the theme's defaults apply throughout. Absent when not applicable. |
 | `scaleFrom` | number or `null` | The scale position at the start, for a gradient; `null` when not computed. |
 | `scaleTo` | number or `null` | The scale position at the end. |

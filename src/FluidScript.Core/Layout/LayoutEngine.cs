@@ -106,6 +106,9 @@ internal sealed class LayoutEngine
     private readonly List<(int Link, Route Route)> _routes = [];
     private readonly List<Placement> _instruments = [];
 
+    /// <summary>The links on the supply side (C16), found once when the first route asks.</summary>
+    private HashSet<int>? _supply;
+
     // The groups laid out as one object (A8): every ring and every block, outer before inner, as (kind, members, whether it is the ring that holds the heat source).
     private readonly List<(string Kind, List<int> Members, bool Top)> _groups = [];
 
@@ -152,8 +155,8 @@ internal sealed class LayoutEngine
         AlignBoundaries();
         Fallback(Ordered(Enumerable.Range(0, _n)).ToList());
         Connect();
-        ComputeHops();
         PlaceInstruments();
+        ComputeHops();
         return ToScene();
     }
 
@@ -1910,7 +1913,7 @@ internal sealed class LayoutEngine
                 router.AddPipe(points[s - 1], points[s], k, link.From, link.To);
             }
 
-            _routes.Add((k, new Route($"c{link.Connection}", "pipe", points, [])));
+            _routes.Add((k, new Route($"c{link.Connection}", "pipe", LayerOf(k), points, [])));
         }
     }
 
@@ -1957,27 +1960,104 @@ internal sealed class LayoutEngine
         }
     }
 
-    /// <summary>Marks where a later pipe crosses an earlier one, on the later one.</summary>
     private void ComputeHops()
     {
+        // C16: where two routes cross, the one drawn behind takes the hop -- a signal behind a return behind a supply -- and between equals the later one.
+        var hops = _routes.Select(static _ => new List<Point>()).ToList();
+
         for (var b = 0; b < _routes.Count; b++)
         {
-            var hops = ImmutableArray.CreateBuilder<Point>();
-
             for (var a = 0; a < b; a++)
             {
-                if (_routes[a].Route.Kind != "pipe" || _routes[b].Route.Kind != "pipe")
+                var crossings = Crossings(_routes[a].Route.Points, _routes[b].Route.Points);
+
+                if (crossings.Count > 0)
                 {
-                    continue;
+                    hops[Rank(_routes[a].Route.Layer) < Rank(_routes[b].Route.Layer) ? a : b].AddRange(crossings);
                 }
-
-                hops.AddRange(Crossings(_routes[a].Route.Points, _routes[b].Route.Points));
             }
+        }
 
-            if (hops.Count > 0)
+        for (var k = 0; k < _routes.Count; k++)
+        {
+            if (hops[k].Count > 0)
             {
-                _routes[b] = (_routes[b].Link, _routes[b].Route with { Hops = hops.ToImmutable() });
+                _routes[k] = (_routes[k].Link, _routes[k].Route with { Hops = [.. hops[k]] });
             }
+        }
+    }
+
+    /// <summary>A layer's place in the draw order (C16): the supply in front, the return behind it, signals behind everything.</summary>
+    private static int Rank(string layer) => layer switch { "supply" => 2, "return" => 1, _ => 0 };
+
+    /// <summary>A pipe's layer (C16): <c>supply</c> while the flow from a heat source has not passed a losing side, else <c>return</c>.</summary>
+    private string LayerOf(int link) => (_supply ??= SupplyLinks()).Contains(link) ? "supply" : "return";
+
+    /// <summary>
+    /// The links the flow reaches from every heat source -- a supply boundary, or an exchanger's gaining outlet
+    /// -- before it passes a losing side, a consumer's first side or a source's second (C16). Every other pipe
+    /// carries return.
+    /// </summary>
+    private HashSet<int> SupplyLinks()
+    {
+        var supply = new HashSet<int>();
+        var queue = new Queue<(int Component, int Port)>();
+
+        for (var i = 0; i < _n; i++)
+        {
+            if (_graph.Components[i] is HeatExchanger { Power: > 0 } or CircuitNode { Boundary: BoundaryRole.Supply })
+            {
+                Leaving(i, -1, queue);
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var (i, p) = queue.Dequeue();
+
+            for (var k = 0; k < _links.Count; k++)
+            {
+                var link = _links[k];
+                var (peer, peerPort) = link.From == i && link.FromPort == p ? (link.To, link.ToPort)
+                    : link.To == i && link.ToPort == p ? (link.From, link.FromPort)
+                    : (-1, -1);
+
+                if (peer >= 0 && supply.Add(k) && !Loses(peer, peerPort))
+                {
+                    Leaving(peer, peerPort, queue);
+                }
+            }
+        }
+
+        return supply;
+    }
+
+    /// <summary>Whether the stream entering <paramref name="i"/> at <paramref name="port"/> leaves its heat there: a consumer's first side, or a source's second.</summary>
+    private bool Loses(int i, int port)
+    {
+        if (_graph.Components[i] is not HeatExchanger h)
+        {
+            return false;
+        }
+
+        return h.Ports[port].Name.EndsWith('2') ? h.Power > 0 : Duty(i) is not null;
+    }
+
+    /// <summary>Queues the ports the stream leaves <paramref name="i"/> by, having entered at <paramref name="except"/> (-1 at a source): an exchanger's outlet on the same side, any other component's outlets.</summary>
+    private void Leaving(int i, int except, Queue<(int Component, int Port)> queue)
+    {
+        var ports = _graph.Components[i].Ports;
+        var exchanger = _graph.Components[i] is HeatExchanger;
+        var second = except >= 0 && ports[except].Name.EndsWith('2');
+
+        for (var q = 0; q < ports.Length; q++)
+        {
+            if (q == except || Enters(i, q, ports[q].Role) || (exchanger && ports[q].Name.EndsWith('2') != second))
+            {
+                continue;
+            }
+
+            queue.Enqueue((i, q));
         }
     }
 
@@ -2064,10 +2144,10 @@ internal sealed class LayoutEngine
 
     // ---- instruments and labels -----------------------------------------------------------------------------------
 
-    /// <summary>Instruments and controllers sit beside their anchor: above it when that is free, else below, else beside, then further right.</summary>
     private void PlaceInstruments()
     {
-        var instruments = new Dictionary<string, Box>(StringComparer.Ordinal);
+        var boxes = new Dictionary<string, Box>(StringComparer.Ordinal);
+        var placed = new List<(NonFlowElementHint Element, int Anchor, string SymbolId)>();
 
         foreach (var element in _hints.NonFlowElements)
         {
@@ -2090,19 +2170,45 @@ internal sealed class LayoutEngine
 
             var inner = candidates
                 .Select(at => Box.Around(at, size[2], size[3]))
-                .FirstOrDefault(box => !Collides(box, instruments.Values), Box.Around(candidates[0], size[2], size[3]));
+                .FirstOrDefault(box => !Collides(box, boxes.Values), Box.Around(candidates[0], size[2], size[3]));
 
-            while (Collides(inner, instruments.Values))
+            while (Collides(inner, boxes.Values))
             {
                 inner = inner.Offset(size[2] + _margin, 0);
             }
 
-            instruments[element.ComponentId] = inner;
+            boxes[element.ComponentId] = inner;
+            placed.Add((element, anchor, symbol.Id));
+        }
+
+        // C15: a controller reads its node through the sensor standing on it. The signal leaves the sensor level, by the side facing the controller, and turns once into it; when that level stub would be shorter than a margin, the sensor and its inline node slide along the rail to make room.
+        foreach (var (element, _, _) in placed)
+        {
+            if (element.ActuationTargetId is null || SensorOf(placed, element) is not { } sensor)
+            {
+                continue;
+            }
+
+            var s = boxes[sensor.Element.ComponentId];
+            var c = boxes[element.ComponentId];
+            var toward = c.Centre.X >= s.Centre.X ? 1 : -1;
+            var stub = toward > 0 ? c.Centre.X - s.Right : s.X - c.Centre.X;
+            var shift = -toward * (_margin - stub);
+
+            if (stub < _margin - Eps && _inline[sensor.Anchor] && Nudge(sensor.Anchor, shift))
+            {
+                boxes[sensor.Element.ComponentId] = s.Offset(shift, 0);
+            }
+        }
+
+        foreach (var (element, _, symbolId) in placed)
+        {
+            var inner = boxes[element.ComponentId];
 
             _instruments.Add(new Placement
             {
                 ComponentId = element.ComponentId,
-                SymbolId = symbol.Id,
+                SymbolId = symbolId,
                 Inner = inner,
                 Outer = inner.Grow(_margin),
                 Rotation = 0,
@@ -2113,13 +2219,97 @@ internal sealed class LayoutEngine
                 Source = "computed",
             });
 
-            AddSignal(element.ComponentId + ":measures", inner, element.MeasurementTargetId);
-
-            if (element.ActuationTargetId is { } actuated && actuated != element.MeasurementTargetId)
+            if (element.ActuationTargetId is { } actuated)
             {
-                AddSignal(element.ComponentId + ":actuates", inner, actuated);
+                if (SensorOf(placed, element) is { } sensor)
+                {
+                    Signal(element.ComponentId + ":measures", boxes[sensor.Element.ComponentId], inner, toCentre: false);
+                }
+                else
+                {
+                    Signal(element.ComponentId + ":measures", inner, element.MeasurementTargetId);
+                }
+
+                if (actuated != element.MeasurementTargetId)
+                {
+                    Signal(element.ComponentId + ":actuates", inner, actuated);
+                }
+            }
+            else
+            {
+                Signal(element.ComponentId + ":measures", inner, element.MeasurementTargetId);
             }
         }
+    }
+
+    /// <summary>The sensor standing on the node a controller reads, when the script placed one (C15).</summary>
+    private static (NonFlowElementHint Element, int Anchor, string SymbolId)? SensorOf(List<(NonFlowElementHint Element, int Anchor, string SymbolId)> placed, NonFlowElementHint controller)
+    {
+        foreach (var candidate in placed)
+        {
+            if (candidate.Element.ActuationTargetId is null && candidate.Element.MeasurementTargetId == controller.MeasurementTargetId && candidate.Element.ComponentId != controller.ComponentId)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Moves an inline node along its level run by <paramref name="dx"/> (C15) when every route ending on it stays level and keeps a margin to its next point; the routes follow.</summary>
+    private bool Nudge(int node, double dx)
+    {
+        var from = _centre[node];
+        var to = from.Offset(dx, 0);
+        var ends = new List<(int Index, bool AtStart)>();
+
+        for (var k = 0; k < _routes.Count; k++)
+        {
+            var points = _routes[k].Route.Points;
+
+            if (points.Length < 2)
+            {
+                continue;
+            }
+
+            foreach (var atStart in new[] { true, false })
+            {
+                var end = atStart ? points[0] : points[^1];
+                var next = atStart ? points[1] : points[^2];
+
+                if (end.ManhattanTo(from) > Eps)
+                {
+                    continue;
+                }
+
+                if (Math.Abs(next.Y - from.Y) > Eps || Math.Sign(next.X - to.X) != Math.Sign(next.X - from.X) || Math.Abs(next.X - to.X) < _margin - Eps)
+                {
+                    return false;
+                }
+
+                ends.Add((k, atStart));
+            }
+        }
+
+        if (ends.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (var (k, atStart) in ends)
+        {
+            var points = _routes[k].Route.Points;
+            var moved = points.SetItem(atStart ? 0 : points.Length - 1, to);
+            _routes[k] = (_routes[k].Link, _routes[k].Route with { Points = moved });
+
+            if (_routes[k].Link >= 0)
+            {
+                _routeOf[_routes[k].Link] = moved;
+            }
+        }
+
+        _centre[node] = to;
+        return true;
     }
 
     /// <summary>Whether an instrument at a candidate box would sit within a margin of a placed symbol, another instrument, or a pipe.</summary>
@@ -2149,25 +2339,44 @@ internal sealed class LayoutEngine
         return instruments.Any(other => other.Intersects(outer));
     }
 
-    private void AddSignal(string id, Box from, string targetId)
+    /// <summary>A signal line from an instrument's box to a component: to the point of an inline one, to the facing edge of a boxed one.</summary>
+    private void Signal(string id, Box from, string targetId)
     {
         if (!_index.TryGetValue(targetId, out var target) || !_placed[target])
         {
             return;
         }
 
-        var host = InnerOf(target);
-        var start = from.Centre;
-        var end = host.Centre;
-        var points = new List<Point> { start };
+        Signal(id, from, InnerOf(target), toCentre: _inline[target]);
+    }
 
-        if (Math.Abs(start.X - end.X) > Eps && Math.Abs(start.Y - end.Y) > Eps)
+    /// <summary>A signal line between two boxes (C15): it leaves <paramref name="from"/> by the side facing <paramref name="to"/>, turns at most once, and ends on <paramref name="to"/>'s facing edge or at its centre.</summary>
+    private void Signal(string id, Box from, Box to, bool toCentre)
+    {
+        var plumb = Math.Abs(from.Centre.X - to.Centre.X) < Eps;
+        var level = Math.Abs(from.Centre.Y - to.Centre.Y) < Eps;
+        var right = from.Centre.X < to.Centre.X;
+        var down = from.Centre.Y > to.Centre.Y;
+        var points = new List<Point>();
+
+        if (plumb)
         {
-            points.Add(new Point(start.X, end.Y));
+            points.Add(new Point(from.Centre.X, down ? from.Y : from.Top));
+            points.Add(toCentre ? to.Centre : new Point(to.Centre.X, down ? to.Top : to.Y));
+        }
+        else if (level)
+        {
+            points.Add(new Point(right ? from.Right : from.X, from.Centre.Y));
+            points.Add(toCentre ? to.Centre : new Point(right ? to.X : to.Right, to.Centre.Y));
+        }
+        else
+        {
+            points.Add(new Point(right ? from.Right : from.X, from.Centre.Y));
+            points.Add(new Point(to.Centre.X, from.Centre.Y));
+            points.Add(toCentre ? to.Centre : new Point(to.Centre.X, down ? to.Top : to.Y));
         }
 
-        points.Add(end);
-        _routes.Add((-1, new Route(id, "signal", Normalise(points), [])));
+        _routes.Add((-1, new Route(id, "signal", "signal", Normalise(points), [])));
     }
 
     /// <summary>The label just outside the placed box, on the side the symbol's label anchor names: text does not turn with the symbol.</summary>

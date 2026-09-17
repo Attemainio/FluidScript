@@ -2181,6 +2181,7 @@
       {
         "id": "c0",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           3.35,
           -1,
@@ -2201,6 +2202,7 @@
       {
         "id": "c1",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           2.25,
           -1,
@@ -2221,6 +2223,7 @@
       {
         "id": "c2",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.75,
           -1,
@@ -2241,6 +2244,7 @@
       {
         "id": "c3",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.45,
           -1,
@@ -2263,6 +2267,7 @@
       {
         "id": "c4",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.15,
           0.5,
@@ -2285,6 +2290,7 @@
       {
         "id": "c5",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           1,
           1,
@@ -2305,6 +2311,7 @@
       {
         "id": "c6",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           2.35,
           0.5,
@@ -2325,6 +2332,7 @@
       {
         "id": "c7",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           2.85,
           1,
@@ -2345,6 +2353,7 @@
       {
         "id": "c8",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           3.01667,
           1,
@@ -2365,6 +2374,7 @@
       {
         "id": "c9",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           3.18333,
           1,

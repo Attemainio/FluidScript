@@ -2525,6 +2525,7 @@
       {
         "id": "c0",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           -2.25,
           1,
@@ -2538,6 +2539,7 @@
       {
         "id": "c1",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           -0.75,
           1,
@@ -2551,6 +2553,7 @@
       {
         "id": "c2",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           -0.6,
           1,
@@ -2564,6 +2567,7 @@
       {
         "id": "c3",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           -0.45,
           1,
@@ -2577,6 +2581,7 @@
       {
         "id": "c4",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           -0.3,
           1,
@@ -2592,6 +2597,7 @@
       {
         "id": "c5",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           -0.15,
           -0.5,
@@ -2607,6 +2613,7 @@
       {
         "id": "c6",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.15,
           0.5,
@@ -2622,6 +2629,7 @@
       {
         "id": "c7",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           0.7,
           1,
@@ -2635,6 +2643,7 @@
       {
         "id": "c8",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           1.25,
           1,
@@ -2648,6 +2657,7 @@
       {
         "id": "c9",
         "kind": "pipe",
+        "layer": "supply",
         "points": [
           1.8,
           1,
@@ -2663,6 +2673,7 @@
       {
         "id": "c10",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           2.35,
           -0.5,
@@ -2678,6 +2689,7 @@
       {
         "id": "c11",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           2.2,
           -1,
@@ -2691,6 +2703,7 @@
       {
         "id": "c12",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           2.05,
           -1,
@@ -2704,6 +2717,7 @@
       {
         "id": "c13",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           1.9,
           -1,
@@ -2717,6 +2731,7 @@
       {
         "id": "c14",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           0.75,
           -1,
@@ -2730,6 +2745,7 @@
       {
         "id": "c15",
         "kind": "pipe",
+        "layer": "return",
         "points": [
           0.45,
           -1,

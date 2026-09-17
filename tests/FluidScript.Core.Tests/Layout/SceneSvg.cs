@@ -54,15 +54,15 @@ public static class SceneSvg
             }
         }
 
-        foreach (var route in scene.Routes)
+        // The routes from the back -- signals, then return pipes, then supply pipes (28 C16) -- each broken around the crossings it owns, so the route in front runs through.
+        foreach (var route in scene.Routes.OrderBy(static r => r.Layer switch { "supply" => 2, "return" => 1, _ => 0 }))
         {
-            var points = string.Join(" ", route.Points.Select(p => $"{F(p.X * Scale)},{Y(p.Y)}"));
             var dash = route.Kind == "signal" ? " stroke-dasharray=\"4 3\"" : string.Empty;
-            svg.Append("<polyline points=\"").Append(points).Append("\" fill=\"none\" stroke=\"#1f5f8b\" stroke-width=\"2\"").Append(dash).Append("/>\n");
 
-            foreach (var hop in route.Hops)
+            foreach (var piece in Pieces(route, scene.Margin / 4))
             {
-                svg.Append("<circle cx=\"").Append(F(hop.X * Scale)).Append("\" cy=\"").Append(Y(hop.Y)).Append("\" r=\"4\" fill=\"white\" stroke=\"#1f5f8b\"/>\n");
+                var points = string.Join(" ", piece.Select(p => $"{F(p.X * Scale)},{Y(p.Y)}"));
+                svg.Append("<polyline points=\"").Append(points).Append("\" fill=\"none\" stroke=\"#1f5f8b\" stroke-width=\"2\"").Append(dash).Append("/>\n");
             }
         }
 
@@ -136,6 +136,34 @@ public static class SceneSvg
 
         svg.Append("</svg>\n");
         return svg.ToString();
+    }
+
+    /// <summary>The route's polyline cut at its hops (28 C16): a gap of <paramref name="gap"/> on either side of each crossing shows this route passing behind the other.</summary>
+    private static IEnumerable<List<Point>> Pieces(Route route, double gap)
+    {
+        var piece = new List<Point> { route.Points[0] };
+
+        for (var i = 1; i < route.Points.Length; i++)
+        {
+            var a = route.Points[i - 1];
+            var b = route.Points[i];
+            var dx = Math.Sign(b.X - a.X);
+            var dy = Math.Sign(b.Y - a.Y);
+            var on = route.Hops
+                .Where(h => Math.Abs(((h.X - a.X) * dy) - ((h.Y - a.Y) * dx)) < 1e-9 && ((h.X - a.X) * dx) + ((h.Y - a.Y) * dy) > 0 && ((b.X - h.X) * dx) + ((b.Y - h.Y) * dy) > 0)
+                .OrderBy(h => ((h.X - a.X) * dx) + ((h.Y - a.Y) * dy));
+
+            foreach (var h in on)
+            {
+                piece.Add(new Point(h.X - (dx * gap), h.Y - (dy * gap)));
+                yield return piece;
+                piece = [new Point(h.X + (dx * gap), h.Y + (dy * gap))];
+            }
+
+            piece.Add(b);
+        }
+
+        yield return piece;
     }
 
     private static void Area(StringBuilder svg, Box box, string fill, string stroke, string? dash)
