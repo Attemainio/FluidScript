@@ -30,7 +30,17 @@ public static class SceneSvg
         svg.Append(CultureInfo.InvariantCulture, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{width:0}\" height=\"{height:0}\" viewBox=\"{e.X * Scale:0.##} {-e.Top * Scale:0.##} {width:0.##} {height:0.##}\" font-family=\"sans-serif\" font-size=\"11\">\n");
         svg.Append("<rect x=\"").Append(F(e.X * Scale)).Append("\" y=\"").Append(Y(e.Top)).Append("\" width=\"").Append(F(width)).Append("\" height=\"").Append(F(height)).Append("\" fill=\"white\"/>\n");
 
-        // The areas first, under everything: margins, then symbols, so a symbol inside another's margin shows.
+        // The groups (A8) under everything: a dashed frame outside the bounds, wider for a group that holds others, with the id at its top-left corner.
+        foreach (var g in scene.Groups)
+        {
+            var holds = scene.Groups.Count(o => !ReferenceEquals(o, g) && o.Members.All(g.Members.Contains));
+            var b = g.Bounds.Grow(scene.Margin / 4 * (1 + holds));
+            svg.Append("<rect x=\"").Append(F(b.X * Scale)).Append("\" y=\"").Append(Y(b.Top)).Append("\" width=\"").Append(F(b.Width * Scale)).Append("\" height=\"").Append(F(b.Height * Scale))
+                .Append("\" fill=\"#eef2ff\" fill-opacity=\"0.35\" stroke=\"#5b6abf\" stroke-width=\"1\" stroke-dasharray=\"6 3\"/>\n");
+            svg.Append("<text x=\"").Append(F((b.X * Scale) + 4)).Append("\" y=\"").Append(F((-b.Top * Scale) + 12)).Append("\" fill=\"#5b6abf\" font-size=\"10\">").Append(g.Id).Append("</text>\n");
+        }
+
+        // The areas next, still under the symbols: margins, then symbols, so a symbol inside another's margin shows.
         if (boxes)
         {
             foreach (var placement in scene.Placements.Where(static p => !p.IsInline))

@@ -106,6 +106,9 @@ internal sealed class LayoutEngine
     private readonly List<(int Link, Route Route)> _routes = [];
     private readonly List<Placement> _instruments = [];
 
+    // The groups laid out as one object (A8): every ring and every block, outer before inner, as (kind, members, whether it is the ring that holds the heat source).
+    private readonly List<(string Kind, List<int> Members, bool Top)> _groups = [];
+
     public LayoutEngine(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin)
     {
         _graph = graph;
@@ -368,7 +371,7 @@ internal sealed class LayoutEngine
 
     /// <summary>Whether an element is inline (A5): a declared pipe, or a node inferred by the language, with exactly two connections.</summary>
     private bool Inline(int j) =>
-        (_graph.Components[j] is Pipe || (Wildcard(j) && _hints.Inferred.Contains(_graph.Components[j].Name))) && _links.Count(l => l.From == j || l.To == j) == 2;
+        (_graph.Components[j] is Pipe || Wildcard(j)) && _links.Count(l => l.From == j || l.To == j) == 2;
 
     /// <summary>Places an inline element at the cut of its run and turns its two ports along the run (A5).</summary>
     /// <param name="n">The inline element.</param>
@@ -518,9 +521,18 @@ internal sealed class LayoutEngine
     /// <summary>One member of a flow loop: the component, the port the loop enters it by, and the port it leaves by.</summary>
     private readonly record struct Member(int Component, int InPort, int OutPort);
 
-    /// <summary>C2 (step 3): a simple flow loop from a heat source is a clockwise rectangle -- the source on the left side flowing up, the consumer (the most negative stated duty) on the right side flowing down, the members between them in flow order along the top rail from the source and along the bottom rail back to it; the rails sit one margin outside the source's ports and the consumer's column is as far right as the longer rail needs (H9, H10).</summary>
-    /// <param name="source">The heat source (C1).</param>
-    /// <returns>True when the loop was laid out; false when the source is on no simple loop with a standing consumer, in which case nothing was placed.</returns>
+    /// <summary>
+    /// The consumer side of a ring, laid out at a provisional place: one member, or a whole inner loop as a
+    /// block (A8, C11). The ring slides it into place and shifts its runs with it.
+    /// </summary>
+    /// <param name="Members">The boxed components the unit moves as one.</param>
+    /// <param name="In">Where the ring's top rail enters, facing left (a corner) or up (from the rail above).</param>
+    /// <param name="Out">Where the ring's right side leaves, facing down or right.</param>
+    /// <param name="OutFrom">The member and port the leaving run walks from.</param>
+    /// <param name="Bottom">The lowest inner-box edge, provisional units.</param>
+    /// <param name="Runs">The unit's own runs, provisional units, assigned by the ring after the shift.</param>
+    private sealed record Unit(List<int> Members, PlacedAnchor In, PlacedAnchor Out, Member OutFrom, double Bottom, List<(Member From, List<Point> Points)> Runs);
+
     private bool Loop(int source)
     {
         if (_graph.Components[source] is not HeatExchanger { Power: > 0 } || Cycle(source) is not { } cycle)
@@ -528,6 +540,75 @@ internal sealed class LayoutEngine
             return false;
         }
 
+        var consumerAt = ConsumerOf(cycle);
+
+        if (consumerAt < 0)
+        {
+            return false;
+        }
+
+        var s = cycle[0];
+        var ts = Admitted(s.Component).Where(t => t.Arrangement == "default" && Outward(s.Component, s.OutPort, t) == Direction.Up && Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
+
+        if (ts.Count == 0)
+        {
+            return false;
+        }
+
+        _loopCentre = new Point(0, 0);
+
+        foreach (var member in cycle)
+        {
+            _loop[member.Component] = true;
+        }
+
+        // C11: the right side is a unit -- the consumer alone, or an inner loop laid out first as a block (A8). Blocks nest: each is found by the same search, with the enclosing rings' sources avoided.
+        var mark = _groups.Count;
+        var (unitStart, unitEnd, unit) = UnitOf(cycle, consumerAt, [source]);
+
+        if (unit is null)
+        {
+            _groups.RemoveRange(mark, _groups.Count - mark);
+            return false;
+        }
+
+        Place(s.Component, ts[0], new Point(0, 0));
+        var sOut = AnchorOf(s.Component, s.OutPort);
+        var sIn = AnchorOf(s.Component, s.InPort);
+        var yTop = sOut.Along(_margin).Y;
+        var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
+        var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
+        var (drop, yBottom) = Bottom(unit, yTop, sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
+
+        // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
+        var slack = sIn.Along(_margin).Y - yBottom;
+        Place(s.Component, ts[0], new Point(0, -slack / 2));
+        sOut = AnchorOf(s.Component, s.OutPort);
+        sIn = AnchorOf(s.Component, s.InPort);
+
+        var runs = new List<(Member From, List<Point> Points)>();
+        var topStart = new Point(sOut.At.X, yTop);
+
+        if (!Rails(Anchor(topStart, Direction.Right, Direction.Right), [sOut.At, topStart], s, cycle.GetRange(1, unitStart - 1), unit, drop, yBottom, bottomMembers, [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)], null, rightJunction, runs))
+        {
+            _groups.RemoveRange(mark, _groups.Count - mark);
+            return false;
+        }
+
+        // The ring is a group (A8), listed before the blocks it holds.
+        _groups.Insert(mark, ("loop", cycle.Select(static m => m.Component).ToList(), true));
+
+        foreach (var (from, points) in runs)
+        {
+            Assign(Walk(from.Component, from.OutPort), Normalise(points));
+        }
+
+        return true;
+    }
+
+    /// <summary>The loop member that takes the right side: the standing consumer of the largest duty, else the first member the flow leaves the loop by.</summary>
+    private int ConsumerOf(List<Member> cycle)
+    {
         var consumerAt = -1;
 
         for (var k = 1; k < cycle.Count; k++)
@@ -547,72 +628,214 @@ internal sealed class LayoutEngine
             }
         }
 
-        if (consumerAt < 0)
+        return consumerAt;
+    }
+
+    /// <summary>The unit around a ring's consumer (C11): the consumer alone, or the block of the inner loop through it that avoids <paramref name="avoid"/>; with the range of ring members the unit replaces.</summary>
+    private (int Start, int End, Unit? Unit) UnitOf(List<Member> cycle, int consumerAt, HashSet<int> avoid)
+    {
+        var (start, end, inner) = Column(cycle, consumerAt, avoid);
+        return (start, end, inner is null ? Single(cycle[consumerAt]) : Block(inner, cycle[start], cycle[end], avoid));
+    }
+
+    /// <summary>
+    /// The junctions that take a ring's bottom corners (C10): on the right, the one next to the unit under an outlet
+    /// that faces down or right; on the left, when the ring is a block, the one nearest the left side -- so a block's
+    /// outlet faces its parent beside its inlet. One junction takes one corner.
+    /// </summary>
+    private (Member? Left, Member? Right) Corners(List<Member> bottomMembers, Unit unit, bool leftFirst)
+    {
+        var left = leftFirst && bottomMembers.Count > 0 && Wildcard(bottomMembers[^1].Component) ? bottomMembers[^1] : (Member?)null;
+        var under = unit.Out.Outward == Direction.Down || unit.Out.Outward == Direction.Right;
+        var right = under && bottomMembers.Count > (left is null ? 0 : 1) && Wildcard(bottomMembers[0].Component) ? bottomMembers[0] : (Member?)null;
+        return (left, right);
+    }
+
+    /// <summary>One member as a ring's right side, placed with its inlet at the local origin: at the corner if it can turn the flow from leftward to downward (C9), else taking the flow from above.</summary>
+    private Unit? Single(Member m)
+    {
+        List<Transform> candidates;
+
+        if (Wildcard(m.Component))
         {
-            return false;
+            candidates = [Transform.Identity];
+        }
+        else
+        {
+            bool Faces(Transform t, Direction inward) => Outward(m.Component, m.InPort, t) == inward && Outward(m.Component, m.OutPort, t) == Direction.Down;
+
+            // Any arrangement the symbol offers may turn the corner, the default first (A9, D-112).
+            var turning = Admitted(m.Component).Where(t => Faces(t, Direction.Left)).ToList();
+            candidates = turning.Count > 0 ? turning : Admitted(m.Component).Where(t => Faces(t, Direction.Up)).ToList();
         }
 
-        var s = cycle[0];
-        var c = cycle[consumerAt];
-        var ts = Admitted(s.Component).Where(t => t.Arrangement == "default" && Outward(s.Component, s.OutPort, t) == Direction.Up && Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
-        // C9: a consumer that can turn the corner itself -- in from the left, out downward -- takes the top-right corner and saves a bend; otherwise it stands on the right side, in from above, out below.
-        // Any arrangement the symbol offers may turn the corner, the default first (A9): a three-way valve's switched ports are interchangeable for the drawing (D-112), so which letter the loop leaves by does not decide the picture.
-        List<Transform> turning = Wildcard(c.Component)
-            ? []
-            : Admitted(c.Component).Where(t => Outward(c.Component, c.InPort, t) == Direction.Left && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
-        var atCorner = turning.Count > 0;
-        var tc = Wildcard(c.Component)
-            ? [Transform.Identity]
-            : atCorner
-                ? turning
-                : Admitted(c.Component).Where(t => t.Arrangement == "default" && Outward(c.Component, c.InPort, t) == Direction.Up && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
-
-        if (ts.Count == 0 || tc.Count == 0)
+        if (candidates.Count == 0)
         {
-            return false;
+            return null;
         }
 
-        _loopCentre = new Point(0, 0);
+        var (_, h) = candidates[0].Size(_symbol[m.Component]);
+        var inOffset = Wildcard(m.Component) ? new Point(0, h / 2) : AnchorOffset(m.Component, m.InPort, candidates[0])!.Value.Offset;
+        Place(m.Component, candidates[0], new Point(-inOffset.X, -inOffset.Y));
 
-        foreach (var member in cycle)
+        if (Wildcard(m.Component))
         {
-            _loop[member.Component] = true;
+            _side[(m.Component, m.InPort)] = Direction.Up;
+            _side[(m.Component, m.OutPort)] = Direction.Down;
         }
 
-        Place(s.Component, ts[0], new Point(0, 0));
-        var sOut = AnchorOf(s.Component, s.OutPort);
-        var sIn = AnchorOf(s.Component, s.InPort);
-        var top = sOut.Along(_margin);
-        var bottom = sIn.Along(_margin);
-        var (_, cHeight) = tc[0].Size(_symbol[c.Component]);
-        var inOffset = Wildcard(c.Component) ? new Point(0, cHeight / 2) : AnchorOffset(c.Component, c.InPort, tc[0])!.Value.Offset;
-        var outOffset = Wildcard(c.Component) ? new Point(0, -cHeight / 2) : AnchorOffset(c.Component, c.OutPort, tc[0])!.Value.Offset;
-        var drop = atCorner ? 0 : _margin;
+        return new Unit([m.Component], AnchorOf(m.Component, m.InPort), AnchorOf(m.Component, m.OutPort), m, InnerOf(m.Component).Y, []);
+    }
 
-        // C10: a junction next to the consumer on the bottom rail takes the bottom-right corner, so the rail sits low enough for it to fit under the consumer's outlet.
-        var cornerJunction = consumerAt + 1 < cycle.Count && Wildcard(cycle[consumerAt + 1].Component);
-        var junctionHalf = cornerJunction ? Transform.Identity.Size(_symbol[cycle[consumerAt + 1].Component]).Height / 2 : 0;
-        var cOutOuterY = top.Y - drop - inOffset.Y + outOffset.Y - _margin;
-        var yBottom = Math.Min(bottom.Y, cOutOuterY - junctionHalf);
-        var bottomStart = new Point(bottom.X, yBottom);
-        var runs = new List<(Member From, Member To, List<Point> Points)>();
+    /// <summary>
+    /// An inner loop laid out as its own clockwise ring at the local origin (C11): its consumer's unit on the right,
+    /// the first member after it that turns the flow from upward to rightward at the top-left corner with the block's
+    /// inlet facing out to the left, the members between them on the bottom rail -- the last of them, a junction,
+    /// at the bottom-left corner with the block's outlet facing out beside the inlet -- and the rest on the top.
+    /// </summary>
+    /// <param name="path">The inner loop in flow order from its consumer.</param>
+    /// <param name="entry">The member and port the outer loop enters the block by.</param>
+    /// <param name="exit">The member and port the outer loop leaves the block by.</param>
+    /// <param name="avoid">The enclosing rings' sources and corner members, which a nested unit's search must not pass.</param>
+    /// <returns>The block as a unit, or <see langword="null"/> when no member can take the corner or the entry and exit do not face the ring.</returns>
+    private Unit? Block(List<Member> path, Member entry, Member exit, HashSet<int> avoid)
+    {
+        var cornerAt = -1;
+        var tc = Transform.Identity;
 
-        // The top rail, in flow order from the source.
-        var cursor = Anchor(top, Direction.Right, Direction.Right);
-        var pending = new List<Point> { sOut.At, top };
-        var previous = s;
-
-        for (var k = 1; k < consumerAt; k++)
+        for (var k = 1; k < path.Count && cornerAt < 0; k++)
         {
-            var m = cycle[k];
+            var m = path[k];
 
+            if (Wildcard(m.Component))
+            {
+                continue;
+            }
+
+            var external = m.Component == entry.Component ? entry.InPort : -1;
+            var turning = Admitted(m.Component).Where(t => Outward(m.Component, m.InPort, t) == Direction.Down && Outward(m.Component, m.OutPort, t) == Direction.Right && (external < 0 || Outward(m.Component, external, t) == Direction.Left)).ToList();
+
+            if (turning.Count > 0)
+            {
+                cornerAt = k;
+                tc = turning[0];
+            }
+        }
+
+        if (cornerAt < 0)
+        {
+            return null;
+        }
+
+        var corner = path[cornerAt];
+        var mark = _groups.Count;
+        var (_, innerEnd, unit) = UnitOf(path, 0, [.. avoid, corner.Component]);
+
+        if (unit is null || innerEnd >= cornerAt)
+        {
+            _groups.RemoveRange(mark, _groups.Count - mark);
+            return null;
+        }
+
+        var bottomMembers = path.GetRange(innerEnd + 1, cornerAt - innerEnd - 1);
+        var topMembers = path.GetRange(cornerAt + 1, path.Count - cornerAt - 1);
+        Place(corner.Component, tc, new Point(0, 0));
+        var cOut = AnchorOf(corner.Component, corner.OutPort);
+        var cIn = AnchorOf(corner.Component, corner.InPort);
+        var (left, right) = Corners(bottomMembers, unit, leftFirst: true);
+        var natural = cIn.Along(_margin).Y - (left is { } l ? Transform.Identity.Size(_symbol[l.Component]).Height / 2 : 0);
+        var (drop, yBottom) = Bottom(unit, cOut.At.Y, natural, right?.Component ?? -1);
+        var runs = new List<(Member From, List<Point> Points)>();
+
+        if (!Rails(cOut, [cOut.At], corner, topMembers, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], left, right, runs))
+        {
+            _groups.RemoveRange(mark, _groups.Count - mark);
+            return null;
+        }
+
+        if (Wildcard(exit.Component))
+        {
+            // The outlet leaves by a side the junction's other ports leave free, level and towards the inlet first, so the block presents its inlet and outlet to the parent together.
+            var used = new HashSet<Direction>();
+
+            for (var p = 0; p < _graph.Components[exit.Component].Ports.Length; p++)
+            {
+                if (p != exit.OutPort && _side.TryGetValue((exit.Component, p), out var side))
+                {
+                    used.Add(side);
+                }
+            }
+
+            _side[(exit.Component, exit.OutPort)] = new[] { Direction.Left, Direction.Down, Direction.Right }.First(d => !used.Contains(d));
+        }
+
+        var members = path.Select(static m => m.Component).ToList();
+        var entering = AnchorOf(entry.Component, entry.InPort);
+        var leaving = AnchorOf(exit.Component, exit.OutPort);
+
+        if (entering.Outward != Direction.Left || leaving.Outward == Direction.Up)
+        {
+            _groups.RemoveRange(mark, _groups.Count - mark);
+            return null;
+        }
+
+        // The block is a group (A8), listed before the blocks it holds.
+        _groups.Insert(mark, ("loop", members, false));
+        return new Unit(members, entering, leaving, new Member(exit.Component, -1, exit.OutPort), members.Min(i => InnerOf(i).Y), runs);
+    }
+
+    /// <summary>
+    /// How far the unit's inlet drops below the top rail and where the bottom rail lies: level with an outlet that
+    /// faces left; else low enough for the unit, for the stub out of it, and for a corner junction under its outlet
+    /// (C10). A unit entered from above with the other side the taller is centred on its side (C12).
+    /// </summary>
+    private (double Drop, double YBottom) Bottom(Unit unit, double yTop, double natural, int junction)
+    {
+        var drop = unit.In.Outward == Direction.Up ? _margin : 0;
+        var half = junction < 0 ? 0 : Transform.Identity.Size(_symbol[junction]).Height / 2;
+        var stub = junction >= 0 && unit.Out.Outward == Direction.Right ? _margin : 0;
+        double Low(double dy) => unit.Out.Outward == Direction.Left
+            ? unit.Out.At.Y + dy
+            : Math.Min(unit.Bottom + dy - _margin, unit.Out.Along(_margin).Y + dy - half - stub);
+        var low = Low(yTop - drop - unit.In.At.Y);
+
+        if (unit.In.Outward == Direction.Up && low > natural)
+        {
+            drop += (low - natural) / 2;
+            low = Low(yTop - drop - unit.In.At.Y);
+        }
+
+        return (drop, Math.Min(natural, low));
+    }
+
+    /// <summary>
+    /// Lays the two rails of a ring and slides the unit into its right side: the top members rightwards from the
+    /// top start, the bottom members rightwards from the bottom start against the flow, the unit at the longer
+    /// rail's end, the corner junctions (C10) at the bottom corners. Appends the ring's runs.
+    /// </summary>
+    private bool Rails(PlacedAnchor topCursor, List<Point> topStart, Member topFirst, List<Member> topMembers, Unit unit, double drop, double yBottom, List<Member> bottomMembers, List<Point> bottomStart, Member? leftJunction, Member? rightJunction, List<(Member From, List<Point> Points)> runs)
+    {
+        var yTop = topCursor.At.Y;
+
+        // The unit stands at a provisional place until the slide below; it is no obstacle to the rails' members.
+        foreach (var i in unit.Members)
+        {
+            _placed[i] = false;
+        }
+
+        var cursor = topCursor;
+        var pending = topStart;
+        var previous = topFirst;
+
+        foreach (var m in topMembers)
+        {
             if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
             {
                 return false;
             }
 
             pending.AddRange(points.Skip(1));
-            runs.Add((previous, m, pending));
+            runs.Add((previous, pending));
             cursor = AnchorOf(m.Component, m.OutPort);
             pending = [cursor.At];
             previous = m;
@@ -622,15 +845,29 @@ internal sealed class LayoutEngine
         var topPending = pending;
         var topPrevious = previous;
 
-        // The bottom rail, built left to right against the flow, each member placed by its outlet facing the source.
-        cursor = Anchor(bottomStart, Direction.Right, Direction.Right);
-        pending = [sIn.At, bottom, bottomStart];
-        previous = s;
-        var bottomRuns = new List<(Member Far, Member Near, List<Point> Points)>();
+        // The bottom rail, built left to right against the flow, each member placed by its outlet facing the left side.
+        cursor = Anchor(bottomStart[^1], Direction.Right, Direction.Right);
+        pending = bottomStart;
+        var bottomRuns = new List<(Member From, List<Point> Points)>();
+        var from = bottomMembers.Count - 1;
 
-        for (var k = cycle.Count - 1; k > consumerAt; k--)
+        if (leftJunction is { } lj)
         {
-            var m = cycle[k];
+            // The junction nearest the left side takes the bottom-left corner: in from the rail, out up the left side; its free port is the block's outlet, facing out beside the inlet.
+            Place(lj.Component, Transform.Identity, bottomStart[^1]);
+            _side[(lj.Component, lj.OutPort)] = Direction.Up;
+            _side[(lj.Component, lj.InPort)] = Direction.Right;
+            pending.RemoveAt(pending.Count - 1);
+            pending.Add(AnchorOf(lj.Component, lj.OutPort).At);
+            bottomRuns.Add((lj, pending));
+            cursor = AnchorOf(lj.Component, lj.InPort);
+            pending = [cursor.At];
+            from--;
+        }
+
+        for (var k = from; k >= 0; k--)
+        {
+            var m = bottomMembers[k];
 
             if (OnRail(cursor, m, m.OutPort, m.InPort) is not { } points)
             {
@@ -638,76 +875,124 @@ internal sealed class LayoutEngine
             }
 
             pending.AddRange(points.Skip(1));
-            bottomRuns.Add((m, previous, pending));
+            bottomRuns.Add((m, pending));
             cursor = AnchorOf(m.Component, m.InPort);
             pending = [cursor.At];
-            previous = m;
         }
 
-        // The consumer's column: as far right as the longer rail needs, its inlet corner on the top rail.
-        var origin = new Point(Math.Max(topEnd.At.X, cursor.At.X), top.Y);
+        // The unit: as far right as the longer rail needs, sliding right by tenths until every member clears what is placed (H2).
+        var origin = Math.Max(topEnd.At.X, cursor.At.X);
 
-        if (cornerJunction)
+        if (rightJunction is { } j0)
         {
-            // The junction moves under the consumer's outlet (C10), so its rail box is not in the consumer's way: the column needs only to put that outlet at or beyond the junction's packed rail position.
-            var j = cycle[consumerAt + 1].Component;
-            _placed[j] = false;
-            origin = new Point(Math.Max(topEnd.At.X, _centre[j].X - (outOffset.X - inOffset.X) - _margin), top.Y);
+            // The junction moves under the unit's outlet (C10), so its rail box is not in the way: the unit needs only to put that outlet at or beyond the junction's packed rail position.
+            _placed[j0.Component] = false;
+            origin = Math.Max(topEnd.At.X, _centre[j0.Component].X - (unit.Out.Along(_margin).X - unit.In.At.X) - _margin);
         }
 
-        var corner = Clear(c.Component, tc[0], origin, Direction.Right, new Point(-inOffset.X, -inOffset.Y - drop));
-        Place(c.Component, tc[0], corner.Offset(-inOffset.X, -inOffset.Y - drop));
+        var dx = origin + _margin - Math.Min(unit.In.At.X, unit.Out.At.X);
+        var dy = yTop - drop - unit.In.At.Y;
 
-        if (cornerJunction)
+        while (unit.Members.Any(i => Clashes(i, _transform[i], _centre[i].Offset(dx, dy))))
         {
-            _placed[cycle[consumerAt + 1].Component] = true;
+            dx += 0.1;
         }
 
-        if (Wildcard(c.Component))
+        foreach (var i in unit.Members)
         {
-            _side[(c.Component, c.InPort)] = Direction.Up;
-            _side[(c.Component, c.OutPort)] = Direction.Down;
-        }
-        var cIn = AnchorOf(c.Component, c.InPort);
-        var cOut = AnchorOf(c.Component, c.OutPort);
-        if (!atCorner)
-        {
-            topPending.Add(corner);
+            _centre[i] = _centre[i].Offset(dx, dy);
+            _placed[i] = true;
         }
 
-        topPending.Add(cIn.At);
-        runs.Add((topPrevious, c, topPending));
-        var cOutOuter = cOut.Along(_margin);
-
-        if (cornerJunction)
+        if (rightJunction is { } j1)
         {
-            // The junction slides right along its rail to sit under the consumer's outlet; the descent lands on it from above.
-            var j = cycle[consumerAt + 1];
-            _centre[j.Component] = new Point(cOut.At.X, _centre[j.Component].Y);
+            _placed[j1.Component] = true;
+        }
+
+        var uIn = unit.In with { At = unit.In.At.Offset(dx, dy) };
+        var uOut = unit.Out with { At = unit.Out.At.Offset(dx, dy) };
+
+        foreach (var (walkFrom, points) in unit.Runs)
+        {
+            runs.Add((walkFrom, points.Select(p => p.Offset(dx, dy)).ToList()));
+        }
+
+        if (uIn.Outward == Direction.Up)
+        {
+            topPending.Add(new Point(uIn.At.X, yTop));
+        }
+
+        topPending.Add(uIn.At);
+        runs.Add((topPrevious, topPending));
+        var outOuter = uOut.Along(_margin);
+
+        if (rightJunction is { } j)
+        {
+            // The junction slides right along its rail until it clears the unit, under the outlet stub; the descent lands on it from above.
+            var jx = outOuter.X;
+            var jy = _centre[j.Component].Y;
+
+            while (Clashes(j.Component, Transform.Identity, new Point(jx, jy)))
+            {
+                jx += 0.1;
+            }
+
+            _centre[j.Component] = new Point(jx, jy);
             _side[(j.Component, j.InPort)] = Direction.Up;
-            var reaching = bottomRuns.FindIndex(r => r.Far.Component == j.Component);
+            var reaching = bottomRuns.FindIndex(r => r.From.Component == j.Component);
             bottomRuns[reaching].Points[^1] = AnchorOf(j.Component, j.OutPort).At;
-            pending = [AnchorOf(j.Component, j.InPort).At, cOutOuter, cOut.At];
+            pending = [AnchorOf(j.Component, j.InPort).At, new Point(jx, uOut.At.Y), uOut.At];
         }
         else
         {
-            pending.AddRange([new Point(cOutOuter.X, yBottom), cOutOuter, cOut.At]);
+            pending.AddRange([new Point(outOuter.X, yBottom), outOuter, uOut.At]);
         }
 
-        bottomRuns.Add((c, previous, pending));
+        bottomRuns.Add((unit.OutFrom, pending));
 
-        foreach (var (far, near, points) in bottomRuns)
+        foreach (var (walkFrom, points) in bottomRuns)
         {
             points.Reverse();
-            runs.Add((far, near, points));
-        }
-
-        foreach (var (from, to, points) in runs)
-        {
-            Assign(Walk(from.Component, from.OutPort), Normalise(points));
+            runs.Add((walkFrom, points));
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// The run of consecutive ring members around the consumer that an inner loop avoiding <paramref name="avoid"/>
+    /// passes through (C11), and that inner loop in flow order from the consumer.
+    /// </summary>
+    /// <remarks>
+    /// With no such inner loop the run is the consumer alone and the path is <see langword="null"/>. An inner
+    /// member that is neither on the ring nor inline is left for sequential placement.
+    /// </remarks>
+    private (int Start, int End, List<Member>? Inner) Column(List<Member> cycle, int consumerAt, HashSet<int> avoid)
+    {
+        var c = cycle[consumerAt];
+        var path = new List<Member>();
+        var visited = new HashSet<int>(avoid) { c.Component };
+
+        if (!Extend(c.Component, -1, c.OutPort, c.Component, path, visited))
+        {
+            return (consumerAt, consumerAt, null);
+        }
+
+        var inner = path.Select(static m => m.Component).ToHashSet();
+        var start = consumerAt;
+        var end = consumerAt;
+
+        while (start > 0 && !avoid.Contains(cycle[start - 1].Component) && inner.Contains(cycle[start - 1].Component))
+        {
+            start--;
+        }
+
+        while (end + 1 < cycle.Count && !avoid.Contains(cycle[end + 1].Component) && inner.Contains(cycle[end + 1].Component))
+        {
+            end++;
+        }
+
+        return (start, end, path);
     }
 
     /// <summary>A loop member placed on a rail from the cursor: a component by <see cref="PlaceFrom"/> through the port facing the cursor, a junction by <see cref="PlaceNode"/> with its other loop port turned on along the rail.</summary>
@@ -902,17 +1187,21 @@ internal sealed class LayoutEngine
     {
         var d = anchor.Outward;
         var admitted = Admitted(j).ToList();
-        var facing = admitted.Where(t => t.Arrangement == "default" && AnchorOffset(j, q, t) is { } a && a.Outward == d.Opposite).ToList();
+        // A level kind (D-113) faces a vertical pipe only as a last resort: the pipe turns level into it first.
+        var level = _symbol[j].TransformClass == "level";
+        var facing = admitted.Where(t => t.Arrangement == "default" && AnchorOffset(j, q, t) is { } a && a.Outward == d.Opposite && (!level || t.Rotation is 0 or 180)).ToList();
 
         if (facing.Count == 0)
         {
-            var turned = admitted.Where(t => t.Arrangement == "default" && AnchorOffset(j, q, t) is { } a && a.Outward == Direction.Up).ToList();
+            // C3: the pipe turns into a member that cannot face it -- down into a standing kind from a level pipe, rightwards into a level kind from a vertical one.
+        var along = d == Direction.Left || d == Direction.Right ? Direction.Down : Direction.Right;
+            var turned = admitted.Where(t => t.Arrangement == "default" && AnchorOffset(j, q, t) is { } a && a.Outward == along.Opposite).ToList();
 
             if (turned.Count > 0)
             {
                 var turn = AnchorOffset(j, q, turned[0])!.Value.Offset;
                 var corner = anchor.At.Towards(d, _margin);
-                var inner = Clear(j, turned[0], corner, Direction.Down, new Point(-turn.X, -turn.Y));
+                var inner = Clear(j, turned[0], corner, along, new Point(-turn.X, -turn.Y));
                 Place(j, turned[0], inner.Offset(-turn.X, -turn.Y));
                 return [anchor.At, corner, inner];
             }
@@ -972,7 +1261,9 @@ internal sealed class LayoutEngine
 
         // A9 (D-109): the default arrangement first, then the smaller turn, then unmirrored before mirrored -- so a symbol
         // reversing on a line is mirrored rather than half-turned and its top (a valve's stem, a pump's badge) stays up.
-        return admitted.OrderBy(static t => t.Arrangement != "default").ThenBy(static t => t.Rotation).ThenBy(static t => t.Mirrored);
+        // A `level` kind (a pump, D-113) stands vertical only when nothing level fits: its quarter turns come last.
+        var level = symbol.TransformClass == "level";
+        return admitted.OrderBy(static t => t.Arrangement != "default").ThenBy(t => level && t.Rotation is 90 or 270).ThenBy(static t => t.Rotation).ThenBy(static t => t.Mirrored);
     }
 
     /// <summary>Whether a box for <paramref name="j"/> at <paramref name="centre"/> would break the clearance (<c>28</c> H2) against anything placed.</summary>
@@ -1535,6 +1826,126 @@ internal sealed class LayoutEngine
         var placements = ImmutableArray.CreateBuilder<Placement>();
         var extent = (Box?)null;
 
+        // The groups (A8): the rings and blocks that are one component to the rest of the system -- exactly one connection enters and one leaves. A closed circuit crosses nothing and is the drawing itself; a header with several taps is not one thing either. Outer before inner; bounds are the members' inner boxes and the routes between them.
+        var groups = new List<LayoutGroup>();
+        var kept = new List<List<int>>();
+
+        foreach (var (kind, members, top) in _groups)
+        {
+            var set = members.ToHashSet();
+            var ins = 0;
+            var outs = 0;
+            var inside = new HashSet<int>();
+
+            foreach (var i in members)
+            {
+                var ports = _graph.Components[i].Ports;
+
+                for (var p = 0; p < ports.Length; p++)
+                {
+                    var walk = Walk(i, p);
+
+                    if (walk.Far < 0)
+                    {
+                        continue;
+                    }
+
+                    if (set.Contains(walk.Far))
+                    {
+                        // A route belongs to the group when its walk runs from one member to another; a stub out to something else does not.
+                        inside.UnionWith(walk.Links.Select(static l => l.Link));
+                    }
+                    else if (top && Returns(walk.Far, set, walk.Links.Select(static l => l.Link).ToHashSet()))
+                    {
+                        // The ring that holds the source: a tap whose flow comes back to the ring is a branch of the closed circuit, not an inlet or an outlet.
+                    }
+                    else if (Enters(i, p, ports[p].Role))
+                    {
+                        ins++;
+                    }
+                    else
+                    {
+                        outs++;
+                    }
+                }
+            }
+
+            if (ins != 1 || outs != 1)
+            {
+                continue;
+            }
+
+            Box? bounds = null;
+
+            foreach (var i in members)
+            {
+                bounds = bounds is { } b ? b.Union(InnerOf(i)) : InnerOf(i);
+            }
+
+            foreach (var (link, route) in _routes)
+            {
+                if (inside.Contains(link))
+                {
+                    foreach (var point in route.Points)
+                    {
+                        var dot = new Box(point.X, point.Y, 0, 0);
+                        bounds = bounds is { } b ? b.Union(dot) : dot;
+                    }
+                }
+            }
+
+            groups.Add(new LayoutGroup($"loop-{groups.Count + 1}", kind, "cw", [.. members.Select(i => _graph.Components[i].Name)], Rounded(bounds ?? new Box(0, 0, 0, 0))));
+            kept.Add(members);
+        }
+
+        // The innermost group that placed a component: groups are listed outer before inner.
+        string? GroupOf(int i)
+        {
+            var k = kept.FindLastIndex(m => m.Contains(i));
+            return k < 0 ? null : $"loop-{k + 1}";
+        }
+
+        // Whether the flow that left a set of members and arrived here by the given links can reach the set again by some other path.
+        bool Returns(int from, HashSet<int> set, HashSet<int> arrived)
+        {
+            var seen = new HashSet<int> { from };
+            var queue = new Queue<int>();
+            queue.Enqueue(from);
+
+            while (queue.Count > 0)
+            {
+                var n = queue.Dequeue();
+
+                for (var k = 0; k < _links.Count; k++)
+                {
+                    if (arrived.Contains(k))
+                    {
+                        continue;
+                    }
+
+                    var link = _links[k];
+                    var other = link.From == n ? link.To : link.To == n ? link.From : -1;
+
+                    if (other < 0)
+                    {
+                        continue;
+                    }
+
+                    if (set.Contains(other))
+                    {
+                        return true;
+                    }
+
+                    if (seen.Add(other))
+                    {
+                        queue.Enqueue(other);
+                    }
+                }
+            }
+
+            return false;
+        }
+
         foreach (var i in Ordered(Enumerable.Range(0, _n)))
         {
             var flow = _graph.Components[i];
@@ -1558,7 +1969,7 @@ internal sealed class LayoutEngine
                 Anchors = anchors.ToImmutable(),
                 LabelAt = LabelFor(i),
                 Source = "computed",
-                Group = _fallback[i] ? "fallback" : null,
+                Group = _fallback[i] ? "fallback" : GroupOf(i),
             };
 
             placements.Add(placement);
@@ -1593,6 +2004,7 @@ internal sealed class LayoutEngine
             Routes = [.. routes.Select(static r => r with { Points = [.. r.Points.Select(Rounded)], Hops = [.. r.Hops.Select(Rounded)] })],
             Extent = Rounded(extent ?? new Box(0, 0, 0, 0)),
             Margin = _margin,
+            Groups = [.. groups],
         };
     }
 

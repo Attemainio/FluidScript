@@ -5088,3 +5088,62 @@ is for.
 
 **Sizing is untouched.** `D-88` still believes a *stated* `a` as the control leg and walks the graph
 for an inferred one; which port the drawing puts on the angle has no reading in Core's physics.
+
+## D-113 · A pump is level; a member on a side with slack sits at its middle; an inner loop is laid out first as a block
+
+**Accepted · 2026-09-17** · refines `D-108` (the transform classes gain `level`) and `D-109`; answers `28` open question 2 for pumps; builds `28` D's "rigid groups and hierarchy" for an inner loop; amends `28` A4, C2, C11–C13, `53`, `docs/advanced/how-the-diagram-is-arranged.md`.
+
+Three rules the user gave on the ladder's step 7, when the injection branch had been drawn as a
+vertical column with a vertical pump and the source exchanger at the top of a long side.
+
+**A pump is level.** "The direction of flow is either left or right"; a pump pumps left or right
+and stands vertical only where no level placement exists. The catalogue says so as a transform
+class, `level`: every transform is admitted, the quarter turns last, and a vertical pipe turns
+level into a pump (C3's turn, rightwards) before the pump is turned to meet it. It is a class and
+not a preference because the standard's tie-break (A9) must never choose a vertical pump over a
+level one on cost alone.
+
+**A member on a side with slack sits at the side's middle.** "If the component can move in its
+direction of flow, it should be aligned middle." A ring's rails are set by its taller side; the
+member on the shorter side moves to the middle and its stubs lengthen equally (C12).
+
+**An inner loop is a block, laid out first.** The injection branch is the cooling loop's topology
+-- a mixing point, a pump, an exchanger, a split -- and the user asked for it to be laid out by the
+same rules as its own clockwise block and for the header to resolve its routing around the blocks
+afterwards, so that two subcircuits of one shape draw alike. `28` C11 is rewritten from a column to
+a block, the first rigid group (A8) the engine builds: laid out at a provisional origin, measured,
+slid into the ring with its runs. The column is withdrawn.
+
+**A block presents one inlet and one outlet to its parent, on the same side.** The user's second
+correction the same day: in the cooling loop "we ultimately have supply from right and return to
+right"; a subcircuit is solved internally, treated as one grouped component with one inlet and
+one outlet, and the source then arranges its supply and return to those. So the block's split
+junction takes the bottom-left corner beside the inlet's top-left corner, and the parent's return
+rail runs level from it. And loops are detected recursively, whatever circuits the script
+declares: each group is one block, a block's consumer may be a block.
+
+**Why not keep the column.** It was the plan's own worked example and it was audit-clean, but it
+put the pump vertical and had no notion of a group, so the second branch of step 8 would have had
+nothing to be congruent with.
+
+## D-114 · A node with two connections is inline whether the script declared it or not
+
+**Accepted · 2026-09-17** · narrows `D-108` item 3; amends `28` A5, A6, C4.
+
+`D-108` gave every node a box and a margin, and step 2 narrowed that for the nodes the language
+infers between two components: they are points on their run (`28` A5). A *declared* node with two
+connections kept its box. On the ladder's step 7 the header's datum `N1 node p=250` sat on the
+return rail between the source exchanger and the injection block and pushed the block 1.2 units
+further right than the supply rail needed -- its 0.2 box and two 0.5 margins -- and the user asked
+why the exchanger was not closer to the loop. Asked whether a declared two-connection node should
+be inline like an inferred one or keep its box, the user chose inline.
+
+**The rule.** A node with exactly two connections is inline, declared or inferred: a point on its
+run, labelled, taking no room. A junction -- three or more connections -- and a boundary node keep
+the box and the margin. What a node *states* (a datum pressure, a temperature) is not a reason for
+a box: the label carries the name, and `53` draws nothing for a two-port node anyway.
+
+**Why.** The box exists so the arrangement is visible (`D-108`), and a two-connection node has no
+arrangement of its own: it lies on a line whose two ends are placed by other rules. Its margin
+bought nothing and cost the header the packing the user expects.
+

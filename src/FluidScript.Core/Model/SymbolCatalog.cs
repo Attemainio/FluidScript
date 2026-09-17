@@ -151,6 +151,8 @@ public static class SymbolCatalog
             ],
             PortAnchors = Anchors(("in", [-0.5, 0], Left), ("out", [0.5, 0], Right)),
             LabelAnchor = Above,
+            // A pump pumps left or right (D-113): a quarter turn is admitted, but only where nothing level fits.
+            TransformClass = "level",
         },
         new()
         {

@@ -332,7 +332,8 @@ public sealed record SymbolWire
     /// <summary>
     /// Which transforms the kind admits (<c>28</c> A4, <c>D-108</c>): <c>free</c> turns by any quarter, mirrored or not;
     /// <c>standing</c> is never turned, only mirrored left-right, up-down or both (every exchanger); <c>upright</c>
-    /// admits only the left-right mirror (a tank, whose layers are a vertical order). A fact about the kind, never a preference.
+    /// admits only the left-right mirror (a tank, whose layers are a vertical order); <c>level</c> admits every transform
+    /// but stands vertical only where nothing level fits (a pump, <c>D-113</c>). A fact about the kind, never a preference.
     /// </summary>
     public string TransformClass { get; init; } = "free";
 }

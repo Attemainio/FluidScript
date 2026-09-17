@@ -84,7 +84,8 @@ catalogue carries it as the kind's **transform class**:
 
 | Class | Transforms | Kinds | Why |
 |---|---|---|---|
-| `free` | four quarter turns, each mirrored or not: 8 | `pump`, `valve`, `three_way_valve`, `pipe`, `node` | Nothing about the glyph is up or down |
+| `free` | four quarter turns, each mirrored or not: 8 | `valve`, `three_way_valve`, `pipe`, `node` | Nothing about the glyph is up or down |
+| `level` | the same 8, the quarter turns admitted last | `pump` | A pump pumps left or right (`D-113`); it stands vertical only where nothing level fits, and a pipe turns level into it first (C3) |
 | `standing` | no quarter turn; identity, left-right mirror, up-down mirror, both: 4 | `heat_exchanger` (every spelling: `load`, `boiler`, `chiller`, …), `heat_pump` when M4 adds it | An exchanger is drawn upright on every P&I diagram; its flanks and its flow sense are chosen by mirroring |
 | `upright` | identity and the left-right mirror: 2 | `tank` | The layers and the port elevations are a vertical order; an up-down mirror would put the hot layer at the bottom |
 
@@ -95,8 +96,9 @@ turn for a free one.
 
 ### A5. Inline elements
 
-A declared `pipe`, a pipe-expansion child, and **a node the language inferred with exactly two
-connections** are **inline**: they have no box and no clearance of their own. The chain of
+A declared `pipe`, a pipe-expansion child, and **a node with exactly two connections, declared
+or inferred** (`D-114`; a datum node on a rail is the case) are **inline**: they have no box and
+no clearance of their own. The chain of
 connections through them is one **run** between the two elements that do have boxes; the run is
 one polyline; the inline elements are points on it, spread evenly along the run's longest segment
 (`D-105`). Since `D-110` a connection line may carry the pipe's properties itself, and the implicit
@@ -109,9 +111,9 @@ clearance from each other, not from it.)
 
 Every node that is not inline (A5) is laid out as an element (`D-108`): the junction's inner box
 (0.2 across), an outer boundary of one margin, a place of its own, its name in the picture and in
-the text. That holds for a declared node whatever its degree, a junction, and a boundary node the
-binder added to terminate an open port (`23`, rule I3); `PU1 pump` alone is one pump and two
-nodes, drawn so. What the *canvas* draws for a node is `53`'s: a junction (three or more
+the text. That holds for a junction (three or more connections, declared or not) and for a
+boundary node the binder added to terminate an open port (`23`, rule I3); `PU1 pump` alone is one
+pump and two nodes, drawn so. A declared node with two connections is inline (A5, `D-114`). What the *canvas* draws for a node is `53`'s: a junction (three or more
 connections) is a dot with at most one pipe per side, a two-port node draws nothing.
 
 ### A7. Pipes
@@ -127,6 +129,20 @@ Once a set of components has been laid out together it is a **group** with bound
 allowed transforms, and its parent treats it as one object: translated, turned, mirrored where
 allowed, never re-laid inside. A change elsewhere in the system cannot disturb a correct group. A
 group's kind and members are on the wire (`layout.groups`).
+
+*As built by step 7 (2026-09-17):* a ring the engine lays out is a group of kind `loop`,
+orientation `cw`, **when it is one component to the rest of the system: exactly one connection
+enters it and one leaves it** (the user's definition). The cooling loop is one group -- its supply
+enters at the mixing junction, its return leaves at the valve; an injection branch is one group
+inside the header; the closed circuit of a whole drawing is not a group. For the ring that holds
+the heat source, a tap whose flow comes back to the ring is a branch of the closed circuit, not
+an inlet or an outlet: the header's ring with its branches crosses nothing that leaves the
+system, so it is the drawing, while each branch is a group inside it. Groups nest, outer listed before inner,
+`loop-1`, `loop-2`, … in that order. A group's members are its boxed components; a nested block's
+members are also its parent's. Its bounds are the union of the members' inner boxes and the
+routes between them. The diagnostic text lists the groups (A10) and a placement names the
+innermost group that placed it; the picture draws each group's bounds as a dashed frame with its
+id. The scene's groups are not on the wire yet -- P5.1d-3, with the layout report.
 
 ### A9. Determinism
 
@@ -234,7 +250,8 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   rightwards from the inlet corner *against* the flow, each by its outlet facing the source; the
   consumer's column stands at the longer rail's end, its inlet corner on the top rail, slid right
   until H2 holds; every run's inline nodes sit at the midpoints of their longest segments. Which
-  free-turning members leave the bottom for a vertical is open (below). *Step 6*: a loop with no
+  free-turning members leave the bottom for a vertical: a pump never, unless nothing level fits
+  (`D-113`, C13); the rest is open (below). *Step 6*: a loop with no
   standing consumer takes as its right side the first member in flow order the loop's fluid
   leaves by -- a diverting valve, a junction with an outlet off the loop; the loop is found by a
   depth-first walk over leaving ports that passes through junctions.
@@ -246,8 +263,8 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   *Exercised by step 2*: the pipe turns at the node's outer anchor and drops into `in`.
 - **C4** *(stated 2026-09-16, `D-108`; exercised and narrowed by step 2)* -- **Every node that
   is not inline is placed with its boundaries** (A6): a boundary node sits one clearance past the
-  port it terminates, on the port's axis. An inferred two-connection node is a point on its run
-  (A5) and the far element is placed as if piped directly.
+  port it terminates, on the port's axis. A two-connection node, declared or inferred, is a point
+  on its run (A5, `D-114`) and the far element is placed as if piped directly.
 - **C5** *(step 2, provisional)* -- **Sequential placement.** From every placed port, the element
   at the other end of its connection is placed along the port's axis, one clearance out or as far
   as H2 needs (slack goes into the pipe, in tenths of a unit): a node on the axis; a component in
@@ -288,6 +305,37 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   consumer's outlet, the descent lands on it from above, and the rail leaves it leftwards. The rail
   is set low enough beforehand for the junction to fit one margin under the outlet. The
   source-side corners are the same rule mirrored, not yet built because no step has needed them.
+- **C11** *(step 7, corrected twice the same day, provisional)* -- **An inner loop is a block,
+  laid out first, presenting one inlet and one outlet to its parent.** When a cycle through the
+  consumer avoids the enclosing rings' sources -- an injection branch: the valve whose common port
+  feeds a pump, a load and the junction that returns to the valve's other port -- that cycle is
+  laid out on its own by these same rules as a clockwise ring: its consumer's unit on the right;
+  the first member after the consumer that can turn the flow from upward to rightward with the
+  branch's inlet facing out to the left takes the top-left corner (the three-way valve: `b` from
+  below, `ab` to the right, `a` from the left); the members between them lie on the bottom rail,
+  and the last of them, a junction, takes the *bottom-left* corner -- in from the rail, out up the
+  left side, its free port the block's outlet facing out to the left beside the inlet (C10
+  mirrored); the rest lie on the top rail. The block is the cooling loop mirrored: there the
+  supply came from the right into the mixing junction at the bottom-right corner and the return
+  left to the right from the valve at the top-right; here the supply comes from the left into the
+  valve at the top-left and the return leaves to the left from the junction at the bottom-left.
+  The parent ring then treats the block as one member with one inlet and one outlet (A8): the
+  supply rail runs straight into the inlet, the return rail leaves the outlet level, the block is
+  slid right until every member clears what is placed, and the parent's source arranges its
+  supply and return to them (C2, C12). Units nest: the consumer of a block is itself found by the
+  same search, with the enclosing rings' sources and corner members avoided, so a loop within a
+  loop within a ring is three blocks. Two blocks built from the same script shape draw the same,
+  which is what step 8 needs. Not built yet: a block none of whose members can take the corner (a
+  pump and a load alone), and an inner member that is neither on the outer loop nor inline.
+- **C12** *(step 7, provisional)* -- **A member on a side with slack sits at the side's middle.** The
+  rails' span is set by the taller side; the member on the shorter side -- the source when the
+  block is tall, a consumer entered from above when the source is -- moves to the middle of its
+  side and its two stubs lengthen equally. The user's words: "if the component can move in its
+  direction of flow, it should be aligned middle".
+- **C13** *(step 7, `D-113`)* -- **A pump is level.** It pumps left or right; a quarter turn is
+  admitted only where nothing level fits, and a vertical pipe turns level into a pump (C3's turn,
+  rightwards) before the pump is turned to meet it. This answers open question 2 for pumps: they
+  never leave a rail for a vertical.
 
 ## D. The candidates
 
@@ -312,7 +360,8 @@ proved; a candidate no step ever needs is deleted.
   pump, two inline pipes) the search is over where the pump sits -- on the bottom pumping left, or
   on the left vertical under the exchanger pumping up -- and nothing else.
 - **Rigid groups and hierarchy** (source §24–25): a solved loop, chain or branch set is one object
-  to its parent (A8).
+  to its parent (A8). *Built by step 7 for an inner loop (C11): the block is laid out at a
+  provisional origin, measured, and slid into the ring with its runs.*
 - **Branches** (source §26, narrowed by `D-108`): a closed ring's branches hang between its top and
   bottom sides in script order (H9 makes the ring a clockwise loop, so the rails are given); an open
   supply-to-return path's branches stack perpendicular to the main flow in script order, the parent
@@ -363,6 +412,7 @@ for it.
    standing members and the top; on the simple loop `CV1`, `P1` and `PU1` all fit on the bottom,
    and the user's earlier sketch put the pump on the vertical under the source exchanger. Step 3
    draws the bottom-only form; the correction becomes the rule and the residual search in D.
+   *Answered for pumps by step 7 (`D-113`, C13): never, unless nothing level fits. Open for valves.*
 
 ## Mapping to code
 

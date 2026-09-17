@@ -288,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 6 of ten drawn and accepted; step 7 next |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 7 accepted; step 8 next |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -460,6 +460,25 @@ commit. Steps 1–5, the simple loop and the substation are byte-identical to wh
 the cooling loop draws with two bends. Open from the ladder: `28` open question 2,
 `C-89`, P5.1e, the source-side corners of C10 when a step needs them.
 
+**Step 7 (2026-09-17) drew the ring with one injection branch twice.** The first draw was the
+plan's worked example, a vertical column with the pump turned to vertical; the user called it
+technically correct and not the intended layout, and gave three rules (`D-113`): a pump is level,
+a member on a side with slack sits at its middle, and an inner loop is laid out first as a block
+by the same rules as the cooling loop, the header routing around the blocks afterwards. `28` C11
+is now the block -- the first rigid group (A8) the engine builds, laid out at a provisional
+origin and slid into the ring with its runs -- with C12 (centring) and C13 (level pumps, the
+`level` transform class on the wire) beside it, and open question 2 answered for pumps. The
+user then had the block present its inlet and outlet together to its parent -- the split
+junction at the bottom-left corner, the return rail level from it -- and asked for loops to be
+found recursively into nested blocks, which `UnitOf` now does. The third draw is audit-clean,
+four bends, with steps 1–6 byte-identical, and the user accepted it. Every ring and block is
+now a layout group when it is one component to the rest of the system -- one inlet, one outlet,
+a tap that returns to the source's ring not counting (A8 as built: `loop-n`, nested, in the text
+and as frames in the picture; not on the wire until P5.1d-3). `D-114`: a node with two
+connections is inline whether declared or inferred, which closed the gap the datum node had put
+between the source and the block. Step 8, the second branch, is where two blocks of one shape
+must draw alike.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -558,7 +577,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1696 total, 0 failed, 5 skipped** (the timing test until the ladder reaches headers, and four unrelated; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1697 total, 0 failed, 5 skipped** (the timing test until the ladder reaches headers, and four unrelated; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

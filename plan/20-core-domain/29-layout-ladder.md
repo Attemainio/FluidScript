@@ -61,7 +61,7 @@ the reason in the row.
 | 4 | + `CV1 valve`, `P1 pipe`, the nodes written out | Where do free-turning members and an inline pipe sit on the return? | the bottom side's order; A5 | `m2-simple-loop` |
 | 5 | + the substation primary: `NPS supply`, `PCV`, `PP`, `HX1`'s second side, `NPR return` | Which flank does the losing side take, and where do an open chain's boundaries sit? | H10 exercised; a boundary node's side | `m2-substation` (its loop has a pipe on each rail; the sample's gate comes off skip when its text is clean) |
 | 6 | the cooling loop: a junction, a three-way valve, its recirculation, supply and return | How is a junction laid out, and does the valve's straight run decide the side? | junction sides (`D-105` item 2); the injection loop as `28`'s worked example | `m2-cooling-loop` |
-| 7 | a ring with one branch: `HS1`, the header nodes, one injection branch | Is a ring a loop with rails top and bottom, and does a branch hang between them? | the ring as C2's loop; branches (D) in the closed form | -- |
+| 7 | a ring with one branch: `HS1`, the header nodes, one injection branch | Is a ring a loop with rails top and bottom, and does a branch hang between them? | the ring as C2's loop; branches (D) in the closed form; C11 the column | -- |
 | 8 | + the second branch | Do two branches built alike draw alike, and in what order? | congruence (B priority 5); script order | `m2-distribution-header` |
 | 9 | a tank between two supplies and two returns | Is a tank upright with charging ports left and discharging ports right? | the `upright` class; H10 for an open fan | `m4-storage-header` |
 | 10 | a sensor and a controller on step 4's loop | Where do instruments and signal lines go? | instruments beside their anchors | `m1-syntax-tour` |
@@ -311,6 +311,113 @@ variant draw byte-identical geometry -- every box and pipe the same, valve `rota
 swapped` in the one and `rotation 90 mirrored` in the other, two bends, length 6.6, hard 0, soft
 0. The sample swap was reverted before it was committed; the `6b` variant is gone. The step's final
 picture is the second one above with the sample's own letters.
+
+### Step 7 · a ring with one injection branch
+
+`step-07-ring-one-branch.fluid`: the header's source `HS1 heat_exchanger out=60` (the power sized by
+the closed-circuit balance, one load), the return datum `N1 node p=250`, and the AHU circuit of
+`m2-distribution-header` verbatim -- `N3 - PA1 - TV_AHU.a`, `NM_AHU - TV_AHU.b`,
+`TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU`, `NM_AHU - PA2 - N5`, `N5 - N1` -- without the second branch and
+its taps `N4`, `N6`. With one branch the header is not a ring on its own: the circuit is the outer
+loop `HS1 → N3 → PA1 → TV → PU → HE → NM → PA2 → N5 → N1 → HS1` with the recirculation
+`NM → TV.b` as an inner loop through the pump and the load.
+
+**Drawn (2026-09-17):** the first draw laid the valve and the pump along the top rail, the load on
+the right side, and left the recirculation to the router, which ran it back along the return rail
+for half a unit -- `pipes-overlap`, hard. The rule that fixes it is the plan's worked example: C11,
+an inner loop through the consumer stands as a column. `Column` finds the cycle through the
+consumer that avoids the source by the same depth-first search as the loop, with the source marked
+visited; its members on the outer loop -- `TV`, `PU`, `HE`, `NM`, every non-source member here --
+become the column, and the ports the inner loop leaves the bottom member by and re-enters the top
+member by become the return. The column stacks under the top rail's corner, each inlet one margin
+below the previous outlet: `TV_AHU` identity at `[(1.25, −0.5), (2.25, 0.5)]` with `a` up, `ab`
+down, `b` west; `PU_AHU` rotation 90 at `[(1.25, −2), (2.25, −1)]`; `HE_AHU` identity slid so its
+inlet sits on the column, `[(1.65, −3.5), (2.15, −2.5)]`; `NM_AHU` at `[(1.65, −4.2), (1.85, −4)]`.
+The column slid right from `x = 0.65` to `x = 1.75` -- first for the valve to clear `HS1`'s margin,
+then for the return line at `x = 0.75` to clear it too. The return runs
+`[(1.65, −4.1), (0.75, −4.1), (0.75, 0), (1.25, 0)]`, two bends, length 5.5, exactly the worked
+example's numbers with the column at its `x`. `N1` is declared, so it has a box (A6) and takes the
+bottom-right corner under `NM` (C10); `PA2` and `N5` are inline on the half-unit between them,
+and the return rail runs from `N1` left to `HS1`'s inlet. Loop `[(0.15, −4.8), (1.75, 1)]`, five
+bends, length 15.9, hard 0, soft 0. Steps 1–6 unchanged.
+
+**User's corrections (2026-09-17):** "technically correct but not the intended layout", three
+notes. (1) `HS1` sat at the top of a long left side; a component that can move along its
+direction of flow is aligned to the middle. (2) Flow is left or right: a pump is always level;
+vertical only where no other solution exists. (3) The column is the cooling loop mirrored: lay the
+loop out first as a block by the same rules, then let the header resolve its routing around the
+blocks -- and two subcircuits of the same shape (AHU, RAD) must then draw alike.
+
+**Drawn again (2026-09-17):** the column became a block (C11 rewritten). `Block` lays the inner
+loop out as its own clockwise ring at a provisional origin: `HE_AHU` the consumer on the right,
+`TV_AHU` the first member after it that turns upward flow to rightward with `a` facing out to the
+left -- rotation 270, `b` from below, `ab` to the right, stem up -- at the top-left corner, `PU_AHU`
+level on the top rail, `NM_AHU` at the bottom-right corner (C10), the recirculation left along the
+block's bottom and up into `b`. The outer ring then treats the block as one member: `HS1` at the
+origin, the supply rail `y = 1` running straight into `TV_AHU.a` at `(0.75, 1)`, the block slid right
+until the valve cleared `HS1`'s margin, `NM_AHU`'s free port to the right into `PA2`, `N5` and the
+declared datum `N1`, which takes the bottom-right corner and slides along its rail until it clears
+the block (C10 widened), the return rail at `y = −1.7` back to `HS1`. `HS1` moved down to
+`(0, −0.35)`, the middle of a side 0.7 longer than itself (C12). The pump became a `level` kind
+(C13, `D-113`): quarter turns admitted last, and a vertical pipe turns level into it before it is
+turned. Five bends, length 13.9, hard 0, soft 0; steps 1–6 byte-identical. Two blemishes for the
+user: the inline `N3`, `PA1` and the inferred node sit on `HS1`'s outlet stub, the run's longest
+segment, rather than on the supply rail; and `N1`, being declared, is a box at the corner with
+`PA2` and `N5` on the short stub before it.
+
+**Second correction (2026-09-17):** `HS1`'s position and the pump's direction were right, but the
+block's return left to the right, where the cooling loop -- "supply from right and return to
+right" -- says a subcircuit's inlet and outlet face the same way. The user's take: solve the
+subcircuits internally, treat each as one grouped component with one inlet and one outlet, and
+let the source arrange its supply and return to them; and detect loops recursively, whatever the
+script's circuit declarations say, each group one block.
+
+**Drawn a third time (2026-09-17):** the block's split junction `NM_AHU` takes the *bottom-left*
+corner (C10 mirrored, `Corners`): in from the block's bottom rail, out up the left side into `b`,
+its free port the block's outlet facing left beside the inlet. `Bottom` puts the parent's return
+rail level with a left-facing outlet, so `NM_AHU`'s outlet at `(1.85, −1)` lies exactly on
+`HS1`'s inlet-corner height and the datum `N1` sits on that rail as an ordinary member at
+`[(0.75, −1.1), (0.95, −0.9)]`, `PA2` and `N5` inline on the rail between them. `UnitOf` finds a
+unit recursively -- `Column` with an `avoid` set of the enclosing rings' sources and corner
+members -- so a block's consumer may itself be a block. The picture: `HS1` at the origin (no
+slack this time: the block's outlet lands on the inlet corner's height), the supply rail straight
+into `TV_AHU.a` at `(1.45, 1)`, the block `[(1.45, −1.1), (4.95, 1.5)]`, the return rail straight
+back. Four bends, length 9.8, hard 0, soft 0; steps 1–6 byte-identical. The two blemishes of the
+second draw are gone with the rule.
+
+**Accepted (2026-09-17):** "Yes! That looks very neat now!" Two follow-ups in the same message.
+(1) The rules must be general: no layout has rules of its own, groups are detected recursively
+everywhere, and the cooling loop -- one inlet, one outlet -- is one group by itself. They are:
+one `Loop` → `UnitOf` → `Block` path runs for every script; the ladder scripts are inputs, not
+cases. The two shapes the code knows are one rule from two sides -- a standing member takes a
+vertical side (the source on the left, the consumer on the right) and a free-turning member that
+can turn the flow takes the corner beside its rail -- so the cooling loop is a sourced ring with
+the valve at the top-right corner, and the AHU block an unsourced ring with the valve at the
+top-left. (2) Groups: every ring and block is now a `LayoutGroup` (A8 as built), listed in the
+diagnostic text with members and bounds -- the cooling loop `loop-1 [HE1, 3WV, N2, PU1]`, step 7
+`loop-1 [HS1, TV_AHU, PU_AHU, HE_AHU, NM_AHU, N1]` holding `loop-2 [HE_AHU, NM_AHU, TV_AHU,
+PU_AHU]` -- and drawn in the picture as dashed frames, wider for a group that holds another;
+each placement names its innermost group. The user then narrowed it: the cooling loop is a group
+because it has one input and one output, but step 7's outer ring is a closed circuit and is not.
+So a ring is a group only when exactly one connection enters it and one leaves it; step 7 now
+lists the AHU block alone as `loop-1`, the simple loop lists none, and the substation's secondary
+`[HX1, LOAD, SP]` counts as one because its exchanger's primary ports are its one inlet and one
+outlet. A first cut counted the distribution header's ring as a group too, since one connection
+leaves it into the AHU branch and one comes back; for the ring that holds the source, a crossing
+whose flow returns to the ring is a tap, not an inlet, so the header's ring is the drawing and
+only its branches are groups.
+
+**Observation (2026-09-17, `D-114`):** "Why is the supply heat exchanger not closer to the loop?"
+The datum `N1 node p=250`, declared and so boxed (`D-108` item 3), sat on the return rail between
+`HS1` and the block with its 0.2 box and two margins, and the block's outlet stub had to start
+beyond them: 1.2 units of gap over the supply rail's one margin. The user chose that a declared
+node with two connections is inline like an inferred one; `N1` is now a labelled point on the
+return rail and the block sits one margin from `HS1`.
+
+**Rules established:** C11 (a block, laid out first, one inlet and one outlet to its parent,
+nesting), C12 (middle of a side with slack), C13 (pumps level) -- all *(step 7, provisional)*;
+C10 widened both ways (a corner junction under a right-facing outlet slides along its rail until
+it clears the unit; in a block the junction nearest the left side takes the bottom-left corner).
 
 ## What the ladder has not reached
 

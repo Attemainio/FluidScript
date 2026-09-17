@@ -43,8 +43,10 @@ might trade for a shorter pipe: a drawing that breaks either is wrong.
 **Some symbols are never turned, only mirrored.** An exchanger is always drawn upright: which flank
 each side takes and whether its flow runs up or down are chosen by mirroring it left-to-right or
 top-to-bottom, never by laying it on its side. A tank is upright too, and it is only ever mirrored
-left-to-right, because its layers are a vertical order -- the hot water stays at the top. A pump
-and a valve turn freely. This is a fact about the kind, not a preference: where a level pipe reaches
+left-to-right, because its layers are a vertical order -- the hot water stays at the top. A valve
+turns freely. A pump pumps left or right: it is turned to vertical only where nothing level fits,
+and a vertical pipe turns level into it first. A component that can slide along its own direction
+of flow -- an exchanger on the short side of a loop -- sits at the middle of that side. This is a fact about the kind, not a preference: where a level pipe reaches
 a standing exchanger, the pipe turns into it; the exchanger does not lie down and the pipe upstream
 does not tip over to meet it.
 
