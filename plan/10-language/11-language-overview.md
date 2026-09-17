@@ -88,12 +88,12 @@ demonstration of what those principles actually decide:
 | Statement | Shape | Which principle chose it |
 |---|---|---|
 | `circuit AHU 101` | Optional trailing number; the name doubles as the role | **P1** — a single-circuit script writes no number and is unchanged. **P6** — the role is not a second way to say what the name says |
-| `supply N3` / `return N5` | Keyword and endpoint | **P3** — attachment is structure the language refuses to guess, because a wrong guess still solves |
+| `inlet N3` / `outlet N5` | Keyword and endpoint | **P3** — attachment is structure the language refuses to guess, because a wrong guess still solves |
 | `project dynamic plant_01` | File-wide default | **P1** — stating `dynamic` once per circuit in a six-circuit file is five repetitions of one decision |
 | `spacing 20` | Bare number, world units | **P5** — presentation lives in the text with everything else, rather than in a side file |
 | `control actuate=… measure=… by=…` | Named arguments, each a qualified reference (`D-43`) | **P7** — a positional form is shorter for a person and strictly worse for an agent, which must get the order right without seeing an example |
 
-**`supply`/`return` is where P3 did the most work.** The obvious spelling was `in N3` / `out N5`, and
+**`inlet`/`outlet` is where P3 did the most work.** The obvious spelling was `in N3` / `out N5`, and
 it is lexically impossible: it parses as a component named `in` of kind `N3`, binds, and describes a
 different plant. The rejected alternative — inferring the attachment from proximity or declaration
 order — fails P3 for the same reason one level up: the attachment point sets the flow split, so a
@@ -200,7 +200,7 @@ reason hover (`R-23`) must show inferred names: the user must be able to see wha
 6. There is exactly one syntactic form for each thing the language can express (P6).
 7. Every statement is classifiable from its first token plus at most one token of lookahead. A
    proposed statement that needs more is rejected, not accommodated — this is what makes P4's
-   line-granular recovery possible, and it is why `supply` is a keyword rather than `in` being
+   line-granular recovery possible, and it is why `inlet` is a keyword rather than `in` being
    contextually reinterpreted.
 
 ## Acceptance criteria

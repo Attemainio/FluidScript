@@ -132,10 +132,10 @@ public sealed record CircuitWire
     public required string? ParentCircuit { get; init; }
 
     /// <summary>The parent component this circuit takes flow from.</summary>
-    public required string? SupplyAnchorId { get; init; }
+    public required string? InletAnchorId { get; init; }
 
     /// <summary>The parent component this circuit returns flow to.</summary>
-    public required string? ReturnAnchorId { get; init; }
+    public required string? OutletAnchorId { get; init; }
 
     /// <summary>Whether every component in this circuit has a state (invariant 7).</summary>
     public required bool Solved { get; init; }

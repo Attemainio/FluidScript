@@ -29,8 +29,8 @@ That is information, not a warning. Every pressure in the result is then relativ
 shows them that way. The node chosen is the one with the most connections, so it does not move when
 you edit an unrelated line.
 
-**Two stated pressures are normal.** The cooling loop states `N1 supply t=6 p=300` and
-`N3 return p=280`, and it must: those two are what push water through its primary side. What is *not*
+**Two stated pressures are normal.** The cooling loop states `N1 inlet t=6 p=300` and
+`N3 outlet p=280`, and it must: those two are what push water through its primary side. What is *not*
 normal is two pressures with nothing between them that could make them differ — two nodes wired
 straight together, where the second is not a boundary at all but a second, contradictory datum:
 
@@ -114,7 +114,7 @@ t=20` — and if it states none you get:
 FS2211  This circuit is under-specified by 1. Add one of: a temperature on N1, …
 ```
 
-An **open** circuit needs nothing of the sort. Fluid arrives through its `supply` carrying a
+An **open** circuit needs nothing of the sort. Fluid arrives through its `inlet` carrying a
 temperature, and that is the level.
 
 ## Square is not the same as solvable
@@ -155,7 +155,7 @@ A pipe that climbs works the same way. Lifting water costs energy — 98 J for e
 runs the other way. It changes the enthalpy and not the temperature, which is why a riser does not
 show up as a temperature drop.
 
-**So does mass.** A `supply` with no `return` injects fluid the circuit cannot get rid of:
+**So does mass.** An `inlet` with no `outlet` injects fluid the circuit cannot get rid of:
 
 ```
 FS2204  'branch1' has a supply and no return. Fluid must both enter and leave,
@@ -184,7 +184,7 @@ FS2213  'HE_RAD, TV_RAD, PU_RAD' are not connected to the rest of the circuit.
 | `FS2201` | A datum was picked for you | Nothing. Read pressures as relative |
 | `FS2202` | A port was left unconnected, and closed | Connect it, or leave the stub if it is deliberate |
 | `FS2203` | A closed circuit's duties do not sum to zero | Add the load or source it is missing, or open it with a boundary |
-| `FS2204` | Fluid can enter and not leave, or the reverse | Add the missing `supply` or `return` |
+| `FS2204` | Fluid can enter and not leave, or the reverse | Add the missing `inlet` or `outlet` |
 | `FS2210` | More demands than freedoms | Remove one of the named statements, or add what could absorb it |
 | `FS2211` | Fewer demands than freedoms | Add one of the named boundary conditions. On a closed circuit it is usually a temperature |
 | `FS2212` | Two pressures forced equal, set differently | Remove one, or put something between them |
@@ -192,7 +192,7 @@ FS2213  'HE_RAD, TV_RAD, PU_RAD' are not connected to the rest of the circuit.
 | `FS2214` | A loop with no pump | Check whether a pump is on the wrong leg. The loop will carry no flow |
 | `FS2215` | A stated temperature or pressure the fluid cannot be at | Correct the value, or change the fluid |
 | `FS2216` | A two-sided component was tagged into a circuit arbitrarily | Nothing, unless the grouping on the diagram matters to you |
-| `FS2217` | A subcircuit attached to itself | Point `supply` and `return` at the circuit it feeds from |
+| `FS2217` | A subcircuit attached to itself | Point `inlet` and `outlet` at the circuit it feeds from |
 
 `FS2214` is a warning rather than information on purpose. A loop nothing drives simply carries no
 flow, every temperature downstream of it is then wrong, and the result still looks like a solved
@@ -212,5 +212,5 @@ diagram keeps drawing what you have so far.
 - [How a script becomes a circuit](how-a-script-becomes-a-circuit.md) — the graph these checks run on
 - [Reading the solve report](reading-the-solve-report.md) — the same count, itemised, for a circuit that failed anyway
 - [`node`](../functions/node.md) — `p`, `t` and `flow`, the three boundary conditions
-- [`supply` and `return`](../functions/supply-return.md) — declaring which way fluid crosses an edge of the model
+- [`inlet` and `outlet`](../functions/inlet-outlet.md) — declaring which way fluid crosses an edge of the model
 - [`heat-exchanger`](../functions/heat-exchanger.md) — `in`, `out` and `power`, and which combinations fix a flow

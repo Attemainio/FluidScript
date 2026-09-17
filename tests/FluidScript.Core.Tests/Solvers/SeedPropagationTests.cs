@@ -143,8 +143,8 @@ public sealed class SeedPropagationTests
             {legs}
             P1 - N3
 
-            N1 supply t=6 p=300
-            N3 return p=280
+            N1 inlet t=6 p=300
+            N3 outlet p=280
             """;
 
         var resolved = PipeCatalogs.Resolve(pin: null);

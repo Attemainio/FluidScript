@@ -88,7 +88,9 @@ reach. What the rules build so far: the first path starts at the heat source and
 right with each component straight after the one before; a level pipe reaching an exchanger turns
 into it; a closed loop is laid out once as a clockwise rectangle -- the source on the left, the
 consumer on the right, pumps level -- and then kept rigid, so a change elsewhere never rearranges
-it; an injection branch (a three-way valve, its pump, its load and the junction that recirculates)
+it; a loop with no heat source (a pump, a load and a valve on a ring) is the same rectangle with
+its left side bare, the load still on the right, and which is the load is read from what the
+script wrote -- a `load`, a `radiator` or a stated negative power -- not from a solved number; an injection branch (a three-way valve, its pump, its load and the junction that recirculates)
 is laid out first as a block of its own, its inlet and outlet side by side facing its header, and
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
@@ -97,7 +99,12 @@ step down from one block's outlet to the next block's inlet. A sensor stands jus
 reads and a controller just off the component it drives, on its centre line; the controller's
 signal comes from the sensor, level and then down, and its own line goes straight into the
 actuator. Where lines cross, the one in front runs through and the one behind is broken around it:
-signal lines run behind pipes, and return pipes behind supply pipes. Circuits that nothing joins
+signal lines run behind pipes, and return pipes behind supply pipes; a signal line whose one bend
+would cross a symbol or lie along a pipe goes round them instead. An inlet whose junction feeds two
+paths to one outlet is drawn with that junction at the top left, the inlet beside it, and the outlet's
+junction straight under it: the path
+with no loop hangs down between them, and the path with a loop -- an injection branch, say --
+stands to the right, fed level from the supply and returning along the bottom. Circuits that nothing joins
 are drawn one under another, in the order the script declares them, each arranged on its own.
 Where a component may sit is not something the script can steer today; pinning one is planned.
 
@@ -148,7 +155,7 @@ FS2403  'radiators' is named as a radiator circuit but its stated duties make it
 
 Fix the name, or the sign, whichever was wrong.
 
-**Circuits and their branches.** A subcircuit that joins its parent through `supply` and `return`, or
+**Circuits and their branches.** A subcircuit that joins its parent through `inlet` and `outlet`, or
 through two connections to the parent's nodes, is a branch off that parent. Several branches on one
 parent are a distribution group, reported with the drawing so that branches built the same way --
 the same kinds in the same sequence -- can be drawn the same way. Renaming every component in one

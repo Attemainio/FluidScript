@@ -1,0 +1,68 @@
+# does not bind: C-93 -- two independent circuits in one project are refused as one disconnected circuit.
+# Layout ladder, step 11b (plan/20-core-domain/29-layout-ladder.md): the syntax tour's first two
+# circuits verbatim, its own spacing kept. The cooling loop declares a pump that nothing connects
+# and leaves a port open to a terminating node; the expressions circuit is a chain between two
+# boundaries with a three-way valve fed by a second pair. What the file states, it states for the
+# lexer, not the plant: the solve gate marks it as it marks step 11a.
+
+fluidscript 1
+project plant_01
+spacing 0.75
+
+circuit coolingLoop                       # R-01: declarative block
+fluid dynamic water                       # R-12: `dynamic` selects the transient model
+style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
+
+HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+3WV three_way_valve                       # R-02: no parameters at all — size it
+PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
+
+connections
+N1 - N2                                   # R-06: N1 and N2 are never declared; they are inferred
+N2 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - N3                                  # R-06: N3 is an open port; it gets a terminating node
+
+# ---------------------------------------------------------------------------------------------
+# Expressions, units, and the productions the reference does not reach. The header below sits under
+# a `connections` section and ends it: sections are scoped to a circuit (D-52).
+# ---------------------------------------------------------------------------------------------
+
+circuit expressions 200
+fluid water                               # no mode stated: the project's default decides (D-37)
+catalog steel_en10255                     # the shipped series, version unpinned
+style gray 1px sharp -                    # a lone `-` is the solid pattern
+show temperature pressure 0..40           # two properties and an explicit scale range
+
+let dT     = 30 dK                        # a unit may be separated from its number (rule 5)
+let cp     = 4.18 kJ/(kg*K)               # one atomic unit symbol, never four tokens
+let Q      = 30 kW
+let mdot   = Q / (cp * dT)                # the same `/` and `*`, now operators: no number precedes
+let peak   = max(Q, 24 kW)                # a call, and the only comma in the language
+let margin = peak + 2 kW
+let droop  = -2 dK                        # unary minus
+let share  = 50 %                         # `%` is a unit symbol and never an operator (D-51)
+let scale  = 1.2e3                        # exponent form, and a bare number
+let bore   = 27.3 mm                      # DN25 steel bore: a designation is not a diameter
+
+HE2 load in=50 out=30 power=Q                       # a parameter whose value is a reference to a `let`
+TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
+PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
+NB1 inlet t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
+NB2 outlet p=280                          # plain `node` is a *datum* instead, and admits none (D-86)
+SB1 inlet t=6 flow=0.24 kg/s             # `inlet` in kind position: a boundary that says so (D-64)
+RB1 outlet                                # and `outlet`, which needs no arguments at all
+
+connections
+NB1 - NJ1                                 # a boundary has one connection (D-115): the split is NJ1's
+NJ1 - HE2 - PB1 - NJ2                     # a chain desugars to three connections (I6)
+NJ2 - NB2                                 # and the merge before the outlet is NJ2's
+SB1 - TV2.a                               # a port-qualified endpoint: the second inlet into port a
+NJ1 - TV2.b                               # the first inlet's water taps into port b
+TV2.ab - RB1                              # and the declared outlet takes the mixed stream away
+
+# ---------------------------------------------------------------------------------------------
+# A subcircuit: attachment to the parent, a controller, and a control binding.
+# ---------------------------------------------------------------------------------------------
+

@@ -38,8 +38,8 @@
       "mode": "steady",
       "role": "heating",
       "parentCircuit": null,
-      "supplyAnchorId": null,
-      "returnAnchorId": null,
+      "inletAnchorId": null,
+      "outletAnchorId": null,
       "solved": true,
       "statesOmitted": false
     },
@@ -51,8 +51,8 @@
       "mode": "steady",
       "role": "ahu",
       "parentCircuit": "heating",
-      "supplyAnchorId": "N3",
-      "returnAnchorId": "N5",
+      "inletAnchorId": "N3",
+      "outletAnchorId": "N5",
       "solved": true,
       "statesOmitted": false
     },
@@ -64,8 +64,8 @@
       "mode": "steady",
       "role": "radiator",
       "parentCircuit": "heating",
-      "supplyAnchorId": "N4",
-      "returnAnchorId": "N6",
+      "inletAnchorId": "N4",
+      "outletAnchorId": "N6",
       "solved": true,
       "statesOmitted": false
     }

@@ -67,7 +67,8 @@ names.
 |---|---|---|---|
 | **Circuit** | `circuit` | `Circuit` | A named, numbered, connected set of components sharing one fluid and solved together. A script may declare several (`D-33`). |
 | **Circuit number** | `circuit AHU 101` | `CircuitNumber` | The integer designating a circuit on a drawing. Stated in the header, or resolved automatically as the lowest unused multiple of 100 in declaration order (`D-33`). |
-| **Subcircuit** | `circuit` + `supply`/`return` | `Circuit` | A circuit declared in the same script that attaches to a parent circuit at two explicitly named nodes. It is an ordinary circuit with a parent, not a distinct type. **Not a subsystem** — see below (`D-33`). |
+| **Subcircuit** | `circuit` + `inlet`/`outlet` | `Circuit` | A circuit declared in the same script that attaches to a parent circuit at two explicitly named nodes. It is an ordinary circuit with a parent, not a distinct type. **Not a subsystem** — see below (`D-33`). |
+| **Inlet** / **Outlet** | `inlet`, `outlet` | `BoundaryRole.Inlet` / `Outlet` | The boundary nodes where fluid enters and leaves the model (`D-64`, spelled so by `D-115`). Each has exactly one connection. Not *supply* and *return*, which name the two pipes of a hydronic circuit and the layout's route layers. |
 | **Circuit role** | the header's name | `CircuitRole` | A circuit's classification — `ahu`, `radiator`, `hot_water`, `ground_loop` — resolved from the header name through a registry by `D-15`'s three stages, never a keyword. Feeds `D-31` thermal classification (`D-35`). |
 | **Distribution header** | — | — | The supply and return line pair that a set of subcircuits attaches to. **Supply header** carries flow out, **return header** carries it back. |
 | **Tag** | — | `Tag` | The derived equipment designation `<circuit><code><ordinal>` — `400PU01`. Core-computed metadata carried in the model contract. **Never an identifier**: the component's name is what the user wrote (`D-34`). |

@@ -16,8 +16,8 @@ fluid water
 show temperature
 
 # --- district-heating primary, 85/45 -------------------------------
-NPS supply t=85 p=600
-NPR return p=350
+NPS inlet t=85 p=600
+NPR outlet p=350
 PCV valve
 PP  pipe length=12 dn=25
 

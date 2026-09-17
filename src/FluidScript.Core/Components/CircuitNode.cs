@@ -127,7 +127,7 @@ public sealed class CircuitNode : IFlowComponent
     /// <remarks>
     /// <strong>Not derivable from the parameters, which is the whole reason it is here.</strong> A
     /// terminal node with nothing stated is a legitimate dead leg carrying zero flow, and a
-    /// <see cref="BoundaryRole.Return"/> with nothing stated is an outlet whose external flux is an
+    /// <see cref="BoundaryRole.Outlet"/> with nothing stated is an outlet whose external flux is an
     /// unknown. The two are the same parameters and opposite equations, so the difference has to be
     /// something the script says.
     /// </remarks>
@@ -214,8 +214,8 @@ public enum BoundaryRole
     Interior = 0,
 
     /// <summary>Fluid enters the model here, in a state the script states.</summary>
-    Supply,
+    Inlet,
 
     /// <summary>Fluid leaves the model here. Its external flux is an unknown.</summary>
-    Return,
+    Outlet,
 }

@@ -1535,9 +1535,9 @@ public static class WellPosedness
     /// </para>
     /// <para>
     /// <strong>A stated pressure is a way in and a way out</strong> as surely as a boundary kind is —
-    /// mass crosses there to hold the number — so a <c>supply</c> paired with a pressure-driven outlet is
+    /// mass crosses there to hold the number — so an <c>inlet</c> paired with a pressure-driven outlet is
     /// not reported. What a pressure cannot do is stand in for the boundary it sits <em>on</em>: a
-    /// <c>supply p=300</c> is one node, and a circuit whose only flux is at that node passes none.
+    /// <c>inlet p=300</c> is one node, and a circuit whose only flux is at that node passes none.
     /// </para>
     /// <para>
     /// <strong>A circuit with neither boundary kind is never reported here.</strong> A closed loop needs
@@ -1552,19 +1552,33 @@ public static class WellPosedness
     {
         foreach (var hydraulic in hydraulics)
         {
+            // D-115: a boundary is a terminal with one connection; the flow splits or merges at a node after it (FS2205).
+            foreach (var node in hydraulic.Nodes)
+            {
+                if (node.Component.Boundary is not BoundaryRole.Interior && node.Component.Ports.Length > 1)
+                {
+                    diagnostics.Add(Diagnostic.Create(
+                        TopologyDiagnostics.BoundaryFanOut,
+                        span: null,
+                        new DiagnosticArgument("node", node.Component.Name),
+                        new DiagnosticArgument("kind", node.Component.Boundary is BoundaryRole.Inlet ? "inlet" : "outlet"),
+                        new DiagnosticArgument("count", node.Component.Ports.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+                }
+            }
+
             var supplied = hydraulic.Boundaries.Any(
-                static node => node.Component.Boundary is BoundaryRole.Supply);
+                static node => node.Component.Boundary is BoundaryRole.Inlet);
             var returned = hydraulic.Boundaries.Any(
-                static node => node.Component.Boundary is BoundaryRole.Return);
+                static node => node.Component.Boundary is BoundaryRole.Outlet);
 
             var exits = hydraulic.Nodes.Any(static node =>
-                node.Component.Boundary is BoundaryRole.Return
-                || (node.Component.Boundary is not BoundaryRole.Supply
+                node.Component.Boundary is BoundaryRole.Outlet
+                || (node.Component.Boundary is not BoundaryRole.Inlet
                     && HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null));
 
             var entries = hydraulic.Nodes.Any(static node =>
-                node.Component.Boundary is BoundaryRole.Supply
-                || (node.Component.Boundary is not BoundaryRole.Return
+                node.Component.Boundary is BoundaryRole.Inlet
+                || (node.Component.Boundary is not BoundaryRole.Outlet
                     && (HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null
                         || HydraulicPartition.Stated(node.Component, HydraulicPartition.Flow) is not null)));
 
@@ -1573,11 +1587,11 @@ public static class WellPosedness
 
             if (supplied && !exits)
             {
-                (present, missing) = ("supply", "return");
+                (present, missing) = ("inlet", "outlet");
             }
             else if (returned && !entries)
             {
-                (present, missing) = ("return", "supply");
+                (present, missing) = ("outlet", "inlet");
             }
             else
             {

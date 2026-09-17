@@ -146,8 +146,8 @@ public sealed class HeightBindingTests
             connections
             N1 - P1 - N2
 
-            N1 supply t=20 p=300
-            N2 return p=150 elevation=10
+            N1 inlet t=20 p=300
+            N2 outlet p=150 elevation=10
             """);
 
         // `elevation` on a pipe is the parameter the registry no longer has (D-70).

@@ -89,7 +89,7 @@ public static class FluidScriptParser
                 ReservedWord.Let => StatementKind.Let,
                 ReservedWord.Connections => StatementKind.ConnectionsHeader,
                 ReservedWord.Schedule => StatementKind.ScheduleHeader,
-                ReservedWord.Supply or ReservedWord.Return => StatementKind.Attachment,
+                ReservedWord.Inlet or ReservedWord.Outlet => StatementKind.Attachment,
                 ReservedWord.Control => StatementKind.Control,
                 ReservedWord.Curve => StatementKind.CurveHeader,
                 ReservedWord.Design => StatementKind.Design,

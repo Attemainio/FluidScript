@@ -82,16 +82,18 @@ let bore   = 27.3 mm                      # DN25 steel bore: a designation is no
 HE2 load in=50 out=30 power=Q                       # a parameter whose value is a reference to a `let`
 TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
 PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
-NB1 supply t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
-NB2 return p=280                          # plain `node` is a *datum* instead, and admits none (D-86)
-SB1 supply t=6 flow=0.24 kg/s             # `supply` in kind position: a boundary that says so (D-64)
-RB1 return                                # and `return`, which needs no arguments at all
+NB1 inlet t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
+NB2 outlet p=280                          # plain `node` is a *datum* instead, and admits none (D-86)
+SB1 inlet t=6 flow=0.24 kg/s              # `inlet` in kind position: a boundary that says so (D-64, D-115)
+RB1 outlet                                # and `outlet`, which needs no arguments at all
 
 connections
-NB1 - HE2 - PB1 - NB2                     # a chain desugars to three connections (I6)
-TV2.a - NB2                               # a port-qualified endpoint
-SB1 - TV2.ab                              # the declared supply feeds the valve
-TV2.b - RB1                               # and the declared return takes the fluid away
+NB1 - NJ1                                 # a boundary has one connection (D-115): the split is NJ1's
+NJ1 - HE2 - PB1 - NJ2                     # a chain desugars to three connections (I6)
+NJ2 - NB2                                 # and the merge before the outlet is NJ2's
+SB1 - TV2.a                               # a port-qualified endpoint: the second inlet into port a
+NJ1 - TV2.b                               # the first inlet's water taps into port b
+TV2.ab - RB1                              # and the declared outlet takes the mixed stream away
 
 # ---------------------------------------------------------------------------------------------
 # A subcircuit: attachment to the parent, a controller, and a control binding.
@@ -106,13 +108,20 @@ show pressure
 HE3  load in=50 out=30 power=24 kW
 TV3  three_way_valve
 PU3  pump
+PA3  pipe length=8 dn=25
 PID3 pid kp=3                             # a controller is an ordinary declaration (D-40)
 
-supply NB1                                # takes flow from the parent circuit at NB1
-return NB2                                # and returns it at NB2 — the same two words in statement
+inlet NJ1                                 # takes flow from the parent circuit at NJ1: the first open
+outlet NJ2                                # inlet (TV3.a); and returns it at NJ2 from the first open
+                                          # outlet (PA3.out) — the same two words in statement
                                           # position, where a name follows rather than precedes (D-64)
 
-control actuate=TV3.position measure=NB2.t by=PID3 setpoint=20
+connections
+TV3.ab - PU3 - HE3 - NM3                  # the injection loop: valve, pump, load, split
+NM3 - TV3.b                               # the recirculation back into the valve
+NM3 - PA3                                 # and the return pipe, open at its far end for `outlet`
+
+control actuate=TV3.position measure=NJ2.t by=PID3 setpoint=20
 
 # ---------------------------------------------------------------------------------------------
 # A transient circuit, for the schedule section.
@@ -123,7 +132,7 @@ fluid dynamic water
 style green 1px sharp -.                  # the dash-dot pattern
 
 HE4 load in=50 out=30 power=30 kW
-TV4 three_way_valve
+TV4 valve
 PU4 pump
 NC1 node t=6 p=300 flow=0.24
 

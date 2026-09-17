@@ -375,7 +375,7 @@ public sealed class EquationSystem
                 byComponent[boundary.Component],
                 equations.Row(element, 0),
                 column < 0 ? -1 : unknowns.ExternalFluxOffset + column,
-                boundary.Component.Boundary is BoundaryRole.Return ? -(given ?? 0) : given ?? 0,
+                boundary.Component.Boundary is BoundaryRole.Outlet ? -(given ?? 0) : given ?? 0,
                 enthalpy,
                 known));
         }

@@ -100,10 +100,10 @@ public sealed record CircuitHint
     public string? ParentCircuit { get; init; }
 
     /// <summary>The parent's component this circuit takes flow from, when attached.</summary>
-    public string? SupplyAnchorId { get; init; }
+    public string? InletAnchorId { get; init; }
 
     /// <summary>The parent's component this circuit returns flow to, when attached.</summary>
-    public string? ReturnAnchorId { get; init; }
+    public string? OutletAnchorId { get; init; }
 }
 
 /// <summary>A resolved circuit role and the stage it biases toward.</summary>

@@ -257,7 +257,7 @@ public sealed class SolutionSeedTests
         }
 
         return HydraulicPartition.Stated(node, HydraulicPartition.Flow) is { } stated
-            ? node.Boundary is BoundaryRole.Return ? -stated : stated
+            ? node.Boundary is BoundaryRole.Outlet ? -stated : stated
             : 0;
     }
 
@@ -392,6 +392,7 @@ public sealed class SolutionSeedTests
         var graph = Lower(sample);
         var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
         var seed = SolutionSeed.Build(graph, layout);
+        var reversed = new List<string>();
 
         foreach (var branch in graph.Branches)
         {
@@ -416,18 +417,30 @@ public sealed class SolutionSeedTests
                 var entering = Where(graph, branch, step, rated.Inlet);
                 var leaving = Where(graph, branch, step, rated.Outlet);
 
-                if (entering == leaving)
+                if (entering == leaving || (entering < leaving ? flow > 0 : flow < 0))
                 {
                     continue;
                 }
 
-                Assert.True(
-                    entering < leaving ? flow > 0 : flow < 0,
+                reversed.Add(
                     $"{branch.Path[step].Name} states in and out, so the seed must carry water from the "
                     + $"port called in to the one called out; branch {branch.Index} runs {flow:G4} kg/s "
                     + "the other way, which is the exchanger cooling when it heats.");
             }
         }
+
+        // The same convention as the ladder's gates (62): a sample whose first line says `# does not
+        // seed: S-nn` is expected to seed a rated exchanger backwards until that defect closes, so the
+        // marker has to come off the moment it does.
+        var marker = File.ReadLines(Path.Combine(RepositoryLayout.Samples, sample)).FirstOrDefault() ?? string.Empty;
+
+        if (marker.StartsWith("# does not seed: S-", StringComparison.Ordinal))
+        {
+            Assert.True(reversed.Count > 0, $"{sample} is marked '{marker}' but every rated exchanger seeds forwards; the marker is stale.");
+            return;
+        }
+
+        Assert.True(reversed.Count == 0, string.Join(Environment.NewLine, reversed));
     }
 
     /// <summary>A rated exchanger's inlet and outlet port indices, or <see langword="null"/>.</summary>

@@ -653,10 +653,143 @@ as `C-93`; the script carries `# does not bind: C-93` on its first line and the 
 refusal until it closes, as it expects `S-63`'s stall. **Accepted (2026-09-17):** "the picture
 looks right now."
 
+`step-11b-tour-two.fluid`: the tour's first two circuits verbatim at its `spacing 0.75` -- the
+cooling loop (`N1 - N2`, `N2 - HE1`, `HE1 - 3WV`, `3WV - N2`, `3WV - N3`, with `PU1 pump` declared
+and connected to nothing) and the expressions circuit (`NB1 - HE2 - PB1 - NB2`, `TV2.a - NB2`,
+`SB1 - TV2.ab`, `TV2.b - RB1`, the `let` lines that `power=Q` reads). Marked `C-93`.
+
+**Drawn (2026-09-17):** three fragments under one another with no rule touched, hard 0, soft 0,
+three bends, length 12.85 at margin 0.75. The cooling loop first: `HE1` at the origin, the valve at
+the top-right corner (`rotation 90 mirrored swapped`, C9 through `D-112`), `N2` inline-free as a
+junction on the return rail with `N1` beside it and `N3` the open port's terminating node beyond
+the valve. Then `PU1`, a fragment of one, as step 1 drew it: the pump between its two inferred end
+nodes. Then the expressions chain: `NB1` the supply boundary as head, `HE2` from its level pipe by
+C3, `PB1` and `NB2` inline down its outlet -- `NB2` a declared return with two connections, so
+inline by `D-114` -- into `TV2.a` from above, `SB1` under `TV2.ab` and `RB1` level from `TV2.b`
+to the left. The chain turns down at the exchanger and stays down; the plant is nonsense (a supply
+into a valve's outlet), and the picture follows the ports as written.
+
+**User's observation (2026-09-17):** "out from TV2 flows against the heat exchanger's outlet
+vector -- it seems odd." Two streams met at `NB2` head-on along one line: the exchanger's outlet
+down into it and the valve's `a` up into it, and the two-connection rule had made the boundary an
+inline point between them, so the picture read as one pipe with opposing flow.
+
+**Drawn again (2026-09-17):** `D-114` says a boundary node keeps its box; the code had never
+excluded boundaries from the two-connection test, so this is the decision as written, not a new
+one: a boundary is an end of the plant and never inline, whatever meets it. `NB2` keeps its box at the foot of the exchanger's drop, and the valve,
+placed from its free side by C5, stands beside it at `[(1.85, −10.15), (2.85, −9.15)]` feeding it
+level from the right, `SB1` level beyond the common port and `RB1` under `b`. Length 13.4, three
+bends, hard 0, soft 0; every other step unchanged.
+
+**Second reading (2026-09-17):** two questions. "Does NB mean neutral -- vectors pointing from
+TV2 and the heat exchanger to NB2?" No: `NB2` is the tour's `return p=280`, and the file sends
+two streams into it, the exchanger's outlet and the valve's `a`, because it feeds the valve
+backwards through its common port (`SB1 - TV2.ab`); the picture is faithful to a file written
+for the lexer. And "in the first picture we don't align N1 and N3": step 6 aligned them because
+they were declared boundaries and C7 looked only at boundaries; the tour's `N1` and `N3` are
+inferred open ends, one connection each. C7 widened: an open end is any node with one
+connection, declared or inferred. `N1` moved from `x = 2.45` to `2.85` under `N3`; length 13.8,
+three bends, hard 0, soft 0, every other step unchanged.
+
+**The sample rewired (2026-09-17):** the user read the file and found the valve wired backwards
+-- fed at its common port, one outlet into a return that the load also drains into. The rewrite
+keeps every production the circuit exists for and reads as plant: `NB1 - HE2 - PB1 - NB2`
+unchanged, `SB1 - TV2.a`, `NB1 - TV2.b`, `TV2.ab - RB1` -- the valve mixes the two supplies into
+the second return, and `NB1` feeds both the chain and the valve. Drawn: `NB1` boxed as a two-way
+supply at `(1.2, −8.7)`, the load chain down from it to `NB2` as before, the valve above it fed
+at `b` from below, `SB1` level into `a` from the right, `RB1` level from `ab` on the left. Length
+13.5, three bends, hard 0, soft 0; the sample and the step script carry the same lines.
+
+**Third reading (2026-09-17):** the picture agreed "only if NB1 supplies both" -- it does -- and
+one correction: supply runs left to right and the return leaves the valve to the right, so the
+valve must be mirrored about its vertical axis. The engine had turned the valve to meet the tap
+from below and then taken the first admitted quarter turn, which put `a` on the right and `ab` on
+the left. H10 now reaches a member placed from a pipe (C5): among the transforms that face the
+pipe, the one that sends a port the flow leaves by to the right comes first. `TV2` is `rotation
+270`: `SB1` into `a` from the left at `(−0.15, −7.35)`, `NB1` into `b` from below, `ab` out to
+`RB1` on the right at `(2.55, −7.35)`. Length and bends unchanged, hard 0, soft 0, every other
+step byte for byte. The user's remark that supply nodes are ordinary nodes with stated
+conditions and the direction the solver's to find is filed as `L-52`.
+
+**Four things the author found wrong in the tour (2026-09-17),** at the user's "could you
+identify yourself what could be wrong": the two loops with no heat source (`demandStep`,
+`radiators`) fell to the chain rule and drew as a column, hard 4; the radiator load's
+`power=heating` was not read as a consumer because the engine read duty from a solved number;
+the `ahu` subcircuit declared its components and connected none of them; and its `TV4` was a
+three-way valve with one branch wired. "Take all four." The sample now wires `ahu` as an injection
+loop (`TV3.ab - PU3 - HE3 - NM3`, `NM3 - TV3.b`, `NM3 - PA3`, the return pipe open at its far end
+for `return NB2`) and declares `TV4 valve`; C1 reads a component's role from its written kind and
+stated sign; and C18 lays a sourceless loop out as a ring.
+
+`step-11c-tour-loops.fluid`: the tour's `demandStep` and `radiators` verbatim, with `design
+tout=-26` and the two curves the radiator load and the controller's setpoint read. Marked `C-93`.
+
+**Drawn (2026-09-17):** C18. Both loops are rings, the load on the right standing (`HE4` at
+`[(4.25, −1.75), (4.75, −0.75)]`), the pump on the top rail, the valve on the top rail's left where
+the file placed it, and the turn from the bottom rail up into the valve a bare bend at `x = 0`:
+the ring is found through the consumer and rotated so the top rail ends at it, and with no
+non-boundary node on the turn the corner is a bend, not a box. `NR2` and `NR1` are two inline
+points a quarter margin apart on the top rail (`NR2 - NR1`, a pipe with nothing on it). `TE5`
+stands above `NR2` between the two rings, `PID5` under `TV5` inside the ring (above is within a
+margin of the first ring's bottom rail), eight bends, length 21.4, hard 0, soft 0, every other
+step byte for byte. The tour falls to hard 2, soft 3, all of it in the `expressions`+`ahu`
+fragment.
+
+**Two things the picture shows that the audit does not measure:** `PID5`'s measurement signal
+leaves `TE5` level, turns down on the controller's centre line and runs *through* `TV5` to reach
+the controller under it, and in the tour `PID3`'s two signals cross `TV2` and `HE2` the same way.
+C15's one-bend signal knows nothing of what lies on its path; filed as `C-94`. And the tour's
+`expressions`+`ahu` fragment is the open supply-to-return form -- `NB1` feeding three paths
+(`HE2`'s chain, `TV2.b`, `TV3.a`) and `NB2` collecting two -- which no rule draws: `28` part D's
+"branches in the open form", the next rung (11d). Wiring the `ahu` also found `S-64`: with the
+pumped loop hung between `NB1` and `NB2`, the seed runs `HE2` backwards, and the sample carries
+`# does not seed: S-64` on its first line until it closes.
+
+**Step 11d (2026-09-17): the open form.** The user read the tour's `expressions`+`ahu` picture
+and named its faults -- `TV3` fed through its own body from below with the signal on the same
+point, the injection loop counter-clockwise, `NM3` entered through its box, the recirculation
+along `HE2`'s bottom edge, `PID3`'s two signals through `TV2` and along `HE2`'s pipes -- and, told
+the root cause was the form having no rule, "fix it." C19: `NB1` at the origin with `TV2` above it
+as 11b drew it, the chain `HE2 - PB1` straight down under it to `NB2` at `(0, −2.7)`, the rail from
+`NB1`'s right side level into `TV3.a` at `x = 1.6`, the injection block laid out by C11 (`TV3`
+`rotation 270` at the top-left, `PU3` on the top rail, `HE3` standing on the right, `NM3` at the
+bottom-left with the recirculation up into `TV3.b`) and its return from `NM3`'s left side down
+0.2 to the rail and left through `PA3` into `NB2`'s right side. The step is the chain's height
+over the block's, as C19 says. The audit read hard 0, soft 0, fourteen bends, length 45.65 for the
+whole tour, and every other step and sample byte for byte.
+
+**`C-94` closed in the same step.** `PID3`'s measurement to `NB2` -- a node with no sensor -- had
+run level through `TV2` and then down `HE2`'s own pipe; `PID5`'s in step 11c had dropped through
+`TV5`. A signal now keeps its one bend only while it crosses no box and runs along no line;
+otherwise the router draws it round every placed box and instrument, one margin off every pipe,
+crossing pipes freely. `PID3`'s measurement leaves its top, runs over `TV2`'s margin, down the
+left of `SB1` and into `NB2`'s left side; step 11c's `PID5` measurement drops from `TE5` down the
+right of the ring, runs one margin under the bottom rail and rises into the controller's bottom,
+hopping the rail. Steps 10 and 11b are unchanged: their one-bend lines cross nothing. The tour
+joins `Reached`. What the two rerouted signals show is a placement question, not a routing one:
+`PID5` would read better on its sensor's side of the rail, which C15 refuses only because that
+candidate lies within a margin of the ring stacked above (C17 reserves no room for instruments
+between fragments); filed under C15's "not built".
+
+**The audit's gaps, seen on the faulty picture (`C-95`):** H9 counted no counter-clockwise loop
+though the injection loop ran one, `pipe-in-inner` excused the pipe through `TV3` because a
+pipe is not tested against the component it connects to, and no signal is tested against any box.
+Hard 2 for a picture with six visible faults is the register's own measure of the gap.
+
+**`D-115` (2026-09-17), read back through the ladder.** The user's six points on the tour's picture
+settled three language rules: a boundary has one connection (`FS2205`), the boundary kinds are
+`inlet` and `outlet` (`supply` and `return` are the pipes of a circuit and the route layers), and a
+closed circuit without a stated pressure is warned, not informed (`FS2201`). The tour and step 11b
+now write `NB1 - NJ1`, `NJ1 - HE2 - PB1 - NJ2`, `NJ2 - NB2`, `NJ1 - TV2.b` and attach the `ahu` at
+`NJ1`/`NJ2`; C19 is keyed to the junctions, with the boundaries hanging off their left sides. The
+tour draws `NB1` at `(0.25, −8.7)` beside `NJ1` at the origin and `NB2` beside `NJ2` under it,
+hard 0, soft 0, length 47.15; step 11b's picture gains the two junctions the same way. And the
+seed runs `HE2` forwards again: `S-64` closes, because the shape that exposed it can no longer be
+written. Every other step and sample is byte for byte.
+
 ## What the ladder has not reached
 
-The syntax tour's remaining circuits, added one at a time (step 11b onward); the `upright`
-class's mirror. From `28` part D: the loop search's residue (open question 2 for valves), branches in
-the open supply-to-return form, a block none of whose members can take a corner, a branch off the
-bottom rail, and the router as a last resort. Inline elements (`28` A5) lie on every ring since
+Every sample draws audit-clean; the `upright` class's mirror. From `28` part D: the loop search's
+residue (open question 2 for valves), the open form with more than two paths (C19), a block none
+of whose members can take a corner, a branch off the bottom rail, and the router as a last resort. Inline elements (`28` A5) lie on every ring since
 step 7; a declared pipe off a ring is still drawn as the fallback draws it.

@@ -175,11 +175,11 @@ public static class SymbolCatalog
     ];
 
     /// <summary>The symbol a kind is drawn with.</summary>
-    /// <param name="kind">The registry keyword; a boundary node's <c>supply</c> or <c>return</c> is a node.</param>
+    /// <param name="kind">The registry keyword; a boundary node's <c>inlet</c> or <c>outlet</c> is a node.</param>
     /// <returns>The symbol id, always one of <see cref="All"/>.</returns>
     public static string IdFor(string kind) => kind switch
     {
-        "node" or "supply" or "return" => "node.junction",
+        "node" or "inlet" or "outlet" => "node.junction",
         "tank" => "tank.stratified",
         _ when All.Any(symbol => string.Equals(symbol.Id, kind + ".standard", StringComparison.Ordinal)) => kind + ".standard",
         _ => "node.junction",

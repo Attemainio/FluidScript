@@ -37,7 +37,7 @@ internal sealed partial class BindingRun
         MaterializePorts();
         BindConnections(blocks);
 
-        // Before inference, because a `supply` or `return` line IS a connection the user wrote, just in
+        // Before inference, because an `inlet` or `outlet` line IS a connection the user wrote
         // another syntax (23). Left until after I3, it would find every port it wants to claim already
         // terminated by a dead-leg node, and the subcircuit would hang off the parent by nothing.
         BindAttachments(blocks);
@@ -525,8 +525,8 @@ internal sealed partial class BindingRun
             var index = _circuits.IndexOf(block.Circuit!);
             var circuit = _circuits[index];
 
-            var supply = Attachment(block, AttachmentDirection.Supply);
-            var returned = Attachment(block, AttachmentDirection.Return);
+            var supply = Attachment(block, AttachmentDirection.Inlet);
+            var returned = Attachment(block, AttachmentDirection.Outlet);
 
             if (supply is null != returned is null)
             {
@@ -536,9 +536,9 @@ internal sealed partial class BindingRun
                     BinderDiagnostics.LoneAttachment,
                     present.Span,
                     ("circuit", circuit.Name),
-                    ("present", supply is null ? "return" : "supply"),
+                    ("present", supply is null ? "outlet" : "inlet"),
                     ("node", present.ParentComponentName),
-                    ("other", supply is null ? "supply" : "return"));
+                    ("other", supply is null ? "inlet" : "outlet"));
             }
 
             var parents = new[] { supply?.ParentComponent, returned?.ParentComponent }

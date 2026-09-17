@@ -62,10 +62,10 @@ public enum ReservedWord
     Schedule,
 
     /// <summary>Where a subcircuit takes flow from its parent (<c>D-33</c>).</summary>
-    Supply,
+    Inlet,
 
     /// <summary>Where a subcircuit returns flow to its parent (<c>D-33</c>).</summary>
-    Return,
+    Outlet,
 
     /// <summary>Binds a controller to what it actuates and what it measures (<c>D-40</c>).</summary>
     Control,

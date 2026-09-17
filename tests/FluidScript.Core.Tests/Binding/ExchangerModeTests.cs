@@ -102,7 +102,7 @@ public sealed class ExchangerModeTests
     public void BothSecondaryPortsWiredIsCoupledMode()
     {
         var exchanger = Exchanger(Script(
-            "HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45\nNPS supply t=85 p=600\nNPR return p=350",
+            "HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45\nNPS inlet t=85 p=600\nNPR outlet p=350",
             "NPS - HX1.in2\nHX1.out2 - NPR"));
 
         Assert.Equal(ExchangerMode.Coupled, exchanger.ResolvedMode);
@@ -138,7 +138,7 @@ public sealed class ExchangerModeTests
     public void FS2112_OneSecondaryPortWiredIsAnErrorNamingTheOpenOne()
     {
         var diagnostic = Only(
-            Script("HX1 heat_exchanger power=150 in=40 out=60\nNPS supply t=85 p=600", "NPS - HX1.in2"),
+            Script("HX1 heat_exchanger power=150 in=40 out=60\nNPS inlet t=85 p=600", "NPS - HX1.in2"),
             "FS2112");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);

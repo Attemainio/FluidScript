@@ -68,7 +68,7 @@ more than an intention:
    as enumerating the component registry: `D-33`, `D-37` and `D-40` added five statements that are not
    component kinds, and a gate that walked only the registry would have passed all five undocumented.
    A retired diagnostic code is exempt and must be, or the gate demands a page for `FS1509`. Words
-   sharing one page — `supply` and `return` — are covered by `61`'s explicit manifest rather than by
+   sharing one page — `inlet` and `outlet` — are covered by `61`'s explicit manifest rather than by
    the check guessing at pairings.
 2. Every `fluidscript` block in `/docs` compiles, or produces its annotated diagnostic.
 3. Generated pages match what the code would generate.

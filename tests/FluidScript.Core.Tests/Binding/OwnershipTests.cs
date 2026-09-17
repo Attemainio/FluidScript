@@ -32,8 +32,8 @@ public sealed class OwnershipTests
         circuit district 400
         fluid water
 
-        NPS supply t=85 p=600
-        NPR return p=350
+        NPS inlet t=85 p=600
+        NPR outlet p=350
         PCV valve
         PP  pipe length=12 dn=25
         {0}

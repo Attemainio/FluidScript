@@ -83,8 +83,8 @@ converting there costs one pass and removes a whole class of consumer bug.
       "mode": "steady",                // "steady" | "transient"
       "role": null,                    // resolved circuit role, or null for Neutral (D-35)
       "parentCircuit": null,           // D-33; set on a subcircuit
-      "supplyAnchorId": null,          // the parent component this circuit takes flow from
-      "returnAnchorId": null,
+      "inletAnchorId": null,          // the parent component this circuit takes flow from
+      "outletAnchorId": null,
       "solved": true,
       "statesOmitted": false           // true only alongside FS2502
     }
@@ -286,7 +286,7 @@ it, each recorded here rather than left for a reader of the golden files to disc
 - **`circuits[].role` is the resolved canonical name, `null` only when the name matched nothing.**
   A registered Neutral role (`heating`) is its name; `25`'s precision on what Neutral means is why.
 - **A subcircuit written as connections gets `parentCircuit` and its anchors** from `25`'s node-contact
-  rule, not only from `supply`/`return` lines.
+  rule, not only from `inlet`/`outlet` lines.
 - **`components[]` also lists instruments and controllers**, with no ports and no state, so a canvas
   can key everything it draws by one id. Invariant 3 is read as: a component with ports appears in
   `layout.order`, one without appears in `layout.nonFlowElements`. Pipe-expansion children carry

@@ -15,7 +15,7 @@ namespace FluidScript.Core.Diagnostics;
 /// pressure to N1, N2 or N3" is actionable; a singular Jacobian is not.
 /// </para>
 /// <para>
-/// Codes this area owns and does not yet raise: <c>FS2205</c>–<c>FS2209</c> are unallocated, and
+/// Codes this area owns and does not yet raise: <c>FS2206</c>–<c>FS2209</c> are unallocated, and
 /// nothing in the range is deferred — <c>P3.4b</c> raises all ten of <c>23</c>'s error cases, and
 /// <c>P3.4c</c> the two consistency codes <c>D-64</c> added beside them.
 /// </para>
@@ -23,17 +23,17 @@ namespace FluidScript.Core.Diagnostics;
 public static class TopologyDiagnostics
 {
     /// <summary>No pressure is stated anywhere in a hydraulic connected component.</summary>
-    /// <value><c>FS2201</c>, informational.</value>
+    /// <value><c>FS2201</c>, a warning.</value>
     /// <remarks>
     /// A deliberate softening of principle P3 ("infer only what is unambiguous"). Which node carries
     /// the datum is arbitrary; that every pressure is then relative is not, and that is what the
-    /// message says. Erroring instead would make a closed loop — the common case, and the whole of the
-    /// syntax reference — unsolvable until the user typed a number that carries no engineering
-    /// meaning.
+    /// message says. Erroring instead would make a closed loop unsolvable until the user typed a number;
+    /// a warning (<c>D-115</c>) keeps the loop solvable under editing and still says, every time, that
+    /// the static pressure of a closed circuit is a design number the script has not stated.
     /// </remarks>
     public static DiagnosticDescriptor DatumChosen { get; } = new(
         "FS2201",
-        DiagnosticSeverity.Info,
+        DiagnosticSeverity.Warning,
         "Using '{node}' as the pressure datum. Pressures are relative to it.");
 
     /// <summary>A port inference rule I3 had to terminate.</summary>
@@ -79,7 +79,7 @@ public static class TopologyDiagnostics
     /// <remarks>
     /// The mass analogue of <see cref="UnbalancedClosedCircuit"/>, and invisible to the count for the
     /// same reason: a stated <c>flow</c> is a known injection, so a circuit that injects mass and has
-    /// nowhere to put it is square and inconsistent. <c>D-64</c>'s <c>return</c> exists to make the
+    /// nowhere to put it is square and inconsistent. <c>D-64</c>'s <c>outlet</c> exists to make the
     /// difference between "fluid leaves here" and "this stub is not finished" something the script says
     /// rather than something the checker guesses.
     /// </remarks>
@@ -87,6 +87,20 @@ public static class TopologyDiagnostics
         "FS2204",
         DiagnosticSeverity.Error,
         "'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.");
+
+    /// <summary>A boundary node with more than one connection.</summary>
+    /// <value><c>FS2205</c>, an error.</value>
+    /// <remarks>
+    /// A boundary is a terminal (<c>D-115</c>): the one place fluid crosses into or out of the model,
+    /// with the one pipe that carries it. A flow that splits after the inlet or merges before the outlet
+    /// does so at a node the script writes, so that the junction is a junction and the boundary states
+    /// one stream's condition. Allowing more made the boundary a junction in disguise, which the seed
+    /// and the drawing both had to special-case (<c>S-64</c>, <c>28</c> C19).
+    /// </remarks>
+    public static DiagnosticDescriptor BoundaryFanOut { get; } = new(
+        "FS2205",
+        DiagnosticSeverity.Error,
+        "'{node}' is an {kind} with {count} connections. A boundary has one; split or merge the flow at a node after it.");
 
     /// <summary>More equations than unknowns.</summary>
     /// <value><c>FS2210</c>, an error.</value>

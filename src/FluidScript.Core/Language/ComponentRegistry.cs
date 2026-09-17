@@ -297,8 +297,8 @@ public sealed class ComponentRegistry : IComponentRegistry
     private static ImmutableArray<ComponentKindInfo> BuildKinds() =>
     [
         Node(),
-        Supply(),
-        Return(),
+        Inlet(),
+        Outlet(),
         Pipe(),
         HeatExchanger(),
         Valve(),
@@ -337,13 +337,13 @@ public sealed class ComponentRegistry : IComponentRegistry
     /// <summary>Where fluid enters the model (<c>D-64</c>).</summary>
     /// <remarks>
     /// A node that states what a boundary has to state: the thermal condition of what arrives, and one
-    /// hydraulic condition. Which hydraulic one depends on what feeds it — a pumped supply states
+    /// hydraulic condition. Which hydraulic one depends on what feeds it — a pumped feed states
     /// <c>flow</c> and its pressure is solved; a district connection states <c>p</c> and its flow is
     /// solved — so the group has one freedom and one minimum, and stating both or neither is an error.
     /// </remarks>
-    private static ComponentKindInfo Supply() => new()
+    private static ComponentKindInfo Inlet() => new()
     {
-        Keyword = "supply",
+        Keyword = "inlet",
         Aliases = ["source"],
         Ports = [],
         HasUnlimitedPorts = true,
@@ -380,9 +380,9 @@ public sealed class ComponentRegistry : IComponentRegistry
     /// flux rather than a zero-flow closure, and what lets a circuit that fills up with no way out be
     /// reported instead of solved. Stating <c>p</c> on one makes it a pressure boundary as well.
     /// </remarks>
-    private static ComponentKindInfo Return() => new()
+    private static ComponentKindInfo Outlet() => new()
     {
-        Keyword = "return",
+        Keyword = "outlet",
         Aliases = ["sink"],
         Ports = [],
         HasUnlimitedPorts = true,

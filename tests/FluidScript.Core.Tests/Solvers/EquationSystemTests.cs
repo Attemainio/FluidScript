@@ -148,7 +148,7 @@ public sealed class EquationSystemTests
             checkedRows++;
 
             Assert.Equal(
-                node.Component.Boundary is BoundaryRole.Return ? -given : given,
+                node.Component.Boundary is BoundaryRole.Outlet ? -given : given,
                 residuals[row],
                 9);
         }

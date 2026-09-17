@@ -104,10 +104,10 @@ The dynamic counterpart is a controller: [`control`](control.md) drives the same
 setpoint over time, where this solves for the position that holds it at steady state. Use one or the
 other on a given actuator, never both — they are two answers to one question.
 
-**A node at the edge of the model is better written as a boundary.** `S1 supply t=60 flow=0.12` says
-fluid enters there and `R1 return` says it leaves, which a bare node with the same parameters cannot:
+**A node at the edge of the model is better written as a boundary.** `S1 inlet t=60 flow=0.12` says
+fluid enters there and `R1 outlet` says it leaves, which a bare node with the same parameters cannot:
 a stub nobody finished wiring looks exactly like a deliberate dead end. See
-[`supply` and `return`](supply-return.md).
+[`inlet` and `outlet`](inlet-outlet.md).
 
 ## Properties
 
@@ -127,4 +127,4 @@ Readable as `N1.t` and so on, once the circuit has been solved.
 
 ## See also
 
-[`pipe`](pipe.md) · [`supply` and `return`](supply-return.md) · [`connections`](connections.md) · [Units](units.md)
+[`pipe`](pipe.md) · [`inlet` and `outlet`](inlet-outlet.md) · [`connections`](connections.md) · [Units](units.md)

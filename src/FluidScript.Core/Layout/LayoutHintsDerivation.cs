@@ -385,8 +385,8 @@ public static class LayoutHintsDerivation
                     ? null
                     : new CircuitRoleHint(circuit.Role.CanonicalName, circuit.Role.Stage),
                 ParentCircuit = parent,
-                SupplyAnchorId = supply,
-                ReturnAnchorId = returned,
+                InletAnchorId = supply,
+                OutletAnchorId = returned,
             });
         }
 
@@ -403,8 +403,8 @@ public static class LayoutHintsDerivation
             var members = circuits
                 .Where(candidate =>
                     string.Equals(candidate.ParentCircuit, parent.Name, StringComparison.Ordinal)
-                    && candidate.SupplyAnchorId is not null
-                    && candidate.ReturnAnchorId is not null)
+                    && candidate.InletAnchorId is not null
+                    && candidate.OutletAnchorId is not null)
                 .Select(static candidate => candidate.Name)
                 .ToImmutableArray();
 

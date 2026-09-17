@@ -351,7 +351,10 @@ writes its `SolveExplanation` beside the picture: a script beginning `# fragment
 beginning `# does not settle: S-nn` is expected to stall until that defect closes, one beginning
 `# does not bind: C-nn` is expected to be refused until that defect closes, and every other step
 must settle -- a ladder script is a circuit the solver accepts before its picture is judged
-(`C-91` and `S-63` were found this way).
+(`C-91` and `S-63` were found this way). A sample carries the same kind of marker for the seed:
+one whose first line begins `# does not seed: S-nn` is expected to seed a rated exchanger backwards
+in `SolutionSeedTests` until that defect closes, and the test fails the moment it seeds forwards
+with the marker still on (`S-64`, the syntax tour).
 
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
 string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a

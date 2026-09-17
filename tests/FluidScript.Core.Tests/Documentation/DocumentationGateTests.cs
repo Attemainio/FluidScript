@@ -50,12 +50,12 @@ public sealed class DocumentationGateTests
             .Select(ReservedWords.TextOf)];
 
     // `heat_exchanger` is documented at `heat-exchanger.md`: the file names use hyphens, because a URL
-    // does. `supply` and `return` share one page, since neither is meaningful without the other.
+    // does. `inlet` and `outlet` share one page, since neither is meaningful without the other.
     private static bool HasPage(string name)
     {
         var slug = name switch
         {
-            "supply" or "return" => "supply-return",
+            "inlet" or "outlet" => "inlet-outlet",
             _ => name.Replace('_', '-'),
         };
 

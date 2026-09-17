@@ -161,8 +161,8 @@ One circuit.
 | `mode` | string | The solve mode: `steady` or `transient`. |
 | `role` | string or `null` | The resolved role's canonical name, or `null` for a name the registry does not know (`D-35`). |
 | `parentCircuit` | string or `null` | The parent circuit, or `null` when this one stands alone (`D-33`). |
-| `supplyAnchorId` | string or `null` | The parent component this circuit takes flow from. |
-| `returnAnchorId` | string or `null` | The parent component this circuit returns flow to. |
+| `inletAnchorId` | string or `null` | The parent component this circuit takes flow from. |
+| `outletAnchorId` | string or `null` | The parent component this circuit returns flow to. |
 | `solved` | boolean | Whether every component in this circuit has a state (invariant 7). |
 | `statesOmitted` | boolean | True only alongside `FS2502`. |
 

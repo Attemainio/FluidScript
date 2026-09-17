@@ -16,7 +16,7 @@ public sealed class LayoutSolverTests
     /// <summary>The samples the layout ladder (29) has reached, whose routing and audit gates are live: the simple loop (step 4), the substation (step 5), the cooling loop (step 6), the distribution header (step 8), the storage header (step 9). The rest join as their steps land.</summary>
     public static TheoryData<string> Reached =>
     [
-        "m2-simple-loop", "m2-substation", "m2-cooling-loop", "m2-distribution-header", "m4-storage-header",
+        "m2-simple-loop", "m2-substation", "m2-cooling-loop", "m2-distribution-header", "m4-storage-header", "m1-syntax-tour",
     ];
 
     private static string Source(string name) =>

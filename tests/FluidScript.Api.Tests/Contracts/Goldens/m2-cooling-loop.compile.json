@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:b25d23dba63d710f599e787e811a1b8079f2cc560ff1a6b979b66f0c7b17b925",
+    "sourceHash": "sha256:a80c4c86edfa99dd72282a079d8a757790349442e866a17777076025e1b3291f",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -39,8 +39,8 @@
       "mode": "steady",
       "role": "cooling",
       "parentCircuit": null,
-      "supplyAnchorId": null,
-      "returnAnchorId": null,
+      "inletAnchorId": null,
+      "outletAnchorId": null,
       "solved": false,
       "statesOmitted": false
     }
@@ -284,7 +284,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 898,
-        "length": 19
+        "length": 18
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -315,7 +315,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 977,
+        "start": 976,
         "length": 15
       },
       "circuit": "coolingLoop",

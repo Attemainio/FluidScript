@@ -37,5 +37,5 @@ TV_C - N2
 TV_C - P_C
 P_C - N3
 
-N1 supply t=6 p=300
-N3 return p=280
+N1 inlet t=6 p=300
+N3 outlet p=280

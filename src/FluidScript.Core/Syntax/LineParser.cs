@@ -155,7 +155,7 @@ internal sealed class LineParser(
         StatementKind.Let => "let binding",
         StatementKind.ConnectionsHeader => "connections line",
         StatementKind.ScheduleHeader => "schedule line",
-        StatementKind.Attachment => "supply or return line",
+        StatementKind.Attachment => "inlet or outlet line",
         StatementKind.Control => "control line",
         StatementKind.Declaration => "component declaration",
         StatementKind.CurveHeader => "curve line",
@@ -600,7 +600,7 @@ internal sealed class LineParser(
     private StatementSyntax ParseAttachment(FluidScriptParser.ScriptState state)
     {
         var keyword = Advance();
-        var isSupply = keyword.Keyword == ReservedWord.Supply;
+        var isSupply = keyword.Keyword == ReservedWord.Inlet;
         var repeated = isSupply ? state.SeenSupply : state.SeenReturn;
 
         var endpoint = AtEnd ? null : TakeEndpoint();
@@ -774,8 +774,8 @@ internal sealed class LineParser(
             return Malformed();
         }
 
-        // A kind may be a reserved word. `S1 supply t=5 flow=2.3 l/s` declares a boundary (`D-64`), and
-        // `supply` is reserved because `supply N3` attaches a subcircuit -- the two are told apart by
+        // A kind may be a reserved word. `S1 inlet t=5 flow=2.3 l/s` declares a boundary (`D-64`, `D-115`), and
+        // `inlet` is reserved because `inlet N3` attaches a subcircuit -- the two are told apart by
         // whether the line starts with an identifier, which is decided before this method is reached.
         // Which keywords name kinds is the registry's business and not the parser's: anything accepted
         // here that names no kind meets the binder's unknown-kind message, which is the better one.

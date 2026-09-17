@@ -118,8 +118,8 @@ is legal.
 | `catalog` | which catalogue sizes are chosen from |
 | `connections` | a circuit's topology |
 | `schedule` | what changes, and when, during a run |
-| `supply` | where a subcircuit takes flow from its parent |
-| `return` | where a subcircuit gives that flow back |
+| `inlet` | where a subcircuit takes flow from its parent |
+| `outlet` | where a subcircuit gives that flow back |
 | `control` | which controller drives what, measuring what |
 | `curve` | a named table of values, interpolated between its rows |
 | `design` | the conditions the plant is sized for |

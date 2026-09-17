@@ -77,7 +77,7 @@ relation per component — and you never influence it directly. The terms worth 
 |---|---|
 | **promotions** | Values you did not state that the solver is finding anyway, because a constraint you *did* state has to be paid for. A pump with no `head` on a circuit whose flow is fixed by a duty is the usual one |
 | **constraints** | The equations your stated values add — `in=50` on a heat exchanger is one |
-| **datums** | The equation that pins the arbitrary pressure zero. Exactly one per hydraulically connected part, and zero when a `supply` or `return` already states a pressure |
+| **datums** | The equation that pins the arbitrary pressure zero. Exactly one per hydraulically connected part, and zero when an `inlet` or `outlet` already states a pressure |
 | **less enthalpy levels** | Balances *removed*. A closed loop's energy balances are one equation short of independent — the temperatures are only fixed relative to each other until something states an absolute level — so one is dropped |
 
 The negative terms are where a hand count usually goes wrong. If your own count comes out one over,

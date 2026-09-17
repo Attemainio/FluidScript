@@ -513,7 +513,30 @@ each other in script order, never side by side, and to approach the tour two loo
 one margin apart, left edges aligned, in the order the script declares them. Two loops draw clean
 (11a, with the user) and the tour itself falls to hard 4 untouched. The solve gate found `C-93`:
 the binder refuses two independent circuits in one project as one disconnected circuit
-(`FS2213`), which the syntax tour, documented as not meant to be solved, had hidden.
+(`FS2213`), which the syntax tour, documented as not meant to be solved, had hidden. Step 11b
+drew the tour's first two circuits and, through three readings with the user, made the code match
+`D-114` (a boundary is never inline), widened C7 to every open end, and turned a valve placed from
+a pipe so that the flow leaves it to the right; the tour's expressions circuit was rewired to read
+as plant (`L-52` filed from the user's remark on supply nodes). Step 11c took the tour's two loops
+with no heat source: `28` C18 lays a sourceless loop out as a ring from its consumer with a bare
+left corner, and C1 reads a component's role from its written kind, so a load whose power is a
+curve is a consumer before any curve is read. Both loops draw clean; the tour stands at hard 2,
+all in the open supply-to-return form no rule draws yet (11d). `C-94` filed: a controller's
+signal runs through the valve it drives when sensor and controller land on opposite sides of a
+rail; `S-64` filed: wiring the tour's `ahu` between two stated pressures makes the seed run the
+parallel load backwards, and the sample carries `# does not seed: S-64` (`62`). Step 11d, the same
+day: the open supply-to-return form has its rule (`28` C19 -- the supply and the return are the
+two left ends of a ring's rails, the chain under the supply, the looped path on the right), `C-94`
+closed (a signal that would cross a box or run along a line is routed round them), and the syntax
+tour draws hard 0, soft 0 and joins `Reached`; `C-95` filed for the three audit gaps the faulty
+picture exposed. Every sample now draws audit-clean. **`D-115`, the same day, from the user's
+reading of that picture:** the boundary kinds are `inlet` and `outlet` (`supply` and `return` are
+a circuit's pipes), a boundary has exactly one connection (`FS2205`, an error), and a closed
+circuit without a stated pressure is warned (`FS2201`). The rename runs through the keyword table,
+`BoundaryRole`, the attachment statements, the wire's `inletAnchorId`/`outletAnchorId`, every
+sample and ladder script, the docs page `inlet-outlet.md` and `22`'s tables; the tour and step 11b
+write junctions after the inlet and before the outlet, C19 is keyed to them, and `S-64` and `L-52`
+close. Core 1732/0/4, Api 18/0 with goldens regenerated.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -613,7 +636,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1724 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1732 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

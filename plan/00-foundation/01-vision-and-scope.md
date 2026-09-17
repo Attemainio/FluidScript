@@ -279,8 +279,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3                      # primary return
 
-N1 supply t=6 p=300          # primary-side boundary: fluid enters here
-N3 return p=280              # and leaves here
+N1 inlet t=6 p=300          # primary-side boundary: fluid enters here
+N3 outlet p=280              # and leaves here
 ```
 
 Changes from the syntax reference, each with a reason: **`PU1` is wired into the secondary loop**,
@@ -292,13 +292,13 @@ than dead ends; and **`fluid water`** rather than `dynamic`, since M2 is the ste
 the transient version is the demand-step loop below.
 
 **The boundary lines are ordinary declarations**, written below the connections by convention rather
-than by rule ([`12-grammar`](../10-language/12-grammar.md)). They read as `N1 supply t=6 p=300` rather
+than by rule ([`12-grammar`](../10-language/12-grammar.md)). They read as `N1 inlet t=6 p=300` rather
 than `N1 t=6 p=300` because the latter is not a statement the grammar has: its second token is a
 parameter name where a kind name belongs. Declaring them also means inference rule I1 does not fire
 for `N1` and `N3` — which is the honest outcome, since a node the user gave a boundary condition is a
 node the user wrote.
 
-**Their kind is `supply` and `return` rather than `node`** (`D-64`). Both are state points and neither
+**Their kind is `inlet` and `outlet` rather than `node`** (`D-64`, `D-115`). Both are state points and neither
 adds an equation a `node` would not, but the kind says which way fluid crosses the edge of the model,
 and that is not recoverable from the parameters: a stub nobody finished wiring states nothing and so
 does a deliberate dead end. It is also what lets `FS2204` tell a circuit fluid can enter and not leave
@@ -385,8 +385,8 @@ fluid water
 show temperature
 
 # --- district-heating primary, 85/45 -------------------------------
-NPS supply t=85 p=600
-NPR return p=350
+NPS inlet t=85 p=600
+NPR outlet p=350
 PCV valve
 PP  pipe length=12
 
@@ -409,7 +409,7 @@ NRET - SR - SP - HX1.in
 ```
 
 **Two hydraulic circuits, coupled only through `HX1`.** The primary is open — it enters at the
-`supply` `NPS` and leaves at the `return` `NPR`, both with stated pressures — and the secondary is a
+`inlet` `NPS` and leaves at the `outlet` `NPR`, both with stated pressures — and the secondary is a
 closed loop driven by `SP` with an
 auto-picked datum (`FS2201`). They share no node and no flow. `HX1` is the only component in both, and
 it couples them **thermally, not hydraulically**: heat crosses, fluid does not. This is what forces
@@ -499,8 +499,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3
 
-N1 supply t=6 p=300
-N3 return p=280
+N1 inlet t=6 p=300
+N3 outlet p=280
 
 schedule
 at 60 s   HE1.power = 45
@@ -575,11 +575,11 @@ circuit storageHeader
 fluid dynamic water
 show temperature
 
-S1 supply t=60 flow=0.12
-S2 supply t=45 flow=0.08
+S1 inlet t=60 flow=0.12
+S2 inlet t=45 flow=0.08
 T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
-RAD_NETWORK return flow=0.12
-AHU_NETWORK return flow=0.08
+RAD_NETWORK outlet flow=0.12
+AHU_NETWORK outlet flow=0.08
 
 connections
 S1 - T1.in1
@@ -591,11 +591,11 @@ T1.out2 - AHU_NETWORK
 This reference deliberately terminates the two sources and two heating networks at declared
 boundaries; it tests the storage control volume and whole-plant layout without importing the future
 heat-pump model. At a terminal, positive `flow` follows the nominal connection direction, so the two
-`supply` boundaries inject 0.20 kg/s in total and the two `return` boundaries extract the same
+`inlet` boundaries inject 0.20 kg/s in total and the two `outlet` boundaries extract the same
 0.20 kg/s. Every one of the four states the flow crossing it, so no external mass flux is a solver
 unknown — which is what makes one of the five mass balances redundant, since summing them all then
 gives an identity. No pressure is stated anywhere, so the datum is picked and reported (`FS2201`);
-before `P3.4c` `S1` carried a `p=300` that served only that purpose, and `supply` takes exactly one of
+before `P3.4c` `S1` carried a `p=300` that served only that purpose, and `inlet` takes exactly one of
 `flow` and `p` because stating both fixes what the circuit was to determine. Bare `volume=300` is 300 dm³ (`D-32`); each of the five layers therefore holds 60 dm³.
 
 Layer indices run bottom to top. The normalized elevations map `30%` to layer 2 and `90%` to layer 5.
@@ -653,8 +653,8 @@ PU_AHU  pump
 connections
 PU_AHU - HE_AHU - TV_AHU                       # the branch, open at both ends
 
-supply N3
-return N5
+inlet N3
+outlet N5
 
 circuit radiators 102
 
@@ -665,13 +665,13 @@ PU_RAD  pump
 connections
 PU_RAD - HE_RAD - TV_RAD
 
-supply N4
-return N6
+inlet N4
+outlet N6
 ```
 
 **Each subcircuit is open at both ends, and that is what the attachment joins.**
-[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) lowers `supply N3` to a
-connection from the parent's `N3` to the subcircuit's *first unconnected inlet* and `return N5` to one
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) lowers `inlet N3` to a
+connection from the parent's `N3` to the subcircuit's *first unconnected inlet* and `outlet N5` to one
 from its *last unconnected outlet* — so the branch has to leave both free. `PU_AHU - HE_AHU - TV_AHU`
 leaves `PU_AHU.in` and `TV_AHU.a`, which is the flow path the header figures below are computed over.
 Without the `connections` lines this fixture has no path from supply to return at all, and the three

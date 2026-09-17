@@ -1,0 +1,56 @@
+# does not bind: C-93 -- two independent circuits in one project are refused as one disconnected circuit.
+# Layout ladder, step 11c (plan/20-core-domain/29-layout-ladder.md): the syntax tour's two closed
+# loops with no heat source -- the transient loop and the radiators with their sensor and controller
+# -- verbatim, at the tour's spacing. `design tout=-26` and the heating curve are the lines the
+# radiator load's `power=heating` reads.
+
+fluidscript 1
+project plant_01
+spacing 0.75
+design tout=-26
+
+curve heating outdoor extrapolated
+-26  50
+ 20   0
+
+curve supplyTemp outdoor
+-26  60
+ 20  30
+
+circuit demandStep 400
+fluid dynamic water
+style green 1px sharp -.                  # the dash-dot pattern
+
+HE4 load in=50 out=30 power=30 kW
+TV4 valve
+PU4 pump
+NC1 node t=6 p=300 flow=0.24
+
+connections
+NC1 - PU4 - HE4 - TV4
+TV4 - NC1
+
+schedule
+at 60 s              HE4.power = 45       # a step
+over 60 s .. 120 s   HE4.power = 30 .. 45 # a linear ramp between two values
+at 300 s             TV4.position = 0.3   # any settable parameter
+
+# ---------------------------------------------------------------------------------------------
+# Instruments, the short control form (D-61), and a curve read at the design point (D-58). This
+# circuit has no clock, so `design tout=-26` is both what it is sized for and what it runs at.
+# ---------------------------------------------------------------------------------------------
+
+circuit radiators 500
+fluid static water
+
+HE5  load in=50 out=30 power=heating             # the curve's -26 row: 50 kW, by D-14's bare rule
+TV5  valve
+PU5  pump
+PID5 pid kp=2
+TE5  t_sensor at NR2                      # an observer: placed with `at`, never in the flow path
+
+connections
+NR1 - PU5 - HE5 - TV5 - NR2
+NR2 - NR1
+
+control TV5 with TE5 by PID5 setpoint=supplyTemp   # 60 °C at the design day, from a curve

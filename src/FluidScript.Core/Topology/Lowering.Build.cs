@@ -218,15 +218,15 @@ public static partial class Lowering
         /// <param name="kind">The registry entry the script named.</param>
         /// <returns>The role, or <see cref="BoundaryRole.Interior"/> for a plain node.</returns>
         /// <remarks>
-        /// Read from the keyword because that is the only place it exists: a <c>return</c> and a bare
+        /// Read from the keyword because that is the only place it exists: an <c>outlet</c> and a bare
         /// terminal <c>node</c> have identical parameters and opposite mass balances (<c>D-64</c>). This
         /// is the one point where lowering reads a kind's spelling, and it reads it from the registry
         /// entry rather than from the script, so an alias resolves before it gets here.
         /// </remarks>
         private static BoundaryRole Role(Language.ComponentKindInfo kind) => kind.Keyword switch
         {
-            "supply" => BoundaryRole.Supply,
-            "return" => BoundaryRole.Return,
+            "inlet" => BoundaryRole.Inlet,
+            "outlet" => BoundaryRole.Outlet,
             _ => BoundaryRole.Interior,
         };
 

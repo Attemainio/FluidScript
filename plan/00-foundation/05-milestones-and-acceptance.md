@@ -107,8 +107,8 @@ and infers more nodes, so it cannot carry that count as well.
       **and** the document that range names actually mentions it
 - [x] A script with three `circuit` headers binds three circuits; a header with no number resolves to
       100, 200, 300 in declaration order, and a stated number is kept verbatim (`D-33`). — `BinderTests`
-- [x] `supply N3` / `return N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
-      instead produces a diagnostic naming `supply`, and **never** a component named `in` of kind `N3`
+- [x] `inlet N3` / `outlet N5` bind a subcircuit's attachment to the parent's nodes. Writing `in N3`
+      instead produces a diagnostic naming `inlet`, and **never** a component named `in` of kind `N3`
       — a test asserts the old silent misparse is gone. —
       `TopologyBindingTests.ASubcircuitsAttachmentsResolveIntoItsParent`, `ParserTests` (`FS1109`)
 - [x] `project dynamic plant_01` sets the default mode for every circuit; a circuit stating

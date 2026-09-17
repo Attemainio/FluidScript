@@ -297,8 +297,8 @@ loop, which is the common case — gets an auto-picked datum instead.
 | **Temperature boundary** | `t` on a node, or a heat exchanger's `in`/`out` | The energy datum |
 | **Flow boundary** | `flow` on a node | A known injection or extraction |
 
-**A boundary declares itself** (`D-64`). `supply` and `return` are node kinds that say which end of an
-open circuit they are: a `supply` requires `t` and exactly one of `flow` or `p`, and a `return`
+**A boundary declares itself** (`D-64`, spelled `inlet`/`outlet` by `D-115`), **and is a terminal with one connection** (`D-115`, `FS2205`): the flow splits after the inlet, or merges before the outlet, at a node the script writes. `inlet` and `outlet` are node kinds that say which end of an
+open circuit they are: a `inlet` requires `t` and exactly one of `flow` or `p`, and a `outlet`
 requires nothing but gives its mass balance an unknown external flux instead of the zero-flow closure
 a bare terminal `node` gets. That distinction is not derivable from parameters — a terminal with
 nothing stated is a legitimate dead leg — so it is stated rather than inferred, which is what `P3`
@@ -318,12 +318,12 @@ So the existing rules carry over unchanged and need no per-circuit variants: one
 system over every node in the model, `FS2213` only for a subgraph coupled by nothing at all.
 
 Because identifiers are unique across the model (`D-41`), an attachment endpoint is an ordinary
-symbol-table lookup with no qualification: `supply N3` finds the one `N3` there is. Had names been
+symbol-table lookup with no qualification: `inlet N3` finds the one `N3` there is. Had names been
 scoped per circuit, each of the four attachment lines in the distribution header would have needed a
 qualified form the language does not have — which is the argument that decided `D-41`.
 
-**A subcircuit's attachment lowers to ordinary connections.** `supply N3` in circuit 101 becomes a
-connection from the parent's `N3` to 101's first unconnected inlet, and `return N5` a connection from
+**A subcircuit's attachment lowers to ordinary connections.** `inlet N3` in circuit 101 becomes a
+connection from the parent's `N3` to 101's first unconnected inlet, and `outlet N5` a connection from
 101's last unconnected outlet to `N5`. After lowering there is nothing structurally special about a
 subcircuit: it is a set of components connected to the rest, and every well-posedness rule below
 applies to it without modification.
@@ -412,7 +412,7 @@ any future block-decomposition experiment in
 ### The datum is mandatory and usually implicit
 
 A closed loop with no stated pressure has a singular system — every solution shifted by a constant is
-also a solution. Rather than erroring, the graph **picks one and says so** (`FS2201`, info): the
+also a solution. Rather than erroring, the graph **picks one and says so** (`FS2201`, a warning since `D-115`: the static pressure of a closed circuit is a design number, and the script should state it): the
 suction node of the first pump in graph order, and where the circuit has no pump, the node with the
 most connections, ties broken by declaration order — deterministic and stable across edits either way.
 
@@ -461,9 +461,11 @@ than in the linear algebra.
 | Check | Failure | Code |
 |---|---|---|
 | Equation count equals unknown count | Over- or under-determined | `FS2210` / `FS2211` |
-| A pressure datum exists per connected component | None stated → auto-picked (info) | `FS2201` |
+| A pressure datum exists per connected component | None stated → auto-picked (warning, `D-115`) | `FS2201` |
+| A boundary has one connection | An inlet or outlet wired to several pipes | `FS2205` |
 | A closed circuit's stated duties sum to zero | Heat with nowhere to go | `FS2203` |
 | Fluid that enters a circuit can leave it | A boundary with no counterpart | `FS2204` |
+| `FS2205` | A boundary node with more than one connection | Error | `'{node}' is an {kind} with {count} connections. A boundary has one; split or merge the flow at a node after it.` |
 | Two stated pressures in one loop with no through-flow path between them | A second, contradictory datum | `FS2212` |
 | Every branch is reachable from the pressure datum | Isolated subgraph | `FS2213` |
 | No node has exactly one connection without a boundary condition | Dead end | `FS2107` |
@@ -510,7 +512,7 @@ a single flow unknown.
 | less the redundant energy balance, one per closed steady circuit that couples to nothing | −L |
 | **Total** | C + M + N + X<sub>p</sub> + K + D − R − L |
 
-**A node admits an external flux when it is a `supply`, a `return`, or states a pressure** — and when
+**A node admits an external flux when it is a `inlet`, a `outlet`, or states a pressure** — and when
 it carries a mass balance at all, since a node interior to a branch has nowhere for external mass to
 enter. A bare terminal admits none: its flux is zero, which is a dead leg (`D-64`).
 
@@ -651,10 +653,10 @@ individually reasonable and the interaction is invisible.
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS2201` | No pressure stated anywhere in a connected component | Info | `Using '{node}' as the pressure datum. Pressures are relative to it.` |
+| `FS2201` | No pressure stated anywhere in a connected component | Warning | `Using '{node}' as the pressure datum. Pressures are relative to it.` |
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
 | `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
-| `FS2204` | A hydraulic component with a `supply` and no `return`, or the reverse | Error | `'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.` |
+| `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.` |
 | `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}.` |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
@@ -704,7 +706,7 @@ is wrong in a way that still looks like a solved circuit. It was info; that was 
 either.** A closed loop with a 30 kW source and no sink has exactly as many equations as unknowns and
 no solution: summing its energy balances gives `Σ Q̇ = 0`, and the stated duties do not. The mass
 analogue is the same shape — a stated `flow` is a known injection, so a circuit that injects mass with
-no `return` to take it is square and inconsistent. Both are cheap to check and impossible to reach by
+no `outlet` to take it is square and inconsistent. Both are cheap to check and impossible to reach by
 counting, which is why they are listed here rather than folded into `FS2210`.
 
 **`FS2203` fires in steady mode only.** The same circuit solved in time is perfectly valid: the water
@@ -731,8 +733,8 @@ HE1 - 3WV
 3WV - P1
 P1 - N3
 
-N1 supply t=6 p=300
-N3 return p=280
+N1 inlet t=6 p=300
+N3 outlet p=280
 ```
 
 **Nodes**: `N1` and `N3` are declared (they carry boundary conditions), `N2` comes from I1, and
@@ -813,17 +815,17 @@ Solved values are in [`01-vision-and-scope`](../00-foundation/01-vision-and-scop
       balance and assembles twelve rows against twelve columns.
 - [ ] A closed loop with no stated pressure produces `FS2201` and solves.
 - [ ] The cooling loop's two stated pressures (`N1 p=300`, `N3 p=280`) produce **no** diagnostic —
-      they are boundary conditions on an open primary, not competing datums. Nor does the `supply`
-      and `return` pair carrying them produce `FS2204`.
+      they are boundary conditions on an open primary, not competing datums. Nor does the `inlet`
+      and `outlet` pair carrying them produce `FS2204`.
 - [ ] A closed circuit whose stated duties do not sum to zero produces `FS2203` **and a square count**
       — the check is worthless if the circuit it fires on is one `FS2210` would have caught anyway.
 - [ ] The same circuit in a `dynamic` model produces no `FS2203`.
 - [ ] The substation's closed secondary produces no `FS2203`, although it holds a coupled exchanger
       whose duty sign the graph cannot read.
-- [ ] A circuit with a `supply` and no `return` produces `FS2204`; one with both produces none, and so
+- [ ] A circuit with a `inlet` and no `outlet` produces `FS2204`; one with both produces none, and so
       does a closed circuit with neither.
-- [ ] A `supply` states `t` and exactly one of `flow` and `p`; the missing one produces `FS2117` or
-      `FS2118` and both together `FS2101`. A `return` requires nothing.
+- [ ] A `inlet` states `t` and exactly one of `flow` and `p`; the missing one produces `FS2117` or
+      `FS2118` and both together `FS2101`. A `outlet` requires nothing.
 - [ ] A closed steady circuit carries exactly one enthalpy level, and one that states no temperature
       anywhere produces `FS2211` naming a temperature rather than a pressure.
 - [ ] Two stated pressures on one closed loop with no path between them produce `FS2212`.

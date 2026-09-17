@@ -56,7 +56,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1106` | Error | Parser | Put this under a 'schedule' line. |
 | `FS1107` | Warning | Parser | '{circuit}' is solved as a steady state, so its schedule does not run. Write 'fluid dynamic' to solve it in time. |
 | `FS1108` | Error | Parser | '{text}' — a name cannot contain '-'. Write '{underscored}'. |
-| `FS1109` | Error | Parser | '{word}' is not an attachment. Write 'supply {node}' or 'return {node}'. |
+| `FS1109` | Error | Parser | '{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'. |
 | `FS1110` | Error | Parser | '{word}' needs one node of the parent circuit, and may appear once per circuit. |
 | `FS1111` | Error | Parser | A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'. |
 | `FS1112` | Error | Parser | '{word}' applies to the whole file and must come before the first 'circuit' line. |
@@ -139,7 +139,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
 | `FS2119` | Error | Components | '{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
-| `FS2201` | Info | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
+| `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
 | `FS2204` | Error | Topology | '{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither. |

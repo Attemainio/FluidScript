@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:1cffbe795925505786c9c08c30383cbe801b43454bd2680e1a30fa4205491fa0",
+    "sourceHash": "sha256:44e8c1ded6d9a963413d949e5783645cb1f96d32f621184e43f5ea164477fef2",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -34,8 +34,8 @@
       "mode": "steady",
       "role": null,
       "parentCircuit": null,
-      "supplyAnchorId": null,
-      "returnAnchorId": null,
+      "inletAnchorId": null,
+      "outletAnchorId": null,
       "solved": false,
       "statesOmitted": false
     }
@@ -52,7 +52,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 897,
-        "length": 21
+        "length": 20
       },
       "circuit": "substation",
       "tag": null,
@@ -83,7 +83,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 919,
+        "start": 918,
         "length": 16
       },
       "circuit": "substation",
@@ -110,7 +110,7 @@
       "symbolId": "valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 936,
+        "start": 935,
         "length": 9
       },
       "circuit": "substation",
@@ -149,7 +149,7 @@
       "symbolId": "pipe.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 946,
+        "start": 945,
         "length": 24
       },
       "circuit": "substation",
@@ -198,7 +198,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1042,
+        "start": 1041,
         "length": 9
       },
       "circuit": "substation",
@@ -243,7 +243,7 @@
       "symbolId": "pipe.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1052,
+        "start": 1051,
         "length": 25
       },
       "circuit": "substation",
@@ -292,7 +292,7 @@
       "symbolId": "pipe.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1078,
+        "start": 1077,
         "length": 25
       },
       "circuit": "substation",
@@ -342,7 +342,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1104,
+        "start": 1103,
         "length": 36
       },
       "circuit": "substation",
@@ -420,7 +420,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1212,
+        "start": 1211,
         "length": 63
       },
       "circuit": "substation",
@@ -2811,7 +2811,7 @@
           "line": 33,
           "character": 24
         },
-        "offset": 1289,
+        "offset": 1288,
         "length": 24
       },
       "component": null,
@@ -2831,7 +2831,7 @@
           "line": 33,
           "character": 24
         },
-        "offset": 1289,
+        "offset": 1288,
         "length": 24
       },
       "component": null,
@@ -2851,7 +2851,7 @@
           "line": 36,
           "character": 19
         },
-        "offset": 1330,
+        "offset": 1329,
         "length": 19
       },
       "component": null,
@@ -2871,7 +2871,7 @@
           "line": 36,
           "character": 19
         },
-        "offset": 1345,
+        "offset": 1344,
         "length": 4
       },
       "component": null,
@@ -2891,7 +2891,7 @@
           "line": 37,
           "character": 18
         },
-        "offset": 1364,
+        "offset": 1363,
         "length": 4
       },
       "component": null,
@@ -2911,7 +2911,7 @@
           "line": 38,
           "character": 23
         },
-        "offset": 1369,
+        "offset": 1368,
         "length": 23
       },
       "component": null,
@@ -2931,7 +2931,7 @@
           "line": 38,
           "character": 23
         },
-        "offset": 1369,
+        "offset": 1368,
         "length": 23
       },
       "component": null,

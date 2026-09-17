@@ -182,10 +182,10 @@ append-only-with-review, and a test asserts that no sample script's identifiers 
 ### Reserved words
 
 `fluidscript` · `project` · `circuit` · `fluid` · `dynamic` · `static` · `spacing` · `style` · `show` · `let` ·
-`catalog` · `connections` · `schedule` · `supply` · `return` · `control` · `curve` · `design`
+`catalog` · `connections` · `schedule` · `inlet` · `outlet` · `control` · `curve` · `design`
 
-Seven words were added for `D-33`, `D-37`, `D-40`, `D-57` and `D-58`: `project`, `spacing`, `supply`,
-`return`, `control`, `curve` and `design`. Each introduces a statement, so each must be recognisable
+Seven words were added for `D-33`, `D-37`, `D-40`, `D-57` and `D-58`: `project`, `spacing`, `inlet`,
+`outlet` (spelled `supply` and `return` until `D-115`), `control`, `curve` and `design`. Each introduces a statement, so each must be recognisable
 from the first token — the same standard the original eleven meet.
 
 `with`, `by`, `at`, `over` and `extrapolated` are **not** reserved. Each is classified by its position
@@ -214,13 +214,13 @@ using the production as evidence for its own safety. That production is now `ide
 (`D-64`), so the reasoning had to be replaced by the real one — **position**, below — and the change
 survived losing it (`L-45`).
 
-**A reserved word *may* stand in `kind-name` position, and `supply` and `return` do** (`D-64`). The
+**A reserved word *may* stand in `kind-name` position, and `inlet` and `outlet` do** (`D-64`). The
 position is what disambiguates, and it always was: a statement whose first token is a reserved word is
-that word's statement, so `supply N3` is an attachment and `S1 supply t=5` is a declaration whose kind
+that word's statement, so `inlet N3` is an attachment and `S1 inlet t=5` is a declaration whose kind
 happens to be spelled with a keyword token. The parser therefore accepts an identifier *or* a keyword
 in second position and hands the spelling to the registry, which keeps the parser free of the list of
 kinds — the same reason `node` and `pipe` were unreserved. Only the second position is relaxed: a name
-is still an identifier, so no script can declare a component *called* `supply`.
+is still an identifier, so no script can declare a component *called* `inlet`.
 
 **The reverse direction, which is what makes this safe to extend** (`L-45`). Reserving a *new* word
 later is already a breaking change, and the registry adds one constraint on top of it: a reserved word
@@ -229,7 +229,7 @@ and reports it as a registry error rather than a script diagnostic, because it i
 project's tables and never in a user's file.
 
 The asymmetry is deliberate. A kind's keyword spelled with a reserved word is a decision the log has
-sanctioned — `D-64` sanctioned exactly two, `supply` and `return` — and position makes it
+sanctioned — `D-64` sanctioned exactly two, `inlet` and `outlet` — and position makes it
 unambiguous. An alias is a convenience spelling, so one that collides with a reserved word buys a
 second way to write something already writeable and costs a word the grammar wanted; before `D-64` it
 was worse than useless, because a reserved word never reached kind position at all. So: **only a kind
@@ -274,7 +274,7 @@ project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
 spacing-directive   = "spacing" , number ;
 design-directive    = "design" , parameter , { parameter } ;   (* driver=value, per D-58 *)
 circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
-attachment          = ( "supply" | "return" ) , endpoint ;
+attachment          = ( "inlet" | "outlet" ) , endpoint ;
 control-binding     = "control" , ( control-short | parameter , { parameter } ) ;
 control-short       = endpoint , "with" , endpoint , "by" , identifier , { parameter } ;
                       (* D-61: the port half of each endpoint is optional where the registry
@@ -351,7 +351,7 @@ first `circuit`.
 | `connections-header` | ✓ | `FS1101` | `FS1103` (`D-56`) | `FS1103` |
 | `schedule-header` | ✓ | ✓ — the usual position (`D-56`) | `FS1101` | `FS1103` |
 | `curve-header` | ✓ — **before the first `circuit`** (`FS1112`) | `FS1103` | `FS1103` | ✓ — ends the previous curve |
-| `attachment` (`supply`/`return`) | ✓ | ✓ | `FS1103` | `FS1103` |
+| `attachment` (`inlet`/`outlet`) | ✓ | ✓ | `FS1103` | `FS1103` |
 | `component-decl` | ✓ | ✓ | `FS1103` | `FS1103` |
 | `control-binding` | ✓ | ✓ | `FS1103` | `FS1103` |
 | `connection` | `FS1102` | ✓ | `FS1102` | `FS1102` |
@@ -457,8 +457,8 @@ HE1 duty in=50 out=30 power=24 kW
 TV1 three_way_valve
 PU1 pump
 
-supply N3        # takes flow from the parent circuit at N3
-return N5        # returns it to the parent at N5
+inlet N3        # takes flow from the parent circuit at N3
+outlet N5        # returns it to the parent at N5
 ```
 
 Two statements, each a keyword and an endpoint, declaring where this circuit meets its parent
@@ -471,7 +471,7 @@ that is not reserved followed by a second token that is not `-`, so the disambig
 classifies it as a component declaration: a component named `in`, of kind `N3`. It parses, it binds,
 and it is silently not what the user wrote. Reserving `in` and `out` would fix the parse and break
 `HE1 heat_exchanger in=20 out=50`, where the same two words are parameter names for inlet and outlet
-temperature — one word, two meanings, one document. `supply` and `return` collide with nothing and
+temperature — one word, two meanings, one document. `inlet` and `outlet` collide with nothing and
 say what they mean, so the parser recognises the `in`/`out` shape only to reject it with `FS1109`.
 
 ### Project and spacing directives
@@ -898,8 +898,8 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1106` | Disturbance outside the `schedule` section | Error | `Put this under a 'schedule' line.` |
 | `FS1107` | `schedule` section under `fluid static` | Warning | `This circuit is solved as a steady state, so the schedule is ignored. Write 'fluid dynamic {substance}' to run it in time.` |
 | `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
-| `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'supply {node}' or 'return {node}'.` |
-| `FS1110` | `supply` or `return` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
+| `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'.` |
+| `FS1110` | `inlet` or `outlet` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
 | `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.` |
 | `FS1112` | A file-wide statement (`project`, `spacing`, `design`, `curve`) after the first `circuit` header, or a second `project` or `spacing` | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
 | `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
@@ -980,12 +980,12 @@ the previous rules the second line was `FS1104` and the first reference circuit 
 **A third line, where the kind is a reserved word:**
 
 ```fluidscript
-S1 supply t=5 flow=2.3 l/s   # first token is not reserved  → declaration, kind 'supply'
-supply N3                    # first token is reserved      → attachment statement
+S1 inlet t=5 flow=2.3 l/s   # first token is not reserved  → declaration, kind 'inlet'
+inlet N3                    # first token is reserved      → attachment statement
 ```
 
 Neither costs a second token of lookahead, because the rule's first clause already reads the first
-token. The declaration's `supply` is never a statement, and the attachment's is never a kind
+token. The declaration's `inlet` is never a statement, and the attachment's is never a kind
 (`D-64`).
 
 ## Acceptance criteria
@@ -1000,7 +1000,7 @@ token. The declaration's `supply` is never a statement, and the attachment's is 
       produces `FS1003` when used as a component name.
 - [ ] `P1 pipe length=45` and `N1 node t=6 p=300` both parse as component declarations — `node` and
       `pipe` reach `kind-name` position, which reserving them made impossible.
-- [ ] `S1 supply t=5 flow=2.3 l/s` parses as a declaration of kind `supply` and `supply N3` as an
+- [ ] `S1 inlet t=5 flow=2.3 l/s` parses as a declaration of kind `inlet` and `inlet N3` as an
       attachment, in the same file, with one token of lookahead and no backtracking (`D-64`).
 - [ ] `Print(Parse(x)) == x` for a declaration whose kind is a reserved word — the printer writes the
       kind from the token, not from a keyword table.

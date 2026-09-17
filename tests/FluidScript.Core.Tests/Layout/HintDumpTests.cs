@@ -23,7 +23,7 @@ public sealed class HintDumpTests
         text.AppendLine("Order: " + string.Join(" ", hints.Order));
 
         foreach (var stage in hints.ThermalStages) text.AppendLine($"Stage {stage.Rank} {stage.Role}: " + string.Join(" ", stage.Components));
-        foreach (var circuit in hints.Circuits) text.AppendLine($"Circuit {circuit.Name} parent={circuit.ParentCircuit} supply={circuit.SupplyAnchorId} return={circuit.ReturnAnchorId}");
+        foreach (var circuit in hints.Circuits) text.AppendLine($"Circuit {circuit.Name} parent={circuit.ParentCircuit} inlet={circuit.InletAnchorId} outlet={circuit.OutletAnchorId}");
         foreach (var group in hints.DistributionGroups) text.AppendLine($"Group {group.ParentCircuit}: " + string.Join(" ", group.Members));
 
         foreach (var e in hints.NonFlowElements) text.AppendLine($"NonFlow {e.ComponentId} at {e.PlacementAnchorId} measures {e.MeasurementTargetId}");

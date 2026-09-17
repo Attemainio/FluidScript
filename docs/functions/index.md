@@ -29,7 +29,7 @@ Every part of the script language, one page each. Start with the
 |---|---|
 | [`connections`](connections.md) | A circuit's topology |
 | [`schedule`](schedule.md) | What changes, and when, during a run |
-| [`supply` and `return`](supply-return.md) | Where a subcircuit joins its parent |
+| [`inlet` and `outlet`](inlet-outlet.md) | Where fluid enters and leaves the model, and where a subcircuit joins its parent |
 | [`control`](control.md) | Which controller drives what, measuring what |
 
 ## Components

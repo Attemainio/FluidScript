@@ -265,10 +265,13 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   is not inline is placed with its boundaries** (A6): a boundary node sits one clearance past the
   port it terminates, on the port's axis. A two-connection node, declared or inferred, is a point
   on its run (A5, `D-114`) and the far element is placed as if piped directly.
-- **C5** *(step 2, provisional)* -- **Sequential placement.** From every placed port, the element
+- **C5** *(step 2, provisional; widened by step 11b)* -- **Sequential placement.** From every placed port, the element
   at the other end of its connection is placed along the port's axis, one clearance out or as far
   as H2 needs (slack goes into the pipe, in tenths of a unit): a node on the axis; a component in
-  the first admitted transform of its *default* arrangement whose port faces the pipe; a standing
+  the first admitted transform of its *default* arrangement whose port faces the pipe -- among
+  those, the one that sends a port the flow leaves by to the right (H10, step 11b: a three-way
+  valve fed from below takes its second inlet from the left and discharges to the right, mirrored
+  or turned the other way as that needs); a standing
   component that cannot face a level pipe by C3's turn; and only then an alternative arrangement,
   because an arrangement that faces the pipe by sending the outlet back the way the pipe came
   reverses the path (H10) -- B's bend count does not get to buy that.
@@ -279,9 +282,11 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   level: the substation's primary arrives from the left into `in2` at the top and its return
   leaves `out2` at the bottom back to the left. Off a chain's exchanger (step 2) a port's
   continuation hangs straight.
-- **C7** *(step 5, provisional; widened by step 6)* -- **An open end aligns with its supply.** Where a supply and a
-  return boundary hang level off the same loop on the same side (a loop is one root: its members
-  are not told apart, and a two-port chain between the boundary and the loop is walked through), the nearer
+- **C7** *(step 5, provisional; widened by steps 6 and 11b)* -- **An open end aligns with its supply.** Where a supply and a
+  return boundary -- or any two open ends, the terminating nodes the language infers for open
+  ports as much as declared boundaries (step 11b) -- hang level off the same loop on the same side
+  (a loop is one root: its members are not told apart, and a two-port chain between the boundary
+  and the loop is walked through), the nearer
   one is moved out to the farther one's line when no placed box or margin lies in the way, and
   its run is laid again over the longer pipe; the two then read as one pair of terminals, the
   return under the supply. Where something is in the way, each stays where its own rule put it.
@@ -371,11 +376,15 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   line leaves by -- turns once and enters the controller's facing edge. When that level stub would
   be shorter than a margin, the sensor and its node slide along the rail to make room: the node is
   inline (`D-114`) and free along its run, the valve is fixed by its loop, and the user left the
-  choice between moving either. A signal may cross a pipe (C16); it never runs along one. Not
-  built: a controller directly under its sensor, through the node; a sensor on a boxed junction; a
-  controller that measures a node with no sensor placed on it (it still draws to the node).
+  choice between moving either. A signal may cross a pipe (C16); it never runs along one. *Step
+  11d (`C-94`):* the one-bend line is kept only while it passes through no placed box and runs
+  along no drawn line; otherwise the router draws it round every placed box and instrument, one
+  margin off every line, crossing pipes freely -- it may leave the instrument by any edge and
+  reach the target by any edge. Not built: a controller directly under its sensor, through the
+  node; a sensor on a boxed junction; a controller placed on its sensor's side of a rail when the
+  side facing the sensor is within a margin of another circuit (the signal goes round instead).
 - **C16** *(step 10, provisional)* -- **At a crossing the route in front runs through and the one
-  behind breaks.** Every route carries a layer -- `supply`, `return`, `signal` -- and the picture is
+  behind breaks.** Every route carries a layer -- `inlet`, `outlet`, `signal` -- and the picture is
   drawn from the back: signals, then return pipes, then supply pipes. Where two routes cross, the
   one drawn behind owns the crossing and is broken for a quarter margin either side of it; between
   two of one layer, the later one. A pipe is supply from a heat source -- a supply boundary or an
@@ -388,9 +397,51 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   its own, with nothing of the others placed, and is then moved under the fragment before it -- its
   outer box one margin under the other's, left edges aligned -- the fragments in the order the
   script declares their first components. A component connected to nothing is a fragment of one.
+  *Step 11b made the code match `D-114` (A5, C4):* a boundary node is never inline, whatever meets
+  it -- it is an end of the plant, and two streams into a return meet at its box, not head-on on
+  one line.
   The user's words: "put them under each other", never side by side. Not built yet: the
   fallback column for what no rule places still hangs under the last fragment, and a fragment
   whose head has no loop and no boundary takes its first declared component as the head.
+- **C18** *(step 11c, provisional)* -- **A loop with no heat source is a ring with a bare left
+  side.** The tour's transient loop and its radiator loop are a pump, a load and a valve on a
+  closed ring with nothing that gains heat: nothing is a head by C1 and the ring rule (C4) has no
+  source to stand on the left. The consumer still sits on the right (`D-108`), so the ring is laid
+  out from it: the loop is found through the consumer and the run before it is the top rail, the
+  run after it the bottom, rotated so that the member the flow reaches last before the consumer's
+  rail stands where the source would -- and where a node that is not a boundary lies on the
+  turn, it takes the corner as a boxed junction (C4); where none does, the corner is a bare bend,
+  the top rail's pipe turning down into the bottom rail's, drawn as one run. The rails are the
+  ring's rails: level, the pump on the top one, the valve wherever the file put it, the loop
+  clockwise (H9). Who is a consumer and who a source is read from the file, not from a solved
+  duty (C1 widened): a stated negative power or a load's written kind (`load`, `radiator`, `cooler`,
+  `chiller`) is a consumer, a stated positive power or a `heater`/`boiler` a source, and a load
+  whose power is a curve (`power=heating`) is a consumer by its kind alone, since the layout is
+  solved before any curve is read. Not built: a sourceless loop with a branch, and where the
+  bare corner should turn when the valve is the last member before the consumer.
+- **C19** *(step 11d, re-keyed under `D-115`, provisional)* -- **An inlet whose junction feeds two
+  paths to one outlet's junction is the open form of the ring: the inlet's junction is the left end
+  of the top rail and the outlet's junction, directly under it, the left end of the bottom rail; the
+  inlet and the outlet hang off their junctions' left sides, one margin out, level.** A boundary
+  has one connection (`D-115`), so the form is read through it: the inlet's one link leads to the
+  junction, and both paths end on the outlet's junction, which is stripped from them. (An inlet
+  wired to several paths, an `FS2205` error, is still drawn, the inlet standing as the junction.)
+  The paths from the junction to the outlet's junction are found by the branch search (C14) from
+  each of the junction's other connections; the first with no inner loop is a
+  chain and hangs straight down under the supply, each member placed from the one before as on a
+  vertical rail, into the return's top; the path with an inner loop is laid out as a ring path
+  (C11: its last inner loop is the unit on the right, fed level from the supply's right side) and
+  its return runs from the unit's outlet down to the bottom rail and left into the return's right
+  side. The bottom rail's height is the lower of what the chain needs (the return one margin
+  under the chain's last member) and what the unit needs (C12), so a chain longer than the unit
+  puts a short step in the unit's return -- the same step a closed ring's source side makes. The
+  junction's other connections -- a path to a second outlet, a valve fed off it -- leave by the
+  sides the form leaves free, up first, and are placed by the chain rule (C5), which is how
+  step 11b's mixing valve keeps its place above the supply. The user's picture: the supply on the
+  left feeding rightwards along the top, the return under it collecting from the right along the
+  bottom, the loads between. Not built: more than two paths to the return, a chain path whose
+  member turns level, a path with a junction on the bottom rail after the unit (the code passes it
+  to `Close` untested), and a supply that is not a boundary node.
 
 ## D. The candidates
 

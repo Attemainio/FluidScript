@@ -91,8 +91,8 @@ public static class GraphFixture
         circuit cooling 100
         fluid water
 
-        N1 supply t=6 p=300
-        N3 return p=280
+        N1 inlet t=6 p=300
+        N3 outlet p=280
         PU1 pump head=6 flow=0.24
         HE1 heat_exchanger power=30
         3WV three_way_valve kv=6.3

@@ -244,7 +244,7 @@ public sealed class TopologyBindingTests
         // across the model (`D-41`) — which is the whole reason an attachment can be written this way.
         var model = Model(
             "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
-            + "connections\nNB1 - NB2\n\ncircuit ahu 300\nsupply NB1\nreturn NB2\n");
+            + "connections\nNB1 - NB2\n\ncircuit ahu 300\ninlet NB1\noutlet NB2\n");
 
         var subcircuit = model.Circuits.Single(static circuit => circuit.Name == "ahu");
 
@@ -258,18 +258,18 @@ public sealed class TopologyBindingTests
     public void OneAttachmentWithoutTheOtherIsReported()
     {
         var result = Bind(
-            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\n\ncircuit ahu 300\nsupply NB1\n");
+            "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\n\ncircuit ahu 300\ninlet NB1\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1520");
-        Assert.Contains("'supply NB1'", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("no 'return'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'inlet NB1'", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("no 'outlet'", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
     public void AnAttachmentNamingNothingIsReported()
     {
-        var result = Bind("fluidscript 1\ncircuit ahu 300\nsupply NB9\nreturn NB8\n");
+        var result = Bind("fluidscript 1\ncircuit ahu 300\ninlet NB9\noutlet NB8\n");
 
         Assert.Equal(2, Codes(result).Count(static code => code == "FS1518"));
     }
@@ -284,7 +284,7 @@ public sealed class TopologyBindingTests
         var result = Bind(
             "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
             + "connections\nNB1 - NB2\n\ncircuit ahu 300\nNA1 node\nNA2 node\n"
-            + "connections\nNA1 - NA2\nsupply NA1\nreturn NB2\n");
+            + "connections\nNA1 - NA2\ninlet NA1\noutlet NB2\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS2217");
         Assert.Contains("'ahu'", diagnostic.Message, StringComparison.Ordinal);
@@ -303,7 +303,7 @@ public sealed class TopologyBindingTests
             "fluidscript 1\ncircuit primary 100\nNB1 node t=6 p=300\nNB2 node p=280\n"
             + "connections\nNB1 - NB2\n\ncircuit secondary 200\nNC1 node t=6 p=300\n"
             + "NC2 node p=280\nconnections\nNC1 - NC2\n\ncircuit ahu 300\n"
-            + "supply NB1\nreturn NC2\n");
+            + "inlet NB1\noutlet NC2\n");
 
         var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1526");
         Assert.Contains("'primary'", diagnostic.Message, StringComparison.Ordinal);

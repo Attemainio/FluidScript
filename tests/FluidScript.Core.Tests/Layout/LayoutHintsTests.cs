@@ -98,9 +98,9 @@ public sealed class LayoutHintsTests
         Assert.Equal(["AHU", "radiators"], group.Members);
 
         var ahu = hints.Circuits.Single(static c => c.Name == "AHU");
-        Assert.Equal(("heating", "N3", "N5", "ahu"), (ahu.ParentCircuit, ahu.SupplyAnchorId, ahu.ReturnAnchorId, ahu.Role?.CanonicalName));
+        Assert.Equal(("heating", "N3", "N5", "ahu"), (ahu.ParentCircuit, ahu.InletAnchorId, ahu.OutletAnchorId, ahu.Role?.CanonicalName));
         var radiators = hints.Circuits.Single(static c => c.Name == "radiators");
-        Assert.Equal(("heating", "N4", "N6", "radiator"), (radiators.ParentCircuit, radiators.SupplyAnchorId, radiators.ReturnAnchorId, radiators.Role?.CanonicalName));
+        Assert.Equal(("heating", "N4", "N6", "radiator"), (radiators.ParentCircuit, radiators.InletAnchorId, radiators.OutletAnchorId, radiators.Role?.CanonicalName));
         // `heating` is a registered role with a Neutral stage: resolved, and no bias either way.
         Assert.Equal(new CircuitRoleHint("heating", ThermalStageRole.Neutral), hints.Circuits.Single(static c => c.Name == "heating").Role);
         Assert.Null(hints.Circuits.Single(static c => c.Name == "heating").ParentCircuit);
@@ -184,9 +184,9 @@ public sealed class LayoutHintsTests
     public void AControllerIsAnchoredToItsActuatorAndReadsThroughItsSensor()
     {
         var (hints, _) = Unsolved(GraphFixture.CoolingLoop.Replace(
-            "N3 return p=280",
+            "N3 outlet p=280",
             """
-            N3 return p=280
+            N3 outlet p=280
             TE1 t_sensor at N2
             TC1 pid kp=2
             control actuate=3WV.position measure=TE1.t by=TC1 setpoint=20
@@ -297,8 +297,8 @@ public sealed class LayoutHintsTests
             circuit district
             fluid water
 
-            NPS supply t=85 p=600
-            NPR return p=350
+            NPS inlet t=85 p=600
+            NPR outlet p=350
             PCV valve
             PP  pipe length=12 dn=25
             HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300

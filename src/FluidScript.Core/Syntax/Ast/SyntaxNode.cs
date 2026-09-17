@@ -92,10 +92,10 @@ public enum FluidMode
 public enum AttachmentDirection
 {
     /// <summary>Takes flow from the parent circuit.</summary>
-    Supply = 1,
+    Inlet = 1,
 
     /// <summary>Returns flow to the parent circuit.</summary>
-    Return,
+    Outlet,
 }
 
 /// <summary>The lexical shape of one <c>style</c> token.</summary>

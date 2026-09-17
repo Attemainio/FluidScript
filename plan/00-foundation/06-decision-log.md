@@ -5147,3 +5147,58 @@ a box: the label carries the name, and `53` draws nothing for a two-port node an
 arrangement of its own: it lies on a line whose two ends are placed by other rules. Its margin
 bought nothing and cost the header the packing the user expects.
 
+---
+
+## D-115 · A boundary is a terminal with one connection, and is spelled `inlet` and `outlet`
+
+**Accepted · 2026-09-17** · supersedes `D-64`'s spelling and its rejection of `inlet`/`outlet`; amends
+`D-33`'s attachment keywords; refines `23`'s datum rule; constrains `12`, `15`, `22`, `23`, `26`, `28`
+
+Three rules, from the user's reading of the syntax tour's drawing on the day the open form got its
+layout rule (`29` step 11d):
+
+1. **A boundary node has exactly one connection.** It is the pipe fluid arrives or leaves by. A flow
+   that splits after the inlet, or merges before the outlet, does so at a node the script writes:
+   `NB1 - NJ1`, then `NJ1 - HE2 …` and `NJ1 - TV2.b`. Two or more connections on an inlet or an
+   outlet is an error, `FS2205`.
+2. **The boundary kinds and the attachment statements are spelled `inlet` and `outlet`.** `S1 inlet
+   t=6 p=300`, `R1 outlet`, `inlet N3`, `outlet N5`. The words `supply` and `return` are free again.
+3. **A closed circuit with no stated pressure is warned, not merely informed** (`FS2201`).
+
+**Why one connection.** `D-64` let a boundary carry any number of pipes, which made it a junction in
+disguise, and two things had to special-case it: the seed (`S-64`: a boundary's flux chosen from a
+scale and the branch closing it running a rated exchanger backwards) and the drawing (`28` C19 in
+its first form, the boundary standing where a junction belongs). With one connection the boundary
+is what it says -- one stream's condition at one pipe -- the junction is an ordinary node, and both
+rules read the shape without a case of their own. A user who wants three branches off a district
+connection writes the tee.
+
+**Why the spelling.** `D-64` rejected `inlet`/`outlet` because ports are `HX1.in` and `T1.out1`. The
+clash the other way is worse: in hydronics *supply* and *return* name the two pipes of a circuit,
+the drawing's route layers use the words in that sense (`28` C16, supply in front of return), and
+the user reads them so. A word with two meanings in one drawing is the thing to avoid. Kind position
+and port position are syntactically distinct, so `inlet` as a kind and `in` as a port never meet.
+
+**Why a warning and not an error.** The temperature datum is already the script's to state
+(`D-65`). The static pressure of a closed circuit is a design number too -- the expansion vessel's
+setting -- and the user is right that a finished script should state it. But a script under editing
+has no datum most of the time, and an error there blocks the picture for a line that changes no
+result. A warning names it every time and blocks nothing. An interior `node p=` is that statement
+(`D-86`); an inlet is not, because an inlet passes mass.
+
+**Rejected.**
+- *Keep `supply` and `return`; only limit the connections.* Smaller change. Cost: the overload of
+  the words stays, and it is the overload that misled the reading of every open-circuit picture.
+- *Read a terminal `node` with `t` and `p` as an inlet* (the user's sixth point). Cost: it brings back
+  the guess `D-64` removed -- the binder inferring which terminals are boundaries from what happens to
+  be written on them -- and contradicts the fourth point, that an inlet is a special node whose
+  conditions are stated on purpose.
+- *Make the missing datum an error.* Cost: every closed loop under editing is unsolvable until a
+  number is typed that carries no engineering meaning; the warning says the same thing without the
+  block.
+
+**Consequences.** `ReservedWord`, `BoundaryRole` and `AttachmentDirection` members, the registry
+keywords, `CircuitWire.inletAnchorId`/`outletAnchorId` on the wire (`26`), the docs page
+`functions/inlet-outlet.md`, every sample and ladder script, `22`'s tables. `FS2205` joins `23`'s
+checks; `FS2201` is a warning. `S-64` and `L-52` close. The pre-release exemption of `18` covers the
+respelling: no v1 file exists to migrate.

@@ -221,7 +221,7 @@ public sealed class ComponentDiagnosticsTests
     {
         // D-64's third omission policy. There is no default to fall back on and nothing to size: the
         // temperature entering a plant is a fact about the plant, and every substitute would be a guess.
-        var diagnostic = Only("S1 supply flow=0.2", "FS2117");
+        var diagnostic = Only("S1 inlet flow=0.2", "FS2117");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("must state t", diagnostic.Message, StringComparison.Ordinal);
@@ -232,7 +232,7 @@ public sealed class ComponentDiagnosticsTests
     {
         // The lower half of a parameter group, and the only place one has a minimum: a boundary that
         // says how hot but not how much drives nothing, and every result downstream of it is invented.
-        var diagnostic = Only("S1 supply t=60", "FS2118");
+        var diagnostic = Only("S1 inlet t=60", "FS2118");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("one of flow, p", diagnostic.Message, StringComparison.Ordinal);
@@ -243,14 +243,14 @@ public sealed class ComponentDiagnosticsTests
     {
         // The upper half of the same group, and the reason it is a group rather than two rules: state
         // the flow and the pressure follows, state the pressure and the flow does.
-        var diagnostic = Only("S1 supply t=60 p=300 flow=0.2", "FS2101");
+        var diagnostic = Only("S1 inlet t=60 p=300 flow=0.2", "FS2101");
 
         Assert.Contains("flow, p", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("S1 supply t=60 flow=0.2")]
-    [InlineData("S1 supply t=60 p=300")]
+    [InlineData("S1 inlet t=60 flow=0.2")]
+    [InlineData("S1 inlet t=60 p=300")]
     public void ASupplyWithATemperatureAndExactlyOneOfTheTwoIsAccepted(string body)
     {
         None(body, "FS2117");
@@ -264,8 +264,8 @@ public sealed class ComponentDiagnosticsTests
         // Deliberately asymmetric. A supply states the condition the circuit starts from; a return is
         // where whatever the circuit delivers leaves, and demanding a number there would be inventing
         // an answer the solve is meant to produce.
-        None("R1 return", "FS2117");
-        None("R1 return", "FS2118");
+        None("R1 outlet", "FS2117");
+        None("R1 outlet", "FS2118");
     }
 
     [Fact]

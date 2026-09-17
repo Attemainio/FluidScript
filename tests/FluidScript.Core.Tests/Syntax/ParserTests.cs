@@ -137,8 +137,8 @@ public sealed class ParserTests
     [InlineData("circuit demo", StatementKind.Circuit)]
     [InlineData("fluidscript 1", StatementKind.Version)]
     [InlineData("connections", StatementKind.ConnectionsHeader)]
-    [InlineData("supply N3", StatementKind.Attachment)]
-    [InlineData("return N5", StatementKind.Attachment)]
+    [InlineData("inlet N3", StatementKind.Attachment)]
+    [InlineData("outlet N5", StatementKind.Attachment)]
     [InlineData("control by=PID1", StatementKind.Control)]
     [Trait("Category", "Unit")]
     public void AReservedFirstTokenDecidesOnItsOwn(string line, StatementKind expected)
@@ -301,7 +301,7 @@ public sealed class ParserTests
 
             circuit AHU 101
             HE_AHU duty power=24 kW
-            supply N2
+            inlet N2
             """);
 
         Assert.Empty(result.Diagnostics);
@@ -400,17 +400,17 @@ public sealed class ParserTests
         // subcircuit that never attaches. A wrong answer that compiles is what P3 exists to refuse.
         var diagnostic = OnlyDiagnostic("in N3", "FS1109");
 
-        Assert.Contains("supply", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("inlet", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void FS1110_AttachmentWithNoEndpoint() => OnlyDiagnostic("supply", "FS1110");
+    public void FS1110_AttachmentWithNoEndpoint() => OnlyDiagnostic("inlet", "FS1110");
 
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1110_SecondAttachmentOfTheSameDirection() =>
-        OnlyDiagnostic("fluidscript 1\nsupply N1\nsupply N2\n", "FS1110");
+        OnlyDiagnostic("fluidscript 1\ninlet N1\ninlet N2\n", "FS1110");
 
     [Fact]
     [Trait("Category", "Unit")]

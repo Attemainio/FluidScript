@@ -88,7 +88,7 @@ docs/
 │   ├── let.md                   ─┘
 │   ├── connections.md           ─┐ section markers
 │   ├── schedule.md              ─┘
-│   ├── supply-return.md         ─┐ statements
+│   ├── inlet-outlet.md          ─┐ statements
 │   ├── control.md               ─┘
 │   ├── node.md                  ─┐
 │   ├── pipe.md                   │ components
@@ -136,7 +136,7 @@ above. `supply` and `return` share one page because they are one construct with 
 the manifest records that pairing explicitly so the check does not have to infer it:
 
 ```
-supply, return  → functions/supply-return.md
+inlet, outlet   → functions/inlet-outlet.md
 ```
 
 Every other statement-introducing reserved word maps to `functions/<word>.md`. A word absent from both

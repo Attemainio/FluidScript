@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:0e605e081ebe3eba312215de42058b4e29067bbedd7cd3056d92acc1c07f5bca",
+    "sourceHash": "sha256:e494f657646b7c257d44360d448e749355102fc28019ab61ece315643f016e24",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -34,8 +34,8 @@
       "mode": "transient",
       "role": null,
       "parentCircuit": null,
-      "supplyAnchorId": null,
-      "returnAnchorId": null,
+      "inletAnchorId": null,
+      "outletAnchorId": null,
       "solved": true,
       "statesOmitted": false
     }
@@ -51,7 +51,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 772,
-        "length": 24
+        "length": 23
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -91,8 +91,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 797,
-        "length": 24
+        "start": 796,
+        "length": 23
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -132,7 +132,7 @@
       "symbolId": "tank.stratified",
       "origin": "declared",
       "sourceSpan": {
-        "start": 822,
+        "start": 820,
         "length": 115
       },
       "circuit": "storageHeader",
@@ -247,7 +247,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 938,
+        "start": 936,
         "length": 28
       },
       "circuit": "storageHeader",
@@ -283,7 +283,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 967,
+        "start": 965,
         "length": 28
       },
       "circuit": "storageHeader",

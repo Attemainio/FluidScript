@@ -202,7 +202,7 @@ per component for a speedup nobody has measured a need for.
 
 ---
 
-## 1 · `node` / `supply` / `return`
+## 1 · `node` / `inlet` / `outlet`
 
 The primitive. A point in the circuit with a state and no extent.
 
@@ -268,19 +268,19 @@ Two kinds carry that intent (`D-64`). Both resolve to nodes and share the table 
 
 | Kind | Requires | Its external mass flux |
 |---|---|---|
-| `supply` | `t`, and **exactly one** of `flow` or `p` | Known when `flow` is stated; unknown when `p` is |
-| `return` | nothing | **Unknown** — mass leaves here |
+| `inlet` | `t`, and **exactly one** of `flow` or `p` | Known when `flow` is stated; unknown when `p` is |
+| `outlet` | nothing | **Unknown** — mass leaves here |
 | `node` | nothing | Unknown only where `p` is stated; otherwise zero |
 
-**`supply` needs one thermal and one hydraulic condition, and that is what an inlet condition is.** A
+**`inlet` needs one thermal and one hydraulic condition, and that is what an inlet condition is.** A
 pumped feed states `flow` and its pressure is solved; a district-heating connection states `p` and its
 flow is solved. Stating both over-specifies the boundary (`FS2101`) and stating neither leaves it
 undetermined (`FS2118`) — two errors that were previously one silent wrong answer.
 
-**`return` requires nothing and is still not a `node`.** What it carries is the one thing no parameter
+**`outlet` requires nothing and is still not a `node`.** What it carries is the one thing no parameter
 can: *mass leaves here*. That is what gives its mass balance an unknown external flux instead of a
 zero-flow closure, and it is what lets a circuit that fills up with no way out be reported rather than
-solved ([`23-topology-and-graph`](23-topology-and-graph.md)'s `FS2204`). A `return` may still state
+solved ([`23-topology-and-graph`](23-topology-and-graph.md)'s `FS2204`). An `outlet` may still state
 `p`, which makes it a pressure boundary as well.
 
 **A closed circuit needs neither**, which is why `node` keeps every meaning it had. The syntax
@@ -290,7 +290,7 @@ not to.
 **Every connected circuit needs a pressure datum**, or only pressure *differences* are determined and
 the solver has a singular Jacobian. The first stated `p` supplies it; if the user states none,
 [`23-topology-and-graph`](23-topology-and-graph.md) picks a node and says so. Stating *several* `p`
-values is normal and not an error — an open primary side with a supply and a return needs exactly that,
+values is normal and not an error — an open primary side with an inlet and an outlet needs exactly that,
 and each one admits an unknown external flux. The datum and a boundary condition are different things
 ([`02-glossary`](../00-foundation/02-glossary.md)); conflating them makes every open circuit look
 over-specified.
@@ -906,7 +906,7 @@ at lowering, which is where a message quoting the fourth value belongs (`C-21`).
 `FS2105` and `FS2108` name their component, because a script has more than one valve in it.
 
 **`FS2117` and `FS2118` are the two halves of `D-64`'s requirement, and they are not the same
-check.** `FS2117` is a policy on one parameter: a `supply` with no `t` has no state to give the
+check.** `FS2117` is a policy on one parameter: an `inlet` with no `t` has no state to give the
 fluid entering there. `FS2118` is a property of a *set*: neither `flow` nor `p` is individually
 required — a rule that made either so would reject every valid boundary there is — and what is
 required is that exactly one of them appears. `FS2101` is its upper bound and this is its lower

@@ -100,7 +100,7 @@ public static class ParserDiagnostics
     public static DiagnosticDescriptor InOutIsNotAnAttachment { get; } = new(
         "FS1109",
         DiagnosticSeverity.Error,
-        "'{word}' is not an attachment. Write 'supply {node}' or 'return {node}'.");
+        "'{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'.");
 
     /// <summary>An attachment with no endpoint, or a second of the same direction in one circuit.</summary>
     /// <value><c>FS1110</c>, an error.</value>

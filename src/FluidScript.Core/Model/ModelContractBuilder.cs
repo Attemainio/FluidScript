@@ -520,8 +520,8 @@ public static class ModelContractBuilder
                 Mode = ModeName(circuit.Mode) ?? "steady",
                 Role = hint?.Role?.CanonicalName,
                 ParentCircuit = hint?.ParentCircuit,
-                SupplyAnchorId = hint?.SupplyAnchorId,
-                ReturnAnchorId = hint?.ReturnAnchorId,
+                InletAnchorId = hint?.InletAnchorId,
+                OutletAnchorId = hint?.OutletAnchorId,
                 Solved = solved,
                 StatesOmitted = statesOmitted,
             });

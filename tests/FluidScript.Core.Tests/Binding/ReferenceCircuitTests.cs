@@ -86,8 +86,8 @@ public sealed class ReferenceCircuitTests
         // whole of D-64: `supply` and `return` in kind position are state points that say which way
         // fluid crosses them, and the inference inventory is unchanged by the spelling.
         Assert.Equal(4, model.Components.Count(static c => c.Kind?.Keyword == "node"));
-        Assert.Equal(["N1"], Kinded(model, "supply"));
-        Assert.Equal(["N3"], Kinded(model, "return"));
+        Assert.Equal(["N1"], Kinded(model, "inlet"));
+        Assert.Equal(["N3"], Kinded(model, "outlet"));
     }
 
     [Fact]

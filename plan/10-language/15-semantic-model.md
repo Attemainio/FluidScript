@@ -568,7 +568,7 @@ diagnostic under its omission policy (`D-02`, `D-32`, `D-64`).
 
 **`Require` is the third policy, and it is deliberately rare** (`D-64`). Absence is a diagnostic
 (`FS2117`) rather than a value, and it is right only where every possible substitute would be a guess
-about the *plant* rather than about the model — a `supply`'s temperature is the whole of the current
+about the *plant* rather than about the model — a `inlet`'s temperature is the whole of the current
 list. Sizing can choose a pipe bore because a bore is a consequence of the model; nothing can choose
 the temperature of water arriving from outside it. A `Require` parameter has no `DefaultLiteral` and
 no `DefaultBasis`, exactly as `Size` does not.
@@ -704,10 +704,10 @@ expects `AirHandlingUnit` to find `ahu`.
    `SemanticModel.Heights`, keyed by component name and by `pipe.port`, from which lowering reads a
    node's height and a pipe's rise. The map is derived, never a parameter: nothing here changes what
    the script states, and a script with no height in it reads 0 everywhere and means what it did.
-8. **Bind attachments, control bindings, and the schedule.** Each `supply`/`return` endpoint resolves against the
+8. **Bind attachments, control bindings, and the schedule.** Each `inlet`/`outlet` endpoint resolves against the
    the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
    the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
-   final. A lone `supply` or `return` is `FS1520`. **Both must resolve into the same circuit**, which
+   final. A lone `inlet` or `outlet` is `FS1520`. **Both must resolve into the same circuit**, which
    is then this circuit's `ParentCircuit`; resolving into two different circuits is `FS1526`, because
    the model carries one parent and a subcircuit fed by one circuit and draining into another is a
    topology the user should state as connections rather than as an attachment. Each `control` line resolves its
@@ -718,11 +718,11 @@ expects `AirHandlingUnit` to find `ahu`.
    target parameter's dimension, so `at 60 s HE4.power = 45` is forty-five kilowatts by `D-14`'s
    bare-number rule exactly as `power=45` would be.
 
-   **Attachments bind before inference, and the order is load-bearing** (`L-44`). `supply N3` lowers to
+   **Attachments bind before inference, and the order is load-bearing** (`L-44`). `inlet N3` lowers to
    a connection from the parent's `N3` to the subcircuit's *first unconnected inlet* — so run after I3
    there are no unconnected inlets left, because that rule has already terminated every one of them with
    a dead-leg node. Two consequences follow. The `_sourceConnections` snapshot includes
-   attachment-derived connections, which is right: `supply` **is** a connection the user wrote. And
+   attachment-derived connections, which is right: `inlet` **is** a connection the user wrote. And
    `ReportDeadEnds` needs no exemption for attachment parent nodes, because the edge it used to stand in
    for is counted by the time it runs.
 
@@ -926,13 +926,13 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1517` | A circuit's `fluid` mode contradicts the project default | Warning | `'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.` |
 | `FS1518` | An attachment names a component no circuit declares | Error | `'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.` |
 | `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
-| `FS1520` | A subcircuit declares `supply` without `return`, or the reverse | Warning | `'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.` |
+| `FS1520` | A subcircuit declares `inlet` without `outlet`, or the reverse | Warning | `'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.` |
 | `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
 | `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |
 | `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
 | `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
-| `FS1526` | A subcircuit's `supply` and `return` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
+| `FS1526` | A subcircuit's `inlet` and `outlet` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
 | `FS1527` | A curve's driver names no curve, registered role, `design` entry or `time` | Error | `'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.` |
 | `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |

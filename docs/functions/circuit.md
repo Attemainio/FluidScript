@@ -45,5 +45,5 @@ name that contradicts the circuit's stated duties is overruled by them, and `FS2
 
 ## See also
 
-[`project`](project.md) · [`connections`](connections.md) · [`supply` and `return`](supply-return.md)
+[`project`](project.md) · [`connections`](connections.md) · [`inlet` and `outlet`](inlet-outlet.md)
 · [How the diagram is arranged](../advanced/how-the-diagram-is-arranged.md)

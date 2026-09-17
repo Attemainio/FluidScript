@@ -225,7 +225,7 @@ Two things about that line are already settled by the language, and one of them 
 - **A string-valued parameter needs no grammar work.** `string` is a token and `StringLiteralSyntax`
   is an expression ([`12-grammar`](../10-language/12-grammar.md)), and `model="Grundfos Magna3
   32-100"` parses today. The free-text columns cost nothing at the language level.
-- **The parameter cannot be called `supply`.** `D-64` made `supply` a component *kind* keyword, and a
+- **The parameter cannot be called `inlet`.** `D-64` (respelled by `D-115`) made `inlet` a component *kind* keyword, and a
   keyword is not a parameter name — `supply="230 V"` is `FS1114` at the second token. The obvious
   name for the obvious column is taken, and `power_supply` above is the placeholder. Final names are
   allocated when the fields are, and they are checked against the keyword set first.

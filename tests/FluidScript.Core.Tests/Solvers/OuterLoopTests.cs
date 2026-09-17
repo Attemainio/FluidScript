@@ -182,8 +182,8 @@ public sealed class OuterLoopTests
         connections
         N1 - HE1 - N2 - CV1 - N3 - P1 - N4
 
-        N1 supply t=20 p=300
-        N4 return p=280
+        N1 inlet t=20 p=300
+        N4 outlet p=280
         """;
 
     [Fact]
@@ -917,8 +917,8 @@ public sealed class OuterLoopTests
                 connections
                 N1 - P1 - N2
 
-                N1 supply t=20 p=300
-                N2 return p=150 elevation=10
+                N1 inlet t=20 p=300
+                N2 outlet p=150 elevation=10
                 """),
             Water.Instance,
             "open-riser",

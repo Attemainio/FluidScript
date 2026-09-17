@@ -25,5 +25,5 @@ HE1 - 3WV
 3WV - P1
 P1 - N3                      # primary return
 
-N1 supply t=6 p=300          # primary-side boundary: fluid enters here (D-64)
-N3 return p=280              # and leaves here
+N1 inlet t=6 p=300          # primary-side boundary: fluid enters here (D-64)
+N3 outlet p=280              # and leaves here

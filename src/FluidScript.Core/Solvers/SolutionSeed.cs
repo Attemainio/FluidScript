@@ -1554,7 +1554,7 @@ public static class SolutionSeed
 
                 if (HydraulicPartition.Stated(node, HydraulicPartition.Flow) is { } stated)
                 {
-                    var flux = node.Boundary is BoundaryRole.Return ? -stated : stated;
+                    var flux = node.Boundary is BoundaryRole.Outlet ? -stated : stated;
 
                     _injection[node] = flux;
                     fixedTotal[_component[vertex]] += flux;
@@ -1577,7 +1577,7 @@ public static class SolutionSeed
                 foreach (var vertex in free[component])
                 {
                     var node = (CircuitNode)_vertices[vertex];
-                    var flux = node.Boundary is BoundaryRole.Return ? -scale[component] : scale[component];
+                    var flux = node.Boundary is BoundaryRole.Outlet ? -scale[component] : scale[component];
 
                     _injection[node] = flux;
                     offered += flux;

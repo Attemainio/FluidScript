@@ -60,8 +60,8 @@ public sealed class WellPosednessTests
         3WV - P1
         P1 - N3
 
-        N1 supply t=6 p=300
-        N3 return p=280
+        N1 inlet t=6 p=300
+        N3 outlet p=280
         """;
 
     private static WellPosednessResult Check(string source) =>
@@ -175,8 +175,8 @@ public sealed class WellPosednessTests
         circuit substation
         fluid water
 
-        NPS supply t=85 p=600
-        NPR return p=350
+        NPS inlet t=85 p=600
+        NPR outlet p=350
         PCV valve
         PP  pipe length=12 dn=25
 
@@ -309,11 +309,11 @@ public sealed class WellPosednessTests
         circuit storageHeader
         fluid dynamic water
 
-        S1 supply t=60 flow=0.12
-        S2 supply t=45 flow=0.08
+        S1 inlet t=60 flow=0.12
+        S2 inlet t=45 flow=0.08
         T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
-        RAD_NETWORK return flow=0.12
-        AHU_NETWORK return flow=0.08
+        RAD_NETWORK outlet flow=0.12
+        AHU_NETWORK outlet flow=0.08
 
         connections
         S1 - T1.in1
@@ -608,7 +608,7 @@ public sealed class WellPosednessTests
             circuit probe
             fluid water
 
-            S1  supply t=60 flow=0.2
+            S1  inlet t=60 flow=0.2
             HE1 heat_exchanger power=-30
             PU1 pump
 
@@ -616,8 +616,8 @@ public sealed class WellPosednessTests
             S1 - PU1 - N2 - HE1 - N3
             """).Diagnostics.Single(static d => d.Code == "FS2204");
 
-        Assert.Contains("supply", reported.Message, StringComparison.Ordinal);
-        Assert.Contains("return", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("inlet", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("outlet", reported.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -628,8 +628,8 @@ public sealed class WellPosednessTests
             circuit probe
             fluid water
 
-            S1  supply t=60 flow=0.2
-            R1  return
+            S1  inlet t=60 flow=0.2
+            R1  outlet
             HE1 heat_exchanger power=-30
             PU1 pump
 
@@ -639,6 +639,65 @@ public sealed class WellPosednessTests
 
         Assert.DoesNotContain("FS2204", Codes(result));
         Assert.Equal(0, result.Counting.Excess);
+    }
+
+    [Fact]
+    public void AnUnpairedInletIsReportedForItsOwnFragmentOnly()
+    {
+        // D-115's fourth point, verified: the check runs per hydraulic component, so a closed loop in
+        // the same project is neither blamed nor excused for the open fragment beside it.
+        var result = Check("""
+            fluidscript 1
+            circuit open
+            fluid water
+
+            S1  inlet t=60 flow=0.2
+            HE1 heat_exchanger power=-30
+            PU1 pump
+
+            connections
+            S1 - PU1 - N2 - HE1 - N3
+
+            circuit closed
+            fluid water
+
+            HS2 heat_exchanger power=30 out=60
+            HE2 heat_exchanger power=-30
+            PU2 pump
+            N4 node p=150 t=40
+
+            connections
+            N4 - PU2 - HS2 - HE2 - N4
+            """);
+
+        var reported = Assert.Single(result.Diagnostics, static d => d.Code == "FS2204");
+
+        Assert.Contains("open", reported.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("closed", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ABoundaryWithTwoConnectionsIsReported()
+    {
+        // D-115: a boundary is a terminal with one connection; the split belongs to a node after it.
+        var reported = Check("""
+            fluidscript 1
+            circuit probe
+            fluid water
+
+            S1  inlet t=60 p=300
+            R1  outlet p=280
+            HE1 heat_exchanger power=-20
+            HE2 heat_exchanger power=-10
+
+            connections
+            S1 - HE1 - R1
+            S1 - HE2 - R1
+            """).Diagnostics.Where(static d => d.Code == "FS2205").ToList();
+
+        Assert.Equal(2, reported.Count);
+        Assert.Contains(reported, static d => d.Message.Contains("'S1' is an inlet with 2 connections", StringComparison.Ordinal));
+        Assert.Contains(reported, static d => d.Message.Contains("'R1' is an outlet with 2 connections", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -801,8 +860,9 @@ public sealed class WellPosednessTests
                 // PB1 used to read "unresolved": a pipe with no `dn` had no bore and so was not built,
                 // and dropping it took its connections with it (C-24). P3.7b's outer loop chooses the
                 // diameter, so the graph is complete for the first time and what is left is the tour
-                // being a tour -- four productions' worth of components that no circuit closes.
-                ["m1-syntax-tour.fluid"] = "4",
+                // being a tour -- productions' worth of components that no circuit closes. Three since
+                // D-115 wired its expressions circuit through junctions.
+                ["m1-syntax-tour.fluid"] = "3",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",

@@ -260,7 +260,7 @@ public sealed record AttachmentSyntax(Token Keyword, EndpointSyntax Endpoint) : 
 {
     /// <summary>Gets which side this declares.</summary>
     public AttachmentDirection Direction =>
-        Keyword.Keyword == ReservedWord.Supply ? AttachmentDirection.Supply : AttachmentDirection.Return;
+        Keyword.Keyword == ReservedWord.Inlet ? AttachmentDirection.Inlet : AttachmentDirection.Outlet;
 
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens => [Keyword, .. Endpoint.Tokens];
