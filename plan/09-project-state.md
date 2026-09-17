@@ -288,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; the ladder has reached every layout sample but the syntax tour |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; step 11a (two independent loops, stacked) accepted; the syntax tour's circuits follow one at a time |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -506,6 +506,15 @@ the one behind breaks -- signals behind return behind supply, the hotter circuit
 overlap (C16, the temperature rank open as `28` question 3). Every route carries a `layer` on the
 wire now. The user accepted the corrected picture: every planned rung is climbed.
 
+**Step 11 (2026-09-17) began the syntax tour.** Five independent circuits in one file drew as one
+fragment and a fallback column (hard 71); the user's rule is that independent circuits go under
+each other in script order, never side by side, and to approach the tour two loops at a time.
+`28` C17: the graph's fragments, each laid out on its own canvas by the existing rules and stacked
+one margin apart, left edges aligned, in the order the script declares them. Two loops draw clean
+(11a, with the user) and the tour itself falls to hard 4 untouched. The solve gate found `C-93`:
+the binder refuses two independent circuits in one project as one disconnected circuit
+(`FS2213`), which the syntax tour, documented as not meant to be solved, had hidden.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -604,7 +613,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1722 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1724 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

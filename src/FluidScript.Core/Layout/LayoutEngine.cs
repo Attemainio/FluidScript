@@ -143,21 +143,151 @@ internal sealed class LayoutEngine
 
     public Scene Solve()
     {
-        var declared = Ordered(Enumerable.Range(0, _n)).Where(i => !_hints.Inferred.Contains(_graph.Components[i].Name)).ToList();
+        // C17: independent circuits stack top to bottom in script order, each laid out by its own rules on its own canvas and then moved under the one before, left edges aligned.
+        var left = double.NaN;
+        var floor = double.NaN;
 
-        if (Head(declared) is { } head && !Loop(head))
+        foreach (var fragment in Fragments())
         {
-            // C1 (ladder step 1, corrected by D-108): the first component -- the heat source, else the head of the chain -- sits at the origin in its drawn default.
-            Place(head, Transform.Identity, new Point(0, 0));
+            var declared = Ordered(fragment).Where(i => !_hints.Inferred.Contains(_graph.Components[i].Name)).ToList();
+            var before = (bool[])_placed.Clone();
+            var routed = _routeOf.Select(static r => r is not null).ToArray();
+            Array.Clear(_placed);
+
+            if (Head(declared) is { } head && !Loop(head))
+            {
+                // C1 (ladder step 1, corrected by D-108): the first component -- the heat source, else the head of the chain -- sits at the origin in its drawn default.
+                Place(head, Transform.Identity, new Point(0, 0));
+            }
+
+            Sequential();
+            AlignBoundaries();
+            var members = fragment.Where(i => _placed[i]).ToList();
+            var links = Enumerable.Range(0, _links.Count).Where(k => _routeOf[k] is not null && !routed[k]).ToList();
+
+            for (var i = 0; i < _n; i++)
+            {
+                _placed[i] |= before[i];
+            }
+
+            if (members.Count == 0)
+            {
+                continue;
+            }
+
+            var box = Extent(members, links);
+
+            if (double.IsNaN(left))
+            {
+                left = box.X;
+                floor = box.Y;
+                continue;
+            }
+
+            var dx = left - box.X;
+            var dy = floor - _margin - box.Top;
+
+            foreach (var i in members)
+            {
+                _centre[i] = _centre[i].Offset(dx, dy);
+            }
+
+            foreach (var k in links)
+            {
+                _routeOf[k] = [.. _routeOf[k]!.Value.Select(p => p.Offset(dx, dy))];
+            }
+
+            floor = box.Y + dy;
         }
 
-        Sequential();
-        AlignBoundaries();
         Fallback(Ordered(Enumerable.Range(0, _n)).ToList());
         Connect();
         PlaceInstruments();
         ComputeHops();
         return ToScene();
+    }
+
+    /// <summary>The graph's connected fragments (C17), the fragments in the order the script declares their first components and each fragment's members in the engine's order; a component with no connection is a fragment of one.</summary>
+    private List<List<int>> Fragments()
+    {
+        var root = Enumerable.Range(0, _n).ToArray();
+
+        int Find(int i)
+        {
+            while (root[i] != i)
+            {
+                root[i] = root[root[i]];
+                i = root[i];
+            }
+
+            return i;
+        }
+
+        foreach (var link in _links)
+        {
+            root[Find(link.From)] = Find(link.To);
+        }
+
+        var fragments = new Dictionary<int, List<int>>();
+        var first = new Dictionary<int, int>();
+
+        foreach (var i in Ordered(Enumerable.Range(0, _n)))
+        {
+            var r = Find(i);
+
+            if (!fragments.TryGetValue(r, out var members))
+            {
+                members = [];
+                fragments[r] = members;
+                first[r] = int.MaxValue;
+            }
+
+            members.Add(i);
+            var name = _graph.Components[i].Name;
+            var declared = -1;
+
+            for (var c = 0; c < _model.Components.Length && declared < 0; c++)
+            {
+                if (string.Equals(_model.Components[c].Name, name, StringComparison.Ordinal))
+                {
+                    declared = c;
+                }
+            }
+
+            if (declared >= 0)
+            {
+                first[r] = Math.Min(first[r], declared);
+            }
+        }
+
+        return fragments.Keys.OrderBy(r => first[r]).Select(r => fragments[r]).ToList();
+    }
+
+    /// <summary>The box a fragment occupies: its members' outer boxes and the points of its routes.</summary>
+    private Box Extent(List<int> members, List<int> links)
+    {
+        var xs = new List<double>();
+        var ys = new List<double>();
+
+        foreach (var i in members)
+        {
+            var outer = InnerOf(i).Grow(_inline[i] ? 0 : _margin);
+            xs.Add(outer.X);
+            xs.Add(outer.Right);
+            ys.Add(outer.Y);
+            ys.Add(outer.Top);
+        }
+
+        foreach (var k in links)
+        {
+            foreach (var p in _routeOf[k]!.Value)
+            {
+                xs.Add(p.X);
+                ys.Add(p.Y);
+            }
+        }
+
+        return new Box(xs.Min(), ys.Min(), xs.Max() - xs.Min(), ys.Max() - ys.Min());
     }
 
 

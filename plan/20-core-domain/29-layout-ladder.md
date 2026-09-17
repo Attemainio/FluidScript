@@ -623,9 +623,40 @@ return and every recirculation `return`. The temperature rank between two circui
 solved state (`28` open question 3). Steps 1–9 unchanged; the Api goldens carry the layer.
 **Accepted (2026-09-17):** "Yes, perfect."
 
+### Step 11 · several circuits in one script
+
+The plan's ten rungs are climbed and one layout sample is not reached: the syntax tour, five
+independent circuits in one file. As the engine stood it chose one head, laid out its fragment
+and dropped everything else into the fallback column beneath: `m1-syntax-tour` hard 71, the
+picture the user called "horrific". The rule from the user: independent circuits go under each
+other in script order -- `Circuit 1 / Circuit 2 / Circuit 3`, never side by side -- and the tour is
+to be approached small, two closed loops first, the rest added gradually.
+
+`step-11a-two-loops.fluid`: step 4's heating loop and step 6's cooling loop as two `circuit`
+blocks, renamed apart, nothing joining them.
+
+**Drawn (2026-09-17):** C17. `Fragments` finds the graph's connected fragments and orders them by
+the script position of their first declared component (the engine's own order walks from the
+pressure datum, which put the cooling loop first on the first try); each fragment is laid out by
+the ring and chain rules with every other fragment's placement suppressed, measured -- outer boxes
+and routes -- and moved under the one before, one margin below its outer box with left edges
+aligned. The heating loop stands where step 4 drew it, `HS_H` at the origin; the cooling loop
+sits under it with `HE_C` at `(0, −4.5)`, its rails at `y = −3.5` and `−5.5`, `N1` and `N3` on the
+right at `x = 3.45`; each picture is byte for byte its own step's. Six bends, length 14, hard 0,
+soft 0. The syntax tour falls from hard 71 to hard 4 with no other change, the four in its
+radiator circuit, whose load states `power=heating` from a curve and is not read as a consumer.
+
+**The solve gate refused the script:** `FS2213`, the heating loop's eight elements "are not
+connected to the rest of the circuit". The binder takes a project as one hydraulic system and an
+unconnected subgraph as an error; the language's separate `circuit` blocks say otherwise. Filed
+as `C-93`; the script carries `# does not bind: C-93` on its first line and the gate expects the
+refusal until it closes, as it expects `S-63`'s stall. **Accepted (2026-09-17):** "the picture
+looks right now."
+
 ## What the ladder has not reached
 
-Step 10: instruments with their signal lines; the `upright` class's mirror. From `28` part D: the loop search's residue (open question 2 for valves), branches in
+The syntax tour's remaining circuits, added one at a time (step 11b onward); the `upright`
+class's mirror. From `28` part D: the loop search's residue (open question 2 for valves), branches in
 the open supply-to-return form, a block none of whose members can take a corner, a branch off the
 bottom rail, and the router as a last resort. Inline elements (`28` A5) lie on every ring since
 step 7; a declared pipe off a ring is still drawn as the fallback draws it.

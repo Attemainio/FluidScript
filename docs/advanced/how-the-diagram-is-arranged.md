@@ -97,8 +97,9 @@ step down from one block's outlet to the next block's inlet. A sensor stands jus
 reads and a controller just off the component it drives, on its centre line; the controller's
 signal comes from the sensor, level and then down, and its own line goes straight into the
 actuator. Where lines cross, the one in front runs through and the one behind is broken around it:
-signal lines run behind pipes, and return pipes behind supply pipes. Where a component may sit is
-not something the script can steer today; pinning one is planned.
+signal lines run behind pipes, and return pipes behind supply pipes. Circuits that nothing joins
+are drawn one under another, in the order the script declares them, each arranged on its own.
+Where a component may sit is not something the script can steer today; pinning one is planned.
 
 ## What is read off the circuit
 

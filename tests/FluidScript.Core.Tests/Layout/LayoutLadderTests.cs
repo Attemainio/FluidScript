@@ -84,6 +84,13 @@ public sealed class LayoutLadderTests
 
         var result = await loop.RunAsync(GraphFixture.Bind(source), Water.Instance, step, TestContext.Current.CancellationToken);
 
+        if (source.StartsWith("# does not bind: C-", StringComparison.Ordinal))
+        {
+            // A script that names an open binding defect on its first line is expected to be refused; when it binds, the defect is closed and the marker must go.
+            Assert.False(result.IsSuccess, step + " now binds; close the defect its first line names and drop the marker");
+            return;
+        }
+
         Assert.True(result.IsSuccess, step + ": " + result.Error?.Message);
 
         var directory = Path.Combine(RepositoryLayout.Diagnostics, "layout-ladder");

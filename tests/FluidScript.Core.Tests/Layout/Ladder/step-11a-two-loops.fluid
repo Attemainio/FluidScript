@@ -1,0 +1,41 @@
+# does not bind: C-93 -- two independent circuits in one project are refused as one disconnected circuit; the solve gate expects the refusal until the defect closes.
+# Layout ladder, step 11a (plan/20-core-domain/29-layout-ladder.md): two independent circuits in
+# one script -- step 4's heating loop and step 6's cooling loop, renamed apart. Nothing connects
+# them; the question is how the drawing arranges one against the other.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+PU_H  pump
+HS_H  heat_exchanger power=30 in=20 out=50
+LOAD  heat_exchanger power=-30
+CV_H  valve kv=6.3
+
+connections
+PU_H - HS_H
+HS_H - LOAD
+LOAD - CV_H
+CV_H - PU_H
+
+circuit cooling 101
+fluid water
+
+HE_C  heat_exchanger power=30 in=20 out=50
+TV_C  three_way_valve
+PU_C  pump
+P_C   pipe length=25 dn=25
+
+connections
+N1 - N2
+N2 - PU_C
+PU_C - HE_C
+HE_C - TV_C
+TV_C - N2
+TV_C - P_C
+P_C - N3
+
+N1 supply t=6 p=300
+N3 return p=280

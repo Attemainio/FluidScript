@@ -348,8 +348,9 @@ header, 2026-09-17), and
 `LayoutTimingTests` is live since step 8 reached headers; the rest join `Reached` sample by sample.
 A second ladder theory, `EveryStepSolvesAndSettles`, runs every step through the outer loop and
 writes its `SolveExplanation` beside the picture: a script beginning `# fragment` is skipped, one
-beginning `# does not settle: S-nn` is expected to stall until that defect closes, and every other
-step must settle -- a ladder script is a circuit the solver accepts before its picture is judged
+beginning `# does not settle: S-nn` is expected to stall until that defect closes, one beginning
+`# does not bind: C-nn` is expected to be refused until that defect closes, and every other step
+must settle -- a ladder script is a circuit the solver accepts before its picture is judged
 (`C-91` and `S-63` were found this way).
 
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform

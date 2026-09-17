@@ -383,6 +383,14 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   source's second; every other pipe is return. The user's full rule ranks two overlapping circuits
   by temperature, the hotter in front; the layout is solved before any temperature is, so the layer
   stands in for it (open question 3).
+- **C17** *(step 11, provisional)* -- **Independent circuits stack top to bottom in script order.**
+  The graph's connected fragments are found first; each is laid out by these rules on a canvas of
+  its own, with nothing of the others placed, and is then moved under the fragment before it -- its
+  outer box one margin under the other's, left edges aligned -- the fragments in the order the
+  script declares their first components. A component connected to nothing is a fragment of one.
+  The user's words: "put them under each other", never side by side. Not built yet: the
+  fallback column for what no rule places still hangs under the last fragment, and a fragment
+  whose head has no loop and no boundary takes its first declared component as the head.
 
 ## D. The candidates
 
