@@ -305,7 +305,7 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   consumer's outlet, the descent lands on it from above, and the rail leaves it leftwards. The rail
   is set low enough beforehand for the junction to fit one margin under the outlet. The
   source-side corners are the same rule mirrored, not yet built because no step has needed them.
-- **C11** *(step 7, corrected twice the same day, provisional)* -- **An inner loop is a block,
+- **C11** *(step 7, corrected twice the same day; widened by step 8; provisional)* -- **An inner loop is a block,
   laid out first, presenting one inlet and one outlet to its parent.** When a cycle through the
   consumer avoids the enclosing rings' sources -- an injection branch: the valve whose common port
   feeds a pump, a load and the junction that returns to the valve's other port -- that cycle is
@@ -324,9 +324,18 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   slid right until every member clears what is placed, and the parent's source arranges its
   supply and return to them (C2, C12). Units nest: the consumer of a block is itself found by the
   same search, with the enclosing rings' sources and corner members avoided, so a loop within a
-  loop within a ring is three blocks. Two blocks built from the same script shape draw the same,
-  which is what step 8 needs. Not built yet: a block none of whose members can take the corner (a
-  pump and a load alone), and an inner member that is neither on the outer loop nor inline.
+  loop within a ring is three blocks. Two blocks built from the same script shape draw the same:
+  step 8's radiator and AHU blocks are 3.5 × 2.6 each. *Widened by step 8:* every inner loop along
+  a ring is a block, not only the one through the consumer. The last in flow order is the ring's
+  right side with its outlet facing back; each earlier one stands on the top rail as a member with
+  its outlet facing *on* -- its split junction at the bottom-right corner (C10) with the free port
+  to the right -- and the rail continues level from that outlet into the next member, so a chain of
+  blocks steps down from outlet to inlet (the series header). A block is laid out on a clean canvas:
+  nothing placed before it is an obstacle to its own arrangement, and it is slid into its parent
+  afterwards, jumping past each obstacle by whole tenths. A load whose power is sized from stated
+  inlet and outlet temperatures is a consumer of nominal duty, so a series branch's second load is
+  found. Not built yet: a block none of whose members can take the corner (a pump and a load
+  alone), and an inner member that is neither on the outer loop nor inline.
 - **C12** *(step 7, provisional)* -- **A member on a side with slack sits at the side's middle.** The
   rails' span is set by the taller side; the member on the shorter side -- the source when the
   block is tall, a consumer entered from above when the source is -- moves to the middle of its
@@ -336,6 +345,19 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   admitted only where nothing level fits, and a vertical pipe turns level into a pump (C3's turn,
   rightwards) before the pump is turned to meet it. This answers open question 2 for pumps: they
   never leave a rail for a vertical.
+- **C14** *(step 8, provisional)* -- **A branch hangs between the rails, under the junction that
+  feeds it and over the one it returns to.** When a top-rail junction's free port leads, off the
+  ring, to a bottom-rail member, the path between them is an injection branch: its inner loop is
+  laid out as a block (C11) with its outlet facing left beside its inlet, and the block hangs one
+  margin under the junction's box with its inlet one margin to the junction's right. The junction
+  moves along its rail to stand over that inlet, so the feed is one drop and one bend; the bottom
+  rail is set a margin, a junction's half and a fifth more under the lowest block; and the junction
+  the branch returns to stands on the bottom rail *directly under the one that feeds it* -- as a
+  loop's supply and return nodes align, the user's correction to the first draw -- and never nearer
+  the block's outlet than a margin, so the return is one bend too. Branches hang in script order, each slid right until it clears what hangs
+  before it: `D-108`'s branch rule in the closed form. The ring's right unit is slid until its own
+  descent to the bottom rail clears every box as well. Not built yet: a branch off the bottom rail,
+  and a branch whose bottom member is not a junction.
 
 ## D. The candidates
 
@@ -365,7 +387,8 @@ proved; a candidate no step ever needs is deleted.
 - **Branches** (source §26, narrowed by `D-108`): a closed ring's branches hang between its top and
   bottom sides in script order (H9 makes the ring a clockwise loop, so the rails are given); an open
   supply-to-return path's branches stack perpendicular to the main flow in script order, the parent
-  placing the split and the merge and routing with minimum bends.
+  placing the split and the merge and routing with minimum bends. *Built by step 8 for the closed
+  ring (C14); the open form is not yet needed.*
 - **The router**: for whatever connection the rules leave, an orthogonal path over the placed boxes
   and pipes, bends before length, crossings dear but not forbidden. It is never asked to discover a
   layout.

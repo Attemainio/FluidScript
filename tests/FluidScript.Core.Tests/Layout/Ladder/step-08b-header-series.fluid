@@ -1,0 +1,51 @@
+# does not settle: S-63 -- the solve gate records the report and expects the stall until the defect closes.
+# Layout ladder, step 8b (plan/20-core-domain/29-layout-ladder.md): the same two injection
+# branches in series. The radiators come first and take 20 kW at 50/40 from the 60 C supply, which
+# fixes the stream at 0.239 kg/s; the AHU then cools that stream from 40 to the 30 C return, so its
+# duty is not stated -- it is the 10 kW the balance leaves -- and HS1 states the total 30 kW. Stating
+# the AHU's duty too over-specifies a series circuit by one, and the solve ran non-finite. `N4`
+# joins the radiators' return to the AHU's supply and has two connections, so it is inline (D-114).
+# The solver does not converge on this series shape yet, whatever is stated (S-63); the layout does
+# not need the solution and is drawn all the same.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=30 kW out=60
+
+connections
+N1 - HS1 - N3
+N5 - N1
+
+N1 node p=250
+
+circuit radiators 102
+
+HE_RAD  load in=50 out=40 power=20 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+PR1     pipe length=18 dn=25
+PR2     pipe length=18 dn=25
+
+connections
+N3 - PR1 - TV_RAD.a
+NM_RAD - TV_RAD.b
+TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+NM_RAD - PR2 - N4
+
+circuit AHU 101
+
+HE_AHU  load in=35 out=30
+TV_AHU  three_way_valve
+PU_AHU  pump
+PA1     pipe length=12 dn=25
+PA2     pipe length=12 dn=25
+
+connections
+N4 - PA1 - TV_AHU.a
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+NM_AHU - PA2 - N5

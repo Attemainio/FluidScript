@@ -1,0 +1,80 @@
+# Layout ladder, step 8d (plan/20-core-domain/29-layout-ladder.md): four injection branches in
+# parallel on one header -- 8a's shape with two more taps on each rail. Every load takes the 60 C
+# supply at 50/30; HS1 states their sum. The supply header runs N3 -> N6 and the return N10 -> N7,
+# so branch k hangs between the k-th supply tap and the k-th return tap, in script order.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=84 kW out=60
+
+connections
+N1 - HS1 - N3
+N3 - N4
+N4 - N5
+N5 - N6
+N10 - N9
+N9 - N8
+N8 - N7
+N7 - N1
+
+N1 node p=250
+
+circuit radiators 102
+
+HE_RAD  load in=50 out=30 power=30 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+PR1     pipe length=18 dn=25
+PR2     pipe length=18 dn=25
+
+connections
+N3 - PR1 - TV_RAD.a
+NM_RAD - TV_RAD.b
+TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+NM_RAD - PR2 - N7
+
+circuit AHU 101
+
+HE_AHU  load in=50 out=30 power=24 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+PA1     pipe length=12 dn=25
+PA2     pipe length=12 dn=25
+
+connections
+N4 - PA1 - TV_AHU.a
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+NM_AHU - PA2 - N8
+
+circuit floor 103
+
+HE_FLR  load in=50 out=30 power=18 kW
+TV_FLR  three_way_valve
+PU_FLR  pump
+PF1     pipe length=15 dn=25
+PF2     pipe length=15 dn=25
+
+connections
+N5 - PF1 - TV_FLR.a
+NM_FLR - TV_FLR.b
+TV_FLR.ab - PU_FLR - HE_FLR - NM_FLR
+NM_FLR - PF2 - N9
+
+circuit dhw 104
+
+HE_DHW  load in=50 out=30 power=12 kW
+TV_DHW  three_way_valve
+PU_DHW  pump
+PD1     pipe length=10 dn=25
+PD2     pipe length=10 dn=25
+
+connections
+N6 - PD1 - TV_DHW.a
+NM_DHW - TV_DHW.b
+TV_DHW.ab - PU_DHW - HE_DHW - NM_DHW
+NM_DHW - PD2 - N10

@@ -1,4 +1,5 @@
-# Layout ladder, step 4 (plan/20-core-domain/29-layout-ladder.md): a valve on the return.
+# Layout ladder, step 4 (plan/20-core-domain/29-layout-ladder.md): a valve on the return. The valve
+# states its Kv: on a bare loop with nothing to throttle against, a sized Kv stalls the solve (C-66).
 
 fluidscript 1
 circuit ladder
@@ -7,7 +8,7 @@ fluid water
 PU1  pump
 HE1  heat_exchanger power=30 in=20 out=50
 LOAD heat_exchanger power=-30
-CV1  valve
+CV1  valve kv=6.3
 
 connections
 PU1 - HE1

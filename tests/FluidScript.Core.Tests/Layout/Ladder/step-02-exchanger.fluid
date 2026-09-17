@@ -1,3 +1,4 @@
+# fragment: not a circuit, so the ladder's solve gate skips it; only its picture is judged.
 # Layout ladder, step 2 (plan/20-core-domain/29-layout-ladder.md): a pump feeding an exchanger.
 
 fluidscript 1

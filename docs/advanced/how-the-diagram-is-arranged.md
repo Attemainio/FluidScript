@@ -84,12 +84,17 @@ which sits where, how a loop is laid out, how branches stack -- is decided rule 
 drawings the author corrects, starting with a single pump and adding one component per step. A
 component that no rule covers yet is not guessed at: it is set aside in a column below everything
 placed, with its pipes drawn as plainly as possible, so the picture shows exactly how far the rules
-reach. The direction the rules are heading: the first path starts at the heat source and flows left to
+reach. What the rules build so far: the first path starts at the heat source and flows left to
 right with each component straight after the one before; a level pipe reaching an exchanger turns
-into it; a closed loop is laid out once as a clockwise rectangle and then kept rigid, so a change
-elsewhere never rearranges it; a distribution ring has its supply header along the top, its return
-along the bottom, and its branches hanging between them in the order they are declared. Where a
-component may sit is not something the script can steer today; pinning one is planned.
+into it; a closed loop is laid out once as a clockwise rectangle -- the source on the left, the
+consumer on the right, pumps level -- and then kept rigid, so a change elsewhere never rearranges
+it; an injection branch (a three-way valve, its pump, its load and the junction that recirculates)
+is laid out first as a block of its own, its inlet and outlet side by side facing its header, and
+the header treats the block as one component; a distribution ring has its supply header along the
+top, its return along the bottom, and its branches hanging between them in the order they are
+declared, each under the junction that feeds it and over the one it returns to; branches in series
+step down from one block's outlet to the next block's inlet. Where a component may sit is not
+something the script can steer today; pinning one is planned.
 
 ## What is read off the circuit
 

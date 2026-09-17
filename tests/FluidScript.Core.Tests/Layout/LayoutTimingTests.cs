@@ -9,7 +9,7 @@ namespace FluidScript.Core.Tests.Layout;
 /// <summary>Where the 200-component model's layout time goes (<c>07</c>'s layout-solve line, <c>D-103</c>).</summary>
 public sealed class LayoutTimingTests
 {
-    [Fact(Skip = "Until the layout ladder (29) reaches headers: the fallback column hands 200 components to the router.")]
+    [Fact]
     [Trait("Category", "Diagnostic")]
     public void TheTwoHundredComponentLayoutIsTimed()
     {

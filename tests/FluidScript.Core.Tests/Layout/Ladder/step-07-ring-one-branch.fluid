@@ -1,7 +1,8 @@
 # Layout ladder, step 7 (plan/20-core-domain/29-layout-ladder.md): the distribution header's ring
 # with one injection branch -- the source HS1 and the AHU circuit of m2-distribution-header, the
-# second branch and its header taps (N4, N6) left out. HS1 states `out` only: with one load the
-# closed-circuit balance sizes its power.
+# second branch and its header taps (N4, N6) left out. HS1 states the one load's 24 kW and `out`.
+# The valve states the header's own Kv: alone on the ring with the only pump, a sized Kv is chosen
+# against the ring's whole head and the solve runs non-finite (C-91).
 
 fluidscript 1
 project static plant_01
@@ -9,7 +10,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger out=60
+HS1     heat_exchanger power=24 kW out=60
 
 connections
 N1 - HS1 - N3
@@ -20,7 +21,7 @@ N1 node p=250
 circuit AHU 101
 
 HE_AHU  load in=50 out=30 power=24 kW
-TV_AHU  three_way_valve
+TV_AHU  three_way_valve kv=6.3
 PU_AHU  pump
 PA1     pipe length=12 dn=25
 PA2     pipe length=12 dn=25

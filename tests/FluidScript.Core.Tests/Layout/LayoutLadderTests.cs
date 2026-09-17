@@ -1,6 +1,11 @@
+using FluidScript.Core.Catalogs;
+using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Fluids;
 using FluidScript.Core.Layout;
 using FluidScript.Core.Model;
+using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Model;
+using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Layout;
@@ -55,5 +60,43 @@ public sealed class LayoutLadderTests
 
         var hard = SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).ToList();
         Assert.True(hard.Count == 0, step + ":\n" + string.Join("\n", hard));
+    }
+
+    /// <summary>
+    /// A ladder script is a circuit before it is a picture: it must bind, size and converge (the experiment protocol in
+    /// <c>CLAUDE.md</c>), and its solve report is written beside its picture so a step's physics can be read, not assumed.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Steps))]
+    public async Task EveryStepSolvesAndSettles(string step)
+    {
+        var resolved = PipeCatalogs.Resolve(pin: null);
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value.Catalog), OuterLoop.Rules(resolved.Value.Catalog));
+        var source = File.ReadAllText(Path.Combine(Ladder, step + ".fluid"));
+
+        if (source.StartsWith("# fragment", StringComparison.Ordinal))
+        {
+            // A component alone is not a circuit; steps 1 and 2 say so on their first line and are judged by their picture only.
+            return;
+        }
+
+        var result = await loop.RunAsync(GraphFixture.Bind(source), Water.Instance, step, TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, step + ": " + result.Error?.Message);
+
+        var directory = Path.Combine(RepositoryLayout.Diagnostics, "layout-ladder");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, step + ".solve.txt"), SolveExplanation.Render(result.Value, step));
+
+        if (source.StartsWith("# does not settle: S-", StringComparison.Ordinal))
+        {
+            // A script that names an open solver defect on its first line is expected to stall; when it settles, the defect is closed and the marker must go.
+            Assert.False(result.Value.Settled, step + " settled: the defect its first line names is closed, remove the marker");
+            return;
+        }
+
+        Assert.True(result.Value.Settled, step + " did not settle in " + result.Value.Passes + " passes; read " + step + ".solve.txt");
     }
 }

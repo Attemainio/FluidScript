@@ -343,8 +343,13 @@ for every `tests/FluidScript.Core.Tests/Layout/Ladder/step-NN-*.fluid` it writes
 and its `28` A10 text to `diagnostics/layout-ladder/` *first*, then asserts that every component is
 placed and `SceneAudit` finds no hard finding. The seven layout samples' routing and audit
 assertions in `LayoutSolverTests` run over `Reached`, the samples the ladder has drawn (the simple
-loop, the substation and the cooling loop as of step 6, 2026-09-17), and `LayoutTimingTests` is
-skipped until the ladder reaches headers; the rest join `Reached` sample by sample.
+loop, the substation, the cooling loop and, as of step 8, the distribution header, 2026-09-17), and
+`LayoutTimingTests` is live since step 8 reached headers; the rest join `Reached` sample by sample.
+A second ladder theory, `EveryStepSolvesAndSettles`, runs every step through the outer loop and
+writes its `SolveExplanation` beside the picture: a script beginning `# fragment` is skipped, one
+beginning `# does not settle: S-nn` is expected to stall until that defect closes, and every other
+step must settle -- a ladder script is a circuit the solver accepts before its picture is judged
+(`C-91` and `S-63` were found this way).
 
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
 string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a

@@ -419,8 +419,138 @@ nesting), C12 (middle of a side with slack), C13 (pumps level) -- all *(step 7, 
 C10 widened both ways (a corner junction under a right-facing outlet slides along its rail until
 it clears the unit; in a block the junction nearest the left side takes the bottom-left corner).
 
+### Step 8 · the header with two branches, in parallel and in series
+
+`step-08a-header-parallel.fluid`: `m2-distribution-header`'s circuits verbatim -- `HS1 heat_exchanger
+power=54 kW out=60`, the header `N1 - HS1 - N3`, `N3 - N4`, `N6 - N5`, `N5 - N1`, the datum
+`N1 node p=250`, step 7's AHU branch between `N3` and `N5`, and the radiator branch `N4 - PR1 -
+TV_RAD.a`, `NM_RAD - TV_RAD.b`, `TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD`, `NM_RAD - PR2 - N6` at
+30 kW. `step-08b-header-series.fluid`: the same two branches in series, as the user specified it --
+the radiators first at 50/40 and 20 kW, the AHU cooling what is left from 40 to the 30 °C return
+with its duty sized, `HS1` stating the total 30 kW; `N4` joins the radiators' return to the AHU's
+supply and, with two connections, is inline (`D-114`). The user asked that the scripts pass before
+the layouts were built.
+
+**The solve gate (2026-09-17):** the ladder got a second theory, `EveryStepSolvesAndSettles`: every
+step runs through the outer loop -- the catalogue, Newton, the bore lookup -- and writes
+`step-NN.solve.txt`, its `SolveExplanation`, beside the picture. A script beginning `# fragment` is
+skipped (steps 1 and 2 are not circuits); one beginning `# does not settle: S-nn` is expected to
+stall until that defect closes; every other step must settle. It found two things before a line was
+laid. Step 7's lone valve was sized to Kv 1 against the ring's whole head and the solve ran
+non-finite: `C-91`, and the script states `kv=6.3`, the header's own figure, which converges in one
+iteration. The series script converges in none of the forms tried -- the AHU's duty stated or
+sized, the AHU first or second: `S-63`, marked, and drawn all the same since the layout does not
+read the solution. Step 4's valve states its Kv too, citing `C-66`: a Kv on a bare loop has nothing
+to size against. The parallel script converges in one iteration.
+
+**Drawn (2026-09-17):** both scripts fell to the fallback at first, for two reasons of the
+machinery. The ring search found each inner loop starting from its valve rather than from its
+consumer, so no member could take the block's corner; `Column` now rotates the path it finds to the
+consumer. And a `load` whose power is sized (`in=35 out=30`, the series AHU) reaches the layout
+with power 0 and was no consumer at all; a load with stated inlet above outlet and no power is a
+consumer of nominal duty. Then the two pictures drew, and two rules were needed to make them right.
+
+*Parallel (8a):* the ring is `HS1 → N3 → N4 → PR1 → TV_RAD → PU_RAD → HE_RAD → NM_RAD → PR2 → N6 →
+N5 → N1`; the AHU branch is off the ring, from `N3`'s free port to `N5`. The radiator block, the
+last inner loop on the ring, is the ring's right side exactly as step 7's block was --
+`TV_RAD` at `[(5.55, 0.5), (6.55, 1.5)]` on the supply rail, `HE_RAD` at `[(8.55, −0.5), (9.05, 0.5)]`,
+`NM_RAD` at `(6.05, −1)` with its outlet facing left. The AHU branch hangs between the rails (C14):
+`Hang` finds, for a top-rail junction's free port, the path to a bottom-rail member with the ring
+marked visited, lays the path's inner loop out as a block by C11 with the ring avoided, and slides
+the block under the junction -- its top one margin under the junction's box, its inlet one margin to
+the junction's right, and the junction moved along its rail to stand over that inlet so the drop
+from its free port is one bend: `N3` at `(0.85, 1)`, `TV_AHU` at `[(1.35, −0.6), (2.35, 0.4)]`,
+`HE_AHU` at `[(4.35, −1.6), (4.85, −0.6)]`, `NM_AHU` at `(1.85, −2.1)`. The bottom rail goes under
+the hanging block -- a margin, a junction's half and a fifth more, `y = −2.8` -- and the junction the
+branch returns to stands one margin left of the block's outlet, so the return is one bend too: `N5`
+at `(1.25, −2.8)`. The first draw had the radiator block's descent inside `HE_AHU`'s margin (two
+`pipe-in-outer`, one `pipe-beside-pipe`, the sample's own gate failing where the ladder's hard gate
+passed): the ring's right unit is slid until its descent clears every box as well (`Free`). Ten
+bends, length 30, hard 0, soft 0; groups `loop-1 [HE_RAD, NM_RAD, TV_RAD, PU_RAD]` and
+`loop-2 [HE_AHU, NM_AHU, TV_AHU, PU_AHU]`, congruent at 3.5 × 2.6. `HS1` sits at the middle of a
+side 1.7 longer than itself (C12).
+
+*Series (8b):* the ring is `HS1 → N3 → PR1 → TV_RAD … NM_RAD → PR2 → N4 → PA1 → TV_AHU … NM_AHU →
+PA2 → N5 → N1`, both inner loops on it. The last, the AHU, is the right side; the radiator block
+stands on the top rail as a member with its outlet facing *on* (C11 widened): its split junction
+`NM_RAD` takes the bottom-right corner under `HE_RAD` (C10) with its free port to the right, and the
+rail continues level from there through `PR2`, `N4` and `PA1` into `TV_AHU.a`, so the chain steps
+down from one block's outlet to the next block's inlet. `TV_RAD` at `[(0.75, 0.5), (1.75, 1.5)]`,
+`HE_RAD` at `[(3.75, −0.5), (4.25, 0.5)]`, `NM_RAD` at `(3.85, −1.1)`, `TV_AHU` at
+`[(4.75, −1.6), (5.75, −0.6)]`, `HE_AHU` at `[(7.75, −2.6), (8.25, −1.6)]`, `NM_AHU` at
+`(5.25, −3.1)`, the return rail at `y = −3.1` back to `HS1` at the middle of a 2.5-unit side. Six
+bends, length 21.7, hard 0, soft 0; `loop-1` the AHU, `loop-2` the radiators.
+
+*What the pictures taught about the machinery.* The series radiator pump first landed three units
+from its valve: the block was laid out at its provisional origin while the AHU block, built before
+it, still stood there as a phantom. `Block` now lays out on a clean canvas -- every placement
+suppressed, restored on return -- and every unit comes back unplaced, to be slid in by its parent.
+And sliding by tenths past a row of blocks is quadratic: `Slide` jumps past each obstacle by whole
+tenths, the same lattice as before, so steps 1–7 are byte-identical.
+
+*The 200-component header:* with hanging branches in the rules, `header-200` -- eighteen injection
+branches on one ring -- draws through them rather than the fallback: hard 0, soft 0, 74 bends,
+length 289, in 56 ms best-of-five in a Debug build. `LayoutTimingTests` is off skip and the
+distribution header's sample gates are live (`Reached`). 56 ms is over `07`'s 30 ms line: `C-92`.
+
+**User's reading (2026-09-17):** "quite impressed how these layouts solved." The series picture
+accepted without comment. One correction to the parallel one: `N3` and `N5` -- the junctions the
+AHU branch hangs from and returns to -- must be aligned vertically, "the same idea as aligning
+supply and return nodes vertically in a single loop". They were 0.4 apart because each stood one
+margin left of its own end of the block, and the block's outlet (the split junction under the
+valve's `b` port) lies half a unit right of its inlet (the valve's `a` port on its left face).
+
+**Drawn again (2026-09-17):** the return junction stands directly under the feeding junction, and
+never nearer the block's outlet than a margin: `N5` at `(0.85, −2.8)` under `N3` at `(0.85, 1)`,
+the return `PA2 → (0.85, −2.1) → N5` one bend with a 0.9 stub. Ten bends, length 30.4, hard 0,
+soft 0; the series picture, steps 1–7 and `header-200` unchanged.
+
+**Margin 1 (2026-09-17):** the user, having found nothing visually wrong in steps 1–8 or the
+reached samples, asked for every chart at `spacing 1` to see whether the rules break. None did:
+every step and every reached sample drew hard 0, soft 0, with the bend count it has at 0.5 --
+lengths 2, 4.5, 9.4, 12.4, 19.6, 11.6, 14.6, 49.7 and 34.7 for steps 1–8b. The rules are stated
+in margins, not in units, and the pictures scale with the margin. The scripts were not changed;
+`spacing 1` was inserted for the run and removed.
+
+**Four in series (2026-09-17):** the user asked for four loops in series like the AHU and the
+radiators: `step-08c-header-series-four.fluid`, the radiators at 50/40 and 20 kW, then AHU, floor
+and DHW loads cooling the ring 40 → 36 → 33 → 30 with sized duties, `HS1` at 30 kW, `N4`–`N6`
+inline between the branches (marked `S-63` like 8b). A first draw had the two middle blocks a unit
+taller with their split junctions beside rather than under their exchangers: the script had written
+those loads with inlet *below* outlet, so they were heaters, no consumer was found in their loops
+and the junction stood in for it -- the script's error, and a reminder that a block's shape follows
+from what the engine takes for its consumer. Corrected, the four blocks are congruent, 3.5 × 2.7
+(2.6 for the last), each stepping down from the previous block's outlet: `TV_RAD` on the supply
+rail at `y = 1`, `TV_AHU` at `−1.1`, `TV_FLR` at `−3.2`, `TV_DHW` at `−5.3`, the return rail at
+`−7.4`, `HS1` centred on a 6.3-unit side. Ten bends, length 47.9, hard 0, soft 0. The question
+the picture puts to the user: is a series chain a staircase -- each block level with the outlet
+that feeds it, which is C11 as built -- or a row of blocks on one rail, with the rail climbing back
+between them?
+
+**Four in parallel (2026-09-17):** `step-08d-header-parallel-four.fluid`, 8a's shape with two more
+taps on each rail: supply `N3 → N6`, return `N10 → N7`, every load at 50/30 (30, 24, 18, 12 kW),
+`HS1` their sum. It converges in two iterations, and draws without a rule being touched: three
+branches hang between the rails under `N3`, `N4`, `N5` at `x = 0.85, 4.85, 8.85` and over `N7`,
+`N8`, `N9` at the same `x`, each block 3.5 × 2.6 and slid right until it clears the one before it;
+the DHW branch, last on the ring, is the ring's right side. Eighteen bends, length 63.6, hard 0,
+soft 0. The one asymmetry: the last branch stands on the supply rail with its valve level with
+the header, one margin higher than the three that hang, because the ring's right unit is placed by
+C11 and the hangers by C14.
+
+**Rules established:** C14 (a branch between a top-rail junction and a bottom-rail member hangs
+between the rails, the return junction directly under the feeding one) *(step 8, corrected once,
+provisional)*; C11 widened (every inner loop on a ring is a block; a block on the top rail presents
+its outlet facing on and the chain steps down; a sized load is a consumer; a block is laid out on a
+clean canvas); C10 exercised for a block on a rail.
+
+**Accepted (2026-09-17):** the corrected parallel picture, the four in series and the four in
+parallel: "It works as intended, really good." The staircase reading of a series chain stands as
+the rule until a picture says otherwise.
+
 ## What the ladder has not reached
 
-Everything in `28` part D past a chain and one loop: direction-changing free-turning components, the loop search's residue (open question 2), rigid groups, branches, the router as a last resort. Inline
-elements (`28` A5) are specified but no step has needed one yet; until one does, a declared pipe is
-drawn as the fallback draws it.
+Steps 9 and 10: the tank (`upright`, an open fan of supplies and returns) and instruments with their
+signal lines. From `28` part D: the loop search's residue (open question 2 for valves), branches in
+the open supply-to-return form, a block none of whose members can take a corner, a branch off the
+bottom rail, and the router as a last resort. Inline elements (`28` A5) lie on every ring since
+step 7; a declared pipe off a ring is still drawn as the fallback draws it.
