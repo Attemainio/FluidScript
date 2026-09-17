@@ -355,9 +355,12 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   the branch returns to stands on the bottom rail *directly under the one that feeds it* -- as a
   loop's supply and return nodes align, the user's correction to the first draw -- and never nearer
   the block's outlet than a margin, so the return is one bend too. Branches hang in script order, each slid right until it clears what hangs
-  before it: `D-108`'s branch rule in the closed form. The ring's right unit is slid until its own
-  descent to the bottom rail clears every box as well. Not built yet: a branch off the bottom rail,
-  and a branch whose bottom member is not a junction.
+  before it: `D-108`'s branch rule in the closed form. A branch is a chain like a rail (C11): every
+  inner loop along it is a block, the first hangs, each next one steps on from the previous block's
+  outlet, and the last faces back to the left, so a series pair inside a parallel branch draws as
+  the series header does (step 8e). The ring's right unit is slid until its own descent to the
+  bottom rail clears every box as well. Not built yet: a branch off the bottom rail, a branch whose
+  bottom member is not a junction, and a boxed member on a branch before its first block.
 
 ## D. The candidates
 

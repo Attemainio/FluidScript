@@ -494,8 +494,9 @@ line, `C-92` -- and the distribution header's sample gates are live. The user ac
 picture and corrected the parallel one once: the junction a branch returns to stands directly under
 the one that feeds it, as a loop's supply and return nodes align (C14 as it stands). Four branches
 in series (8c, a staircase of blocks) and four in parallel (8d, three hanging and the last on the
-rail) then drew with no rule touched, and the user accepted all of step 8. Steps 9 (the tank) and
-10 (instruments) remain.
+rail) then drew with no rule touched, and the user accepted all of step 8; a parallel header with
+one branch in series (8e) needed C14 to read a branch as a chain of blocks, and draws clean. Steps 9
+(the tank) and 10 (instruments) remain.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 

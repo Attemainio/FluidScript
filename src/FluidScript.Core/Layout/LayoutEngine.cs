@@ -566,18 +566,7 @@ internal sealed class LayoutEngine
         var mark = _groups.Count;
 
         // C11: every inner loop along the ring is a block. The last in flow order is the ring's right side with its outlet facing back; the others stand on the top rail with their outlets facing on, so a chain steps from block to block. Without any, the consumer stands on the right alone.
-        var ranges = new List<(int Start, int End, List<Member> Inner)>();
-
-        for (var k = 1; k < cycle.Count; k++)
-        {
-            var (start, end, inner) = Column(cycle, k, avoid);
-
-            if (inner is not null)
-            {
-                ranges.Add((start, end, inner));
-                k = end;
-            }
-        }
+        var ranges = Ranges(cycle, 1, avoid);
 
         Unit? unit;
         int unitStart;
@@ -1065,10 +1054,11 @@ internal sealed class LayoutEngine
     }
 
     /// <summary>
-    /// C14: a branch off a top-rail junction that reaches a bottom-rail member hangs between the rails as a block,
-    /// its top one margin under the junction and its inlet one margin right of it, the junction moved along its
-    /// rail to stand over the block so the drop from its free port is one bend. The return is laid once the
-    /// bottom rail exists (<see cref="Close"/>).
+    /// C14: a branch off a top-rail junction that reaches a bottom-rail member hangs between the rails. The branch
+    /// is a chain of blocks like a rail (C11): its first block hangs one margin under the junction with its inlet
+    /// one margin right of it, the junction moved along its rail to stand over the inlet so the drop from its free
+    /// port is one bend; each further block steps on from the previous block's outlet, and the last faces back to
+    /// the left. The return is laid once the bottom rail exists (<see cref="Close"/>).
     /// </summary>
     /// <returns>The junction's outlet where the rail continues from, or <see langword="null"/> when nothing hangs.</returns>
     private PlacedAnchor? Hang(Member j, double yTop, IReadOnlySet<int> ring, List<Member> bottomMembers, HashSet<int> avoid, List<(Member From, List<Point> Points)> runs, List<Hanger> hangers)
@@ -1095,30 +1085,54 @@ internal sealed class LayoutEngine
 
                 var branch = path.GetRange(1, path.Count - 1);
                 var bottomPort = path[0].InPort;
-                var consumerAt = ConsumerOf(branch, 0);
-
-                if (consumerAt < 0)
-                {
-                    continue;
-                }
-
                 HashSet<int> branchAvoid = [.. avoid, .. ring];
-                var (_, _, unit) = UnitOf(branch, consumerAt, branchAvoid, Direction.Left);
+                var ranges = Ranges(branch, 0, branchAvoid);
 
-                if (unit is null)
+                if (ranges.Count == 0)
                 {
                     continue;
                 }
 
-                foreach (var i in unit.Members)
+                var mark = _groups.Count;
+                var units = new List<Unit>();
+                var items = new List<Item>();
+                var next = 0;
+
+                foreach (var (start, end, inner) in ranges)
+                {
+                    var block = Block(inner, branch[start], branch[end], branchAvoid, end == ranges[^1].End ? Direction.Left : Direction.Right);
+
+                    if (block is null)
+                    {
+                        break;
+                    }
+
+                    if (units.Count > 0)
+                    {
+                        items.AddRange(branch.GetRange(next, start - next).Select(static m => new Item(m, null)));
+                        items.Add(new Item(null, block));
+                    }
+
+                    units.Add(block);
+                    next = end + 1;
+                }
+
+                if (units.Count < ranges.Count)
+                {
+                    _groups.RemoveRange(mark, _groups.Count - mark);
+                    continue;
+                }
+
+                foreach (var i in units.SelectMany(static u => u.Members))
                 {
                     _loop[i] = true;
                 }
 
+                var first = units[0];
                 var feed = runs.Count - 1;
-                var rise = unit.Members.Max(i => InnerOf(i).Top) - unit.In.At.Y;
+                var rise = first.Members.Max(i => InnerOf(i).Top) - first.In.At.Y;
                 var half = Transform.Identity.Size(_symbol[j.Component]).Height / 2;
-                var (uIn, uOut) = Slide(unit, _centre[j.Component].X, yTop - half - _margin - rise, runs);
+                var (uIn, uOut) = Slide(first, _centre[j.Component].X, yTop - half - _margin - rise, runs);
                 var jx = uIn.At.X - _margin;
 
                 if (jx > _centre[j.Component].X)
@@ -1130,12 +1144,38 @@ internal sealed class LayoutEngine
                 _side[(j.Component, p)] = Direction.Down;
                 var free = AnchorOf(j.Component, p);
                 runs.Add((new Member(j.Component, -1, p), [free.At, new Point(free.At.X, uIn.At.Y), uIn.At]));
-                hangers.Add(new Hanger(uOut, unit.OutFrom, j.Component, b.Component, bottomPort));
+
+                // The rest of the chain steps on from the first block's outlet, as a rail does.
+                if (Top(uOut, [uOut.At], first.OutFrom, items, ring, null, branchAvoid, runs, hangers) is not { } chain)
+                {
+                    return null;
+                }
+
+                hangers.Add(new Hanger(chain.End, chain.Previous, j.Component, b.Component, bottomPort));
                 return AnchorOf(j.Component, j.OutPort);
             }
         }
 
         return null;
+    }
+
+    /// <summary>The runs of consecutive members that the inner loops along a ring or branch take (C11), in flow order from <paramref name="from"/>, each with its loop.</summary>
+    private List<(int Start, int End, List<Member> Inner)> Ranges(List<Member> cycle, int from, HashSet<int> avoid)
+    {
+        var ranges = new List<(int Start, int End, List<Member> Inner)>();
+
+        for (var k = from; k < cycle.Count; k++)
+        {
+            var (start, end, inner) = Column(cycle, k, avoid);
+
+            if (inner is not null)
+            {
+                ranges.Add((start, end, inner));
+                k = end;
+            }
+        }
+
+        return ranges;
     }
 
     /// <summary>

@@ -1,0 +1,80 @@
+# does not settle: S-63 -- the solve gate records the report and expects the stall until the defect closes.
+# Layout ladder, step 8e (plan/20-core-domain/29-layout-ladder.md): three branches in parallel on
+# one header, the middle one two loops in series. The AHU and the DHW take the 60 C supply at 50/30;
+# the middle branch feeds the radiators at 50/40 and 20 kW, which fixes its stream at 0.239 kg/s,
+# and the floor then cools that stream from 40 to 30 with its duty sized (10 kW). HS1 states the
+# total. N11 joins the radiators' return to the floor's supply inside the branch and is inline.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=66 kW out=60
+
+connections
+N1 - HS1 - N3
+N3 - N4
+N4 - N5
+N9 - N8
+N8 - N7
+N7 - N1
+
+N1 node p=250
+
+circuit AHU 101
+
+HE_AHU  load in=50 out=30 power=24 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+PA1     pipe length=12 dn=25
+PA2     pipe length=12 dn=25
+
+connections
+N3 - PA1 - TV_AHU.a
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+NM_AHU - PA2 - N7
+
+circuit radiators 102
+
+HE_RAD  load in=50 out=40 power=20 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+PR1     pipe length=18 dn=25
+PR2     pipe length=18 dn=25
+
+connections
+N4 - PR1 - TV_RAD.a
+NM_RAD - TV_RAD.b
+TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+NM_RAD - PR2 - N11
+
+circuit floor 103
+
+HE_FLR  load in=40 out=30
+TV_FLR  three_way_valve
+PU_FLR  pump
+PF1     pipe length=15 dn=25
+PF2     pipe length=15 dn=25
+
+connections
+N11 - PF1 - TV_FLR.a
+NM_FLR - TV_FLR.b
+TV_FLR.ab - PU_FLR - HE_FLR - NM_FLR
+NM_FLR - PF2 - N8
+
+circuit dhw 104
+
+HE_DHW  load in=50 out=30 power=12 kW
+TV_DHW  three_way_valve
+PU_DHW  pump
+PD1     pipe length=10 dn=25
+PD2     pipe length=10 dn=25
+
+connections
+N5 - PD1 - TV_DHW.a
+NM_DHW - TV_DHW.b
+TV_DHW.ab - PU_DHW - HE_DHW - NM_DHW
+NM_DHW - PD2 - N9

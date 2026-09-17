@@ -547,6 +547,21 @@ clean canvas); C10 exercised for a block on a rail.
 parallel: "It works as intended, really good." The staircase reading of a series chain stands as
 the rule until a picture says otherwise.
 
+**Mixed (2026-09-17):** before step 9 the user asked for a parallel header with one branch in
+series: `step-08e-header-mixed.fluid`, the AHU and the DHW at 50/30 on the outer taps, the middle
+branch the radiators at 50/40 and 20 kW followed by the floor cooling that stream 40 → 30 with its
+duty sized, `N11` inline between them (marked `S-63`: the series pair stalls the solve as 8b does).
+The first draw left the floor loop to the fallback, hard 17: a hanging branch was one block, and
+this branch holds two. C14 now reads a branch as a rail does (C11): `Ranges` finds every inner
+loop along it, the first block hangs under the junction as before, each further block steps on from
+the previous block's outlet through `Top`, and the last faces back to the left. The picture: AHU
+hanging under `N3` at `x = 0.85`, the radiator block under `N4` at `4.85` with its split junction at
+the bottom-right facing on, the floor block stepped down from it at `[(9.35, −4.3), (12.85, −1.7)]`
+with its outlet facing left, the return running left under the radiator block to `N8` directly
+under `N4` on the return rail at `y = −4.9`, `N7` under `N3`, the DHW block the ring's right side.
+Sixteen bends, length 72.3, hard 0, soft 0; steps 1–8d and `header-200` unchanged. Accepted:
+"it looks fine."
+
 ## What the ladder has not reached
 
 Steps 9 and 10: the tank (`upright`, an open fan of supplies and returns) and instruments with their
