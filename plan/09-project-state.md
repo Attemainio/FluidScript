@@ -288,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 8 accepted 2026-09-17 (8a–8d: two branches parallel and series, four in series, four in parallel); step 9 next |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 9 accepted 2026-09-17 (step 9, the tank, with no rule added); step 10 next |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -495,8 +495,10 @@ picture and corrected the parallel one once: the junction a branch returns to st
 the one that feeds it, as a loop's supply and return nodes align (C14 as it stands). Four branches
 in series (8c, a staircase of blocks) and four in parallel (8d, three hanging and the last on the
 rail) then drew with no rule touched, and the user accepted all of step 8; a parallel header with
-one branch in series (8e) needed C14 to read a branch as a chain of blocks, and draws clean. Steps 9
-(the tank) and 10 (instruments) remain.
+one branch in series (8e) needed C14 to read a branch as a chain of blocks, and draws clean. Step 9,
+the tank between two supplies and two returns, drew with no rule added -- the open fan is C5 from
+the head, the tank upright, every pipe straight -- and the storage header's sample gates are live.
+Step 10 (instruments) remains.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 

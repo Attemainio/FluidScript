@@ -343,7 +343,8 @@ for every `tests/FluidScript.Core.Tests/Layout/Ladder/step-NN-*.fluid` it writes
 and its `28` A10 text to `diagnostics/layout-ladder/` *first*, then asserts that every component is
 placed and `SceneAudit` finds no hard finding. The seven layout samples' routing and audit
 assertions in `LayoutSolverTests` run over `Reached`, the samples the ladder has drawn (the simple
-loop, the substation, the cooling loop and, as of step 8, the distribution header, 2026-09-17), and
+loop, the substation, the cooling loop, the distribution header and, as of step 9, the storage
+header, 2026-09-17), and
 `LayoutTimingTests` is live since step 8 reached headers; the rest join `Reached` sample by sample.
 A second ladder theory, `EveryStepSolvesAndSettles`, runs every step through the outer loop and
 writes its `SolveExplanation` beside the picture: a script beginning `# fragment` is skipped, one

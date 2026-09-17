@@ -1,0 +1,20 @@
+# Layout ladder, step 9 (plan/20-core-domain/29-layout-ladder.md): a tank between two supplies and
+# two returns -- the storage header sample verbatim. Two source boundaries charge a stratified tank
+# at two levels and two consumer boundaries draw from it at two levels; nothing here is a loop.
+
+fluidscript 1
+circuit storageHeader
+fluid dynamic water
+show temperature
+
+S1 supply t=60 flow=0.12
+S2 supply t=45 flow=0.08
+T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
+RAD_NETWORK return flow=0.12
+AHU_NETWORK return flow=0.08
+
+connections
+S1 - T1.in1
+S2 - T1.in2
+T1.out1 - RAD_NETWORK
+T1.out2 - AHU_NETWORK

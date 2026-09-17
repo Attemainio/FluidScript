@@ -562,10 +562,29 @@ under `N4` on the return rail at `y = −4.9`, `N7` under `N3`, the DHW block th
 Sixteen bends, length 72.3, hard 0, soft 0; steps 1–8d and `header-200` unchanged. Accepted:
 "it looks fine."
 
+### Step 9 · a tank between two supplies and two returns
+
+`step-09-tank.fluid`: `m4-storage-header` verbatim -- `S1 supply t=60 flow=0.12`, `S2 supply t=45
+flow=0.08`, `T1 tank … in1_level=90% in2_level=30% out1_level=90% out2_level=30%`, `RAD_NETWORK
+return flow=0.12`, `AHU_NETWORK return flow=0.08`, the four connections one per port. Nothing in
+it is a loop; it is the ladder's first open fan and its first `upright` kind.
+
+**Drawn (2026-09-17):** with no rule added. `S1` is the head (H10: a supply boundary) at the
+origin; C5 places `T1` from `S1`'s port level, identity, its `in1` at 90 % of its height on the
+west flank meeting the pipe: `[(0.6, −1.44), (1.6, 0.16)]`, `in1` at `(0.6, 0)`, `in2` at
+`(0.6, −0.96)`; the other three boundaries are placed from the tank's ports by C5, each one margin
+out along its port and level with it -- `S2` at `(0, −0.96)`, `RAD_NETWORK` at `(2.2, 0)`,
+`AHU_NETWORK` at `(2.2, −0.96)`. The picture is the plan's row: the tank upright, charging ports
+on the left, discharging ports on the right, every pipe straight. Zero bends, length 2, hard 0,
+soft 0; the solve converges in one iteration. The `upright` class is *exercised* by its identity
+member only: nothing here asks for the left-right mirror, and no step yet says when a tank would
+take it (a tank whose charging ports are declared `out` and drawn from the right, perhaps). The
+storage header's sample gates are live (`Reached`). Steps 1–8e unchanged. **Accepted (2026-09-17):**
+"Looks correct."
+
 ## What the ladder has not reached
 
-Steps 9 and 10: the tank (`upright`, an open fan of supplies and returns) and instruments with their
-signal lines. From `28` part D: the loop search's residue (open question 2 for valves), branches in
+Step 10: instruments with their signal lines; the `upright` class's mirror. From `28` part D: the loop search's residue (open question 2 for valves), branches in
 the open supply-to-return form, a block none of whose members can take a corner, a branch off the
 bottom rail, and the router as a last resort. Inline elements (`28` A5) lie on every ring since
 step 7; a declared pipe off a ring is still drawn as the fallback draws it.
