@@ -128,8 +128,14 @@ public static class SymbolCatalog
                 Line(0.28, -0.12, 0.28, 0.12),
             ],
             // The body a manufacturer builds: A to AB is the straight run, B the angle port (Belimo G2/G3 manual;
-            // Siemens VXG: port I = AB, II = A straight through, III = B). The angle port takes the bypass.
+            // Siemens VXG: port I = AB, II = A straight through, III = B). On the drawing the two switched
+            // ports are interchangeable (D-112): the common port stays on the straight run, and the layout may
+            // give either of `a` and `b` the angle when that is what turns a corner; the renderer labels them.
             PortAnchors = Anchors(("a", [0, 0.5], Up), ("ab", [0, -0.5], Down), ("b", [-0.5, 0], Left)),
+            Alternatives = new Dictionary<string, IReadOnlyDictionary<string, AnchorWire>>(StringComparer.Ordinal)
+            {
+                ["swapped"] = Anchors(("b", [0, 0.5], Up), ("ab", [0, -0.5], Down), ("a", [-0.5, 0], Left)),
+            },
             LabelAnchor = Above,
         },
         new()

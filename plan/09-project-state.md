@@ -288,7 +288,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1b | `ModelContract` per `26`: wire records in Core, the serializer in the Api, goldens | (this commit) | Shipped 2026-09-15 |
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
-| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 6 of ten drawn; step 6 awaits corrections |
+| P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 6 of ten drawn and accepted; step 7 next |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -445,6 +445,21 @@ members leave a loop's bottom for a vertical (step 3). Filed `C-88` (the audit m
 hard constraints), `C-89` (`SceneText` in tests, `62`'s second text withdrawn), `C-90` (no
 transform class in the catalogue; `Transform.All` offers every kind eight).
 
+**Step 6 was accepted on 2026-09-17 after three corrections and one decision (`D-112`).** The
+cooling loop's first drawing put the three-way valve on the loop's right side with the loop passing
+through it; the user wanted it at the top-right corner turning the flow, the junction at the
+bottom-right corner, and the supply under the return. That became `28` C9 (a consumer that can turn
+the corner takes it), C10 (a junction beside the consumer takes the bottom-right corner), and C7 and
+C8 widened (a loop is one root for pairing open ends; a corner junction's free port goes level). A
+second correction repacked the loop: C10 had cleared the consumer against a junction box that was
+about to move. The session then had the sample state its ports so the loop would leave by the angle
+port, and the user withdrew the reasoning: the switched ports are interchangeable on the drawing.
+`D-112`: the symbol offers a `swapped` arrangement and C9 admits it at the corner, so the sample as
+committed and the stated variant draw byte-identical geometry; the sample swap was reverted before
+commit. Steps 1–5, the simple loop and the substation are byte-identical to what the user accepted;
+the cooling loop draws with two bends. Open from the ladder: `28` open question 2,
+`C-89`, P5.1e, the source-side corners of C10 when a step needs them.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -543,7 +558,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1691 total, 0 failed, 5 skipped** (the timing test until the ladder reaches headers, and four unrelated; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1696 total, 0 failed, 5 skipped** (the timing test until the ladder reaches headers, and four unrelated; 229 MB working set for the whole run), ~63 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

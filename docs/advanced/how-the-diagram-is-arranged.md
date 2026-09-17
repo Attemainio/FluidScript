@@ -14,7 +14,9 @@ a component sits is not something the script can steer today; pinning one is pla
 
 **Two boxes.** Every component has an **inner** box -- its symbol, turned and, for an exchanger,
 in one of two arrangements: through-pass (in at one end, out at the other) or U-pass (each side in
-and out on its own flank) -- and an **outer** box, the inner grown by a margin on every side: 0.5
+and out on its own flank); for a three-way valve, with either switched port on the straight run,
+since `a` and `b` are the same port to the drawing and the labels say which is which -- and an
+**outer** box, the inner grown by a margin on every side: 0.5
 symbol units unless [`spacing`](../functions/spacing.md) says otherwise. The inner box is hard:
 no other symbol and no pipe that does not serve it ever enters it. The outer box is soft: two
 margins may overlap, a pipe may cross one, and the layout counts that against a drawing without

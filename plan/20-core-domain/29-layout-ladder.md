@@ -244,7 +244,8 @@ properties on a connection line) came out of this step.
 
 `step-06-cooling.fluid`: the `m2-cooling-loop` sample verbatim -- `HE1` (power 30), `3WV`,
 `PU1`, `P1`, the junction `N2`, `N1 supply`, `N3 return`; `HE1 - 3WV` binds the valve's common
-port `ab`, so it diverts: in at `ab`, out at `a` to the recirculation and at `b` to the return.
+port `ab`, so it diverts: in at `ab`, out at `a` to the recirculation and at `b` to the return
+(the letters do not decide the drawing, `D-112` below).
 
 **Drawn (2026-09-17):** three engine changes first, none of them a new picture rule. The loop
 walk is a depth-first search over the ports the fluid leaves by, through junctions as well as
@@ -259,14 +260,57 @@ left; `N1` hangs below `N2` at `(2.35, −1.7)`; `N3` hangs right of `3WV.b` at 
 `P1` inline between. Loop rectangle `[(0.15, −1), (3.45, 1)]`, four bends, length 8.4, hard 0,
 soft 0. The `m2-cooling-loop` sample draws identically.
 
-**User's corrections:** *(awaiting)*. The supply below the junction and the return to the right
-of the valve do not align (C7 pairs only level approaches on one side); whether the primary
-should read as one pair of terminals is the question this step puts.
+**User's corrections (2026-09-17):** three. (1) A three-way valve's same-role ports are always
+adjacent -- `(in, in, out)` or `(out, out, in)`, never alternating -- and the inlets are usually
+drawn filled; the symbol already keeps `a` and `b` (the pair sharing a role) on adjacent sides,
+so this is a note for the symbol's rendering (P5.3), not a layout change. (2) The valve belongs at
+the loop's *top-right corner*: it redirects the flow from left to down, its remaining opening
+flows right to the return, and the "T" stands up; that removes a bend. (3) With the valve in the
+corner, `N2` should be the bottom-right corner, removing another bend, and `N1 → N2` directed left
+puts `N1` under `N3`. "Test first to fix the three way valve, and check whether N2 / N1 resolve
+itself."
+
+**Drawn again (2026-09-17):** C9 (a consumer that can turn the corner takes it), C10 (a junction
+beside the consumer takes the bottom-right corner), C8 widened (a corner junction's free port goes
+level) and C7 widened (a loop is one root, so open ends hanging off different members pair). On
+the script as written the valve **cannot** take the corner: `3WV - N2` binds `a`, so the loop
+leaves the valve by the straight run, and a straight run cannot turn; the valve stays on the right
+side (rotation 180, `ab` above, `a` below, `b` right), `N2` takes the bottom-right corner under
+`3WV.a` at `[(2.65, −1.2), (2.85, −1)]`, `N1` hangs right of it and C7 moves it out under `N3`:
+both at `x = 3.85`, three bends, length 7.6, hard 0, soft 0. A variant `step-06b-cooling-straight-return.fluid`
+binds `3WV.b - N2` and `3WV.a - P1` -- same physics, the recirculation on the angle port -- and
+there the valve turns the corner: rotation 90 mirrored, `ab` from the left at `(1.85, 1)`, `a` to
+the right into `P1` and `N3`, `b` down into `N2` at the bottom-right corner, "T" up, two bends,
+length 6.6, `N1` and `N3` both at `x = 3.45`, hard 0, soft 0. So N2 and N1 did resolve
+themselves once the corner rules existed; the valve's corner is decided by the binding, and
+whether the sample changes its binding is the user's call (open below).
+
+**Second correction (2026-09-17):** the user accepted the valve, `N2` and `N1`, but the loop had
+come unpacked: the valve and `N2` stood a unit clear of `PU1` where before they interfered with
+it normally. The cause was C10's order of work: the junction was placed on the rail beside `PU1`
+first, the consumer's column then cleared the junction's own box and the rail stub after it, and
+only then did the junction slide right under the outlet -- so the column was packed against a box
+that was about to move. Now the column packs against the junction's rail position itself (the
+outlet at or beyond it) with the junction's box out of the clearance search, and the junction
+lands where it already was: the pictures above are the packed ones.
 
 **Rules established:** C2 amended (the consumer fallback); C8 *(step 6, provisional)*: a
 junction on a loop rail takes its two loop ports along the rail and its free port on the side
-facing away from the loop. The valve's body did decide the side: its straight run `a`–`ab`
-had to be vertical for the loop to pass through it, which is what put it on a vertical side.
+facing away from the loop, level at a corner; C9 and C10 *(step 6, provisional)*: a member that
+can turn a corner takes it, and a junction beside the consumer takes the bottom-right corner; C7
+widened to pair open ends by loop. The valve's body decides the side: its straight run `a`–`ab`
+is the loop's path when `a` is on the loop, and then the loop can only pass through it, not turn.
+
+**Third correction (2026-09-17, `D-112`):** the session first had the sample state its ports
+(`3WV.a - P1`, `3WV.b - N2`) so the loop would leave by the angle port, and the user withdrew that
+reasoning: *from the layout's point of view `a` and `b` are the same port*; `PU1 - TV3.a` /
+`N3 - TV3.b` and `PU1 - TV3.b` / `N3 - TV3.a` must draw the same arrangement. So the symbol offers
+a `swapped` arrangement (`b` straight, `a` angle) and C9 admits any arrangement at the corner,
+default first. Measured: the sample as committed (bare, recirculation on `a`) and the stated
+variant draw byte-identical geometry -- every box and pipe the same, valve `rotation 90 mirrored
+swapped` in the one and `rotation 90 mirrored` in the other, two bends, length 6.6, hard 0, soft
+0. The sample swap was reverted before it was committed; the `6b` variant is gone. The step's final
+picture is the second one above with the sample's own letters.
 
 ## What the ladder has not reached
 

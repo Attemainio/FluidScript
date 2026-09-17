@@ -80,7 +80,7 @@ a tank's layer bands, an exchanger's heat arrow, badges, and the sized-versus-st
 | `pipe.standard` | `-0.5, -0.1, 1, 0.2` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | line | (0, 0.3) |
 | `heat_exchanger.standard` | `-0.25, -0.5, 0.5, 1` | `in` (-0.15, 0.5) ↑, `in2` (0.15, -0.5) ↓, `out` (-0.15, -0.5) ↓, `out2` (0.15, 0.5) ↑<br>*or `u`:* `in` (-0.25, 0.3) ←, `in2` (0.25, -0.3) →, `out` (-0.25, -0.3) ←, `out2` (0.25, 0.3) → | rect (state fill), 2 lines | (0, 0.65) |
 | `valve.standard` | `-0.5, -0.3, 1, 0.6` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | 2 polygons (state fill), 4 lines | (0, 0.45) |
-| `three_way_valve.standard` | `-0.5, -0.5, 1, 1` | `a` (0, 0.5) ↑, `ab` (0, -0.5) ↓, `b` (-0.5, 0) ← | 3 polygons (state fill), 5 lines | (0, 0.65) |
+| `three_way_valve.standard` | `-0.5, -0.5, 1, 1` | `a` (0, 0.5) ↑, `ab` (0, -0.5) ↓, `b` (-0.5, 0) ←<br>*or `swapped`:* `a` (-0.5, 0) ←, `ab` (0, -0.5) ↓, `b` (0, 0.5) ↑ | 3 polygons (state fill), 5 lines | (0, 0.65) |
 | `pump.standard` | `-0.5, -0.5, 1, 1` | `in` (-0.5, 0) ←, `out` (0.5, 0) → | circle (state fill), polygon (solid), 2 lines | (0, 0.65) |
 | `tank.stratified` | `-0.5, -0.8, 1, 1.6` | `in{1..16}` on the west at `port.elevation` ←, `out{1..16}` on the east at `port.elevation` → | rect (state fill) | (0, 0.95) |
 | `t_sensor.standard` | `-0.3, -0.3, 0.6, 0.6` | `*` (0, 0) | circle | (0, 0) |

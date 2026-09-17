@@ -495,7 +495,8 @@ internal sealed class LayoutEngine
             (m, q) = (next.Far, next.FarPort);
         }
 
-        return m;
+        // Every member of the loop is one root: open ends hanging off the same loop are paired (C7) wherever they hang from it.
+        return m >= 0 && _loop[m] ? -2 : m;
     }
 
     /// <summary>Whether a level or vertical move from <paramref name="from"/> to <paramref name="to"/> would cross a placed box or its margin, other than <paramref name="self"/>'s.</summary>
@@ -554,9 +555,17 @@ internal sealed class LayoutEngine
         var s = cycle[0];
         var c = cycle[consumerAt];
         var ts = Admitted(s.Component).Where(t => t.Arrangement == "default" && Outward(s.Component, s.OutPort, t) == Direction.Up && Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
+        // C9: a consumer that can turn the corner itself -- in from the left, out downward -- takes the top-right corner and saves a bend; otherwise it stands on the right side, in from above, out below.
+        // Any arrangement the symbol offers may turn the corner, the default first (A9): a three-way valve's switched ports are interchangeable for the drawing (D-112), so which letter the loop leaves by does not decide the picture.
+        List<Transform> turning = Wildcard(c.Component)
+            ? []
+            : Admitted(c.Component).Where(t => Outward(c.Component, c.InPort, t) == Direction.Left && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
+        var atCorner = turning.Count > 0;
         var tc = Wildcard(c.Component)
             ? [Transform.Identity]
-            : Admitted(c.Component).Where(t => t.Arrangement == "default" && Outward(c.Component, c.InPort, t) == Direction.Up && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
+            : atCorner
+                ? turning
+                : Admitted(c.Component).Where(t => t.Arrangement == "default" && Outward(c.Component, c.InPort, t) == Direction.Up && Outward(c.Component, c.OutPort, t) == Direction.Down).ToList();
 
         if (ts.Count == 0 || tc.Count == 0)
         {
@@ -575,8 +584,16 @@ internal sealed class LayoutEngine
         var sIn = AnchorOf(s.Component, s.InPort);
         var top = sOut.Along(_margin);
         var bottom = sIn.Along(_margin);
-        var (_, consumerHeight) = tc[0].Size(_symbol[c.Component]);
-        var yBottom = Math.Min(bottom.Y, top.Y - consumerHeight - (2 * _margin));
+        var (_, cHeight) = tc[0].Size(_symbol[c.Component]);
+        var inOffset = Wildcard(c.Component) ? new Point(0, cHeight / 2) : AnchorOffset(c.Component, c.InPort, tc[0])!.Value.Offset;
+        var outOffset = Wildcard(c.Component) ? new Point(0, -cHeight / 2) : AnchorOffset(c.Component, c.OutPort, tc[0])!.Value.Offset;
+        var drop = atCorner ? 0 : _margin;
+
+        // C10: a junction next to the consumer on the bottom rail takes the bottom-right corner, so the rail sits low enough for it to fit under the consumer's outlet.
+        var cornerJunction = consumerAt + 1 < cycle.Count && Wildcard(cycle[consumerAt + 1].Component);
+        var junctionHalf = cornerJunction ? Transform.Identity.Size(_symbol[cycle[consumerAt + 1].Component]).Height / 2 : 0;
+        var cOutOuterY = top.Y - drop - inOffset.Y + outOffset.Y - _margin;
+        var yBottom = Math.Min(bottom.Y, cOutOuterY - junctionHalf);
         var bottomStart = new Point(bottom.X, yBottom);
         var runs = new List<(Member From, Member To, List<Point> Points)>();
 
@@ -628,11 +645,23 @@ internal sealed class LayoutEngine
         }
 
         // The consumer's column: as far right as the longer rail needs, its inlet corner on the top rail.
-        var (_, cHeight) = tc[0].Size(_symbol[c.Component]);
-        var inOffset = Wildcard(c.Component) ? new Point(0, cHeight / 2) : AnchorOffset(c.Component, c.InPort, tc[0])!.Value.Offset;
         var origin = new Point(Math.Max(topEnd.At.X, cursor.At.X), top.Y);
-        var corner = Clear(c.Component, tc[0], origin, Direction.Right, new Point(-inOffset.X, -inOffset.Y - _margin));
-        Place(c.Component, tc[0], corner.Offset(-inOffset.X, -inOffset.Y - _margin));
+
+        if (cornerJunction)
+        {
+            // The junction moves under the consumer's outlet (C10), so its rail box is not in the consumer's way: the column needs only to put that outlet at or beyond the junction's packed rail position.
+            var j = cycle[consumerAt + 1].Component;
+            _placed[j] = false;
+            origin = new Point(Math.Max(topEnd.At.X, _centre[j].X - (outOffset.X - inOffset.X) - _margin), top.Y);
+        }
+
+        var corner = Clear(c.Component, tc[0], origin, Direction.Right, new Point(-inOffset.X, -inOffset.Y - drop));
+        Place(c.Component, tc[0], corner.Offset(-inOffset.X, -inOffset.Y - drop));
+
+        if (cornerJunction)
+        {
+            _placed[cycle[consumerAt + 1].Component] = true;
+        }
 
         if (Wildcard(c.Component))
         {
@@ -641,10 +670,30 @@ internal sealed class LayoutEngine
         }
         var cIn = AnchorOf(c.Component, c.InPort);
         var cOut = AnchorOf(c.Component, c.OutPort);
-        topPending.AddRange([corner, cIn.At]);
+        if (!atCorner)
+        {
+            topPending.Add(corner);
+        }
+
+        topPending.Add(cIn.At);
         runs.Add((topPrevious, c, topPending));
         var cOutOuter = cOut.Along(_margin);
-        pending.AddRange([new Point(cOutOuter.X, yBottom), cOutOuter, cOut.At]);
+
+        if (cornerJunction)
+        {
+            // The junction slides right along its rail to sit under the consumer's outlet; the descent lands on it from above.
+            var j = cycle[consumerAt + 1];
+            _centre[j.Component] = new Point(cOut.At.X, _centre[j.Component].Y);
+            _side[(j.Component, j.InPort)] = Direction.Up;
+            var reaching = bottomRuns.FindIndex(r => r.Far.Component == j.Component);
+            bottomRuns[reaching].Points[^1] = AnchorOf(j.Component, j.OutPort).At;
+            pending = [AnchorOf(j.Component, j.InPort).At, cOutOuter, cOut.At];
+        }
+        else
+        {
+            pending.AddRange([new Point(cOutOuter.X, yBottom), cOutOuter, cOut.At]);
+        }
+
         bottomRuns.Add((c, previous, pending));
 
         foreach (var (far, near, points) in bottomRuns)
@@ -713,8 +762,13 @@ internal sealed class LayoutEngine
         if (_loop[i])
         {
             var away = _centre[i].Offset(-_loopCentre.X, -_loopCentre.Y);
-            var levelRail = used.Contains(Direction.Left) || used.Contains(Direction.Right);
-            preferred.Add(levelRail ? (away.Y >= 0 ? Direction.Up : Direction.Down) : (away.X >= 0 ? Direction.Right : Direction.Left));
+            var level = used.Contains(Direction.Left) || used.Contains(Direction.Right);
+            var vertical = used.Contains(Direction.Up) || used.Contains(Direction.Down);
+            var levelAway = away.X >= 0 ? Direction.Right : Direction.Left;
+            var verticalAway = away.Y >= 0 ? Direction.Up : Direction.Down;
+
+            // On a level rail the free port leaves vertically; on a vertical side, level. At a corner (C10) it leaves level, so an open end there lines up with the loop's other open ends (C7).
+            preferred.AddRange(level && !vertical ? [verticalAway, levelAway] : [levelAway, verticalAway]);
         }
 
         preferred.AddRange([Direction.Right, Direction.Up, Direction.Left, Direction.Down]);

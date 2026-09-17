@@ -5057,3 +5057,34 @@ place among I1–I3), [`17-formatting-and-round-trip`](../10-language/17-formatt
 pipe), [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md), `08` (a language
 package, P5.1e, before the ladder's samples are rewritten to it), `docs/functions/pipe.md` and
 the connections page.
+
+## D-112 · A three-way valve's two switched ports are interchangeable on the drawing; the symbol offers both arrangements and the layout picks the one that turns the corner
+
+**Accepted · 2026-09-17** · refines `D-105` item 5 (the straight run) and `D-102` (alternatives); amends `28` A4 and C9, `53`; the catalogue's `three_way_valve.standard` gains the arrangement `swapped`.
+
+On the layout ladder's step 6 the three-way valve took the loop's top-right corner when the sample
+bound the recirculation to `b` and stood on the loop's side when it bound it to `a`, and the session
+concluded the script had to change (a withdrawn `D-111`, never committed). The user's correction:
+*from the layout's point of view `a` and `b` are the same port*. `PU1 - TV3.a` / `N3 - TV3.b` and
+`PU1 - TV3.b` / `N3 - TV3.a` must draw the same arrangement. The letters say which leg the solver
+calls the control leg (`D-85`, `D-88`); they do not say which leg is straight on the paper.
+
+**What it means.** The symbol keeps the manufacturers' body -- the common port `ab` on the straight
+run, one switched port opposite it, the other on the angle -- but offers it in two arrangements:
+`default` (`a` straight, `b` angle, as `D-105` drew it) and `swapped` (`b` straight, `a` angle).
+The layout treats an arrangement as it treats a rotation: it takes the default when the default
+serves (A9) and the other when only that one turns the corner (`28` C9). A loop leaving the valve by
+either letter therefore draws the same corner, and the two scripts above give byte-identical
+geometry with the letters exchanged. The renderer has to *say* which port is which, since the glyph
+no longer does: `53` labels the switched ports, and fills the inlet triangles as the user's
+convention has it, so a reader tells `a` from `b` and inlet from outlet at a glance.
+
+**Why not the script.** Making the sample state `3WV.a - P1` and `3WV.b - N2` gave the corner too,
+and it was implemented and then withdrawn the same day: it fixed one script, left every other
+script's picture at the mercy of which leg its author typed first, and touched the reference
+circuit's listing in `01`, `23`, the docs and four narratives that had measured the bare wiring.
+A rule that draws the same thing whichever way the author wrote it is what `28`'s determinism (A9)
+is for.
+
+**Sizing is untouched.** `D-88` still believes a *stated* `a` as the control leg and walks the graph
+for an inferred one; which port the drawing puts on the angle has no reading in Core's physics.

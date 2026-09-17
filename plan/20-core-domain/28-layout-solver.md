@@ -75,7 +75,9 @@ drawing (`D-105`).
 The catalogue (`27`) gives each kind one symbol: a box, strokes, and named anchors with outward
 directions in symbol space, y up. A symbol may offer **alternative arrangements** of the same ports
 on the same box; the exchanger has `u` (each side in and out on its own flank) beside its
-through-pass default. An instance is drawn by a **transform**: arrangement × mirror × quarter turn.
+through-pass default; a three-way valve's `swapped` arrangement puts `b` on the straight run and
+`a` on the angle, because the two switched ports are interchangeable on paper (`D-112`) and the
+renderer labels them. An instance is drawn by a **transform**: arrangement × mirror × quarter turn.
 
 **Which transforms a kind admits is a fact about the kind, and hard** (`D-107`, `D-108`). The
 catalogue carries it as the kind's **transform class**:
@@ -260,15 +262,32 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   level: the substation's primary arrives from the left into `in2` at the top and its return
   leaves `out2` at the bottom back to the left. Off a chain's exchanger (step 2) a port's
   continuation hangs straight.
-- **C7** *(step 5, provisional)* -- **An open end aligns with its supply.** Where a supply and a
-  return boundary hang level off the same component on the same side (both by C6), the nearer
+- **C7** *(step 5, provisional; widened by step 6)* -- **An open end aligns with its supply.** Where a supply and a
+  return boundary hang level off the same loop on the same side (a loop is one root: its members
+  are not told apart, and a two-port chain between the boundary and the loop is walked through), the nearer
   one is moved out to the farther one's line when no placed box or margin lies in the way, and
   its run is laid again over the longer pipe; the two then read as one pair of terminals, the
   return under the supply. Where something is in the way, each stays where its own rule put it.
 - **C8** *(step 6, provisional)* -- **A junction on a loop rail.** Its two loop ports lie along
   the rail; its free port takes a side no port uses, the one facing away from the loop's centre
-  first -- vertical on a level rail, level on a vertical side -- and what hangs from it is placed
-  by C5 from there.
+  first -- vertical on a level rail, level on a vertical side, and level at a corner (C10) so that
+  an open end there lines up with the loop's other open ends (C7) -- and what hangs from it is
+  placed by C5 from there.
+- **C9** *(step 6, provisional)* -- **A member that can turn the corner takes it.** A loop's
+  consumer position is the top-right corner, not the right side, when the consumer has an admitted
+  transform whose loop inlet faces left and whose loop outlet faces down: the
+  top rail runs straight into its inlet, the right side descends from its outlet, and the loop has
+  one bend fewer. Only when no such transform exists does the consumer stand on the right side, in
+  from above and out below. The corner may use any arrangement the symbol offers, the default
+  first (A9): a three-way valve's two switched ports are interchangeable on the drawing (`D-112`),
+  its symbol offers `a` straight or `b` straight, and a loop leaving by either letter turns the
+  same corner. What the layout may not do is move a connection to a different port (H4).
+- **C10** *(step 6, provisional)* -- **A junction beside the consumer takes the bottom-right
+  corner.** When the first member after the consumer in flow order is a junction, it does not sit
+  on the bottom rail with a bend beside it: it slides right along the rail to stand under the
+  consumer's outlet, the descent lands on it from above, and the rail leaves it leftwards. The rail
+  is set low enough beforehand for the junction to fit one margin under the outlet. The
+  source-side corners are the same rule mirrored, not yet built because no step has needed them.
 
 ## D. The candidates
 

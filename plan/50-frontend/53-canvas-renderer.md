@@ -242,7 +242,7 @@ kinds delivered through M2b; M4 adds its two rows before M4 exits.
 | `pipe` | M3 | The connection line itself: an inline element with no box, its label beside the line; a discretized pipe shows tick marks per internal node |
 | `heat_exchanger` | M3 | The standard crossed-rectangle exchanger glyph; an arrow indicates heat in or out |
 | `valve` | M3 | Two opposed triangles (bowtie), with a fill proportion showing position |
-| `three_way_valve` | M3 | Bowtie with a third stub, the controlled port emphasised |
+| `three_way_valve` | M3 | Bowtie with a third stub; the switched ports are **labelled** `a` and `b` and the inlet triangles filled, because the glyph alone no longer says which is which (`D-112`: the layout may draw either switched port on the straight run) |
 | `pump` | M3 | Circle with an internal triangle pointing in the flow direction |
 | `tank` | M4 | `D-32` vessel divided into `layers` bands; materialized inlet/outlet anchors sit at their normalized elevations, and layer fills use their own temperatures |
 | `controller` | M4 | Dashed circle with the loop tag, connected to its actuator by a dashed line, and to its measurement point by a second, lighter one. Both ends come from the `control` binding (`D-40`) via `hints.nonFlowElements`; the renderer infers neither from the graph, where a controller has no ports |
