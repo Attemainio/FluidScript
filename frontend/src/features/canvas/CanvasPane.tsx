@@ -1,38 +1,205 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+
 import { draftOf, useDraftStore } from '../../state/draftStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
+import { prepareScene } from './scene.ts';
+import { detailFor } from './detail.ts';
+import { SceneView } from './SceneView.tsx';
+import {
+  fit,
+  gridStep,
+  pan,
+  reset,
+  rootTransform,
+  visibleWorld,
+  zoomAt,
+  type Size,
+  type Viewport,
+} from './viewport.ts';
 
 /**
- * The drawing pane. P5.6 draws `layout.placements` and `layout.routes` here; until then it shows
- * what the last successful model holds, which is enough to see the pipeline keep it through a
- * failed compile (`51` invariant 2).
+ * The drawing pane (`53`): the last successful model's scene under a CAD viewport. Wheel zooms
+ * about the cursor, Shift+wheel and a trackpad's horizontal scroll pan, middle or Space+drag pans,
+ * `F` fits, `Home` resets. The viewport is per pane, not per document: switching tabs fits the
+ * incoming scene, which is what a reader wants from a diagram they have not seen.
  */
 export function CanvasPane(): React.ReactNode {
   const documentId = useWorkspaceStore((state) => state.activeDocumentId);
-  const draft = useDraftStore((state) => draftOf(state, documentId));
+  const model = useDraftStore((state) => draftOf(state, documentId).model);
+  const host = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<Size>({ width: 0, height: 0 });
+  const [view, setView] = useState<Viewport | null>(null);
+  const fitted = useRef<string | null>(null);
+  const drag = useRef<{ x: number; y: number } | null>(null);
+  const space = useRef(false);
 
-  if (draft.model === null) {
-    return (
-      <div className="canvas-pane" aria-label="Diagram">
-        <p className="canvas-pane__empty">No model yet.</p>
-      </div>
-    );
-  }
+  const scene = useMemo(() => (model === null ? null : prepareScene(model)), [model]);
 
-  const model = draft.model;
+  useEffect(() => {
+    const element = host.current;
+    if (element === null) {
+      return;
+    }
+    const observe = (): void => {
+      setSize({ width: element.clientWidth, height: element.clientHeight });
+    };
+    observe();
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(observe);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // The first scene of a document is fitted; later models of the same document keep the viewport
+  // (55: nothing animates position, and a recompile must not move the reader's view).
+  useEffect(() => {
+    if (scene === null || size.width === 0) {
+      return;
+    }
+    if (fitted.current !== documentId) {
+      fitted.current = documentId;
+      setView(fit(scene.bounds, size));
+    }
+  }, [scene, size, documentId]);
+
+  const current = view ?? reset(size);
+
+  const onWheel = (event: React.WheelEvent<SVGSVGElement>): void => {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (event.shiftKey || (event.deltaX !== 0 && !event.ctrlKey)) {
+      setView(
+        pan(
+          current,
+          -event.deltaX - (event.shiftKey ? event.deltaY : 0),
+          event.shiftKey ? 0 : -event.deltaY,
+        ),
+      );
+      return;
+    }
+    const factor = Math.exp(-event.deltaY * 0.0015);
+    setView(zoomAt(current, factor, { x: event.clientX - rect.left, y: event.clientY - rect.top }));
+  };
+
+  const onPointerDown = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (event.button === 1 || (event.button === 0 && space.current)) {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      drag.current = { x: event.clientX, y: event.clientY };
+    }
+  };
+
+  const onPointerMove = (event: React.PointerEvent<SVGSVGElement>): void => {
+    const start = drag.current;
+    if (start === null) {
+      return;
+    }
+    drag.current = { x: event.clientX, y: event.clientY };
+    setView(pan(current, event.clientX - start.x, event.clientY - start.y));
+  };
+
+  const onPointerUp = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (drag.current !== null) {
+      drag.current = null;
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === ' ') {
+      space.current = true;
+      event.preventDefault();
+    } else if (event.key === 'f' || event.key === 'F') {
+      if (scene !== null) {
+        setView(fit(scene.bounds, size));
+      }
+    } else if (event.key === 'Home') {
+      setView(reset(size));
+    }
+  };
+
+  const onKeyUp = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key === ' ') {
+      space.current = false;
+    }
+  };
+
+  const world = visibleWorld(current, size);
+  const step = gridStep(current.zoom);
+  const detail = detailFor(current.zoom);
+
   return (
-    <div className="canvas-pane" aria-label="Diagram">
-      <p className="canvas-pane__summary">
-        {model.components.length} components · {model.connections.length} connections ·{' '}
-        {model.circuits.length} {model.circuits.length === 1 ? 'circuit' : 'circuits'} ·{' '}
-        {model.layout.placements.length} placed
-      </p>
-      <ul className="canvas-pane__list">
-        {model.components.map((component) => (
-          <li key={component.id}>
-            <span className="fs-mono">{component.id}</span> {component.kind}
-          </li>
-        ))}
-      </ul>
+    <div
+      ref={host}
+      className="canvas-pane"
+      aria-label="Diagram"
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
+    >
+      {scene === null ? <p className="canvas-pane__empty">No model yet.</p> : null}
+      <svg
+        className="canvas-pane__svg"
+        width={size.width}
+        height={size.height}
+        onWheel={onWheel}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <g transform={rootTransform(current)}>
+          {step !== null ? <Grid world={world} step={step} /> : null}
+          {current.zoom >= 0.5 ? <Axes /> : null}
+          {scene !== null ? <SceneView scene={scene} detail={detail} /> : null}
+        </g>
+      </svg>
+      <div className="canvas-pane__zoom" aria-live="polite">
+        {Math.round(current.zoom * 100)}%
+      </div>
     </div>
+  );
+}
+
+function Grid({
+  world,
+  step,
+}: {
+  world: { x: number; y: number; width: number; height: number };
+  step: number;
+}): React.ReactNode {
+  const lines: React.ReactNode[] = [];
+  const x0 = Math.floor(world.x / step) * step;
+  const y0 = Math.floor(world.y / step) * step;
+  for (let x = x0; x <= world.x + world.width; x += step) {
+    lines.push(<line key={`x${x}`} x1={x} y1={world.y} x2={x} y2={world.y + world.height} />);
+  }
+  for (let y = y0; y <= world.y + world.height; y += step) {
+    lines.push(<line key={`y${y}`} x1={world.x} y1={y} x2={world.x + world.width} y2={y} />);
+  }
+  return (
+    <g className="canvas-grid" strokeWidth={1} vectorEffect="non-scaling-stroke">
+      {lines}
+    </g>
+  );
+}
+
+/** The origin's rays (`R-22`): X red, Y green, one world unit long with a tick at each half. */
+function Axes(): React.ReactNode {
+  return (
+    <g className="canvas-axes" strokeWidth={1.5} fill="none">
+      <g className="canvas-axes__x">
+        <line x1={0} y1={0} x2={1} y2={0} vectorEffect="non-scaling-stroke" />
+        <line x1={0.5} y1={-0.04} x2={0.5} y2={0.04} vectorEffect="non-scaling-stroke" />
+        <line x1={1} y1={-0.06} x2={1} y2={0.06} vectorEffect="non-scaling-stroke" />
+      </g>
+      <g className="canvas-axes__y">
+        <line x1={0} y1={0} x2={0} y2={1} vectorEffect="non-scaling-stroke" />
+        <line x1={-0.04} y1={0.5} x2={0.04} y2={0.5} vectorEffect="non-scaling-stroke" />
+        <line x1={-0.06} y1={1} x2={0.06} y2={1} vectorEffect="non-scaling-stroke" />
+      </g>
+    </g>
   );
 }

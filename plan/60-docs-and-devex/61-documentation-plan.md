@@ -72,6 +72,7 @@ docs/
 │   ├── plant-layout.md          headers, how the diagram is arranged, spacing
 │   ├── working-in-tabs.md       several documents, what keeps running when you switch
 │   ├── the-editor.md            colours, underlines and quick fixes, completion, formatting, shortcuts
+│   ├── the-canvas.md            pan, zoom, fit; what the symbols, labels, colours and marks mean
 │   ├── reading-solver-status.md converging, converged, failed — and which computation it means
 │   ├── using-the-api.md         the five HTTP calls, the session id, limits and status codes
 │   └── themes.md                light, dark, system; what the colours mean; the theme file format

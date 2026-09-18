@@ -166,6 +166,12 @@ carries its fill colour for the active `show` property and each route the colour
 the renderer draws flat fills and two-stop gradients from those numbers. The rules below say what
 the colours are; where they say the renderer computes one, the solver does.
 
+**Built ahead of P5.10 (P5.6, 2026-09-18):** the flat fill. Each placement's `scale` goes through
+`fluidFill` in `tokens.ts`, a `color-mix` of the two neighbouring stops of `55`'s five-stop ramp,
+into every primitive whose fill slot is `state`. Gradients along routes and across an exchanger,
+tank layer bands, the legend, the property switcher, the stale desaturation and the position bars
+are still this document's and P5.10's.
+
 ### Nodes
 
 Filled with the scale colour for their value. The symbol's stroke stays

@@ -109,7 +109,12 @@ would be filled with nothing.
 > of the product was taken the same day (headless Edge on the Windows side, since nothing launches
 > in WSL) and judged: technical, and intimidating to a non-programmer. Decided with the user:
 > P5.6 first, then a new **P5.6b, look and feel** (`08`), tuned on screenshots with the diagram in
-> place. The next package is P5.6, the canvas.
+> place. **P5.6, the canvas, shipped the same day:** the prepared scene as a pure function of the
+> wire, one SVG component drawing symbols, routes with hops and fillets, arrows, tags, badges and
+> the sized mark, `57`'s flat fill pulled forward, the CAD viewport with axes, grid and level of
+> detail, four SVG goldens from the Api samples, `docs/advanced/the-canvas.md`; `F-7` (nobody folds)
+> opened; the worker deferred to M4 in `53`. The four samples were drawn and looked at through the
+> Edge route. The next package is P5.6b, look and feel, whose two questions to the user are in `08`.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -320,7 +325,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | `d1a1c08` | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
 | P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)): `tokens.ts`, the two themes as JSON and the generated cascade, custom theme files, the UI store's `theme`, eight primitives, Vitest with the design tests, `docs/advanced/themes.md` | `8439e2f` | Shipped 2026-09-18; `F-3` closed; `F-1`, `F-2` opened; `Tooltip`, `Slider`, `NumericInput` land with their first consumers |
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)): the shell with `SplitPane`, tabs, log slot and status line; `draftStore`, `runStore`, `workspaceStore`, `uiStore`; the typed client and `types.generated.ts` from the schemas (titles and descriptions added on the Api side); `CompilePipeline` with `LatencyTracker`; `docs/advanced/working-in-tabs.md` | `4b45c20` | Shipped 2026-09-18; `F-4`, `A-4` opened; the editor is a text area until P5.5, the canvas a list until P5.6 |
-| P5.5 | The editor ([`52`](50-frontend/52-editor.md)): CodeMirror with a stream tokenizer generated from the host's `language.json`, inline diagnostics with quick fixes, alias-aware and dimension-filtered completion from the committed metadata golden, the formatter in Core (`17`) behind `POST /api/v1/format` (`42`) and `Shift+Alt+F`, go to definition, toggle comment, Solve; `TokenGoldenTests` on both sides; the `D-48` benchmark harness; `docs/advanced/the-editor.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `A-5` closed; `F-5`, `F-6` opened; `F-4` stays open, the benchmark is built and unrun (no launchable browser here); hover for components, lets and quantities → P5.8, Rename → P7.1, Run → M4, Save/Open → P5.9 |
+| P5.5 | The editor ([`52`](50-frontend/52-editor.md)): CodeMirror with a stream tokenizer generated from the host's `language.json`, inline diagnostics with quick fixes, alias-aware and dimension-filtered completion from the committed metadata golden, the formatter in Core (`17`) behind `POST /api/v1/format` (`42`) and `Shift+Alt+F`, go to definition, toggle comment, Solve; `TokenGoldenTests` on both sides; the `D-48` benchmark harness; `docs/advanced/the-editor.md` | `0f112c8` | Shipped 2026-09-18; `A-5` closed; `F-5`, `F-6` opened; `F-4` stays open, the benchmark is built and unrun (no launchable browser here); hover for components, lets and quantities → P5.8, Rename → P7.1, Run → M4, Save/Open → P5.9 |
+| P5.6 | The canvas ([`53`](50-frontend/53-canvas-renderer.md)): `prepareScene`, `SceneView`, the viewport, `CanvasPane` with axes, grid and level of detail; `57`'s flat fill; SVG goldens per Api sample; `docs/advanced/the-canvas.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `F-7` opened; the worker deferred to M4; the frame budget unmeasured (`F-4`'s browser) |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -691,6 +697,23 @@ root, so it has not run and the debounce stays provisional (`F-4`). `docs/advanc
 is the page. Frontend 88/0, Api 58/0, Core 1820/0/4 (the model-contract page regenerated for the
 two binding fields).
 
+**P5.6 is `53` drawn from the wire and nothing else** (2026-09-18). `features/canvas/scene.ts`
+turns `layout` and `symbols` into the prepared scene: a placement with a box is a symbol with the
+Core instrument's transform, an inline one (`D-105`, a zero box) is a mark or nothing, routes are
+sorted from the back and cut around their hops, arrows come from `layout.flow`, labels are the tag
+or the id, badges from the diagnostics addressed to a component and a hollow square for a sized or
+defaulted value. `SceneView` is the one drawing implementation: the pane renders it under a root
+`translate scale(k -k)` and the golden test renders it to static markup, one SVG per Api sample
+under `canvas/goldens`, regenerated in place and failed once like every gate. `viewport.ts` is the
+CAD arithmetic (fit with 5 %, zoom about the cursor, reset, the grid step), `CanvasPane` the pane
+with `R-22`'s axes, the grid and `53`'s four detail levels. The `state` fill slot is `57`'s flat
+fill through `fluidFill` in `tokens.ts`, pulled forward with the user's agreement so the first
+pictures read as a plant. The four samples were drawn through the Edge route and looked at: the
+loops, rails, mirrored exchangers and inferred nodes come through as the ladder's pictures; the
+one thing seen and filed as an observation is the exchanger label sitting on its top edge, which
+is the catalogue's anchor, not the renderer's. Not done: the worker (`53` says why, M4), collapse
+(`F-7`), the frame budget (no browser). Frontend 115/0, Core and Api unchanged.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -726,9 +749,9 @@ Counts only. Every description lives in the file named.
 | 20 · Core domain | 32 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 4 | [`40-api/defects.md`](40-api/defects.md) |
-| 50 · Frontend | 5 | [`50-frontend/defects.md`](50-frontend/defects.md) |
+| 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **72** | |
+| | **73** | |
 
 Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
@@ -805,7 +828,7 @@ a judgement.
 |---|---|---|
 | Core test suite | **1820 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
-| Frontend tests | **88 passed, 0 failed**, ~10 s | `cd frontend && npm test` |
+| Frontend tests | **115 passed, 0 failed**, ~10 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |

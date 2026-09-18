@@ -14,9 +14,11 @@ are in [`08-implementation-sequence`](../08-implementation-sequence.md).
 custom theme files, eight of the twelve primitives, and the design tests. `51` by `P5.4` the same
 day: the shell, the four stores, the typed client and the generated wire types, the debounce
 pipeline with its validate phase. `52` by `P5.5` the same day: the editor with its tokenizer,
-diagnostics, completion, the formatter's command and the benchmark's harness. `58` was read for the
-workspace store's shape and `56` for the log's; neither is implemented. **Nothing has looked at
-`53`, `54`, `57` or `59`**; their absence below means nothing has looked, not that nothing is wrong.
+diagnostics, completion, the formatter's command and the benchmark's harness. `53` by `P5.6` the
+same day: the scene, the viewport, the symbols, routes, labels and marks, with `57`'s flat fill
+pulled forward. `58` was read for the workspace store's shape and `56` for the log's; neither is
+implemented. **Nothing has looked at `54`, `59`, or `57` beyond its flat fill**; their absence
+below means nothing has looked, not that nothing is wrong.
 
 ## Open
 
@@ -26,6 +28,7 @@ workspace store's shape and `56` for the log's; neither is implemented. **Nothin
 | F-4 | [`51`](51-frontend-architecture.md), [`D-49`](../00-foundation/06-decision-log.md) | **The debounce is 300 ms by default, not by measurement** | `D-49` makes the debounce a measured value with a 200 ms typing-cadence floor and `D-48`'s gate as its ceiling, recorded as a baseline. P5.4 ships `51`'s recorded default of 300 ms in `pipeline/debounce.ts` because the measurement is `D-48`'s keystroke-to-squiggle benchmark, which is Playwright driving the real editor, and the editor is P5.5. P5.5 built the benchmark (`frontend/e2e/latency.bench.ts`, `npm run bench`, `62`) and could not run it: the machine it was built on has no browser Playwright can launch (Chromium's headless shell wants `libnspr4`/`libnss3`, which need root to install, and the Windows-side Edge cannot be reached from WSL without exposing a debugging port). What closes it: `npx playwright install-deps chromium` or the apt equivalent on a machine with root, then `npm run bench` on the syntax tour and the 200-declaration script, the value moved inside the bounds, and the baseline recorded from `diagnostics/keystroke-latency.md`. A value that lands more than a factor of two from 300 ms is `D-49`'s requirement conversation, not a benchmark result. |
 | F-5 | [`52`](52-editor.md), [`26`](../20-core-domain/26-model-contract.md), [`15`](../10-language/15-semantic-model.md) | **A deferred `let` has no dimension on the wire, so completion offers it unfiltered** | What `52` asks: `let x = 1.2*HE1.dp` has no value until the solve but has a *dimension* as soon as `HE1.dp`'s is known, which is at bind time, and value completion after `dp=` should offer it and completion after `power=` should not. What the binder does: an expression that references a component property is deferred whole (`15`), and the deferred binding carries no type -- the evaluator that would have produced the dimension is the one that runs after the solve. `BindingWire.Dimension` is therefore `null` for a deferred binding and the frontend offers it in every value position, dimmed and marked deferred, which is the unfiltered fallback and not the filter. Wrong in the way `13`'s two temperature dimensions exist to catch: a deferred `TemperatureDelta` is offered after `out=`. What closes it: the binder typing a deferred expression from the registry dimensions of the properties it references, at bind time, without evaluating it -- a dimension-only pass over the expression tree. Filed 2026-09-18 with P5.5. |
 | F-6 | [`52`](52-editor.md) | **An ambiguous kind lists both candidates, but the first is preselected** | `52`'s rule: where `D-15`'s 0.05 margin would produce `FS1513`, completion lists both candidates adjacent and picks neither, so the editor never makes a choice the compiler refuses to make. Completion computes the ambiguity (`completion.ts`, the `ambiguous` flag, asserted on `sensr`, which scores `p_sensor` and `t_sensor` within the margin) and ranks the pair adjacent. CodeMirror preselects the first option of every list (`selectOnOpen`), and the setting is global to the completion extension, not per result; turning it off unselects the list in every position, so `heat_ex` Tab would need an arrow key first, which is the wrong trade. Enter on the preselected item inserts the first of the pair. What closes it: a per-result way to open with no selection (`@codemirror/autocomplete` 6.20 has none), or a header item that is not insertable. Small, and filed so the unticked criterion in `52` has an owner. Filed 2026-09-18 with P5.5. |
+| F-7 | [`53`](53-canvas-renderer.md), [`25`](../20-core-domain/25-layout-hints.md), [`D-30`](../00-foundation/06-decision-log.md) | **Nobody folds: `FS2402` says a group starts collapsed and nothing collapses it** | `25` has Core report `FS2402` when a pipe's expansion passes ten members or a scene five hundred elements, "starts folded", and `53`'s error cases and `D-30`'s thresholds have the renderer collapse every collapsible group at that point so a large plant meets `07`'s budgets. Core reports the code and lays every member out; P5.6 draws every placement it is given and has no notion of a group, so a discretized pipe with `nodes=40` shows forty inline nodes at 3× and forty placements at every zoom. Nothing is wrong at the sample sizes, and the level of detail hides the inline names below 3×. What is missing is the fold itself, on whichever side owns it: the layout can place a folded group as one inline element (the frontend then knows nothing), or the renderer can hide the members and draw the parent's label with a count. The first keeps `53` invariant 2 intact and is where I would put it. Filed 2026-09-18 with P5.6. |
 | F-2 | [`55`](55-design-system.md), [`53`](53-canvas-renderer.md) | **The proportional label metric is a reservation, not a measurement** | `D-73` has the canvas label's box come from a declared advance width. The monospace readout's 0.6 em is the largest of the stack's real metrics; the label's 0.62 em is what a tag of capitals and digits in Segoe UI needs, with nothing behind it but that estimate, because no label has been laid out yet. When P5.6 draws the first labelled scene, measure the widest sample tag in each font of the stack against `0.62 × characters × 11 px` and move the number if one overflows. |
 
 ## Closed
@@ -97,6 +100,21 @@ document outside React (`51` invariant 1) and the pipeline's handler is register
 up at dispatch time (`registerEditorHandler`), so that a state created in one test cannot capture
 the pipeline of another. The first shape, states capturing the pane's pipeline in a closure, passed
 alone and failed in a suite, which is how it was found.
+
+**The exchanger's label sits on its top edge.** The symbol's `labelAnchor` is `[0, 0.65]` on a box
+whose top is `0.5`, so the label's baseline is 0.15 world units above the box, 9 px at 1×, and the
+port marker at the top anchor sits in the same gap. In the first pictures (2026-09-18, the
+substation and the header) `100HE02` reads as touching the symbol while `100PU01`, at 0.65 over a
+0.5 top on a round symbol, reads clear. The number is the catalogue's (`SymbolCatalog`, Core), the
+renderer draws where it is told (`53` invariant 2), and P5.6b's screenshot pass is where it gets
+judged; a change is one number in Core and every golden.
+
+**The state fill is `color-mix`, and the literal scan allows it in one file.** `57`'s ramp is the
+five fluid stops of `55`; the fill for a scale position mixes the two neighbouring stops with
+`color-mix(in oklab, …)`, which the literal scan's colour pattern catches, so `fluidFill` lives in
+`design/tokens.ts`, the one file the scan exempts. That is the right home: the ramp is a palette
+definition, not a use of one. What it costs is that a test cannot resolve the colour without a
+browser; the golden pins the expression.
 
 **The metadata's parameter order was the hash order of a dictionary.** Committing the metadata
 document as a golden for the completion tests (`A-5`) showed it: two runs of the Api host listed

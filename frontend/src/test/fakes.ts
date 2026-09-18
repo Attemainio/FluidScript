@@ -95,8 +95,17 @@ export function model(name: string): ModelContract {
     contractVersion: '2.0',
     circuits: [{ name }],
     components: [],
+    symbols: [],
     connections: [],
-    layout: { placements: [], routes: [] },
+    style: { tokens: [], spacing: null, default: { corner: null, pattern: 'solid' }, named: {} },
+    layout: {
+      placements: [],
+      routes: [],
+      margin: 0.5,
+      extent: [0, 0, 0, 0],
+      flow: {},
+      inferred: [],
+    },
     diagnostics: [],
   } as unknown as ModelContract;
 }

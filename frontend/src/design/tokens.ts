@@ -195,3 +195,34 @@ export const focusRingSurfaces: readonly ColorToken[] = [
   '--editor-bg',
   '--canvas-bg',
 ];
+
+/**
+ * The canvas's pixel scale: how many CSS pixels one world unit is at 1× zoom (`53`, `55`). A pump
+ * is 1 × 1 world unit (`D-103`), so at 1× it is 60 px across, the scale the Core `SceneSvg`
+ * instrument draws the ladder's pictures at; the two pictures are the same size on purpose.
+ */
+export const worldUnitPx = 60;
+
+/** The sequential ramp's stops, cold to hot, that `fluidFill` interpolates between (`57`). */
+const fluidRamp = [
+  '--fluid-cold',
+  '--fluid-cool',
+  '--fluid-neutral',
+  '--fluid-warm',
+  '--fluid-hot',
+] as const;
+
+/**
+ * The fill for a position on the active scale, 0 (cold) to 1 (hot), as a CSS colour expression
+ * mixing the two neighbouring ramp stops. It is the only place a colour is composed rather than
+ * named, which is why it lives with the tokens: the ramp is `55`'s palette, not a literal.
+ */
+export function fluidFill(position: number): string {
+  const clamped = Math.min(1, Math.max(0, position));
+  const scaled = clamped * (fluidRamp.length - 1);
+  const lower = Math.min(fluidRamp.length - 2, Math.floor(scaled));
+  const share = Math.round((scaled - lower) * 100);
+  const from = fluidRamp[lower]!;
+  const to = fluidRamp[lower + 1]!;
+  return `color-mix(in oklab, var(${from}) ${100 - share}%, var(${to}))`;
+}

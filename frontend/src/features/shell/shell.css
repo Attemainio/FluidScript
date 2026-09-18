@@ -116,21 +116,123 @@
 }
 
 .canvas-pane {
+  position: relative;
   height: 100%;
-  padding: var(--space-4);
-  overflow: auto;
+  overflow: hidden;
   color: var(--text-secondary);
   background: var(--canvas-bg);
+  outline: none;
 }
 
-.canvas-pane__empty,
-.canvas-pane__summary {
-  margin: 0 0 var(--space-3);
+.canvas-pane:focus-visible {
+  box-shadow: inset 0 0 0 var(--focus-ring-width) var(--focus-ring);
 }
 
-.canvas-pane__list {
+.canvas-pane__svg {
+  display: block;
+  touch-action: none;
+  cursor: default;
+}
+
+.canvas-pane__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
   margin: 0;
-  padding-left: var(--space-5);
+  pointer-events: none;
+}
+
+.canvas-pane__zoom {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-2);
+  font: var(--text-label-weight) var(--text-label-size) var(--font-mono);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* The drawing (53): every colour is a token; every stroke keeps its pixel width. */
+.canvas-grid {
+  stroke: var(--canvas-grid);
+}
+
+.canvas-axes__x {
+  stroke: var(--canvas-axis-x);
+}
+
+.canvas-axes__y {
+  stroke: var(--canvas-axis-y);
+}
+
+.scene__symbol {
+  color: var(--canvas-symbol);
+  stroke: var(--canvas-symbol);
+  outline: none;
+}
+
+.scene__symbol:focus-visible {
+  stroke: var(--canvas-selection);
+}
+
+.scene__symbol--inferred {
+  color: var(--canvas-symbol-inferred);
+  stroke: var(--canvas-symbol-inferred);
+}
+
+.scene__unknown {
+  stroke-dasharray: 4 3;
+}
+
+.scene__mark {
+  fill: var(--canvas-bg);
+  stroke: var(--canvas-symbol);
+}
+
+.scene__mark--inferred {
+  stroke: var(--canvas-symbol-inferred);
+}
+
+.scene__port {
+  fill: var(--canvas-route);
+}
+
+.scene__badge--error {
+  fill: var(--status-error);
+}
+
+.scene__badge--warning {
+  fill: var(--status-warning);
+}
+
+.scene__sized {
+  fill: var(--canvas-bg);
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.scene__route {
+  color: var(--canvas-route);
+  stroke: var(--canvas-route);
+}
+
+.scene__route--signal {
+  color: var(--text-muted);
+  stroke: var(--text-muted);
+}
+
+.scene__arrow {
+  fill: currentColor;
+}
+
+.scene__label {
+  fill: var(--text-primary);
+  user-select: none;
+}
+
+.scene__label--inferred {
+  fill: var(--text-muted);
+  font-style: italic;
 }
 
 .log-pane {

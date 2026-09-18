@@ -249,6 +249,7 @@ survives zoom and the UI scale does not.
 
 | Token | Default | Meaning |
 |---|---|---|
+| `worldUnitPx` | 60 | Pixels per world unit at 1× zoom (P5.6, `tokens.ts`): a 1 × 1 pump is 60 px across, the scale the Core `SceneSvg` instrument draws the ladder's pictures at |
 | `--canvas-spacing-default` | 0.5 | The margin when the script says nothing (`D-37`). **Since `D-103` this is not a token the frontend sets**: the value is `LayoutSolver.DefaultMargin` in Core, and the row stays here so the design system states the number it draws to. |
 | `--canvas-spacing-min` | 0.05 | Floor; the solver clamps a smaller `spacing` to it |
 | `--canvas-rail-gap` | — | Superseded by `D-103`: a header's rails are a row of the solver's grid, sized by the tallest symbol in the row plus twice the margin |

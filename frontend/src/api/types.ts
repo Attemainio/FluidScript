@@ -20,6 +20,8 @@ export type {
   ModelContract,
   ParameterMeta,
   PortFamily,
+  Primitive,
+  ResolvedStyle,
   PropertyMeta,
   Placement,
   Position,

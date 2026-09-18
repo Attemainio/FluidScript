@@ -79,7 +79,7 @@ describe('the shell', () => {
       await settle();
     });
 
-    expect(container.querySelector('.canvas-pane')?.textContent).toContain('0 components');
+    expect(container.querySelector('.canvas-pane .scene')).not.toBeNull();
     expect(status()).toContain(
       `${statusText.converged.glyph} ${statusText.converged.word} · steady solve · plant_01`,
     );
@@ -105,7 +105,7 @@ describe('the shell', () => {
       await settle();
     });
 
-    expect(container.querySelector('.canvas-pane')?.textContent).toContain('0 components');
+    expect(container.querySelector('.canvas-pane .scene')).not.toBeNull();
     expect(container.querySelector('.log-pane')?.textContent).toContain('FS1801');
     expect(container.querySelector('.log-pane')?.textContent).toContain('1 error');
   });

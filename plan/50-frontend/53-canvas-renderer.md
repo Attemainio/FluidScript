@@ -2,7 +2,7 @@
 id: 53-canvas-renderer
 title: Canvas renderer
 tier: 50-frontend
-status: draft
+status: implemented
 owns: [SVG canvas rendering, viewport, the prepared scene, label geometry, declarative-symbol interpretation, axes, what the renderer does with a solved layout]
 depends_on: [25-layout-hints, 26-model-contract, 51-frontend-architecture]
 traces_to: [R-22, R-23, R-27, R-34, R-37, R-41, R-42, R-44, R-45, R-46, R-47, R-48]
@@ -31,6 +31,33 @@ interaction and write-back ([`54-interaction-and-writeback`](54-interaction-and-
 and theming ([`55-design-system`](55-design-system.md)), and how a solved property becomes a colour
 gradient or a legend ([`57-state-visualization`](57-state-visualization.md) — this document draws the
 shapes, that one decides what colour they are filled with).
+
+## As built
+
+P5.6 (2026-09-18) is `frontend/src/features/canvas`: `prepareScene(model)` in `scene.ts`, a pure
+function of the wire's `layout` and `symbols` returning the prepared scene below; `SceneView`, one
+React SVG component that draws it in world units under the pane's root transform, and is also what
+the golden test renders and what `59` will serialize; `viewport.ts`, the pan, zoom, fit and reset
+arithmetic; `CanvasPane`, the pane with the axes, the grid and the level of detail. What it draws:
+every placement with a box as its symbol's strokes under the Core instrument's transform (mirror,
+then the clockwise quarter turn, the y flip once at the root), an inline placement (a zero box on
+the wire, `D-105`) as nothing for a two-pipe node, a hollow dot for a boundary and a label for a
+pipe; every route from the back, cut around its own hops, with `fillet` as a quadratic corner of
+a quarter margin and an arrowhead on its longest segment from `layout.flow`; the label as the tag
+or the id at `labelAt`; a badge for the worst diagnostic addressed to the component and a hollow
+square for one carrying a sized or defaulted value; the `state` fill slot as a flat colour from
+the placement's `scale` through `55`'s fluid ramp (`fluidFill`, a `color-mix` of the two
+neighbouring stops), pulled forward from P5.10 so the first pictures read as a plant; the rest of
+`57` stays there. One world unit is 60 px at 1× (`worldUnitPx`), the Core instrument's scale, so
+the ladder's pictures and the canvas agree in size. Strokes keep their pixel width at every zoom
+(`vector-effect`), text scales with the drawing.
+
+**Not a Web Worker, and not until M4.** The threading section below was written when the layout
+was the frontend's; since `D-103` the geometry is Core's and what the frontend computes per model
+is a few hundred transform strings, which is not work worth a message boundary. `prepareScene` is
+pure so it can move to a worker when frame deltas (`43`, M4) give one something to do, and the
+budget criterion below stays unticked until it is measured in a browser, which P5.5's benchmark
+environment could not launch (`F-4`).
 
 ## Rendering technology
 
@@ -370,27 +397,27 @@ the labels.
 
 ## Acceptance criteria
 
-- [ ] The prepared scene passes the shared renderer/export golden test in [`59-static-export`](59-static-export.md).
-- [ ] An unknown component kind renders a labelled rectangle rather than breaking the canvas.
-- [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning.
-- [ ] Inferred components are visually distinguishable from declared ones without hovering.
-- [ ] Symbols carry their tag as a label, and a test asserts no DOM key, selection key, or export id
-      contains a tag.
-- [ ] The header's two pumps render with distinct DOM keys from their identifiers (`PU_AHU`,
-      `PU_RAD`) and distinct drawn labels from their tags (`101PU01`, `102PU01`).
+- [x] The prepared scene passes the shared renderer/export golden test in [`59-static-export`](59-static-export.md). (P5.6: one SVG per Api sample under `canvas/goldens`, rendered by the same component the pane uses; `59` reads the same markup.)
+- [x] An unknown component kind renders a labelled rectangle rather than breaking the canvas. (P5.6)
+- [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning. (Unmeasured: no browser launches in the build environment, `F-4`.)
+- [x] Inferred components are visually distinguishable from declared ones without hovering. (P5.6: `--canvas-symbol-inferred` and an italic label.)
+- [x] Symbols carry their tag as a label, and a test asserts no DOM key, selection key, or export id
+      contains a tag. (P5.6)
+- [x] The header's two pumps render with distinct DOM keys from their identifiers (`PU_AHU`,
+      `PU_RAD`) and distinct drawn labels from their tags (`101PU01`, `102PU01`). (P5.6)
 - [ ] Setting `spacing` to twice the default widens every gap and leaves everything Core computes
       but the layout byte-identical.
-- [ ] A modulating valve shows a 0–1 indicator whose accessible name states the numeric value.
+- [ ] A modulating valve shows a 0–1 indicator whose accessible name states the numeric value. (P5.10, with the state readouts.)
 - [ ] Layout/routing/render preparation is verified to run in the Web Worker; the UI thread performs
-      only the bounded SVG commit.
-- [ ] Keyboard and screen-reader users can reach the same component state and diagnostic information.
+      only the bounded SVG commit. (Deferred to M4, see *As built*.)
+- [ ] Keyboard and screen-reader users can reach the same component state and diagnostic information. (P5.6: every symbol is focusable in layout order with a title; the structured table is P5.11's.)
 - [ ] Groups over 10 members and scenes over 500 elements apply the specified initial-collapse rule
-      and still meet `07`'s budgets.
+      and still meet `07`'s budgets. (No collapse exists on either side yet; `F-7`.)
 - [ ] A tank renders exactly its resolved layer count and only its materialized port anchors, placing
-      30% on layer 2 and 90% on layer 5 for the five-layer reference.
-- [ ] A solved/transient flow reversal changes connection arrows and nothing else on the drawing.
-- [ ] Every placement and every route the renderer draws comes from the scene; a test asserts the
-      frontend computes no coordinate of its own.
+      30% on layer 2 and 90% on layer 5 for the five-layer reference. (The anchors are the layout's and drawn; the layer bands are P5.10's.)
+- [x] A solved/transient flow reversal changes connection arrows and nothing else on the drawing. (P5.6: asserted on the markup with the arrows stripped.)
+- [x] Every placement and every route the renderer draws comes from the scene; a test asserts the
+      frontend computes no coordinate of its own. (P5.6: every `translate` in the markup is a placement centre or label point; every route piece is the wire's polyline.)
 
 Everything about *where* things are -- corners, rails, bands, orientation, clearance -- is asserted
 in Core against [`28`](../20-core-domain/28-layout-solver.md)'s standard, not here.
