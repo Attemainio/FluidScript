@@ -11,7 +11,9 @@ Defects, deferrals and observations from implementing against `41`–`44`. The r
 are in [`08-implementation-sequence`](../08-implementation-sequence.md).
 
 `41`, `42` and `44` were implemented against by `P5.2` (2026-09-18): the host, the four REST
-endpoints, sessions with warm start and supersession, the limits, metadata and OpenAPI. **`43`, the
+endpoints, sessions with warm start and supersession, the limits, metadata and OpenAPI. `P5.5` added
+`format` to `42` and committed the metadata document and the editor's lexicon as goldens the same
+day. **`43`, the
 realtime contract, has not been looked at**; its absence below means nothing has looked, not that
 nothing is wrong. The `edit` endpoint of `42` is deferred whole to `P7.1` and is not a defect.
 
@@ -28,6 +30,7 @@ nothing is wrong. The `edit` endpoint of `42` is deferred whole to `P7.1` and is
 
 | # | Document | What was wrong | What changed |
 |---|---|---|---|
+| A-5 | [`42`](42-rest-contract.md) | **The metadata document's parameter and property order was process-dependent, so its ETag was too** | `42` makes `metadata` cacheable with an ETag, which only pays if the same registry gives the same bytes. `MetadataBuilder` enumerated each kind's parameters and properties from a dictionary, and the order a dictionary enumerates in depends on hash seeds that differ per process. Found 2026-09-18 when P5.5 committed the document as a golden for the completion tests and the second run rewrote it. In the same change the parameter ranges, which `42`'s example shows in the parameter's unit, were found on the wire in SI (a temperature's `typically −50…300` read as kelvin), so a completion detail would have shown `223…573`. | Parameters and properties are ordered by name; a range is converted to the parameter's canonical unit (`RangeIn`) before it goes on the wire, the way the value is. The golden is `Api.Tests/Contracts/Goldens/metadata.json` and the test regenerates it in place and fails once, like the schemas. |
 
 ## Observations
 

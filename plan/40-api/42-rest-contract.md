@@ -33,6 +33,7 @@ transient streaming ([`43-realtime-contract`](43-realtime-contract.md)), hosting
 | `POST` | `/api/v1/validate` | Parse and bind only — diagnostics, no physics | Editor, for fast feedback on large scripts |
 | `POST` | `/api/v1/solve` | Explicit solve, stricter than compile | The Solve button |
 | `POST` | `/api/v1/edit` | Apply a canvas edit, returning text edits | Canvas write-back (`R-25`) — lands with P7.1's mutation API, not P5.2 |
+| `POST` | `/api/v1/format` | The canonical layout of a script, as text edits (`17`) | The editor's Format command (`52`), P5.5 |
 | `GET` | `/api/v1/metadata` | Component kinds, parameters, units, diagnostic codes | Editor completion; agents (`R-29`) |
 
 ### `POST /api/v1/compile`
@@ -122,13 +123,37 @@ buffer revision; otherwise it discards the response and re-sends the operation w
 Operations mirror `IScriptEditor`: `setParameter`, `removeParameter`, `addComponent`, `addConnection`,
 `removeConnection`, `rename`, `materialize`.
 
+### `POST /api/v1/format` — the formatter, as edits
+
+```jsonc
+// request
+{ "script": "HE1   heat_exchanger power = 30\nPU1 pump\n" }
+
+// response
+{ "edits": [ { "span": { "start": 0, "length": 31 }, "newText": "HE1 heat_exchanger power=30" } ] }
+```
+
+Added by P5.5 (2026-09-18). The formatter lives in Core (`Formatter`, `17`) because it reads the
+lexer's tokens and trivia, and the editor asks for it the way it will ask for a canvas edit: one
+edit per changed line, spans in UTF-16 code units of the script sent, never overlapping, so the
+client applies them as one transaction and its cursor and undo history survive. No session and no
+revision: formatting is stateless and the client checks its own buffer is still the text it sent
+before applying. The same size limit and the same 413 as `compile`. A formatted script answers
+with an empty array.
+
 ### `GET /api/v1/metadata`
 
 The static description of the language: every component kind with parameters, aliases, units, ranges,
 fixed ports and indexed port/parameter-family patterns (`D-32`),
 `SymbolId` and `SymbolDefinition` delivered under `D-24`; every unit and diagnostic; current/supported language and contract
 versions; exact catalogue/property versions; quality/input/concurrency limits; and `docsIndex`, a URI
-to the matching generated function index. Cacheable with an ETag.
+to the matching generated function index. Cacheable with an ETag. Parameters and properties are
+listed by name and a parameter's range is in its canonical unit (P5.5, `A-5`), and the document is
+committed as `Api.Tests/Contracts/Goldens/metadata.json` so the editor's completion tests run against
+the real registry without a host. The editor's lexicon -- the reserved words, the unit symbols and
+`D-15`'s thresholds -- is not part of this document but a committed schema-side file,
+`Contracts/Schemas/language.json`, generated from Core like the schemas and consumed at the
+frontend's build (`52`).
 
 **This is the endpoint an LLM agent reads first** (`R-29`). It is also what drives editor completion,
 so the two consumers keep each other honest — a gap in the metadata shows up immediately as missing
@@ -238,6 +263,8 @@ declaration. A diagnostic about a name underlines the name.
 - [x] OpenAPI is generated and matches the hand-written contract tests (P5.2: `/openapi/v1.json`
       from `Microsoft.AspNetCore.OpenApi`; the test asserts every route is in it).
 - [x] Cancelling a request stops the solve (P5.2: supersession and disconnect both, `41`).
+- [x] `format` returns one edit per changed line and none for a formatted script, and the edits
+      applied give `Formatter.FormatText`'s output (P5.5; idempotence over the corpus is `17`'s test).
 - [x] No response duplicates model diagnostics; `/validate` is the only diagnostics-only response
       (P5.2; the compatibility-refused script's `model: null` envelope is the one exception, above).
 - [x] Shared JSON Schemas generate the C# and TypeScript transport DTOs and contract tests reject

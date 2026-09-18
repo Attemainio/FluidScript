@@ -21,17 +21,98 @@
 }
 
 .editor-pane {
-  display: block;
-  width: 100%;
   height: 100%;
-  padding: var(--space-3);
-  margin: 0;
   color: var(--editor-fg);
   background: var(--editor-bg);
-  border: none;
+}
+
+.editor-pane .cm-editor {
+  height: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-editor-size);
+  line-height: var(--text-editor-leading);
+  color: var(--editor-fg);
+  background: var(--editor-bg);
+}
+
+.editor-pane .cm-editor.cm-focused {
   outline: none;
-  resize: none;
-  tab-size: 4;
+}
+
+.editor-pane .cm-scroller {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.editor-pane .cm-gutters {
+  color: var(--text-muted);
+  background: var(--editor-bg);
+  border-right: var(--hairline) solid var(--border-subtle);
+}
+
+.editor-pane .cm-activeLine {
+  background: var(--surface-sunken);
+}
+
+.editor-pane .cm-activeLineGutter {
+  background: var(--surface-sunken);
+}
+
+.editor-pane .cm-selectionBackground,
+.editor-pane .cm-content ::selection {
+  background: var(--canvas-selection);
+  opacity: var(--selection-opacity);
+}
+
+.editor-pane .cm-cursor {
+  border-left-color: var(--editor-fg);
+}
+
+.editor-pane .cm-lintRange-error {
+  background-image: none;
+  text-decoration: wavy underline var(--syn-error);
+  text-decoration-skip-ink: none;
+}
+
+.editor-pane .cm-lintRange-warning {
+  background-image: none;
+  text-decoration: wavy underline var(--syn-warning);
+  text-decoration-skip-ink: none;
+}
+
+.cm-tooltip {
+  font-family: var(--font-ui);
+  font-size: var(--text-body-size);
+  color: var(--text-primary);
+  background: var(--surface-overlay);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-overlay);
+}
+
+.cm-tooltip.cm-tooltip-lint {
+  padding: var(--space-2);
+}
+
+.editor-diagnostic__code,
+.editor-diagnostic__related {
+  color: var(--text-secondary);
+  font-size: var(--text-label-size);
+}
+
+.cm-diagnosticAction {
+  font: inherit;
+  color: var(--text-inverse);
+  background: var(--fluid-cold);
+  border: none;
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+  margin-left: var(--space-2);
+  cursor: pointer;
+}
+
+.syn-invalid {
+  color: var(--syn-error);
 }
 
 .canvas-pane {

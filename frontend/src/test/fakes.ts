@@ -1,5 +1,11 @@
 import type { ApiClient, CompileRequest } from '../api/client.ts';
-import type { CompileResponse, Diagnostic, ModelContract, ValidateResponse } from '../api/types.ts';
+import type {
+  CompileResponse,
+  Diagnostic,
+  FormatResponse,
+  ModelContract,
+  ValidateResponse,
+} from '../api/types.ts';
 import type { Clock } from '../features/pipeline/compilePipeline.ts';
 
 /** A clock a test advances by hand, so ten seconds of typing take no time at all. */
@@ -70,6 +76,11 @@ export class FakeClient implements ApiClient {
   validate(script: string, _signal: AbortSignal): Promise<ValidateResponse> {
     return new Promise((resolve) => this.validations.push({ script, resolve }));
   }
+  format(script: string, _signal: AbortSignal): Promise<FormatResponse> {
+    return Promise.resolve({ edits: this.formatEdits(script) });
+  }
+  /** What `format` answers; a test replaces it. */
+  formatEdits: (script: string) => FormatResponse['edits'] = () => [];
   metadata(): Promise<never> {
     return Promise.reject(new Error('not used'));
   }

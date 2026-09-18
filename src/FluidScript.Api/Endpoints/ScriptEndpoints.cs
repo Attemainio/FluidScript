@@ -5,13 +5,14 @@ using FluidScript.Api.Pipeline;
 using FluidScript.Api.Sessions;
 using FluidScript.Core.Model;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Syntax;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 
 namespace FluidScript.Api.Endpoints;
 
-/// <summary>The script endpoints of <c>42</c>: compile, validate and solve.</summary>
+/// <summary>The script endpoints of <c>42</c>: compile, validate, solve and format.</summary>
 /// <remarks>
 /// The handlers own only what precedes a response (<c>41</c>): the size limit, the session's
 /// supersession, and turning a cancelled solve into an abandoned response. Everything about the
@@ -32,6 +33,7 @@ public static class ScriptEndpoints
         group.MapPost("/compile", CompileAsync).WithName("compile").WithSummary("Parse, bind, lower, size and solve; the debounce path.");
         group.MapPost("/solve", SolveAsync).WithName("solve").WithSummary("As compile, with an unconnected component or a disconnected graph as an error.");
         group.MapPost("/validate", ValidateAsync).WithName("validate").WithSummary("Parse and bind only: diagnostics, no physics.");
+        group.MapPost("/format", Format).WithName("format").WithSummary("The canonical layout (17), as text edits the editor applies as one undo step.");
 
         return group;
     }
@@ -67,6 +69,24 @@ public static class ScriptEndpoints
             Diagnostics = result.Diagnostics,
             Timings = result.Timings,
         });
+    }
+
+    private static Results<Ok<FormatResponse>, ProblemHttpResult> Format(FormatRequest request, IOptions<ApiOptions> options)
+    {
+        if (request.Script is null)
+        {
+            return Missing("script");
+        }
+
+        if (OverSize(request.Script, options.Value) is { } tooLarge)
+        {
+            return tooLarge;
+        }
+
+        // The formatter reads tokens and never throws on user input; a malformed script formats too (17).
+        var edits = Formatter.Format(new SourceText(request.Script));
+        return TypedResults.Ok(new FormatResponse(
+            [.. edits.Select(static e => new TextEditWire(new SpanWire(e.Span.Start, e.Span.Length), e.NewText))]));
     }
 
     private static async Task<Results<Ok<CompileResponse>, ProblemHttpResult, StatusCodeHttpResult>> RunAsync(

@@ -16,5 +16,6 @@ export default defineConfig({
     // 62's frontend unit tier. jsdom only where a test touches the document; the design tests are pure.
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}'],
+    setupFiles: ['src/test/setup.ts'],
   },
 });

@@ -283,6 +283,7 @@ The largest phase and the one where scope creeps, because every package is visib
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](50-frontend/52-editor.md), [`17`](10-language/17-formatting-and-round-trip.md)) |
 | P5.6 | Canvas viewport and Core-owned symbols ([`53`](50-frontend/53-canvas-renderer.md), `D-24`) — draws `layout.placements` and `layout.routes` |
+| P5.6b | **Look and feel** ([`55`](50-frontend/55-design-system.md), [`51`](50-frontend/51-frontend-architecture.md)): the token pass on radius, spacing, type size and surface softness, the theme control demoted to a settings menu, an empty state that starts from a sample, the log's non-programmer defaults; exit is the user's judgement on screenshots with the diagram in place |
 | P5.7 | ~~The layout engine~~ — moved to Core as P5.1d by `D-103`; what remains here is the renderer's consumption of the prepared scene ([`53`](50-frontend/53-canvas-renderer.md)) |
 | P5.8 | Hover, selection, console log, status line ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)) |
 | P5.9 | File lifecycle and document tabs ([`58`](50-frontend/58-file-lifecycle.md), `D-39`) |
@@ -291,6 +292,23 @@ The largest phase and the one where scope creeps, because every package is visib
 
 **P5.3 precedes every component that has a colour**, so the "no literal colour outside the theme
 files" assertion never has to be enforced retroactively across a built UI.
+
+**P5.6b exists because the first screenshot was judged, and it sits after the diagram on purpose.**
+The user's verdict on P5.5's screenshot (2026-09-18) was "technical and structural": a code editor,
+a bulleted list where the drawing will be, and a compiler's log, which together read as an IDE and
+would intimidate a non-programmer. Three causes with three costs: the canvas is empty until P5.6,
+which is the one change that flips the feel and is already next; the log speaks compiler, which
+`56` and P5.8 own; and the chrome is flat and dense, which is a token pass `55` anticipated (its
+surfaces, text and spacing were valued only to clear the contrast test, its defects entry says so).
+Restyling before the diagram exists would tune the chrome around a void and be retuned once the
+picture is in, so the pass is one package after P5.6, judged on screenshots of the real thing, with
+the empty state and the log's defaults folded in so the first minute is handled once. What it keeps:
+the editor's density, which is `11`'s principle P1 and the professional half. A change to a value
+`55` fixes to the hex takes a `D-` entry; the surfaces and spacing it never fixed take none. Two
+questions the package must answer before it starts, put to the user and not yet answered: who the
+non-programmer is (an engineer who writes scripts, or a reader who adjusts numbers on the diagram,
+which decides whether the editor can be hidden by default), and whether the product opens light
+regardless of the OS setting.
 
 **P5.5 carries the formatter, which no package claimed until it was looked for.** `17` owns it and
 `52` binds it to `Shift+Alt+F`, but `08` scheduled only the printer (P2.5), so the one operation of

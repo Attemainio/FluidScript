@@ -15,3 +15,7 @@ public sealed record CompileRequest(string? SessionId, string? Script, bool? Sol
 /// <summary>The body of <c>POST /api/v1/validate</c> (<c>42</c>): parse and bind only.</summary>
 /// <param name="Script">The whole script text. Required; over the size limit is 413.</param>
 public sealed record ValidateRequest(string? Script);
+
+/// <summary>The body of <c>POST /api/v1/format</c> (<c>42</c>): the script to lay out.</summary>
+/// <param name="Script">The whole script text. Required; over the size limit is 413.</param>
+public sealed record FormatRequest(string? Script);

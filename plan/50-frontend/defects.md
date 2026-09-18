@@ -13,16 +13,19 @@ are in [`08-implementation-sequence`](../08-implementation-sequence.md).
 `55` was implemented by `P5.3` (2026-09-18): the tokens, the two themes, the generated cascade,
 custom theme files, eight of the twelve primitives, and the design tests. `51` by `P5.4` the same
 day: the shell, the four stores, the typed client and the generated wire types, the debounce
-pipeline with its validate phase. `58` was read for the workspace store's shape and `56` for the
-log's; neither is implemented. **Nothing has looked at `52`–`54`, `57` or `59`**; their absence
-below means nothing has looked, not that nothing is wrong.
+pipeline with its validate phase. `52` by `P5.5` the same day: the editor with its tokenizer,
+diagnostics, completion, the formatter's command and the benchmark's harness. `58` was read for the
+workspace store's shape and `56` for the log's; neither is implemented. **Nothing has looked at
+`53`, `54`, `57` or `59`**; their absence below means nothing has looked, not that nothing is wrong.
 
 ## Open
 
 | # | Document | What | Why it is still open |
 |---|---|---|---|
 | F-1 | [`55`](55-design-system.md) | **The literal scan reads CSS, not TSX attributes** | `55` invariant 1 forbids a literal colour, size or duration outside the token definitions, and `63` lists the check with the architecture tests. The test scans every `.ts`, `.tsx` and `.css` under `src/` for a colour in any form, and `.css` for a `px`/`ms`/`em` literal; a size in a TSX attribute -- `<svg width="240">`, an inline `style={{ width: 240 }}` -- passes. Colours in TSX are caught (the preview's SVG strokes are `var(--…)` for that reason); sizes in TSX are a review matter until a canvas exists to say which attributes are geometry (Core's numbers, which are not tokens) and which are presentation. Filed 2026-09-18 with P5.3. |
-| F-4 | [`51`](51-frontend-architecture.md), [`D-49`](../00-foundation/06-decision-log.md) | **The debounce is 300 ms by default, not by measurement** | `D-49` makes the debounce a measured value with a 200 ms typing-cadence floor and `D-48`'s gate as its ceiling, recorded as a baseline. P5.4 ships `51`'s recorded default of 300 ms in `pipeline/debounce.ts` because the measurement is `D-48`'s keystroke-to-squiggle benchmark, which is Playwright driving the real editor, and the editor is P5.5. Until then the value is provisional and `09`'s baseline says so. What closes it: P5.5's benchmark on the syntax tour and the 200-declaration script, the value moved inside the bounds, and the baseline recorded. A value that lands more than a factor of two from 300 ms is `D-49`'s requirement conversation, not a benchmark result. |
+| F-4 | [`51`](51-frontend-architecture.md), [`D-49`](../00-foundation/06-decision-log.md) | **The debounce is 300 ms by default, not by measurement** | `D-49` makes the debounce a measured value with a 200 ms typing-cadence floor and `D-48`'s gate as its ceiling, recorded as a baseline. P5.4 ships `51`'s recorded default of 300 ms in `pipeline/debounce.ts` because the measurement is `D-48`'s keystroke-to-squiggle benchmark, which is Playwright driving the real editor, and the editor is P5.5. P5.5 built the benchmark (`frontend/e2e/latency.bench.ts`, `npm run bench`, `62`) and could not run it: the machine it was built on has no browser Playwright can launch (Chromium's headless shell wants `libnspr4`/`libnss3`, which need root to install, and the Windows-side Edge cannot be reached from WSL without exposing a debugging port). What closes it: `npx playwright install-deps chromium` or the apt equivalent on a machine with root, then `npm run bench` on the syntax tour and the 200-declaration script, the value moved inside the bounds, and the baseline recorded from `diagnostics/keystroke-latency.md`. A value that lands more than a factor of two from 300 ms is `D-49`'s requirement conversation, not a benchmark result. |
+| F-5 | [`52`](52-editor.md), [`26`](../20-core-domain/26-model-contract.md), [`15`](../10-language/15-semantic-model.md) | **A deferred `let` has no dimension on the wire, so completion offers it unfiltered** | What `52` asks: `let x = 1.2*HE1.dp` has no value until the solve but has a *dimension* as soon as `HE1.dp`'s is known, which is at bind time, and value completion after `dp=` should offer it and completion after `power=` should not. What the binder does: an expression that references a component property is deferred whole (`15`), and the deferred binding carries no type -- the evaluator that would have produced the dimension is the one that runs after the solve. `BindingWire.Dimension` is therefore `null` for a deferred binding and the frontend offers it in every value position, dimmed and marked deferred, which is the unfiltered fallback and not the filter. Wrong in the way `13`'s two temperature dimensions exist to catch: a deferred `TemperatureDelta` is offered after `out=`. What closes it: the binder typing a deferred expression from the registry dimensions of the properties it references, at bind time, without evaluating it -- a dimension-only pass over the expression tree. Filed 2026-09-18 with P5.5. |
+| F-6 | [`52`](52-editor.md) | **An ambiguous kind lists both candidates, but the first is preselected** | `52`'s rule: where `D-15`'s 0.05 margin would produce `FS1513`, completion lists both candidates adjacent and picks neither, so the editor never makes a choice the compiler refuses to make. Completion computes the ambiguity (`completion.ts`, the `ambiguous` flag, asserted on `sensr`, which scores `p_sensor` and `t_sensor` within the margin) and ranks the pair adjacent. CodeMirror preselects the first option of every list (`selectOnOpen`), and the setting is global to the completion extension, not per result; turning it off unselects the list in every position, so `heat_ex` Tab would need an arrow key first, which is the wrong trade. Enter on the preselected item inserts the first of the pair. What closes it: a per-result way to open with no selection (`@codemirror/autocomplete` 6.20 has none), or a header item that is not insertable. Small, and filed so the unticked criterion in `52` has an owner. Filed 2026-09-18 with P5.5. |
 | F-2 | [`55`](55-design-system.md), [`53`](53-canvas-renderer.md) | **The proportional label metric is a reservation, not a measurement** | `D-73` has the canvas label's box come from a declared advance width. The monospace readout's 0.6 em is the largest of the stack's real metrics; the label's 0.62 em is what a tag of capitals and digits in Segoe UI needs, with nothing behind it but that estimate, because no label has been laid out yet. When P5.6 draws the first labelled scene, measure the widest sample tag in each font of the stack against `0.62 × characters × 11 px` and move the number if one overflows. |
 
 ## Closed
@@ -73,4 +76,30 @@ module that is legal and the global is only shadowed there; `api/types.ts` re-ex
 file, so the name is seen once.
 
 **The preview page was scaffolding**, and P5.4's shell replaced it the same day; the `.syn-*`
-classes in `theme.css` are the names `52` binds the Lezer tokens to and stay.
+classes in `theme.css` are the names `52` binds the tokenizer's roles to and stay.
+
+**The editor's grammar is a stream tokenizer, not a Lezer grammar, and `52` now says why.** The
+short form: `12`'s word classification is a longest-match lookup in the unit table, which a
+generated Lezer automaton cannot express and an external tokenizer would hand-write anyway; the
+tree a grammar would give buys folding and bracket matching, neither in `52`. The cost that is real
+is that a Lezer grammar would have been a second, checkable statement of `12`; the stream tokenizer
+is a port of the lexer's rules with the same corpus test (`TokenGoldenTests` on both sides), so the
+check is there and the statement is not. If a later package wants the tree, the tokenizer is the
+external tokenizer it would wrap.
+
+**Two test hooks reach into the editor, and neither is a React prop.** The shell test and the
+benchmark both need the live `EditorView`, which lives in a ref inside `EditorPane`. The test's way
+in is `activeView.ts`, a registry the pane writes to when it mounts (`activeEditorView()`); the
+benchmark's is a dev-only object on `window` (`window.fluidscript`) that the pane sets under
+`import.meta.env.DEV`, never in a build; the same block reads `?script=` from the URL so a headless
+screenshot can open on a real document, which is how the product was first looked at. Both exist because `documents.ts` holds a state per
+document outside React (`51` invariant 1) and the pipeline's handler is registered once and looked
+up at dispatch time (`registerEditorHandler`), so that a state created in one test cannot capture
+the pipeline of another. The first shape, states capturing the pane's pipeline in a closure, passed
+alone and failed in a suite, which is how it was found.
+
+**The metadata's parameter order was the hash order of a dictionary.** Committing the metadata
+document as a golden for the completion tests (`A-5`) showed it: two runs of the Api host listed
+a kind's parameters in different orders, so the ETag differed between processes for the same
+registry. Ordered by name now, on the Api side; the frontend never sorted, and its completion
+ranking is its own.

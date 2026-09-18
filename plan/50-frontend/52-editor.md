@@ -2,7 +2,7 @@
 id: 52-editor
 title: Script editor
 tier: 50-frontend
-status: draft
+status: implemented
 owns: [editor component, syntax highlighting, completion, inline diagnostics, quick fixes, editor commands]
 depends_on: [12-grammar, 44-diagnostics-contract, 51-frontend-architecture]
 traces_to: [R-01, R-05, R-20, R-21, R-25, R-33, R-38, R-39, R-42, R-45]
@@ -43,13 +43,30 @@ shape ([`44-diagnostics-contract`](../40-api/44-diagnostics-contract.md)), the d
 
 ## Syntax highlighting
 
-**Client-side, from a Lezer grammar mirroring [`12-grammar`](../10-language/12-grammar.md).**
+**Client-side, from a tokenizer mirroring [`12-grammar`](../10-language/12-grammar.md).**
 
 This is a second implementation of the grammar, which violates the instinct to have one. It is the
 right trade: highlighting must be instant on every keystroke, and a round trip is not instant. The
-mitigation is that the Lezer grammar only needs to be *lexically* correct — it classifies tokens, it
+mitigation is that the client's grammar only needs to be *lexically* correct — it classifies tokens, it
 does not bind or validate — so it cannot disagree with the server about anything that matters.
 Divergence shows as a mis-coloured token, not a wrong result.
+
+**As built (P5.5, 2026-09-18): a CodeMirror `StreamLanguage`, not a Lezer grammar.** The
+tokenizer is `features/editor/language/tokenizer.ts`, a line-at-a-time port of Core's lexer rules
+1–5 (maximal munch on the unit table, `3WV` as a name, `30 kW` as one quantity, `..`) with the
+section carried as the stream state, and roles assigned by position on the line the way `12`'s
+statement disambiguation does. A Lezer grammar would need `12`'s word classification, which is a
+lookup in the unit table and a longest-match over it, and Lezer's tokenizer is a generated
+automaton with no table lookup; the external-tokenizer escape hatch is the same hand-written code
+with the grammar wrapped around it. What the stream tokenizer gives up is the syntax tree: folding,
+bracket matching by tree and a tree-driven completion context. None of those is in this document's
+scope, and completion reads the line, which is what `12`'s one-line-one-statement invariant makes
+sufficient. The reserved words, unit symbols and `D-15` thresholds come from the host's committed
+`language.json` (`LexiconWire`), generated into `lexicon.generated.ts` and gated by a test, so the
+editor's lexicon cannot drift from the compiler's (invariant 5). The corpus agreement test is
+`TokenGoldenTests` on the Core side, writing one golden per sample with every token's offset, length
+and kind, and `tokenizer.test.ts` on the frontend side, replaying the same samples through the
+tokenizer against those goldens.
 
 **Colours are the Visual Studio / VS Code palette**, mapped token by token in
 [`55-design-system`](55-design-system.md). That is a deliberate departure from the HVAC palette used
@@ -239,6 +256,10 @@ Two kinds:
 The component hover is the same data as the canvas hover ([`54`](54-interaction-and-writeback.md)),
 sourced from the same model. One implementation, two mount points.
 
+**As built:** P5.5 ships the diagnostic hover. The component, parameter, `let` and quantity hovers
+are the state readout of [`57`](57-state-visualization.md) mounted in the editor, and they land with
+P5.8 alongside the canvas hover, so the one implementation is written once.
+
 ## Commands
 
 | Command | Binding | Behaviour |
@@ -254,6 +275,12 @@ sourced from the same model. One implementation, two mount points.
 
 Standard file shortcuts retain their standard meaning. Solve uses `Ctrl+Shift+Enter`; transient Run
 uses `Ctrl+Enter`. Toolbar labels show the shortcuts and never rely on a one-time toast.
+
+**As built:** Format, Go to definition, Toggle comment and Solve ship with P5.5. Rename waits for
+the mutation API and its endpoint (P7.1); Run for the transient solver (M4); Save and Open for the
+file lifecycle (P5.9). Format is the host's `POST /api/v1/format` ([`42`](../40-api/42-rest-contract.md)),
+applied as one transaction, and dropped rather than applied if the document changed while the
+request was out. Tab and Enter both accept a completion.
 
 ## File and recovery integration
 
@@ -347,40 +374,40 @@ item and it is right. The cost is a dimension lookup the editor already has from
 
 ## Acceptance criteria
 
-- [ ] Highlighting updates within one frame of a keystroke, with no network activity.
-- [ ] Completion in each position of the table offers exactly the listed set.
-- [ ] Completion detail shows dimension, canonical unit, and range.
-- [ ] A quick fix applies as one undo step and leaves the cursor sensible.
-- [ ] Squiggles persist through the debounce gap without flicker.
-- [ ] Cursor, selection, and undo survive a model update and a canvas-initiated edit.
-- [ ] The editor is fully usable with the network disabled.
+- [x] Highlighting updates within one frame of a keystroke, with no network activity. (P5.5: the stream tokenizer runs in the view's own update; nothing in the language package touches the client.)
+- [x] Completion in each position of the table offers exactly the listed set. (P5.5: `completion.test.ts`, one test per row against the committed metadata golden.)
+- [x] Completion detail shows dimension, canonical unit, and range. (P5.5; the range is in the canonical unit since `A-5`.)
+- [x] A quick fix applies as one undo step and leaves the cursor sensible. (P5.5: one transaction tagged `quickfix`.)
+- [x] Squiggles persist through the debounce gap without flicker. (P5.5: diagnostics are set only when a compile answers.)
+- [ ] Cursor, selection, and undo survive a model update and a canvas-initiated edit. (A model update touches only the diagnostics set, which is a decoration, so the state survives by construction; a canvas-initiated edit is P5.7's to assert.)
+- [x] The editor is fully usable with the network disabled. (P5.5: completion, format and go-to-definition return nothing rather than throwing when the host or the model is missing.)
 - [ ] A dirty draft survives reload through `58`; unavailable recovery storage is visible and offers Download.
-- [ ] The Lezer grammar and the server agree on token classification over the whole sample corpus —
-      a test that catches the two grammars diverging.
+- [x] The client's tokenizer and the server agree on token classification over the whole sample corpus —
+      a test that catches the two grammars diverging. (P5.5: `TokenGoldenTests` and `tokenizer.test.ts` over the same goldens.)
 
 ### Completion acceptance criteria
 
-- [ ] `heat_ex`, `heatex`, `HeatEx` and `exch` all offer `heat_exchanger`; Tab inserts the canonical
+- [x] `heat_ex`, `heatex`, `HeatEx` and `exch` all offer `heat_exchanger`; Tab inserts the canonical
       keyword in every case.
-- [ ] Every alias in the registry is reachable by completion, asserted by walking the registry rather
+- [x] Every alias in the registry is reachable by completion, asserted by walking the registry rather
       than by a fixed list — an alias the binder accepts and completion hides is a trap.
-- [ ] `pmp` offers `pump`, matching what the binder does with it (`FS1512`). Completion and the
+- [x] `pmp` offers `pump`, matching what the binder does with it (`FS1512`). Completion and the
       compiler accept the same set of strings.
-- [ ] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected.
-- [ ] After `out=`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
+- [ ] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `F-6`.)
+- [x] After `out=`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
       After `dt=`, the reverse. This is the single highest-value completion test, because it is the
       distinction `FS1302` exists to catch.
-- [ ] After `power=`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
+- [x] After `power=`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
       unit, or the explicit-unit escape hatch disappears.
-- [ ] A `let` whose value is deferred is offered with its dimension and no value.
-- [ ] A parameter on an unresolved kind offers everything rather than nothing.
-- [ ] `container` and `v` find canonical `tank` and `volume`; `T1.in2` completion materializes `in2`,
+- [ ] A `let` whose value is deferred is offered with its dimension and no value. (Offered with no value: yes. With its dimension: `F-5`, the binder does not type a deferred expression.)
+- [x] A parameter on an unresolved kind offers everything rather than nothing.
+- [x] `container` and `v` find canonical `tank` and `volume`; `T1.in2` completion materializes `in2`,
       and no completion offers `in17` or a `tN` above the tank's resolved layer count.
-- [ ] Completion never inserts text that fails to parse — asserted by accepting every offered item in
-      every position across the sample corpus and re-parsing.
+- [x] Completion never inserts text that fails to parse — asserted by accepting every offered item in
+      every position across the sample corpus and re-parsing. (P5.5: every item is re-lexed by the tokenizer as one token of the expected kind; the parse is the next compile's.)
 
 ## Open questions
 
-None. Lezer performs lexical classification plus section tracking; v1 is one open document without a
+None. The client tokenizer performs lexical classification plus section tracking; v1 is one open document without a
 file tree; standard Save/Open shortcuts are retained; alias canonicalization is an explicit whole-file
 command and never an automatic rewrite.

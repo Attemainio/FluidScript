@@ -96,10 +96,14 @@ public sealed class MetadataDocument
         Ports = [.. kind.Ports.Select(static port => new PortWire(port.Name, Role(port.Role), port.IsOptional))],
         PortFamilies = [.. kind.PortFamilies.Select(static family => new PortFamilyWire(
             family.Prefix, family.MinIndex, family.MaxIndex, Role(family.Role), family.LevelParameterSuffix))],
-        Parameters = [.. kind.Parameters.Values.Select(Parameter)],
+        // The registry holds parameters and properties in dictionaries, whose order is the process's
+        // string hashing and differs between runs; the document must be the same bytes on every host
+        // (42: a pure function of the deployed build, and the ETag depends on it), so both are ordered
+        // by name. A-5.
+        Parameters = [.. kind.Parameters.Values.OrderBy(static p => p.Name, StringComparer.Ordinal).Select(Parameter)],
         IndexedParameters = [.. kind.IndexedParameterFamilies.Select(static family => new IndexedParameterWire(
             family.Pattern, family.MinIndex, family.MaxIndex, family.MaxIndexParameter, Parameter(family.Element)))],
-        Properties = [.. kind.Properties.Values.Select(Property)],
+        Properties = [.. kind.Properties.Values.OrderBy(static p => p.Name, StringComparer.Ordinal).Select(Property)],
         IndexedProperties = [.. kind.IndexedPropertyFamilies.Select(static family => new IndexedPropertyWire(
             family.Pattern, family.MinIndex, family.MaxIndex, family.MaxIndexParameter, Property(family.Element)))],
         ActuatedParameter = kind.ActuatedParameter,
@@ -119,11 +123,28 @@ public sealed class MetadataDocument
         Omission = parameter.OmissionBehavior.ToString().ToLowerInvariant(),
         Default = parameter.DefaultLiteral,
         DefaultBasis = parameter.DefaultBasis,
-        UsualRange = parameter.UsualRange is { } usual ? new RangeMetaWire(usual.Min, usual.Max) : null,
-        ValidRange = parameter.Validity is { } validity ? new RangeMetaWire(validity.Range.Min, validity.Range.Max) : null,
+        UsualRange = RangeIn(parameter.UsualRange, parameter.Dimension),
+        ValidRange = RangeIn(parameter.Validity?.Range, parameter.Dimension),
         WholeNumber = parameter.Validity?.RequiresWholeNumber ?? false,
         DisplayPrecision = parameter.DisplayPrecision,
     };
+
+    /// <summary>A registry range, held in SI, in the unit the parameter is reported in, as <see cref="RangeMetaWire"/> promises.</summary>
+    /// <param name="range">The range in SI, or <see langword="null"/>.</param>
+    /// <param name="dimension">The parameter's dimension, whose canonical unit converts it.</param>
+    /// <returns>The range in the canonical unit; in SI when the dimension has no canonical unit.</returns>
+    private static RangeMetaWire? RangeIn(Range<double>? range, Dimension dimension)
+    {
+        if (range is not { } si)
+        {
+            return null;
+        }
+
+        var unit = UnitTable.CanonicalUnitFor(dimension);
+        return unit is null
+            ? new RangeMetaWire(si.Min, si.Max)
+            : new RangeMetaWire(unit.FromSi(si.Min), unit.FromSi(si.Max));
+    }
 
     private static PropertyMetaWire Property(PropertyInfo property) =>
         new(property.Name, property.Dimension.IsNamed ? property.Dimension.Name : null, property.CanonicalUnit, property.Availability.ToString().ToLowerInvariant());

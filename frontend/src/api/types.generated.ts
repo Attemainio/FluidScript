@@ -846,13 +846,21 @@ export interface Binding {
    */
   name: string;
   /**
-   * The value in .
+   * The value in , or null when the binding is deferred to the solve.
    */
   value: number | null;
   /**
-   * The canonical unit, or null when dimensionless.
+   * The canonical unit, or null when dimensionless or deferred.
    */
   unit: string | null;
+  /**
+   * The dimension's name, so the editor can filter completion by it (52); null for a dimensionless, an unnamed or a deferred binding.
+   */
+  dimension: string | null;
+  /**
+   * For an unnamed dimension, the SI spelling the value carries, shown dimmed by completion; otherwise null.
+   */
+  siUnit: string | null;
 }
 
 export interface Diagnostic {

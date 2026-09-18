@@ -52,3 +52,12 @@ public sealed record ValidateResponse
     /// <summary>Stage timings; sizing and solving are zero here.</summary>
     public required TimingsWire Timings { get; init; }
 }
+
+/// <summary>The body of a 200 from <c>format</c> (<c>42</c>, <c>17</c>): the edits that bring the script to the canonical layout.</summary>
+/// <param name="Edits">One edit per line that changes, in document order, spans never overlapping; empty for a script already formatted.</param>
+public sealed record FormatResponse(ImmutableArray<TextEditWire> Edits);
+
+/// <summary>One text replacement (<c>17</c>).</summary>
+/// <param name="Span">The span to replace, in UTF-16 code units of the script sent.</param>
+/// <param name="NewText">What replaces it.</param>
+public sealed record TextEditWire(SpanWire Span, string NewText);

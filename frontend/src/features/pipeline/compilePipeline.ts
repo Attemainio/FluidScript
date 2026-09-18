@@ -40,6 +40,7 @@ export class CompilePipeline {
   private readonly validateDelayMs: number;
   private readonly sessions = new Map<string, string>();
   private pending: Pending | null = null;
+  private last: Pending | null = null;
   private debounceHandle: unknown = null;
   private validateHandle: unknown = null;
   private inFlight: {
@@ -50,7 +51,9 @@ export class CompilePipeline {
   private validateInFlight: AbortController | null = null;
   private requestsSent = 0;
 
-  private readonly client: ApiClient;
+  /** The client the pipeline sends through; the shell loads the metadata through the same one. */
+  readonly client: ApiClient;
+
   private readonly drafts: DraftActions;
 
   constructor(
@@ -95,18 +98,25 @@ export class CompilePipeline {
   /** An edit: the document's new text at `revision`. Restarts the debounce. */
   edit(documentId: string, script: string, revision: number): void {
     this.pending = { documentId, revision, script };
+    this.last = this.pending;
     this.clearTimers();
-    this.debounceHandle = this.clock.setTimeout(() => this.fire(), this.debounceMs);
+    this.debounceHandle = this.clock.setTimeout(() => this.fire('compile'), this.debounceMs);
     if (this.latency.validatePhase) {
       this.validateHandle = this.clock.setTimeout(() => void this.validate(), this.validateDelayMs);
     }
   }
 
-  /** Compiles what is pending now, without waiting for the debounce; the Solve button's path. */
-  flush(): void {
+  /**
+   * Sends what is pending now, without waiting for the debounce. `solve` is the Solve button's path:
+   * the stricter endpoint (`42`), on the current text even when nothing is pending.
+   */
+  flush(mode: 'compile' | 'solve' = 'compile'): void {
+    if (this.pending === null && mode === 'solve' && this.last !== null) {
+      this.pending = this.last;
+    }
     if (this.pending !== null) {
       this.clearTimers();
-      this.fire();
+      this.fire(mode);
     }
   }
 
@@ -157,7 +167,7 @@ export class CompilePipeline {
     return session;
   }
 
-  private fire(): void {
+  private fire(mode: 'compile' | 'solve' = 'compile'): void {
     const request = this.pending;
     this.debounceHandle = null;
     if (request === null) {
@@ -173,11 +183,12 @@ export class CompilePipeline {
     this.drafts.beginCompile(request.documentId, request.revision);
 
     const started = this.clock.now();
-    void this.client
-      .compile(
-        { sessionId: this.sessionOf(request.documentId), script: request.script },
-        controller.signal,
-      )
+    const body = { sessionId: this.sessionOf(request.documentId), script: request.script };
+    const call =
+      mode === 'solve'
+        ? this.client.solve(body, controller.signal)
+        : this.client.compile(body, controller.signal);
+    void call
       .then(
         (response) => {
           if (controller.signal.aborted) {

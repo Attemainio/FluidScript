@@ -1,4 +1,10 @@
-import type { CompileResponse, Metadata, ProblemDetails, ValidateResponse } from './types.ts';
+import type {
+  CompileResponse,
+  FormatResponse,
+  Metadata,
+  ProblemDetails,
+  ValidateResponse,
+} from './types.ts';
 
 /** The body of `POST /api/v1/compile` and `/solve` (`42`). */
 export interface CompileRequest {
@@ -30,6 +36,7 @@ export interface ApiClient {
   compile(request: CompileRequest, signal: AbortSignal): Promise<CompileResponse>;
   solve(request: CompileRequest, signal: AbortSignal): Promise<CompileResponse>;
   validate(script: string, signal: AbortSignal): Promise<ValidateResponse>;
+  format(script: string, signal: AbortSignal): Promise<FormatResponse>;
   metadata(signal: AbortSignal): Promise<Metadata>;
 }
 
@@ -52,6 +59,7 @@ export function createClient(fetchImpl: typeof fetch = fetch, base = ''): ApiCli
     compile: (request, signal) => post('/api/v1/compile', request, signal),
     solve: (request, signal) => post('/api/v1/solve', request, signal),
     validate: (script, signal) => post('/api/v1/validate', { script }, signal),
+    format: (script, signal) => post('/api/v1/format', { script }, signal),
     metadata: async (signal) =>
       read<Metadata>(await fetchImpl(base + '/api/v1/metadata', { signal })),
   };

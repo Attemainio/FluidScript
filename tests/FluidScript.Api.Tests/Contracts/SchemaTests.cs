@@ -14,7 +14,7 @@ public sealed class SchemaTests
 
     public static string Directory { get; } = Path.Combine(RepositoryLayout.Source, "FluidScript.Api", "Contracts", "Schemas");
 
-    public static TheoryData<string> Schemas => ["model-contract", "compile-response", "metadata"];
+    public static TheoryData<string> Schemas => ["model-contract", "compile-response", "metadata", "language"];
 
     [Theory]
     [MemberData(nameof(Schemas))]
@@ -24,9 +24,11 @@ public sealed class SchemaTests
         {
             "model-contract" => ApiJson.ModelContractSchema(),
             "compile-response" => ApiJson.CompileResponseSchema(),
+            "language" => ApiJson.Lexicon(),
             _ => ApiJson.MetadataSchema(),
         };
-        var path = Path.Combine(Directory, name + ".schema.json");
+        var path = Path.Combine(Directory, name == "language" ? "language.json" : name + ".schema.json");
+
 
         if (Environment.GetEnvironmentVariable(UpdateVariable) == "1")
         {

@@ -22,7 +22,7 @@ export function Shell(): React.ReactNode {
     <div className="shell">
       <Toolbar>
         <h1>FluidScript</h1>
-        <Button variant="primary" onClick={() => pipeline.flush()}>
+        <Button variant="primary" onClick={() => pipeline.flush('solve')} title="Ctrl+Shift+Enter">
           Solve
         </Button>
         <Button disabled title="Transient runs arrive with M4">

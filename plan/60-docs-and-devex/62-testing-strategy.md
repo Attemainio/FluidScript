@@ -326,6 +326,18 @@ Three component figures are recorded alongside it, because a regression in the s
 without them: the debounce actually in force, the server's compile time, and the payload's
 serialize-plus-parse cost. They are diagnostic, not gates — `07` states which one governs.
 
+**As built (P5.5, 2026-09-18):** the benchmark is `frontend/e2e/latency.bench.ts` under
+`playwright.config.ts`, run by `npm run bench`, never in a gate; the config starts the Api host and
+the Vite dev server itself. The editor pane exposes a dev-only hook on `window` (`setText`, `text`,
+`timings`, `debounceMs`) that the benchmark drives, because a synthesized keypress through
+CodeMirror's contenteditable is the flakiest part of any editor benchmark and the hook dispatches the
+same transaction a key does. It appends an unknown parameter to the first declaration, waits for the
+error squiggle whose text starts with that parameter, and writes ten samples per script as median,
+p95 and max to `diagnostics/keystroke-latency.md` with the debounce and the host's compile time
+alongside. **Not yet run:** the environment the package was built in has no browser that can
+launch (`F-4`), so the numbers are not recorded and the debounce is still `51`'s provisional
+300 ms.
+
 **The layout engine is unit-testable and must be**: given hints, assert placements. It is the most
 algorithmically complex frontend code and the least suited to visual-only testing. The section below
 states how.

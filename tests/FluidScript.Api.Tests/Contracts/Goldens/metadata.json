@@ -1,0 +1,4382 @@
+{
+  "restMajor": 1,
+  "contractVersion": "2.0",
+  "language": {
+    "current": 1,
+    "supported": [
+      1
+    ]
+  },
+  "kinds": [
+    {
+      "keyword": "node",
+      "aliases": [
+        "point",
+        "junction"
+      ],
+      "tagCode": null,
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "node.junction",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "h",
+          "dimension": "Enthalpy",
+          "unit": "J/kg",
+          "availability": "solved"
+        },
+        {
+          "name": "p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "rho",
+          "dimension": "Density",
+          "unit": "kg/m3",
+          "availability": "solved"
+        },
+        {
+          "name": "t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "inlet",
+      "aliases": [
+        "source"
+      ],
+      "tagCode": null,
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "node.junction",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "require",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "h",
+          "dimension": "Enthalpy",
+          "unit": "J/kg",
+          "availability": "solved"
+        },
+        {
+          "name": "p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "rho",
+          "dimension": "Density",
+          "unit": "kg/m3",
+          "availability": "solved"
+        },
+        {
+          "name": "t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "outlet",
+      "aliases": [
+        "sink"
+      ],
+      "tagCode": null,
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "node.junction",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "h",
+          "dimension": "Enthalpy",
+          "unit": "J/kg",
+          "availability": "solved"
+        },
+        {
+          "name": "p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "rho",
+          "dimension": "Density",
+          "unit": "kg/m3",
+          "availability": "solved"
+        },
+        {
+          "name": "t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "pipe",
+      "aliases": [
+        "tube"
+      ],
+      "tagCode": null,
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "pipe.standard",
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "optional": false
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "optional": false
+        }
+      ],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "dn",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "NominalDiameter",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 6,
+            "max": 2000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "length",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.01,
+            "max": 10000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "minor_loss",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0",
+          "defaultBasis": "no fittings stated",
+          "usualRange": {
+            "min": 0,
+            "max": 10000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "nodes",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 100
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "roughness",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0.045 mm",
+          "defaultBasis": "commercial steel",
+          "usualRange": {
+            "min": 1E-06,
+            "max": 0.005
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "diameter",
+          "dimension": "Length",
+          "unit": "m",
+          "availability": "sized"
+        },
+        {
+          "name": "dn",
+          "dimension": "NominalDiameter",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "re",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "solved"
+        },
+        {
+          "name": "velocity",
+          "dimension": "Velocity",
+          "unit": "m/s",
+          "availability": "solved"
+        },
+        {
+          "name": "volume",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "availability": "sized"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "heat_exchanger",
+      "aliases": [
+        "exchanger",
+        "hx",
+        "heater",
+        "cooler",
+        "radiator",
+        "load",
+        "boiler",
+        "chiller"
+      ],
+      "tagCode": "HE",
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "heat_exchanger.standard",
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "optional": false
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "optional": false
+        },
+        {
+          "name": "in2",
+          "role": "inlet",
+          "optional": true
+        },
+        {
+          "name": "out2",
+          "role": "outlet",
+          "optional": true
+        }
+      ],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "approach",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 100
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "area",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Area",
+          "unit": "m2",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.001,
+            "max": 10000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "arrangement",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "counter",
+            "parallel",
+            "crossflow"
+          ],
+          "omission": "default",
+          "default": "counter",
+          "defaultBasis": "counter-flow is the usual arrangement",
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "20 kPa",
+          "defaultBasis": "a plate exchanger at its design flow; write dp=0 for an ideal block",
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "dp2",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "20 kPa",
+          "defaultBasis": "the secondary side, on the same basis as dp",
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "dt",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 200
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "dt2",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 200
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "flow2",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "fouling",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": null,
+          "unit": "s³·K/kg",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0.00001",
+          "defaultBasis": "clean surfaces",
+          "usualRange": {
+            "min": 0,
+            "max": 0.01
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 6
+        },
+        {
+          "name": "in",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "in2",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "lamella",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.001,
+            "max": 0.02
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        },
+        {
+          "name": "out",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "out2",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "plate_area",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Area",
+          "unit": "m2",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.001,
+            "max": 5
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        },
+        {
+          "name": "plates",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 3,
+            "max": 800
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "power",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Power",
+          "unit": "kW",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -100000,
+            "max": 100000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "u",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": null,
+          "unit": "kg/(s³·K)",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 10,
+            "max": 20000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "ua",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": null,
+          "unit": "W/K",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 1,
+            "max": 10000000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "approach",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "area",
+          "dimension": "Area",
+          "unit": "m2",
+          "availability": "sized"
+        },
+        {
+          "name": "dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "dp2",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "dt",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "dt2",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "effectiveness",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "solved"
+        },
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "flow2",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "lmtd",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "ntu",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "plates",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "power",
+          "dimension": "Power",
+          "unit": "kW",
+          "availability": "sized"
+        },
+        {
+          "name": "t_in",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "t_in2",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "t_out",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "t_out2",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "u",
+          "dimension": null,
+          "unit": "kg/(s³·K)",
+          "availability": "sized"
+        },
+        {
+          "name": "ua",
+          "dimension": null,
+          "unit": "W/K",
+          "availability": "sized"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "valve",
+      "aliases": [
+        "control_valve",
+        "balancing_valve",
+        "two_way_valve",
+        "2_way_valve"
+      ],
+      "tagCode": "V",
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "valve.standard",
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "optional": false
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "optional": false
+        }
+      ],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "authority",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "characteristic",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "linear",
+            "equal_percentage",
+            "quick_open"
+          ],
+          "omission": "default",
+          "default": "equal_percentage",
+          "defaultBasis": "the usual choice for a control valve",
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "kv",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Kv",
+          "unit": "m3/h",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.01,
+            "max": 10000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "position",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": {
+            "min": 0,
+            "max": 1
+          },
+          "wholeNumber": false,
+          "displayPrecision": 3
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "authority",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "kv",
+          "dimension": "Kv",
+          "unit": "m3/h",
+          "availability": "sized"
+        },
+        {
+          "name": "position",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "declared"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": "position",
+      "measuredProperty": null
+    },
+    {
+      "keyword": "three_way_valve",
+      "aliases": [
+        "3_way_valve",
+        "mixing_valve",
+        "diverting_valve",
+        "3wv"
+      ],
+      "tagCode": "TV",
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "three_way_valve.standard",
+      "ports": [
+        {
+          "name": "ab",
+          "role": "bidirectional",
+          "optional": false
+        },
+        {
+          "name": "a",
+          "role": "bidirectional",
+          "optional": false
+        },
+        {
+          "name": "b",
+          "role": "bidirectional",
+          "optional": true
+        }
+      ],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "authority",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "characteristic",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "linear",
+            "equal_percentage",
+            "quick_open"
+          ],
+          "omission": "default",
+          "default": "equal_percentage",
+          "defaultBasis": "the usual choice for a control valve",
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "kv",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Kv",
+          "unit": "m3/h",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.01,
+            "max": 10000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "position",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": {
+            "min": 0,
+            "max": 1
+          },
+          "wholeNumber": false,
+          "displayPrecision": 3
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "authority",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "kv",
+          "dimension": "Kv",
+          "unit": "m3/h",
+          "availability": "sized"
+        },
+        {
+          "name": "position",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "declared"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": "position",
+      "measuredProperty": null
+    },
+    {
+      "keyword": "pump",
+      "aliases": [
+        "circulator"
+      ],
+      "tagCode": "PU",
+      "drivesFlow": true,
+      "isObserver": false,
+      "symbolId": "pump.standard",
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "optional": false
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "optional": false
+        }
+      ],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 1,
+            "max": 5000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "efficiency",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0.7",
+          "defaultBasis": "a typical wet-rotor circulator",
+          "usualRange": {
+            "min": 0.1,
+            "max": 0.95
+          },
+          "validRange": {
+            "min": 0,
+            "max": 1
+          },
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "head",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Head",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "margin",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "1.0",
+          "defaultBasis": "size to the computed duty, with no spare",
+          "usualRange": {
+            "min": 1,
+            "max": 2
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "speed",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1.2
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "efficiency",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "sized"
+        },
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "head",
+          "dimension": "Head",
+          "unit": "m",
+          "availability": "sized"
+        },
+        {
+          "name": "power",
+          "dimension": "Power",
+          "unit": "kW",
+          "availability": "solved"
+        },
+        {
+          "name": "speed",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": "speed",
+      "measuredProperty": null
+    },
+    {
+      "keyword": "tank",
+      "aliases": [
+        "container"
+      ],
+      "tagCode": "S",
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "tank.stratified",
+      "ports": [
+        {
+          "name": "in1",
+          "role": "bidirectional",
+          "optional": false
+        },
+        {
+          "name": "out1",
+          "role": "bidirectional",
+          "optional": false
+        }
+      ],
+      "portFamilies": [
+        {
+          "prefix": "in",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "role": "bidirectional",
+          "levelParameterSuffix": "_level"
+        },
+        {
+          "prefix": "out",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "role": "bidirectional",
+          "levelParameterSuffix": "_level"
+        }
+      ],
+      "parameters": [
+        {
+          "name": "elevation",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Length",
+          "unit": "m",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0 m",
+          "defaultBasis": "no elevation stated",
+          "usualRange": {
+            "min": -500,
+            "max": 500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "layers",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "5",
+          "defaultBasis": "enough to show stratification",
+          "usualRange": {
+            "min": 1,
+            "max": 100
+          },
+          "validRange": {
+            "min": 1,
+            "max": 100
+          },
+          "wholeNumber": true,
+          "displayPrecision": 0
+        },
+        {
+          "name": "t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "volume",
+          "aliases": [
+            "v"
+          ],
+          "valueKind": "quantity",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "300 dm3",
+          "defaultBasis": "a domestic buffer vessel",
+          "usualRange": {
+            "min": 1,
+            "max": 10000000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        }
+      ],
+      "indexedParameters": [
+        {
+          "pattern": "t{index}",
+          "minIndex": 1,
+          "maxIndex": null,
+          "maxIndexParameter": "layers",
+          "element": {
+            "name": "t",
+            "aliases": [],
+            "valueKind": "quantity",
+            "dimension": "Temperature",
+            "unit": "°C",
+            "acceptedSymbols": [],
+            "omission": "size",
+            "default": null,
+            "defaultBasis": null,
+            "usualRange": {
+              "min": -50,
+              "max": 300
+            },
+            "validRange": null,
+            "wholeNumber": false,
+            "displayPrecision": 1
+          }
+        },
+        {
+          "pattern": "in{index}_level",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "in_level",
+            "aliases": [],
+            "valueKind": "quantity",
+            "dimension": "Dimensionless",
+            "unit": null,
+            "acceptedSymbols": [],
+            "omission": "default",
+            "default": "0.5",
+            "defaultBasis": "mid height",
+            "usualRange": {
+              "min": 0,
+              "max": 1
+            },
+            "validRange": {
+              "min": 0,
+              "max": 1
+            },
+            "wholeNumber": false,
+            "displayPrecision": 2
+          }
+        },
+        {
+          "pattern": "out{index}_level",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "out_level",
+            "aliases": [],
+            "valueKind": "quantity",
+            "dimension": "Dimensionless",
+            "unit": null,
+            "acceptedSymbols": [],
+            "omission": "default",
+            "default": "0.5",
+            "defaultBasis": "mid height",
+            "usualRange": {
+              "min": 0,
+              "max": 1
+            },
+            "validRange": {
+              "min": 0,
+              "max": 1
+            },
+            "wholeNumber": false,
+            "displayPrecision": 2
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "layers",
+          "dimension": "Dimensionless",
+          "unit": "",
+          "availability": "declared"
+        },
+        {
+          "name": "stored_energy",
+          "dimension": "Energy",
+          "unit": "J",
+          "availability": "solved"
+        },
+        {
+          "name": "volume",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "availability": "declared"
+        }
+      ],
+      "indexedProperties": [
+        {
+          "pattern": "t{index}",
+          "minIndex": 1,
+          "maxIndex": null,
+          "maxIndexParameter": "layers",
+          "element": {
+            "name": "t{index}",
+            "dimension": "Temperature",
+            "unit": "°C",
+            "availability": "solved"
+          }
+        },
+        {
+          "pattern": "in{index}_t",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "in{index}_t",
+            "dimension": "Temperature",
+            "unit": "°C",
+            "availability": "solved"
+          }
+        },
+        {
+          "pattern": "out{index}_t",
+          "minIndex": 1,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "out{index}_t",
+            "dimension": "Temperature",
+            "unit": "°C",
+            "availability": "solved"
+          }
+        }
+      ],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "controller",
+      "aliases": [
+        "pi",
+        "pid",
+        "p",
+        "thermostat"
+      ],
+      "tagCode": "PID",
+      "drivesFlow": false,
+      "isObserver": false,
+      "symbolId": "controller.standard",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [
+        {
+          "name": "kd",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -1000000,
+            "max": 1000000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        },
+        {
+          "name": "ki",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -1000000,
+            "max": 1000000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 6
+        },
+        {
+          "name": "kp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -1000000,
+            "max": 1000000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        }
+      ],
+      "indexedParameters": [],
+      "properties": [],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": null
+    },
+    {
+      "keyword": "t_sensor",
+      "aliases": [
+        "temperature_sensor",
+        "te"
+      ],
+      "tagCode": "TE",
+      "drivesFlow": false,
+      "isObserver": true,
+      "symbolId": "t_sensor.standard",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": "t"
+    },
+    {
+      "keyword": "p_sensor",
+      "aliases": [
+        "pressure_sensor",
+        "pe"
+      ],
+      "tagCode": "PE",
+      "drivesFlow": false,
+      "isObserver": true,
+      "symbolId": "p_sensor.standard",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": "p"
+    },
+    {
+      "keyword": "flow_sensor",
+      "aliases": [
+        "flow_meter",
+        "fe"
+      ],
+      "tagCode": "FE",
+      "drivesFlow": false,
+      "isObserver": true,
+      "symbolId": "flow_sensor.standard",
+      "ports": [],
+      "portFamilies": [],
+      "parameters": [],
+      "indexedParameters": [],
+      "properties": [
+        {
+          "name": "flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        }
+      ],
+      "indexedProperties": [],
+      "actuatedParameter": null,
+      "measuredProperty": "flow"
+    }
+  ],
+  "dimensions": [
+    {
+      "name": "Dimensionless",
+      "siUnit": "",
+      "canonicalUnit": null,
+      "units": [
+        "%"
+      ]
+    },
+    {
+      "name": "Length",
+      "siUnit": "m",
+      "canonicalUnit": "m",
+      "units": [
+        "m",
+        "mm",
+        "cm",
+        "dm",
+        "km",
+        "in",
+        "ft"
+      ]
+    },
+    {
+      "name": "Temperature",
+      "siUnit": "K",
+      "canonicalUnit": "°C",
+      "units": [
+        "C",
+        "°C",
+        "K",
+        "F",
+        "°F"
+      ]
+    },
+    {
+      "name": "TemperatureDelta",
+      "siUnit": "K",
+      "canonicalUnit": "dK",
+      "units": [
+        "dK",
+        "dC"
+      ]
+    },
+    {
+      "name": "Pressure",
+      "siUnit": "Pa",
+      "canonicalUnit": "kPa",
+      "units": [
+        "Pa",
+        "kPa",
+        "MPa",
+        "bar",
+        "mbar",
+        "psi",
+        "mH2O",
+        "mmH2O",
+        "kPag",
+        "barg",
+        "Paa",
+        "kPaa",
+        "MPaa",
+        "bara",
+        "mbara",
+        "psia"
+      ]
+    },
+    {
+      "name": "PressureDelta",
+      "siUnit": "Pa",
+      "canonicalUnit": "kPa",
+      "units": [
+        "Pa",
+        "kPa",
+        "MPa",
+        "bar",
+        "mbar",
+        "psi",
+        "mH2O",
+        "mmH2O"
+      ]
+    },
+    {
+      "name": "Power",
+      "siUnit": "W",
+      "canonicalUnit": "kW",
+      "units": [
+        "W",
+        "kW",
+        "MW",
+        "hp"
+      ]
+    },
+    {
+      "name": "Energy",
+      "siUnit": "J",
+      "canonicalUnit": "J",
+      "units": [
+        "J",
+        "kJ",
+        "MJ",
+        "Wh",
+        "kWh",
+        "MWh"
+      ]
+    },
+    {
+      "name": "MassFlow",
+      "siUnit": "kg/s",
+      "canonicalUnit": "kg/s",
+      "units": [
+        "kg/s",
+        "kg/h",
+        "t/h"
+      ]
+    },
+    {
+      "name": "VolumeFlow",
+      "siUnit": "m3/s",
+      "canonicalUnit": "m3/s",
+      "units": [
+        "m3/s",
+        "m3/h",
+        "l/s",
+        "l/min",
+        "l/h"
+      ]
+    },
+    {
+      "name": "Mass",
+      "siUnit": "kg",
+      "canonicalUnit": "kg",
+      "units": [
+        "kg",
+        "g",
+        "t"
+      ]
+    },
+    {
+      "name": "Time",
+      "siUnit": "s",
+      "canonicalUnit": "s",
+      "units": [
+        "s",
+        "ms",
+        "min",
+        "h",
+        "d"
+      ]
+    },
+    {
+      "name": "Velocity",
+      "siUnit": "m/s",
+      "canonicalUnit": "m/s",
+      "units": [
+        "m/s",
+        "km/h"
+      ]
+    },
+    {
+      "name": "Density",
+      "siUnit": "kg/m3",
+      "canonicalUnit": "kg/m3",
+      "units": [
+        "kg/m3"
+      ]
+    },
+    {
+      "name": "SpecificHeat",
+      "siUnit": "J/(kg*K)",
+      "canonicalUnit": "J/(kg*K)",
+      "units": [
+        "J/(kg*K)",
+        "kJ/(kg*K)"
+      ]
+    },
+    {
+      "name": "Enthalpy",
+      "siUnit": "J/kg",
+      "canonicalUnit": "J/kg",
+      "units": [
+        "J/kg",
+        "kJ/kg"
+      ]
+    },
+    {
+      "name": "Area",
+      "siUnit": "m2",
+      "canonicalUnit": "m2",
+      "units": [
+        "m2",
+        "mm2",
+        "cm2"
+      ]
+    },
+    {
+      "name": "Volume",
+      "siUnit": "m3",
+      "canonicalUnit": "dm3",
+      "units": [
+        "m3",
+        "dm3",
+        "l",
+        "ml"
+      ]
+    },
+    {
+      "name": "Kv",
+      "siUnit": "m3/h",
+      "canonicalUnit": null,
+      "units": []
+    },
+    {
+      "name": "Head",
+      "siUnit": "m",
+      "canonicalUnit": null,
+      "units": []
+    },
+    {
+      "name": "NominalDiameter",
+      "siUnit": "",
+      "canonicalUnit": null,
+      "units": []
+    },
+    {
+      "name": "Pixels",
+      "siUnit": "px",
+      "canonicalUnit": "px",
+      "units": [
+        "px"
+      ]
+    }
+  ],
+  "symbols": [
+    {
+      "id": "node.junction",
+      "viewBox": [
+        -0.1,
+        -0.1,
+        0.2,
+        0.2
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.08,
+          "fill": "stroke"
+        }
+      ],
+      "portAnchors": {
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.3
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "pipe.standard",
+      "viewBox": [
+        -0.5,
+        -0.1,
+        1,
+        0.2
+      ],
+      "primitives": [
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        }
+      ],
+      "portAnchors": {
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.3
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "heat_exchanger.standard",
+      "viewBox": [
+        -0.25,
+        -0.5,
+        0.5,
+        1
+      ],
+      "primitives": [
+        {
+          "kind": "rect",
+          "x": -0.25,
+          "y": -0.5,
+          "width": 0.5,
+          "height": 1,
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.25,
+            -0.5
+          ],
+          "to": [
+            0.25,
+            0.5
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.25,
+            0.5
+          ],
+          "to": [
+            0.25,
+            -0.5
+          ]
+        }
+      ],
+      "portAnchors": {
+        "in": {
+          "at": [
+            -0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        },
+        "out": {
+          "at": [
+            -0.15,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        },
+        "in2": {
+          "at": [
+            0.15,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        },
+        "out2": {
+          "at": [
+            0.15,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        }
+      },
+      "alternatives": {
+        "u": {
+          "in": {
+            "at": [
+              -0.25,
+              0.3
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "out": {
+            "at": [
+              -0.25,
+              -0.3
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          },
+          "in2": {
+            "at": [
+              0.25,
+              -0.3
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          },
+          "out2": {
+            "at": [
+              0.25,
+              0.3
+            ],
+            "direction": [
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.65
+      ],
+      "transformClass": "standing"
+    },
+    {
+      "id": "valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.3,
+        1,
+        0.6
+      ],
+      "primitives": [
+        {
+          "kind": "polygon",
+          "points": [
+            -0.45,
+            -0.22,
+            0,
+            0,
+            -0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            0.45,
+            -0.22,
+            0,
+            0,
+            0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.45,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0
+          ],
+          "to": [
+            0,
+            0.22
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.12,
+            0.22
+          ],
+          "to": [
+            0.12,
+            0.22
+          ]
+        }
+      ],
+      "portAnchors": {
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.45
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "three_way_valve.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "kind": "polygon",
+          "points": [
+            -0.45,
+            -0.22,
+            0,
+            0,
+            -0.45,
+            0.22
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.22,
+            0.45,
+            0,
+            0,
+            0.22,
+            0.45
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.22,
+            -0.45,
+            0,
+            0,
+            0.22,
+            -0.45
+          ],
+          "fill": "state"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0.5
+          ],
+          "to": [
+            0,
+            0.45
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            -0.45
+          ],
+          "to": [
+            0,
+            -0.5
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0,
+            0
+          ],
+          "to": [
+            0.28,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.28,
+            -0.12
+          ],
+          "to": [
+            0.28,
+            0.12
+          ]
+        }
+      ],
+      "portAnchors": {
+        "a": {
+          "at": [
+            0,
+            0.5
+          ],
+          "direction": [
+            0,
+            1
+          ]
+        },
+        "ab": {
+          "at": [
+            0,
+            -0.5
+          ],
+          "direction": [
+            0,
+            -1
+          ]
+        },
+        "b": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        }
+      },
+      "alternatives": {
+        "swapped": {
+          "b": {
+            "at": [
+              0,
+              0.5
+            ],
+            "direction": [
+              0,
+              1
+            ]
+          },
+          "ab": {
+            "at": [
+              0,
+              -0.5
+            ],
+            "direction": [
+              0,
+              -1
+            ]
+          },
+          "a": {
+            "at": [
+              -0.5,
+              0
+            ],
+            "direction": [
+              -1,
+              0
+            ]
+          }
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.65
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "pump.standard",
+      "viewBox": [
+        -0.5,
+        -0.5,
+        1,
+        1
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.45,
+          "fill": "state"
+        },
+        {
+          "kind": "polygon",
+          "points": [
+            -0.2,
+            -0.28,
+            0.36,
+            0,
+            -0.2,
+            0.28
+          ],
+          "fill": "stroke"
+        },
+        {
+          "kind": "line",
+          "from": [
+            -0.5,
+            0
+          ],
+          "to": [
+            -0.45,
+            0
+          ]
+        },
+        {
+          "kind": "line",
+          "from": [
+            0.45,
+            0
+          ],
+          "to": [
+            0.5,
+            0
+          ]
+        }
+      ],
+      "portAnchors": {
+        "in": {
+          "at": [
+            -0.5,
+            0
+          ],
+          "direction": [
+            -1,
+            0
+          ]
+        },
+        "out": {
+          "at": [
+            0.5,
+            0
+          ],
+          "direction": [
+            1,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0.65
+      ],
+      "transformClass": "level"
+    },
+    {
+      "id": "tank.stratified",
+      "viewBox": [
+        -0.5,
+        -0.8,
+        1,
+        1.6
+      ],
+      "primitives": [
+        {
+          "kind": "rect",
+          "x": -0.4,
+          "y": -0.75,
+          "width": 0.8,
+          "height": 1.5,
+          "fill": "state"
+        }
+      ],
+      "portAnchors": {},
+      "indexedPortAnchors": [
+        {
+          "prefix": "in",
+          "side": "west",
+          "direction": [
+            -1,
+            0
+          ],
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        },
+        {
+          "prefix": "out",
+          "side": "east",
+          "direction": [
+            1,
+            0
+          ],
+          "verticalCoordinate": "port.elevation",
+          "minIndex": 1,
+          "maxIndex": 16
+        }
+      ],
+      "labelAnchor": [
+        0,
+        0.95
+      ],
+      "transformClass": "upright"
+    },
+    {
+      "id": "t_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
+      "portAnchors": {
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "p_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
+      "portAnchors": {
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "flow_sensor.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28
+        }
+      ],
+      "portAnchors": {
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0
+      ],
+      "transformClass": "free"
+    },
+    {
+      "id": "controller.standard",
+      "viewBox": [
+        -0.3,
+        -0.3,
+        0.6,
+        0.6
+      ],
+      "primitives": [
+        {
+          "kind": "circle",
+          "x": 0,
+          "y": 0,
+          "r": 0.28,
+          "dashed": true
+        }
+      ],
+      "portAnchors": {
+        "*": {
+          "at": [
+            0,
+            0
+          ]
+        }
+      },
+      "labelAnchor": [
+        0,
+        0
+      ],
+      "transformClass": "free"
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "FS1001",
+      "severity": "error",
+      "area": "Lexer",
+      "message": "Unterminated string; add a closing quote.",
+      "arguments": []
+    },
+    {
+      "code": "FS1002",
+      "severity": "error",
+      "area": "Lexer",
+      "message": "'{ch}' is not valid here.",
+      "arguments": [
+        "ch"
+      ]
+    },
+    {
+      "code": "FS1003",
+      "severity": "error",
+      "area": "Lexer",
+      "message": "'{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'.",
+      "arguments": [
+        "name",
+        "value",
+        "unit",
+        "suggestion"
+      ]
+    },
+    {
+      "code": "FS1004",
+      "severity": "error",
+      "area": "Lexer",
+      "message": "'{word}' is reserved. Choose another name.",
+      "arguments": [
+        "word"
+      ]
+    },
+    {
+      "code": "FS1101",
+      "severity": "warning",
+      "area": "Parser",
+      "message": "Only the first '{section}' section is used.",
+      "arguments": [
+        "section"
+      ]
+    },
+    {
+      "code": "FS1102",
+      "severity": "error",
+      "area": "Parser",
+      "message": "Connections must come after the 'connections' line.",
+      "arguments": []
+    },
+    {
+      "code": "FS1103",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A {statement} cannot appear after the '{section}' line.",
+      "arguments": [
+        "statement",
+        "section"
+      ]
+    },
+    {
+      "code": "FS1104",
+      "severity": "error",
+      "area": "Parser",
+      "message": "Cannot read this line. Expected a component declaration or a connection.",
+      "arguments": []
+    },
+    {
+      "code": "FS1105",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{token}' looks like a parameter but has no value. Write '{token}=…'.",
+      "arguments": [
+        "token"
+      ]
+    },
+    {
+      "code": "FS1106",
+      "severity": "error",
+      "area": "Parser",
+      "message": "Put this under a 'schedule' line.",
+      "arguments": []
+    },
+    {
+      "code": "FS1107",
+      "severity": "warning",
+      "area": "Parser",
+      "message": "'{circuit}' is solved as a steady state, so its schedule does not run. Write 'fluid dynamic' to solve it in time.",
+      "arguments": [
+        "circuit"
+      ]
+    },
+    {
+      "code": "FS1108",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{text}' — a name cannot contain '-'. Write '{underscored}'.",
+      "arguments": [
+        "text",
+        "underscored"
+      ]
+    },
+    {
+      "code": "FS1109",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'.",
+      "arguments": [
+        "word",
+        "node"
+      ]
+    },
+    {
+      "code": "FS1110",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{word}' needs one node of the parent circuit, and may appear once per circuit.",
+      "arguments": [
+        "word"
+      ]
+    },
+    {
+      "code": "FS1111",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.",
+      "arguments": []
+    },
+    {
+      "code": "FS1112",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{word}' applies to the whole file and must come before the first 'circuit' line.",
+      "arguments": [
+        "word"
+      ]
+    },
+    {
+      "code": "FS1113",
+      "severity": "error",
+      "area": "Parser",
+      "message": "Spacing is in world units, so write 'spacing {n}' with no unit.",
+      "arguments": [
+        "n"
+      ]
+    },
+    {
+      "code": "FS1114",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'{extra}' is more than this line can hold.",
+      "arguments": [
+        "extra"
+      ]
+    },
+    {
+      "code": "FS1115",
+      "severity": "error",
+      "area": "Parser",
+      "message": "Put this pair under a 'curve' line.",
+      "arguments": []
+    },
+    {
+      "code": "FS1116",
+      "severity": "error",
+      "area": "Parser",
+      "message": "'curve {name}' needs what it depends on, such as 'curve {name} tout'.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1117",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A curve row is one x and one y, such as '-26 50'.",
+      "arguments": []
+    },
+    {
+      "code": "FS1118",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A 'design' line needs named values, such as 'design tout=-26'.",
+      "arguments": []
+    },
+    {
+      "code": "FS1201",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.",
+      "arguments": [
+        "token"
+      ]
+    },
+    {
+      "code": "FS1202",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "'{a}' overrides the earlier '{b}'.",
+      "arguments": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "code": "FS1203",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "'#' starts a comment; the rest of this line was ignored. Write the colour as \"{hex}\".",
+      "arguments": [
+        "hex"
+      ]
+    },
+    {
+      "code": "FS1204",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "No style called '{name}' is defined; the components keep their previous style.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1205",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "Style '{name}' is defined again; the later definition is used.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1302",
+      "severity": "error",
+      "area": "Units",
+      "message": "Cannot add two {dimension}s. To offset by a difference, write '{example}'.",
+      "arguments": [
+        "dimension",
+        "example"
+      ]
+    },
+    {
+      "code": "FS1304",
+      "severity": "error",
+      "area": "Units",
+      "message": "'{parameter}' is a {expected}; '{value}' is a {actual}.",
+      "arguments": [
+        "parameter",
+        "expected",
+        "value",
+        "actual"
+      ]
+    },
+    {
+      "code": "FS1305",
+      "severity": "error",
+      "area": "Units",
+      "message": "Cannot {operation} a {left} and a {right}.",
+      "arguments": [
+        "operation",
+        "left",
+        "right"
+      ]
+    },
+    {
+      "code": "FS1306",
+      "severity": "warning",
+      "area": "Units",
+      "message": "{parameter} = {value} is outside the usual range ({low}–{high}). Check the unit.",
+      "arguments": [
+        "parameter",
+        "value",
+        "low",
+        "high"
+      ]
+    },
+    {
+      "code": "FS1307",
+      "severity": "error",
+      "area": "Units",
+      "message": "{parameter} cannot be negative.",
+      "arguments": [
+        "parameter"
+      ]
+    },
+    {
+      "code": "FS1308",
+      "severity": "warning",
+      "area": "Units",
+      "message": "'{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow.",
+      "arguments": [
+        "component",
+        "kind",
+        "value",
+        "magnitude"
+      ]
+    },
+    {
+      "code": "FS1401",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "'{name}' is already defined at line {line}.",
+      "arguments": [
+        "name",
+        "line"
+      ]
+    },
+    {
+      "code": "FS1402",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "'{name}' depends on itself: {cycle}.",
+      "arguments": [
+        "name",
+        "cycle"
+      ]
+    },
+    {
+      "code": "FS1403",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "Dividing by zero here. '{expression}' is zero.",
+      "arguments": [
+        "expression"
+      ]
+    },
+    {
+      "code": "FS1404",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "Nothing named '{name}'.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1406",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "A {kind} has no '{property}'. It has: {available}.",
+      "arguments": [
+        "kind",
+        "property",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1408",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "No function '{name}'. Available: {available}.",
+      "arguments": [
+        "name",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1409",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "'{function}' takes {expected} arguments.",
+      "arguments": [
+        "function",
+        "expected"
+      ]
+    },
+    {
+      "code": "FS1501",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits.",
+      "arguments": [
+        "name",
+        "line"
+      ]
+    },
+    {
+      "code": "FS1502",
+      "severity": "error",
+      "area": "Binder",
+      "message": "There is no '{kind}'.",
+      "arguments": [
+        "kind"
+      ]
+    },
+    {
+      "code": "FS1503",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A {kind} has no '{parameter}'. It accepts: {available}.",
+      "arguments": [
+        "kind",
+        "parameter",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1504",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is a value, not a component.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1505",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A {kind} has no port '{port}'. Ports: {available}.",
+      "arguments": [
+        "kind",
+        "port",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1506",
+      "severity": "error",
+      "area": "Binder",
+      "message": "Port '{port}' of '{name}' is already connected at line {line}.",
+      "arguments": [
+        "port",
+        "name",
+        "line"
+      ]
+    },
+    {
+      "code": "FS1507",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{name}' is not connected to anything.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1508",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "No circuit name; using '{name}'.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "area": "Binder",
+      "message": "Added {kind} '{name}' ({rule}).",
+      "arguments": [
+        "kind",
+        "name",
+        "rule"
+      ]
+    },
+    {
+      "code": "FS1511",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{name}' and {count} others are not connected to the rest of the circuit.",
+      "arguments": [
+        "name",
+        "count"
+      ]
+    },
+    {
+      "code": "FS1512",
+      "severity": "info",
+      "area": "Binder",
+      "message": "Read '{written}' as '{canonical}'.",
+      "arguments": [
+        "written",
+        "canonical"
+      ]
+    },
+    {
+      "code": "FS1513",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{written}' could be '{first}' or '{second}'. Write one of them.",
+      "arguments": [
+        "written",
+        "first",
+        "second"
+      ]
+    },
+    {
+      "code": "FS1514",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{parameter}' accepts {available}; '{written}' is none of them.",
+      "arguments": [
+        "parameter",
+        "available",
+        "written"
+      ]
+    },
+    {
+      "code": "FS1515",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{parameter}' names a component property, like 'N2.t'.",
+      "arguments": [
+        "parameter"
+      ]
+    },
+    {
+      "code": "FS1516",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{written}' is outside {kind}'s supported {min}…{max} range.",
+      "arguments": [
+        "written",
+        "kind",
+        "min",
+        "max"
+      ]
+    },
+    {
+      "code": "FS1517",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.",
+      "arguments": [
+        "circuit",
+        "circuitMode",
+        "projectMode"
+      ]
+    },
+    {
+      "code": "FS1518",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1519",
+      "severity": "info",
+      "area": "Binder",
+      "message": "'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}.",
+      "arguments": [
+        "name",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1520",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.",
+      "arguments": [
+        "circuit",
+        "present",
+        "node",
+        "other"
+      ]
+    },
+    {
+      "code": "FS1521",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A 'control' line needs {list}. Missing: {missing}.",
+      "arguments": [
+        "list",
+        "missing"
+      ]
+    },
+    {
+      "code": "FS1522",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{param}' of '{component}' cannot be controlled.",
+      "arguments": [
+        "param",
+        "component"
+      ]
+    },
+    {
+      "code": "FS1523",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is a {kind}, not a controller.",
+      "arguments": [
+        "name",
+        "kind"
+      ]
+    },
+    {
+      "code": "FS1524",
+      "severity": "error",
+      "area": "Binder",
+      "message": "Circuit {number} is already '{owner}'. Every circuit's number is its own.",
+      "arguments": [
+        "number",
+        "owner"
+      ]
+    },
+    {
+      "code": "FS1525",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is already a circuit at line {line}.",
+      "arguments": [
+        "name",
+        "line"
+      ]
+    },
+    {
+      "code": "FS1526",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.",
+      "arguments": [
+        "circuit",
+        "a",
+        "b"
+      ]
+    },
+    {
+      "code": "FS1527",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.",
+      "arguments": [
+        "driver",
+        "curve"
+      ]
+    },
+    {
+      "code": "FS1528",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=...' or solve in time.",
+      "arguments": [
+        "curve",
+        "driver"
+      ]
+    },
+    {
+      "code": "FS1529",
+      "severity": "info",
+      "area": "Binder",
+      "message": "'{curve}' has two rows at {x}; the later one is used.",
+      "arguments": [
+        "curve",
+        "x"
+      ]
+    },
+    {
+      "code": "FS1530",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{curve}' needs at least two rows to interpolate between.",
+      "arguments": [
+        "curve"
+      ]
+    },
+    {
+      "code": "FS1531",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A {kind} has no single {role} to use here. Write it out, such as '{example}'.",
+      "arguments": [
+        "kind",
+        "role",
+        "example"
+      ]
+    },
+    {
+      "code": "FS1532",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.",
+      "arguments": [
+        "name",
+        "kind"
+      ]
+    },
+    {
+      "code": "FS1533",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{name}' observes nothing. Place it with 'at' and the name of a node.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1701",
+      "severity": "info",
+      "area": "Compatibility",
+      "message": "This draft states no language version. Add 'fluidscript {major}' as its first line to save it.",
+      "arguments": [
+        "major"
+      ]
+    },
+    {
+      "code": "FS1702",
+      "severity": "error",
+      "area": "Compatibility",
+      "message": "This file is FluidScript {major}, which this version cannot read. It understands {supported}.",
+      "arguments": [
+        "major",
+        "supported"
+      ]
+    },
+    {
+      "code": "FS1705",
+      "severity": "error",
+      "area": "Compatibility",
+      "message": "This file says it is FluidScript {first} and also {second}. Delete the line that is wrong.",
+      "arguments": [
+        "first",
+        "second"
+      ]
+    },
+    {
+      "code": "FS2001",
+      "severity": "error",
+      "area": "Substances",
+      "message": "There is no fluid called '{name}'. Available: {list}.",
+      "arguments": [
+        "name",
+        "list"
+      ]
+    },
+    {
+      "code": "FS2002",
+      "severity": "error",
+      "area": "Substances",
+      "message": "Cannot fix a state from {a} and {b}; they are not independent here.",
+      "arguments": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "code": "FS2003",
+      "severity": "error",
+      "area": "Substances",
+      "message": "{name} data covers {lo} to {hi}; this state is at {value}.",
+      "arguments": [
+        "name",
+        "lo",
+        "hi",
+        "value"
+      ]
+    },
+    {
+      "code": "FS2004",
+      "severity": "error",
+      "area": "Substances",
+      "message": "Could not evaluate {property} for {name} at {state}.",
+      "arguments": [
+        "property",
+        "name",
+        "state"
+      ]
+    },
+    {
+      "code": "FS2006",
+      "severity": "error",
+      "area": "Substances",
+      "message": "Relative humidity must be between 0 and 100 %.",
+      "arguments": []
+    },
+    {
+      "code": "FS2101",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': {parameters} cannot all be set. Any {count} of them fix the rest.",
+      "arguments": [
+        "name",
+        "parameters",
+        "count"
+      ]
+    },
+    {
+      "code": "FS2103",
+      "severity": "warning",
+      "area": "Components",
+      "message": "'{name}': using kv={kv}; dp is implied by it.",
+      "arguments": [
+        "name",
+        "kv"
+      ]
+    },
+    {
+      "code": "FS2105",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': position must be between 0 and 1.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS2107",
+      "severity": "warning",
+      "area": "Components",
+      "message": "'{name}' is a dead end. Set t, p or flow to make it a boundary.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS2108",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': efficiency must be between 0 and 1.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS2109",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved.",
+      "arguments": [
+        "name",
+        "param"
+      ]
+    },
+    {
+      "code": "FS2110",
+      "severity": "warning",
+      "area": "Components",
+      "message": "'{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.",
+      "arguments": [
+        "name",
+        "param"
+      ]
+    },
+    {
+      "code": "FS2111",
+      "severity": "error",
+      "area": "Components",
+      "message": "{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.",
+      "arguments": [
+        "name",
+        "power",
+        "t_hot",
+        "t_cold",
+        "qmax"
+      ]
+    },
+    {
+      "code": "FS2112",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': Coupled mode requires both in2 and out2 connections; {port} is open.",
+      "arguments": [
+        "name",
+        "port"
+      ]
+    },
+    {
+      "code": "FS2113",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': state either t for every layer, or all of t1…t{layers}; do not mix them.",
+      "arguments": [
+        "name",
+        "layers"
+      ]
+    },
+    {
+      "code": "FS2114",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': layers must be a whole number from 1 to 100.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS2115",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).",
+      "arguments": [
+        "name",
+        "parameter"
+      ]
+    },
+    {
+      "code": "FS2117",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': a {kind} must state {parameter}.",
+      "arguments": [
+        "name",
+        "kind",
+        "parameter"
+      ]
+    },
+    {
+      "code": "FS2118",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': a {kind} must state {count} of {parameters}.",
+      "arguments": [
+        "name",
+        "kind",
+        "count",
+        "parameters"
+      ]
+    },
+    {
+      "code": "FS2119",
+      "severity": "error",
+      "area": "Components",
+      "message": "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater.",
+      "arguments": [
+        "name",
+        "power",
+        "side",
+        "duty",
+        "inlet",
+        "in",
+        "outlet",
+        "out",
+        "change"
+      ]
+    },
+    {
+      "code": "FS2201",
+      "severity": "warning",
+      "area": "Topology",
+      "message": "Using '{node}' as the pressure datum. Pressures are relative to it.",
+      "arguments": [
+        "node"
+      ]
+    },
+    {
+      "code": "FS2202",
+      "severity": "warning",
+      "area": "Topology",
+      "message": "'{component}' port '{port}' is not connected; treating it as closed.",
+      "arguments": [
+        "component",
+        "port"
+      ]
+    },
+    {
+      "code": "FS2203",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.",
+      "arguments": [
+        "circuit",
+        "power"
+      ]
+    },
+    {
+      "code": "FS2204",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.",
+      "arguments": [
+        "circuit",
+        "present",
+        "missing"
+      ]
+    },
+    {
+      "code": "FS2210",
+      "severity": "error",
+      "area": "Topology",
+      "message": "This circuit is over-specified by {n}. Remove one of: {list}.",
+      "arguments": [
+        "n",
+        "list"
+      ]
+    },
+    {
+      "code": "FS2211",
+      "severity": "error",
+      "area": "Topology",
+      "message": "This circuit is under-specified by {n}. Add one of: {list}.",
+      "arguments": [
+        "n",
+        "list"
+      ]
+    },
+    {
+      "code": "FS2212",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.",
+      "arguments": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "code": "FS2213",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{list}' are not connected to the rest of the circuit.",
+      "arguments": [
+        "list"
+      ]
+    },
+    {
+      "code": "FS2214",
+      "severity": "warning",
+      "area": "Topology",
+      "message": "Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?",
+      "arguments": [
+        "loop"
+      ]
+    },
+    {
+      "code": "FS2215",
+      "severity": "error",
+      "area": "Topology",
+      "message": "{substance} cannot be at {state}.",
+      "arguments": [
+        "substance",
+        "state"
+      ]
+    },
+    {
+      "code": "FS2216",
+      "severity": "info",
+      "area": "Topology",
+      "message": "'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.",
+      "arguments": [
+        "component",
+        "a",
+        "b",
+        "chosen"
+      ]
+    },
+    {
+      "code": "FS2217",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.",
+      "arguments": [
+        "circuit",
+        "node"
+      ]
+    },
+    {
+      "code": "FS2218",
+      "severity": "warning",
+      "area": "Topology",
+      "message": "'{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it.",
+      "arguments": [
+        "constraint",
+        "pump"
+      ]
+    },
+    {
+      "code": "FS2219",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.",
+      "arguments": [
+        "second",
+        "b",
+        "first",
+        "a"
+      ]
+    },
+    {
+      "code": "FS2220",
+      "severity": "error",
+      "area": "Topology",
+      "message": "'{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa.",
+      "arguments": [
+        "node",
+        "rise",
+        "datum",
+        "short",
+        "substance",
+        "needed"
+      ]
+    },
+    {
+      "code": "FS2401",
+      "severity": "info",
+      "area": "LayoutHints",
+      "message": "The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum.",
+      "arguments": []
+    },
+    {
+      "code": "FS2402",
+      "severity": "info",
+      "area": "LayoutHints",
+      "message": "'{group}' has {count} members and will start collapsed; expand it on the canvas to see them.",
+      "arguments": [
+        "group",
+        "count"
+      ]
+    },
+    {
+      "code": "FS2403",
+      "severity": "info",
+      "area": "LayoutHints",
+      "message": "'{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn.",
+      "arguments": [
+        "circuit",
+        "role",
+        "stage"
+      ]
+    },
+    {
+      "code": "FS2501",
+      "severity": "error",
+      "area": "ModelContract",
+      "message": "'{component}.{field}' is {value} and cannot be written in {unit}; the field is sent empty.",
+      "arguments": [
+        "component",
+        "field",
+        "value",
+        "unit"
+      ]
+    },
+    {
+      "code": "FS2502",
+      "severity": "warning",
+      "area": "ModelContract",
+      "message": "The model is {size} KiB with states, over the {cap} KiB cap; states are omitted and can be fetched per component.",
+      "arguments": [
+        "size",
+        "cap"
+      ]
+    },
+    {
+      "code": "FS2603",
+      "severity": "error",
+      "area": "Catalog",
+      "message": "No catalogue '{name}'. Available: {list}.",
+      "arguments": [
+        "name",
+        "list"
+      ]
+    },
+    {
+      "code": "FS2604",
+      "severity": "error",
+      "area": "Catalog",
+      "message": "Catalogue '{name}' is invalid: {reason}.",
+      "arguments": [
+        "name",
+        "reason"
+      ]
+    },
+    {
+      "code": "FS2605",
+      "severity": "error",
+      "area": "Catalog",
+      "message": "Catalogue '{name}' has {count} row(s) without two verified public sources, starting at '{first}'. An unverified dimension is a wrong design nobody can see.",
+      "arguments": [
+        "name",
+        "count",
+        "first"
+      ]
+    },
+    {
+      "code": "FS2606",
+      "severity": "info",
+      "area": "Catalog",
+      "message": "Using catalogue '{name}'. Write 'catalog {name}' to pin it.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS3001",
+      "severity": "error",
+      "area": "Solver",
+      "message": "Could not solve in {steps} steps. Furthest off: {component} {equation} by {amount}.",
+      "arguments": [
+        "steps",
+        "component",
+        "equation",
+        "amount"
+      ]
+    },
+    {
+      "code": "FS3002",
+      "severity": "error",
+      "area": "Solver",
+      "message": "The circuit has no unique solution around {component}. Check for a missing pressure datum, a closed circuit with no stated temperature, or a loop with no driver.",
+      "arguments": [
+        "component"
+      ]
+    },
+    {
+      "code": "FS3003",
+      "severity": "error",
+      "area": "Solver",
+      "message": "The solution is moving away from a balance: {residual} after {steps} steps, from {previous}.",
+      "arguments": [
+        "residual",
+        "steps",
+        "previous"
+      ]
+    },
+    {
+      "code": "FS3004",
+      "severity": "error",
+      "area": "Solver",
+      "message": "Stuck at {residual}: {component} {equation} may have conflicting requirements.",
+      "arguments": [
+        "residual",
+        "component",
+        "equation"
+      ]
+    },
+    {
+      "code": "FS3005",
+      "severity": "error",
+      "area": "Solver",
+      "message": "{solver} cannot solve this: {reason}.",
+      "arguments": [
+        "solver",
+        "reason"
+      ]
+    },
+    {
+      "code": "FS3006",
+      "severity": "info",
+      "area": "Solver",
+      "message": "Solve cancelled after {steps} steps.",
+      "arguments": [
+        "steps"
+      ]
+    },
+    {
+      "code": "FS3007",
+      "severity": "error",
+      "area": "Solver",
+      "message": "{component} produced an impossible value in {equation} after {steps} steps.",
+      "arguments": [
+        "component",
+        "equation",
+        "steps"
+      ]
+    },
+    {
+      "code": "FS3008",
+      "severity": "warning",
+      "area": "Solver",
+      "message": "{parameter} was held at {bound}, which is as far as it goes. The circuit is asking for more than this component can give: check the duty, the resistance, or a stated temperature it cannot reach.",
+      "arguments": [
+        "parameter",
+        "bound"
+      ]
+    },
+    {
+      "code": "FS3009",
+      "severity": "error",
+      "area": "Solver",
+      "message": "Nothing in the circuit determines {combination}. These move together and no equation separates them, so a value stated for any one of them determines the rest.",
+      "arguments": [
+        "combination"
+      ]
+    },
+    {
+      "code": "FS3010",
+      "severity": "error",
+      "area": "Solver",
+      "message": "{combination} are not independent: one of them is already implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something elsewhere will not help — one of these has to change.",
+      "arguments": [
+        "combination"
+      ]
+    },
+    {
+      "code": "FS3011",
+      "severity": "info",
+      "area": "Solver",
+      "message": "Taking a reduced step near {component}; the solution is hard to reach here.",
+      "arguments": [
+        "component"
+      ]
+    },
+    {
+      "code": "FS3013",
+      "severity": "warning",
+      "area": "Solver",
+      "message": "{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.",
+      "arguments": [
+        "component",
+        "flow",
+        "outlet",
+        "inlet",
+        "note"
+      ]
+    },
+    {
+      "code": "FS4008",
+      "severity": "error",
+      "area": "DesignWarning",
+      "message": "'{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}.",
+      "arguments": [
+        "name",
+        "approach",
+        "minimum"
+      ]
+    },
+    {
+      "code": "FS4601",
+      "severity": "error",
+      "area": "Request",
+      "message": "The script has {count} {what}; the limit is {max}, so it is not solved.",
+      "arguments": [
+        "count",
+        "what",
+        "max"
+      ]
+    }
+  ],
+  "retiredDiagnostics": [
+    {
+      "code": "FS1509",
+      "reason": "Meant 'more than one circuit header', which is now legal: a script may declare several numbered circuits. Two circuits claiming one number is a different condition and took a new code rather than inheriting this one."
+    }
+  ],
+  "catalogs": [
+    {
+      "id": "copper_en1057",
+      "version": "2026.1",
+      "standard": "EN 1057"
+    },
+    {
+      "id": "steel_en10255",
+      "version": "2026.1",
+      "standard": "EN 10255"
+    },
+    {
+      "id": "valve_kv_r5",
+      "version": "1",
+      "standard": "ISO 3"
+    }
+  ],
+  "propertyBackend": {
+    "id": "sharp-prop",
+    "version": "1.0.0.0"
+  },
+  "limits": {
+    "sourceBytes": 1048576,
+    "declarations": 10000,
+    "tokens": 100000,
+    "unknowns": 800
+  },
+  "docsIndex": "docs/functions/index.md"
+}

@@ -16,6 +16,37 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
 {
     private const string Metadata = "/api/v1/metadata";
 
+    private static readonly System.Text.Json.JsonSerializerOptions Indented = new()
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    };
+
+    [Fact]
+    public async Task TheDocumentIsCommittedForTheEditorsTests()
+    {
+        // The frontend's completion tests read the same document the host serves, from the goldens
+        // directory, so an editor test never depends on a running host and a metadata change is a
+        // reviewed diff on both sides. Regenerated with FLUIDSCRIPT_UPDATE_GOLDENS=1 like the rest.
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync(Metadata, TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var indented = System.Text.Json.JsonSerializer.Serialize(
+            System.Text.Json.JsonDocument.Parse(body).RootElement,
+            Indented) + "\n";
+        var path = Path.Combine(Contracts.Goldens.Directory, "metadata.json");
+
+        if (Environment.GetEnvironmentVariable("FLUIDSCRIPT_UPDATE_GOLDENS") == "1")
+        {
+            await File.WriteAllTextAsync(path, indented, TestContext.Current.CancellationToken);
+            return;
+        }
+
+        Assert.True(File.Exists(path), "No committed metadata.json. Run once with FLUIDSCRIPT_UPDATE_GOLDENS=1 to create it.");
+        var expected = (await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken)).ReplaceLineEndings("\n");
+        Assert.True(string.Equals(expected, indented, StringComparison.Ordinal), "The metadata document differs from the committed metadata.json; if intended, regenerate with FLUIDSCRIPT_UPDATE_GOLDENS=1 and review the diff.");
+    }
+
     [Fact]
     public async Task EveryRegisteredKindAndEveryDiagnosticCodeIsDescribed()
     {
@@ -103,7 +134,7 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
         using var json = await response.ReadJsonAsync();
         var paths = json.RootElement.GetProperty("paths").EnumerateObject().Select(static p => p.Name).ToList();
 
-        foreach (var path in new[] { "/api/v1/compile", "/api/v1/solve", "/api/v1/validate", "/api/v1/metadata", "/api/health" })
+        foreach (var path in new[] { "/api/v1/compile", "/api/v1/solve", "/api/v1/validate", "/api/v1/format", "/api/v1/metadata", "/api/health" })
         {
             Assert.Contains(path, paths);
         }

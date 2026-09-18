@@ -247,8 +247,10 @@ An evaluated `let`.
 | Field | Type | Meaning |
 |---|---|---|
 | `name` | string | The name. |
-| `value` | number or `null` | The value in `unit`. |
-| `unit` | string or `null` | The canonical unit, or `null` when dimensionless. |
+| `value` | number or `null` | The value in `unit`, or `null` when the binding is deferred to the solve. |
+| `unit` | string or `null` | The canonical unit, or `null` when dimensionless or deferred. |
+| `dimension` | string or `null` | The dimension's name, so the editor can filter completion by it (`52`); `null` for a dimensionless, an unnamed or a deferred binding. |
+| `siUnit` | string or `null` | For an unnamed dimension, the SI spelling the value carries, shown dimmed by completion; otherwise `null`. |
 
 ### `Diagnostic`
 

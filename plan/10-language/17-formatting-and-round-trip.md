@@ -43,6 +43,34 @@ Conflating them is the standard mistake. A printer that "tidies while it prints"
 a reformat, and the diff of a one-character change becomes forty lines. The formatter exists because
 users will want alignment; it is a command, never a side effect.
 
+### The formatter's layout
+
+Built by P5.5 (2026-09-18) as `Formatter.Format(SourceText) → ImmutableArray<TextEdit>` in Core,
+served by `POST /api/v1/format` ([`42`](../40-api/42-rest-contract.md)) and bound to `Shift+Alt+F`
+in the editor ([`52`](../50-frontend/52-editor.md)). Nothing outside the project fixes a layout for a
+language of this shape, so the rules below are **this project's reasoning**, chosen to read well on
+the sample corpus, and the part of this document most worth arguing with once the product is looked
+at:
+
+1. Leading indentation is removed; every statement starts in column one.
+2. Two words or literals in a row keep their one space. Between an operator and its operand the
+   writer's choice stands, collapsed to one space at most, so `Q/(cp*dT)` and `Q / (cp * dT)` are
+   both formatted forms. A parameter's `=` has no spaces around it; a `let`'s has one on each side.
+   Nothing follows `(` or precedes `)` or `,`; one space follows `,`.
+3. Within a **run** of consecutive non-blank statement lines, the trailing comments share one column,
+   two spaces past the run's longest content, and consecutive `let`s pad their names so the `=`
+   signs line up. A blank line, a full-line comment or a `curve`'s data row ends a run, which is the
+   open-questions rule: one long line cannot reflow a section.
+4. Blank lines, full-line comments, comment text and a `curve`'s data rows are left exactly as
+   written; token text is never changed.
+
+One `TextEdit` per line that changes, at that line's span. Idempotent by construction: every rule
+reads tokens, not spacing, except rule 2's collapse, which a formatted line already satisfies.
+`FormatterTests` asserts idempotence, token and comment preservation over the whole corpus, and each
+rule on a small example. What is deliberately absent: reordering of any kind, blank-line insertion,
+and column alignment of parameters across lines, which reads well on a header of identical
+declarations and badly everywhere else.
+
 ## Trivia
 
 Every token carries its leading and trailing trivia, including `D-13`'s `#` comments. The attachment rules are what make round-tripping
@@ -335,7 +363,8 @@ worth a dedicated test.
 - [ ] Removing the middle connection of a four-endpoint chain produces two well-formed lines.
 - [ ] `Rename` across a script containing the name in a declaration, a connection, and an expression
       updates all three.
-- [ ] Formatter idempotence over the corpus.
+- [x] Formatter idempotence over the corpus (P5.5, `FormatterTests`; and no token or comment changes,
+      which is the stronger half).
 - [ ] On `T1 container v=300 layers=5`, setting canonical `volume` changes only `300`, removing `v`
       removes that assignment, and setting it again inserts exactly one canonical `volume=` while
       preserving `container`.

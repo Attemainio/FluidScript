@@ -1745,14 +1745,28 @@
             "type": "string"
           },
           "value": {
-            "description": "The value in .",
+            "description": "The value in , or null when the binding is deferred to the solve.",
             "type": [
               "number",
               "null"
             ]
           },
           "unit": {
-            "description": "The canonical unit, or null when dimensionless.",
+            "description": "The canonical unit, or null when dimensionless or deferred.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dimension": {
+            "description": "The dimension\u0027s name, so the editor can filter completion by it (52); null for a dimensionless, an unnamed or a deferred binding.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "siUnit": {
+            "description": "For an unnamed dimension, the SI spelling the value carries, shown dimmed by completion; otherwise null.",
             "type": [
               "string",
               "null"
@@ -1762,7 +1776,9 @@
         "required": [
           "name",
           "value",
-          "unit"
+          "unit",
+          "dimension",
+          "siUnit"
         ]
       }
     },

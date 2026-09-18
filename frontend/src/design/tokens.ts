@@ -102,6 +102,7 @@ export const scaleTokens = {
   '--text-label-weight': '500',
   '--text-readout-size': '12px',
   '--log-height': '120px',
+  '--selection-opacity': '0.3',
 } as const;
 
 /**

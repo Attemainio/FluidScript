@@ -740,11 +740,19 @@ public static class ModelContractBuilder
     {
         if (binding.Value is not { } quantity)
         {
-            return new BindingWire(binding.Name, null, null);
+            // Deferred: the binder does not type an expression it cannot evaluate, so the dimension is
+            // unknown here as well (50-frontend/defects.md, F-5).
+            return new BindingWire(binding.Name, null, null, null, null);
         }
 
         var (value, unit) = Canonical(quantity.SiValue, quantity.Dimension, binding.Name, "value", raised);
-        return new BindingWire(binding.Name, value, unit);
+        var dimension = quantity.Dimension;
+        return new BindingWire(
+            binding.Name,
+            value,
+            unit,
+            dimension.IsNamed && dimension.Name != "Dimensionless" ? dimension.Name : null,
+            dimension.IsNamed ? null : dimension.SiUnit);
     }
 
     /// <summary>Renders diagnostics in <c>44</c>'s wire shape: both position forms from one line index, ordered by severity, then offset, then code.</summary>

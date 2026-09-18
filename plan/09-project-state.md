@@ -99,8 +99,17 @@ would be filled with nothing.
 > the typed client with the wire types generated from the Api's schemas (now titled and documented,
 > `D-46` step 4), and the debounce pipeline with its validate phase, all of `51`'s request-stream
 > criteria asserted on a hand-driven clock; `F-4` (the debounce is unmeasured until P5.5) and
-> `A-4` (the warm start's saving is invisible in `solve.iterations`) opened. The next package is
-> P5.5, the editor.
+> `A-4` (the warm start's saving is invisible in `solve.iterations`) opened. Committed as `4b45c20`.
+> **P5.5, the editor, shipped the same day:** CodeMirror around a stream tokenizer that mirrors
+> the lexer and is fed from the host's committed lexicon, diagnostics as squiggles with one-step
+> quick fixes, `52`'s completion table from the committed metadata golden, the formatter in Core
+> behind a new `format` endpoint, and the `D-48` benchmark harness, built but not run because no
+> browser can launch on this machine; `A-5` closed (the metadata's order was process-dependent),
+> `F-5` and `F-6` opened, `F-4` open with the benchmark waiting on a browser. The first screenshot
+> of the product was taken the same day (headless Edge on the Windows side, since nothing launches
+> in WSL) and judged: technical, and intimidating to a non-programmer. Decided with the user:
+> P5.6 first, then a new **P5.6b, look and feel** (`08`), tuned on screenshots with the diagram in
+> place. The next package is P5.6, the canvas.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -310,7 +319,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | `44e30fa` | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
 | P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | `d1a1c08` | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
 | P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)): `tokens.ts`, the two themes as JSON and the generated cascade, custom theme files, the UI store's `theme`, eight primitives, Vitest with the design tests, `docs/advanced/themes.md` | `8439e2f` | Shipped 2026-09-18; `F-3` closed; `F-1`, `F-2` opened; `Tooltip`, `Slider`, `NumericInput` land with their first consumers |
-| P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)): the shell with `SplitPane`, tabs, log slot and status line; `draftStore`, `runStore`, `workspaceStore`, `uiStore`; the typed client and `types.generated.ts` from the schemas (titles and descriptions added on the Api side); `CompilePipeline` with `LatencyTracker`; `docs/advanced/working-in-tabs.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `F-4`, `A-4` opened; the editor is a text area until P5.5, the canvas a list until P5.6 |
+| P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)): the shell with `SplitPane`, tabs, log slot and status line; `draftStore`, `runStore`, `workspaceStore`, `uiStore`; the typed client and `types.generated.ts` from the schemas (titles and descriptions added on the Api side); `CompilePipeline` with `LatencyTracker`; `docs/advanced/working-in-tabs.md` | `4b45c20` | Shipped 2026-09-18; `F-4`, `A-4` opened; the editor is a text area until P5.5, the canvas a list until P5.6 |
+| P5.5 | The editor ([`52`](50-frontend/52-editor.md)): CodeMirror with a stream tokenizer generated from the host's `language.json`, inline diagnostics with quick fixes, alias-aware and dimension-filtered completion from the committed metadata golden, the formatter in Core (`17`) behind `POST /api/v1/format` (`42`) and `Shift+Alt+F`, go to definition, toggle comment, Solve; `TokenGoldenTests` on both sides; the `D-48` benchmark harness; `docs/advanced/the-editor.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `A-5` closed; `F-5`, `F-6` opened; `F-4` stays open, the benchmark is built and unrun (no launchable browser here); hover for components, lets and quantities → P5.8, Rename → P7.1, Run → M4, Save/Open → P5.9 |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -651,6 +661,36 @@ host: the cooling loop cold 906 ms / warm 24 ms over HTTP, 413 with its problem 
 `A-4`. `docs/advanced/working-in-tabs.md` is the page. Frontend 45/0, Api 55/0 with the schemas
 regenerated, Core unchanged.
 
+**P5.5 is `52` on CodeMirror 6** (2026-09-18). The grammar is a `StreamLanguage` over
+`features/editor/language/tokenizer.ts`, a line-at-a-time port of the lexer's rules with the section
+as state and roles by position; `52` says why it is not a Lezer grammar. Its lexicon -- reserved
+words, unit symbols longest-first, `D-15`'s thresholds -- is `LexiconWire`, exported by the Api's
+schema test to `Contracts/Schemas/language.json` and generated into `lexicon.generated.ts` by
+`npm run types`, gated on both sides. The agreement test is `TokenGoldenTests` in Core, one golden
+per sample with every token's offset, length and kind, replayed by `tokenizer.test.ts`. Diagnostics
+are `@codemirror/lint`'s set wholesale per compile, infos skipped, the hover carrying the code and
+the related places, a `suggestion` as an **Apply fix** action that is one transaction; a fix the
+document moved from under is skipped. Completion is `completion/completion.ts`, a pure function of
+the line, the metadata and the model: the `D-15` scorer ported from `NameResolution` and asserted
+against its figures, kinds alias-aware with Tab and Enter inserting the canonical keyword, parameters
+with `dimension · unit · typically a…b`, values filtered by the parameter's dimension over lets,
+`Component.property` references and unit symbols, tank families with materialized ports and the next
+template, all twenty-two of `52`'s cases against `Api.Tests/Contracts/Goldens/metadata.json`. For
+that the wire's `bindings` gained `dimension` and `siUnit` (`26`), the metadata orders by name and
+converts ranges to the canonical unit (`A-5`), and `sensr` is a real ambiguous pair (`p_sensor`,
+`t_sensor`; both listed, first preselected, `F-6`). The formatter is `Formatter` in Core (`17`
+records the layout as this project's reasoning: no indentation, zero-or-one spacing kept, `=` tight
+for a parameter and spaced for a `let`, trailing comments and `let` names aligned within a run,
+blank lines, full-line comments and curve rows untouched), idempotent and token-preserving over the
+corpus, served by `POST /api/v1/format` as `TextEdit`s and applied by `Shift+Alt+F` as one
+transaction. Go to definition is `Ctrl+Click` on the model's `sourceSpan`; `Ctrl+/` toggles `#`;
+`Ctrl+Shift+Enter` flushes the pipeline as a solve. `D-48`'s benchmark is `frontend/e2e/latency.bench.ts`
+on Playwright, driving a dev-only `window.fluidscript` hook and writing `diagnostics/keystroke-latency.md`;
+Chromium's headless shell needs `libnspr4`/`libnss3` that this machine cannot install without
+root, so it has not run and the debounce stays provisional (`F-4`). `docs/advanced/the-editor.md`
+is the page. Frontend 88/0, Api 58/0, Core 1820/0/4 (the model-contract page regenerated for the
+two binding fields).
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -682,15 +722,18 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 8 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 21 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 10 · Language | 10 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 32 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 40 · API | 4 | [`40-api/defects.md`](40-api/defects.md) |
+| 50 · Frontend | 5 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **48** | |
+| | **72** | |
 
-Tiers 40, 50 and 70 have no defect record because nothing has implemented against them yet. Their
-absence means nothing has looked, not that nothing is wrong — the same caveat each existing file
-carries about its own unread documents.
+Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
+48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
+nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
+its own unread documents.
 
 **Nothing open blocks the three demo scripts any more.** The header's remaining entries were each
 measured on a *variant* and stay open on their own merits: `S-53` (the seed doubles a three-way
@@ -760,10 +803,10 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1805 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
-| API test suite | **55 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
-| Frontend tests | **45 passed, 0 failed**, ~8 s | `cd frontend && npm test` |
-| Debounce | **300 ms, provisional** (`D-49`; measured by P5.5's benchmark, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
+| Core test suite | **1820 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
+| Frontend tests | **88 passed, 0 failed**, ~10 s | `cd frontend && npm test` |
+| Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

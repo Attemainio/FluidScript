@@ -8,6 +8,8 @@ import { useDraftStore } from '../../state/draftStore.ts';
 import { useUiStore } from '../../state/uiStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
 import { FakeClient, FakeClock, answer, diagnostic, finish, settle } from '../../test/fakes.ts';
+import { activeEditorView } from '../editor/activeView.ts';
+import { forgetAll } from '../editor/documents.ts';
 import { CompilePipeline } from '../pipeline/compilePipeline.ts';
 import { statusText } from './statusText.ts';
 
@@ -21,13 +23,13 @@ describe('the shell', () => {
   let pipeline: CompilePipeline;
 
   const type = (text: string): void => {
-    const area = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Script"]')!;
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
+    const view = activeEditorView()!;
     act(() => {
-      setter.call(area, text);
-      area.dispatchEvent(new Event('input', { bubbles: true }));
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
     });
   };
+
+  const editorText = (): string => activeEditorView()?.state.doc.toString() ?? '';
 
   const tick = async (ms: number): Promise<void> => {
     await act(async () => {
@@ -39,6 +41,7 @@ describe('the shell', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    forgetAll();
     useDraftStore.setState({ drafts: {} });
     useUiStore.setState({ theme: { kind: 'system' }, splitRatio: 0.45, logOpen: true });
     const first = { documentId: 'd1', displayName: 'plant_01', dirty: false };
@@ -117,15 +120,13 @@ describe('the shell', () => {
     });
 
     expect(client.calls[0]?.signal.aborted).toBe(true);
-    expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toContain(
-      'fluidscript 1',
-    );
+    expect(editorText()).toContain('fluidscript 1');
     expect(status()).toContain('plant_02');
 
     act(() => {
       useWorkspaceStore.getState().activate('d1');
     });
-    expect(container.querySelector<HTMLTextAreaElement>('textarea')?.value).toBe('one');
+    expect(editorText()).toBe('one');
   });
 
   it('names every state with a distinct glyph and a distinct word, so colour is never the only cue', () => {

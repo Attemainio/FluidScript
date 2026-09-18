@@ -57,6 +57,13 @@ public static class ApiJson
         JsonSchemaExporter.GetJsonSchemaAsNode(ModelContractJson.Options, root, SchemaDocumentation.ExporterOptions)
             .ToJsonString(IndentedSchema) + "\n";
 
+    /// <summary>Emits the lexicon the editor's tokenizer is generated from (<see cref="LexiconWire"/>).</summary>
+    /// <returns>The JSON, indented, with a trailing newline, as it is committed as <c>language.json</c>.</returns>
+    public static string Lexicon() =>
+        JsonSerializer.Serialize(LexiconWire.Current, IndentedContract) + "\n";
+
+    private static readonly JsonSerializerOptions IndentedContract = new(ModelContractJson.Options) { WriteIndented = true };
+
     /// <summary>Parses a schema back, for a test that reads one.</summary>
     /// <param name="json">The schema text.</param>
     /// <returns>The node, or <see langword="null"/> when the text is not JSON.</returns>

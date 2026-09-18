@@ -221,6 +221,25 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
+    public async Task FormatReturnsOneEditPerChangedLineAndNoneForAFormattedScript()
+    {
+        // 17's formatter over the wire: edits, never whole text, so the editor keeps its cursor and undo.
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync("/api/v1/format", new { script = "fluidscript 1\nHE1   heat_exchanger power = 30\nPU1 pump\n" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.ReadAsync<FormatResponse>();
+        var edit = Assert.Single(body.Edits);
+        Assert.Equal(14, edit.Span.Start);
+        Assert.Equal("HE1   heat_exchanger power = 30".Length, edit.Span.Length);
+        Assert.Equal("HE1 heat_exchanger power=30", edit.NewText);
+
+        using var again = await client.PostAsync("/api/v1/format", new { script = "fluidscript 1\nHE1 heat_exchanger power=30\nPU1 pump\n" });
+        Assert.Empty((await again.ReadAsync<FormatResponse>()).Edits);
+    }
+
+    [Fact]
+
     public async Task TheSameBodyProducesTheSameModel()
     {
         // 42: every endpoint is a pure function of its body plus a cache. Two compiles of one script

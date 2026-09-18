@@ -15,8 +15,12 @@ export type {
   Dimension,
   Kind,
   Layout,
+  IndexedParameter,
   Metadata,
   ModelContract,
+  ParameterMeta,
+  PortFamily,
+  PropertyMeta,
   Placement,
   Position,
   Quantity,
@@ -35,6 +39,17 @@ export interface ValidateResponse {
   readonly languageMajor: number | null;
   readonly diagnostics: readonly import('./types.generated.ts').Diagnostic[];
   readonly timings: import('./types.generated.ts').Timings;
+}
+
+/** One text replacement (`17`): the span in UTF-16 code units of the script sent, and its replacement. */
+export interface TextEdit {
+  readonly span: { readonly start: number; readonly length: number };
+  readonly newText: string;
+}
+
+/** The body of `POST /api/v1/format` (`42`): the edits that bring the script to the canonical layout. */
+export interface FormatResponse {
+  readonly edits: readonly TextEdit[];
 }
 
 /** RFC 9457 problem details, the body of every non-200 (`42`). */
