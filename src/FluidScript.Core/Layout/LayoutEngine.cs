@@ -567,7 +567,9 @@ internal sealed class LayoutEngine
 
             if (walk.Far >= 0 && Direction.Of(end.Offset(-before.X, -before.Y)) is { Horizontal: true } approach)
             {
-                ends.Add((b, walk, approach, Root(walk)));
+                // C7: the fragment's inlets and outlets line up with one another wherever they hang (the user's correction on the tour: SB1, NB1 and NB2 on one vertical); inferred open ends pair by their root.
+                var root = _graph.Components[b] is CircuitNode { Boundary: not BoundaryRole.Interior } ? -3 : Root(walk);
+                ends.Add((b, walk, approach, root));
             }
         }
 
@@ -1061,7 +1063,7 @@ internal sealed class LayoutEngine
                 }
             }
 
-            if (found.Count != 2)
+            if (found.Count is not (1 or 2))
             {
                 continue;
             }
@@ -1070,13 +1072,10 @@ internal sealed class LayoutEngine
             ret = candidate;
 
             // Both paths ending on one junction: it is the bottom rail's left end, and the outlet hangs off its left side.
-            var lastA = found[0][^1];
-            var lastB = found[1][^1];
-
-            if (found[0].Count > 1 && found[1].Count > 1 && lastA.Component == lastB.Component && Wildcard(lastA.Component) && !_inline[lastA.Component])
+            if (found.Count == 2 && found[0].Count > 1 && found[1].Count > 1 && found[0][^1].Component == found[1][^1].Component && Wildcard(found[0][^1].Component) && !_inline[found[0][^1].Component])
             {
-                ret = lastA.Component;
-                outletPort = lastA.OutPort;
+                ret = found[0][^1].Component;
+                outletPort = found[0][^1].OutPort;
 
                 foreach (var path in found)
                 {
@@ -1098,13 +1097,16 @@ internal sealed class LayoutEngine
         var chainAt = paths.FindIndex(path => Ranges(CycleOf(path), 1, avoid).Count == 0);
         var ringAt = paths.FindIndex(path => Ranges(CycleOf(path), 1, avoid).Count > 0);
 
-        if (ringAt < 0)
+        // One path with no inner loop is the chain alone: the outlet stands at its foot and there are no rails (C19, step 11b).
+        var chainOnly = ringAt < 0 && paths.Count == 1;
+
+        if (ringAt < 0 && !chainOnly)
         {
             ringAt = chainAt == 0 ? 1 : 0;
         }
 
         var chain = chainAt >= 0 && chainAt != ringAt ? paths[chainAt] : null;
-        var cycle = CycleOf(paths[ringAt]);
+        var cycle = chainOnly ? [new Member(supply, -1, chain![0].OutPort)] : CycleOf(paths[ringAt]);
         var ring = cycle.Select(static m => m.Component).ToHashSet();
         var placed = (bool[])_placed.Clone();
         var sides = new Dictionary<(int Component, int Port), Direction>(_side);
@@ -1129,12 +1131,16 @@ internal sealed class LayoutEngine
         Unit? unit;
         int unitEnd;
         var items = new List<Item>();
+        (int Start, int End, List<Member> Inner)? unitRange = null;
+        var unitGroups = 0;
 
         if (ranges.Count > 0)
         {
             var last = ranges[^1];
             unitEnd = last.End;
             unit = Block(last.Inner, cycle[last.Start], cycle[last.End], avoid, Direction.Left);
+            unitRange = last;
+            unitGroups = _groups.Count - mark;
             var next = 1;
 
             foreach (var (start, end, inner) in ranges.SkipLast(1))
@@ -1169,12 +1175,12 @@ internal sealed class LayoutEngine
             }
         }
 
-        if (unit is null)
+        if (unit is null && !chainOnly)
         {
             return Fail();
         }
 
-        foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Append(unit))
+        foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Concat(unit is null ? [] : [unit]))
         {
             foreach (var i in u.Members)
             {
@@ -1223,6 +1229,48 @@ internal sealed class LayoutEngine
             natural = Math.Min(natural, cursor.At.Y - _margin - half);
         }
 
+        if (chainOnly)
+        {
+            // No ring path: the outlet stands at the chain's foot, directly under the junction.
+            Place(ret, Transform.Identity, new Point(0, natural));
+            _side[(ret, chain![0].InPort)] = Direction.Up;
+            runs.Add((chainEnd, [chainCursor.At, AnchorOf(ret, chain[0].InPort).At]));
+            Finish();
+            return true;
+        }
+
+        if (unit is null)
+        {
+            return Fail();
+        }
+
+        // C12 for the open form: a block standing on both rails whose outlet sits above the chain's level would put a step in the return, so the block is rebuilt deeper and its outlet meets the rail.
+        if (unitRange is { } range && unit.In.Outward == Direction.Left && unit.Out.Outward == Direction.Left)
+        {
+            var outletAt = AnchorOf(supply, cycle[0].OutPort).At.Y + unit.Out.At.Y - unit.In.At.Y;
+
+            if (outletAt > natural + Eps)
+            {
+                _groups.RemoveRange(mark, unitGroups);
+                var at = _groups.Count;
+                unit = Block(range.Inner, cycle[range.Start], cycle[range.End], avoid, Direction.Left, outletAt - natural);
+
+                if (unit is null)
+                {
+                    return Fail();
+                }
+
+                var created = _groups.GetRange(at, _groups.Count - at);
+                _groups.RemoveRange(at, created.Count);
+                _groups.InsertRange(mark, created);
+
+                foreach (var i in unit.Members)
+                {
+                    _placed[i] = false;
+                }
+            }
+        }
+
         var sOut = AnchorOf(supply, cycle[0].OutPort);
         var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
         var hangers = new List<Hanger>();
@@ -1258,39 +1306,43 @@ internal sealed class LayoutEngine
             _loop[m.Component] = true;
         }
 
-        // The inlet and the outlet hang off their junctions' left sides (D-115); the supply's other connections leave by the sides the form leaves free, up first.
-        if (inlet >= 0)
-        {
-            _side[(supply, inletPort)] = Direction.Left;
-        }
+        Finish();
+        return true;
 
-        if (outletPort >= 0)
+        void Finish()
         {
-            _side[(ret, outletPort)] = Direction.Left;
-        }
-
-        var free = new Queue<Direction>([Direction.Up, Direction.Left]);
-
-        foreach (var p in linked.Where(p => !_side.ContainsKey((supply, p))))
-        {
-            while (free.Count > 0)
+            // The inlet and the outlet hang off their junctions' left sides (D-115); the supply's other connections leave by the sides the form leaves free, up first.
+            if (inlet >= 0)
             {
-                var side = free.Dequeue();
+                _side[(supply, inletPort)] = Direction.Left;
+            }
 
-                if (!_side.Any(kv => kv.Key.Component == supply && kv.Value == side))
+            if (outletPort >= 0)
+            {
+                _side[(ret, outletPort)] = Direction.Left;
+            }
+
+            var free = new Queue<Direction>([Direction.Up, Direction.Left]);
+
+            foreach (var p in linked.Where(p => !_side.ContainsKey((supply, p))))
+            {
+                while (free.Count > 0)
                 {
-                    _side[(supply, p)] = side;
-                    break;
+                    var side = free.Dequeue();
+
+                    if (!_side.Any(kv => kv.Key.Component == supply && kv.Value == side))
+                    {
+                        _side[(supply, p)] = side;
+                        break;
+                    }
                 }
             }
-        }
 
-        foreach (var (from, points) in runs)
-        {
-            Assign(Walk(from.Component, from.OutPort), Normalise(points));
+            foreach (var (from, points) in runs)
+            {
+                Assign(Walk(from.Component, from.OutPort), Normalise(points));
+            }
         }
-
-        return true;
     }
 
     /// <summary>Whether the walk leaving a member passes a node that is a point on the line -- an inline node the cycle search steps over (C18).</summary>
@@ -1377,8 +1429,9 @@ internal sealed class LayoutEngine
     /// <param name="exit">The member and port the outer loop leaves the block by.</param>
     /// <param name="avoid">The enclosing rings' sources and corner members, which a nested unit's search must not pass.</param>
     /// <param name="outlet">Which way the block's outlet faces.</param>
+    /// <param name="deeper">How much lower than its own need the block's bottom rail lies, so that its outlet meets a taller neighbour's rail level (C12); zero for its own need.</param>
     /// <returns>The block as a unit, or <see langword="null"/> when no member can take the corner or the entry and exit do not face the ring.</returns>
-    private Unit? Block(List<Member> path, Member entry, Member exit, HashSet<int> avoid, Direction outlet)
+    private Unit? Block(List<Member> path, Member entry, Member exit, HashSet<int> avoid, Direction outlet, double deeper = 0)
     {
         var cornerAt = -1;
         var tc = Transform.Identity;
@@ -1446,6 +1499,13 @@ internal sealed class LayoutEngine
 
         var natural = cIn.Along(_margin).Y - (left is { } l ? Transform.Identity.Size(_symbol[l.Component]).Height / 2 : 0);
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, natural, right?.Component ?? -1);
+
+        if (deeper > Eps)
+        {
+            // C12: the bottom rail goes down by the caller's need, whatever set it; a unit hung from above keeps its outlet mid-side.
+            yBottom -= deeper;
+            drop += unit.In.Outward == Direction.Up ? deeper / 2 : 0;
+        }
 
         if (!Close(top, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], left, right, hangers, runs))
         {

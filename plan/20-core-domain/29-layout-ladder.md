@@ -783,9 +783,36 @@ closed circuit without a stated pressure is warned, not informed (`FS2201`). The
 now write `NB1 - NJ1`, `NJ1 - HE2 - PB1 - NJ2`, `NJ2 - NB2`, `NJ1 - TV2.b` and attach the `ahu` at
 `NJ1`/`NJ2`; C19 is keyed to the junctions, with the boundaries hanging off their left sides. The
 tour draws `NB1` at `(0.25, −8.7)` beside `NJ1` at the origin and `NB2` beside `NJ2` under it,
-hard 0, soft 0, length 47.15; step 11b's picture gains the two junctions the same way. And the
+hard 0, soft 0, length 47.15; step 11b's picture gains the two junctions the same way -- at first
+with `HE2` to the right of `NJ1` by the chain rule, since its one path to the outlet did not meet
+C19's two; the user asked for it under `NJ1` like the tour, so C19 takes one path as the chain
+alone, the outlet at its foot: `NJ1` at the origin, `HE2` under it, `NB2` at `(1.2, −11.4)`, two
+bends, length 13.4, hard 0, soft 0, every other step byte for byte. And the
 seed runs `HE2` forwards again: `S-64` closes, because the shape that exposed it can no longer be
 written. Every other step and sample is byte for byte.
+
+**The tour's return and its terminals (2026-09-17).** The user read the tour again: the chain
+`NJ1 - HE2 - PB1 - NJ2` is 0.2 taller than the injection block, so the block's return stepped
+down 0.2 between `NM3` and `PA3` -- "we should straighten that polyline" -- and `SB1` stood 0.4
+right of `NB1` and `NB2`, which "should be aligned vertically; there is space for that". The step
+was C19 doing what its text said, taking the lower of the chain's and the block's need for the
+bottom rail and leaving the difference in the block's return; C12 had no purchase, since the block
+stands on both rails with no stub to share the slack into. The rule now rebuilds the block deeper
+by the difference when its outlet would sit above the chain's level: `NM3` at `(2.1, −2.7)` in the
+junction's frame, level with `NJ2`, `HE3` down 0.1 to keep its side's middle, `PA3` centred on
+the straight run, the return `NM3 - PA3 - NJ2` with no bend. The alignment was C7 keying open
+ends by their root: `SB1` hangs off `TV2` and `NB1`, `NB2` off the junctions, so the three had
+two roots and only the junction pair aligned. Declared boundaries of one fragment now share one
+root: `SB1`, `NB1` and `NB2` all at `x = −1.35` from `NJ1`. Hard 0, soft 0, twelve bends, length
+48.15; every other step and sample byte for byte.
+
+**The ladder at `spacing 1` (2026-09-17).** "Do layouts with 1.0 margins": every ladder script and
+sample was drawn once with `spacing 1` in place of its own. Every step and sample reads hard 0,
+soft 0 but step 9 and `m4-storage-header`, where the tank's inlet ports are 0.96 apart and the
+second supply's level pipe runs 0.14 inside the first supply's clearance (soft 2, `C-96`): the one
+rule that assumed the margin smaller than a port pitch. The tour's terminals stay on one vertical
+and its return straight; the pictures scale, the labels of an inline chain (`HE2__PB1`, `PB1`,
+`NJ2`) crowd the same at either margin. The scripts keep their own spacing; the default stays 0.5.
 
 ## What the ladder has not reached
 

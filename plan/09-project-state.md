@@ -536,7 +536,12 @@ circuit without a stated pressure is warned (`FS2201`). The rename runs through 
 `BoundaryRole`, the attachment statements, the wire's `inletAnchorId`/`outletAnchorId`, every
 sample and ladder script, the docs page `inlet-outlet.md` and `22`'s tables; the tour and step 11b
 write junctions after the inlet and before the outlet, C19 is keyed to them, and `S-64` and `L-52`
-close. Core 1732/0/4, Api 18/0 with goldens regenerated.
+close. Core 1732/0/4, Api 18/0 with goldens regenerated. The tour's reading after that
+(2026-09-17): a chain taller than the open form's block rebuilds the block deeper so the return
+runs straight (C12), and a fragment's declared boundaries share one root so they align (C7); step
+11b's one-path form is the chain alone with the outlet at its foot (C19). The whole ladder was
+then drawn at `spacing 1`: every step and sample hard 0, soft 0 but the tank form, `C-96` filed.
+Core 1734/0/4.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -615,13 +620,16 @@ unassessed, not clean.
    `D-107`), edit stability as an invariant, three spacing tiers (dropped by `D-107`), and a text layout report
    (`LayoutExplanation`, P5.1d-3's since `D-103`) so a session can read a placement it cannot see. Temperature
    ordering of branches and barycentre reordering are deferred with reasons.
-5. **The layout ladder's next step** (`29`): the user's corrections to step 2 -- a pump into an exchanger -- which exercised C3
-   (the standing class) and C4 and puts `28`'s open question 1 (does a node's boundary take
-   clearance?) in front of the user. `C-88` and `C-90` closed 2026-09-17; `C-89` (the text into Core, the
-   raster) stays open. The planned steps are `29`'s table; the
-   candidates in `28` part D enter C only when a step proves them, and the loop search is now
-   only over which free-turning members take a vertical. The seven layout samples' routing and
-   audit gates come off skip when the ladder reaches them.
+5. **The layout ladder has reached every sample** (`29`, 2026-09-17): all 24 layouts draw hard 0,
+   soft 0 at the default spacing, and the rules are keyed to shapes, never to a circuit. What it has
+   not reached is `29`'s closing list (the open form with more than two paths, a branch off the
+   bottom rail, a block with no corner-taker, the valve residue of the loop search, a declared
+   pipe off a ring); each waits for a script that needs it. The user chose (2026-09-18) to close
+   P5.1d-2 there and take **P5.1d-3** next: the layout text moves from Core.Tests into Core as the
+   layout report with the raster (`C-89`), the audit gains its three missing measurements
+   (`C-95`), the scene's predicate sweep ships, and `C-92` (48 ms against the 30 ms line, and
+   faster at 400 components than at 200) is profiled on the way. `C-96` (the tank form at a margin
+   above its port pitch) waits for a tank rung.
    What `P4` left behind, none of it blocking: `C-78` (the plate catalogue's shopping list — a cited
    `U`, a plate step, the `lamella` correlation, `FS2311`), `22`'s unticked crossover criterion (a
    solve driven across `C₁ = C₂`, not just the duty relation stepped over it), `C-75`'s last

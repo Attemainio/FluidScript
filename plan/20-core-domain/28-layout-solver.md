@@ -290,6 +290,9 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   one is moved out to the farther one's line when no placed box or margin lies in the way, and
   its run is laid again over the longer pipe; the two then read as one pair of terminals, the
   return under the supply. Where something is in the way, each stays where its own rule put it.
+  Declared boundaries of one fragment share one root whatever they hang off (step 11d's
+  correction): the tour's `SB1` off the mixing valve and `NB1`, `NB2` off the junctions read as
+  one column of terminals, the nearer ones moved out to the farthest.
 - **C8** *(step 6, provisional)* -- **A junction on a loop rail.** Its two loop ports lie along
   the rail; its free port takes a side no port uses, the one facing away from the loop's centre
   first -- vertical on a level rail, level on a vertical side, and level at a corner (C10) so that
@@ -345,7 +348,11 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   rails' span is set by the taller side; the member on the shorter side -- the source when the
   block is tall, a consumer entered from above when the source is -- moves to the middle of its
   side and its two stubs lengthen equally. The user's words: "if the component can move in its
-  direction of flow, it should be aligned middle".
+  direction of flow, it should be aligned middle". In the open form (C19) the block stands on
+  both rails, entered level from the top rail and leaving level into the bottom one, so it has no
+  stub to lengthen: where the chain is taller than the block, the block is laid again with its own
+  bottom rail lower by the difference and its hung unit down by half of it, so its outlet meets
+  the rail level and the return runs straight (step 11d's correction).
 - **C13** *(step 7, `D-113`)* -- **A pump is level.** It pumps left or right; a quarter turn is
   admitted only where nothing level fits, and a vertical pipe turns level into a pump (C3's turn,
   rightwards) before the pump is turned to meet it. This answers open question 2 for pumps: they
@@ -426,15 +433,17 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   has one connection (`D-115`), so the form is read through it: the inlet's one link leads to the
   junction, and both paths end on the outlet's junction, which is stripped from them. (An inlet
   wired to several paths, an `FS2205` error, is still drawn, the inlet standing as the junction.)
-  The paths from the junction to the outlet's junction are found by the branch search (C14) from
-  each of the junction's other connections; the first with no inner loop is a
+  With one path and no inner loop there are no rails: the chain hangs straight down under the
+  junction and the outlet stands at its foot (step 11b, the user's correction). The paths from the
+  junction to the outlet's junction are found by the branch search (C14) from each of the
+  junction's other connections; the first with no inner loop is a
   chain and hangs straight down under the supply, each member placed from the one before as on a
   vertical rail, into the return's top; the path with an inner loop is laid out as a ring path
   (C11: its last inner loop is the unit on the right, fed level from the supply's right side) and
   its return runs from the unit's outlet down to the bottom rail and left into the return's right
   side. The bottom rail's height is the lower of what the chain needs (the return one margin
-  under the chain's last member) and what the unit needs (C12), so a chain longer than the unit
-  puts a short step in the unit's return -- the same step a closed ring's source side makes. The
+  under the chain's last member) and what the unit needs (C12); a chain longer than the unit has
+  the unit laid again that much deeper (C12), so its return meets the rail without a step. The
   junction's other connections -- a path to a second outlet, a valve fed off it -- leave by the
   sides the form leaves free, up first, and are placed by the chain rule (C5), which is how
   step 11b's mixing valve keeps its place above the supply. The user's picture: the supply on the
