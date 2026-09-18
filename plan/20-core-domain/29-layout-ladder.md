@@ -203,6 +203,42 @@ same rectangle as step 3 with the source's place empty, which is what an unsolve
 first exchanger as the consumer (`C-100`). The seat is a fallback for the drawing, never a claim
 about the physics; when the script solves, the duty decides as before.
 
+### Step 3c · a component connected to itself
+
+`step-03c-self-loop.fluid`: `PU1 pump`; `PU1 - PU1`. And `step-03c-self-loop-exchanger.fluid`:
+`HX1 heat_exchanger`; `HX1 - HX1`. The user's second script on the canvas (2026-09-18), typed to
+see what the syntax does: `PU1 - PU1` binds the pump's outlet to its own inlet through one inferred
+node, which is what the line says. Neither solves; both are `# unsolved on purpose`.
+
+**Drawn first (2026-09-18, before the rule):** the pump at the origin and its node one row under,
+the return leaving `out` at `(0.5, 0)` *leftwards along the centreline* to `(0.1, 0)` and only then
+down -- through the pump's own box -- and the node drawn as a junction dot because its two
+connections met at one point. Seven hard breaches (`pipe-in-inner` ×3, `stub-short` ×4) that the
+audit would have failed the picture on, had it run: it ran over the ladder's fixtures only. No rule
+seats a loop of one: C2 wants a source, C18 a consumer, so C5 took it and the router did what it
+could.
+
+**User's correction:** *"It does not follow its own margins rule"* -- *"this should be fixed
+immediately."* Two faults, not one: the missing rule, and the audit that guards fixtures but not
+what a user types.
+
+**Drawn (2026-09-18, C20):** the pump at the origin, the pipe out to the right by its margin, down
+to a rail one margin under the symbol, back under it and up into the inlet, the inferred node
+inline at the middle of the return; the four corners are the outer box's. The exchanger, whose
+outlet is at the bottom and inlet at the top, runs its return down, left, up its left side and in
+from above. Hard 0, soft 0, both. Clockwise (H9) in both, by construction: the return is the outer
+box's edge walked clockwise from the outlet's stub to the inlet's.
+
+**Rules established:** C20: a component connected to itself is a ring of one on its own outer box.
+And the audit runs on every layout, reporting a hard finding as `FS5002` (`28` C, *every layout is
+audited*; `ModelContractBuilderTests.ALayoutThatBreaksItsOwnStandardSaysSoWithFS5002`, which stands
+on a two-pump ring the rules still cannot seat, and must move to another breaching script when they
+learn it).
+
+**Open:** a two-member ring with no source and no consumer (`PU1 - PU2 - PU1`, `PU1 - V1 - PU1`)
+still falls to C5 and breaches; it now says so with `FS5002` rather than drawing as if right. A
+member whose port is anchored inside its symbol has no stub on the outer box and is left to C5 too.
+
 ### Step 4 · a valve on the return
 
 `step-04-valve.fluid`: step 3 with `CV1 valve` between the load and the pump: `LOAD - CV1`,

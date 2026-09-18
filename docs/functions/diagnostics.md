@@ -177,6 +177,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3013` | Warning | Solver | {component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}. |
 | `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}. |
 | `FS4601` | Error | Request | The script has {count} {what}; the limit is {max}, so it is not solved. |
+| `FS5002` | Warning | Rendering | The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there. |
 <!-- END GENERATED: diagnostic-codes -->
 
 ## Withdrawn codes

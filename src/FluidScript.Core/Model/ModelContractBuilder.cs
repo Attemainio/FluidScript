@@ -130,6 +130,19 @@ public static class ModelContractBuilder
         var connections = Connections(model, graph, hints, ports, raised);
         var circuits = Circuits(model, graph, hints, solved, statesOmitted);
         var scene = LayoutSolver.Solve(graph, model, hints, LayoutSolver.MarginOf(model));
+
+        // The audit runs on every layout, not only on the ladder's fixtures (C-101): a hard breach of 28 B
+        // is reported, one line per breach, so the picture never arrives as if it met the standard.
+        foreach (var breach in SceneAudit.Findings(scene, model).Where(static finding => finding.Hard))
+        {
+            raised.Add(Diagnostic.Create(
+                LayoutDiagnostics.LayoutBreach,
+                span: null,
+                new DiagnosticArgument("rule", breach.Kind),
+                new DiagnosticArgument("first", breach.First),
+                new DiagnosticArgument("second", breach.Second),
+                new DiagnosticArgument("detail", breach.Detail)));
+        }
         var styles = new Styles(model, graph);
         var visualization = Visualization(input.Root, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);

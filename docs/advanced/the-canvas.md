@@ -49,6 +49,12 @@ symbols. A pipe with no arrow carries no flow.
 converge, the whole drawing turns red and loses its fills: the shape is still there to work on, and
 the log says what stopped it. The colours return with the next script that solves.
 
+**A drawing that breaks its own rules says so.** The layout is checked against its own standard
+every time it is drawn -- no pipe through a symbol, every pipe leaving a port straight for a whole
+margin, loops clockwise. Where a check fails, the log carries an `FS5002` warning naming the rule
+and the two parts involved, and the picture is unreliable there. It is a report about the drawing,
+not about your plant: the script is right and the layout rules have not caught up with it yet.
+
 **Two small marks** in a symbol's corners tell you something the picture alone cannot:
 
 - a coloured dot at the top-right corner means the compiler has a warning (amber) or an error

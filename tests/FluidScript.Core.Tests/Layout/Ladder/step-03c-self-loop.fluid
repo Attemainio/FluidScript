@@ -1,0 +1,9 @@
+# unsolved on purpose: layout ladder, step 3c (plan/20-core-domain/29-layout-ladder.md): a component connected to itself (C-101). A ring of one; the pipe leaves by its margin and comes back under the symbol.
+
+fluidscript 1
+circuit plant
+
+PU1 pump
+
+connections
+PU1 - PU1

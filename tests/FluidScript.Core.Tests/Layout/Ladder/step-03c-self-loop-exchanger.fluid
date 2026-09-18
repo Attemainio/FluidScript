@@ -1,0 +1,9 @@
+# unsolved on purpose: layout ladder, step 3c (plan/20-core-domain/29-layout-ladder.md): an exchanger connected to itself (C-101). Its ports are top and bottom, so the ring of one runs up its left side.
+
+fluidscript 1
+circuit plant
+
+HX1 heat_exchanger
+
+connections
+HX1 - HX1

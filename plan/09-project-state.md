@@ -127,7 +127,15 @@ would be filled with nothing.
 > filtered with the info count, the success line, copy as text, the header's phrase. Building it
 > found that nearly every diagnostic reached the wire with no component (`L-55`); the model
 > contract now attributes one raised on a declaration to that component. `A-6` opened (no unit
-> factors, no pipe velocity on the wire). The next package is P5.9, the file lifecycle.
+> factors, no pipe velocity on the wire). The user's next script, `PU1 - PU1`, filed `C-101`: a
+> component connected to itself was routed through its own symbol, seven hard breaches the audit
+> would have failed -- had it run over anything but the ladder's fixtures. Closed the same day, at
+> the user's "this should be fixed immediately": `28` C20 (a ring of one on its own outer box, walked
+> clockwise; ladder step 3c, pump and exchanger, hard 0), and every layout now audited with each hard
+> finding an `FS5002` warning in the log, so a breach is reported rather than handed out as correct.
+> Probing the fix found `C-102`, opened: a sourceless, consumerless ring of two still falls to the
+> chain rule and breaches -- reported now, not yet drawn right. The next package is P5.9, the file
+> lifecycle.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -781,12 +789,12 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 32 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 33 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 19 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 5 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **76** | |
+| | **77** | |
 
 Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means

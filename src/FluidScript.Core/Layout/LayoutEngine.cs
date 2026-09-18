@@ -156,7 +156,7 @@ internal sealed class LayoutEngine
             var routed = _routeOf.Select(static r => r is not null).ToArray();
             Array.Clear(_placed);
 
-            if (Head(declared) is { } head && !Loop(head) && !Open(head, fragment) && !Closed(fragment))
+            if (Head(declared) is { } head && !Loop(head) && !Ring(head, fragment) && !Open(head, fragment) && !Closed(fragment))
             {
                 // C1 (ladder step 1, corrected by D-108): the first component -- the heat source, else the head of the chain -- sits at the origin in its drawn default.
                 Place(head, Transform.Identity, new Point(0, 0));
@@ -1016,6 +1016,116 @@ internal sealed class LayoutEngine
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// C20 (<c>C-101</c>): a component connected to itself is a ring of one. Neither C2 nor C18 can seat it -- a pump is
+    /// no source and no consumer -- and the chain rule would put its inferred node one row under it and route the
+    /// outlet back through the member's own box. The member stands at the origin in its drawn default; the pipe
+    /// leaves the outlet by its outward margin, which puts it on the outer box's edge, walks that edge clockwise (H9)
+    /// round to the inlet's stub and enters by its margin, so a pump's return runs under it and an exchanger's, out at
+    /// the bottom and in at the top, runs up its left side; the inline elements between -- the inferred node the
+    /// syntax gives <c>PU1 - PU1</c> -- are cut into the return (A5). Only a fragment whose one boxed member is the
+    /// head is a ring of one; anything larger is another rule's, and a member whose stubs do not end on its outer
+    /// box is left to them too.
+    /// </summary>
+    private bool Ring(int head, List<int> fragment)
+    {
+        if (fragment.Any(i => i != head && !Inline(i)))
+        {
+            return false;
+        }
+
+        var ports = _graph.Components[head].Ports;
+
+        for (var p = 0; p < ports.Length; p++)
+        {
+            if (Enters(head, p, ports[p].Role))
+            {
+                continue;
+            }
+
+            var walk = Walk(head, p);
+
+            if (walk.Far != head || walk.FarPort == p)
+            {
+                continue;
+            }
+
+            Place(head, Transform.Identity, new Point(0, 0));
+            var outlet = AnchorOf(head, p);
+            var inlet = AnchorOf(head, walk.FarPort);
+            var (width, height) = SizeOf(head);
+
+            if (Clockwise(outlet.Along(_margin), inlet.Along(_margin), (width / 2) + _margin, (height / 2) + _margin) is not { } around)
+            {
+                _placed[head] = false;
+                continue;
+            }
+
+            List<Point> points = [outlet.At, .. around, inlet.At];
+            var members = new List<int> { head };
+            members.AddRange(walk.Inline.Select(static e => e.Element));
+
+            foreach (var i in members)
+            {
+                _loop[i] = true;
+            }
+
+            _groups.Add(("loop", members, true));
+            Assign(walk, Normalise(points));
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>The clockwise walk along the edge of the box <c>[-x, x] × [-y, y]</c> about the origin from <paramref name="from"/> to <paramref name="to"/>, both on that edge, through the corners between.</summary>
+    /// <param name="from">Where the walk starts, on the edge.</param>
+    /// <param name="to">Where it ends, on the edge.</param>
+    /// <param name="x">The box's half width.</param>
+    /// <param name="y">The box's half height.</param>
+    /// <returns>The points from <paramref name="from"/> to <paramref name="to"/> inclusive, or null where either is off the edge or they coincide.</returns>
+    private static List<Point>? Clockwise(Point from, Point to, double x, double y)
+    {
+        // Edges clockwise with y up: top (rightwards), right (downwards), bottom (leftwards), left (upwards); the corner each edge ends at.
+        Point[] corners = [new(x, y), new(x, -y), new(-x, -y), new(-x, y)];
+
+        static int EdgeOf(Point p, double x, double y) =>
+            Math.Abs(p.Y - y) < Eps ? 0 : Math.Abs(p.X - x) < Eps ? 1 : Math.Abs(p.Y + y) < Eps ? 2 : Math.Abs(p.X + x) < Eps ? 3 : -1;
+
+        static bool Ahead(int edge, Point at, Point p) => edge switch
+        {
+            0 => p.X >= at.X - Eps,
+            1 => p.Y <= at.Y + Eps,
+            2 => p.X <= at.X + Eps,
+            _ => p.Y >= at.Y - Eps,
+        };
+
+        var edge = EdgeOf(from, x, y);
+
+        if (edge < 0 || EdgeOf(to, x, y) < 0 || from.ManhattanTo(to) < Eps)
+        {
+            return null;
+        }
+
+        List<Point> points = [from];
+        var at = from;
+
+        for (var step = 0; step <= 4; step++)
+        {
+            if (EdgeOf(to, x, y) == edge && Ahead(edge, at, to))
+            {
+                points.Add(to);
+                return points;
+            }
+
+            at = corners[edge];
+            points.Add(at);
+            edge = (edge + 1) % 4;
+        }
+
+        return null;
     }
 
     /// <summary>C19: a supply boundary feeding two paths to one return boundary is the open supply-to-return form. The supply is the left end of the top rail and the return, directly under it, the left end of the bottom rail: the first path with no inner loop hangs straight down between them, and the other path is the ring's right side, fed level from the supply's right and returning along the bottom into the return's right.</summary>

@@ -35,11 +35,24 @@ public static class LayoutDiagnostics
         DiagnosticSeverity.Info,
         "'{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn.");
 
+    /// <summary>The solved layout breaks one of its own hard rules (<c>28</c> B); the drawing is unreliable where it says.</summary>
+    /// <value><c>FS5002</c>, a warning (<c>53</c> error cases).</value>
+    /// <remarks>
+    /// The audit that the ladder's gates run over fixtures runs over every solved layout (<c>C-101</c>):
+    /// a rule the router holds by construction is only as good as the shapes it was built against, and
+    /// a picture that breaks the standard must say so rather than arrive as if correct.
+    /// </remarks>
+    public static DiagnosticDescriptor LayoutBreach { get; } = new(
+        "FS5002",
+        DiagnosticSeverity.Warning,
+        "The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         NoTopologicalOrder,
         RendersCollapsed,
         RoleContradictsDuty,
+        LayoutBreach,
     ];
 }

@@ -466,6 +466,28 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   member turns level, a path with a junction on the bottom rail after the unit (the code passes it
   to `Close` untested), and a supply that is not a boundary node.
 
+- **C20** *(step 3c, `C-101`)* -- **A component connected to itself is a ring of one: it stands at the
+  origin in its drawn default, and the pipe leaves the outlet by its margin, walks the outer box's
+  edge clockwise round to the inlet's stub and enters by its margin, the inline elements between
+  cut into that return.** `PU1 - PU1` binds as `PU1.out → PU1__PU1 → PU1.in`, which is what the
+  syntax says, and no other rule can seat it: C2 wants a source, C18 a consumer, and a pump is
+  neither, so before this rule C5 seated the pump at the origin and its inferred node one row under,
+  and the router drew the return from `out` *leftwards along the centreline* through the pump's own
+  box -- against A3, against the audit's `pipe-in-inner`, and unreported, because the audit ran over
+  fixtures only. Both stubs end one margin out, which is on the outer box's edge (A2), so the return is
+  the edge itself: for a pump, out to the right, down, back under the symbol, up into the inlet; for an
+  exchanger, whose outlet is at the bottom and inlet at the top, down, left, up its left side and in
+  from above. Clockwise is H9; the walk never enters the inner box and never runs shorter than a
+  margin, by construction. Only a fragment whose one boxed member is the head is a ring of one; a
+  member whose stubs do not end on its outer box -- a port anchored inside the symbol -- is left to
+  the rules after it, and the audit says so. The picture is a fact about the wiring, not the physics:
+  a pump on itself cannot solve, and the plant is drawn red (`57`).
+- **Every layout is audited.** The audit (A10, `SceneAudit`) was the ladder's gate and nothing
+  else's; `C-101` was a picture it would have failed, handed out as if correct. Since `C-101`
+  `ModelContractBuilder` runs it over every solved layout and reports each hard finding as an
+  `FS5002` warning (`53`'s reserved code) naming the rule, the two parts and the geometry, so a
+  breach reaches the log rather than the eye alone. Soft findings stay the ladder's business.
+
 ## D. The candidates
 
 The user's specification proposes these for the parts of a layout that need a search. Each is a
@@ -554,7 +576,7 @@ for it.
 | Part | Code |
 |---|---|
 | A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
-| A5, A6, C | `Layout/LayoutEngine.cs` |
+| A5, A6, C | `Layout/LayoutEngine.cs`; the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
 | A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core.Tests today and belongs in Core (`C-89`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
 | D (router) | `Layout/OrthogonalRouter.cs` |
 | the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |

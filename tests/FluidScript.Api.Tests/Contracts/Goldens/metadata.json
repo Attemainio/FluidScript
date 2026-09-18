@@ -4343,6 +4343,18 @@
         "what",
         "max"
       ]
+    },
+    {
+      "code": "FS5002",
+      "severity": "warning",
+      "area": "Rendering",
+      "message": "The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there.",
+      "arguments": [
+        "rule",
+        "first",
+        "second",
+        "detail"
+      ]
     }
   ],
   "retiredDiagnostics": [
