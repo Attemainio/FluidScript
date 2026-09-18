@@ -71,7 +71,8 @@ docs/
 │   ├── troubleshooting.md       "it will not converge", "the sizes look wrong"
 │   ├── plant-layout.md          headers, how the diagram is arranged, spacing
 │   ├── working-in-tabs.md       several documents, what keeps running when you switch
-│   └── reading-solver-status.md converging, converged, failed — and which computation it means
+│   ├── reading-solver-status.md converging, converged, failed — and which computation it means
+│   └── using-the-api.md         the five HTTP calls, the session id, limits and status codes
 │
 ├── functions/                   reference. one page per thing. exhaustive.
 │   ├── index.md                 the complete list — the agent's entry point

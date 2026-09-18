@@ -96,6 +96,9 @@ public enum DiagnosticArea
     /// <summary>The realtime protocol between the API and the browser. <c>FS45xx</c>.</summary>
     Realtime = 45,
 
+    /// <summary>A request over one of the input limits. <c>FS46xx</c> (<c>42</c>, <c>07</c>).</summary>
+    Request = 46,
+
     /// <summary>Frontend layout and rendering. <c>FS50xx</c>.</summary>
     Rendering = 50,
 

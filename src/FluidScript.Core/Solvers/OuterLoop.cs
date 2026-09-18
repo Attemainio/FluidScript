@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
@@ -42,6 +44,10 @@ public sealed record OuterLoopResult
     /// solve actually used.
     /// </value>
     public required bool Settled { get; init; }
+
+    /// <summary>The hash of the unknown layout the solution is indexed by; what a <see cref="WarmStart"/> must match.</summary>
+    /// <value>See <see cref="OuterLoop.TopologyHash"/>.</value>
+    public required string TopologyHash { get; init; }
 
     /// <summary>The full solve report: counting, constraints, unknowns, equations, sizes and rank.</summary>
     /// <returns>The report, as lines of text.</returns>
@@ -198,9 +204,28 @@ public sealed class OuterLoop(
     /// The last pass's graph, solve and sizes, or why no pass could run. A failed <em>solve</em> is a
     /// result rather than a failure — it carries the iterate it reached and where it was heading.
     /// </returns>
+    public Task<Result<OuterLoopResult>> RunAsync(
+        SemanticModel model,
+        ISubstance substance,
+        string name = "model",
+        CancellationToken cancellationToken = default) =>
+        RunAsync(model, substance, warmStart: null, name, cancellationToken);
+
+    /// <summary>Compiles a bound model to a solved circuit, seeding the first pass from an earlier solution when it still fits.</summary>
+    /// <param name="model">The bound semantic model.</param>
+    /// <param name="substance">The fluid.</param>
+    /// <param name="warmStart">
+    /// An earlier run's solution and topology hash, or <see langword="null"/> for a cold start. Used
+    /// only when its hash is the hash of the system this run builds; otherwise ignored without a word,
+    /// since a host offers it on every request and most requests change the topology.
+    /// </param>
+    /// <param name="name">The graph's name, for reporting.</param>
+    /// <param name="cancellationToken">Honoured between passes and inside the solver.</param>
+    /// <returns>As <see cref="RunAsync(SemanticModel, ISubstance, string, CancellationToken)"/>.</returns>
     public async Task<Result<OuterLoopResult>> RunAsync(
         SemanticModel model,
         ISubstance substance,
+        WarmStart? warmStart,
         string name = "model",
         CancellationToken cancellationToken = default)
     {
@@ -226,6 +251,7 @@ public sealed class OuterLoop(
         StateVector? warm = null;
         SolveResult? solve = null;
         var passes = 0;
+        var hash = string.Empty;
 
         while (passes < maxPasses)
         {
@@ -249,7 +275,11 @@ public sealed class OuterLoop(
             }
 
             var layout = SystemLayout.Build(lowered.Graph, posedness.Counting);
-            var iterate = warm ?? Seed(lowered.Graph);
+            hash = TopologyHash(layout);
+            var fromWarm = warm is null && warmStart is { } offered
+                && string.Equals(offered.TopologyHash, hash, StringComparison.Ordinal)
+                && offered.Solution.Count == layout.Count;
+            var iterate = warm ?? (fromWarm ? warmStart!.Solution : Seed(lowered.Graph));
             var system = EquationSystem.Build(lowered.Graph, posedness, iterate);
 
             // `CanSolve` speaks for the counting table, which is a prediction. `Rows` and `Columns` are
@@ -279,6 +309,14 @@ public sealed class OuterLoop(
 
             if (!solve.Converged)
             {
+                // A warm start is a cache. One that does not converge is thrown away and the same pass
+                // runs again from the cold seed, so a stale iterate can cost time but never an answer.
+                if (fromWarm)
+                {
+                    warmStart = null;
+                    continue;
+                }
+
                 break;
             }
 
@@ -290,7 +328,7 @@ public sealed class OuterLoop(
             if (next.Matches(overlay))
             {
                 return Result.Success(
-                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised) }, next, WithStated(model, bases), notes, passes, settled: true));
+                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised) }, next, WithStated(model, bases), notes, passes, settled: true, hash));
             }
 
             overlay = next;
@@ -304,7 +342,7 @@ public sealed class OuterLoop(
                 ("name", name),
                 ("state", "the pass cap is not positive")))
             : Result.Success(
-                Report(lowered.Graph, solve, overlay, WithStated(model, bases), notes, passes, settled: false));
+                Report(lowered.Graph, solve, overlay, WithStated(model, bases), notes, passes, settled: false, hash));
     }
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
@@ -334,7 +372,8 @@ public sealed class OuterLoop(
         ImmutableDictionary<string, string> bases,
         ImmutableArray<string> notes,
         int passes,
-        bool settled) =>
+        bool settled,
+        string topologyHash) =>
         new()
         {
             Graph = graph,
@@ -346,7 +385,32 @@ public sealed class OuterLoop(
             Notes = notes,
             Passes = passes,
             Settled = settled,
+            TopologyHash = topologyHash,
         };
+
+    /// <summary>Names the unknown layout a solution is indexed by, so a later run can tell whether it may reuse it.</summary>
+    /// <param name="layout">The layout of the system about to be solved.</param>
+    /// <returns>Sixteen hex digits of the SHA-256 over every unknown's kind, owner and name, in order.</returns>
+    /// <remarks>
+    /// The hash is of the <em>layout</em>, not the text or the bound model: a whitespace edit, a
+    /// changed value or a renamed parameter leaves it alone, and only a change that adds, removes or
+    /// reorders an unknown moves it -- which is exactly when a stored iterate stops meaning what it
+    /// meant (<c>41</c>). Sixteen digits is far past what a per-session cache can collide on.
+    /// </remarks>
+    public static string TopologyHash(SystemLayout layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+
+        var text = new StringBuilder();
+
+        foreach (var unknown in layout.Unknowns)
+        {
+            text.Append(unknown.Kind).Append(':').Append(unknown.OwnerComponentId).Append(':').Append(unknown.Name).Append('\n');
+        }
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..16];
+    }
+
 
     /// <summary>Adds the bases the script states itself to the ones a sizing rule chose.</summary>
     /// <param name="model">The bound model.</param>

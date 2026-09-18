@@ -232,7 +232,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": null,
+          "unit": "s³·K/kg",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -311,7 +311,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": null,
+          "unit": "s³·K/kg",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -342,7 +342,7 @@
         },
         "u": {
           "value": 3300,
-          "unit": null,
+          "unit": "kg/(s³·K)",
           "source": "stated"
         },
         "ua": {

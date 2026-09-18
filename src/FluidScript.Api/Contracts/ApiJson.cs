@@ -1,0 +1,87 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Schema;
+
+using FluidScript.Core.Model;
+
+namespace FluidScript.Api.Contracts;
+
+/// <summary>The one JSON convention for every endpoint, and the schema emitted from the wire records (<c>D-46</c>).</summary>
+/// <remarks>
+/// Every response body -- the model contract, the endpoint records around it, problem details -- is
+/// written with <see cref="ModelContractJson.Options"/>'s settings, so a client learns one convention:
+/// camelCase, declaration order, <see langword="null"/> written, absent-when-not-applicable honoured,
+/// non-ASCII unescaped. Requests are read case-insensitively, as the web defaults are.
+/// </remarks>
+public static class ApiJson
+{
+    private static readonly JsonSerializerOptions IndentedSchema = new() { WriteIndented = true };
+
+    /// <summary>Copies the contract's serializer settings onto the host's options.</summary>
+    /// <param name="target">The host's serializer options, mutated in place.</param>
+    public static void Configure(JsonSerializerOptions target)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+
+        var source = ModelContractJson.Options;
+        target.PropertyNamingPolicy = source.PropertyNamingPolicy;
+        target.DictionaryKeyPolicy = source.DictionaryKeyPolicy;
+        target.DefaultIgnoreCondition = source.DefaultIgnoreCondition;
+        target.Encoder = source.Encoder;
+        target.WriteIndented = source.WriteIndented;
+        target.NumberHandling = source.NumberHandling;
+        target.TypeInfoResolver = source.TypeInfoResolver;
+        target.PropertyNameCaseInsensitive = true;
+    }
+
+    /// <summary>Emits the JSON Schema of the model contract from its records (<c>D-46</c> step 2).</summary>
+    /// <returns>The schema, indented, with a trailing newline, as it is committed.</returns>
+    /// <remarks>
+    /// The schema is a build product: it is committed beside the serializer and a test regenerates it
+    /// under the goldens flag and fails when the committed copy differs, so a change to a record's
+    /// name, order or nullability is a reviewed diff rather than a surprise on the other side of the
+    /// wire. The TypeScript side is generated from this file.
+    /// </remarks>
+    public static string ModelContractSchema()
+    {
+        var schema = JsonSchemaExporter.GetJsonSchemaAsNode(
+            ModelContractJson.Options,
+            typeof(ModelContract),
+            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
+
+        return schema.ToJsonString(IndentedSchema) + "\n";
+    }
+
+    /// <summary>Emits the JSON Schema of the compile response, the model contract's envelope.</summary>
+    /// <returns>The schema, indented, with a trailing newline.</returns>
+    public static string CompileResponseSchema() =>
+        JsonSchemaExporter.GetJsonSchemaAsNode(
+            ModelContractJson.Options,
+            typeof(CompileResponse),
+            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }).ToJsonString(IndentedSchema) + "\n";
+
+    /// <summary>Emits the JSON Schema of the metadata document.</summary>
+    /// <returns>The schema, indented, with a trailing newline.</returns>
+    public static string MetadataSchema() =>
+        JsonSchemaExporter.GetJsonSchemaAsNode(
+            ModelContractJson.Options,
+            typeof(MetadataWire),
+            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }).ToJsonString(IndentedSchema) + "\n";
+
+    /// <summary>Parses a schema back, for a test that reads one.</summary>
+    /// <param name="json">The schema text.</param>
+    /// <returns>The node, or <see langword="null"/> when the text is not JSON.</returns>
+    public static JsonNode? ParseSchema(string json)
+    {
+        ArgumentNullException.ThrowIfNull(json);
+
+        try
+        {
+            return JsonNode.Parse(json);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+}

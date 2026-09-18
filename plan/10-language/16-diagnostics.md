@@ -60,13 +60,14 @@ plausibility warning is raised by whichever computation ran last.
 | `FS35xx` | Optimization | [`35-evolutionary-sizing`](../30-solver/35-evolutionary-sizing.md) |
 | `FS40xx` | Physical plausibility warnings | this document — see below |
 | `FS45xx` | Realtime protocol | [`43-realtime-contract`](../40-api/43-realtime-contract.md) |
+| `FS46xx` | Request limits | [`42-rest-contract`](../40-api/42-rest-contract.md) |
 | `FS50xx` | Frontend layout/rendering | [`53-canvas-renderer`](../50-frontend/53-canvas-renderer.md) |
 | `FS90xx` | Internal errors | this document |
 
 **The `FS4xxx` block is not all physical warnings**, and the realtime codes were originally allocated
-inside it as `FS43xx`, which reads as one. They are `FS45xx` instead, leaving `FS40xx`–`FS44xx` to the
-design-warning family. A reader who sees `FS4` should be able to assume "something about the design"
-without checking.
+inside it as `FS43xx`, which reads as one. They are `FS45xx` instead, and the request limits
+`FS46xx`, leaving `FS40xx`–`FS44xx` to the design-warning family. A reader who sees `FS4` should be
+able to assume "something about the design" without checking.
 
 **The range is not metadata beside the code; it is derived from it.** A descriptor's area is computed
 from the code's first two digits, so a code cannot be filed under an area it does not belong to, and a

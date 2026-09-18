@@ -174,13 +174,16 @@ and is left with one error it must reason about.
 
 ## Acceptance criteria
 
-- [ ] `line`/`character` and `offset`/`length` agree for every diagnostic over the sample corpus.
-- [ ] A script containing a multi-byte character in a comment produces correct positions after it.
+- [x] `line`/`character` and `offset`/`length` agree for every diagnostic over the sample corpus
+      (`DiagnosticsContractTests`, P5.2: ranges, suggestions and related spans, recomputed from the
+      script's text).
+- [x] A script containing a multi-byte character in a comment produces correct positions after it
+      (P5.2; `character` counts UTF-16 code units, so a surrogate pair is two, as the editor counts).
 - [ ] Applying every suggestion in the broken-script corpus yields parseable scripts.
 - [ ] A systemic warning on 40 components produces one entry with `occurrences: 40`.
-- [ ] Diagnostics are ordered by severity then offset — asserted, since the worked example shows how
-      easily it is got wrong.
-- [ ] Every emitted `code` resolves in `/api/v1/metadata`.
+- [x] Diagnostics are ordered by severity then offset — asserted, since the worked example shows how
+      easily it is got wrong (P5.2, on the worked example's own script).
+- [x] Every emitted `code` resolves in `/api/v1/metadata` (P5.2, over the sample corpus).
 
 ## Open questions
 

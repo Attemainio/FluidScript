@@ -86,7 +86,12 @@ would be filled with nothing.
 > unchanged), as package P5.1e in `08`; C7 aligns a return under its supply. Step 5 stands.
 > P5.1d-3 and P5.1e shipped 2026-09-18: the layout report lives in Core and the predicate sweep runs
 > on every fixture; the samples, `01`'s reference circuits and the ladder write pipe properties on
-> the connection line (rule I7), and the next package is P5.2.
+> the connection line (rule I7). **P5.2 shipped the same day:** the REST host with `compile`,
+> `solve`, `validate` and `metadata`, sessions with warm start and supersession (`41`), `07`'s
+> limits as `413` and `FS4601`, the committed JSON schemas (`D-46` step 2) and OpenAPI; `edit` is
+> deferred whole to P7.1 with the mutation API. `C-99` found and closed on the way (the exchanger's
+> `u`, `ua` and `fouling` were dimensionless); `A-1`–`A-3`, `L-53` and `L-54` opened. The next
+> package is P5.3.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -293,7 +298,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
 | P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; step 11a (two independent loops, stacked) accepted; the syntax tour's circuits follow one at a time |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates: `SceneText` in Core with its raster, the audit's three gaps (`C-95`), `LayoutPredicateTests` | (this commit, 2026-09-18) | Shipped 2026-09-18 |
-| P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
+| P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | `44e30fa` | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
+| P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -556,6 +562,35 @@ decided default of zero, and `Pipe` accepts it. Every sample, `01`'s three refer
 far end is the `outlet` attachment's, not a connection's. The rule number: `11` already had I4 (flow
 direction) and I6 (chains), so the implicit pipe is I7. Core 1805/0/4 (two rows more: the pipe page's new example block is parsed as a sample), Api 18/0, goldens regenerated; `C-98` filed for the test process's intermittent CoolProp crash at exit.
 
+**P5.2 is the host in `FluidScript.Api` and one pipeline behind four routes** (2026-09-18).
+`ScriptPipeline` is the whole of a request: the compatibility gate (`18`), parse, `07`'s
+declaration and token limits, bind, the `solve` escalation of `FS1507`/`FS1511` to errors, the
+catalogue pin, the substance, `OuterLoop.Prepare` for the unknown limit, the solve, then
+`ModelContractJson`; `validate` returns after the bind, `solve: false` before the solver, and the
+three share every stage above the one they stop at (`42` invariant 3). Over a limit is `FS4601` in
+the model's diagnostics with the solver skipped, and only the byte ceiling is a status (`413`).
+Sessions (`41`) are `(apiMajor, sessionId)` in a `SessionStore` with a thirty-minute idle eviction:
+a new request on a session cancels the draft in flight, which is answered `499`, and a converged
+solve is remembered as a `WarmStart` — the solution with a topology hash, sixteen hex of SHA-256
+over the unknowns' `Kind:Owner:Name` — that `OuterLoop.RunAsync` takes as its seed when the next
+script's hash matches, retrying cold when the warm start fails to converge. Measured on the cooling
+loop: the warm compile takes the first solution as its Newton guess and converges in fewer
+iterations; a whitespace edit warm-starts, a changed topology is cold. `metadata` is a lazily built
+document with an ETag (a matching `If-None-Match` is `304`), covering every registry kind with its
+parameters, aliases, families and units, every dimension, every diagnostic code live and retired,
+the symbols, the catalogues, the property backend and the limits; `/openapi/v1.json` is generated
+from the handlers. Request-level failures are RFC 9457 problem details: `400` naming the missing
+`field`, `413` with `bytes` and `limit`, `500` with `FS9001` and a `correlationId`. The JSON schemas
+of the model contract, the compile response and metadata are exported from the C# records and
+committed under `Api/Contracts/Schemas` (`D-46` step 2), gated like the goldens. `edit` is P7.1's,
+with the mutation API it fronts — decided with the user, no stub. The metadata test found `C-99`:
+the exchanger's `u`, `ua` and `fouling` had been dimensionless in every model since their rows
+were added, a static-initialisation-order slip, now closed, and the Api goldens moved on fourteen
+`unit` lines. Filed: `A-1` (the equation system is prepared twice per solved request), `A-2`
+(`docsIndex` is a path until the docs are served), `A-3`/`L-54` (base-unit spelling on the wire
+for the two dimensions the unit table cannot name), `L-53` (`FS1503` spans the value with the
+name). `docs/advanced/using-the-api.md` is the page. Core 1805/0/4, Api 55/0.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -666,7 +701,7 @@ a judgement.
 | Baseline | Value | Where |
 |---|---|---|
 | Core test suite | **1805 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
-| API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
+| API test suite | **55 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 

@@ -36,6 +36,9 @@ public static class ModelContractBuilder
     /// <summary>The version this builder implements.</summary>
     public const string ContractVersion = "2.0";
 
+    /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
+    public static VersionedId PropertyBackend { get; } = new("sharp-prop", Fluids.PropertyBackend.PackageVersion);
+
     private const int SignificantDigits = 6;
 
     /// <summary>Builds the contract.</summary>
@@ -140,7 +143,7 @@ public static class ModelContractBuilder
                 SourceHash = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input.Source.Text))),
                 LanguageMajor = input.Root.Version is { } version && !double.IsNaN(version.Major.Value) ? (int)version.Major.Value : 1,
                 Catalog = new VersionedId(input.Catalog.Name, input.Catalog.Version),
-                PropertyBackend = new VersionedId("sharp-prop", Fluids.PropertyBackend.PackageVersion),
+                PropertyBackend = PropertyBackend,
                 AtmosphereKPaAbsolute = UnitTable.StandardAtmosphere / 1000,
             },
             Project = model.Project.Name is null && model.Project.DefaultMode is null
@@ -744,7 +747,11 @@ public static class ModelContractBuilder
         return new BindingWire(binding.Name, value, unit);
     }
 
-    private static ImmutableArray<DiagnosticWire> Diagnostics(SourceText source, ImmutableArray<Diagnostic> diagnostics) =>
+    /// <summary>Renders diagnostics in <c>44</c>'s wire shape: both position forms from one line index, ordered by severity, then offset, then code.</summary>
+    /// <param name="source">The text the spans index.</param>
+    /// <param name="diagnostics">The diagnostics, in production order.</param>
+    /// <returns>The wire records, a diagnostic with no span last within its severity.</returns>
+    public static ImmutableArray<DiagnosticWire> Diagnostics(SourceText source, ImmutableArray<Diagnostic> diagnostics) =>
     [
         .. diagnostics
             .OrderBy(static diagnostic => diagnostic.Severity switch

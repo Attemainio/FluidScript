@@ -221,17 +221,25 @@ the editor feel live rather than laggy — which is the whole of `R-21`.
 
 ## Acceptance criteria
 
-- [ ] A superseding request cancels the previous solve within one iteration, asserted by a counting
-      fake solver.
-- [ ] A script with errors returns 200 with diagnostics and a topology-only model.
-- [ ] Warm start reduces iteration count on an unchanged topology, measured.
-- [ ] Deleting all sessions changes no response body.
+- [x] A superseding request cancels the previous solve within one iteration, asserted by a counting
+      fake solver (`SessionTests`, P5.2: the superseded request is answered 499 and its solver
+      records the iteration it was cancelled at).
+- [x] A script with errors returns 200 with diagnostics and a topology-only model (P5.2).
+- [x] Warm start reduces iteration count on an unchanged topology, measured (P5.2: a second compile
+      of the cooling loop starts from the first solution, the fake solver sees the previous answer as
+      its guess, and the real solver's Newton count falls; a whitespace edit warm-starts, a changed
+      topology is cold, and a warm start that fails to converge is retried cold).
+- [x] Deleting all sessions changes no response body (P5.2; `ISessionStore.Clear()` between two
+      compiles of one script, the models compared).
 - [x] An architecture test asserts no Core domain type is reachable from a wire record
       (`Core.Tests/Model`, P5.1b; `D-101`).
-- [ ] Development runs against the Vite proxy with no CORS configuration present.
-- [ ] 100 concurrent compiles of different scripts produce correct, independent results — the property
-      backend thread-safety check.
-- [ ] Client disconnect mid-solve leaves no running work after one iteration.
+- [ ] Development runs against the Vite proxy with no CORS configuration present. *The host has no
+      CORS configuration (P5.2); the proxy side waits on the frontend, P5.4.*
+- [x] 100 concurrent compiles of different scripts produce correct, independent results — the property
+      backend thread-safety check (P5.2: 100 sessions, the substation with a distinct duty each,
+      every answer converged and distinct).
+- [x] Client disconnect mid-solve leaves no running work after one iteration (P5.2: the request's
+      token is linked into the draft's, the fake solver sees the cancellation after its first step).
 - [ ] Fault injection proves draft edits neither cancel nor mutate an active run, while every run stop
       condition cancels and joins its dedicated worker.
 - [ ] Backend thread tracing proves transient integration never runs on the WebSocket handler.

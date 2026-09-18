@@ -1,0 +1,803 @@
+{
+  "type": "object",
+  "properties": {
+    "restMajor": {
+      "type": "integer"
+    },
+    "contractVersion": {
+      "type": "string"
+    },
+    "language": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "integer"
+        },
+        "supported": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "current",
+        "supported"
+      ]
+    },
+    "kinds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "keyword": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "drivesFlow": {
+            "type": "boolean"
+          },
+          "isObserver": {
+            "type": "boolean"
+          },
+          "symbolId": {
+            "type": "string"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "optional": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "role",
+                "optional"
+              ]
+            }
+          },
+          "portFamilies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "prefix": {
+                  "type": "string"
+                },
+                "minIndex": {
+                  "type": "integer"
+                },
+                "maxIndex": {
+                  "type": "integer"
+                },
+                "role": {
+                  "type": "string"
+                },
+                "levelParameterSuffix": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "prefix",
+                "minIndex",
+                "maxIndex",
+                "role",
+                "levelParameterSuffix"
+              ]
+            }
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "aliases": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "valueKind": {
+                  "type": "string"
+                },
+                "dimension": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "acceptedSymbols": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "omission": {
+                  "type": "string"
+                },
+                "default": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "defaultBasis": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "usualRange": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "min",
+                    "max"
+                  ]
+                },
+                "validRange": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "min": {
+                      "type": "number"
+                    },
+                    "max": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "min",
+                    "max"
+                  ]
+                },
+                "wholeNumber": {
+                  "type": "boolean"
+                },
+                "displayPrecision": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "name",
+                "aliases",
+                "valueKind",
+                "dimension",
+                "unit",
+                "acceptedSymbols",
+                "omission",
+                "default",
+                "defaultBasis",
+                "usualRange",
+                "validRange",
+                "wholeNumber",
+                "displayPrecision"
+              ]
+            }
+          },
+          "indexedParameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string"
+                },
+                "minIndex": {
+                  "type": "integer"
+                },
+                "maxIndex": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "maxIndexParameter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "element": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "aliases": {
+                      "$ref": "#/properties/kinds/items/properties/parameters/items/properties/aliases"
+                    },
+                    "valueKind": {
+                      "type": "string"
+                    },
+                    "dimension": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "acceptedSymbols": {
+                      "$ref": "#/properties/kinds/items/properties/parameters/items/properties/acceptedSymbols"
+                    },
+                    "omission": {
+                      "type": "string"
+                    },
+                    "default": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "defaultBasis": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "usualRange": {
+                      "$ref": "#/properties/kinds/items/properties/parameters/items/properties/usualRange"
+                    },
+                    "validRange": {
+                      "$ref": "#/properties/kinds/items/properties/parameters/items/properties/validRange"
+                    },
+                    "wholeNumber": {
+                      "type": "boolean"
+                    },
+                    "displayPrecision": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "aliases",
+                    "valueKind",
+                    "dimension",
+                    "unit",
+                    "acceptedSymbols",
+                    "omission",
+                    "default",
+                    "defaultBasis",
+                    "usualRange",
+                    "validRange",
+                    "wholeNumber",
+                    "displayPrecision"
+                  ]
+                }
+              },
+              "required": [
+                "pattern",
+                "minIndex",
+                "maxIndex",
+                "maxIndexParameter",
+                "element"
+              ]
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "dimension": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "availability": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "dimension",
+                "unit",
+                "availability"
+              ]
+            }
+          },
+          "indexedProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string"
+                },
+                "minIndex": {
+                  "type": "integer"
+                },
+                "maxIndex": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "maxIndexParameter": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "element": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "dimension": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "availability": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "dimension",
+                    "unit",
+                    "availability"
+                  ]
+                }
+              },
+              "required": [
+                "pattern",
+                "minIndex",
+                "maxIndex",
+                "maxIndexParameter",
+                "element"
+              ]
+            }
+          },
+          "actuatedParameter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "measuredProperty": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "keyword",
+          "aliases",
+          "tagCode",
+          "drivesFlow",
+          "isObserver",
+          "symbolId",
+          "ports",
+          "portFamilies",
+          "parameters",
+          "indexedParameters",
+          "properties",
+          "indexedProperties",
+          "actuatedParameter",
+          "measuredProperty"
+        ]
+      }
+    },
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "siUnit": {
+            "type": "string"
+          },
+          "canonicalUnit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "siUnit",
+          "canonicalUnit",
+          "units"
+        ]
+      }
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "viewBox": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "primitives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "y": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "width": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "height": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "r": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "from": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "to": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "points": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "fill": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dashed": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            }
+          },
+          "portAnchors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "at": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "direction": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "at"
+              ]
+            }
+          },
+          "alternatives": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/properties/symbols/items/properties/portAnchors/additionalProperties"
+              }
+            }
+          },
+          "indexedPortAnchors": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "prefix": {
+                  "type": "string"
+                },
+                "side": {
+                  "type": "string"
+                },
+                "direction": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                },
+                "verticalCoordinate": {
+                  "type": "string"
+                },
+                "minIndex": {
+                  "type": "integer"
+                },
+                "maxIndex": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "prefix",
+                "side",
+                "direction",
+                "verticalCoordinate",
+                "minIndex",
+                "maxIndex"
+              ]
+            }
+          },
+          "labelAnchor": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "transformClass": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "viewBox",
+          "primitives",
+          "portAnchors",
+          "labelAnchor"
+        ]
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "area": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "area",
+          "message",
+          "arguments"
+        ]
+      }
+    },
+    "retiredDiagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "reason"
+        ]
+      }
+    },
+    "catalogs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "standard": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "standard"
+        ]
+      }
+    },
+    "propertyBackend": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "sourceBytes": {
+          "type": "integer"
+        },
+        "declarations": {
+          "type": "integer"
+        },
+        "tokens": {
+          "type": "integer"
+        },
+        "unknowns": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sourceBytes",
+        "declarations",
+        "tokens",
+        "unknowns"
+      ]
+    },
+    "docsIndex": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "restMajor",
+    "contractVersion",
+    "language",
+    "kinds",
+    "dimensions",
+    "symbols",
+    "diagnostics",
+    "retiredDiagnostics",
+    "catalogs",
+    "propertyBackend",
+    "limits",
+    "docsIndex"
+  ]
+}

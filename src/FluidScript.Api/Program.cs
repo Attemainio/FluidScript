@@ -1,16 +1,41 @@
-using FluidScript.Core;
+using FluidScript.Api;
+using FluidScript.Api.Contracts;
+using FluidScript.Api.Endpoints;
+using FluidScript.Api.Pipeline;
+using FluidScript.Api.Sessions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The composition root and nothing else (41's invariant 5): what is registered, how it is served.
+builder.Services.Configure<ApiOptions>(builder.Configuration.GetSection(ApiOptions.Section));
+builder.Services.ConfigureHttpJsonOptions(static options => ApiJson.Configure(options.SerializerOptions));
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<InternalFaultHandler>();
+builder.Services.AddOpenApi();
+
+builder.Services.AddSingleton<ISessionStore, SessionStore>();
+builder.Services.AddSingleton<ISolverFactory, NewtonSolverFactory>();
+builder.Services.AddSingleton<ScriptPipeline>();
+builder.Services.AddSingleton<MetadataDocument>();
+builder.Services.AddHostedService<SessionEviction>();
+
 var app = builder.Build();
 
-// M0 carries one endpoint so that "the host starts and answers" is a checkable claim rather than an
-// assumption. The compile, validate, solve and realtime contracts arrive with P5.2; see
-// plan/40-api/41-api-architecture.md.
-app.MapGet("/api/health", () => Results.Ok(new
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
+app.MapHealthEndpoints();
+app.MapGroup("/api/v1").MapScriptEndpoints().MapMetadataEndpoints();
+app.MapOpenApi();
+
+// Production serves the built frontend from wwwroot with an SPA fallback; development never does,
+// so a stale build is never mistaken for the dev server (41's invariant 7).
+if (!app.Environment.IsDevelopment())
 {
-    status = "ok",
-    core = CoreAssembly.Reference.GetName().Version?.ToString(),
-}));
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 

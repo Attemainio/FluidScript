@@ -53,8 +53,8 @@ instance — is reported rather than silently zero.
 | `heat_exchanger` | `t_in2` | `°C` | after the solve |
 | `heat_exchanger` | `t_out` | `°C` | after the solve |
 | `heat_exchanger` | `t_out2` | `°C` | after the solve |
-| `heat_exchanger` | `u` | — | after sizing |
-| `heat_exchanger` | `ua` | — | after sizing |
+| `heat_exchanger` | `u` | `kg/(s³·K)` | after sizing |
+| `heat_exchanger` | `ua` | `W/K` | after sizing |
 | `valve` | `authority` | — | after sizing |
 | `valve` | `dp` | `kPa` | after the solve |
 | `valve` | `flow` | `kg/s` | after the solve |

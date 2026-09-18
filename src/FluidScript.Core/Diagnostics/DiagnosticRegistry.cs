@@ -117,6 +117,7 @@ public static class DiagnosticRegistry
         .. DesignDiagnostics.All,
         .. LayoutDiagnostics.All,
         .. ContractDiagnostics.All,
+        .. LimitDiagnostics.All,
     ];
 
     /// <summary>Collects the codes that have been withdrawn.</summary>

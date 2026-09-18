@@ -7,10 +7,9 @@ namespace FluidScript.Api.Tests;
 /// bare <c>dotnet test</c> from the repository root rather than being added later and found not to be.
 /// </summary>
 /// <remarks>
-/// Endpoint and contract tests need <c>Microsoft.AspNetCore.Mvc.Testing</c> and a
-/// <c>WebApplicationFactory</c>; both arrive with the REST contract in P5.2 of
-/// <c>plan/08-implementation-sequence.md</c>. Taking that dependency now would add a
-/// package with nothing to exercise.
+/// The endpoint and contract tests arrived with P5.2 and live under <c>Endpoints/</c>, on
+/// <c>Microsoft.AspNetCore.Mvc.Testing</c>'s in-process host; this class keeps the two layout claims
+/// that need no host.
 /// </remarks>
 public sealed class HostCompositionTests
 {
