@@ -84,6 +84,9 @@ would be filled with nothing.
 > line is mirrored, not half-turned) is in; pipe properties on a connection line is decided,
 > `D-110` (option A: an implicit pipe per connection carrying properties, bare connections
 > unchanged), as package P5.1e in `08`; C7 aligns a return under its supply. Step 5 stands.
+> P5.1d-3 and P5.1e shipped 2026-09-18: the layout report lives in Core and the predicate sweep runs
+> on every fixture; the samples, `01`'s reference circuits and the ladder write pipe properties on
+> the connection line (rule I7), and the next package is P5.2.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -289,7 +292,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1c | Symbol strokes per `D-24` and `53`'s inventory; the 200-component payload baseline | `969db66` | Shipped 2026-09-15 |
 | P5.1d-1 | The layout solver in Core (`D-103`): placements with inner and outer boxes, stub-and-join routes, named styles (`D-104`), inline elements and alignment (`D-105`) | (with P5.1d-2's first commit, 2026-09-17) | Shipped 2026-09-16 |
 | P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; step 11a (two independent loops, stacked) accepted; the syntax tour's circuits follow one at a time |
-| P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates | — | |
+| P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates: `SceneText` in Core with its raster, the audit's three gaps (`C-95`), `LayoutPredicateTests` | (this commit, 2026-09-18) | Shipped 2026-09-18 |
+| P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -541,7 +545,16 @@ close. Core 1732/0/4, Api 18/0 with goldens regenerated. The tour's reading afte
 runs straight (C12), and a fragment's declared boundaries share one root so they align (C7); step
 11b's one-path form is the chain alone with the outlet at its foot (C19). The whole ladder was
 then drawn at `spacing 1`: every step and sample hard 0, soft 0 but the tank form, `C-96` filed.
-Core 1734/0/4.
+Core 1734/0/4. P5.1d-3 on 2026-09-18 (the report in Core with its raster, `C-89`; the audit's three
+gaps, `C-95`; the predicate sweep): Core 1796/0/4, Api contracts 16/0. P5.1e the same day: a
+connection line ends in `name=value` pipe properties, held on the `ConnectionSyntax` and printed as
+written; the binder declares one `pipe` per connection on the line (I7, `{A}__{B}`, created in step 1
+so its parameters bind and evaluate like a declaration's) and wires the connection through it, I2's
+nodes beside it named `{pipe}__in` / `__out`; the factory gives an implicit pipe with no `length` a
+decided default of zero, and `Pipe` accepts it. Every sample, `01`'s three reference circuits and the
+24 ladder scripts write their pipes on the line (49 pipes); the tour keeps `PA3` declared because its
+far end is the `outlet` attachment's, not a connection's. The rule number: `11` already had I4 (flow
+direction) and I6 (chains), so the implicit pipe is I7. Core 1805/0/4 (two rows more: the pipe page's new example block is parsed as a sample), Api 18/0, goldens regenerated; `C-98` filed for the test process's intermittent CoolProp crash at exit.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -624,12 +637,20 @@ unassessed, not clean.
    soft 0 at the default spacing, and the rules are keyed to shapes, never to a circuit. What it has
    not reached is `29`'s closing list (the open form with more than two paths, a branch off the
    bottom rail, a block with no corner-taker, the valve residue of the loop search, a declared
-   pipe off a ring); each waits for a script that needs it. The user chose (2026-09-18) to close
-   P5.1d-2 there and take **P5.1d-3** next: the layout text moves from Core.Tests into Core as the
-   layout report with the raster (`C-89`), the audit gains its three missing measurements
-   (`C-95`), the scene's predicate sweep ships, and `C-92` (48 ms against the 30 ms line, and
-   faster at 400 components than at 200) is profiled on the way. `C-96` (the tank form at a margin
-   above its port pitch) waits for a tank rung.
+   pipe off a ring); each waits for a script that needs it. The user closed P5.1d-2 there
+   (2026-09-18: "the layout is at a sufficient level now; adjustments when the product is
+   testable"), which is the sign-off `08`'s exit asked a person for. **P5.1d-3 shipped the same
+   day:** the layout report is `SceneText` in Core with `28` A10's raster and `62`'s metrics
+   (`C-89`); the audit measures cycles through inline nodes, a pipe through its own component and
+   signal lines against boxes and pipes (`C-95`, three tests on bent scenes); and the predicate
+   sweep is `LayoutPredicateTests` -- determinism, the port-for-port bijection, normalised routes,
+   the transform class, spacing as presentation, congruent branches and three edit-stability
+   fixtures -- over thirteen fixtures, with `62`'s L1--L19 table reconciled to the `D-107` engine
+   (L13 and L16 withdrawn, L4, L11 and L15 the renderer's). `08`'s other exit, the reflow's
+   monotonicity argument, is met vacuously: there is no reflow; a form that cannot finish backtracks
+   whole. Still open from the package: `C-92` (48 ms against the 30 ms line, unprofiled), corpus
+   mutation over the samples (`62`), and the report on the wire. Next: **P5.1e** (`D-110`, pipe
+   properties on a connection line), then P5.2.
    What `P4` left behind, none of it blocking: `C-78` (the plate catalogue's shopping list — a cited
    `U`, a plate step, the `lamella` correlation, `FS2311`), `22`'s unticked crossover criterion (a
    solve driven across `C₁ = C₂`, not just the duty relation stepped over it), `C-75`'s last
@@ -644,7 +665,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1732 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8; 229 MB working set for the whole run), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1805 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **18 passed, 0 failed** | `FluidScript.Api.Tests` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

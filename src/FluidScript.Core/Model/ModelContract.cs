@@ -160,7 +160,7 @@ public sealed record ComponentWire
     /// <summary>Which entry in <c>symbols</c> draws it.</summary>
     public required string SymbolId { get; init; }
 
-    /// <summary><c>declared</c>, or <c>inferred:I1</c>, <c>inferred:I2</c>, <c>inferred:I3</c>.</summary>
+    /// <summary><c>declared</c>, or <c>inferred:I1</c>, <c>inferred:I2</c>, <c>inferred:I3</c>, <c>inferred:I7</c> (a pipe a connection line's properties made, <c>D-110</c>).</summary>
     public required string Origin { get; init; }
 
     /// <summary>Where the declaration sits in the source; <see langword="null"/> for an inferred component.</summary>

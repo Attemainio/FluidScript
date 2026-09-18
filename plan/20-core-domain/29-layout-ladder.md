@@ -226,7 +226,10 @@ return's pump and valve are now `rotation 0 mirrored`, and the picture is otherw
 (hard 0, soft 0, six bends). (2) *"The polylines from component to another already represent the
 pipe... we should find a way in the syntax to overwrite the pipe DN"* -- `PU1 - HE1 - LOAD - PU1
 DN25`. A language decision, filed as `L-51` with options; the user chose option A the same day,
-`D-110`, package `08` P5.1e; the ladder keeps declared pipes until it lands. (3) *"Could NPS and
+`D-110`, package `08` P5.1e; the ladder kept declared pipes until it landed (2026-09-18: every
+ladder script and sample now writes the properties on the line, `PCV - HE1.in2 length=12 dn=25`;
+the tour keeps its one declared pipe, `PA3`, whose far end is wired by the `outlet` attachment
+rather than by a connection). (3) *"Could NPS and
 NPR be aligned vertically... if the pipe is open ended and it has a supply and it has no obstacles
 to align with supply, do it"* -- C7: `NPR` moved from `(−0.85, −1)` to `(−2.35, −1)` under `NPS`,
 its pipe now `(−0.15, −0.5) → (−0.15, −1) → (−2.25, −1)`, length 11.6 in all, still six bends,

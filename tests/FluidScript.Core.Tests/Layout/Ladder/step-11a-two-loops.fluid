@@ -26,7 +26,6 @@ fluid water
 HE_C  heat_exchanger power=30 in=20 out=50
 TV_C  three_way_valve
 PU_C  pump
-P_C   pipe length=25 dn=25
 
 connections
 N1 - N2
@@ -34,8 +33,7 @@ N2 - PU_C
 PU_C - HE_C
 HE_C - TV_C
 TV_C - N2
-TV_C - P_C
-P_C - N3
+TV_C - N3 length=25 dn=25
 
 N1 inlet t=6 p=300
 N3 outlet p=280

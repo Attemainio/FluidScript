@@ -75,7 +75,7 @@ public sealed class ModelContractJsonTests
     {
         // 26's sizing case: one 100-node pipe is a few hundred components and must fit; the cap is
         // for the several-thousand-component scene.
-        var one = ModelContractJson.Build(PipelineFixture.Compile(PipelineFixture.Sample("m2-cooling-loop.fluid").Replace("P1  pipe length=25 dn=25", "P1  pipe length=25 dn=25 nodes=100")));
+        var one = ModelContractJson.Build(PipelineFixture.Compile(PipelineFixture.Sample("m2-cooling-loop.fluid").Replace("3WV - N3 length=25 dn=25", "3WV - N3 length=25 dn=25 nodes=100", StringComparison.Ordinal)));
 
         Assert.True(ModelContractJson.MeasureBytes(one) < ModelContractJson.MaxPayloadBytes / 4);
         Assert.Equal(210, one.Components.Length);

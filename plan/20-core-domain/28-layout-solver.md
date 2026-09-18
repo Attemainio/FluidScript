@@ -161,12 +161,19 @@ two -- and for every scene it lists:
   outer boxes, and each port's inner anchor, outer anchor and flow vector;
 - each connection with its points, length, bends, crossings, hops and envelope;
 - the groups, with kind, orientation, members and bounds;
-- **a character raster of the arrangement**: the scene's extent at four cells per unit, outer
-  boxes as `.`, inner boxes as `#`, a node as `o`, pipe as `-` and `|`, a port's flow as `<>^v`,
-  a crossing as `+`, so a session sees the arrangement a picture would show;
+- **a character raster of the arrangement** *(shipped 2026-09-18, P5.1d-3)*: the scene's extent
+  at four cells per unit, first row at the top; outer boxes `.`, inner boxes `#`, a node `o`,
+  pipe `-` and `|`, a signal `:`, a route's own bend `*`, a crossing `+`, a port's flow `<>^v` at
+  its anchor, and each component's name inside its box where it fits, else just above it -- so a
+  session sees the arrangement a picture would show;
 - the audit's verdict: every hard constraint of B with its count, every soft class with its
-  count, totals of bends and length;
+  count, totals of bends and length, and the metrics `62` trends rather than gates: the pipes'
+  length over their ends' Manhattan distance, the symbol area over the extent's, the extent's
+  aspect;
 - every finding, one per line.
+
+The text is `SceneText` in Core since 2026-09-18 (`C-89` closed; it was in Core.Tests before). The
+ladder and the sample gates write it to `diagnostics/`; nothing on the wire carries it yet.
 
 A test writes the text *before* it asserts anything, so the file on disk is always the layout that
 failed. The SVG beside it shows the same facts -- margin areas, symbol areas, every node, every
@@ -186,7 +193,7 @@ stated as constraints (`D-108`).
 |---|---|
 | H1 | No inner box enters another inner box |
 | H2 | No inner box enters another component's outer box (the clearance, A2) |
-| H3 | No pipe passes through an inner box it does not serve |
+| H3 | No pipe, and no signal line, passes through an inner box it does not serve |
 | H4 | A pipe starts and ends on the two ports its connection names |
 | H5 | A pipe leaves a port along the port's outward direction for a whole margin |
 | H6 | A pipe turns on bare pipe: no inline element sits on a corner |
@@ -203,7 +210,8 @@ between them, which is `R-48`'s picture re-derived from topology; for an open su
 path with no ring, `D-107`'s stacked branches remain the candidate (D).
 
 **Soft -- counted, and the fewer the better.** A pipe through a margin; a pipe running beside another
-closer than a margin; two pipes crossing; two outer boxes overlapping.
+closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running along a
+pipe (a signal crosses pipes freely: C16 hops it).
 
 **Priorities, in strict order, when a choice remains.**
 
@@ -225,7 +233,13 @@ the `C-88` package (2026-09-17) that is all ten: H1–H3 and H6 as box and pipe 
 route's ends (H5 followed through inline points, since a node on a straight line is not a bend), H7 as
 collinear overlap, H9 as the signed area of every simple directed cycle of the flow-oriented graph,
 H10 as the losing side's flank where a duty is stated. A hard constraint nobody measures would be a
-preference; none is left.
+preference; none is left. The `C-95` package (2026-09-18) closed the three gaps the tour's faulty
+picture had shown: a connection's sense is read from the flow along the route's first segment, so a
+cycle through inline nodes -- where both anchors sit on one point -- is enumerated; a pipe is excused
+from its own two components' clearance but never from their bodies; and a signal line is measured
+against every inner box but its two ends' (hard) and along every pipe (soft). `SceneAuditTests`
+holds each on a scene bent to break it: the loop samples mirrored, a pipe bent back through its
+own component, a signal through an exchanger and along a pipe.
 
 ## C. The rules
 

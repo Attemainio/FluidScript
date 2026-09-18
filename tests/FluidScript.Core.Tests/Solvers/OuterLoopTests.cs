@@ -68,8 +68,8 @@ public sealed class OuterLoopTests
 
         // `24`'s worked example, reached rather than transcribed: DN25 after DN15 and DN20 miss the
         // 150 Pa/m target at the flow HE1's duty fixes.
-        Assert.Equal(25.0, run.Sizes.For("P1", "dn")!.Value);
-        Assert.Contains("DN25", run.Bases["P1.dn"], StringComparison.Ordinal);
+        Assert.Equal(25.0, run.Sizes.For("N5__N1", "dn")!.Value);
+        Assert.Contains("DN25", run.Bases["N5__N1.dn"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public sealed class OuterLoopTests
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
         Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
 
-        Assert.Equal(25.0, run.Sizes.For("P1", "dn"));
+        Assert.Equal(25.0, run.Sizes.For("N5__N1", "dn"));
         Assert.Equal(1.6, run.Sizes.For("CV1", "kv"));
         Assert.Contains("Kv 1.6", run.Bases["CV1.kv"], StringComparison.Ordinal);
         Assert.Contains("achieved against a target", run.Bases["CV1.authority"], StringComparison.Ordinal);
@@ -417,8 +417,8 @@ public sealed class OuterLoopTests
 
         var hot = Flow("TV_AHU.a->N3");
         var cold = Flow("TV_AHU.b->NM_AHU");
-        var mixed = (hot * Enthalpy("PA1__TV_AHU") + cold * Enthalpy("NM_AHU")) / (hot + cold);
-        var average = (Enthalpy("PA1__TV_AHU") + Enthalpy("NM_AHU")) / 2;
+        var mixed = (hot * Enthalpy("N3__TV_AHU__out") + cold * Enthalpy("NM_AHU")) / (hot + cold);
+        var average = (Enthalpy("N3__TV_AHU__out") + Enthalpy("NM_AHU")) / 2;
 
         Assert.Equal(hot + cold, Flow("TV_AHU.ab->NM_AHU"), 1e-6);
         Assert.Equal(mixed, Enthalpy("TV_AHU__PU_AHU"), 1.0);

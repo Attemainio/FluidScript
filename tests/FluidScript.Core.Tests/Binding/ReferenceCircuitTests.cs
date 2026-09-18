@@ -69,16 +69,18 @@ public sealed class ReferenceCircuitTests
     public void TheCoolingLoopsInferenceInventoryIsExactly01s()
     {
         // `01` states this inventory in as many words, and says any document counting three I1 nodes
-        // or six inferred components here is stale. Six declared, four inferred, ten in total.
+        // or six inferred components here is stale. Five declared, five inferred, ten in total -- the
+        // return pipe is the connection line's own since D-110 (I7) and counts among the inferred.
         var model = Model("m2-cooling-loop.fluid");
 
         Assert.Equal(
-            ["HE1", "3WV", "PU1", "P1", "N1", "N3"],
+            ["HE1", "3WV", "PU1", "N1", "N3"],
             model.Components.Where(static c => c.Origin is Origin.Declared).Select(static c => c.Name));
 
         Assert.Equal(["N2"], Named(model, "I1"));
-        Assert.Equal(["PU1__HE1", "HE1__3WV", "3WV__P1"], Named(model, "I2"));
+        Assert.Equal(["PU1__HE1", "HE1__3WV", "3WV__N3__in"], Named(model, "I2"));
         Assert.Empty(Named(model, "I3"));
+        Assert.Equal(["3WV__N3"], Named(model, "I7"));
 
         Assert.Equal(10, model.Components.Length);
 
@@ -92,11 +94,12 @@ public sealed class ReferenceCircuitTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheCoolingLoopReportsExactlyFourInferences()
+    public void TheCoolingLoopReportsExactlyFiveInferences()
     {
         // A count is the cheapest specification there is, and this one is `01`'s own: four inferred
-        // components, so four FS1510 and nothing else to say about the topology.
-        Assert.Equal(4, Codes("m2-cooling-loop.fluid").Count(static code => code == "FS1510"));
+        // nodes and, since D-110, the return pipe the connection line carries (I7) -- five FS1510 and
+        // nothing else to say about the topology.
+        Assert.Equal(5, Codes("m2-cooling-loop.fluid").Count(static code => code == "FS1510"));
     }
 
     [Fact]
@@ -126,7 +129,7 @@ public sealed class ReferenceCircuitTests
         var model = Model("m2-simple-loop.fluid");
 
         Assert.Equal(
-            ["HE1", "LOAD", "CV1", "PU1", "P1"],
+            ["HE1", "LOAD", "CV1", "PU1"],
             model.Components.Where(static c => c.Origin is Origin.Declared).Select(static c => c.Name));
 
         // LOAD is what makes the ring solvable rather than merely square: a closed circuit whose duties
@@ -220,15 +223,16 @@ public sealed class ReferenceCircuitTests
         Assert.Empty(Named(model, "I3"));
 
         // The tap pipes are the wiring, so they are what this asserts: each consumer reaches the supply
-        // header through one and returns through another, both ends written out. The supply tap ends at
+        // header through one and returns through another, both ends written out. Since D-110 the taps are
+        // the connection lines' own properties (rule I7), named after their ends. The supply tap ends at
         // the valve's hot port `a` and the return tap starts at the coil-return node, so the header water
         // enters the valve and the coil return both recirculates through port `b` and leaves through the
-        // tap. `N3` is already a node so `N3 - PA1` needs none, while `PA1 - TV_AHU.a` joins two component
-        // ports and I2 puts one between them.
+        // tap. `N3` is already a node so the tap needs no node on that side, while its outlet joins a
+        // component port and I2 puts a node between them, named after the pipe's port.
         Assert.Equal(
             [
-                "N3->PA1.in", "PA1.out->PA1__TV_AHU", "NM_AHU->PA2.in", "PA2.out->N5",
-                "N4->PR1.in", "PR1.out->PR1__TV_RAD", "NM_RAD->PR2.in", "PR2.out->N6",
+                "N3->N3__TV_AHU.in", "N3__TV_AHU.out->N3__TV_AHU__out", "NM_AHU->NM_AHU__N5.in", "NM_AHU__N5.out->N5",
+                "N4->N4__TV_RAD.in", "N4__TV_RAD.out->N4__TV_RAD__out", "NM_RAD->NM_RAD__N6.in", "NM_RAD__N6.out->N6",
             ],
             model.Connections
                 .Where(static connection => Tap(connection.From.Component)
@@ -239,7 +243,7 @@ public sealed class ReferenceCircuitTests
     }
 
     private static bool Tap(string component) =>
-        component is "PA1" or "PA2" or "PR1" or "PR2";
+        component is "N3__TV_AHU" or "NM_AHU__N5" or "N4__TV_RAD" or "NM_RAD__N6";
 
     private static string Label(EndpointSymbol endpoint) =>
         endpoint.Port.Length == 0 ? endpoint.Component : $"{endpoint.Component}.{endpoint.Port}";

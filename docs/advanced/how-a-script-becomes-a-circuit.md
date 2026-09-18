@@ -41,6 +41,10 @@ Without that rule there would be nowhere for the temperature between the pump an
 live, and that temperature is the one you usually want to see. The generated names use `__` so they
 are recognisable, and the diagram draws them smaller than the ones you named.
 
+**A pipe written on a connection line** -- `3WV - N3 length=10 dn=25` instead of `P1` -- is a
+component too, named `3WV__N3`, and the node between the valve and it is `3WV__N3__in`. The graph is
+the same; only the names say where the pipe came from.
+
 A pipe with `nodes=n` adds more: `nodes=4` becomes five sub-pipes with four nodes between them, each
 carrying a quarter of the pipe's water. That is how travel time along a long run shows up in a
 transient — and it is off by default, because most pipes are not long enough for it to matter.

@@ -85,7 +85,7 @@ public sealed class SurvivingProvisionalTests
         Assert.True(run.IsSuccess, run.Error?.Message);
 
         Assert.DoesNotContain("provisional", run.Value.Bases["CV1.kv"], StringComparison.Ordinal);
-        Assert.DoesNotContain("provisional", run.Value.Bases["P1.dn"], StringComparison.Ordinal);
+        Assert.DoesNotContain("provisional", run.Value.Bases["N5__N1.dn"], StringComparison.Ordinal);
 
         Assert.DoesNotContain(
             run.Value.Notes,

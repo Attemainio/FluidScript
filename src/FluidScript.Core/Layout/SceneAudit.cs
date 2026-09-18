@@ -18,14 +18,14 @@ public static class SceneAudit
     private const double Eps = 1e-6;
 
     /// <summary>One breach of the clearance rules (<c>28</c> §22).</summary>
-    /// <param name="Kind">Hard (<c>28</c> B H1–H10): <c>inner-in-inner</c>, <c>clearance</c>, <c>pipe-in-inner</c>, <c>ends-off-port</c>, <c>stub-short</c>, <c>pipes-overlap</c>, <c>loop-counter-clockwise</c>, <c>losing-side-right</c>. Soft: <c>pipe-in-outer</c>, <c>pipe-beside-pipe</c>, <c>pipes-cross</c>.</param>
+    /// <param name="Kind">Hard (<c>28</c> B H1–H10): <c>inner-in-inner</c>, <c>clearance</c>, <c>pipe-in-inner</c>, <c>ends-off-port</c>, <c>stub-short</c>, <c>pipes-overlap</c>, <c>loop-counter-clockwise</c>, <c>losing-side-right</c>, <c>signal-in-inner</c>. Soft: <c>pipe-in-outer</c>, <c>pipe-beside-pipe</c>, <c>pipes-cross</c>, <c>signal-along-pipe</c>.</param>
     /// <param name="First">The element that enters: a component id or a connection id.</param>
     /// <param name="Second">The element entered.</param>
     /// <param name="Detail">Where, in world units.</param>
     public sealed record Finding(string Kind, string First, string Second, string Detail)
     {
         /// <summary>Gets whether the finding invalidates the layout, as opposed to counting against it.</summary>
-        public bool Hard => Kind is "inner-in-inner" or "clearance" or "pipe-in-inner" or "ends-off-port" or "stub-short" or "pipes-overlap" or "loop-counter-clockwise" or "losing-side-right";
+        public bool Hard => Kind is "inner-in-inner" or "clearance" or "pipe-in-inner" or "ends-off-port" or "stub-short" or "pipes-overlap" or "loop-counter-clockwise" or "losing-side-right" or "signal-in-inner";
 
         /// <inheritdoc/>
         public override string ToString() => $"{Kind} {(Hard ? "hard" : "soft")} {First} {Second}: {Detail}";
@@ -72,16 +72,12 @@ public static class SceneAudit
 
                 foreach (var box in boxes)
                 {
-                    if (owners[r].Contains(box.ComponentId))
-                    {
-                        continue;
-                    }
-
+                    // A pipe is excused from the clearance of the two boxes its run joins, never from their bodies: the stub leaves the edge outward and enters nothing, so a pipe inside its own component is a pipe through a box (C-95).
                     if (Enters(box.Inner, a, b))
                     {
                         findings.Add(new Finding("pipe-in-inner", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters inner {Text(box.Inner)}"));
                     }
-                    else if (Enters(box.Outer, a, b))
+                    else if (!owners[r].Contains(box.ComponentId) && Enters(box.Outer, a, b))
                     {
                         findings.Add(new Finding("pipe-in-outer", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters outer {Text(box.Outer)}"));
                     }
@@ -130,6 +126,7 @@ public static class SceneAudit
         Overlaps(pipes, findings);
         Loops(scene, model, findings);
         Flanks(scene, model, findings);
+        Signals(scene, pipes, findings);
         return findings.ToImmutable();
     }
 
@@ -246,27 +243,78 @@ public static class SceneAudit
                         var b = pipes[r].Points[i];
                         var c = pipes[s].Points[j - 1];
                         var d = pipes[s].Points[j];
-                        var vertical = Math.Abs(a.X - b.X) < Eps;
 
-                        if (vertical != Math.Abs(c.X - d.X) < Eps)
+                        if (Shared(a, b, c, d) is { } length)
                         {
-                            continue;
+                            findings.Add(new Finding("pipes-overlap", pipes[s].ConnectionId, pipes[r].ConnectionId, $"segment {Text(c)} {Text(d)} shares {N(length)} of {Text(a)} {Text(b)}"));
                         }
+                    }
+                }
+            }
+        }
+    }
 
-                        var (line, otherLine) = vertical ? (a.X, c.X) : (a.Y, c.Y);
+    /// <summary>The length two collinear segments share beyond a point, or nothing.</summary>
+    private static double? Shared(Point a, Point b, Point c, Point d)
+    {
+        var vertical = Math.Abs(a.X - b.X) < Eps;
 
-                        if (Math.Abs(line - otherLine) > Eps)
+        if (vertical != Math.Abs(c.X - d.X) < Eps)
+        {
+            return null;
+        }
+
+        var (line, otherLine) = vertical ? (a.X, c.X) : (a.Y, c.Y);
+
+        if (Math.Abs(line - otherLine) > Eps)
+        {
+            return null;
+        }
+
+        var (a0, a1, c0, c1) = vertical ? (a.Y, b.Y, c.Y, d.Y) : (a.X, b.X, c.X, d.X);
+        var low = Math.Max(Math.Min(a0, a1), Math.Min(c0, c1));
+        var high = Math.Min(Math.Max(a0, a1), Math.Max(c0, c1));
+        return high - low > Eps ? high - low : null;
+    }
+
+    /// <summary>A signal line is held like any other line (<c>C-95</c>): it enters no inner box but the two its ends touch (hard), and it runs along no pipe (soft); it crosses pipes freely, hopping them (C16).</summary>
+    private static void Signals(Scene scene, List<Route> pipes, ImmutableArray<Finding>.Builder findings)
+    {
+        var boxes = scene.Placements.Where(static p => !p.IsInline).ToList();
+
+        foreach (var signal in scene.Routes.Where(static r => r.Kind == "signal"))
+        {
+            if (signal.Points.Length < 2)
+            {
+                continue;
+            }
+
+            var ends = new[] { signal.Points[0], signal.Points[^1] };
+            var own = boxes.Where(p => ends.Any(e => p.Inner.Grow(Eps).ContainsInterior(e))).Select(static p => p.ComponentId).ToHashSet(StringComparer.Ordinal);
+
+            for (var k = 1; k < signal.Points.Length; k++)
+            {
+                var a = signal.Points[k - 1];
+                var b = signal.Points[k];
+
+                foreach (var box in boxes)
+                {
+                    if (!own.Contains(box.ComponentId) && Enters(box.Inner, a, b))
+                    {
+                        findings.Add(new Finding("signal-in-inner", signal.ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters inner {Text(box.Inner)}"));
+                    }
+                }
+
+                foreach (var pipe in pipes)
+                {
+                    for (var j = 1; j < pipe.Points.Length; j++)
+                    {
+                        var c = pipe.Points[j - 1];
+                        var d = pipe.Points[j];
+
+                        if (Shared(a, b, c, d) is { } length)
                         {
-                            continue;
-                        }
-
-                        var (a0, a1, c0, c1) = vertical ? (a.Y, b.Y, c.Y, d.Y) : (a.X, b.X, c.X, d.X);
-                        var low = Math.Max(Math.Min(a0, a1), Math.Min(c0, c1));
-                        var high = Math.Min(Math.Max(a0, a1), Math.Max(c0, c1));
-
-                        if (high - low > Eps)
-                        {
-                            findings.Add(new Finding("pipes-overlap", pipes[s].ConnectionId, pipes[r].ConnectionId, $"segment {Text(c)} {Text(d)} shares {N(high - low)} of {Text(a)} {Text(b)}"));
+                            findings.Add(new Finding("signal-along-pipe", signal.ConnectionId, pipe.ConnectionId, $"segment {Text(a)} {Text(b)} runs {N(length)} along {Text(c)} {Text(d)}"));
                         }
                     }
                 }
@@ -289,8 +337,10 @@ public static class SceneAudit
                 continue;
             }
 
+            // The connection's sense is the flow at its first end along the route's first segment: at an inline node both anchors' flows run along the run, so the segment decides where the anchor's outward direction would not (C-95).
             var start = scene.Placements.First(p => p.ComponentId == connection.From.Component).Anchors.Values.FirstOrDefault(a => a.At.ManhattanTo(route.Points[0]) < Eps);
-            var leaving = start.Flow == start.Outward;
+            var along = route.Points.Length >= 2 ? Direction.Of(route.Points[1].Offset(-route.Points[0].X, -route.Points[0].Y)) : null;
+            var leaving = along is { } d ? start.Flow == d : start.Flow == start.Outward;
             adjacency[leaving ? from : to].Add(leaving ? to : from);
         }
 

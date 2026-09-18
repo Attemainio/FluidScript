@@ -359,6 +359,46 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private void CollectDeclarations(List<CircuitBlock> blocks)
     {
+        // I7 (D-110): the implicit pipe each connection on a line carrying properties lowers to, declared with
+        // the components so its parameters are evaluated with everyone else's. Named after its two ends as an
+        // I2 node is, with an ordinal when the pair recurs; the line's properties are its stated parameters,
+        // bound against the pipe's registry entry like a declaration's. A length it does not state is zero,
+        // the factory's decided default for an implicit pipe. BindConnections wires it in by its key: the
+        // line's position and the pair's index, which is what makes the name stable for the same script.
+        void DeclareImplicitPipes(ConnectionSyntax connection, string circuit)
+        {
+            var endpoints = connection.Endpoints;
+
+            for (var i = 0; i + 1 < endpoints.Length; i++)
+            {
+                var stem = $"{endpoints[i].Component.Token.Text}__{endpoints[i + 1].Component.Token.Text}";
+                var name = stem;
+
+                for (var ordinal = 2; _componentsByName.ContainsKey(name); ordinal++)
+                {
+                    name = $"{stem}_{ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                }
+
+                var kind = registry.Resolve("pipe") is KindResolution.Exact exact ? exact.Kind : null;
+                var key = $"{connection.Span.Start.ToString(System.Globalization.CultureInfo.InvariantCulture)}:{i.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                var pipe = new ComponentSymbol
+                {
+                    Name = name,
+                    Origin = new Origin.Inferred("I7", key),
+                    Kind = kind,
+                    WrittenKind = "pipe",
+                    Parameters = BindParameters(connection.Parameters, kind, name),
+                    DeclarationSpan = null,
+                    CircuitName = circuit,
+                    Ports = [.. (kind?.Ports ?? []).Select(static port => port.Name)],
+                };
+
+                _components.Add(pipe);
+                _componentsByName[name] = new ComponentSlot(_components.Count - 1, null);
+                Report(BinderDiagnostics.ComponentInferred, connection.Span, ("kind", "pipe"), ("name", name), ("rule", "I7"));
+            }
+        }
+
         foreach (var block in blocks)
         {
             foreach (var statement in block.Statements)
@@ -371,6 +411,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
                     case ComponentDeclarationSyntax declaration:
                         DeclareComponent(declaration, block.Circuit!.Name);
+                        break;
+
+                    case ConnectionSyntax { Parameters.Length: > 0 } connection:
+                        DeclareImplicitPipes(connection, block.Circuit!.Name);
                         break;
 
                     default:
@@ -434,7 +478,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Report(BinderDiagnostics.ObserverNotPlaced, declaration.Span, ("name", name));
         }
 
-        var parameters = BindParameters(declaration, kind, name);
+        var parameters = BindParameters(declaration.Parameters, kind, name);
         DeclareSizingPoint(declaration, name, parameters);
 
         var symbol = new ComponentSymbol
@@ -496,13 +540,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     }
 
     private ImmutableDictionary<string, ParameterValue> BindParameters(
-        ComponentDeclarationSyntax declaration,
+        ImmutableArray<ParameterSyntax> parameters,
         ComponentKindInfo? kind,
         string componentName)
     {
         var bound = ImmutableDictionary.CreateBuilder<string, ParameterValue>(StringComparer.Ordinal);
 
-        foreach (var parameter in declaration.Parameters)
+        foreach (var parameter in parameters)
         {
             var written = parameter.Name.Token.Text;
 

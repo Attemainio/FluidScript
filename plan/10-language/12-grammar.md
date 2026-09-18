@@ -311,7 +311,9 @@ parameter           = identifier , "=" , parameter-value ;
 parameter-value     = expression | reference | symbol ;   (* by the parameter's declared kind — see 15 *)
 symbol              = identifier ;                  (* e.g. equal_percentage; bound, not evaluated *)
 
-connection          = endpoint , "-" , endpoint , { "-" , endpoint } ;
+connection          = endpoint , "-" , endpoint , { "-" , endpoint } , { parameter } ;
+                                                    (* trailing pipe properties apply to every
+                                                       connection on the line -- D-110 *)
 endpoint            = identifier , [ "." , identifier ] ;   (* component[.port] *)
 
 disturbance         = ( "at" , expression | "over" , range ) , target , "=" , ( expression | range ) ;
@@ -624,6 +626,16 @@ closed and neither can occur in the other, so no lookahead is needed to tell the
 An unqualified endpoint means "the next free port, in the component's declared port order", which is
 what makes the brief's example work without any port names at all.
 
+**A connection line may end in pipe properties** (`D-110`): `N5 - N1 length=25`,
+`3WV - N3 length=25 dn=25`, `N1 - N2 - N3 dn=25`. The property list is the same `parameter` list a
+declaration carries, after the last endpoint, and it applies to **every connection on the line** --
+the chain above makes two pipes, both DN25. The parser holds the list on the `ConnectionSyntax`; what
+it means -- an implicit `pipe` per connection, rule I7 -- is the binder's
+([`15`](15-semantic-model.md)). A property without a value (`N1 - N2 dn`) makes the line malformed
+(`FS1105`), as on a declaration. A bare designation is not a literal form: `DN25` is spelled `dn=25`,
+so the printer round-trips the line as it does every other ([`17`](17-formatting-and-round-trip.md)).
+A line with no properties means what it always meant, a lossless link; no existing script changes.
+
 ## AST shapes
 
 Nodes are records; the tree is immutable. **A node holds the tokens it consumes** — its keywords and
@@ -832,7 +844,11 @@ public sealed record ParameterSyntax(IdentifierSyntax Name, ExpressionSyntax Val
 
 public sealed record ConnectionsHeaderSyntax : StatementSyntax;
 
-public sealed record ConnectionSyntax(ImmutableArray<EndpointSyntax> Endpoints) : StatementSyntax;
+public sealed record ConnectionSyntax(
+    EndpointSyntax First,
+    ImmutableArray<ConnectionLinkSyntax> Links,          // each `-` and the endpoint after it, so a
+                                                         // chain prints as the one line it was
+    ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax;   // empty for a bare line (D-110)
 
 public sealed record EndpointSyntax(IdentifierSyntax Component, IdentifierSyntax? Port) : SyntaxNode;
 

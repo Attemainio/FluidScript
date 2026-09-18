@@ -27,25 +27,21 @@ circuit radiators 102
 HE_RAD  load in=50 out=40 power=20 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
-PR1     pipe length=18 dn=25
-PR2     pipe length=18 dn=25
 
 connections
-N3 - PR1 - TV_RAD.a
+N3 - TV_RAD.a length=18 dn=25
 NM_RAD - TV_RAD.b
 TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-NM_RAD - PR2 - N4
+NM_RAD - N4 length=18 dn=25
 
 circuit AHU 101
 
 HE_AHU  load in=35 out=30
 TV_AHU  three_way_valve
 PU_AHU  pump
-PA1     pipe length=12 dn=25
-PA2     pipe length=12 dn=25
 
 connections
-N4 - PA1 - TV_AHU.a
+N4 - TV_AHU.a length=12 dn=25
 NM_AHU - TV_AHU.b
 TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-NM_AHU - PA2 - N5
+NM_AHU - N5 length=12 dn=25

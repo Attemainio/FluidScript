@@ -246,6 +246,11 @@ deliberately rather than discovered.
     old-id/new-id mapping covers exactly the components it renamed; and its replacements are computed
     against the original text and applied simultaneously, so a rename set that permutes existing names
     succeeds.
+11. A connection line's trailing pipe properties (`D-110`) print from the syntax tree as written --
+    spelling, order and spacing -- never from the implicit pipe's symbol, which holds canonical names
+    and evaluated values. `SetParameter` on an implicit pipe is invariant 4's case: the pipe is
+    inferred, and the edit belongs to the connection line (an `IScriptEditor` operation not yet
+    specified; the line is the declaration).
 
 **Invariant 9 is the round trip's newest sharp edge.** The binder assigns every circuit a number, so
 the obvious printer reads `CircuitSymbol.Number` and writes it — which quietly rewrites

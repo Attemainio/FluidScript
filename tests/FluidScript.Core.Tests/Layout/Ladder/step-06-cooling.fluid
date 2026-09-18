@@ -8,7 +8,6 @@ fluid water
 HE1 heat_exchanger power=30 in=20 out=50
 3WV three_way_valve
 PU1 pump
-P1  pipe length=25 dn=25
 
 connections
 N1 - N2
@@ -16,8 +15,7 @@ N2 - PU1
 PU1 - HE1
 HE1 - 3WV
 3WV - N2
-3WV - P1
-P1 - N3
+3WV - N3 length=25 dn=25
 
 N1 inlet t=6 p=300
 N3 outlet p=280

@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:44e8c1ded6d9a963413d949e5783645cb1f96d32f621184e43f5ea164477fef2",
+    "sourceHash": "sha256:0450a7c406170f5280046f51fb92473738efcfd53c0bb926b872f7c4eb9ee0ff",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -42,7 +42,7 @@
   ],
   "pressureDatums": [
     "NPS",
-    "SR__SP"
+    "NRET__SP__out"
   ],
   "components": [
     {
@@ -188,81 +188,7 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "PCV__PP"
-        }
-      ]
-    },
-    {
-      "id": "PP",
-      "kind": "pipe",
-      "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 945,
-        "length": 24
-      },
-      "circuit": "substation",
-      "tag": null,
-      "parameters": {
-        "dn": {
-          "value": 25,
-          "unit": null,
-          "source": "stated"
-        },
-        "length": {
-          "value": 12,
-          "unit": "m",
-          "source": "stated"
-        },
-        "minor_loss": {
-          "value": 0,
-          "unit": null,
-          "source": "default",
-          "basis": "no fittings stated"
-        },
-        "roughness": {
-          "value": 4.5E-05,
-          "unit": "m",
-          "source": "default",
-          "basis": "commercial steel"
-        }
-      },
-      "state": {
-        "flow": {
-          "value": 0.895341,
-          "unit": "kg/s"
-        },
-        "tIn": {
-          "value": 85.0444,
-          "unit": "°C"
-        },
-        "tOut": {
-          "value": 85.0467,
-          "unit": "°C"
-        },
-        "pIn": {
-          "value": 362.64,
-          "unit": "kPa"
-        },
-        "pOut": {
-          "value": 350,
-          "unit": "kPa"
-        },
-        "dp": {
-          "value": 12.6395,
-          "unit": "kPa"
-        }
-      },
-      "ports": [
-        {
-          "name": "in",
-          "role": "inlet",
-          "connectedTo": "PCV__PP"
-        },
-        {
-          "name": "out",
-          "role": "outlet",
-          "connectedTo": "PP__HX1"
+          "connectedTo": "PCV__HX1__in"
         }
       ]
     },
@@ -272,7 +198,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1041,
+        "start": 1016,
         "length": 9
       },
       "circuit": "substation",
@@ -343,160 +269,12 @@
         {
           "name": "in",
           "role": "inlet",
-          "connectedTo": "SR__SP"
+          "connectedTo": "NRET__SP__out"
         },
         {
           "name": "out",
           "role": "outlet",
           "connectedTo": "SP__HX1"
-        }
-      ]
-    },
-    {
-      "id": "SS",
-      "kind": "pipe",
-      "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 1051,
-        "length": 25
-      },
-      "circuit": "substation",
-      "tag": null,
-      "parameters": {
-        "dn": {
-          "value": 32,
-          "unit": null,
-          "source": "stated"
-        },
-        "length": {
-          "value": 30,
-          "unit": "m",
-          "source": "stated"
-        },
-        "minor_loss": {
-          "value": 0,
-          "unit": null,
-          "source": "default",
-          "basis": "no fittings stated"
-        },
-        "roughness": {
-          "value": 4.5E-05,
-          "unit": "m",
-          "source": "default",
-          "basis": "commercial steel"
-        }
-      },
-      "state": {
-        "flow": {
-          "value": 1.79322,
-          "unit": "kg/s"
-        },
-        "tIn": {
-          "value": 60.1345,
-          "unit": "°C"
-        },
-        "tOut": {
-          "value": 60.1404,
-          "unit": "°C"
-        },
-        "pIn": {
-          "value": 79.5596,
-          "unit": "kPa"
-        },
-        "pOut": {
-          "value": 50.0223,
-          "unit": "kPa"
-        },
-        "dp": {
-          "value": 29.5373,
-          "unit": "kPa"
-        }
-      },
-      "ports": [
-        {
-          "name": "in",
-          "role": "inlet",
-          "connectedTo": "HX1__SS"
-        },
-        {
-          "name": "out",
-          "role": "outlet",
-          "connectedTo": "NSUP"
-        }
-      ]
-    },
-    {
-      "id": "SR",
-      "kind": "pipe",
-      "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 1077,
-        "length": 25
-      },
-      "circuit": "substation",
-      "tag": null,
-      "parameters": {
-        "dn": {
-          "value": 32,
-          "unit": null,
-          "source": "stated"
-        },
-        "length": {
-          "value": 30,
-          "unit": "m",
-          "source": "stated"
-        },
-        "minor_loss": {
-          "value": 0,
-          "unit": null,
-          "source": "default",
-          "basis": "no fittings stated"
-        },
-        "roughness": {
-          "value": 4.5E-05,
-          "unit": "m",
-          "source": "default",
-          "basis": "commercial steel"
-        }
-      },
-      "state": {
-        "flow": {
-          "value": 1.79322,
-          "unit": "kg/s"
-        },
-        "tIn": {
-          "value": 40.1404,
-          "unit": "°C"
-        },
-        "tOut": {
-          "value": 40.1468,
-          "unit": "°C"
-        },
-        "pIn": {
-          "value": 30.0223,
-          "unit": "kPa"
-        },
-        "pOut": {
-          "value": 0,
-          "unit": "kPa"
-        },
-        "dp": {
-          "value": 30.0223,
-          "unit": "kPa"
-        }
-      },
-      "ports": [
-        {
-          "name": "in",
-          "role": "inlet",
-          "connectedTo": "NRET"
-        },
-        {
-          "name": "out",
-          "role": "outlet",
-          "connectedTo": "SR__SP"
         }
       ]
     },
@@ -507,7 +285,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1103,
+        "start": 1026,
         "length": 36
       },
       "circuit": "substation",
@@ -614,7 +392,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1211,
+        "start": 1134,
         "length": 63
       },
       "circuit": "substation",
@@ -744,17 +522,230 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "HX1__SS"
+          "connectedTo": "HX1__NSUP__in"
         },
         {
           "name": "in2",
           "role": "inlet",
-          "connectedTo": "PP__HX1"
+          "connectedTo": "PCV__HX1__out"
         },
         {
           "name": "out2",
           "role": "outlet",
           "connectedTo": "NPR"
+        }
+      ]
+    },
+    {
+      "id": "PCV__HX1",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "inferred:I7",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 25,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 12,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 0.895341,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 85.0444,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 85.0467,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 362.64,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 350,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 12.6395,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "PCV__HX1__in"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "PCV__HX1__out"
+        }
+      ]
+    },
+    {
+      "id": "HX1__NSUP",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "inferred:I7",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 32,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 30,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 1.79322,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 60.1345,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 60.1404,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 79.5596,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 50.0223,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 29.5373,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "HX1__NSUP__in"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NSUP"
+        }
+      ]
+    },
+    {
+      "id": "NRET__SP",
+      "kind": "pipe",
+      "symbolId": "pipe.standard",
+      "origin": "inferred:I7",
+      "sourceSpan": null,
+      "circuit": "substation",
+      "tag": null,
+      "parameters": {
+        "dn": {
+          "value": 32,
+          "unit": null,
+          "source": "stated"
+        },
+        "length": {
+          "value": 30,
+          "unit": "m",
+          "source": "stated"
+        },
+        "minor_loss": {
+          "value": 0,
+          "unit": null,
+          "source": "default",
+          "basis": "no fittings stated"
+        },
+        "roughness": {
+          "value": 4.5E-05,
+          "unit": "m",
+          "source": "default",
+          "basis": "commercial steel"
+        }
+      },
+      "state": {
+        "flow": {
+          "value": 1.79322,
+          "unit": "kg/s"
+        },
+        "tIn": {
+          "value": 40.1404,
+          "unit": "°C"
+        },
+        "tOut": {
+          "value": 40.1468,
+          "unit": "°C"
+        },
+        "pIn": {
+          "value": 30.0223,
+          "unit": "kPa"
+        },
+        "pOut": {
+          "value": 0,
+          "unit": "kPa"
+        },
+        "dp": {
+          "value": 30.0223,
+          "unit": "kPa"
+        }
+      },
+      "ports": [
+        {
+          "name": "in",
+          "role": "inlet",
+          "connectedTo": "NRET"
+        },
+        {
+          "name": "out",
+          "role": "outlet",
+          "connectedTo": "NRET__SP__out"
         }
       ]
     },
@@ -781,7 +772,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "SS"
+          "connectedTo": "HX1__NSUP"
         },
         {
           "name": "1",
@@ -818,12 +809,12 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "SR"
+          "connectedTo": "NRET__SP"
         }
       ]
     },
     {
-      "id": "PCV__PP",
+      "id": "PCV__HX1__in",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -850,12 +841,12 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "PP"
+          "connectedTo": "PCV__HX1"
         }
       ]
     },
     {
-      "id": "PP__HX1",
+      "id": "PCV__HX1__out",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -877,7 +868,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "PP"
+          "connectedTo": "PCV__HX1"
         },
         {
           "name": "1",
@@ -887,7 +878,7 @@
       ]
     },
     {
-      "id": "HX1__SS",
+      "id": "HX1__NSUP__in",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -914,12 +905,12 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "SS"
+          "connectedTo": "HX1__NSUP"
         }
       ]
     },
     {
-      "id": "SR__SP",
+      "id": "NRET__SP__out",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -941,7 +932,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "SR"
+          "connectedTo": "NRET__SP"
         },
         {
           "name": "1",
@@ -1751,7 +1742,7 @@
         "port": "out"
       },
       "to": {
-        "component": "PCV__PP",
+        "component": "PCV__HX1__in",
         "port": null
       },
       "flow": "forward",
@@ -1765,11 +1756,11 @@
     {
       "id": "c2",
       "from": {
-        "component": "PCV__PP",
+        "component": "PCV__HX1__in",
         "port": null
       },
       "to": {
-        "component": "PP",
+        "component": "PCV__HX1",
         "port": "in"
       },
       "flow": "forward",
@@ -1783,11 +1774,11 @@
     {
       "id": "c3",
       "from": {
-        "component": "PP",
+        "component": "PCV__HX1",
         "port": "out"
       },
       "to": {
-        "component": "PP__HX1",
+        "component": "PCV__HX1__out",
         "port": null
       },
       "flow": "forward",
@@ -1801,7 +1792,7 @@
     {
       "id": "c4",
       "from": {
-        "component": "PP__HX1",
+        "component": "PCV__HX1__out",
         "port": null
       },
       "to": {
@@ -1841,7 +1832,7 @@
         "port": "out"
       },
       "to": {
-        "component": "HX1__SS",
+        "component": "HX1__NSUP__in",
         "port": null
       },
       "flow": "forward",
@@ -1855,11 +1846,11 @@
     {
       "id": "c7",
       "from": {
-        "component": "HX1__SS",
+        "component": "HX1__NSUP__in",
         "port": null
       },
       "to": {
-        "component": "SS",
+        "component": "HX1__NSUP",
         "port": "in"
       },
       "flow": "forward",
@@ -1873,7 +1864,7 @@
     {
       "id": "c8",
       "from": {
-        "component": "SS",
+        "component": "HX1__NSUP",
         "port": "out"
       },
       "to": {
@@ -1931,7 +1922,7 @@
         "port": null
       },
       "to": {
-        "component": "SR",
+        "component": "NRET__SP",
         "port": "in"
       },
       "flow": "forward",
@@ -1945,11 +1936,11 @@
     {
       "id": "c12",
       "from": {
-        "component": "SR",
+        "component": "NRET__SP",
         "port": "out"
       },
       "to": {
-        "component": "SR__SP",
+        "component": "NRET__SP__out",
         "port": null
       },
       "flow": "forward",
@@ -1963,7 +1954,7 @@
     {
       "id": "c13",
       "from": {
-        "component": "SR__SP",
+        "component": "NRET__SP__out",
         "port": null
       },
       "to": {
@@ -2019,19 +2010,19 @@
     "order": [
       "NPS",
       "PCV",
-      "PCV__PP",
-      "PP",
-      "PP__HX1",
+      "PCV__HX1__in",
+      "PCV__HX1",
+      "PCV__HX1__out",
       "HX1",
       "SP__HX1",
       "SP",
-      "SR__SP",
-      "SR",
+      "NRET__SP__out",
+      "NRET__SP",
       "NRET",
       "LOAD",
       "NSUP",
-      "SS",
-      "HX1__SS",
+      "HX1__NSUP",
+      "HX1__NSUP__in",
       "NPR"
     ],
     "thermalStages": [
@@ -2042,9 +2033,9 @@
           "NPS",
           "NPR",
           "PCV",
-          "PP",
-          "PCV__PP",
-          "PP__HX1"
+          "PCV__HX1",
+          "PCV__HX1__in",
+          "PCV__HX1__out"
         ]
       },
       {
@@ -2059,13 +2050,13 @@
         "role": "consumer",
         "components": [
           "SP",
-          "SS",
-          "SR",
           "LOAD",
+          "HX1__NSUP",
+          "NRET__SP",
           "NSUP",
           "NRET",
-          "HX1__SS",
-          "SR__SP",
+          "HX1__NSUP__in",
+          "NRET__SP__out",
           "SP__HX1"
         ]
       }
@@ -2092,31 +2083,34 @@
     "nonFlowElements": [],
     "circuitOf": {
       "HX1": "substation",
-      "HX1__SS": "substation",
+      "HX1__NSUP": "substation",
+      "HX1__NSUP__in": "substation",
       "LOAD": "substation",
       "NPR": "substation",
       "NPS": "substation",
       "NRET": "substation",
+      "NRET__SP": "substation",
+      "NRET__SP__out": "substation",
       "NSUP": "substation",
       "PCV": "substation",
-      "PCV__PP": "substation",
-      "PP": "substation",
-      "PP__HX1": "substation",
+      "PCV__HX1": "substation",
+      "PCV__HX1__in": "substation",
+      "PCV__HX1__out": "substation",
       "SP": "substation",
-      "SP__HX1": "substation",
-      "SR": "substation",
-      "SR__SP": "substation",
-      "SS": "substation"
+      "SP__HX1": "substation"
     },
     "distributionGroups": [],
     "inferred": [
-      "HX1__SS",
+      "HX1__NSUP",
+      "HX1__NSUP__in",
       "NRET",
+      "NRET__SP",
+      "NRET__SP__out",
       "NSUP",
-      "PCV__PP",
-      "PP__HX1",
-      "SP__HX1",
-      "SR__SP"
+      "PCV__HX1",
+      "PCV__HX1__in",
+      "PCV__HX1__out",
+      "SP__HX1"
     ],
     "margin": 0.5,
     "extent": [
@@ -2211,7 +2205,7 @@
         "scale": 0.9009
       },
       {
-        "componentId": "PCV__PP",
+        "componentId": "PCV__HX1__in",
         "symbolId": "node.junction",
         "inner": [
           -0.6,
@@ -2258,7 +2252,7 @@
         "scale": 0.9009
       },
       {
-        "componentId": "PP",
+        "componentId": "PCV__HX1",
         "symbolId": "pipe.standard",
         "inner": [
           -0.45,
@@ -2305,7 +2299,7 @@
         "scale": 0.9009
       },
       {
-        "componentId": "PP__HX1",
+        "componentId": "PCV__HX1__out",
         "symbolId": "node.junction",
         "inner": [
           -0.3,
@@ -2513,7 +2507,7 @@
         "scale": 0.0025
       },
       {
-        "componentId": "SR__SP",
+        "componentId": "NRET__SP__out",
         "symbolId": "node.junction",
         "inner": [
           1.9,
@@ -2560,7 +2554,7 @@
         "scale": 0.0029
       },
       {
-        "componentId": "SR",
+        "componentId": "NRET__SP",
         "symbolId": "pipe.standard",
         "inner": [
           2.05,
@@ -2768,7 +2762,7 @@
         "scale": 0.4028
       },
       {
-        "componentId": "SS",
+        "componentId": "HX1__NSUP",
         "symbolId": "pipe.standard",
         "inner": [
           1.25,
@@ -2815,7 +2809,7 @@
         "scale": 0.4028
       },
       {
-        "componentId": "HX1__SS",
+        "componentId": "HX1__NSUP__in",
         "symbolId": "node.junction",
         "inner": [
           0.7,
@@ -3183,18 +3177,18 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'PCV__PP' (I2).",
+      "message": "Added pipe 'PCV__HX1' (I7).",
       "range": {
         "start": {
-          "line": 33,
+          "line": 31,
           "character": 0
         },
         "end": {
-          "line": 33,
-          "character": 24
+          "line": 31,
+          "character": 29
         },
-        "offset": 1288,
-        "length": 24
+        "offset": 1221,
+        "length": 29
       },
       "component": null,
       "suggestion": null,
@@ -3203,18 +3197,18 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'PP__HX1' (I2).",
+      "message": "Added node 'PCV__HX1__in' (I2).",
       "range": {
         "start": {
-          "line": 33,
+          "line": 31,
           "character": 0
         },
         "end": {
-          "line": 33,
-          "character": 24
+          "line": 31,
+          "character": 29
         },
-        "offset": 1288,
-        "length": 24
+        "offset": 1221,
+        "length": 29
       },
       "component": null,
       "suggestion": null,
@@ -3223,18 +3217,58 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'HX1__SS' (I2).",
+      "message": "Added node 'PCV__HX1__out' (I2).",
       "range": {
         "start": {
-          "line": 36,
+          "line": 31,
           "character": 0
         },
         "end": {
-          "line": 36,
-          "character": 19
+          "line": 31,
+          "character": 29
         },
-        "offset": 1329,
-        "length": 19
+        "offset": 1221,
+        "length": 29
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added pipe 'HX1__NSUP' (I7).",
+      "range": {
+        "start": {
+          "line": 34,
+          "character": 0
+        },
+        "end": {
+          "line": 34,
+          "character": 30
+        },
+        "offset": 1267,
+        "length": 30
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'HX1__NSUP__in' (I2).",
+      "range": {
+        "start": {
+          "line": 34,
+          "character": 0
+        },
+        "end": {
+          "line": 34,
+          "character": 30
+        },
+        "offset": 1267,
+        "length": 30
       },
       "component": null,
       "suggestion": null,
@@ -3246,14 +3280,14 @@
       "message": "Added node 'NSUP' (I1).",
       "range": {
         "start": {
-          "line": 36,
-          "character": 15
+          "line": 34,
+          "character": 10
         },
         "end": {
-          "line": 36,
-          "character": 19
+          "line": 34,
+          "character": 14
         },
-        "offset": 1344,
+        "offset": 1277,
         "length": 4
       },
       "component": null,
@@ -3266,14 +3300,14 @@
       "message": "Added node 'NRET' (I1).",
       "range": {
         "start": {
-          "line": 37,
+          "line": 35,
           "character": 14
         },
         "end": {
-          "line": 37,
+          "line": 35,
           "character": 18
         },
-        "offset": 1363,
+        "offset": 1312,
         "length": 4
       },
       "component": null,
@@ -3283,18 +3317,38 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'SR__SP' (I2).",
+      "message": "Added pipe 'NRET__SP' (I7).",
       "range": {
         "start": {
-          "line": 38,
+          "line": 36,
           "character": 0
         },
         "end": {
-          "line": 38,
-          "character": 23
+          "line": 36,
+          "character": 25
         },
-        "offset": 1368,
-        "length": 23
+        "offset": 1317,
+        "length": 25
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'NRET__SP__out' (I2).",
+      "range": {
+        "start": {
+          "line": 36,
+          "character": 0
+        },
+        "end": {
+          "line": 36,
+          "character": 25
+        },
+        "offset": 1317,
+        "length": 25
       },
       "component": null,
       "suggestion": null,
@@ -3306,15 +3360,15 @@
       "message": "Added node 'SP__HX1' (I2).",
       "range": {
         "start": {
-          "line": 38,
+          "line": 37,
           "character": 0
         },
         "end": {
-          "line": 38,
-          "character": 23
+          "line": 37,
+          "character": 11
         },
-        "offset": 1368,
-        "length": 23
+        "offset": 1343,
+        "length": 11
       },
       "component": null,
       "suggestion": null,

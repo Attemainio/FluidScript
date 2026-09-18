@@ -216,6 +216,24 @@ internal sealed partial class BindingRun
                         continue;
                     }
 
+                    // I7 (D-110): a connection carrying pipe properties runs through the pipe CollectDeclarations
+                    // declared for it, keyed by the line and the pair.
+                    var key = $"{connection.Span.Start.ToString(CultureInfo.InvariantCulture)}:{i.ToString(CultureInfo.InvariantCulture)}";
+
+                    if (_components.FirstOrDefault(c => c.Origin is Origin.Inferred { Rule: "I7" } inferred && inferred.StableKey == key) is { } implicitPipe)
+                    {
+                        var pipe = implicitPipe.Name;
+                        _connections.Add(new ConnectionSymbol(from.Value, new EndpointSymbol(pipe, "in"), connection.Span));
+                        _connections.Add(new ConnectionSymbol(new EndpointSymbol(pipe, "out"), to.Value, connection.Span));
+                        Claim(pipe, "in", connection.Span, stated: false);
+                        Claim(pipe, "out", connection.Span, stated: false);
+                        Count(from.Value.Component);
+                        Count(pipe);
+                        Count(pipe);
+                        Count(to.Value.Component);
+                        continue;
+                    }
+
                     _connections.Add(new ConnectionSymbol(from.Value, to.Value, connection.Span));
                     Count(from.Value.Component);
                     Count(to.Value.Component);
@@ -432,7 +450,14 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            var stem = $"{connection.From.Component}__{connection.To.Component}";
+            // A node beside an implicit pipe (I7) is named after the pipe's port it joins, as I3 names a
+            // boundary: `N1__HE1__out`, not `N1__HE1__HE1`.
+            bool IsImplicitPipe(string component) =>
+                _componentsByName.TryGetValue(component, out var slot) && _components[slot.Index].Origin is Origin.Inferred { Rule: "I7" };
+
+            var stem = IsImplicitPipe(connection.From.Component) ? $"{connection.From.Component}__{connection.From.Port}"
+                : IsImplicitPipe(connection.To.Component) ? $"{connection.To.Component}__{connection.To.Port}"
+                : $"{connection.From.Component}__{connection.To.Component}";
             var name = stem;
 
             // The same pair connected twice appends an ordinal rather than colliding.

@@ -7,7 +7,6 @@ fluid water
 NPS  inlet t=85 p=600
 NPR  outlet p=350
 PCV  valve
-PP   pipe length=12 dn=25
 
 PU1  pump
 HE1  heat_exchanger power=30 in=20 out=50 in2=85 out2=45
@@ -15,7 +14,8 @@ LOAD heat_exchanger power=-30
 CV1  valve
 
 connections
-NPS - PCV - PP - HE1.in2
+NPS - PCV
+PCV - HE1.in2 length=12 dn=25
 HE1.out2 - NPR
 
 PU1 - HE1.in

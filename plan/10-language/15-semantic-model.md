@@ -649,7 +649,10 @@ expects `AirHandlingUnit` to find `ahu`.
    path".
 1. **Collect declarations.** Every `ComponentDeclarationSyntax` and `LetBindingSyntax` enters the
    symbol table. The table is one per model, not one per circuit (`D-41`), and its circuit is recorded
-   on the symbol. Duplicates → `FS1501` / `FS1401`.
+   on the symbol. Duplicates → `FS1501` / `FS1401`. **A connection line carrying pipe properties
+   declares here too** (I7, `D-110`): one `pipe` symbol per connection on the line, so that steps 2
+   to 5 resolve its kind, bind and evaluate its parameters exactly as a written `P1 pipe length=25`
+   would be; step 7 then wires the connection through it.
 2. **Resolve kinds** against the registry, in the three stages below — normalise, exact, similarity.
    Unresolved → `FS1502`; ambiguous → `FS1513`. Either way the component is still created with an
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
@@ -728,6 +731,8 @@ expects `AirHandlingUnit` to find `ahu`.
 
 9. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
    has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
+   I7 ran already, in step 1, for the same reason in reverse: a pipe's parameters must exist before
+   anything evaluates them, and I2's nodes beside it need the pipe to exist.
 10. **Validate.** `FS1507` skips two things on purpose (`L-32`). A kind with **no ports at all** is
     never warned about — a controller appears in no connection by design, because a `control` line
     binds it rather than topology, so warning would put a squiggle on the one script using `D-40`
@@ -831,6 +836,19 @@ twice) appends an ordinal: `HE1__3WV`, `HE1__3WV_2`.
 connection gets a boundary node named `{Component}__{Port}`. What boundary condition it carries is
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md)'s decision; the binder records
 only that it is a boundary.
+
+**I7 — implicit pipe** (`D-110`). A connection line that ends in pipe properties makes one `pipe`
+per connection on it, named `{A}__{B}` after the two endpoint identifiers (ports dropped: `PCV -
+HX1.in2 length=12` makes `PCV__HX1`), with an ordinal on collision as I2 appends one. The symbol is
+`Origin = Inferred(I7, key)` where the key is the line's start offset and the connection's index on
+it, so the same line binds to the same pipe on every parse; `WrittenKind = pipe`; its parameters are
+the line's, **stated**. It is created in step 1, not step 9, because its parameters must go through
+kind resolution, binding and evaluation like any declaration's; step 7 replaces the connection
+`A - B` with `A - {A}__{B}.in` and `{A}__{B}.out - B`, and I2 then puts a node on each side of the
+pipe whose neighbour is not a node, named `{A}__{B}__in` and `{A}__{B}__out` after the pipe's port it
+joins -- so `HE1 - PU1 dn=25` yields `HE1__PU1`, `HE1__PU1__in`, `HE1__PU1__out`. A `length` the line
+does not state is zero, the pipe's decided default ([`22`](../20-core-domain/22-component-model.md)):
+`dn=25` alone marks the drawing and the bore and drops nothing. A bare line makes no pipe.
 
 Every inferred component gets an info diagnostic (`FS1510`) so the user can see what was created.
 These are info-level and off by default in the log ([`56-console-log`](../50-frontend/56-console-log.md)),

@@ -81,7 +81,6 @@ let bore   = 27.3 mm                      # DN25 steel bore: a designation is no
 
 HE2 load in=50 out=30 power=Q                       # a parameter whose value is a reference to a `let`
 TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
-PB1 pipe length=25                        # `pipe` reaches kind position: it is not reserved
 NB1 inlet t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
 NB2 outlet p=280                          # plain `node` is a *datum* instead, and admits none (D-86)
 SB1 inlet t=6 flow=0.24 kg/s              # `inlet` in kind position: a boundary that says so (D-64, D-115)
@@ -89,7 +88,8 @@ RB1 outlet                                # and `outlet`, which needs no argumen
 
 connections
 NB1 - NJ1                                 # a boundary has one connection (D-115): the split is NJ1's
-NJ1 - HE2 - PB1 - NJ2                     # a chain desugars to three connections (I6)
+NJ1 - HE2
+HE2 - NJ2 length=25                       # properties on the line make the pipe (I7, D-110)
 NJ2 - NB2                                 # and the merge before the outlet is NJ2's
 SB1 - TV2.a                               # a port-qualified endpoint: the second inlet into port a
 NJ1 - TV2.b                               # the first inlet's water taps into port b
@@ -108,7 +108,7 @@ show pressure
 HE3  load in=50 out=30 power=24 kW
 TV3  three_way_valve
 PU3  pump
-PA3  pipe length=8 dn=25
+PA3  pipe length=8 dn=25                  # a declared pipe: its far end stays open for `outlet`
 PID3 pid kp=3                             # a controller is an ordinary declaration (D-40)
 
 inlet NJ1                                 # takes flow from the parent circuit at NJ1: the first open

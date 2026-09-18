@@ -98,7 +98,7 @@ converting there costs one pass and removes a whole class of consumer bug.
       "kind": "heat_exchanger",        // script keyword
       "mode": "duty",                  // component-specific canonical mode; null/absent otherwise
       "symbolId": "heat_exchanger.standard",
-      "origin": "declared",            // "declared" | "inferred:I1" | "inferred:I2" | "inferred:I3"
+      "origin": "declared",            // "declared" | "inferred:I1" | "inferred:I2" | "inferred:I3" | "inferred:I7" (D-110)
       "sourceSpan": { "start": 142, "length": 39 },   // null for inferred
       "circuit": "coolingLoop",        // D-33; owning circuit under D-36 for a two-sided component
       "tag": "100HE01",                // D-34; display metadata, null when the kind has no tag code

@@ -57,7 +57,7 @@ public sealed class ModelContractBuilderTests
         Assert.Equal("m", head.Unit);
         Assert.Equal(head.Value, pump.State!.Solved!["head"].Value);
 
-        var dn = contract.Components.Single(static c => c.Id == "PA1").Parameters["dn"];
+        var dn = contract.Components.Single(static c => c.Id == "N3__TV_AHU").Parameters["dn"];
         Assert.Equal("stated", dn.Source);
     }
 
@@ -165,11 +165,11 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void AnExpandedPipeIsOneGroupAndNineExpandedComponents()
     {
-        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Replace("P1  pipe length=25 dn=25", "P1  pipe length=25 dn=25 nodes=4");
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Replace("3WV - N3 length=25 dn=25", "3WV - N3 length=25 dn=25 nodes=4", StringComparison.Ordinal);
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
 
         var group = Assert.Single(contract.Layout.Groups);
-        Assert.Equal("P1", group.ParentComponentId);
+        Assert.Equal("3WV__N3", group.ParentComponentId);
         Assert.Equal(9, group.Children.Length);
         Assert.Equal(9, contract.Components.Count(static c => c.Origin == "expanded"));
         Assert.All(group.Children, child => Assert.Contains(contract.Components, c => c.Id == child));
@@ -182,7 +182,7 @@ public sealed class ModelContractBuilderTests
     {
         // The cap is measured on the serialized form, which is the Api's; Core only knows how to leave
         // the states out when asked (26).
-        var input = ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid").Replace("P1  pipe length=25 dn=25", "P1  pipe length=25 dn=25 nodes=100"));
+        var input = ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid").Replace("3WV - N3 length=25 dn=25", "3WV - N3 length=25 dn=25 nodes=100", StringComparison.Ordinal));
         var whole = ModelContractBuilder.Build(input);
         var omitted = ModelContractBuilder.Build(input, statesOmitted: true);
 

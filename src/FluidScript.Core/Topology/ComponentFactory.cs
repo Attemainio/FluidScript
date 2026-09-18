@@ -496,6 +496,15 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             defaults[name] = Quantity.FromSi(value, info.Dimension);
         }
 
+        // D-110: an implicit pipe (rule I7) states no length unless the line does; its length is then zero, a
+        // decided default the report shows as one, so nothing tries to size it.
+        if (symbol.Origin is Origin.Inferred { Rule: "I7" }
+            && !symbol.Parameters.ContainsKey("length")
+            && kind.Parameters.TryGetValue("length", out var length))
+        {
+            defaults["length"] = Quantity.FromSi(0, length.Dimension);
+        }
+
         return defaults.ToImmutable();
     }
 
@@ -574,7 +583,8 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         ImmutableDictionary<string, Quantity> defaults)
     {
         var kind = symbol.Kind!;
-        var length = Value(symbol, kind, "length");
+        // An implicit pipe (I7, D-110) with no length runs at its decided default of zero: `dn=25` on a connection line marks the drawing and the bore and adds no friction until a length is written.
+        var length = Value(symbol, kind, "length") ?? (defaults.TryGetValue("length", out var decided) ? decided.SiValue : null);
         var nominal = Value(symbol, kind, "dn");
 
         if (length is not { } metres || nominal is not { } dn || bores.BoreFor(dn) is not { } bore)

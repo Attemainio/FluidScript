@@ -305,7 +305,7 @@ A pressure drop between two nodes, optionally discretized (`R-10`).
 
 | Parameter | Dimension | Bare number means | Range | Omission behavior | Meaning |
 |---|---|---|---|---|---|
-| `length` | Length | m | 0.01 … 10000 m | Size | `length=45` is 45 metres (`D-14`) |
+| `length` | Length | m | 0.01 … 10000 m | Size; **0 for an implicit pipe** | `length=45` is 45 metres (`D-14`). A pipe a connection line makes (I7, `D-110`) that states no length runs at a decided default of zero, reported as `default` on the wire: `dn=25` on the line marks the drawing and the bore and drops nothing until a length is written. The range is a *stated* value's; the zero is not stated. |
 | `dn` | **`NominalDiameter`** | — | 6 … 2000 | Size | Nominal-diameter **designation**, dimensionless. |
 | `roughness` | Length | m | 1 µm … 5 mm | Default 0.045 mm | Written `roughness=0.045 mm` — a bare number here is metres, like every other `Length` |
 | `nodes` | Dimensionless | — | 0 … 100 | Size | Internal discretization count (`R-10`): omission sizes to 0 because no transport resolution can be inferred from topology; transient storage is opt-in with explicit `nodes>=1`. |

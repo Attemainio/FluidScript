@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:a80c4c86edfa99dd72282a079d8a757790349442e866a17777076025e1b3291f",
+    "sourceHash": "sha256:557454729c1853e53d822266700ef87b628fdf55f4733da476d4ec4918efe5c5",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -56,7 +56,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 501,
+        "start": 514,
         "length": 40
       },
       "circuit": "coolingLoop",
@@ -139,7 +139,7 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 542,
+        "start": 555,
         "length": 19
       },
       "circuit": "coolingLoop",
@@ -179,7 +179,7 @@
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "3WV__P1"
+          "connectedTo": "3WV__N3__in"
         }
       ]
     },
@@ -189,7 +189,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 562,
+        "start": 575,
         "length": 8
       },
       "circuit": "coolingLoop",
@@ -229,14 +229,11 @@
       ]
     },
     {
-      "id": "P1",
+      "id": "3WV__N3",
       "kind": "pipe",
       "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 571,
-        "length": 24
-      },
+      "origin": "inferred:I7",
+      "sourceSpan": null,
       "circuit": "coolingLoop",
       "tag": null,
       "parameters": {
@@ -268,7 +265,7 @@
         {
           "name": "in",
           "role": "inlet",
-          "connectedTo": "3WV__P1"
+          "connectedTo": "3WV__N3__in"
         },
         {
           "name": "out",
@@ -283,7 +280,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 898,
+        "start": 894,
         "length": 18
       },
       "circuit": "coolingLoop",
@@ -315,7 +312,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 976,
+        "start": 972,
         "length": 15
       },
       "circuit": "coolingLoop",
@@ -332,7 +329,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "P1"
+          "connectedTo": "3WV__N3"
         }
       ]
     },
@@ -411,7 +408,7 @@
       ]
     },
     {
-      "id": "3WV__P1",
+      "id": "3WV__N3__in",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -429,7 +426,7 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "P1"
+          "connectedTo": "3WV__N3"
         }
       ]
     }
@@ -1275,7 +1272,7 @@
         "port": "b"
       },
       "to": {
-        "component": "3WV__P1",
+        "component": "3WV__N3__in",
         "port": null
       },
       "flow": "none",
@@ -1284,11 +1281,11 @@
     {
       "id": "c8",
       "from": {
-        "component": "3WV__P1",
+        "component": "3WV__N3__in",
         "port": null
       },
       "to": {
-        "component": "P1",
+        "component": "3WV__N3",
         "port": "in"
       },
       "flow": "none",
@@ -1297,7 +1294,7 @@
     {
       "id": "c9",
       "from": {
-        "component": "P1",
+        "component": "3WV__N3",
         "port": "out"
       },
       "to": {
@@ -1317,8 +1314,8 @@
       "HE1",
       "HE1__3WV",
       "3WV",
-      "3WV__P1",
-      "P1",
+      "3WV__N3__in",
+      "3WV__N3",
       "N3"
     ],
     "thermalStages": [
@@ -1329,13 +1326,13 @@
           "HE1",
           "3WV",
           "PU1",
-          "P1",
+          "3WV__N3",
           "N1",
           "N3",
           "N2",
           "PU1__HE1",
           "HE1__3WV",
-          "3WV__P1"
+          "3WV__N3__in"
         ]
       }
     ],
@@ -1355,19 +1352,20 @@
     "nonFlowElements": [],
     "circuitOf": {
       "3WV": "coolingLoop",
-      "3WV__P1": "coolingLoop",
+      "3WV__N3": "coolingLoop",
+      "3WV__N3__in": "coolingLoop",
       "HE1": "coolingLoop",
       "HE1__3WV": "coolingLoop",
       "N1": "coolingLoop",
       "N2": "coolingLoop",
       "N3": "coolingLoop",
-      "P1": "coolingLoop",
       "PU1": "coolingLoop",
       "PU1__HE1": "coolingLoop"
     },
     "distributionGroups": [],
     "inferred": [
-      "3WV__P1",
+      "3WV__N3",
+      "3WV__N3__in",
       "HE1__3WV",
       "N2",
       "PU1__HE1"
@@ -1789,7 +1787,7 @@
         "scale": null
       },
       {
-        "componentId": "3WV__P1",
+        "componentId": "3WV__N3__in",
         "symbolId": "node.junction",
         "inner": [
           3.0167,
@@ -1843,7 +1841,7 @@
         "scale": null
       },
       {
-        "componentId": "P1",
+        "componentId": "3WV__N3",
         "symbolId": "pipe.standard",
         "inner": [
           3.1833,
@@ -2182,14 +2180,14 @@
       "message": "Added node 'N2' (I1).",
       "range": {
         "start": {
-          "line": 19,
+          "line": 18,
           "character": 5
         },
         "end": {
-          "line": 19,
+          "line": 18,
           "character": 7
         },
-        "offset": 614,
+        "offset": 602,
         "length": 2
       },
       "component": null,
@@ -2202,14 +2200,14 @@
       "message": "Added node 'PU1__HE1' (I2).",
       "range": {
         "start": {
-          "line": 21,
+          "line": 20,
           "character": 0
         },
         "end": {
-          "line": 21,
+          "line": 20,
           "character": 9
         },
-        "offset": 742,
+        "offset": 730,
         "length": 9
       },
       "component": null,
@@ -2222,14 +2220,14 @@
       "message": "Added node 'HE1__3WV' (I2).",
       "range": {
         "start": {
-          "line": 22,
+          "line": 21,
           "character": 0
         },
         "end": {
-          "line": 22,
+          "line": 21,
           "character": 9
         },
-        "offset": 752,
+        "offset": 740,
         "length": 9
       },
       "component": null,
@@ -2239,18 +2237,38 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node '3WV__P1' (I2).",
+      "message": "Added pipe '3WV__N3' (I7).",
       "range": {
         "start": {
-          "line": 24,
+          "line": 23,
           "character": 0
         },
         "end": {
-          "line": 24,
-          "character": 8
+          "line": 23,
+          "character": 24
         },
-        "offset": 842,
-        "length": 8
+        "offset": 830,
+        "length": 24
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node '3WV__N3__in' (I2).",
+      "range": {
+        "start": {
+          "line": 23,
+          "character": 0
+        },
+        "end": {
+          "line": 23,
+          "character": 24
+        },
+        "offset": 830,
+        "length": 24
       },
       "component": null,
       "suggestion": null,

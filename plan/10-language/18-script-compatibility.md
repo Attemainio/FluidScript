@@ -113,6 +113,11 @@ than in the sentence above it. A word that was a legal identifier stops being on
 a component `control` parsed before and fails with `FS1004` after. The addition looks purely additive
 from the grammar's side, and that is exactly what makes it easy to ship by mistake.
 
+`D-110`'s trailing property list on a connection line (P5.1e, 2026-09-18) is the genuinely additive
+case, and the test is the sentence above: no word stops being an identifier, no bare connection
+changes meaning, and the only lines that read differently are ones that were malformed before. It
+ships within major 1.
+
 The pre-release exemption is the same one `D-32` relies on below: **until a v1 file can be saved, the
 reserved list may grow freely.** `D-33`, `D-37` and `D-40` added `project`, `spacing`, `supply`,
 `return` and `control` under that exemption, `D-115` (2026-09-17) used it to respell those two as `inlet` and

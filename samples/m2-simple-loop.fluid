@@ -5,12 +5,12 @@
 # a closed circuit's own energy relations cannot supply -- they fix every difference and no absolute
 # value (D-65).
 #
-# P1 states no `dn`: P3.7b's outer loop chooses it. This is 01's canonical block, unchanged -- the
+# The return line states no `dn`: P3.7b's outer loop chooses it. This is 01's canonical block, unchanged -- the
 # sizing rule selects DN25 at 0.41 m/s, which is what 24's worked example computes by hand.
 #
 # The gradient it reports is 99.8 Pa/m, not 24's 94.1. Both are right about different states: 24 works
 # the example at the loop's 35 C mean, and the rule sizes every component at its own inlet, which for
-# P1 is the 20 C leaving LOAD. Sizing at a mean nobody is standing in is the trap 24 flags for the
+# the return is the 20 C leaving LOAD. Sizing at a mean nobody is standing in is the trap 24 flags for the
 # pump's head, and the pipe rule has it too -- 6 % of gradient here, and the same DN either way.
 #
 # LOAD states `dp=0` because it is the modelling device this header opens by describing, not a physical
@@ -27,7 +27,7 @@ HE1  heat_exchanger power=30 in=20 out=50
 LOAD heat_exchanger power=-30 dp=0
 CV1  valve
 PU1  pump
-P1   pipe length=25
 
 connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+N5 - N1 length=25

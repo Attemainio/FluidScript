@@ -23,11 +23,9 @@ circuit AHU 101
 HE_AHU  load in=50 out=30 power=24 kW
 TV_AHU  three_way_valve kv=6.3
 PU_AHU  pump
-PA1     pipe length=12 dn=25
-PA2     pipe length=12 dn=25
 
 connections
-N3 - PA1 - TV_AHU.a
+N3 - TV_AHU.a length=12 dn=25
 NM_AHU - TV_AHU.b
 TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-NM_AHU - PA2 - N5
+NM_AHU - N5 length=12 dn=25

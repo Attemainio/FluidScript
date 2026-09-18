@@ -388,37 +388,39 @@ One loop: every predicate against every fixture. Adding a fixture tests it again
 predicates, and adding a predicate applies it to every fixture already there — which is what makes this
 a sweep rather than a list of per-sample expectations that grows one assertion at a time.
 
-| # | Predicate | Enforces |
-|---|---|---|
-| L1 | The scene is byte-identical across 100 builds for one graph, hints and spacing | `53` inv 1, 10 |
-| L2 | Drawn edges are a bijection with graph edges, compared **port for port** | inv 4c |
-| L3 | Symbol bounding boxes pairwise disjoint after mandatory collapse | inv 3 |
-| L4 | Label boxes disjoint from each other, from non-owner symbols, and from non-leader routes | inv 3a |
-| L5 | No placement contains a corner, computed **per point**: two incident run-ends on different axes | inv 4a, `D-44` |
-| L6 | Every junction element sits at its junction | inv 4b |
-| L7 | Segments axis-aligned; none zero-length or reversing; bends within preference; length within its factor of Manhattan distance | inv 4e |
-| L8 | `metrics.symbolCrossings` zero on samples and references | inv 3b |
-| L9 | Components on a run in traversal order, none drawn between two directly connected | inv 4d |
-| L10 | Every component's orientation matches its kind's rule | inv 8 |
-| L11 | Every arrow agrees with the sign of the solved flow | inv 9 |
-| L12 | Every route endpoint coincides exactly with its port's anchor | inv 4 |
-| L13 | Thermal-stage bands at monotonically increasing X, ranks consumed unchanged | `D-31` |
-| L14 | Two spacing values change placements and change nothing Core computes | inv 1b, `D-37` |
-| L15 | No DOM key, selection key, or export id contains an equipment tag | inv 1c, `D-34` |
-| L16 | `metrics.reflowIterations` under half of `D-72`'s cap | `D-72` |
-| L17 | No route segment is shared by a supply route and a return route | `53` H8, `D-100` |
-| L18 | Header members with equal `hints.branchShapes` have congruent relative geometry — equal widths, aligned columns, equal rail distances | `53` *equivalent assemblies*, `D-100` |
-| L19 | Edit stability: adding an observer moves no process symbol; adding a component to a branch moves only that branch and what it pushes; an edit in one circuit leaves every other circuit identical up to translation | `53` *edit stability*, `D-100` |
+| # | Predicate | Enforces | Where it stands (2026-09-18, P5.1d-3) |
+|---|---|---|---|
+| L1 | The scene is byte-identical across builds for one graph, hints and spacing | `53` inv 1, 10 | `LayoutPredicateTests` L1: the report, ten builds, byte for byte, on every fixture |
+| L2 | Drawn edges are a bijection with graph edges, compared **port for port** | inv 4c | L2: every connection's route starts and ends on the port the connection names; the audit's H4 holds the ends |
+| L3 | Symbol bounding boxes pairwise disjoint after mandatory collapse | inv 3 | The audit, H1 and H2 |
+| L4 | Label boxes disjoint from each other, from non-owner symbols, and from non-leader routes | inv 3a | The scene carries a label anchor, not a box (`D-73` is the renderer's metric table): P5.7 |
+| L5 | No placement contains a corner, computed **per point**: two incident run-ends on different axes | inv 4a, `D-44` | The audit, H3 and H6; `TheRingKeepsItsCornersBare` on the loop samples |
+| L6 | Every junction element sits at its junction | inv 4b | By construction (`28` A6: every node is placed on its run); H4 holds its ends |
+| L7 | Segments axis-aligned; none zero-length or reversing; bends within preference; length within its factor of Manhattan distance | inv 4e | L7: axis-aligned, no zero-length, no collinear or backtracking point; the length factor is the report's `length-ratio`, trended |
+| L8 | `metrics.symbolCrossings` zero on samples and references | inv 3b | The audit, H3 |
+| L9 | Components on a run in traversal order, none drawn between two directly connected | inv 4d | By construction (`28` A5: inline elements spread along their run in order) |
+| L10 | Every component's orientation matches its kind's rule | inv 8 | L10: a `standing` kind turns 0 or 180, an `upright` kind 0, the rest freely (`28` A4, `D-108`) |
+| L11 | Every arrow agrees with the sign of the solved flow | inv 9 | The renderer reads the arrow from the port flow on the wire: P5.7 |
+| L12 | Every route endpoint coincides exactly with its port's anchor | inv 4 | The audit, H4 |
+| L13 | Thermal-stage bands at monotonically increasing X, ranks consumed unchanged | `D-31` | Withdrawn as a scene predicate: the ladder engine (`D-107`) places by `28` C and H10 carries the direction heat takes; `D-31`'s ranks stay in the hints |
+| L14 | Two spacing values change placements and change nothing Core computes | inv 1b, `D-37` | L14: the cooling loop at 0.5 and 1.0, boxes move, the solve report is byte for byte |
+| L15 | No DOM key, selection key, or export id contains an equipment tag | inv 1c, `D-34` | P5.7 |
+| L16 | `metrics.reflowIterations` under half of `D-72`'s cap | `D-72` | Withdrawn: there is no reflow under `D-107`; the engine is constructive and a form that cannot finish backtracks whole |
+| L17 | No route segment is shared by a supply route and a return route | `53` H8, `D-100` | The audit, H7 |
+| L18 | Header members with equal branch shapes have congruent relative geometry -- equal widths, aligned columns, equal rail distances | `53` *equivalent assemblies*, `D-100` | L18 on the 200-component header: eighteen branches of one kind sequence, one width, one height, members at the same places relative to their block (`BranchShapes` itself was withdrawn by `D-107`; the block is the shape) |
+| L19 | Edit stability: adding an observer moves no process symbol; adding a component to a branch moves only that branch and what it pushes; an edit in one circuit leaves every other circuit identical up to translation | `53` *edit stability*, `D-100` | Three L19 tests: step 10 against step 4, a valve into the header's first branch, a valve into the second of two circuits |
 
 **L2 is the one to keep if only one survives.** Every other predicate protects legibility; L2 protects
 correctness, and its breach is the only one on this list that a reader cannot see. A scene can be
 disjoint, corner-free, deterministic and beautifully routed while connecting the wrong ports.
 
-**Fixtures.** The six reference circuits; every sample script; the supported 200-component fixture
-(generated, not checked in: `FluidScript.Fixtures.ReferenceModels.DistributionHeader(18)`, `01`'s
-header with eighteen pumped consumers -- a file that size would be solved by every corpus test); a
-crowded fixture built to force reflow; an explicitly over-limit fixture. Plus **corpus mutation over
-the sample scripts** — the same argument this document already makes for the parser fuzz applies here:
+**Fixtures.** Every sample script; the supported 200-component fixture (generated, not checked in:
+`FluidScript.Fixtures.ReferenceModels.DistributionHeader(18)`, `01`'s header with eighteen pumped
+consumers -- a file that size would be solved by every corpus test); and six ladder steps chosen
+for their shapes (a valve on a loop, a ring with a branch, the mixed header, instruments, two
+circuits, the tour's loops). The crowded fixture that was to force reflow went with L16; an
+explicitly over-limit fixture is not built. Plus, still to build, **corpus mutation over the sample
+scripts** — the same argument this document already makes for the parser fuzz applies here:
 mutations of real scripts produce near-valid topologies, which is where a layout engine breaks, and a
 pure random graph generator produces shapes no plant has.
 
@@ -439,7 +441,8 @@ assertion, and the experiment protocol in `CLAUDE.md` applies to it unchanged: r
 read the whole text, change only what it supports. It is the reason a session with no canvas can
 look at a layout, and **a session checks a layout from this text and never from the SVG or a PNG**
 -- the afternoon P5.1d-2 spent reading rendered pictures is recorded in `20`'s observations as the
-drift this sentence exists to stop.
+drift this sentence exists to stop. Shipped 2026-09-18: `SceneText` is in Core with the raster and
+the metrics, and `C-89` is closed.
 
 The earlier `LayoutExplanation` -- a second, columnar text with the `L1`–`L19` verdicts -- is
 withdrawn as a separate artefact: the verdicts are `28` B's constraints and the audit's counts in
@@ -449,9 +452,11 @@ raster is the one part that is a picture rather than a table.
 
 #### Metrics, which are trended rather than gated
 
-`SceneMetrics` records per fixture and is committed: `symbolCrossings`, `routeCrossings`,
-`labelCollisions`, `reflowIterations`, `routeLengthRatio`, `areaUtilisation`, `aspectRatio`. Three of
-those have hard limits in `53`'s invariants; the rest have none and are not meant to.
+The report carries them per fixture: the crossing count, `length-ratio` (the pipes' length over
+their ends' Manhattan distance), `area-utilisation` (symbol area over the extent's) and `aspect`.
+`symbolCrossings` is H3 and hard; `labelCollisions` and `reflowIterations` wait on P5.7 and went
+with L16. `diagnostics/` is regenerated rather than committed, so a number that moves shows in the
+ladder's log when a step is redrawn, not in a diff; a committed metrics file is not built.
 
 **This is the part that answers "is the diagram any good", and the honest answer is that it cannot be
 asserted.** What can be done is to make degradation visible: a refactor that raises mean route length

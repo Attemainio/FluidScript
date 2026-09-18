@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:22598a809de3d3153747344c8561c0380694581401b0fa0253005f20dbc066e6",
+    "sourceHash": "sha256:1ce9bc07a3f6a02d5cc6124aeaf5d11fe50c5c958333acccea64471df0712814",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -413,7 +413,7 @@
         {
           "name": "a",
           "role": "bidirectional",
-          "connectedTo": "PA1__TV_AHU"
+          "connectedTo": "N3__TV_AHU__out"
         },
         {
           "name": "b",
@@ -509,14 +509,11 @@
       ]
     },
     {
-      "id": "PA1",
+      "id": "N3__TV_AHU",
       "kind": "pipe",
       "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 3603,
-        "length": 28
-      },
+      "origin": "inferred:I7",
+      "sourceSpan": null,
       "circuit": "AHU",
       "tag": null,
       "parameters": {
@@ -578,19 +575,16 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "PA1__TV_AHU"
+          "connectedTo": "N3__TV_AHU__out"
         }
       ]
     },
     {
-      "id": "PA2",
+      "id": "NM_AHU__N5",
       "kind": "pipe",
       "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 3632,
-        "length": 28
-      },
+      "origin": "inferred:I7",
+      "sourceSpan": null,
       "circuit": "AHU",
       "tag": null,
       "parameters": {
@@ -663,7 +657,7 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4084,
+        "start": 4046,
         "length": 37
       },
       "circuit": "radiators",
@@ -775,7 +769,7 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4122,
+        "start": 4084,
         "length": 23
       },
       "circuit": "radiators",
@@ -847,7 +841,7 @@
         {
           "name": "a",
           "role": "bidirectional",
-          "connectedTo": "PR1__TV_RAD"
+          "connectedTo": "N4__TV_RAD__out"
         },
         {
           "name": "b",
@@ -862,7 +856,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4146,
+        "start": 4108,
         "length": 12
       },
       "circuit": "radiators",
@@ -943,14 +937,11 @@
       ]
     },
     {
-      "id": "PR1",
+      "id": "N4__TV_RAD",
       "kind": "pipe",
       "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 4159,
-        "length": 28
-      },
+      "origin": "inferred:I7",
+      "sourceSpan": null,
       "circuit": "radiators",
       "tag": null,
       "parameters": {
@@ -1012,19 +1003,16 @@
         {
           "name": "out",
           "role": "outlet",
-          "connectedTo": "PR1__TV_RAD"
+          "connectedTo": "N4__TV_RAD__out"
         }
       ]
     },
     {
-      "id": "PR2",
+      "id": "NM_RAD__N6",
       "kind": "pipe",
       "symbolId": "pipe.standard",
-      "origin": "declared",
-      "sourceSpan": {
-        "start": 4188,
-        "length": 28
-      },
+      "origin": "inferred:I7",
+      "sourceSpan": null,
       "circuit": "radiators",
       "tag": null,
       "parameters": {
@@ -1123,7 +1111,7 @@
         {
           "name": "2",
           "role": "bidirectional",
-          "connectedTo": "PA1"
+          "connectedTo": "N3__TV_AHU"
         }
       ]
     },
@@ -1155,7 +1143,7 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "PR1"
+          "connectedTo": "N4__TV_RAD"
         }
       ]
     },
@@ -1187,7 +1175,7 @@
         {
           "name": "1",
           "role": "bidirectional",
-          "connectedTo": "PR2"
+          "connectedTo": "NM_RAD__N6"
         }
       ]
     },
@@ -1224,7 +1212,7 @@
         {
           "name": "2",
           "role": "bidirectional",
-          "connectedTo": "PA2"
+          "connectedTo": "NM_AHU__N5"
         }
       ]
     },
@@ -1261,7 +1249,7 @@
         {
           "name": "2",
           "role": "bidirectional",
-          "connectedTo": "PA2"
+          "connectedTo": "NM_AHU__N5"
         }
       ]
     },
@@ -1298,12 +1286,12 @@
         {
           "name": "2",
           "role": "bidirectional",
-          "connectedTo": "PR2"
+          "connectedTo": "NM_RAD__N6"
         }
       ]
     },
     {
-      "id": "PA1__TV_AHU",
+      "id": "N3__TV_AHU__out",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -1325,7 +1313,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "PA1"
+          "connectedTo": "N3__TV_AHU"
         },
         {
           "name": "1",
@@ -1399,7 +1387,7 @@
       ]
     },
     {
-      "id": "PR1__TV_RAD",
+      "id": "N4__TV_RAD__out",
       "kind": "node",
       "symbolId": "node.junction",
       "origin": "inferred:I2",
@@ -1421,7 +1409,7 @@
         {
           "name": "0",
           "role": "bidirectional",
-          "connectedTo": "PR1"
+          "connectedTo": "N4__TV_RAD"
         },
         {
           "name": "1",
@@ -2335,7 +2323,7 @@
         "port": null
       },
       "to": {
-        "component": "PA1",
+        "component": "N3__TV_AHU",
         "port": "in"
       },
       "flow": "forward",
@@ -2349,11 +2337,11 @@
     {
       "id": "c6",
       "from": {
-        "component": "PA1",
+        "component": "N3__TV_AHU",
         "port": "out"
       },
       "to": {
-        "component": "PA1__TV_AHU",
+        "component": "N3__TV_AHU__out",
         "port": null
       },
       "flow": "forward",
@@ -2367,7 +2355,7 @@
     {
       "id": "c7",
       "from": {
-        "component": "PA1__TV_AHU",
+        "component": "N3__TV_AHU__out",
         "port": null
       },
       "to": {
@@ -2497,7 +2485,7 @@
         "port": null
       },
       "to": {
-        "component": "PA2",
+        "component": "NM_AHU__N5",
         "port": "in"
       },
       "flow": "forward",
@@ -2511,7 +2499,7 @@
     {
       "id": "c15",
       "from": {
-        "component": "PA2",
+        "component": "NM_AHU__N5",
         "port": "out"
       },
       "to": {
@@ -2533,7 +2521,7 @@
         "port": null
       },
       "to": {
-        "component": "PR1",
+        "component": "N4__TV_RAD",
         "port": "in"
       },
       "flow": "forward",
@@ -2547,11 +2535,11 @@
     {
       "id": "c17",
       "from": {
-        "component": "PR1",
+        "component": "N4__TV_RAD",
         "port": "out"
       },
       "to": {
-        "component": "PR1__TV_RAD",
+        "component": "N4__TV_RAD__out",
         "port": null
       },
       "flow": "forward",
@@ -2565,7 +2553,7 @@
     {
       "id": "c18",
       "from": {
-        "component": "PR1__TV_RAD",
+        "component": "N4__TV_RAD__out",
         "port": null
       },
       "to": {
@@ -2695,7 +2683,7 @@
         "port": null
       },
       "to": {
-        "component": "PR2",
+        "component": "NM_RAD__N6",
         "port": "in"
       },
       "flow": "forward",
@@ -2709,7 +2697,7 @@
     {
       "id": "c26",
       "from": {
-        "component": "PR2",
+        "component": "NM_RAD__N6",
         "port": "out"
       },
       "to": {
@@ -2731,26 +2719,26 @@
       "HS1",
       "N3",
       "N4",
-      "PR1",
-      "PR1__TV_RAD",
+      "N4__TV_RAD",
+      "N4__TV_RAD__out",
       "TV_RAD",
       "TV_RAD__PU_RAD",
       "PU_RAD",
       "PU_RAD__HE_RAD",
       "HE_RAD",
       "NM_RAD",
-      "PR2",
+      "NM_RAD__N6",
       "N6",
       "N5",
-      "PA2",
+      "NM_AHU__N5",
       "NM_AHU",
       "TV_AHU",
       "TV_AHU__PU_AHU",
       "PU_AHU",
       "PU_AHU__HE_AHU",
       "HE_AHU",
-      "PA1__TV_AHU",
-      "PA1"
+      "N3__TV_AHU__out",
+      "N3__TV_AHU"
     ],
     "thermalStages": [
       {
@@ -2760,19 +2748,19 @@
           "HE_AHU",
           "TV_AHU",
           "PU_AHU",
-          "PA1",
-          "PA2",
+          "N3__TV_AHU",
+          "NM_AHU__N5",
           "HE_RAD",
           "TV_RAD",
           "PU_RAD",
-          "PR1",
-          "PR2",
+          "N4__TV_RAD",
+          "NM_RAD__N6",
           "NM_AHU",
           "NM_RAD",
-          "PA1__TV_AHU",
+          "N3__TV_AHU__out",
           "TV_AHU__PU_AHU",
           "PU_AHU__HE_AHU",
-          "PR1__TV_RAD",
+          "N4__TV_RAD__out",
           "TV_RAD__PU_RAD",
           "PU_RAD__HE_RAD"
         ]
@@ -2827,17 +2815,17 @@
       "HS1": "heating",
       "N1": "heating",
       "N3": "heating",
+      "N3__TV_AHU": "AHU",
+      "N3__TV_AHU__out": "AHU",
       "N4": "heating",
+      "N4__TV_RAD": "radiators",
+      "N4__TV_RAD__out": "radiators",
       "N5": "heating",
       "N6": "heating",
       "NM_AHU": "AHU",
+      "NM_AHU__N5": "AHU",
       "NM_RAD": "radiators",
-      "PA1": "AHU",
-      "PA1__TV_AHU": "AHU",
-      "PA2": "AHU",
-      "PR1": "radiators",
-      "PR1__TV_RAD": "radiators",
-      "PR2": "radiators",
+      "NM_RAD__N6": "radiators",
       "PU_AHU": "AHU",
       "PU_AHU__HE_AHU": "AHU",
       "PU_RAD": "radiators",
@@ -2858,13 +2846,17 @@
     ],
     "inferred": [
       "N3",
+      "N3__TV_AHU",
+      "N3__TV_AHU__out",
       "N4",
+      "N4__TV_RAD",
+      "N4__TV_RAD__out",
       "N5",
       "N6",
       "NM_AHU",
+      "NM_AHU__N5",
       "NM_RAD",
-      "PA1__TV_AHU",
-      "PR1__TV_RAD",
+      "NM_RAD__N6",
       "PU_AHU__HE_AHU",
       "PU_RAD__HE_RAD",
       "TV_AHU__PU_AHU",
@@ -3097,7 +3089,7 @@
         "scale": 0.75
       },
       {
-        "componentId": "PR1",
+        "componentId": "N4__TV_RAD",
         "symbolId": "pipe.standard",
         "inner": [
           3.25,
@@ -3144,7 +3136,7 @@
         "scale": 0.75
       },
       {
-        "componentId": "PR1__TV_RAD",
+        "componentId": "N4__TV_RAD__out",
         "symbolId": "node.junction",
         "inner": [
           4.4,
@@ -3513,7 +3505,7 @@
         "scale": 0
       },
       {
-        "componentId": "PR2",
+        "componentId": "NM_RAD__N6",
         "symbolId": "pipe.standard",
         "inner": [
           3.95,
@@ -3664,7 +3656,7 @@
         "scale": 0
       },
       {
-        "componentId": "PA2",
+        "componentId": "NM_AHU__N5",
         "symbolId": "pipe.standard",
         "inner": [
           1.3,
@@ -4033,7 +4025,7 @@
         "scale": 0
       },
       {
-        "componentId": "PA1__TV_AHU",
+        "componentId": "N3__TV_AHU__out",
         "symbolId": "node.junction",
         "inner": [
           0.85,
@@ -4080,7 +4072,7 @@
         "scale": 0.75
       },
       {
-        "componentId": "PA1",
+        "componentId": "N3__TV_AHU",
         "symbolId": "pipe.standard",
         "inner": [
           0.85,
@@ -4633,18 +4625,38 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'PA1__TV_AHU' (I2).",
+      "message": "Added pipe 'N3__TV_AHU' (I7).",
       "range": {
         "start": {
-          "line": 65,
+          "line": 63,
           "character": 0
         },
         "end": {
-          "line": 65,
-          "character": 19
+          "line": 63,
+          "character": 29
         },
-        "offset": 3674,
-        "length": 19
+        "offset": 3616,
+        "length": 29
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N3__TV_AHU__out' (I2).",
+      "range": {
+        "start": {
+          "line": 63,
+          "character": 0
+        },
+        "end": {
+          "line": 63,
+          "character": 29
+        },
+        "offset": 3616,
+        "length": 29
       },
       "component": null,
       "suggestion": null,
@@ -4656,14 +4668,14 @@
       "message": "Added node 'NM_AHU' (I1).",
       "range": {
         "start": {
-          "line": 66,
+          "line": 64,
           "character": 0
         },
         "end": {
-          "line": 66,
+          "line": 64,
           "character": 6
         },
-        "offset": 3766,
+        "offset": 3718,
         "length": 6
       },
       "component": null,
@@ -4676,14 +4688,14 @@
       "message": "Added node 'TV_AHU__PU_AHU' (I2).",
       "range": {
         "start": {
-          "line": 67,
+          "line": 65,
           "character": 0
         },
         "end": {
-          "line": 67,
+          "line": 65,
           "character": 36
         },
-        "offset": 3865,
+        "offset": 3817,
         "length": 36
       },
       "component": null,
@@ -4696,14 +4708,14 @@
       "message": "Added node 'PU_AHU__HE_AHU' (I2).",
       "range": {
         "start": {
-          "line": 67,
+          "line": 65,
           "character": 0
         },
         "end": {
-          "line": 67,
+          "line": 65,
           "character": 36
         },
-        "offset": 3865,
+        "offset": 3817,
         "length": 36
       },
       "component": null,
@@ -4713,18 +4725,58 @@
     {
       "code": "FS1510",
       "severity": "info",
-      "message": "Added node 'PR1__TV_RAD' (I2).",
+      "message": "Added pipe 'NM_AHU__N5' (I7).",
       "range": {
         "start": {
-          "line": 79,
+          "line": 66,
           "character": 0
         },
         "end": {
-          "line": 79,
-          "character": 19
+          "line": 66,
+          "character": 27
         },
-        "offset": 4230,
-        "length": 19
+        "offset": 3918,
+        "length": 27
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added pipe 'N4__TV_RAD' (I7).",
+      "range": {
+        "start": {
+          "line": 75,
+          "character": 0
+        },
+        "end": {
+          "line": 75,
+          "character": 29
+        },
+        "offset": 4134,
+        "length": 29
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added node 'N4__TV_RAD__out' (I2).",
+      "range": {
+        "start": {
+          "line": 75,
+          "character": 0
+        },
+        "end": {
+          "line": 75,
+          "character": 29
+        },
+        "offset": 4134,
+        "length": 29
       },
       "component": null,
       "suggestion": null,
@@ -4736,14 +4788,14 @@
       "message": "Added node 'NM_RAD' (I1).",
       "range": {
         "start": {
-          "line": 80,
+          "line": 76,
           "character": 0
         },
         "end": {
-          "line": 80,
+          "line": 76,
           "character": 6
         },
-        "offset": 4250,
+        "offset": 4164,
         "length": 6
       },
       "component": null,
@@ -4756,14 +4808,14 @@
       "message": "Added node 'TV_RAD__PU_RAD' (I2).",
       "range": {
         "start": {
-          "line": 81,
+          "line": 77,
           "character": 0
         },
         "end": {
-          "line": 81,
+          "line": 77,
           "character": 36
         },
-        "offset": 4268,
+        "offset": 4182,
         "length": 36
       },
       "component": null,
@@ -4776,15 +4828,35 @@
       "message": "Added node 'PU_RAD__HE_RAD' (I2).",
       "range": {
         "start": {
-          "line": 81,
+          "line": 77,
           "character": 0
         },
         "end": {
-          "line": 81,
+          "line": 77,
           "character": 36
         },
-        "offset": 4268,
+        "offset": 4182,
         "length": 36
+      },
+      "component": null,
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1510",
+      "severity": "info",
+      "message": "Added pipe 'NM_RAD__N6' (I7).",
+      "range": {
+        "start": {
+          "line": 78,
+          "character": 0
+        },
+        "end": {
+          "line": 78,
+          "character": 27
+        },
+        "offset": 4219,
+        "length": 27
       },
       "component": null,
       "suggestion": null,

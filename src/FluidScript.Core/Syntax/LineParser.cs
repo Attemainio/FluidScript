@@ -716,7 +716,16 @@ internal sealed class LineParser(
             links.Add(new ConnectionLinkSyntax(dash, endpoint));
         }
 
-        return new ConnectionSyntax(first, links.ToImmutable());
+        // D-110: the line may end in pipe properties, `N1 - HE1 dn=25 length=12`, spelled as on a
+        // declaration. They apply to every connection on the line, and the binder makes each an
+        // implicit pipe (rule I7). A bare line stays what it was.
+        var parameters = ParseParameters(out var failed);
+        if (failed)
+        {
+            return Malformed();
+        }
+
+        return new ConnectionSyntax(first, links.ToImmutable(), parameters);
     }
 
     private StatementSyntax ParseDisturbance()

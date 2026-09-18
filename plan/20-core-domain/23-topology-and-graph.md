@@ -182,7 +182,10 @@ The semantic model arrives with inference already applied. Lowering does five th
    nothing but the connection list says how many it has, and that count decides both its port count and
    whether it carries a mass balance. **A pipe's bore is not a stated parameter either**: the script
    states `dn`, and the designation becomes a bore through [`27`](27-component-catalog.md), which ships
-   a package later — lowering takes the mapping as an injected lookup (`C-24`).
+   a package later — lowering takes the mapping as an injected lookup (`C-24`). **An implicit pipe
+   (I7, `D-110`) is a `pipe` symbol like any other by the time it arrives here**; lowering does not
+   know which lines were written as `P1 pipe length=25` and which as `N5 - N1 length=25`, and a
+   zero-length one is a real edge that drops nothing (`22`).
    Indexed tank ports have already been materialized by the binder; lowering maps each normalized
    level to exactly one bottom-to-top layer and does not create ports absent from source (`D-32`).
    **Heights arrive resolved** (`D-70`): the binder has already propagated every stated `elevation`

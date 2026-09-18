@@ -44,8 +44,9 @@ public sealed class Pipe : IFlowComponent
     /// <param name="minorLoss">The sum of explicit fitting coefficients K, dimensionless.</param>
     /// <param name="rise">m, outlet height minus inlet height, from the heights of what the pipe connects.</param>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// <paramref name="length"/> or <paramref name="insideDiameter"/> is not positive, or
-    /// <paramref name="roughness"/> or <paramref name="minorLoss"/> is negative.
+    /// <paramref name="length"/>, <paramref name="roughness"/> or <paramref name="minorLoss"/> is negative, or
+    /// <paramref name="insideDiameter"/> is not positive. A zero length is an implicit pipe with no length
+    /// stated (<c>D-110</c>): no friction, no volume, a designation on the drawing.
     /// </exception>
     public Pipe(
         string name,
@@ -56,7 +57,7 @@ public sealed class Pipe : IFlowComponent
         double rise = 0)
     {
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(insideDiameter);
         ArgumentOutOfRangeException.ThrowIfNegative(roughness);
         ArgumentOutOfRangeException.ThrowIfNegative(minorLoss);

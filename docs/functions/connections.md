@@ -29,8 +29,10 @@ N1 node t=6 p=300
 ```
 
 - Connecting two components directly creates the node between them that their states need.
+- **Pipe properties go on the line**: `N5 - N1 length=25 dn=25` makes the connection a pipe, named
+  `N5__N1`, and every connection on that line gets the same properties. See [`pipe`](pipe.md).
 - One `connections` line per circuit. A second is ignored, with a warning.
 
 ## See also
 
-[`circuit`](circuit.md) · [`schedule`](schedule.md) · [`node`](node.md)
+[`circuit`](circuit.md) · [`schedule`](schedule.md) · [`node`](node.md) · [`pipe`](pipe.md)

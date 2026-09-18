@@ -119,6 +119,7 @@ These are `R-06` made precise. Each states its trigger, its result, and — crit
 | I4 | **Flow direction** | A connection `A - B` is written | Nominal flow is A → B; it seeds the solver's sign convention and the arrow drawn on the canvas | Never — but a solved negative flow is legal and is drawn reversed, with an info diagnostic |
 | I5 | **Single-circuit membership** | A component is declared in a file with exactly one `circuit` header | It belongs to that circuit | The file declares more than one circuit (M6) |
 | I6 | **Chained connections** | `A - B - C` | Two connections, `A - B` and `B - C` | Never |
+| I7 | **Implicit pipe** (`D-110`) | A connection line ends in pipe properties: `N5 - N1 length=25` | Each connection on the line becomes a `pipe` named `<A>__<B>` carrying those properties, with I2's nodes beside it named `<A>__<B>__in` / `__out`; `length` unwritten is zero | The line carries no properties: it stays a lossless link |
 
 **I2's naming matters.** `HE1__3WV` is derived, stable, and visible in hover and diagnostics. It is
 also a legal identifier the user can reference, which lets them promote an inferred node to a declared
@@ -205,7 +206,7 @@ reason hover (`R-23`) must show inferred names: the user must be able to see wha
 
 ## Acceptance criteria
 
-- [ ] Every inference rule I1–I6 has a test whose name states both the firing and the non-firing case.
+- [ ] Every inference rule I1–I7 has a test whose name states both the firing and the non-firing case.
 - [ ] No pipeline stage's public API can throw on any byte sequence — verified by a fuzz test over
       the sample corpus with random mutations.
 - [ ] The brief's example produces the component count derived above, and each inferred component is

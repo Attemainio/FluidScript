@@ -3,9 +3,33 @@
 A pressure drop between two nodes, optionally discretized so that transport delay can be seen.
 
 ```fluidscript
-P1 pipe length=45 dn=50
 P2 pipe length=12 dn=32 minor_loss=2.5
+
+connections
+N4 - N1 length=45 dn=50
 ```
+
+## On the connection line
+
+The line on the drawing already is the pipe, so its properties go on the connection that draws it.
+Write them after the last name on the line:
+
+```fluidscript
+connections
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+N5 - N1 length=25
+```
+
+- Every connection on a line takes the properties: `N1 - N2 - N3 dn=25` is two DN25 pipes.
+- Each one is a pipe named after its ends, `N5__N1` here, and answers to that name in results and
+  expressions (`N5__N1.dp`). Between two components rather than nodes, `HE1 - PU1 dn=25`, the nodes
+  put beside the pipe are `HE1__PU1__in` and `HE1__PU1__out`.
+- A `length` you do not write is **zero**: `dn=25` alone sets the drawing and the bore and drops
+  nothing until you give the run a length. A `length` without `dn` is sized like a declared pipe's.
+- A line with no properties is what it always was: a joint that drops nothing.
+
+A declared `P2 pipe ...` is still a pipe, and the drawing shows both the same way. Declare one when
+its far end is not a connection at all -- the tour's `PA3`, whose outlet an `outlet` line takes.
 
 ## Ports
 
@@ -15,7 +39,7 @@ P2 pipe length=12 dn=32 minor_loss=2.5
 
 | Parameter | A bare number means | Meaning | If you omit it |
 |---|---|---|---|
-| `length` | m | Length along the run | Sized |
+| `length` | m | Length along the run | Sized for a declared pipe; **0** for one written on the connection line |
 | `dn` | — | Nominal-diameter **designation**, not a diameter. DN25 steel pipe has a 27.3 mm bore | Sized from velocity |
 | `roughness` | m | Absolute wall roughness. Usually written `roughness=0.045 mm` | 0.045 mm, commercial steel |
 | `nodes` | — | Internal discretization count. Transport storage is opt-in: set it to 1 or more to resolve travel time along the pipe | 0 — no internal nodes |

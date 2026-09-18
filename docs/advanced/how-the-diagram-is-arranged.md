@@ -179,6 +179,23 @@ Nothing about the layout depends on a solved number: the flow arrows are read fr
 transient run animates the state colours without rearranging the diagram, and changing a duty or a
 setpoint moves nothing.
 
+## What every drawing is held to
+
+Whatever rules place a circuit, the finished drawing is checked against one standard. Ten
+constraints are hard: a drawing that breaks one is wrong, not merely worse. No symbol enters
+another symbol's box or its clearance; no pipe and no signal line passes through a symbol it does
+not serve; a pipe starts and ends on the two ports its connection names and leaves each port
+straight for a whole margin; no inline element sits on a corner; supply and return never share a
+segment; nothing is left undrawn; every flow loop runs clockwise; and heat progresses left to
+right through every exchanger. Four things are counted rather than forbidden, and fewer is better:
+a pipe through a margin, two pipes side by side closer than a margin, two pipes crossing, and a
+signal line running along a pipe.
+
+The check runs on the placed geometry, never on the picture, and its result is written as a text
+report beside every diagram the test suite draws: each component with its boxes and ports, each
+pipe with its points and bends, a character raster of the arrangement, the counts above, and every
+finding on its own line. That report is how a change to the arrangement rules is judged.
+
 ## The messages
 
 | Code | When | What to do |

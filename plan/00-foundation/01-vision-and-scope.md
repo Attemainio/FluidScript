@@ -268,7 +268,6 @@ show temperature
 HE1 heat_exchanger power=30 in=20 out=50
 3WV three_way_valve
 PU1 pump
-P1  pipe length=25
 
 connections
 N1 - N2                      # primary supply into the mixing node
@@ -276,15 +275,15 @@ N2 - PU1                     # the secondary pump drives the loop
 PU1 - HE1
 HE1 - 3WV
 3WV - N2                     # recirculation branch — closes the secondary loop
-3WV - P1
-P1 - N3                      # primary return
+3WV - N3 length=25           # primary return: the line carries its pipe's properties (D-110)
 
 N1 inlet t=6 p=300          # primary-side boundary: fluid enters here
 N3 outlet p=280              # and leaves here
 ```
 
 Changes from the syntax reference, each with a reason: **`PU1` is wired into the secondary loop**,
-between `N2` and `HE1`; **`P1` gives the primary return a length** — 25 metres under `D-14`, since a
+between `N2` and `HE1`; **the primary return carries `length=25` on its connection line** (`D-110`:
+the connection lowers to an implicit pipe, `3WV__N3`) — 25 metres under `D-14`, since a
 bare `Length` is SI — without which the pipe sizing rule in [`24`](../20-core-domain/24-auto-sizing.md)
 has no physical path length;
 **`N1` and `N3` carry boundary conditions**, making the primary side a real source and sink rather
@@ -321,27 +320,29 @@ computed from the stated duty and temperatures alone, so they are checkable with
 |---|---|---|
 | Secondary flow (through `PU1`, `HE1`) | **0.2392 kg/s** | 30 000 W ÷ (h₅₀ − h₂₀) = 30 000 ÷ 125 411 |
 | Mixing fraction at `N2` (primary share) | **0.681** | (h₅₀ − h₂₀) ÷ (h₅₀ − h₆) = 125 411 ÷ 184 094 |
-| Primary flow (`N1 → N2`, `3WV.b → P1 → N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
+| Primary flow (`N1 → N2`, `3WV.b → N3` through `3WV__N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
 | Recirculation flow (`3WV.a → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
 | Primary-side duty check | **30 000 W** | 0.1630 × (h₅₀ − h₆) = 0.1630 × 184 094 |
-| `P1` sized diameter | **DN20** | 0.1649 l/s at 50 °C → 138 Pa/m, 0.45 m/s |
+| `3WV__N3` sized diameter | **DN20** | 0.1649 l/s at 50 °C → 138 Pa/m, 0.45 m/s |
 
 with h₆ = 25 324, h₂₀ = 84 007, h₅₀ = 209 418 J/kg
 ([`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md)).
 
-Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 50 °C · `3WV__P1` 50 °C ·
+Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 50 °C · `3WV__N3__in` 50 °C ·
 `N3` 50 °C. Pressures follow from the solve and are not fixed by hand here; only `N1` = 300 kPa and
 `N3` = 280 kPa are stated.
 
-**Inference inventory**, which several documents count: **6 declared** components (`HE1`, `3WV`, `PU1`,
-`P1`, and the two boundary nodes `N1` and `N3`), **1 node from I1** (`N2`, the only identifier that
-appears solely in `connections`), **3 from I2** (`PU1__HE1`, `HE1__3WV`, `3WV__P1`), and **none from
-I3** — every port of every component is connected. **Six nodes, ten components**, four inferred, so
-exactly four `FS1510` entries.
+**Inference inventory**, which several documents count: **5 declared** components (`HE1`, `3WV`, `PU1`,
+and the two boundary nodes `N1` and `N3`), **1 pipe from I7** (`3WV__N3`, the return line's
+`length=25`), **1 node from I1** (`N2`, the only identifier that appears solely in `connections`),
+**3 from I2** (`PU1__HE1`, `HE1__3WV`, `3WV__N3__in`), and **none from I3** — every port of every
+component is connected. **Six nodes, ten components**, five inferred, so exactly five `FS1510` entries.
 
-Node and component totals are unchanged from earlier drafts of this circuit; only the *origin* of `N1`
-and `N3` moved, from `inferred:I1` to `declared`, when the boundary lines became real declarations.
-Any document still counting three I1 nodes or six inferred components here is stale.
+Node and component totals are unchanged from earlier drafts of this circuit; only *origins* moved:
+`N1` and `N3` from `inferred:I1` to `declared` when the boundary lines became real declarations, and
+the return pipe from a declared `P1` to `inferred:I7` when its properties moved onto the connection
+line (`D-110`, 2026-09-18). Any document still counting three I1 nodes, four inferred components or a
+declared `P1` here is stale.
 
 #### The simple loop — sizing and solver reference
 
@@ -354,10 +355,10 @@ HE1  heat_exchanger power=30 in=20 out=50
 LOAD heat_exchanger power=-30
 CV1  valve
 PU1  pump
-P1   pipe length=25
 
 connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+N5 - N1 length=25
 ```
 
 One closed series loop: five nodes, five components, one flow. No node states a pressure, so the graph
@@ -388,24 +389,23 @@ show temperature
 NPS inlet t=85 p=600
 NPR outlet p=350
 PCV valve
-PP  pipe length=12
 
 # --- heating secondary, 40/60 --------------------------------------
 SP   pump
-SS   pipe length=30
-SR   pipe length=30
 LOAD heat_exchanger power=-150 dt=20
 
 # --- the exchanger between them ------------------------------------
 HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
 
 connections
-NPS - PCV - PP - HX1.in2
+NPS - PCV
+PCV - HX1.in2 length=12
 HX1.out2 - NPR
 
-HX1.out - SS - NSUP
+HX1.out - NSUP length=30
 NSUP - LOAD - NRET
-NRET - SR - SP - HX1.in
+NRET - SP length=30
+SP - HX1.in
 ```
 
 **Two hydraulic circuits, coupled only through `HX1`.** The primary is open — it enters at the
@@ -464,8 +464,9 @@ The 0.25 % overshoot is the discrete plate count showing, and it is reported rat
 ([`24-auto-sizing`](../20-core-domain/24-auto-sizing.md)'s `FS2310`). A designer reads "39 plates,
 4.9 K approach" and recognises a selection; "UA = 12.07 kW/K" is a number they would have to trust.
 
-**Inference inventory:** **9 declared** (`NPS`, `NPR`, `PCV`, `PP`, `SP`, `SS`, `SR`, `LOAD`, `HX1`),
-**2 from I1** (`NSUP`, `NRET`), **5 from I2** (`PCV__PP`, `PP__HX1`, `HX1__SS`, `SR__SP`, `SP__HX1`),
+**Inference inventory:** **6 declared** (`NPS`, `NPR`, `PCV`, `SP`, `LOAD`, `HX1`), **3 pipes from I7**
+(`PCV__HX1`, `HX1__NSUP`, `NRET__SP`, the three lines carrying a `length`), **2 from I1** (`NSUP`,
+`NRET`), **5 from I2** (`PCV__HX1__in`, `PCV__HX1__out`, `HX1__NSUP__in`, `NRET__SP__out`, `SP__HX1`),
 and **none from I3** — `LOAD`'s `in2` and `out2` are optional, so leaving them open is duty mode rather
 than an open port. **Nine nodes, sixteen components.**
 
