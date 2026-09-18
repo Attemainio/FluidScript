@@ -872,11 +872,19 @@ internal sealed class LayoutEngine
     /// side; the top-left corner is the first boxed node after it in flow order -- in from below, out to the
     /// right -- or, where the loop's nodes are points on the line, a bare bend before the first member the flow
     /// reaches past such a point; the members between consumer and corner lie on the bottom rail, the rest on
-    /// the top, and the left side is the bare vertical up into the corner.
+    /// the top, and the left side is the bare vertical up into the corner. A loop none of whose members has a
+    /// known duty -- an exchanger neither stated nor solved, which a script under editing is most of the time --
+    /// is still a ring (<c>C-100</c>): its first exchanger takes the consumer's seat, so the loop reads as a
+    /// loop before it solves.
     /// </summary>
     private bool Closed(List<int> fragment)
     {
         var consumer = fragment.Where(i => Duty(i) is not null).OrderBy(i => Duty(i)).ThenBy(static i => i).FirstOrDefault(-1);
+
+        if (consumer < 0)
+        {
+            consumer = fragment.Where(i => _graph.Components[i] is HeatExchanger).Order().FirstOrDefault(-1);
+        }
 
         if (consumer < 0 || Cycle(consumer) is not { } cycle)
         {

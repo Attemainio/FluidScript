@@ -7,6 +7,7 @@ import type { PreparedRoute, PreparedScene, PreparedSymbol } from './scene.ts';
 
 /** The label's font size in world units: `55`'s canvas label at 1× (`D-73`). */
 const labelSize = typeMetrics.canvasLabel.sizePx / worldUnitPx;
+const emptySelection: ReadonlySet<string> = new Set();
 const symbolStroke = 1.5;
 const markRadius = 0.05;
 const arrowLength = 0.16;
@@ -20,12 +21,18 @@ const arrowHalfWidth = 0.07;
 export function SceneView({
   scene,
   detail,
+  selected = emptySelection,
 }: {
   scene: PreparedScene;
   detail: Detail;
+  /** The selected component ids (`54`), drawn in the selection colour. */
+  selected?: ReadonlySet<string>;
 }): React.ReactNode {
   return (
-    <g className="scene" fontFamily={`var(${typeMetrics.canvasLabel.family})`}>
+    <g
+      className={scene.solved ? 'scene' : 'scene scene--unsolved'}
+      fontFamily={`var(${typeMetrics.canvasLabel.family})`}
+    >
       <g className="scene__routes">
         {scene.routes.map((route) => (
           <RouteView key={route.id} route={route} margin={scene.margin} />
@@ -33,7 +40,13 @@ export function SceneView({
       </g>
       <g className="scene__symbols">
         {scene.symbols.map((symbol) => (
-          <SymbolView key={symbol.id} symbol={symbol} detail={detail} />
+          <SymbolView
+            key={symbol.id}
+            symbol={symbol}
+            detail={detail}
+            solved={scene.solved}
+            selected={selected.has(symbol.id)}
+          />
         ))}
         {scene.marks.map((mark) =>
           mark.kind === 'node' && mark.boundary ? (
@@ -80,14 +93,24 @@ export function SceneView({
 function SymbolView({
   symbol,
   detail,
+  solved,
+  selected,
 }: {
   symbol: PreparedSymbol;
   detail: Detail;
+  solved: boolean;
+  selected: boolean;
 }): React.ReactNode {
   // Symbol space (y up) → world: mirror, then the clockwise quarter turn; the y flip is the root's.
   const transform = `translate(${symbol.centre.x} ${symbol.centre.y}) rotate(${-symbol.rotation}) scale(${symbol.mirrored ? -1 : 1} 1)`;
-  const stateFill = symbol.scale === null ? 'var(--canvas-bg)' : fluidFill(symbol.scale);
-  const className = symbol.inferred ? 'scene__symbol scene__symbol--inferred' : 'scene__symbol';
+  const stateFill = symbol.scale === null || !solved ? 'var(--canvas-bg)' : fluidFill(symbol.scale);
+  const className = [
+    'scene__symbol',
+    symbol.inferred ? 'scene__symbol--inferred' : '',
+    selected ? 'scene__symbol--selected' : '',
+  ]
+    .filter((c) => c.length > 0)
+    .join(' ');
   const description = `${symbol.id}, ${symbol.kind}${symbol.inferred ? ', inferred' : ''}`;
 
   return (

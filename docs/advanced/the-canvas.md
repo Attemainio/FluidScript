@@ -45,6 +45,10 @@ the theme's neutral line; their gradients arrive with the state visualization.
 **Arrows** on the pipes point the way the solver found the fluid to move, one per line between two
 symbols. A pipe with no arrow carries no flow.
 
+**A red plant did not solve.** When the script is refused before the solver, or the solver does not
+converge, the whole drawing turns red and loses its fills: the shape is still there to work on, and
+the log says what stopped it. The colours return with the next script that solves.
+
 **Two small marks** in a symbol's corners tell you something the picture alone cannot:
 
 - a coloured dot at the top-right corner means the compiler has a warning (amber) or an error
@@ -55,6 +59,20 @@ symbols. A pipe with no arrow carries no flow.
 The second mark is the one worth a habit. A plant where every symbol carries the square is a
 plant the tool designed for you; the numbers behind it are in the script's parameters and, soon,
 in hover.
+
+## Hover and select
+
+**Hover a symbol** and, after a moment, a card shows what the compiler knows about it: every
+parameter with its value and where the value came from, `stated` by you, `sized` by the tool or a
+`default` from the registry, with the reasoning under a sized or defaulted one; then the solved
+state, flow, temperatures, pressures; then any warning about it. Hover a pipe for its flow, and
+for a pipe with a length and a size, its pressure drop. The card comes from the model already in
+hand, so it never waits for the server. A component the compiler added says so on its card.
+
+**Click a symbol** to select it: it takes the selection colour and the editor scrolls to its
+declaration and marks the line. Shift+click adds to the selection, `Esc` clears it. It works the
+other way too: put the caret on a declaration in the script and the component lights up on the
+diagram. Clicking a component's name in the log does both at once.
 
 ## What shows at which zoom
 
@@ -70,4 +88,4 @@ fails because of one symbol.
 
 ## See also
 
-[How the diagram is arranged](how-the-diagram-is-arranged.md) · [The editor](the-editor.md) · [Style](../functions/style.md)
+[How the diagram is arranged](how-the-diagram-is-arranged.md) · [The editor](the-editor.md) · [The log](the-log.md) · [Style](../functions/style.md)

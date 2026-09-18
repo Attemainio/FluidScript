@@ -104,6 +104,19 @@ describe('the scene view', () => {
     expect(strip(forward)).toBe(strip(backward));
   });
 
+  it('draws an unsolved model red: the class on the scene and no state fill', () => {
+    const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
+    const refused = { ...loop, solve: null };
+    const diverged = { ...loop, solve: { ...loop.solve!, converged: false } };
+    for (const model of [refused, diverged]) {
+      const markup = render(prepareScene(model), 'names');
+      expect(markup).toContain('class="scene scene--unsolved"');
+      expect(markup).not.toContain('color-mix');
+    }
+    expect(render(prepareScene(loop), 'names')).toContain('class="scene"');
+    expect(render(prepareScene(loop), 'names')).toContain('color-mix');
+  });
+
   it('draws an unknown symbol as a labelled rectangle', () => {
     const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
     const odd = {

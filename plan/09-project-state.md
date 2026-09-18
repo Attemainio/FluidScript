@@ -108,13 +108,26 @@ would be filled with nothing.
 > `F-5` and `F-6` opened, `F-4` open with the benchmark waiting on a browser. The first screenshot
 > of the product was taken the same day (headless Edge on the Windows side, since nothing launches
 > in WSL) and judged: technical, and intimidating to a non-programmer. Decided with the user:
-> P5.6 first, then a new **P5.6b, look and feel** (`08`), tuned on screenshots with the diagram in
+> P5.6 first, then a new look-and-feel package (`08`), tuned on screenshots with the diagram in
 > place. **P5.6, the canvas, shipped the same day:** the prepared scene as a pure function of the
 > wire, one SVG component drawing symbols, routes with hops and fillets, arrows, tags, badges and
 > the sized mark, `57`'s flat fill pulled forward, the CAD viewport with axes, grid and level of
 > detail, four SVG goldens from the Api samples, `docs/advanced/the-canvas.md`; `F-7` (nobody folds)
 > opened; the worker deferred to M4 in `53`. The four samples were drawn and looked at through the
-> Edge route. The next package is P5.6b, look and feel, whose two questions to the user are in `08`.
+> Edge route. The user then moved the look-and-feel package to the end of the phase as **P5.12**:
+> P5 is built to a working prototype first and the interface adjusted once against the whole. The
+> P5.7, the renderer's consumption of the prepared scene, was done by P5.6 (the scene is the wire's
+> layout since `D-103`, and P5.6 draws all of it); its row in `08` says so. The user's first
+> minutes with the canvas (2026-09-18) filed `S-65` (a well-posedness failure reaches the wire as
+> one `FS2004` carrying another diagnostic's text, no component, no range) and `C-100`, closed the
+> same day with ladder step 3b: a loop with no known duty is still drawn as a ring; the user also
+> asked for an unsolved plant to draw red, which `57` records. **P5.8 shipped the same day:** the
+> hover card (canvas and editor, one implementation), selection from the canvas, the caret and the
+> log with the editor highlighting the declaration, and `56`'s log -- reconciled, grouped at three,
+> filtered with the info count, the success line, copy as text, the header's phrase. Building it
+> found that nearly every diagnostic reached the wire with no component (`L-55`); the model
+> contract now attributes one raised on a declaration to that component. `A-6` opened (no unit
+> factors, no pipe velocity on the wire). The next package is P5.9, the file lifecycle.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -327,6 +340,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)): the shell with `SplitPane`, tabs, log slot and status line; `draftStore`, `runStore`, `workspaceStore`, `uiStore`; the typed client and `types.generated.ts` from the schemas (titles and descriptions added on the Api side); `CompilePipeline` with `LatencyTracker`; `docs/advanced/working-in-tabs.md` | `4b45c20` | Shipped 2026-09-18; `F-4`, `A-4` opened; the editor is a text area until P5.5, the canvas a list until P5.6 |
 | P5.5 | The editor ([`52`](50-frontend/52-editor.md)): CodeMirror with a stream tokenizer generated from the host's `language.json`, inline diagnostics with quick fixes, alias-aware and dimension-filtered completion from the committed metadata golden, the formatter in Core (`17`) behind `POST /api/v1/format` (`42`) and `Shift+Alt+F`, go to definition, toggle comment, Solve; `TokenGoldenTests` on both sides; the `D-48` benchmark harness; `docs/advanced/the-editor.md` | `0f112c8` | Shipped 2026-09-18; `A-5` closed; `F-5`, `F-6` opened; `F-4` stays open, the benchmark is built and unrun (no launchable browser here); hover for components, lets and quantities → P5.8, Rename → P7.1, Run → M4, Save/Open → P5.9 |
 | P5.6 | The canvas ([`53`](50-frontend/53-canvas-renderer.md)): `prepareScene`, `SceneView`, the viewport, `CanvasPane` with axes, grid and level of detail; `57`'s flat fill; SVG goldens per Api sample; `docs/advanced/the-canvas.md` | `a33af65` | Shipped 2026-09-18; `F-7` opened; the worker deferred to M4; the frame budget unmeasured (`F-4`'s browser) |
+| P5.8 | Hover, selection, the console log, the status header ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)): the hover card with one implementation in the canvas and the editor, the selection store and its three sources, the reconciled and grouped log with filters, the success line and copy as text, `56`'s header; diagnostics attributed to their declaration on the wire; `docs/advanced/the-log.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `L-55`, `A-6` opened; editing and write-back are P7.2's |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -714,6 +728,27 @@ one thing seen and filed as an observation is the exchanger label sitting on its
 is the catalogue's anchor, not the renderer's. Not done: the worker (`53` says why, M4), collapse
 (`F-7`), the frame budget (no browser). Frontend 115/0, Core and Api unchanged.
 
+**P5.8 is `56` and the reading half of `54`** (2026-09-18). The log is `features/log`: `logModel.ts`
+is pure -- entries keyed by code and component, grouped at three of one code and severity with the
+members' own messages under the line, ordered errors, warnings, infos, closed by `✓ Solved · n
+iterations · t ms` or the failure line; the filter (warnings and errors by default, the info count
+shown), the text filter, the header's phrase per `56`'s table and copy as text -- and `LogPane`
+renders it as a list whose keys are the entries' keys, so an unchanged entry keeps its element
+across compiles (asserted by identity), a resolved one fades for 150 ms, and the list follows the
+bottom only when it was there. Hover is `features/hover`: `card.ts` builds a component's card
+(every parameter with `stated`/`sized`/`default` and the basis under a chosen one, the state rows,
+the warnings, the inferred note), a connection's (flow, and the pipe behind the line with its Δp)
+and a `let`'s; `HoverCard` is the one body, mounted by the canvas in the new `Tooltip` primitive
+after 150 ms and by the editor through CodeMirror's hover tooltip, where a quantity shows its
+dimension and canonical unit. Selection is `state/selectionStore.ts` with the origin of the last
+change: canvas click and Shift+click, Escape, the caret on a declaration, the log's component
+column; the editor marks the declaration's line and scrolls when the change was not its own. The
+wire needed one change: `ModelContractBuilder.Diagnostics` attributes a diagnostic that names no
+component to the declared component whose span holds it, because only six producers set the name
+(`L-55`); the badge, the card and the log's column all read it. `docs/advanced/the-log.md` is the
+page; the canvas and editor pages gained hover and selection. Frontend 134/0, Core 1822/0/4, Api
+58/0.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -745,13 +780,13 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 10 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 32 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 18 | [`30-solver/defects.md`](30-solver/defects.md) |
-| 40 · API | 4 | [`40-api/defects.md`](40-api/defects.md) |
+| 30 · Solver | 19 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 40 · API | 5 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **73** | |
+| | **76** | |
 
 Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
@@ -826,9 +861,9 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1820 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
+| Core test suite | **1822 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
-| Frontend tests | **115 passed, 0 failed**, ~10 s | `cd frontend && npm test` |
+| Frontend tests | **134 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |

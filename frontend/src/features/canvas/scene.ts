@@ -26,6 +26,12 @@ import {
  * React, so a headless test and the export share it (`53` invariant 5).
  */
 export interface PreparedScene {
+  /**
+   * Whether the model behind the drawing solved: `false` when nothing was solved (the script was
+   * refused before the solver) or the solver did not converge. An unsolved plant is drawn in the
+   * error colour, so the reader sees it without opening the log (the user's ask, 2026-09-18).
+   */
+  readonly solved: boolean;
   /** The layout's extent grown by the margin, world units, y up. */
   readonly bounds: Box;
   readonly margin: number;
@@ -173,6 +179,7 @@ export function prepareScene(model: ModelContract): PreparedScene {
     );
 
   return {
+    solved: model.solve?.converged === true,
     bounds: grow(boxOf(layout.extent), margin),
     margin,
     symbols: preparedSymbols,

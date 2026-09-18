@@ -80,6 +80,27 @@
   box-shadow: var(--shadow-raised);
 }
 
+.fs-tooltip {
+  position: absolute;
+  z-index: 1;
+  min-width: calc(var(--space-8) * 6);
+  max-width: calc(var(--space-8) * 10);
+  padding: var(--space-3);
+  background: var(--surface-overlay);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text-primary);
+  pointer-events: none;
+  animation: fs-tooltip-in var(--motion-hover) var(--ease-out);
+}
+
+@keyframes fs-tooltip-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .fs-badge {
   display: inline-block;
   padding: 0 var(--space-2);

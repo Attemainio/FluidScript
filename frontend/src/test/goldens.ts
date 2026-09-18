@@ -1,12 +1,14 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 import type { ModelContract } from '../api/types.ts';
 
 /** The Api's committed solved goldens (`42`, `SchemaTests`), the scenes the canvas is tested on. */
-export const goldensDir = fileURLToPath(
-  new URL('../../../tests/FluidScript.Api.Tests/Contracts/Goldens/', import.meta.url),
-);
+// From the working directory rather than `import.meta.url`, which is not a file URL under jsdom.
+export const goldensDir = `${resolve(process.cwd(), '../tests/FluidScript.Api.Tests/Contracts/Goldens')}/`;
+
+/** The repository's `samples/`, for a test that needs the text a golden was compiled from. */
+export const samplesDir = `${resolve(process.cwd(), '../samples')}/`;
 
 export function solvedGoldens(): { name: string; model: ModelContract }[] {
   return readdirSync(goldensDir)

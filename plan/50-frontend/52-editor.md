@@ -256,9 +256,12 @@ Two kinds:
 The component hover is the same data as the canvas hover ([`54`](54-interaction-and-writeback.md)),
 sourced from the same model. One implementation, two mount points.
 
-**As built:** P5.5 ships the diagnostic hover. The component, parameter, `let` and quantity hovers
-are the state readout of [`57`](57-state-visualization.md) mounted in the editor, and they land with
-P5.8 alongside the canvas hover, so the one implementation is written once.
+**As built:** P5.5 ships the diagnostic hover; P5.8 the component hover (the canvas's card,
+`54`), the `let` hover (value, unit and dimension, or that it is deferred) and the quantity hover.
+The quantity hover names the dimension and the canonical unit and does **not** convert to SI or
+alternative units: the wire's unit table carries symbols and no factors (`A-6`), and a conversion
+table on the client would be a second `13`. The parameter hover is the completion detail's
+information and is left to completion.
 
 ## Commands
 

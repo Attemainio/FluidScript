@@ -1,0 +1,12 @@
+# unsolved on purpose: layout ladder, step 3b (plan/20-core-domain/29-layout-ladder.md): the loop before it solves (C-100). No load, no datum; the ring is still a ring.
+
+fluidscript 1
+circuit plant
+fluid water
+
+N1 inlet t = 30 p = 300
+HX1 heat_exchanger power = 0
+PU1 pump
+
+connections
+N1 - HX1 - PU1 - N1

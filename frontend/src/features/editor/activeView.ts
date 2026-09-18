@@ -2,7 +2,8 @@ import type { EditorState } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 
 let view: EditorView | null = null;
-let onChange: ((state: EditorState, docChanged: boolean) => void) | null = null;
+let onChange: ((state: EditorState, docChanged: boolean, caretMoved: boolean) => void) | null =
+  null;
 
 /** Registers the one editor view; the pane sets it while mounted. */
 export function registerEditorView(editor: EditorView | null): void {
@@ -20,12 +21,12 @@ export function activeEditorView(): EditorView | null {
  * test's new pipeline, takes over every existing document by registering here.
  */
 export function registerEditorHandler(
-  handler: ((state: EditorState, docChanged: boolean) => void) | null,
+  handler: ((state: EditorState, docChanged: boolean, caretMoved: boolean) => void) | null,
 ): void {
   onChange = handler;
 }
 
 /** Called by the update listener on every transaction. */
-export function editorChanged(state: EditorState, docChanged: boolean): void {
-  onChange?.(state, docChanged);
+export function editorChanged(state: EditorState, docChanged: boolean, caretMoved = false): void {
+  onChange?.(state, docChanged, caretMoved);
 }

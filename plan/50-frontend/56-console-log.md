@@ -2,7 +2,7 @@
 id: 56-console-log
 title: Console log
 tier: 50-frontend
-status: reviewed
+status: implemented
 owns: [log panel, message grouping, filtering, phrasing rules, log lifecycle]
 depends_on: [16-diagnostics, 44-diagnostics-contract, 55-design-system]
 traces_to: [R-24, R-27]
@@ -27,6 +27,20 @@ one and never opened again.
 **Explicitly does not own.** Diagnostic content ([`16-diagnostics`](../10-language/16-diagnostics.md)),
 the wire shape ([`44-diagnostics-contract`](../40-api/44-diagnostics-contract.md)), editor squiggles
 ([`52-editor`](52-editor.md)), colours ([`55-design-system`](55-design-system.md)).
+
+## As built
+
+P5.8 (2026-09-18) is `frontend/src/features/log`: `logModel.ts`, the pure half -- `logEntries`
+groups at three, keys by code and component, orders errors, warnings, infos and closes with the
+success or the failure line; `visibleEntries` applies the filter and the text; `headerStatus` is
+the table below; `logAsText` the copy -- and `LogPane.tsx`, the reconciled list: React keys are the
+entries' keys, so an unchanged entry keeps its element; a resolved one lingers 150 ms with a leaving
+class; the list follows the bottom only when it was there. The filter persists in the UI store. What
+the wire made necessary: nearly every diagnostic reached the wire with `component: null` because few
+producers set it, so the model contract now attributes a diagnostic raised on a declaration's span to
+that component (`44`, `L-55`); the log's column, the canvas badge and the hover card all key on it.
+Not built: the virtualised list (no script produces hundreds yet), the transient intervals (M4), the
+500-diagnostic frame measurement (no browser in the build environment, `F-4`).
 
 ## Shape
 
@@ -214,21 +228,21 @@ when it is no longer active.
 
 ## Acceptance criteria
 
-- [ ] An unchanged entry does not move or re-render across ten consecutive compiles.
-- [ ] Scroll position survives an update.
-- [ ] Forty instances of one code render as one grouped, expandable line.
-- [ ] Two same-code occurrences remain separate; the third groups them, and expanded rows reproduce
-      each occurrence's component-specific formatted message.
-- [ ] Clicking a component name selects it on canvas and in the editor.
+- [x] An unchanged entry does not move or re-render across ten consecutive compiles. (P5.8: the same element after four; the key is the mechanism.)
+- [x] Scroll position survives an update. (P5.8: one list element, never replaced; followed only at the bottom.)
+- [x] Forty instances of one code render as one grouped, expandable line. (P5.8)
+- [x] Two same-code occurrences remain separate; the third groups them, and expanded rows reproduce
+      each occurrence's component-specific formatted message. (P5.8)
+- [x] Clicking a component name selects it on canvas and in the editor. (P5.8)
 - [ ] A transient occurrence remains listed with its exact start/end time after clearing and
       reconstructs correctly while scrubbing.
 - [ ] Copy as text includes code, severity, component, message, and transient interval without canvas
-      or colour dependence.
-- [ ] A clean solve shows the success line with iterations and elapsed time.
-- [ ] The default filter hides info and shows its count.
+      or colour dependence. (P5.8: all but the interval, which is M4's.)
+- [x] A clean solve shows the success line with iterations and elapsed time. (P5.8)
+- [x] The default filter hides info and shows its count. (P5.8)
 - [ ] 500 diagnostics render without dropping frames.
-- [ ] The log makes no network requests, asserted.
-- [ ] The brief's example produces exactly the two visible lines above.
+- [x] The log makes no network requests, asserted. (P5.8: the fake client's call count across the interaction tests.)
+- [x] The brief's example produces exactly the two visible lines above. (P5.8: `logModel.test.ts`, three lines counting the second dead end, six info hidden.)
 
 ## Open questions
 

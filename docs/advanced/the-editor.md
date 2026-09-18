@@ -75,6 +75,13 @@ not resolve, so no dimension is known, everything is offered rather than nothing
 For a tank, `T1.` offers the ports already in use plus the pattern `in{1..16}`, and `T1 tank` offers
 `volume`, `layers`, `t` and the layer temperatures the resolved layer count allows.
 
+## Hover
+
+Rest the pointer on a component's name and the same card the canvas shows appears: its parameters
+and where each came from, its solved state, its warnings. On a `let` name it shows the binding's
+value and dimension, or that the value waits for the solve. On a quantity such as `30 kW` it names
+the dimension and the unit a bare number would mean there.
+
 ## Formatting
 
 **Shift+Alt+F** lays the whole script out in the canonical form and nothing else:
@@ -108,8 +115,7 @@ On a Mac, `Cmd` stands in for `Ctrl`.
 
 ## What is not there yet
 
-Hovering a component, a `let` or a quantity to see its solved value arrives with the console and
-state visualization; renaming a component with `F2`, everywhere it is referenced, arrives with the
+Renaming a component with `F2`, everywhere it is referenced, arrives with the
 editing API; `Ctrl+Enter` to run a transient waits for the dynamic solver; opening, saving and the
 recovery copy that survives a reload arrive with the file commands.
 

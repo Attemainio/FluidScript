@@ -176,6 +176,33 @@ from the outlet corner and the bottom members rightwards from the inlet corner a
 the consumer's column at the longer rail's end. C1 amended: for a loop's source the transform is
 C2's, not the drawn default.
 
+### Step 3b · the loop before it solves
+
+`step-03b-loop-unsolved.fluid`: `N1 inlet t = 30 p = 300`, `HX1 heat_exchanger power = 0`, `PU1
+pump`; `N1 - HX1 - PU1 - N1`. The user's first script on the canvas (2026-09-18), written to see a
+loop, not to solve one: the inlet has two connections and the exchanger no duty, so the script is
+refused by well-posedness (`S-65` is how badly that was said) and the engine lays out an unsolved
+model, which is the state a script under editing is in most of the time.
+
+**Drawn first (2026-09-18, before the rule):** a staircase. No member is a source (H10 finds no
+positive duty and `heat_exchanger` is not written as a heater), so C1 seats `N1`, the inlet, at the
+origin and C5 places `HX1` and `PU1` sequentially down and to the right, and the closing run is one
+long return along the bottom and up the left. Topologically a loop; drawn as a chain that happens
+to close. With `power=30` on the same line C2 engaged and the loop was a loop -- which is how the
+user found it.
+
+**User's correction:** *"even though it does not solve thermodynamically, it should still draw the
+loop."*
+
+**Drawn (2026-09-18, C18 widened):** `HX1` takes the consumer's seat on the right, flowing down;
+`PU1` sits on the bottom rail pumping left; `N1`, a boxed node on the turn, is the top-left corner
+(C4), in from below and out to the right; the left side is the bare vertical. Hard 0, soft 0. The
+same rectangle as step 3 with the source's place empty, which is what an unsolved loop is.
+
+**Rules established:** C18 *widened*: a loop none of whose members has a known duty seats its
+first exchanger as the consumer (`C-100`). The seat is a fallback for the drawing, never a claim
+about the physics; when the script solves, the duty decides as before.
+
 ### Step 4 · a valve on the return
 
 `step-04-valve.fluid`: step 3 with `CV1 valve` between the load and the pump: `LOAD - CV1`,

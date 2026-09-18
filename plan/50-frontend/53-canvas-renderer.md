@@ -47,8 +47,9 @@ a quarter margin and, from `layout.flow`, one arrowhead per drawn run rather tha
 or the id at `labelAt`; a badge for the worst diagnostic addressed to the component and a hollow
 square for one carrying a sized or defaulted value; the `state` fill slot as a flat colour from
 the placement's `scale` through `55`'s fluid ramp (`fluidFill`, a `color-mix` of the two
-neighbouring stops), pulled forward from P5.10 so the first pictures read as a plant; the rest of
-`57` stays there. One world unit is 60 px at 1× (`worldUnitPx`), the Core instrument's scale, so
+neighbouring stops), pulled forward from P5.10 so the first pictures read as a plant; an unsolved
+model drawn whole in the error colour (`57`, the user's ask on the first day); the rest of `57`
+stays there. One world unit is 60 px at 1× (`worldUnitPx`), the Core instrument's scale, so
 the ladder's pictures and the canvas agree in size. Strokes keep their pixel width at every zoom
 (`vector-effect`), text scales with the drawing.
 

@@ -133,7 +133,7 @@ public static class ModelContractBuilder
         var styles = new Styles(model, graph);
         var visualization = Visualization(input.Root, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
-        var all = Diagnostics(input.Source, [.. diagnostics, .. raised]);
+        var all = Diagnostics(input.Source, [.. diagnostics, .. raised], [.. components]);
 
         return new ModelContract
         {
@@ -758,8 +758,16 @@ public static class ModelContractBuilder
     /// <summary>Renders diagnostics in <c>44</c>'s wire shape: both position forms from one line index, ordered by severity, then offset, then code.</summary>
     /// <param name="source">The text the spans index.</param>
     /// <param name="diagnostics">The diagnostics, in production order.</param>
+    /// <param name="components">The components on the wire, so a diagnostic that names none but sits on a declaration is attributed to it; empty when there is no model.</param>
     /// <returns>The wire records, a diagnostic with no span last within its severity.</returns>
-    public static ImmutableArray<DiagnosticWire> Diagnostics(SourceText source, ImmutableArray<Diagnostic> diagnostics) =>
+    /// <remarks>
+    /// Few producers set <see cref="Diagnostic.ComponentName"/>, yet nearly every diagnostic about a
+    /// component is raised on its declaration's span. The log, the canvas badge and the hover card key on
+    /// the wire's <c>component</c> (<c>44</c>, <c>54</c>, <c>56</c>), so the declared component whose span
+    /// holds the diagnostic's start stands in where the producer said nothing. An inferred component has
+    /// no span and is never chosen; a diagnostic on its declaring line is attributed to the declared one.
+    /// </remarks>
+    public static ImmutableArray<DiagnosticWire> Diagnostics(SourceText source, ImmutableArray<Diagnostic> diagnostics, ImmutableArray<ComponentWire> components = default) =>
     [
         .. diagnostics
             .OrderBy(static diagnostic => diagnostic.Severity switch
@@ -776,13 +784,33 @@ public static class ModelContractBuilder
                 Severity = diagnostic.Severity.ToString().ToLowerInvariant(),
                 Message = diagnostic.Message,
                 Range = diagnostic.Span is { } span ? Range(source, span) : null,
-                Component = diagnostic.ComponentName,
+                Component = diagnostic.ComponentName ?? Owner(components, diagnostic.Span),
                 Suggestion = diagnostic.Suggestion is { } fix
                     ? new SuggestionWire(fix.Title, Range(source, fix.Span), fix.Replacement)
                     : null,
                 Related = [.. diagnostic.Related.Select(related => new RelatedWire(related.Message, Range(source, related.Span)))],
             }),
     ];
+
+    /// <summary>The declared component whose source span holds the start of <paramref name="span"/>, or <see langword="null"/>.</summary>
+    private static string? Owner(ImmutableArray<ComponentWire> components, TextSpan? span)
+    {
+        if (span is not { } at || components.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        foreach (var component in components)
+        {
+            if (component.SourceSpan is { } declared && declared.Start <= at.Start && at.Start < declared.Start + declared.Length)
+            {
+                return component.Id;
+            }
+        }
+
+        return null;
+    }
+
 
     /// <summary>Both position forms from the one line index (<c>44</c>).</summary>
     private static RangeWire Range(SourceText source, TextSpan span)

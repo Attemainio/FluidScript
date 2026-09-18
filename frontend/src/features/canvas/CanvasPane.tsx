@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+/** `54`: long enough not to flicker while the cursor crosses the canvas, short enough to feel responsive. */
+const hoverDelayMs = 150;
+
+import { Tooltip } from '../../design/primitives/index.ts';
 import { draftOf, useDraftStore } from '../../state/draftStore.ts';
+import { selectionOf, useSelectionStore } from '../../state/selectionStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
+import { componentCard, connectionCard, type Card } from '../hover/card.ts';
+import { HoverCard } from '../hover/HoverCard.tsx';
 import { prepareScene } from './scene.ts';
 import { detailFor } from './detail.ts';
 import { SceneView } from './SceneView.tsx';
@@ -26,6 +33,12 @@ import {
 export function CanvasPane(): React.ReactNode {
   const documentId = useWorkspaceStore((state) => state.activeDocumentId);
   const model = useDraftStore((state) => draftOf(state, documentId).model);
+  const diagnostics = useDraftStore((state) => draftOf(state, documentId).diagnostics);
+  const selectedIds = useSelectionStore((state) => selectionOf(state, documentId));
+  const select = useSelectionStore((state) => state.select);
+  const clearSelection = useSelectionStore((state) => state.clear);
+  const [hover, setHover] = useState<{ card: Card; at: { x: number; y: number } } | null>(null);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
   const [view, setView] = useState<Viewport | null>(null);
@@ -34,6 +47,54 @@ export function CanvasPane(): React.ReactNode {
   const space = useRef(false);
 
   const scene = useMemo(() => (model === null ? null : prepareScene(model)), [model]);
+  const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // The element under the pointer, if it is a symbol, a mark or a route.
+  const targetOf = (
+    event: React.PointerEvent | React.MouseEvent,
+  ): { id: string; route: boolean } | null => {
+    const element = (event.target as Element).closest('[data-id]');
+    if (element === null) {
+      return null;
+    }
+    const id = element.getAttribute('data-id') ?? '';
+    return { id, route: element.classList.contains('scene__route') };
+  };
+
+  const cancelHover = (): void => {
+    if (hoverTimer.current !== null) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    setHover(null);
+  };
+
+  // Hover appears after 150 ms, disappears at once, and never touches the network (54).
+  const onPointerOver = (event: React.PointerEvent<SVGSVGElement>): void => {
+    const target = targetOf(event);
+    cancelHover();
+    if (target === null || drag.current !== null) {
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const at = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    hoverTimer.current = setTimeout(() => {
+      const card = target.route
+        ? connectionCard(model, target.id)
+        : componentCard(model, target.id, diagnostics);
+      if (card !== null) {
+        setHover({ card, at });
+      }
+    }, hoverDelayMs);
+  };
+
+  const onClick = (event: React.MouseEvent<SVGSVGElement>): void => {
+    const target = targetOf(event);
+    if (target === null || target.route) {
+      return;
+    }
+    select(documentId, target.id, 'canvas', event.shiftKey);
+  };
 
   useEffect(() => {
     const element = host.current;
@@ -117,6 +178,8 @@ export function CanvasPane(): React.ReactNode {
       }
     } else if (event.key === 'Home') {
       setView(reset(size));
+    } else if (event.key === 'Escape') {
+      clearSelection(documentId);
     }
   };
 
@@ -149,13 +212,21 @@ export function CanvasPane(): React.ReactNode {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onPointerOver={onPointerOver}
+        onPointerLeave={cancelHover}
+        onClick={onClick}
       >
         <g transform={rootTransform(current)}>
           {step !== null ? <Grid world={world} step={step} /> : null}
           {current.zoom >= 0.5 ? <Axes /> : null}
-          {scene !== null ? <SceneView scene={scene} detail={detail} /> : null}
+          {scene !== null ? <SceneView scene={scene} detail={detail} selected={selected} /> : null}
         </g>
       </svg>
+      {hover !== null ? (
+        <Tooltip at={hover.at} container={size}>
+          <HoverCard card={hover.card} />
+        </Tooltip>
+      ) : null}
       <div className="canvas-pane__zoom" aria-live="polite">
         {Math.round(current.zoom * 100)}%
       </div>

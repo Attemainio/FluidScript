@@ -76,9 +76,10 @@ public sealed class LayoutLadderTests
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value.Catalog), OuterLoop.Rules(resolved.Value.Catalog));
         var source = File.ReadAllText(Path.Combine(Ladder, step + ".fluid"));
 
-        if (source.StartsWith("# fragment", StringComparison.Ordinal))
+        if (source.StartsWith("# fragment", StringComparison.Ordinal) || source.StartsWith("# unsolved on purpose", StringComparison.Ordinal))
         {
             // A component alone is not a circuit; steps 1 and 2 say so on their first line and are judged by their picture only.
+            // A step that is unsolved on purpose (3b, C-100) draws what the engine makes of a script under editing, and is judged the same way.
             return;
         }
 

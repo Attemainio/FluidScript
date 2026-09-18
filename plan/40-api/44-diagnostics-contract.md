@@ -41,7 +41,9 @@ rendering ([`52-editor`](../50-frontend/52-editor.md),
     "offset": 137, "length": 7
   },
 
-  "component": "HE1",                  // null when it is not about a component
+  "component": "HE1",                  // null when it is not about a component; since P5.8 the declared
+                                       // component whose span holds the diagnostic's start when the
+                                       // producer named none (L-55)
 
   "suggestion": {
     "title": "Change 'powr' to 'power'",

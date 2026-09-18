@@ -54,7 +54,7 @@ start. A **work package** is one branch, one pull request, one squash merge.
 | P2 | M1 | 10 | The lossless trivia model |
 | P3 | M2a | 10 | The sizing/solve outer loop |
 | P4 | M2b | 3 | Two datums in one circuit |
-| P5 | M3 | 11 | The layout engine |
+| P5 | M3 | 12 | The layout engine |
 | P6 | M4 | 7 | Run isolation under `D-22` |
 | P7 | M5 | 2 | Nothing, if P2.5 was done properly |
 | P8 | M6 | — | Evidence-gated; not decomposed here |
@@ -283,17 +283,17 @@ The largest phase and the one where scope creeps, because every package is visib
 | P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P5.5 | Editor: syntax palette, completion, inline diagnostics, and the Core-side **formatter** ([`52`](50-frontend/52-editor.md), [`17`](10-language/17-formatting-and-round-trip.md)) |
 | P5.6 | Canvas viewport and Core-owned symbols ([`53`](50-frontend/53-canvas-renderer.md), `D-24`) — draws `layout.placements` and `layout.routes`; carries `57`'s flat state fill forward so the first pictures read as a plant (decided with the user 2026-09-18) |
-| P5.6b | **Look and feel** ([`55`](50-frontend/55-design-system.md), [`51`](50-frontend/51-frontend-architecture.md)): the token pass on radius, spacing, type size and surface softness, the theme control demoted to a settings menu, an empty state that starts from a sample, the log's non-programmer defaults, and the canvas marks made self-explaining (the user did not know what the sized-value square at a symbol's corner was, 2026-09-18: a legend, a hover, or a different mark); exit is the user's judgement on screenshots with the diagram in place |
-| P5.7 | ~~The layout engine~~ — moved to Core as P5.1d by `D-103`; what remains here is the renderer's consumption of the prepared scene ([`53`](50-frontend/53-canvas-renderer.md)) |
+| P5.7 | ~~The layout engine~~ — moved to Core as P5.1d by `D-103`; what remains here is the renderer's consumption of the prepared scene ([`53`](50-frontend/53-canvas-renderer.md)), which P5.6 did whole on 2026-09-18, so this row is empty |
 | P5.8 | Hover, selection, console log, status line ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)) |
 | P5.9 | File lifecycle and document tabs ([`58`](50-frontend/58-file-lifecycle.md), `D-39`) |
 | P5.10 | State visualization and colour scales ([`57`](50-frontend/57-state-visualization.md)) |
 | P5.11 | SVG/PNG export, accessibility pass, M3 baselines ([`59`](50-frontend/59-static-export.md), `D-45`) |
+| P5.12 | **Look and feel** ([`55`](50-frontend/55-design-system.md), [`51`](50-frontend/51-frontend-architecture.md)): the token pass on radius, spacing, type size and surface softness, the theme control demoted to a settings menu, an empty state that starts from a sample, the log's non-programmer defaults, and the canvas marks made self-explaining (the user did not know what the sized-value square at a symbol's corner was, 2026-09-18: a legend, a hover, or a different mark); exit is the user's judgement on screenshots with the diagram in place |
 
 **P5.3 precedes every component that has a colour**, so the "no literal colour outside the theme
 files" assertion never has to be enforced retroactively across a built UI.
 
-**P5.6b exists because the first screenshot was judged, and it sits after the diagram on purpose.**
+**P5.12 exists because the first screenshot was judged, and it sits at the end of the phase on purpose.**
 The user's verdict on P5.5's screenshot (2026-09-18) was "technical and structural": a code editor,
 a bulleted list where the drawing will be, and a compiler's log, which together read as an IDE and
 would intimidate a non-programmer. Three causes with three costs: the canvas is empty until P5.6,
@@ -301,8 +301,11 @@ which is the one change that flips the feel and is already next; the log speaks 
 `56` and P5.8 own; and the chrome is flat and dense, which is a token pass `55` anticipated (its
 surfaces, text and spacing were valued only to clear the contrast test, its defects entry says so).
 Restyling before the diagram exists would tune the chrome around a void and be retuned once the
-picture is in, so the pass is one package after P5.6, judged on screenshots of the real thing, with
-the empty state and the log's defaults folded in so the first minute is handled once. What it keeps:
+picture is in. It was first placed right after P5.6 as P5.6b; on 2026-09-18, with the canvas drawn,
+the user moved it to the end of the phase: build P5 to a working prototype first, then adjust the
+interface once, against the whole thing, rather than restyle a product that is still gaining
+panes. So the pass is the phase's last package, judged on screenshots of the real thing, with the
+empty state and the log's defaults folded in so the first minute is handled once. What it keeps:
 the editor's density, which is `11`'s principle P1 and the professional half. A change to a value
 `55` fixes to the hex takes a `D-` entry; the surfaces and spacing it never fixed take none. Two
 questions the package must answer before it starts, put to the user and not yet answered: who the

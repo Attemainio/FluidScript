@@ -2,7 +2,7 @@
 id: 54-interaction-and-writeback
 title: Interaction and write-back
 tier: 50-frontend
-status: reviewed
+status: partial
 owns: [hover readout, selection, on-canvas value editing, the write-back loop, undo integration]
 depends_on: [17-formatting-and-round-trip, 42-rest-contract, 52-editor, 53-canvas-renderer]
 traces_to: [R-23, R-24, R-25]
@@ -29,6 +29,20 @@ write-back loop, and undo integration. It does not provide free placement or sym
 ([`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md)), the edit endpoint
 ([`42-rest-contract`](../40-api/42-rest-contract.md)), rendering
 ([`53-canvas-renderer`](53-canvas-renderer.md)).
+
+## As built
+
+P5.8 (2026-09-18) built the hover and the selection; on-canvas editing and the write-back loop are
+P7.2's, with the mutation API. The card is `features/hover/card.ts` (pure: `componentCard`,
+`connectionCard`, `bindingCard`) and `HoverCard.tsx`, mounted by the canvas in the `Tooltip`
+primitive (150 ms, flips at the pane's edges) and by the editor through CodeMirror's hover tooltip,
+one component, two mount points. Selection is `state/selectionStore.ts`, ids per document with the
+origin of the last change: the canvas selects on click and Shift+click and clears on Escape, the
+editor selects when the caret lands on a declaration, the log on its component column; the editor
+highlights the declaration's line and scrolls to it when the change came from elsewhere. What the
+wire lacks for the connection card: velocity and Reynolds number (`A-6`); it shows the flow and,
+for a line carrying a pipe, the pipe's parameters and pressure drop. The inferred component's card
+says so; the "write this into the script" offer waits for `Materialize` (P7.1).
 
 ## Hover
 
@@ -256,9 +270,9 @@ captured controller and actuator values; the playback bar names the source hash 
 - [ ] The caret does not move during a canvas edit, verified with the caret mid-document.
 - [ ] A canvas edit triggers exactly one compile, not two.
 - [ ] Dragging produces zero network requests until release.
-- [ ] Hover produces zero network requests.
-- [ ] Editing an inferred component is refused with the materialize offer.
-- [ ] Selecting on canvas highlights the editor line, and placing the caret selects on canvas.
+- [x] Hover produces zero network requests. (P5.8)
+- [ ] Editing an inferred component is refused with the materialize offer. (P7.2; the card says it is inferred, P5.8.)
+- [x] Selecting on canvas highlights the editor line, and placing the caret selects on canvas. (P5.8)
 - [ ] A failed edit reverts the preview and leaves the script untouched.
 - [ ] During a transient, an edit updates draft diagnostics without blocking or changing playback.
 - [ ] A forced draft/run identity leak stops playback at the last verified frame.

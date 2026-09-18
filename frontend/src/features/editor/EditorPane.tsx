@@ -20,6 +20,9 @@ import { formatDocument } from './format.ts';
 import { toLintDiagnostics } from './diagnostics.ts';
 import { configureDocuments, revisionOf, stateOf, textOf, updateState } from './documents.ts';
 import { goToDefinition } from './goToDefinition.ts';
+import { editorHover } from './hover.tsx';
+import { componentAtCaret, declarationHighlight, setHighlight, spansOf } from './selectionSync.ts';
+import { selectionOf, useSelectionStore } from '../../state/selectionStore.ts';
 import { fluidscriptHighlighting, fluidscriptLanguage } from './language/fluidscript.ts';
 import { debounceMs } from '../pipeline/debounce.ts';
 
@@ -83,16 +86,30 @@ export function EditorPane(): React.ReactNode {
             () => draftOf(useDraftStore.getState(), current.current).model,
           ),
       }),
-      EditorView.updateListener.of((update) => editorChanged(update.state, update.docChanged)),
+      EditorView.updateListener.of((update) =>
+        editorChanged(update.state, update.docChanged, update.selectionSet && !update.docChanged),
+      ),
+      declarationHighlight,
+      editorHover,
       EditorState.tabSize.of(4),
     ]);
 
-    registerEditorHandler((state, docChanged) => {
+    registerEditorHandler((state, docChanged, caretMoved) => {
       const id = current.current;
       const revision = updateState(id, state, docChanged);
       if (docChanged) {
         setDirty(id, true);
         pipeline.edit(id, state.doc.toString(), revision);
+      }
+      if (caretMoved) {
+        // The caret on a declaration selects it (54); a caret elsewhere leaves the selection alone.
+        const model = draftOf(useDraftStore.getState(), id).model;
+        const at = componentAtCaret(state, model);
+        const store = useSelectionStore.getState();
+        const selected = selectionOf(store, id);
+        if (at !== null && (selected.length !== 1 || selected[0] !== at)) {
+          store.select(id, at, 'editor');
+        }
       }
     });
     const created = new EditorView({ state: stateOf(documentId), parent: element });
@@ -116,7 +133,24 @@ export function EditorPane(): React.ReactNode {
       }
     }
 
+    // A selection made elsewhere scrolls the editor to the declaration; one made here only highlights.
+    const unsubscribe = useSelectionStore.subscribe((store) => {
+      const id = current.current;
+      const model = draftOf(useDraftStore.getState(), id).model;
+      const spans = spansOf(model, selectionOf(store, id));
+      const first = spans[0];
+      created.dispatch({
+        effects: [
+          setHighlight.of(spans),
+          ...(first !== undefined && store.origin[id] !== 'editor'
+            ? [EditorView.scrollIntoView(first.from, { y: 'center' })]
+            : []),
+        ],
+      });
+    });
+
     return () => {
+      unsubscribe();
       created.destroy();
       view.current = null;
       registerEditorView(null);

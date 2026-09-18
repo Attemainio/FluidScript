@@ -424,8 +424,8 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   The user's words: "put them under each other", never side by side. Not built yet: the
   fallback column for what no rule places still hangs under the last fragment, and a fragment
   whose head has no loop and no boundary takes its first declared component as the head.
-- **C18** *(step 11c, provisional)* -- **A loop with no heat source is a ring with a bare left
-  side.** The tour's transient loop and its radiator loop are a pump, a load and a valve on a
+- **C18** *(step 11c, provisional; widened by step 3b, `C-100`)* -- **A loop with no heat source is a ring with a bare left
+  side, and so is a loop with no known duty at all: its first exchanger takes the consumer's seat.** The tour's transient loop and its radiator loop are a pump, a load and a valve on a
   closed ring with nothing that gains heat: nothing is a head by C1 and the ring rule (C4) has no
   source to stand on the left. The consumer still sits on the right (`D-108`), so the ring is laid
   out from it: the loop is found through the consumer and the run before it is the top rail, the

@@ -225,6 +225,20 @@
   fill: currentColor;
 }
 
+/* An unsolved plant (53 invariant 4, drawn red at the user's request): the topology in the error colour, no state fill. */
+.scene--unsolved .scene__symbol,
+.scene--unsolved .scene__mark {
+  color: var(--status-error);
+  stroke: var(--status-error);
+}
+
+.scene--unsolved .scene__route,
+.scene--unsolved .scene__route--signal {
+  /* Over the script's own style colour, which is inline: an unsolved plant is red whatever it asked for. */
+  color: var(--status-error) !important;
+  stroke: var(--status-error) !important;
+}
+
 .scene__label {
   fill: var(--text-primary);
   user-select: none;
@@ -248,8 +262,46 @@
   color: var(--text-secondary);
 }
 
-.log-pane__errors {
+.log-pane__filters {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.log-pane__filter {
+  font: inherit;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.log-pane__filter--on {
+  color: var(--text-primary);
+}
+
+.log-pane__hidden {
+  color: var(--text-muted);
+  font-size: var(--text-label-size);
+}
+
+.log-pane__search {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-sunken);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+  width: calc(var(--space-8) * 4);
+}
+
+.log-pane__status--error {
   color: var(--status-error);
+}
+
+.log-pane__status--ok {
+  color: var(--status-ok);
 }
 
 .log-pane__entries {
@@ -262,7 +314,57 @@
 
 .log-pane__entry {
   display: grid;
-  grid-template-columns: var(--space-4) var(--space-8) 1fr;
+  grid-template-columns: var(--space-4) calc(var(--space-8) * 3) 1fr;
+  gap: var(--space-2);
+  animation: log-enter var(--motion-hover) var(--ease-out);
+}
+
+.log-pane__entry--leaving {
+  opacity: 0;
+  transition: opacity var(--motion-hover) var(--ease-out);
+}
+
+@keyframes log-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+.log-pane__component {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.log-pane__component:hover {
+  color: var(--canvas-selection);
+  text-decoration: underline;
+}
+
+.log-pane__code {
+  color: var(--text-muted);
+  font-size: var(--text-label-size);
+  opacity: 0;
+}
+
+.log-pane__entry:hover .log-pane__code {
+  opacity: 1;
+}
+
+.log-pane__members {
+  grid-column: 2 / span 2;
+  margin: 0;
+  padding-left: var(--space-4);
+  list-style: none;
+}
+
+.log-pane__members li {
+  display: grid;
+  grid-template-columns: calc(var(--space-8) * 3) 1fr;
   gap: var(--space-2);
 }
 
@@ -278,6 +380,10 @@
   color: var(--status-info);
 }
 
+.log-pane__entry--ok .log-pane__glyph {
+  color: var(--status-ok);
+}
+
 .status-line {
   display: flex;
   align-items: center;
@@ -290,4 +396,93 @@
 
 .status-line__fault {
   color: var(--status-error);
+}
+
+/* The hover card (54) */
+.hover-card__title {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  margin-bottom: var(--space-2);
+}
+
+.hover-card__subtitle,
+.hover-card__label,
+.hover-card__section,
+.hover-card__basis,
+.hover-card__note {
+  color: var(--text-muted);
+}
+
+.hover-card__section {
+  margin-top: var(--space-2);
+  font-size: var(--text-label-size);
+  text-transform: uppercase;
+}
+
+.hover-card__rows {
+  border-collapse: collapse;
+}
+
+.hover-card__rows td {
+  padding: 0 var(--space-2) 0 0;
+  vertical-align: baseline;
+}
+
+.hover-card__value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.hover-card__source {
+  font-size: var(--text-label-size);
+}
+
+.hover-card__source--sized {
+  color: var(--fluid-warm);
+}
+
+.hover-card__source--default {
+  color: var(--text-muted);
+}
+
+.hover-card__source--stated {
+  color: var(--status-ok);
+}
+
+.hover-card__basis {
+  font-size: var(--text-label-size);
+  padding-bottom: var(--space-1);
+}
+
+.hover-card__warning {
+  margin-top: var(--space-2);
+}
+
+.hover-card__warning--warning {
+  color: var(--status-warning);
+}
+
+.hover-card__warning--error {
+  color: var(--status-error);
+}
+
+.hover-card__note {
+  margin-top: var(--space-2);
+  font-size: var(--text-label-size);
+}
+
+.cm-selected-declaration {
+  box-shadow: inset var(--space-1) 0 0 var(--canvas-selection);
+}
+
+.scene__symbol--selected,
+.scene__symbol--selected .scene__symbol {
+  color: var(--canvas-selection);
+  stroke: var(--canvas-selection);
+}
+
+.fs-tooltip--editor {
+  position: static;
+  animation: none;
 }

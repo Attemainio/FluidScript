@@ -5,3 +5,4 @@ export { Card, Panel } from './Panel.tsx';
 export { Tabs, type Tab } from './Tabs.tsx';
 export { Toolbar } from './Toolbar.tsx';
 export { SplitPane } from './SplitPane.tsx';
+export { Tooltip } from './Tooltip.tsx';

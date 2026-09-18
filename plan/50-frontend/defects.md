@@ -16,9 +16,10 @@ day: the shell, the four stores, the typed client and the generated wire types, 
 pipeline with its validate phase. `52` by `P5.5` the same day: the editor with its tokenizer,
 diagnostics, completion, the formatter's command and the benchmark's harness. `53` by `P5.6` the
 same day: the scene, the viewport, the symbols, routes, labels and marks, with `57`'s flat fill
-pulled forward. `58` was read for the workspace store's shape and `56` for the log's; neither is
-implemented. **Nothing has looked at `54`, `59`, or `57` beyond its flat fill**; their absence
-below means nothing has looked, not that nothing is wrong.
+pulled forward. `56` and the hover and selection half of `54` by `P5.8` the same day. `58` was read for the
+workspace store's shape; it is not implemented. **Nothing has looked at `59`, `54`'s editing half,
+or `57` beyond its flat fill and the unsolved red**; their absence below means nothing has looked,
+not that nothing is wrong.
 
 ## Open
 
@@ -115,6 +116,18 @@ five fluid stops of `55`; the fill for a scale position mixes the two neighbouri
 `design/tokens.ts`, the one file the scan exempts. That is the right home: the ramp is a palette
 definition, not a use of one. What it costs is that a test cannot resolve the colour without a
 browser; the golden pins the expression.
+
+**The log's reconciliation is React's key, and the test asserts the element.** `56` asks that an
+unchanged entry not move or re-render between compiles. A list keyed by code and component gives
+that for free: React keeps the element for a key that is still there, and the leaving entries are
+kept in state for 150 ms with a class so the fade can run. The interaction test holds the element
+across four compiles and asserts identity, which is the property, not a proxy for it.
+
+**Selection carries its origin so a pane does not answer itself.** The editor selects when the
+caret lands on a declaration and scrolls when the selection came from elsewhere; without the
+origin, a caret move would scroll the editor to the line the caret is on, and a canvas click
+would move the caret. The store records who changed it last; the only reader of that field is the
+editor.
 
 **The metadata's parameter order was the hash order of a dictionary.** Committing the metadata
 document as a golden for the completion tests (`A-5`) showed it: two runs of the Api host listed

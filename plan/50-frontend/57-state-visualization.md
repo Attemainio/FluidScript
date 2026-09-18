@@ -172,6 +172,16 @@ into every primitive whose fill slot is `state`. Gradients along routes and acro
 tank layer bands, the legend, the property switcher, the stale desaturation and the position bars
 are still this document's and P5.10's.
 
+### The unsolved plant
+
+**Added 2026-09-18 at the user's request, with P5.6.** A model that did not solve -- refused before
+the solver, or a solver that did not converge -- is drawn whole in `--status-error`: every symbol
+stroke, every pipe and every arrow red, the state fill slot empty, labels as they are. The status
+line and the log already say so in words; the drawing says so at a glance, which is what a
+designer scanning a screen reads first. The script's own `style` colour yields to it, since a blue
+pipe on a plant that does not exist is a claim. `53` invariant 4 stands: the topology is drawn;
+this is the colour it is drawn in.
+
 ### Nodes
 
 Filled with the scale colour for their value. The symbol's stroke stays
