@@ -90,8 +90,11 @@ would be filled with nothing.
 > `solve`, `validate` and `metadata`, sessions with warm start and supersession (`41`), `07`'s
 > limits as `413` and `FS4601`, the committed JSON schemas (`D-46` step 2) and OpenAPI; `edit` is
 > deferred whole to P7.1 with the mutation API. `C-99` found and closed on the way (the exchanger's
-> `u`, `ua` and `fouling` were dimensionless); `A-1`–`A-3`, `L-53` and `L-54` opened. The next
-> package is P5.3.
+> `u`, `ua` and `fouling` were dimensionless); `A-1`–`A-3`, `L-53` and `L-54` opened. Committed
+> as `d1a1c08`. **P5.3, the design system, shipped the same day:** the tokens, the two themes as
+> JSON with the cascade generated from them, custom theme files, eight primitives, and the first
+> frontend tests -- contrast, palette, the literal scan -- on Vitest; `F-1`, `F-2` opened, `F-3`
+> closed, in the new `50-frontend/defects.md`. The next package is P5.4, the app shell.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -299,7 +302,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1d-2 | The layout engine built rule by rule against the ladder ([`28`](20-core-domain/28-layout-solver.md) parts A–D, [`29`](20-core-domain/29-layout-ladder.md); `D-106`, `D-107`, `D-108`, `D-109`, `D-110`, `D-112`, `D-113`, `D-114`) | (this commit, 2026-09-17, with P5.1d-1's engine work) | Steps 1 to 10 accepted 2026-09-17; step 11a (two independent loops, stacked) accepted; the syntax tour's circuits follow one at a time |
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates: `SceneText` in Core with its raster, the audit's three gaps (`C-95`), `LayoutPredicateTests` | (this commit, 2026-09-18) | Shipped 2026-09-18 |
 | P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | `44e30fa` | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
-| P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
+| P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | `d1a1c08` | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
+| P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)): `tokens.ts`, the two themes as JSON and the generated cascade, custom theme files, the UI store's `theme`, eight primitives, Vitest with the design tests, `docs/advanced/themes.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `F-3` closed; `F-1`, `F-2` opened; `Tooltip`, `Slider`, `NumericInput`, `SplitPane` land with their first consumers |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -317,7 +321,7 @@ either side of nothing; and a registered Neutral role classifies nothing, so `FS
 a `Source`/`Consumer` role contradicted by its members' duty sign. The header sample's parent ring
 therefore shares rank 0 with its branches — `25`'s example said `Source [heating's boundary]` for a
 sample that has none and is corrected — and whether it should be a Source band on its duty sign
-alone is `25`'s one open question, left for P5.3 to answer with a diagram in front of it. A
+alone is `25`'s one open question, left for the canvas package (P5.6) to answer with a diagram in front of it. A
 subcircuit written as connections (`F-16`'s mixing branch) gets its parent and anchors read off the
 graph — node contacts with exactly one other circuit, not mutual — because the binder binds them
 only from `supply`/`return` lines. `NavigationOrder` became one tab order over flow components and
@@ -591,6 +595,26 @@ were added, a static-initialisation-order slip, now closed, and the Api goldens 
 for the two dimensions the unit table cannot name), `L-53` (`FS1503` spans the value with the
 name). `docs/advanced/using-the-api.md` is the page. Core 1805/0/4, Api 55/0.
 
+**P5.3 is `frontend/src/design` and the first frontend tests** (2026-09-18). `tokens.ts` names
+every colour token in `55`'s order (with `--syn-function`, `--editor-bg` and `--editor-fg`, which
+the list had left out, `F-3`), the theme-independent scales, the durations, the syntax opacities,
+`D-73`'s advance widths and the contrast pairs. The two built-in themes are `themes/light.json` and
+`themes/dark.json` in the public custom-theme format, and `themeCss.ts` renders `55`'s cascade from
+them -- `:root` light, `[data-theme='dark']`, the same under `prefers-color-scheme` when nothing
+chose, every duration zeroed under reduced motion -- into a checked-in stylesheet gated by a test
+that regenerates it. `theme.ts` reads a custom file without throwing, fills its gaps per token from
+the selected built-in naming them, measures every declared pair at WCAG AA and loads a failing theme
+with the pair named; `applyTheme` is an attribute for a built-in and inline properties under
+`custom`, so switching re-mounts nothing. The UI store of `51` exists with its `theme` field,
+Zustand persisted to localStorage, and a rendered test rehydrates it. The primitives are `Button`,
+`IconButton`, `Panel`, `Card`, `Badge`, `StatusDot`, `Toolbar`, `Tabs`; the four with drag or
+positioning behaviour wait for a consumer. The scaffold's hero, logos and accent-purple CSS are
+gone; `App.tsx` is the provider, a toolbar with the theme control, and a preview page for judging
+a theme until P5.4's shell. The values `55` did not fix -- surfaces, text, borders, canvas -- were
+chosen to clear the contrast test and have no other basis (the defects file says so). Vitest and
+jsdom are the test runner (`62`, `63`); `npm test` is 25/0, `tsc -b` and oxlint clean, Prettier
+clean. `docs/advanced/themes.md` is the page. Core and Api unchanged.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -702,6 +726,8 @@ a judgement.
 |---|---|---|
 | Core test suite | **1805 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **55 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
+| Frontend tests | **25 passed, 0 failed**, ~7 s | `cd frontend && npm test` |
+| Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 

@@ -315,7 +315,8 @@ alternative — swapping the canvas to the static model mid-run — would look l
 - [ ] A syntax error leaves the canvas showing the previous model.
 - [ ] Layout is not recomputed during a 600-frame transient — asserted by a counting spy.
 - [ ] Hover does not re-render the canvas tree.
-- [ ] Theme and split position survive a reload.
+- [ ] Theme and split position survive a reload. *Theme: yes (P5.3, the persisted UI store
+      rehydrated in a test). Split position: with the split pane, P5.4.*
 - [ ] A dropped WebSocket keeps received frames and offers a restart.
 - [ ] Frame application sustains 10 fps on a 200-component model.
 - [ ] Thread instrumentation proves layout, frame reconstruction, colour/geometry preparation are off

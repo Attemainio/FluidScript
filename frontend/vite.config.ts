@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -11,5 +11,10 @@ export default defineConfig({
       '/api': { target: 'http://localhost:5080', changeOrigin: true },
       '/ws': { target: 'ws://localhost:5080', ws: true },
     },
+  },
+  test: {
+    // 62's frontend unit tier. jsdom only where a test touches the document; the design tests are pure.
+    environment: 'node',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

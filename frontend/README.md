@@ -1,32 +1,16 @@
-# React + TypeScript + Vite
+# FluidScript frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite. The plan is `plan/50-frontend/`; the shell's structure is `51`, the design system `55`.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm ci               # install
+npm run dev          # Vite on :5173, proxying /api and /ws to the host on :5080
+npm test             # Vitest, the unit and component tiers (62)
+npm run lint         # oxlint, zero warnings
+npm run format:check # Prettier; formatting is never a review topic (04)
+npm run themes       # rewrite src/design/themes.generated.css from the theme files
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+`src/design/` is the design system: the token names in `tokens.ts`, the two built-in themes as
+JSON under `themes/`, the stylesheet generated from them, and the primitives. No file outside it
+writes a colour, size or duration; a test scans for one.

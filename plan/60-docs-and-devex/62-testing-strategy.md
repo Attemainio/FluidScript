@@ -310,8 +310,8 @@ which is where a parser actually breaks.
 
 | Layer | Tool | Covers |
 |---|---|---|
-| Unit | Vitest | Layout engine, unit formatting, frame reconstruction, colour scales |
-| Component | Vitest + Testing Library | Editor integration, hover, log reconciliation |
+| Unit | Vitest | Layout engine, unit formatting, frame reconstruction, colour scales; the design system's contrast, palette and literal scan (P5.3, `src/design/*.test.ts`) |
+| Component | Vitest + Testing Library | Editor integration, hover, log reconciliation. P5.3's theme switch renders with `react-dom` and `act` alone; Testing Library comes in with the first component that needs queries by role |
 | Visual | Playwright screenshots | Canvas rendering, both themes |
 | End to end | Playwright | Type a script → see a diagram → edit on canvas → see the script change |
 

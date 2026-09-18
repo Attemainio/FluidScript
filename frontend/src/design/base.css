@@ -1,0 +1,56 @@
+/* The application's base styles: every value is a token from themes.generated.css. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-leading);
+  color: var(--text-primary);
+  background: var(--surface-base);
+  transition:
+    background-color var(--motion-theme) var(--ease-in-out),
+    color var(--motion-theme) var(--ease-in-out);
+}
+
+h1,
+h2,
+h3 {
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+  margin: 0;
+}
+
+code,
+pre,
+.fs-mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-editor-size);
+  line-height: var(--text-editor-leading);
+}
+
+/* Every numeric readout uses tabular figures (55 invariant 7). */
+.fs-readout {
+  font-family: var(--font-mono);
+  font-size: var(--text-readout-size);
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--space-1);
+}
+.app-spacer {
+  flex: 1;
+}

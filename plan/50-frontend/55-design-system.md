@@ -103,10 +103,20 @@ CSS custom properties on `:root`, redefined per theme. No component ever writes 
   --syn-comment
   --syn-operator
   --syn-reference
+  --syn-function
   --syn-error
   --syn-warning
+  --editor-bg         /* the script pane's ground, the VS Code value */
+  --editor-fg
 }
 ```
+
+The list is `tokens.ts` in `frontend/src/design`, and a theme file values every name in it. The
+last three rows were added by P5.3: the syntax table below has a function role and the editor's own
+background and foreground, and a theme that cannot set them cannot be the dark theme. Two
+theme-independent scales sit beside the colours in the same file -- spacing, radii, a `--hairline`
+for the one-pixel border, the shadows, the type scale and the font stacks -- and the durations and
+easings, so that a component has a name for every number it uses.
 
 ## The HVAC palette
 
@@ -196,6 +206,11 @@ it cannot distinguish is a valid component kind from an invalid one, and the squ
 | Numeric readout | the monospace stack, **tabular figures** | 12 px | 400 |
 
 **The two canvas roles carry a declared advance-width metric, and layout uses it (`D-73`).** The
+figures are `typeMetrics` in `tokens.ts`: 0.6 em per character for the monospace readout, which
+covers the whole stack from the fonts' own metrics (Consolas 0.55, Cascadia Code 0.586, JetBrains
+Mono 0.6), and 0.62 em for the proportional canvas label, this project's reservation for a tag of
+capitals and digits, above Segoe UI's capitals and the number to revisit if a label overflows its
+box. The
 error table below already forbids layout depending on a specific font's metrics; measuring a label by
 rendering it is exactly that dependency, and it is also unavailable in the layout worker, which has no
 DOM. So `Canvas label` and `Numeric readout` each publish an advance width per character at their
@@ -274,6 +289,13 @@ minimum 3:1 contrast against every adjacent surface and is used by every keyboar
 the token list, loadable at runtime, persisted in localStorage. Two ship built in; the format is public
 so a user can write a third.
 
+**The built-in themes are written in that same format** (`themes/light.json`, `themes/dark.json`)
+and the cascade above is generated from them into `themes.generated.css`, checked in and gated by a
+test that regenerates it, as the docs gate does. One source for both: the first paint needs no
+script, and a custom theme is the same JSON applied inline under `[data-theme="custom"]`, so it
+takes the same cascade and switching back clears it. The choice -- system, a built-in, or the custom
+theme's whole token set -- is the `theme` field of `51`'s UI store.
+
 **Contrast is validated, not eyeballed.** Every text-on-surface pair meets WCAG AA (4.5:1 body, 3:1
 large), asserted by a test over the token set. A custom theme failing contrast gets a warning, not a
 rejection — it is the user's tool.
@@ -351,24 +373,39 @@ which is the split this document exists to hold.
 
 ## Acceptance criteria
 
-- [ ] A test asserts no literal colour appears outside the theme files.
-- [ ] Every token is present in both built-in themes.
-- [ ] WCAG AA contrast passes for every text/surface pair in both themes.
-- [ ] Light+ unit suffixes remain fully opaque and meet 4.5:1; Dark+ unit suffixes at 75 % also meet
-      4.5:1 against the editor background.
-- [ ] Every keyboard-focusable primitive uses `--focus-ring`, which meets 3:1 on adjacent surfaces.
+- [x] A test asserts no literal colour appears outside the theme files (`themes.test.ts`, P5.3:
+      hex, `rgb(`, `hsl(` and friends anywhere in `src/`, and `px`/`ms`/`em` literals in CSS,
+      outside `tokens.ts`, the theme files and the generated stylesheet. A size written as a TSX
+      attribute -- an SVG `width` -- is not scanned; that stays a review matter).
+- [x] Every token is present in both built-in themes (P5.3; the keys equal the list, both ways).
+- [x] WCAG AA contrast passes for every text/surface pair in both themes (P5.3: the pairs are
+      `contrastPairs` in `tokens.ts` -- three text tokens on four surfaces, inverse text on the
+      filled badges, every syntax role on the editor ground, symbol and route on the canvas at 3:1
+      -- computed per WCAG 2.1, no library).
+- [x] Light+ unit suffixes remain fully opaque and meet 4.5:1; Dark+ unit suffixes at 75 % also meet
+      4.5:1 against the editor background (P5.3; the test also shows the light green at 75 % would
+      *not*, which is why the rule is what it is).
+- [x] Every keyboard-focusable primitive uses `--focus-ring`, which meets 3:1 on adjacent surfaces
+      (P5.3: one `:focus-visible` rule in `base.css`, the ring tested against six surfaces).
 - [ ] With `prefers-reduced-motion: reduce`, all nonessential transitions are 0 ms and playback state
-      remains fully available through text and frame position.
-- [ ] The syntax palette matches the VS Code table exactly, asserted against the hex values.
+      remains fully available through text and frame position. *Half: the generated stylesheet
+      zeroes every duration token under the query, asserted (P5.3). Playback's text and frame
+      position wait on playback.*
+- [x] The syntax palette matches the VS Code table exactly, asserted against the hex values (P5.3).
 - [ ] A script screenshot in dark theme is visually indistinguishable from VS Code's colouring of the
-      equivalent tokens.
-- [ ] Theme switching loses no editor or canvas state.
-- [ ] Numeric readouts do not shift horizontally during playback.
+      equivalent tokens. *Playwright, with the editor: P5.5.*
+- [ ] Theme switching loses no editor or canvas state. *The mechanism is an attribute on the root
+      and nothing re-mounts, asserted on the preview (P5.3); the editor and canvas that hold state
+      are P5.5 and P5.6.*
+- [ ] Numeric readouts do not shift horizontally during playback. *`.fs-readout` sets tabular
+      figures (P5.3); the measurement is playback's.*
 - [ ] Forcing the monospace and UI stacks to a deliberately wider fallback changes no placement in any
       prepared scene; the affected labels overflow their own reserved boxes and nothing else moves.
-- [ ] A malformed custom theme leaves the current theme intact.
+      *The metric is declared (P5.3); the layout that consumes it is P5.6.*
+- [x] A malformed custom theme leaves the current theme intact (P5.3; and missing tokens fall back
+      per token with the names, and a contrast failure loads with the pair named).
 - [ ] Solved temperature colouring is on by default, can be disabled without changing the script, and
-      uses a text/legend cue so changing colour cannot be mistaken for topology instability.
+      uses a text/legend cue so changing colour cannot be mistaken for topology instability. *P5.10.*
 
 ## Open questions
 
