@@ -66,7 +66,7 @@ frontend/src/
 | **Draft model** | Last successful static model, diagnostics, solve status, source hash | Replaced per draft response | No |
 | **Run** | Snapshot/source ids, reconstructed verified state, checkpoints, terminal reason | One explicit run | No |
 | **UI** | Theme, panel sizes, viewport | Session | localStorage |
-| **Workspace** | Open documents, tab order, `activeDocumentId` | Application | localStorage (ids and names only) |
+| **Workspace** | Open documents, tab order, `activeDocumentId`, each document's file state (`58`'s `DocumentState` less the text and the handle) | Application | localStorage; the text is the recovery store's (IndexedDB), the handle too (P5.9) |
 
 **The script lives in the editor, not in a global store.** CodeMirror owns its document, its undo
 history, and its cursor; mirroring that into React state means two sources of truth and a class of bug

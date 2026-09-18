@@ -2,7 +2,7 @@
 id: 58-file-lifecycle
 title: File lifecycle and recovery
 tier: 50-frontend
-status: reviewed
+status: implemented
 owns: [new/open/save/save-as/download, dirty state, local recovery, file conflicts, the open-document set and tab switching]
 depends_on: [01-vision-and-scope, 06-decision-log, 17-formatting-and-round-trip, 18-script-compatibility, 51-frontend-architecture, 52-editor]
 traces_to: [R-21, R-25, R-30, R-38, R-39, R-42, R-50]
@@ -97,8 +97,9 @@ the fallback cannot overwrite in place, the UI labels the action **Download .flu
 ### State transitions
 
 - **New** creates current-version template text, no handle, and `dirty` state.
-- **Open** reads bytes, runs compatibility inspection, and replaces the current document only after
-  dirty-change confirmation. Unsupported files open read-only.
+- **Open** reads bytes, runs compatibility inspection, and opens each picked file in a new tab
+  (`D-116`; `58` first said "replaces the current document", which was the one-document reading),
+  refused at the cap. Unsupported files open read-only.
 - **Save** is available only with a handle and compatible durable source. It writes to a temporary
   writable stream, closes successfully, then updates `savedHash`; failure leaves `dirty` state.
 - **Save As** obtains a new handle and never changes the old file. Cancelling changes nothing.
@@ -131,6 +132,34 @@ leaving the application stops the run because v1 has no detached server jobs.
 New/Open/Save/Save As/Download are reachable by menus and documented shortcuts. Filename, dirty,
 read-only, saving, recovery, and conflict state are exposed as text and polite live-region updates,
 never colour alone. Dialog focus is trapped and restored; every action works without canvas use.
+
+### As built (P5.9, 2026-09-18)
+
+- **The state.** `workspaceStore` holds `DocumentState` less the text (`51`): `savedHash`,
+  `currentHash`, `status`, `recoveryStatus`, `readOnly`, `fileModified`, `hasHandle`, and a
+  `loaded` bit that is not persisted and says whether this session holds the text. `dirty` is
+  derived from the hashes (`D-116`); `saving`, `conflict` and `error` stand until a completed write
+  or a reload from disk settles them. The handle itself lives in the recovery database's second
+  table, because a `FileSystemFileHandle` survives a reload only in IndexedDB.
+- **Compatibility on the client.** Core's disposition is not on the wire; the frontend reads it from
+  the codes: `FS1701` withholds Save and offers the version line (Core now attaches the suggestion,
+  so the editor's quick fix and the notice's button apply the same edit), `FS1702`/`FS1705` open the
+  file read-only (`FILE005`). Save with diagnostics older than the text asks `/validate` first, so a
+  version line typed a moment ago counts.
+- **After a reload.** `51` persists no text, so the launch pass finds each remembered document's text
+  again: a document that was never a file comes back from its recovery entry, dirty, without asking,
+  since the entry is the only copy; a document on disk waits with a *Reopen* notice, because reading
+  the file needs the user's gesture for permission, and a draft newer than the file becomes the
+  divergence choice (Restore draft, Use file, Compare) once the file is read; a dirty document with
+  no entry and no file says its text was lost and starts from the template.
+- **Compare** is two panes of text, not a diff. `58` names Compare without specifying it; a diff
+  is a later refinement if the plain view proves too little.
+- **Download in a fallback browser** never clears the dot (invariant 1): the file the browser saved
+  is a copy, and the document says so in its notice.
+- **Not verified here:** the File System Access path ran only against the fake backend and the
+  contract it implements; the pickers, the writable stream and permission across a reload need a
+  Chromium session with a human clicking (`F-8`). The re-permission gesture's wording is the
+  frontend's own; `58` did not specify it.
 
 ## Invariants
 
@@ -171,21 +200,29 @@ from A untouched.
 
 ## Acceptance criteria
 
-- [ ] File-System-Access and upload/download paths pass the same New/Open/dirty/recovery scenarios.
-- [ ] Failed, cancelled, and conflicting saves never display clean or lose the last recoverable text.
-- [ ] Unsupported-version files remain byte-identical unless an explicit migration is applied.
-- [ ] A crash/reload restores a newer dirty draft without overwriting its named file.
-- [ ] Explicit Open matches recovery by handle identity or `(displayName, savedHash)`, offers the
-      newer divergent draft before replacement, and never matches on filename alone.
-- [ ] Keyboard and screen-reader tests cover every file action and state.
+- [x] File-System-Access and upload/download paths pass the same New/Open/dirty/recovery scenarios
+      (`fileActions.test.ts`, one `describe.each` over both backends, P5.9).
+- [x] Failed, cancelled, and conflicting saves never display clean or lose the last recoverable text
+      (P5.9: `FILE001`, `FILE002`, `FILE003`, `FILE006` each have a test).
+- [x] Unsupported-version files remain byte-identical unless an explicit migration is applied (P5.9;
+      read-only, Save refused, the disk text asserted unchanged).
+- [x] A crash/reload restores a newer dirty draft without overwriting its named file (P5.9: the
+      reload tests in `fileActions.test.ts` and `Files.test.tsx`).
+- [x] Explicit Open matches recovery by handle identity or `(displayName, savedHash)`, offers the
+      newer divergent draft before replacement, and never matches on filename alone (P5.9).
+- [ ] Keyboard and screen-reader tests cover every file action and state. P5.9 covers the dialog's
+      focus and Escape and the menu's roles; a screen-reader pass is P5.11's accessibility pass.
 - [ ] File operations during a transient do not change its snapshot id, frames, or worker lifetime.
-- [ ] Two documents open with independent sources, dirty states, file handles and recovery entries;
-      saving one leaves the other's status untouched.
-- [ ] Switching away from a tab with an active transient and back leaves the run's frame sequence
-      unbroken, and a field-by-field workspace comparison across the switch shows no change.
-- [ ] Editing tab A while a transient runs in tab B affects neither B's run nor its source.
-- [ ] Two dirty tabs produce two recovery entries; restoring one leaves the other intact.
-- [ ] A ninth document and a third run are both refused with messages naming the limit.
+      P5.9 asserts the run store's entry across the worked example; frames and the worker are M4's.
+- [x] Two documents open with independent sources, dirty states, file handles and recovery entries;
+      saving one leaves the other's status untouched (P5.9).
+- [x] Switching away from a tab with an active transient and back leaves the run's frame sequence
+      unbroken, and a field-by-field workspace comparison across the switch shows no change
+      (`workspaceStore.test.ts`, P5.9, the comparison; the frame sequence is M4's).
+- [ ] Editing tab A while a transient runs in tab B affects neither B's run nor its source. M4.
+- [x] Two dirty tabs produce two recovery entries; restoring one leaves the other intact (P5.9).
+- [x] A ninth document is refused with a message naming the limit (P5.9, `FILE007`); a third run is
+      M4's.
 
 ## Open questions
 

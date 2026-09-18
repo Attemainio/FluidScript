@@ -6,6 +6,9 @@ import type {
   ModelContract,
   ValidateResponse,
 } from '../api/types.ts';
+import { hashOf } from '../files/hash.ts';
+import { templateText } from '../files/template.ts';
+import type { WorkspaceDocument } from '../state/workspaceStore.ts';
 import type { Clock } from '../features/pipeline/compilePipeline.ts';
 
 /** A clock a test advances by hand, so ten seconds of typing take no time at all. */
@@ -132,4 +135,26 @@ export function diagnostic(code: string): Diagnostic {
 export function finish(call: Call, response: CompileResponse): void {
   call.done = true;
   call.resolve(response);
+}
+
+/** A workspace document as a test builds one: loaded, from the template, never a file. */
+export function workspaceDocument(
+  documentId: string,
+  displayName: string,
+  overrides: Partial<WorkspaceDocument> = {},
+): WorkspaceDocument {
+  return {
+    documentId,
+    displayName,
+    savedHash: null,
+    currentHash: hashOf(templateText),
+    status: 'dirty',
+    recoveryStatus: 'none',
+    dirty: true,
+    readOnly: false,
+    fileModified: null,
+    hasHandle: false,
+    loaded: true,
+    ...overrides,
+  };
 }

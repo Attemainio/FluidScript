@@ -7,13 +7,14 @@ nothing about the tab you leave changes because you left it.
 ## The workspace
 
 The strip under the toolbar lists the open documents in the order you opened them. **+** opens a new
-one from the template; **×** closes the active one. A tab shows its name and a `●` when it has
+one from the template; **×** closes the active one, asking first when it has unsaved text or a
+running simulation ([Files and recovery](files-and-recovery.md)). A tab shows its name and a `●` when it has
 edits you have not saved. Up to eight documents can be open at once; a ninth is refused rather than
 opened, because a workspace wider than that is one nobody can keep track of.
 
 The tabs, their order and which one is active are remembered by the browser, so a reload brings
-back the same strip. What it does not bring back yet is the text: opening and saving files, and the
-recovery copy that survives a reload, arrive with the file commands.
+back the same strip, and each tab's text comes back from its file or from the draft the browser
+kept -- see [Files and recovery](files-and-recovery.md) for what is asked when the two differ.
 
 ## What happens when you switch
 

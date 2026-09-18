@@ -1,4 +1,7 @@
-import { EditorState, type Extension } from '@codemirror/state';
+import { Compartment, EditorState, type Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+
+import { templateText } from '../../files/template.ts';
 
 /**
  * The editor state of every open document, outside React (`51` invariant 1: the CodeMirror document
@@ -7,14 +10,35 @@ import { EditorState, type Extension } from '@codemirror/state';
  */
 const states = new Map<string, EditorState>();
 const revisions = new Map<string, number>();
+const readOnlyCompartment = new Compartment();
 let extensions: Extension = [];
+const readOnlyExtension: Extension = [EditorState.readOnly.of(true), EditorView.editable.of(false)];
 
-/** The template a new document starts from (`58`: current-version template text). */
-export const templateText = 'fluidscript 1\n\ncircuit plant\n\n';
+export { templateText };
 
 /** Sets the extensions a fresh state is created with; the editor feature calls it once. */
 export function configureDocuments(shared: Extension): void {
-  extensions = shared;
+  extensions = [shared, readOnlyCompartment.of([])];
+}
+
+/**
+ * Gives a document text from outside the editor -- a file opened, a draft restored, a reload from
+ * disk (`58`) -- as a fresh state, read-only where the file is one this build cannot edit
+ * (`FILE005`). The caller swaps it into the view when the document is the active one.
+ */
+export function loadText(documentId: string, text: string, readOnly = false): EditorState {
+  let state = EditorState.create({ doc: text, extensions });
+  if (readOnly) {
+    state = state.update({ effects: readOnlyCompartment.reconfigure(readOnlyExtension) }).state;
+  }
+  states.set(documentId, state);
+  revisions.set(documentId, revisionOf(documentId) + 1);
+  return state;
+}
+
+/** Whether the document is read-only (`FILE005`). */
+export function isReadOnly(documentId: string): boolean {
+  return stateOf(documentId).facet(EditorState.readOnly);
 }
 
 /** The document's editor state, created from the template on first use. */

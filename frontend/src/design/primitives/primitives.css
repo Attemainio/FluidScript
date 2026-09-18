@@ -229,3 +229,106 @@
 .fs-split__divider:hover {
   background: var(--border-subtle);
 }
+
+/* Menu button (the ARIA menu-button pattern). */
+
+.fs-menu {
+  position: relative;
+}
+
+.fs-menu__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: calc(var(--space-8) * 4);
+  padding: var(--space-1);
+  margin-top: var(--space-1);
+  background: var(--surface-raised);
+  border: var(--focus-ring-width) solid var(--border-strong);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-raised);
+}
+
+.fs-menu__item {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-control);
+}
+
+.fs-menu__item:hover,
+.fs-menu__item:focus-visible {
+  background: var(--surface-sunken);
+}
+
+.fs-menu__item[aria-disabled='true'] {
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.fs-menu__shortcut {
+  font: inherit;
+  font-size: var(--text-label-size);
+  color: var(--text-muted);
+}
+
+/* Dialog. */
+
+.fs-dialog__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+}
+
+.fs-dialog__backdrop::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: var(--text-primary);
+  opacity: var(--selection-opacity);
+}
+
+.fs-dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(90vw, calc(var(--space-8) * 14));
+  max-height: 90vh;
+  padding: var(--space-5);
+  overflow: auto;
+  background: var(--surface-raised);
+  border: var(--focus-ring-width) solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-raised);
+}
+
+.fs-dialog__title {
+  margin: 0;
+  font-size: var(--text-heading-size);
+  font-weight: var(--text-heading-weight);
+}
+
+.fs-dialog__message {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.fs-dialog__choices {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}

@@ -154,7 +154,7 @@ without changing existing binding remains backward compatible.
 
 | Code | Condition | Result |
 |---|---|---|
-| `FS1701` | Unsaved draft has no `fluidscript` directive | Info with quick action to insert current major; no durable save until resolved |
+| `FS1701` | Unsaved draft has no `fluidscript` directive | Info with quick action to insert current major; no durable save until resolved. Since P5.9 the diagnostic carries the insertion as its `Suggestion` (`fluidscript {current}` as a new first line, after a BOM when there is one), so the editor's quick fix, the file notice's button and an agent apply one edit |
 | `FS1702` | Unsupported newer/older major | Error; read-only text, no compile or overwrite |
 | `FS1703` | Pinned catalogue is absent or unsupported | Error; no sizing or solve |
 | `FS1704` | Source changed after migration preview | Error; discard preview and recompute |

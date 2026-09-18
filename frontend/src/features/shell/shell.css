@@ -20,8 +20,16 @@
   border-bottom: none;
 }
 
-.editor-pane {
+.editor-column {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.editor-pane {
+  flex: 1;
+  min-height: 0;
   color: var(--editor-fg);
   background: var(--editor-bg);
 }
@@ -485,4 +493,90 @@
 .fs-tooltip--editor {
   position: static;
   animation: none;
+}
+
+/* File notices (58): the banner over the editor. */
+
+.file-notices {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-body-size);
+  border-bottom: var(--focus-ring-width) solid var(--border-subtle);
+  border-left: var(--space-1) solid var(--status-info);
+}
+
+.file-notice--warning {
+  border-left-color: var(--status-warning);
+}
+
+.file-notice--error {
+  border-left-color: var(--status-error);
+}
+
+.file-notice__actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.file-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.file-compare__side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-compare__side h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  color: var(--text-secondary);
+}
+
+.file-compare__side pre {
+  max-height: 50vh;
+  padding: var(--space-2);
+  margin: 0;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-editor-size);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-control);
+}
+
+.file-drafts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.file-drafts__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.file-drafts__actions {
+  display: flex;
+  gap: var(--space-1);
 }

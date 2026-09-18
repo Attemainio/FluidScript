@@ -134,8 +134,11 @@ would be filled with nothing.
 > clockwise; ladder step 3c, pump and exchanger, hard 0), and every layout now audited with each hard
 > finding an `FS5002` warning in the log, so a breach is reported rather than handed out as correct.
 > Probing the fix found `C-102`, opened: a sourceless, consumerless ring of two still falls to the
-> chain rule and breaches -- reported now, not yet drawn right. The next package is P5.9, the file
-> lifecycle.
+> chain rule and breaches -- reported now, not yet drawn right. **P5.9 shipped the same day:** the
+> file lifecycle as `58` specifies it, both browser paths behind one interface with every scenario
+> run against both, `D-116` for the two things `58`'s one-document draft did not say (Open into a
+> new tab; dirty by hashes), `F-8` and `F-9` opened for what only a Chromium session with a human
+> can show. The next package is P5.10, state visualization.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -349,6 +352,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.5 | The editor ([`52`](50-frontend/52-editor.md)): CodeMirror with a stream tokenizer generated from the host's `language.json`, inline diagnostics with quick fixes, alias-aware and dimension-filtered completion from the committed metadata golden, the formatter in Core (`17`) behind `POST /api/v1/format` (`42`) and `Shift+Alt+F`, go to definition, toggle comment, Solve; `TokenGoldenTests` on both sides; the `D-48` benchmark harness; `docs/advanced/the-editor.md` | `0f112c8` | Shipped 2026-09-18; `A-5` closed; `F-5`, `F-6` opened; `F-4` stays open, the benchmark is built and unrun (no launchable browser here); hover for components, lets and quantities → P5.8, Rename → P7.1, Run → M4, Save/Open → P5.9 |
 | P5.6 | The canvas ([`53`](50-frontend/53-canvas-renderer.md)): `prepareScene`, `SceneView`, the viewport, `CanvasPane` with axes, grid and level of detail; `57`'s flat fill; SVG goldens per Api sample; `docs/advanced/the-canvas.md` | `a33af65` | Shipped 2026-09-18; `F-7` opened; the worker deferred to M4; the frame budget unmeasured (`F-4`'s browser) |
 | P5.8 | Hover, selection, the console log, the status header ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)): the hover card with one implementation in the canvas and the editor, the selection store and its three sources, the reconciled and grouped log with filters, the success line and copy as text, `56`'s header; diagnostics attributed to their declaration on the wire; `docs/advanced/the-log.md` | `3a3ac8f` | Shipped 2026-09-18; `L-55`, `A-6` opened; editing and write-back are P7.2's |
+| P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | (this commit) | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -792,9 +796,9 @@ Counts only. Every description lives in the file named.
 | 20 · Core domain | 33 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 19 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 5 | [`40-api/defects.md`](40-api/defects.md) |
-| 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
+| 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **77** | |
+| | **79** | |
 
 Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means

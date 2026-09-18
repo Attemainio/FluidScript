@@ -6,3 +6,5 @@ export { Tabs, type Tab } from './Tabs.tsx';
 export { Toolbar } from './Toolbar.tsx';
 export { SplitPane } from './SplitPane.tsx';
 export { Tooltip } from './Tooltip.tsx';
+export { Menu, type MenuItem } from './Menu.tsx';
+export { Dialog } from './Dialog.tsx';

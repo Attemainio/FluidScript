@@ -71,6 +71,7 @@ docs/
 │   ├── troubleshooting.md       "it will not converge", "the sizes look wrong"
 │   ├── plant-layout.md          headers, how the diagram is arranged, spacing
 │   ├── working-in-tabs.md       several documents, what keeps running when you switch
+│   ├── files-and-recovery.md    the File menu, the unsaved dot, recovery, conflicts, read-only files
 │   ├── the-editor.md            colours, underlines and quick fixes, completion, formatting, shortcuts
 │   ├── the-canvas.md            pan, zoom, fit; what the symbols, labels, colours and marks mean; hover and select
 │   ├── the-log.md               reading a line, filters and folding, the success line, the header, copy as text

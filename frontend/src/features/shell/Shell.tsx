@@ -2,6 +2,9 @@ import { Button, SplitPane, Toolbar } from '../../design/primitives/index.ts';
 import { useUiStore } from '../../state/uiStore.ts';
 import { CanvasPane } from '../canvas/CanvasPane.tsx';
 import { EditorPane } from '../editor/EditorPane.tsx';
+import { FileDialogHost } from '../files/FileDialogHost.tsx';
+import { FileMenu } from '../files/FileMenu.tsx';
+import { FileNoticeBar } from '../files/FileNoticeBar.tsx';
 import { LogPane } from '../log/LogPane.tsx';
 import { usePipeline } from '../pipeline/pipelineContext.ts';
 import { ThemeSwitch } from '../theme/ThemeSwitch.tsx';
@@ -22,6 +25,7 @@ export function Shell(): React.ReactNode {
     <div className="shell">
       <Toolbar>
         <h1>FluidScript</h1>
+        <FileMenu />
         <Button variant="primary" onClick={() => pipeline.flush('solve')} title="Ctrl+Shift+Enter">
           Solve
         </Button>
@@ -42,12 +46,18 @@ export function Shell(): React.ReactNode {
         <SplitPane
           ratio={ratio}
           onRatioChange={setRatio}
-          first={<EditorPane />}
+          first={
+            <div className="editor-column">
+              <FileNoticeBar />
+              <EditorPane />
+            </div>
+          }
           second={<CanvasPane />}
         />
       </main>
       <LogPane />
       <StatusLine />
+      <FileDialogHost />
     </div>
   );
 }

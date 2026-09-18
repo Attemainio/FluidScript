@@ -141,11 +141,16 @@ public static partial class ScriptCompatibility
             // the script compiles and solves exactly as it would with the line present. What it may
             // not do is become a durable file, because a file with no major cannot be reopened under
             // known semantics five years from now.
+            // The fix is certain (16 invariant 5): the current major as a first line, after a BOM when there is one.
+            var current = versions.Current.Value.ToString(CultureInfo.InvariantCulture);
+            var at = source.Length > 0 && source[0] == '﻿' ? 1 : 0;
             diagnostics.Add(Diagnostic.Create(
                 CompatibilityDiagnostics.UnversionedDraft,
                 new TextSpan(0, 0),
-                new DiagnosticArgument(
-                    "major", versions.Current.Value.ToString(CultureInfo.InvariantCulture))));
+                new DiagnosticArgument("major", current)) with
+            {
+                Suggestion = new Suggestion($"Add 'fluidscript {current}'", new TextSpan(at, 0), $"fluidscript {current}\n"),
+            });
 
             return new CompatibilityResult(
                 null,

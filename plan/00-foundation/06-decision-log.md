@@ -5202,3 +5202,39 @@ keywords, `CircuitWire.inletAnchorId`/`outletAnchorId` on the wire (`26`), the d
 `functions/inlet-outlet.md`, every sample and ladder script, `22`'s tables. `FS2205` joins `23`'s
 checks; `FS2201` is a warning. `S-64` and `L-52` close. The pre-release exemption of `18` covers the
 respelling: no v1 file exists to migrate.
+
+## D-116 · Open puts the file in a new tab; a document is dirty by its hashes, and a new one is dirty from the start
+
+**Accepted · 2026-09-18** · amends `58`'s Open transition and its `DocumentState`; keeps `D-39`
+
+[`58-file-lifecycle`](../50-frontend/58-file-lifecycle.md) was written for one document: Open
+"replaces the current document only after dirty-change confirmation". With `D-39`'s tabs, Open
+puts each picked file in its own tab, refused at the eighth (`FILE007`), and the document that was
+active is not asked anything, because nothing happens to it. `dirty` is not a flag an edit sets but
+`currentHash !== savedHash`, so an undo back to the saved text reads clean again and a completed
+write is the only thing that clears it (`58` invariant 1); the hash is two FNV-1a passes, sixty-four
+bits, run on every keystroke, and is never presented as a digest. A new document has no
+`savedHash` and is therefore dirty from its first moment, as `58` says; the close prompt and the
+recovery timer both skip a document whose text is still the untouched template, since there is
+nothing to lose.
+
+**Why a new tab.** Every editor with tabs opens into a new one; replacing the active tab would
+discard work the user did not ask to discard and would need a prompt for the case where they
+merely wanted to look at a second file beside the first. `D-39` gave each document its own
+everything precisely so that a second document costs the first nothing.
+
+**Why hashes and not a flag.** A flag set on edit and cleared on save cannot tell "edited and
+edited back" from "edited"; the dot then lies. Two hashes cost one string walk per keystroke on a
+text that is at most tens of kilobytes.
+
+**Rejected.**
+- *Open replaces the active tab, as `58` says.* The single-document reading; it needs the prompt and
+  loses the side-by-side case.
+- *A cryptographic hash.* `crypto.subtle.digest` is asynchronous, so the dot would lag the
+  keystroke, and nothing here needs collision resistance against an adversary: the hash decides
+  whether a document is the one saved and whether a draft is of this file, and a wrong answer costs
+  one recovery offer.
+
+**Consequences.** `workspaceStore` carries `58`'s `DocumentState` less the text; `58`'s Open
+transition and contracts read this way; `docs/advanced/files-and-recovery.md` says a new document
+shows the unsaved dot until it is saved.

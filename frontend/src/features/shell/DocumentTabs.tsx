@@ -1,22 +1,18 @@
 import { IconButton, Tabs } from '../../design/primitives/index.ts';
-import { useDraftStore } from '../../state/draftStore.ts';
 import { useRunStore } from '../../state/runStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
-import { forget } from '../editor/documents.ts';
+import { useFiles } from '../files/filesContext.ts';
 
 /**
  * The tab strip (`51`, `D-39`): a tab per document with its dirty marker, a running marker when it
- * owns a run, and New and Close. File prompts on close are `58`'s, P5.9; closing here is immediate.
+ * owns a run, and New and Close. Closing goes through `58`'s questions -- the run, then the text.
  */
 export function DocumentTabs(): React.ReactNode {
   const documents = useWorkspaceStore((state) => state.documents);
   const active = useWorkspaceStore((state) => state.activeDocumentId);
   const activate = useWorkspaceStore((state) => state.activate);
-  const open = useWorkspaceStore((state) => state.open);
-  const close = useWorkspaceStore((state) => state.close);
   const runs = useRunStore((state) => state.runs);
-  const disposeDraft = useDraftStore((state) => state.dispose);
-  const disposeRun = useRunStore((state) => state.dispose);
+  const files = useFiles();
 
   const tabs = documents.map((d) => ({
     id: d.documentId,
@@ -24,18 +20,12 @@ export function DocumentTabs(): React.ReactNode {
     dirty: d.dirty,
   }));
 
-  const onClose = (): void => {
-    const closing = active;
-    close(closing);
-    disposeDraft(closing);
-    disposeRun(closing);
-    forget(closing);
-  };
+  const onClose = (): void => void files.closeDocument(active);
 
   return (
     <div className="document-tabs">
       <Tabs tabs={tabs} selected={active} onSelect={activate} />
-      <IconButton label="New document" onClick={() => open()}>
+      <IconButton label="New document" onClick={() => files.newDocument()}>
         +
       </IconButton>
       <IconButton label="Close document" onClick={onClose}>

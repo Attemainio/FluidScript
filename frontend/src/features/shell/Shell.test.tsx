@@ -7,7 +7,17 @@ import App from '../../App.tsx';
 import { useDraftStore } from '../../state/draftStore.ts';
 import { useUiStore } from '../../state/uiStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
-import { FakeClient, FakeClock, answer, diagnostic, finish, settle } from '../../test/fakes.ts';
+import { hashOf } from '../../files/hash.ts';
+import { templateText } from '../../files/template.ts';
+import {
+  FakeClient,
+  FakeClock,
+  answer,
+  diagnostic,
+  workspaceDocument,
+  finish,
+  settle,
+} from '../../test/fakes.ts';
 import { activeEditorView } from '../editor/activeView.ts';
 import { forgetAll } from '../editor/documents.ts';
 import { CompilePipeline } from '../pipeline/compilePipeline.ts';
@@ -44,7 +54,11 @@ describe('the shell', () => {
     forgetAll();
     useDraftStore.setState({ drafts: {} });
     useUiStore.setState({ theme: { kind: 'system' }, splitRatio: 0.45, logOpen: true });
-    const first = { documentId: 'd1', displayName: 'plant_01', dirty: false };
+    const first = workspaceDocument('d1', 'plant_01', {
+      savedHash: hashOf(templateText),
+      dirty: false,
+      status: 'clean',
+    });
     useWorkspaceStore.setState({ documents: [first], activeDocumentId: 'd1' });
     clock = new FakeClock();
     client = new FakeClient();

@@ -11,7 +11,7 @@ import { useDraftStore } from '../../state/draftStore.ts';
 import { useSelectionStore } from '../../state/selectionStore.ts';
 import { useUiStore } from '../../state/uiStore.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
-import { FakeClient, FakeClock, finish, settle } from '../../test/fakes.ts';
+import { FakeClient, FakeClock, finish, settle, workspaceDocument } from '../../test/fakes.ts';
 import { samplesDir, solvedGoldens } from '../../test/goldens.ts';
 import { activeEditorView } from '../editor/activeView.ts';
 import { forgetAll } from '../editor/documents.ts';
@@ -74,7 +74,7 @@ describe('hover, selection and the log (P5.8)', () => {
       logFilter: 'warnings',
     });
     useWorkspaceStore.setState({
-      documents: [{ documentId: 'd1', displayName: 'plant_01', dirty: false }],
+      documents: [workspaceDocument('d1', 'plant_01')],
       activeDocumentId: 'd1',
     });
     clock = new FakeClock();

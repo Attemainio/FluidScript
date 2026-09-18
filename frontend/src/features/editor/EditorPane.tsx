@@ -11,10 +11,12 @@ import {
 } from '@codemirror/view';
 import { useEffect, useRef } from 'react';
 
+import { hashOf } from '../../files/hash.ts';
 import { draftOf, useDraftStore } from '../../state/draftStore.ts';
 import { editorChanged, registerEditorHandler, registerEditorView } from './activeView.ts';
 import { useWorkspaceStore } from '../../state/workspaceStore.ts';
 import { usePipeline } from '../pipeline/pipelineContext.ts';
+import { useFiles } from '../files/filesContext.ts';
 import { fluidscriptCompletion } from './completion/source.ts';
 import { formatDocument } from './format.ts';
 import { toLintDiagnostics } from './diagnostics.ts';
@@ -34,8 +36,9 @@ import { debounceMs } from '../pipeline/debounce.ts';
  */
 export function EditorPane(): React.ReactNode {
   const documentId = useWorkspaceStore((state) => state.activeDocumentId);
-  const setDirty = useWorkspaceStore((state) => state.setDirty);
+  const setText = useWorkspaceStore((state) => state.setText);
   const pipeline = usePipeline();
+  const files = useFiles();
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const current = useRef(documentId);
@@ -68,6 +71,10 @@ export function EditorPane(): React.ReactNode {
         ...completionKeymap,
         { key: 'Mod-/', run: toggleComment },
         { key: 'Mod-Shift-Enter', run: solve },
+        // 58's shortcuts, in the editor where the browser would otherwise take them.
+        { key: 'Mod-s', run: () => (void files.save(current.current), true) },
+        { key: 'Mod-Shift-s', run: () => (void files.saveAs(current.current), true) },
+        { key: 'Mod-o', run: () => (void files.openFiles(), true) },
         {
           key: 'Shift-Alt-f',
           run: (editor) => {
@@ -98,7 +105,7 @@ export function EditorPane(): React.ReactNode {
       const id = current.current;
       const revision = updateState(id, state, docChanged);
       if (docChanged) {
-        setDirty(id, true);
+        setText(id, hashOf(state.doc.toString()));
         pipeline.edit(id, state.doc.toString(), revision);
       }
       if (caretMoved) {
