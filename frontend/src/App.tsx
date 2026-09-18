@@ -2,22 +2,20 @@ import './design/themes.generated.css';
 import './design/base.css';
 import './design/primitives/primitives.css';
 import './features/theme/theme.css';
+import './features/shell/shell.css';
 
-import { Toolbar } from './design/primitives/index.ts';
-import { ThemePreview } from './features/theme/ThemePreview.tsx';
+import type { CompilePipeline } from './features/pipeline/compilePipeline.ts';
+import { PipelineProvider } from './features/pipeline/PipelineProvider.tsx';
+import { Shell } from './features/shell/Shell.tsx';
 import { ThemeProvider } from './features/theme/ThemeProvider.tsx';
-import { ThemeSwitch } from './features/theme/ThemeSwitch.tsx';
 
-/** The shell. P5.3 gives it the theme provider and a toolbar with the theme control; P5.4 the rest (`51`). */
-function App(): React.ReactNode {
+/** The application: the theme, the pipeline, and `51`'s shell. A test may hand in its own pipeline. */
+function App({ pipeline }: { readonly pipeline?: CompilePipeline }): React.ReactNode {
   return (
     <ThemeProvider>
-      <Toolbar>
-        <h1>FluidScript</h1>
-        <span className="app-spacer" />
-        <ThemeSwitch />
-      </Toolbar>
-      <ThemePreview />
+      <PipelineProvider {...(pipeline === undefined ? {} : { pipeline })}>
+        <Shell />
+      </PipelineProvider>
     </ThemeProvider>
   );
 }

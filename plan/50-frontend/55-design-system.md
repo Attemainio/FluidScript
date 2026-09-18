@@ -403,7 +403,8 @@ which is the split this document exists to hold.
       prepared scene; the affected labels overflow their own reserved boxes and nothing else moves.
       *The metric is declared (P5.3); the layout that consumes it is P5.6.*
 - [x] A malformed custom theme leaves the current theme intact (P5.3; and missing tokens fall back
-      per token with the names, and a contrast failure loads with the pair named).
+      per token with the names, and a contrast failure loads with the pair named). `SplitPane`
+      landed with P5.4's shell; `Tooltip`, `Slider` and `NumericInput` still wait for a consumer.
 - [ ] Solved temperature colouring is on by default, can be disabled without changing the script, and
       uses a text/legend cue so changing colour cannot be mistaken for topology instability. *P5.10.*
 

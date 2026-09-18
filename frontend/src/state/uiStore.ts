@@ -13,10 +13,15 @@ export type ThemeChoice =
   | { readonly kind: 'builtin'; readonly name: BuiltinThemeName }
   | { readonly kind: 'custom'; readonly name: string; readonly colors: ThemeColors };
 
-/** The global UI store (`51`): theme now; panel sizes and the viewport when their packages land. */
+/** The global UI store (`51`): theme, the split, the log's fold; the canvas viewport when P5.6 lands. */
 export interface UiState {
   readonly theme: ThemeChoice;
+  /** The editor's share of the width, 0.2..0.8. */
+  readonly splitRatio: number;
+  readonly logOpen: boolean;
   readonly setTheme: (theme: ThemeChoice) => void;
+  readonly setSplitRatio: (ratio: number) => void;
+  readonly setLogOpen: (open: boolean) => void;
 }
 
 /**
@@ -27,12 +32,20 @@ export const useUiStore = create<UiState>()(
   persist(
     (set) => ({
       theme: { kind: 'system' },
+      splitRatio: 0.45,
+      logOpen: true,
       setTheme: (theme) => set({ theme }),
+      setSplitRatio: (ratio) => set({ splitRatio: Math.min(0.8, Math.max(0.2, ratio)) }),
+      setLogOpen: (open) => set({ logOpen: open }),
     }),
     {
       name: 'fluidscript.ui',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ theme: state.theme }),
+      partialize: (state) => ({
+        theme: state.theme,
+        splitRatio: state.splitRatio,
+        logOpen: state.logOpen,
+      }),
     },
   ),
 );

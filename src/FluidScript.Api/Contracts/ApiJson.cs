@@ -40,33 +40,22 @@ public static class ApiJson
     /// The schema is a build product: it is committed beside the serializer and a test regenerates it
     /// under the goldens flag and fails when the committed copy differs, so a change to a record's
     /// name, order or nullability is a reviewed diff rather than a surprise on the other side of the
-    /// wire. The TypeScript side is generated from this file.
+    /// wire. Every object node carries a <c>title</c> and documented members a <c>description</c>
+    /// (<see cref="SchemaDocumentation"/>), which is what the TypeScript side is generated from.
     /// </remarks>
-    public static string ModelContractSchema()
-    {
-        var schema = JsonSchemaExporter.GetJsonSchemaAsNode(
-            ModelContractJson.Options,
-            typeof(ModelContract),
-            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
-
-        return schema.ToJsonString(IndentedSchema) + "\n";
-    }
+    public static string ModelContractSchema() => Emit(typeof(ModelContract));
 
     /// <summary>Emits the JSON Schema of the compile response, the model contract's envelope.</summary>
     /// <returns>The schema, indented, with a trailing newline.</returns>
-    public static string CompileResponseSchema() =>
-        JsonSchemaExporter.GetJsonSchemaAsNode(
-            ModelContractJson.Options,
-            typeof(CompileResponse),
-            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }).ToJsonString(IndentedSchema) + "\n";
+    public static string CompileResponseSchema() => Emit(typeof(CompileResponse));
 
     /// <summary>Emits the JSON Schema of the metadata document.</summary>
     /// <returns>The schema, indented, with a trailing newline.</returns>
-    public static string MetadataSchema() =>
-        JsonSchemaExporter.GetJsonSchemaAsNode(
-            ModelContractJson.Options,
-            typeof(MetadataWire),
-            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true }).ToJsonString(IndentedSchema) + "\n";
+    public static string MetadataSchema() => Emit(typeof(MetadataWire));
+
+    private static string Emit(Type root) =>
+        JsonSchemaExporter.GetJsonSchemaAsNode(ModelContractJson.Options, root, SchemaDocumentation.ExporterOptions)
+            .ToJsonString(IndentedSchema) + "\n";
 
     /// <summary>Parses a schema back, for a test that reads one.</summary>
     /// <param name="json">The schema text.</param>

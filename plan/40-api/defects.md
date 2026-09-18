@@ -21,6 +21,7 @@ nothing is wrong. The `edit` endpoint of `42` is deferred whole to `P7.1` and is
 |---|---|---|---|
 | A-1 | [`41`](41-api-architecture.md), [`32`](../30-solver/32-steady-state-newton.md) | **A solved request prepares the equation system twice** | What the pipeline needs: the unknown count before it commits to a solve, so that `07`'s unknown ceiling can refuse a script with `FS4601` before any Newton step. What it does: it calls `OuterLoop.Prepare` to read the count, then `RunAsync`, which prepares again internally because it was written for a caller that never prepared. On the 200-component header `Prepare` is about 14 ms, paid twice per solved request. Not wrong, only wasteful, and invisible at the sample sizes. What would close it: `RunAsync` taking the prepared layout, or `Prepare` memoised on the loop for one model. Filed 2026-09-18 with P5.2. |
 | A-2 | [`42`](42-rest-contract.md) | **`metadata.docsIndex` is a repository-relative path, not a URI** | `42` says `docsIndex` is "a URI to the matching generated function index". `61` ships the docs as plain Markdown under `/docs` and nothing serves that directory over HTTP yet, so there is no URI to give, and the value is the configured path `docs/functions/index.md`. An agent following it today gets nothing. Closes when the docs are served, by making the option a URL. |
+| A-4 | [`41`](41-api-architecture.md), [`32`](../30-solver/32-steady-state-newton.md) | **The warm start's saving does not show in `solve.iterations`** | `41` says a warm start reduces the iteration count on an unchanged topology, and the Api test asserts it with a counting solver. Over HTTP on the cooling loop (P5.4's smoke test, 2026-09-18): cold `iterations: 2, sizingPasses: 2, elapsedMs: 19`; the same script warm `iterations: 3, sizingPasses: 2, elapsedMs: 13`; a whitespace edit warm `iterations: 2`. The reported count is the *last* outer pass's Newton count, and the warm seed is given to the *first* pass, so the number the wire carries is not where the saving lands; and the cold seed on this loop is already two iterations, so there is little to save. The elapsed time falls, which is the whole point of `41`, but a client reading `iterations` to see the warm start working sees nothing, or the reverse. Open: report the first pass's count as well, or the total over passes, and say in `26` which it is. |
 | A-3 | [`42`](42-rest-contract.md), [`13`](../10-language/13-type-and-unit-system.md) | **Two exchanger quantities go on the wire in spelled-out SI base units** | `metadata` names the unit a parameter is reported in, and the model contract carries the same unit on every value. For dimensions with a canonical unit that is the unit table's symbol; for the exchanger's `u` (W/(m²·K)) and `fouling` (m²·K/W) the table has no symbol at all, so the fallback is `Dimension.ToSiUnitString` and the wire reads `kg/(s³·K)` and `s³·K/kg`. Dimensionally right, and no engineer writes it. The gap is the unit table's (`L-54`); this row is so the wire's reader knows where the spelling comes from. Before P5.2 these were worse — dimensionless, `C-99` — which is how the metadata test found both. |
 
 ## Closed
@@ -56,6 +57,17 @@ would otherwise disagree on a 400.
 description to drift. What the contract tests pin is the wire shape through the JSON schemas
 (`D-46` step 2, `SchemaTests`), and the OpenAPI test only asserts every route is present. A later
 package that wants the schemas *inside* the OpenAPI document has both halves to join.
+
+**The schema exporter inlines every record where it occurs, and the TypeScript generator sees
+each occurrence as a type.** `JsonSchemaExporter` writes no `$defs`; a repeated record is copied,
+or, for the second occurrence at the same path, a `$ref` to the first occurrence's path. Fed to
+`json-schema-to-typescript` as is, the cooling loop's `Quantity` came out as `Quantity` through
+`Quantity15`. P5.4's generator (`frontend/scripts/wireTypes.ts`) expands the exporter's pointers,
+hoists every titled object node into `$defs` under its title, and refers to it through a one-element
+`allOf` (a `$ref` with a sibling `description` is a new anonymous type to that generator). One
+interface per title; a title whose shape differs between two occurrences keeps a numbered second,
+so a real divergence shows rather than hides. Titles exist because `SchemaDocumentation` adds them;
+without a title nothing here works, which is why it is not optional.
 
 **The `edit` endpoint is P7.1's.** `42` lists it and `08` puts the mutation API it fronts
 (`IScriptEditor`, `17`) in P7.1. Decided 2026-09-18 with the user: no stub. A route that answers

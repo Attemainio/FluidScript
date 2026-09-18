@@ -1,25 +1,36 @@
 {
+  "title": "ModelContract",
+  "description": "The one serialized shape every consumer receives (26).",
   "type": "object",
   "properties": {
     "contractVersion": {
+      "description": "The contract version the producing Core implements, major.minor.",
       "type": "string"
     },
     "provenance": {
+      "title": "Provenance",
+      "description": "What produced this: the source, the language, the catalogue, the property backend.",
       "type": "object",
       "properties": {
         "sourceHash": {
+          "description": "SHA-256 of the source text, as sha256: and 64 hex digits.",
           "type": "string"
         },
         "languageMajor": {
+          "description": "The language major version the script declared.",
           "type": "integer"
         },
         "catalog": {
+          "title": "VersionedId",
+          "description": "The pipe catalogue sizes were drawn from.",
           "type": "object",
           "properties": {
             "id": {
+              "description": "The stable identifier.",
               "type": "string"
             },
             "version": {
+              "description": "The exact version string.",
               "type": "string"
             }
           },
@@ -29,12 +40,16 @@
           ]
         },
         "propertyBackend": {
+          "title": "VersionedId",
+          "description": "The fluid property package.",
           "type": "object",
           "properties": {
             "id": {
+              "description": "The stable identifier.",
               "type": "string"
             },
             "version": {
+              "description": "The exact version string.",
               "type": "string"
             }
           },
@@ -44,6 +59,7 @@
           ]
         },
         "atmosphereKPaAbsolute": {
+          "description": "The atmosphere gauge pressures are relative to, kPa absolute (D-26).",
           "type": "number"
         }
       },
@@ -56,18 +72,22 @@
       ]
     },
     "project": {
+      "title": "Project",
+      "description": "The project line, absent when the script has none (D-37).",
       "type": [
         "object",
         "null"
       ],
       "properties": {
         "name": {
+          "description": "The project name.",
           "type": [
             "string",
             "null"
           ]
         },
         "defaultMode": {
+          "description": "The default solve mode, steady, transient or null.",
           "type": [
             "string",
             "null"
@@ -80,45 +100,56 @@
       ]
     },
     "style": {
+      "title": "Style",
+      "description": "Presentation Core carries and never interprets.",
       "type": "object",
       "properties": {
         "tokens": {
+          "description": "The applied style tokens as written.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "spacing": {
+          "description": "The spacing value in world units, or null (D-37).",
           "type": [
             "number",
             "null"
           ]
         },
         "default": {
+          "title": "ResolvedStyle",
+          "description": "The project-level style, applied where a circuit states none.",
           "type": "object",
           "properties": {
             "stroke": {
+              "description": "The stroke colour, #rrggbb, or null for the theme\u0027s.",
               "type": [
                 "string",
                 "null"
               ]
             },
             "strokeWidth": {
+              "description": "The stroke width in CSS pixels at scale 1, or null for the theme\u0027s.",
               "type": [
                 "number",
                 "null"
               ]
             },
             "pattern": {
+              "description": "solid, dashed, dotted or dash-dot.",
               "type": "string"
             },
             "fill": {
+              "description": "The static fill colour, or null for none; the colour scale paints over it while show is active.",
               "type": [
                 "string",
                 "null"
               ]
             },
             "corner": {
+              "description": "fillet, round, sharp or null for the theme\u0027s.",
               "type": [
                 "string",
                 "null"
@@ -134,32 +165,40 @@
           ]
         },
         "named": {
+          "description": "The named styles, style name = \u2026, resolved, for an editor to list.",
           "type": "object",
           "additionalProperties": {
+            "title": "ResolvedStyle",
+            "description": "A style with every name resolved (D-104). A null colour or width is the theme\u0027s default.",
             "type": "object",
             "properties": {
               "stroke": {
+                "description": "The stroke colour, #rrggbb, or null for the theme\u0027s.",
                 "type": [
                   "string",
                   "null"
                 ]
               },
               "strokeWidth": {
+                "description": "The stroke width in CSS pixels at scale 1, or null for the theme\u0027s.",
                 "type": [
                   "number",
                   "null"
                 ]
               },
               "pattern": {
+                "description": "solid, dashed, dotted or dash-dot.",
                 "type": "string"
               },
               "fill": {
+                "description": "The static fill colour, or null for none; the colour scale paints over it while show is active.",
                 "type": [
                   "string",
                   "null"
                 ]
               },
               "corner": {
+                "description": "fillet, round, sharp or null for the theme\u0027s.",
                 "type": [
                   "string",
                   "null"
@@ -184,53 +223,67 @@
       ]
     },
     "circuits": {
+      "description": "Every circuit, in declaration order; never empty (D-33).",
       "type": "array",
       "items": {
+        "title": "Circuit",
+        "description": "One circuit.",
         "type": "object",
         "properties": {
           "name": {
+            "description": "The name as written.",
             "type": "string"
           },
           "number": {
+            "description": "The number, stated or resolved.",
             "type": "integer"
           },
           "numberIsExplicit": {
+            "description": "Whether the script wrote the number; the printer needs this.",
             "type": "boolean"
           },
           "substance": {
+            "description": "The fluid keyword.",
             "type": "string"
           },
           "mode": {
+            "description": "The solve mode: steady or transient.",
             "type": "string"
           },
           "role": {
+            "description": "The resolved role\u0027s canonical name, or null for a name the registry does not know (D-35).",
             "type": [
               "string",
               "null"
             ]
           },
           "parentCircuit": {
+            "description": "The parent circuit, or null when this one stands alone (D-33).",
             "type": [
               "string",
               "null"
             ]
           },
           "inletAnchorId": {
+            "description": "The parent component this circuit takes flow from.",
             "type": [
               "string",
               "null"
             ]
           },
           "outletAnchorId": {
+            "description": "The parent component this circuit returns flow to.",
             "type": [
               "string",
               "null"
             ]
           },
           "solved": {
+            "description": "Whether every component in this circuit has a state (invariant 7).",
             "type": "boolean"
           },
           "statesOmitted": {
+            "description": "True only alongside FS2502.",
             "type": "boolean"
           }
         },
@@ -250,44 +303,57 @@
       }
     },
     "pressureDatums": {
+      "description": "One pressure datum per hydraulically connected part, not per circuit.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "components": {
+      "description": "Every graph component, in graph order.",
       "type": "array",
       "items": {
+        "title": "Component",
+        "description": "One graph component.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The stable id (25).",
             "type": "string"
           },
           "kind": {
+            "description": "The script keyword for the kind.",
             "type": "string"
           },
           "mode": {
+            "description": "The kind\u0027s canonical mode -- an exchanger\u0027s duty, rated or coupled -- absent for a kind without one.",
             "type": [
               "string",
               "null"
             ]
           },
           "symbolId": {
+            "description": "Which entry in symbols draws it.",
             "type": "string"
           },
           "origin": {
+            "description": "declared, or inferred:I1, inferred:I2, inferred:I3, inferred:I7 (a pipe a connection line\u0027s properties made, D-110).",
             "type": "string"
           },
           "sourceSpan": {
+            "title": "Span",
+            "description": "Where the declaration sits in the source; null for an inferred component.",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "start": {
+                "description": "The zero-based offset.",
                 "type": "integer"
               },
               "length": {
+                "description": "The length in UTF-16 code units.",
                 "type": "integer"
               }
             },
@@ -297,35 +363,44 @@
             ]
           },
           "circuit": {
+            "description": "The owning circuit (D-33; the losing side\u0027s under D-36).",
             "type": "string"
           },
           "tag": {
+            "description": "The equipment tag, display metadata only; null when the kind has no code or the component is inferred (D-34).",
             "type": [
               "string",
               "null"
             ]
           },
           "parameters": {
+            "description": "The design specification, by canonical parameter name, in declaration order of the kind\u0027s parameters.",
             "type": "object",
             "additionalProperties": {
+              "title": "Parameter",
+              "description": "One design parameter, with where it came from (D-02).",
               "type": "object",
               "properties": {
                 "value": {
+                  "description": "The value in Unit, or null under FS2501.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "unit": {
+                  "description": "The canonical unit, or null for a dimensionless value.",
                   "type": [
                     "string",
                     "null"
                   ]
                 },
                 "source": {
+                  "description": "stated, sized or default.",
                   "type": "string"
                 },
                 "basis": {
+                  "description": "Why a sized or default value is what it is; absent for a stated one.",
                   "type": [
                     "string",
                     "null"
@@ -340,24 +415,30 @@
             }
           },
           "state": {
+            "title": "ComponentState",
+            "description": "The solved operating point, or null when the circuit is unsolved or states are omitted.",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "flow": {
+                "title": "Quantity",
+                "description": "Mass flow through the component\u0027s first flow group, positive from its first port toward its second.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -367,18 +448,22 @@
                 ]
               },
               "tIn": {
+                "title": "Quantity",
+                "description": "Temperature at the inlet port.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -388,18 +473,22 @@
                 ]
               },
               "tOut": {
+                "title": "Quantity",
+                "description": "Temperature at the outlet port.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -409,18 +498,22 @@
                 ]
               },
               "pIn": {
+                "title": "Quantity",
+                "description": "Pressure at the inlet port, gauge in the canonical unit (D-26).",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -430,18 +523,22 @@
                 ]
               },
               "pOut": {
+                "title": "Quantity",
+                "description": "Pressure at the outlet port, gauge in the canonical unit (D-26).",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -451,18 +548,22 @@
                 ]
               },
               "dp": {
+                "title": "Quantity",
+                "description": "Pressure drop inlet to outlet; negative across a pump.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -472,18 +573,22 @@
                 ]
               },
               "power": {
+                "title": "Quantity",
+                "description": "Heat into the fluid on the first side, positive when the fluid gains.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -493,18 +598,22 @@
                 ]
               },
               "flow2": {
+                "title": "Quantity",
+                "description": "Mass flow on an exchanger\u0027s second side.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -514,18 +623,22 @@
                 ]
               },
               "tIn2": {
+                "title": "Quantity",
+                "description": "Temperature at the second side\u0027s inlet.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -535,18 +648,22 @@
                 ]
               },
               "tOut2": {
+                "title": "Quantity",
+                "description": "Temperature at the second side\u0027s outlet.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -556,18 +673,22 @@
                 ]
               },
               "head": {
+                "title": "Quantity",
+                "description": "A pump\u0027s delivered head.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -577,18 +698,22 @@
                 ]
               },
               "t": {
+                "title": "Quantity",
+                "description": "A node\u0027s temperature.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -598,18 +723,22 @@
                 ]
               },
               "p": {
+                "title": "Quantity",
+                "description": "A node\u0027s pressure, gauge in the canonical unit (D-26).",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -619,20 +748,25 @@
                 ]
               },
               "solved": {
+                "description": "Solved parameters the solver was asked to find -- a promoted kv, a sized head.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "additionalProperties": {
+                  "title": "Quantity",
+                  "description": "A solved value in its canonical unit.",
                   "type": "object",
                   "properties": {
                     "value": {
+                      "description": "The value in , or null under FS2501.",
                       "type": [
                         "number",
                         "null"
                       ]
                     },
                     "unit": {
+                      "description": "The canonical unit.",
                       "type": "string"
                     }
                   },
@@ -643,29 +777,38 @@
                 }
               },
               "layers": {
+                "description": "A tank\u0027s layers, bottom to top, 1\u2026N.",
                 "type": [
                   "array",
                   "null"
                 ],
                 "items": {
+                  "title": "Layer",
+                  "description": "One tank layer.",
                   "type": "object",
                   "properties": {
                     "index": {
+                      "description": "One-based, from the bottom.",
                       "type": "integer"
                     },
                     "elevation": {
+                      "description": "The layer\u0027s top as a fraction of the tank height, 0\u20261.",
                       "type": "number"
                     },
                     "t": {
+                      "title": "Quantity",
+                      "description": "The layer temperature.",
                       "type": "object",
                       "properties": {
                         "value": {
+                          "description": "The value in , or null under FS2501.",
                           "type": [
                             "number",
                             "null"
                           ]
                         },
                         "unit": {
+                          "description": "The canonical unit.",
                           "type": "string"
                         }
                       },
@@ -685,29 +828,37 @@
             }
           },
           "ports": {
+            "description": "Every port, in declaration order; a tank lists only its materialized ports.",
             "type": "array",
             "items": {
+              "title": "Port",
+              "description": "One port.",
               "type": "object",
               "properties": {
                 "name": {
+                  "description": "The port name.",
                   "type": "string"
                 },
                 "role": {
+                  "description": "inlet, outlet or bidirectional.",
                   "type": "string"
                 },
                 "connectedTo": {
+                  "description": "The component the port is wired to, or null when open.",
                   "type": [
                     "string",
                     "null"
                   ]
                 },
                 "elevation": {
+                  "description": "A tank port\u0027s normalized elevation; absent otherwise.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "layer": {
+                  "description": "The tank layer the port meets; absent otherwise.",
                   "type": [
                     "integer",
                     "null"
@@ -737,58 +888,73 @@
       }
     },
     "symbols": {
+      "description": "The symbol definitions the components reference (D-20, D-24).",
       "type": "array",
       "items": {
+        "title": "Symbol",
+        "description": "A symbol definition in a normalized box (D-20, D-102).",
         "type": "object",
         "properties": {
           "id": {
+            "description": "The id components reference, kind.variant.",
             "type": "string"
           },
           "viewBox": {
+            "description": "The bounding box as [x, y, width, height] in symbol units; what layout reasons on.",
             "type": "array",
             "items": {
               "type": "number"
             }
           },
           "primitives": {
+            "description": "What the canvas draws inside the box. Never executable.",
             "type": "array",
             "items": {
+              "title": "Primitive",
+              "description": "One drawing primitive; the fields a kind does not use are absent.",
               "type": "object",
               "properties": {
                 "kind": {
+                  "description": "rect, line, circle, polyline or polygon.",
                   "type": "string"
                 },
                 "x": {
+                  "description": "A rectangle\u0027s or circle\u0027s origin.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "y": {
+                  "description": "A rectangle\u0027s or circle\u0027s origin.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "width": {
+                  "description": "A rectangle\u0027s width.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "height": {
+                  "description": "A rectangle\u0027s height.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "r": {
+                  "description": "A circle\u0027s radius.",
                   "type": [
                     "number",
                     "null"
                   ]
                 },
                 "from": {
+                  "description": "A line\u0027s start.",
                   "type": [
                     "array",
                     "null"
@@ -798,6 +964,7 @@
                   }
                 },
                 "to": {
+                  "description": "A line\u0027s end.",
                   "type": [
                     "array",
                     "null"
@@ -807,6 +974,7 @@
                   }
                 },
                 "points": {
+                  "description": "A polyline\u0027s or polygon\u0027s points, flattened [x0, y0, x1, y1, \u2026].",
                   "type": [
                     "array",
                     "null"
@@ -816,12 +984,14 @@
                   }
                 },
                 "fill": {
+                  "description": "What fills a closed shape: state for the active colour scale\u0027s slot (57), stroke for a solid mark in the line colour; absent for an outline.",
                   "type": [
                     "string",
                     "null"
                   ]
                 },
                 "dashed": {
+                  "description": "true for a dashed stroke; absent for a solid one.",
                   "type": [
                     "boolean",
                     "null"
@@ -834,17 +1004,22 @@
             }
           },
           "portAnchors": {
+            "description": "The default arrangement: each named port\u0027s anchor on the box edge and its outward direction.",
             "type": "object",
             "additionalProperties": {
+              "title": "Anchor",
+              "description": "Where a port meets its symbol, and which way a connection leaves it.",
               "type": "object",
               "properties": {
                 "at": {
+                  "description": "The point on the box edge, [x, y] in symbol units.",
                   "type": "array",
                   "items": {
                     "type": "number"
                   }
                 },
                 "direction": {
+                  "description": "The outward unit vector a connection leaves along, [dx, dy] with y up (28 A1); rotates with the box. Absent for the wildcard anchor, whose direction the layout chooses.",
                   "type": [
                     "array",
                     "null"
@@ -860,6 +1035,7 @@
             }
           },
           "alternatives": {
+            "description": "Other complete arrangements of the same ports on the same box, by name; the renderer may pick one per instance, with a rotation, to shorten the connections it has to draw. Absent when there is one.",
             "type": [
               "object",
               "null"
@@ -872,32 +1048,41 @@
             }
           },
           "indexedPortAnchors": {
+            "description": "Rules for indexed ports such as a tank\u0027s in{n}; absent for a fixed-port symbol.",
             "type": [
               "array",
               "null"
             ],
             "items": {
+              "title": "IndexedAnchor",
+              "description": "An anchor rule for an indexed port family.",
               "type": "object",
               "properties": {
                 "prefix": {
+                  "description": "The port name prefix, in or out.",
                   "type": "string"
                 },
                 "side": {
+                  "description": "The box side the family sits on.",
                   "type": "string"
                 },
                 "direction": {
+                  "description": "The outward unit vector every anchor of the family leaves along, [dx, dy].",
                   "type": "array",
                   "items": {
                     "type": "number"
                   }
                 },
                 "verticalCoordinate": {
+                  "description": "Which port field gives the position along that side.",
                   "type": "string"
                 },
                 "minIndex": {
+                  "description": "The smallest index the rule covers.",
                   "type": "integer"
                 },
                 "maxIndex": {
+                  "description": "The largest index the rule covers.",
                   "type": "integer"
                 }
               },
@@ -912,12 +1097,14 @@
             }
           },
           "labelAnchor": {
+            "description": "Where the label sits, [x, y].",
             "type": "array",
             "items": {
               "type": "number"
             }
           },
           "transformClass": {
+            "description": "Which transforms the kind admits (28 A4, D-108): free turns by any quarter, mirrored or not; standing is never turned, only mirrored left-right, up-down or both (every exchanger); upright admits only the left-right mirror (a tank, whose layers are a vertical order); level admits every transform but stands vertical only where nothing level fits (a pump, D-113). A fact about the kind, never a preference.",
             "type": "string"
           }
         },
@@ -931,20 +1118,28 @@
       }
     },
     "connections": {
+      "description": "Every adjacency, in the model\u0027s connection order, keyed c{n}.",
       "type": "array",
       "items": {
+        "title": "Connection",
+        "description": "One adjacency.",
         "type": "object",
         "properties": {
           "id": {
+            "description": "c{n}, by position in the model\u0027s connection list.",
             "type": "string"
           },
           "from": {
+            "title": "Endpoint",
+            "description": "Where it starts.",
             "type": "object",
             "properties": {
               "component": {
+                "description": "The component id.",
                 "type": "string"
               },
               "port": {
+                "description": "The port name, or null for a node.",
                 "type": [
                   "string",
                   "null"
@@ -957,12 +1152,16 @@
             ]
           },
           "to": {
+            "title": "Endpoint",
+            "description": "Where it ends.",
             "type": "object",
             "properties": {
               "component": {
+                "description": "The component id.",
                 "type": "string"
               },
               "port": {
+                "description": "The port name, or null for a node.",
                 "type": [
                   "string",
                   "null"
@@ -975,24 +1174,31 @@
             ]
           },
           "flow": {
+            "description": "forward, reverse or none: the solved direction relative to how it was written.",
             "type": "string"
           },
           "state": {
+            "title": "ConnectionState",
+            "description": "The solved flow along it, or null when unsolved.",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "flow": {
+                "title": "Quantity",
+                "description": "The mass flow in the written direction.",
                 "type": "object",
                 "properties": {
                   "value": {
+                    "description": "The value in , or null under FS2501.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "unit": {
+                    "description": "The canonical unit.",
                     "type": "string"
                   }
                 },
@@ -1017,26 +1223,35 @@
       }
     },
     "layout": {
+      "title": "Layout",
+      "description": "The layout hints, serialized from 25\u0027s contract field for field.",
       "type": "object",
       "properties": {
         "order": {
+          "description": "Depth-first order from each pressure datum.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "thermalStages": {
+          "description": "The heat-progression bands, left to right.",
           "type": "array",
           "items": {
+            "title": "ThermalStage",
+            "description": "One thermal stage.",
             "type": "object",
             "properties": {
               "rank": {
+                "description": "The band index.",
                 "type": "integer"
               },
               "role": {
+                "description": "source, conversion, storage, consumer or neutral.",
                 "type": "string"
               },
               "components": {
+                "description": "Members in graph order.",
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -1051,20 +1266,26 @@
           }
         },
         "flow": {
+          "description": "Solved direction per connection id.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
           }
         },
         "groups": {
+          "description": "Pipe expansions.",
           "type": "array",
           "items": {
+            "title": "ComponentGroup",
+            "description": "A pipe expansion.",
             "type": "object",
             "properties": {
               "parentComponentId": {
+                "description": "The declared pipe.",
                 "type": "string"
               },
               "children": {
+                "description": "What lowering made of it.",
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -1078,26 +1299,34 @@
           }
         },
         "nonFlowElements": {
+          "description": "Instruments and controllers.",
           "type": "array",
           "items": {
+            "title": "NonFlowElement",
+            "description": "An instrument or controller.",
             "type": "object",
             "properties": {
               "componentId": {
+                "description": "Its id.",
                 "type": "string"
               },
               "placementAnchorId": {
+                "description": "The component it is drawn beside.",
                 "type": "string"
               },
               "measurementTargetId": {
+                "description": "What it reads.",
                 "type": "string"
               },
               "actuationTargetId": {
+                "description": "What it drives, or null for an instrument.",
                 "type": [
                   "string",
                   "null"
                 ]
               },
               "navigationOrder": {
+                "description": "Its position in the tab order.",
                 "type": "integer"
               }
             },
@@ -1111,20 +1340,26 @@
           }
         },
         "circuitOf": {
+          "description": "Owning circuit per component.",
           "type": "object",
           "additionalProperties": {
             "type": "string"
           }
         },
         "distributionGroups": {
+          "description": "Subcircuits sharing one parent, in declaration order.",
           "type": "array",
           "items": {
+            "title": "DistributionGroup",
+            "description": "A distribution group.",
             "type": "object",
             "properties": {
               "parentCircuit": {
+                "description": "The circuit owning the rails.",
                 "type": "string"
               },
               "members": {
+                "description": "The branches, at least two.",
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -1138,95 +1373,118 @@
           }
         },
         "inferred": {
+          "description": "Components the language added.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "margin": {
+          "description": "The clearance every component keeps from every other, world units (D-103); the spacing directive or 0.5.",
           "type": "number"
         },
         "extent": {
+          "description": "The bounds of the whole drawing as [x, y, width, height], world units, outer boxes and routes included.",
           "type": "array",
           "items": {
             "type": "number"
           }
         },
         "placements": {
+          "description": "Where every component sits, in Order then the non-flow elements.",
           "type": "array",
           "items": {
+            "title": "Placement",
+            "description": "One component\u0027s place in the drawing (D-103). World units: a pump is 1\u00D71, y grows upward and a box\u0027s y is its bottom edge (28 A1).",
             "type": "object",
             "properties": {
               "componentId": {
+                "description": "The component.",
                 "type": "string"
               },
               "symbolId": {
+                "description": "The symbol drawn inside Inner.",
                 "type": "string"
               },
               "inner": {
+                "description": "The symbol\u0027s box as placed, [x, y, width, height]; the renderer draws the strokes inside it.",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "outer": {
+                "description": "The inner box grown by the margin; no other component\u0027s inner box enters it.",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "rotation": {
+                "description": "The quarter turn applied, clockwise degrees: 0, 90, 180 or 270.",
                 "type": "integer"
               },
               "mirrored": {
+                "description": "Whether the symbol is mirrored left-to-right before the turn.",
                 "type": "boolean"
               },
               "arrangement": {
+                "description": "default or one of the symbol\u0027s alternative arrangements (D-102).",
                 "type": "string"
               },
               "anchors": {
+                "description": "Every port\u0027s anchor in world coordinates with its outward direction; a node\u0027s ports are #0, #1, \u2026",
                 "type": "object",
                 "additionalProperties": {
                   "$ref": "#/properties/symbols/items/properties/portAnchors/additionalProperties"
                 }
               },
               "labelAt": {
+                "description": "Where the label sits, [x, y].",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "source": {
+                "description": "computed; pinned is reserved for a placement the script states.",
                 "type": "string"
               },
               "style": {
+                "title": "ResolvedStyle",
+                "description": "The resolved style: the script\u0027s named or anonymous style (D-104); absent when the theme\u0027s defaults apply throughout.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "stroke": {
+                    "description": "The stroke colour, #rrggbb, or null for the theme\u0027s.",
                     "type": [
                       "string",
                       "null"
                     ]
                   },
                   "strokeWidth": {
+                    "description": "The stroke width in CSS pixels at scale 1, or null for the theme\u0027s.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "pattern": {
+                    "description": "solid, dashed, dotted or dash-dot.",
                     "type": "string"
                   },
                   "fill": {
+                    "description": "The static fill colour, or null for none; the colour scale paints over it while show is active.",
                     "type": [
                       "string",
                       "null"
                     ]
                   },
                   "corner": {
+                    "description": "fillet, round, sharp or null for the theme\u0027s.",
                     "type": [
                       "string",
                       "null"
@@ -1242,6 +1500,7 @@
                 ]
               },
               "scale": {
+                "description": "Where the component\u0027s representative value sits on the active colour scale, 0 to 1; null when not computed.",
                 "type": [
                   "number",
                   "null"
@@ -1264,59 +1523,74 @@
           }
         },
         "routes": {
+          "description": "Every connection\u0027s path, in connection order, then the instruments\u0027 signal lines.",
           "type": "array",
           "items": {
+            "title": "Route",
+            "description": "One connection\u0027s path.",
             "type": "object",
             "properties": {
               "id": {
+                "description": "c{n} for a connection; {instrument}:measures or {controller}:actuates for a signal line.",
                 "type": "string"
               },
               "kind": {
+                "description": "pipe or signal.",
                 "type": "string"
               },
               "layer": {
+                "description": "The draw order (28 C16): supply in front, return behind it, signal behind everything. A pipe is supply until the flow from a heat source has passed a losing side.",
                 "type": "string"
               },
               "points": {
+                "description": "The orthogonal polyline, flattened [x0, y0, x1, y1, \u2026]; the first and last points are the anchors.",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "hops": {
+                "description": "Where this route passes behind another it crosses, flattened [x0, y0, \u2026] in world units; the renderer breaks this route around each so the one in front runs through (28 C16).",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "style": {
+                "title": "ResolvedStyle",
+                "description": "The resolved style, from the component the route leaves; absent when the theme\u0027s defaults apply throughout.",
                 "type": [
                   "object",
                   "null"
                 ],
                 "properties": {
                   "stroke": {
+                    "description": "The stroke colour, #rrggbb, or null for the theme\u0027s.",
                     "type": [
                       "string",
                       "null"
                     ]
                   },
                   "strokeWidth": {
+                    "description": "The stroke width in CSS pixels at scale 1, or null for the theme\u0027s.",
                     "type": [
                       "number",
                       "null"
                     ]
                   },
                   "pattern": {
+                    "description": "solid, dashed, dotted or dash-dot.",
                     "type": "string"
                   },
                   "fill": {
+                    "description": "The static fill colour, or null for none; the colour scale paints over it while show is active.",
                     "type": [
                       "string",
                       "null"
                     ]
                   },
                   "corner": {
+                    "description": "fillet, round, sharp or null for the theme\u0027s.",
                     "type": [
                       "string",
                       "null"
@@ -1332,12 +1606,14 @@
                 ]
               },
               "scaleFrom": {
+                "description": "The scale position at the start, for a gradient; null when not computed.",
                 "type": [
                   "number",
                   "null"
                 ]
               },
               "scaleTo": {
+                "description": "The scale position at the end.",
                 "type": [
                   "number",
                   "null"
@@ -1372,45 +1648,60 @@
       ]
     },
     "visualization": {
+      "title": "Visualization",
+      "description": "The show directive\u0027s resolution (57).",
       "type": "object",
       "properties": {
         "active": {
+          "description": "The property the colour scale follows.",
           "type": "string"
         },
         "available": {
+          "description": "The properties the switcher offers.",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "scale": {
+          "title": "Scale",
+          "description": "The scale for Active.",
           "type": "object",
           "properties": {
             "property": {
+              "description": "The property.",
               "type": "string"
             },
             "displayName": {
+              "description": "The legend title.",
               "type": "string"
             },
             "unit": {
+              "description": "The unit the domain is in.",
               "type": "string"
             },
             "kind": {
+              "description": "sequential or diverging.",
               "type": "string"
             },
             "domain": {
+              "title": "Domain",
+              "description": "The range mapped to the scale\u0027s ends, or null before anything is solved.",
               "type": [
                 "object",
                 "null"
               ],
               "properties": {
                 "min": {
+                  "description": "The low end, in the scale\u0027s unit.",
                   "type": "number"
                 },
                 "max": {
+                  "description": "The high end, in the scale\u0027s unit.",
                   "type": "number"
                 },
                 "nice": {
+                  "description": "Whether the ends were rounded outward to legend ticks.",
                   "type": "boolean"
                 }
               },
@@ -1421,6 +1712,7 @@
               ]
             },
             "degenerate": {
+              "description": "Whether every element has the same value.",
               "type": "boolean"
             }
           },
@@ -1441,20 +1733,26 @@
       ]
     },
     "bindings": {
+      "description": "Evaluated let values.",
       "type": "array",
       "items": {
+        "title": "Binding",
+        "description": "An evaluated let.",
         "type": "object",
         "properties": {
           "name": {
+            "description": "The name.",
             "type": "string"
           },
           "value": {
+            "description": "The value in .",
             "type": [
               "number",
               "null"
             ]
           },
           "unit": {
+            "description": "The canonical unit, or null when dimensionless.",
             "type": [
               "string",
               "null"
@@ -1469,32 +1767,44 @@
       }
     },
     "diagnostics": {
+      "description": "Every diagnostic the pipeline produced, ordered by severity then offset (44).",
       "type": "array",
       "items": {
+        "title": "Diagnostic",
+        "description": "One diagnostic (44).",
         "type": "object",
         "properties": {
           "code": {
+            "description": "The registry code.",
             "type": "string"
           },
           "severity": {
+            "description": "error, warning or info.",
             "type": "string"
           },
           "message": {
+            "description": "The rendered message.",
             "type": "string"
           },
           "range": {
+            "title": "Range",
+            "description": "Where, or null when it is about no source text.",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "start": {
+                "title": "Position",
+                "description": "Where it starts.",
                 "type": "object",
                 "properties": {
                   "line": {
+                    "description": "The line.",
                     "type": "integer"
                   },
                   "character": {
+                    "description": "The column.",
                     "type": "integer"
                   }
                 },
@@ -1504,12 +1814,16 @@
                 ]
               },
               "end": {
+                "title": "Position",
+                "description": "Where it ends, exclusive.",
                 "type": "object",
                 "properties": {
                   "line": {
+                    "description": "The line.",
                     "type": "integer"
                   },
                   "character": {
+                    "description": "The column.",
                     "type": "integer"
                   }
                 },
@@ -1519,9 +1833,11 @@
                 ]
               },
               "offset": {
+                "description": "The zero-based character offset.",
                 "type": "integer"
               },
               "length": {
+                "description": "The length in UTF-16 code units.",
                 "type": "integer"
               }
             },
@@ -1533,33 +1849,43 @@
             ]
           },
           "component": {
+            "description": "The component it is about, or null.",
             "type": [
               "string",
               "null"
             ]
           },
           "suggestion": {
+            "title": "Suggestion",
+            "description": "A fix, or null.",
             "type": [
               "object",
               "null"
             ],
             "properties": {
               "title": {
+                "description": "What it does.",
                 "type": "string"
               },
               "range": {
+                "title": "Range",
+                "description": "What it replaces.",
                 "type": "object",
                 "properties": {
                   "start": {
+                    "description": "Where it starts.",
                     "$ref": "#/properties/diagnostics/items/properties/range/properties/start"
                   },
                   "end": {
+                    "description": "Where it ends, exclusive.",
                     "$ref": "#/properties/diagnostics/items/properties/range/properties/end"
                   },
                   "offset": {
+                    "description": "The zero-based character offset.",
                     "type": "integer"
                   },
                   "length": {
+                    "description": "The length in UTF-16 code units.",
                     "type": "integer"
                   }
                 },
@@ -1571,6 +1897,7 @@
                 ]
               },
               "newText": {
+                "description": "What it puts there.",
                 "type": "string"
               }
             },
@@ -1581,26 +1908,36 @@
             ]
           },
           "related": {
+            "description": "Other places it is about.",
             "type": "array",
             "items": {
+              "title": "Related",
+              "description": "A related location.",
               "type": "object",
               "properties": {
                 "message": {
+                  "description": "Why it is related.",
                   "type": "string"
                 },
                 "range": {
+                  "title": "Range",
+                  "description": "Where it is.",
                   "type": "object",
                   "properties": {
                     "start": {
+                      "description": "Where it starts.",
                       "$ref": "#/properties/diagnostics/items/properties/range/properties/start"
                     },
                     "end": {
+                      "description": "Where it ends, exclusive.",
                       "$ref": "#/properties/diagnostics/items/properties/range/properties/end"
                     },
                     "offset": {
+                      "description": "The zero-based character offset.",
                       "type": "integer"
                     },
                     "length": {
+                      "description": "The length in UTF-16 code units.",
                       "type": "integer"
                     }
                   },
@@ -1631,27 +1968,34 @@
       }
     },
     "solve": {
+      "title": "Solve",
+      "description": "What the solve did, or null when nothing was solved.",
       "type": [
         "object",
         "null"
       ],
       "properties": {
         "converged": {
+          "description": "Whether the last pass converged.",
           "type": "boolean"
         },
         "iterations": {
+          "description": "Newton iterations on the last pass.",
           "type": "integer"
         },
         "residualNorm": {
+          "description": "The scaled residual norm at the end.",
           "type": "number"
         },
         "elapsedMs": {
+          "description": "Wall time, or null when the caller did not time it.",
           "type": [
             "integer",
             "null"
           ]
         },
         "sizingPasses": {
+          "description": "Outer-loop passes.",
           "type": "integer"
         }
       },

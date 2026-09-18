@@ -94,7 +94,13 @@ would be filled with nothing.
 > as `d1a1c08`. **P5.3, the design system, shipped the same day:** the tokens, the two themes as
 > JSON with the cascade generated from them, custom theme files, eight primitives, and the first
 > frontend tests -- contrast, palette, the literal scan -- on Vitest; `F-1`, `F-2` opened, `F-3`
-> closed, in the new `50-frontend/defects.md`. The next package is P5.4, the app shell.
+> closed, in the new `50-frontend/defects.md`. Committed as `8439e2f`. **P5.4, the app shell,
+> shipped the same day:** `51`'s shell around a text area and a component list, the four stores,
+> the typed client with the wire types generated from the Api's schemas (now titled and documented,
+> `D-46` step 4), and the debounce pipeline with its validate phase, all of `51`'s request-stream
+> criteria asserted on a hand-driven clock; `F-4` (the debounce is unmeasured until P5.5) and
+> `A-4` (the warm start's saving is invisible in `solve.iterations`) opened. The next package is
+> P5.5, the editor.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -303,7 +309,8 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.1d-3 | The layout report (`D-100`) and `62`'s predicate gates: `SceneText` in Core with its raster, the audit's three gaps (`C-95`), `LayoutPredicateTests` | (this commit, 2026-09-18) | Shipped 2026-09-18 |
 | P5.1e | Pipe properties on a connection line (`D-110`): the grammar's trailing property list, the printer round trip, the implicit `pipe` per connection (rule I7) with `length` defaulting to zero, the samples, `01`'s reference circuits and the ladder scripts rewritten to it, `docs/functions/pipe.md` | `44e30fa` | Shipped 2026-09-18; `L-51` closed; `C-97` (the implicit pipe's source span) opened |
 | P5.2 | REST and diagnostics contracts, host, sessions, cancellation ([`42`](40-api/42-rest-contract.md), [`44`](40-api/44-diagnostics-contract.md), [`41`](40-api/41-api-architecture.md)): `compile`/`solve`/`validate`/`metadata`, sessions with warm start and supersession, `07`'s limits, the committed JSON schemas, OpenAPI, `docs/advanced/using-the-api.md` | `d1a1c08` | Shipped 2026-09-18; `edit` deferred to P7.1; `C-99` closed; `A-1`–`A-3`, `L-53`, `L-54` opened |
-| P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)): `tokens.ts`, the two themes as JSON and the generated cascade, custom theme files, the UI store's `theme`, eight primitives, Vitest with the design tests, `docs/advanced/themes.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `F-3` closed; `F-1`, `F-2` opened; `Tooltip`, `Slider`, `NumericInput`, `SplitPane` land with their first consumers |
+| P5.3 | Design tokens and themes ([`55`](50-frontend/55-design-system.md)): `tokens.ts`, the two themes as JSON and the generated cascade, custom theme files, the UI store's `theme`, eight primitives, Vitest with the design tests, `docs/advanced/themes.md` | `8439e2f` | Shipped 2026-09-18; `F-3` closed; `F-1`, `F-2` opened; `Tooltip`, `Slider`, `NumericInput` land with their first consumers |
+| P5.4 | App shell, the four state domains, the debounce pipeline ([`51`](50-frontend/51-frontend-architecture.md)): the shell with `SplitPane`, tabs, log slot and status line; `draftStore`, `runStore`, `workspaceStore`, `uiStore`; the typed client and `types.generated.ts` from the schemas (titles and descriptions added on the Api side); `CompilePipeline` with `LatencyTracker`; `docs/advanced/working-in-tabs.md` | (this commit, 2026-09-18) | Shipped 2026-09-18; `F-4`, `A-4` opened; the editor is a text area until P5.5, the canvas a list until P5.6 |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -615,6 +622,35 @@ chosen to clear the contrast test and have no other basis (the defects file says
 jsdom are the test runner (`62`, `63`); `npm test` is 25/0, `tsc -b` and oxlint clean, Prettier
 clean. `docs/advanced/themes.md` is the page. Core and Api unchanged.
 
+**P5.4 is `51` built around a text area** (2026-09-18). The shell is `features/shell`: `51`'s
+toolbar (Solve live, Run, Stop and Export disabled until their packages), the tab strip from the
+workspace store with the dirty and running markers, the editor-left canvas-right `SplitPane` whose
+ratio persists, the log's slot listing the active document's diagnostics with `56`'s glyphs, and
+the status line -- `● Converged · steady solve · plant_01` -- with a distinct glyph and word per
+state. The four stores are `51`'s table: `draftStore` keyed by document with the last successful
+model, the diagnostics, the revision each came from and the solve status, guarding against a stale
+response by revision; `runStore` with a run's id, snapshot hash and status and no model object;
+`workspaceStore` persisted as ids and names, capped at eight; `uiStore` with theme, split and the
+log's fold. The text of every document lives in `features/editor/documents.ts`, a map outside
+React state (`51` invariant 1), read by the pipeline when it sends. `api/client.ts` is the typed
+`compile`/`solve`/`validate`/`metadata` over `fetch` with problem details as `ApiError`; the
+types are `api/types.generated.ts`, produced by `npm run types` from the Api's three schemas and
+gated by a test. For that to name anything, the Api's exporter now adds every object's `title` and
+every documented member's `description` from the XML documentation files (`SchemaDocumentation`,
+`D-46` step 4; the schemas regenerated, 781 lines added), and the frontend's generator hoists the
+inlined records into `$defs` so one interface comes out per title. `CompilePipeline` is the
+debounce: every edit restarts the timer, the request in flight is aborted when the next fires, a
+stale answer is dropped, a failed compile keeps the model, a tab switch cancels the outgoing
+document's work; `LatencyTracker` switches the 100 ms `validate` phase on above a 100 ms p95 and
+off after fifty compiles under 75 ms, and its diagnostics yield to the compile's for the same
+revision. Every one of `51`'s request-stream criteria is a test on a hand-driven clock; the shell
+test types into the text area, watches the status line, switches tabs and reloads the split. The
+debounce is 300 ms and unmeasured until P5.5's benchmark (`F-4`). Smoke-tested against the live
+host: the cooling loop cold 906 ms / warm 24 ms over HTTP, 413 with its problem details, metadata
+13 kinds and 133 codes -- and the warm run's `iterations` was 3 against the cold run's 2, filed as
+`A-4`. `docs/advanced/working-in-tabs.md` is the page. Frontend 45/0, Api 55/0 with the schemas
+regenerated, Core unchanged.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -726,7 +762,8 @@ a judgement.
 |---|---|---|
 | Core test suite | **1805 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **55 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
-| Frontend tests | **25 passed, 0 failed**, ~7 s | `cd frontend && npm test` |
+| Frontend tests | **45 passed, 0 failed**, ~8 s | `cd frontend && npm test` |
+| Debounce | **300 ms, provisional** (`D-49`; measured by P5.5's benchmark, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |

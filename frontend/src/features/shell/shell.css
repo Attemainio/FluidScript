@@ -1,0 +1,110 @@
+.shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  height: 100%;
+}
+
+.shell__main {
+  min-height: 0;
+}
+
+.document-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--surface-sunken);
+  border-bottom: var(--hairline) solid var(--border-subtle);
+}
+
+.document-tabs .fs-tabs {
+  flex: 1;
+  border-bottom: none;
+}
+
+.editor-pane {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: var(--space-3);
+  margin: 0;
+  color: var(--editor-fg);
+  background: var(--editor-bg);
+  border: none;
+  outline: none;
+  resize: none;
+  tab-size: 4;
+}
+
+.canvas-pane {
+  height: 100%;
+  padding: var(--space-4);
+  overflow: auto;
+  color: var(--text-secondary);
+  background: var(--canvas-bg);
+}
+
+.canvas-pane__empty,
+.canvas-pane__summary {
+  margin: 0 0 var(--space-3);
+}
+
+.canvas-pane__list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.log-pane {
+  border-top: var(--hairline) solid var(--border-subtle);
+  background: var(--surface-raised);
+}
+
+.log-pane__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  color: var(--text-secondary);
+}
+
+.log-pane__errors {
+  color: var(--status-error);
+}
+
+.log-pane__entries {
+  height: var(--log-height);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  overflow: auto;
+  list-style: none;
+}
+
+.log-pane__entry {
+  display: grid;
+  grid-template-columns: var(--space-4) var(--space-8) 1fr;
+  gap: var(--space-2);
+}
+
+.log-pane__entry--error .log-pane__glyph {
+  color: var(--status-error);
+}
+
+.log-pane__entry--warning .log-pane__glyph {
+  color: var(--status-warning);
+}
+
+.log-pane__entry--info .log-pane__glyph {
+  color: var(--status-info);
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface-sunken);
+  border-top: var(--hairline) solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.status-line__fault {
+  color: var(--status-error);
+}

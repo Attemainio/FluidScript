@@ -78,6 +78,7 @@
   --text-label-size: 11px;
   --text-label-weight: 500;
   --text-readout-size: 12px;
+  --log-height: 120px;
 
   --motion-hover: 150ms;
   --motion-value: 200ms;

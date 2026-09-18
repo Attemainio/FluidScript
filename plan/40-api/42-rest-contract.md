@@ -240,11 +240,13 @@ declaration. A diagnostic about a name underlines the name.
 - [x] Cancelling a request stops the solve (P5.2: supersession and disconnect both, `41`).
 - [x] No response duplicates model diagnostics; `/validate` is the only diagnostics-only response
       (P5.2; the compatibility-refused script's `model: null` envelope is the one exception, above).
-- [ ] Shared JSON Schemas generate the C# and TypeScript transport DTOs and contract tests reject
-      drift. *Half: `D-46` step 2 is in — the C# records are the source and the schemas under
-      `Api/Contracts/Schemas` are exported from them with `JsonSchemaExporter` and gated
-      (`SchemaTests`), regenerated under `FLUIDSCRIPT_UPDATE_GOLDENS=1`. TypeScript generation from
-      those files is P5.4's, when there is a frontend to consume them.*
+- [x] Shared JSON Schemas generate the C# and TypeScript transport DTOs and contract tests reject
+      drift, as `D-46` reversed it: the C# records are the source, the schemas under
+      `Api/Contracts/Schemas` are exported from them (P5.2, `SchemaTests`) with every object's
+      `title` and every documented member's `description` from the XML docs (P5.4,
+      `SchemaDocumentation`, `D-46` step 4), and `frontend/src/api/types.generated.ts` is generated
+      from those files by `npm run types` and gated by a test that regenerates it (P5.4). A drift on
+      either side fails a suite.
 - [ ] REST majors coexist and cache independently under the policy above; `contractVersion` remains
       the model payload's version rather than an alias for the route major. *The key is
       `(apiMajor, sessionId)` and `contractVersion` is the model's (P5.2); a second major does not

@@ -94,7 +94,11 @@ A background document's Run store keeps being updated by its own worker
 place where a non-active document does work, and it is deliberate: stopping it would discard the run.
 
 State library: **Zustand**. The state is small, mostly flat, and mutated from outside React
-(WebSocket frames). Redux is ceremony at this size; Context re-renders too broadly for a canvas
+(WebSocket frames). P5.4 built the four stores as `51`'s table has them -- `draftStore` keyed by
+document with the last successful model, the diagnostics and their revisions; `runStore` with a
+run's id, snapshot hash and status and nothing of its frames; `workspaceStore` persisted as ids and
+names; `uiStore` with theme, split and the log's fold -- and the text of every open document lives
+in the editor feature's own map, which is what a CodeMirror state per document becomes in P5.5. Redux is ceremony at this size; Context re-renders too broadly for a canvas
 receiving frames at 1 Hz. Per-document stores are slices keyed by `documentId` in one store rather
 than one store per document, so a tab close disposes its slice in a single action and cannot leak a
 subscription.
@@ -308,15 +312,20 @@ alternative — swapping the canvas to the static model mid-run — would look l
 
 ## Acceptance criteria
 
-- [ ] Typing continuously for 10 s produces at most one in-flight request at any moment.
-- [ ] An artificially delayed response never overwrites a newer model.
-- [ ] A latency fixture above 100 ms p95 enables the 100 ms validation phase; 50 requests below 75 ms
-      disable it, and an older validation result never replaces newer diagnostics.
-- [ ] A syntax error leaves the canvas showing the previous model.
+- [x] Typing continuously for 10 s produces at most one in-flight request at any moment
+      (`compilePipeline.test.ts`, P5.4: a hand-driven clock, an edit every 150 ms for ten seconds,
+      no request until the gap; then one).
+- [x] An artificially delayed response never overwrites a newer model (P5.4: the older request is
+      aborted when the newer fires, and the store drops an older revision even when a body arrives).
+- [x] A latency fixture above 100 ms p95 enables the 100 ms validation phase; 50 requests below 75 ms
+      disable it, and an older validation result never replaces newer diagnostics (P5.4;
+      `LatencyTracker` and the revision guard in the draft store).
+- [x] A syntax error leaves the canvas showing the previous model (P5.4; a `model: null` answer and
+      a 500 both keep it, with the new diagnostics and the correlation id shown).
 - [ ] Layout is not recomputed during a 600-frame transient — asserted by a counting spy.
 - [ ] Hover does not re-render the canvas tree.
-- [ ] Theme and split position survive a reload. *Theme: yes (P5.3, the persisted UI store
-      rehydrated in a test). Split position: with the split pane, P5.4.*
+- [x] Theme and split position survive a reload (P5.3 the theme, P5.4 the split; both the persisted
+      UI store rehydrated in a test).
 - [ ] A dropped WebSocket keeps received frames and offers a restart.
 - [ ] Frame application sustains 10 fps on a 200-component model.
 - [ ] Thread instrumentation proves layout, frame reconstruction, colour/geometry preparation are off

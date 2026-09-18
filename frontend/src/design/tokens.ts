@@ -101,6 +101,7 @@ export const scaleTokens = {
   '--text-label-size': '11px',
   '--text-label-weight': '500',
   '--text-readout-size': '12px',
+  '--log-height': '120px',
 } as const;
 
 /**

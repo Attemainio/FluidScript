@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "themes": "node --experimental-strip-types scripts/build-themes.ts"
+    "themes": "node --experimental-strip-types scripts/build-themes.ts",
+    "types": "node --experimental-strip-types scripts/build-types.ts"
   },
   "dependencies": {
     "react": "^19.2.8",
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "jsdom": "^28.1.0",
+    "json-schema-to-typescript": "^15.0.4",
     "oxlint": "^1.79.0",
     "prettier": "3.9.6",
     "typescript": "~6.0.2",
