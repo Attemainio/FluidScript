@@ -43,7 +43,7 @@ every placement with a box as its symbol's strokes under the Core instrument's t
 then the clockwise quarter turn, the y flip once at the root), an inline placement (a zero box on
 the wire, `D-105`) as nothing for a two-pipe node, a hollow dot for a boundary and a label for a
 pipe; every route from the back, cut around its own hops, with `fillet` as a quadratic corner of
-a quarter margin and an arrowhead on its longest segment from `layout.flow`; the label as the tag
+a quarter margin and, from `layout.flow`, one arrowhead per drawn run rather than per connection: the compiler splits a pipe the reader sees as one line into several connections through inferred inline elements (`D-105`, rule I7), and the arrow goes on the longest route of the chain between two drawn symbols (the user's correction to the first pictures, 2026-09-18); the label as the tag
 or the id at `labelAt`; a badge for the worst diagnostic addressed to the component and a hollow
 square for one carrying a sized or defaulted value; the `state` fill slot as a flat colour from
 the placement's `scale` through `55`'s fluid ramp (`fluidFill`, a `color-mix` of the two

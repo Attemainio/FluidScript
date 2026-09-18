@@ -159,13 +159,15 @@ export function prepareScene(model: ModelContract): PreparedScene {
   }
 
   const corner = cornerOf(model.style.default.corner) ?? 'sharp';
+  const inline = new Set(marks.map((m) => m.id));
+  const arrowed = routesThatCarryTheArrow(model, inline);
   const routes = [...layout.routes]
     .sort((a, b) => (layerOrder[a.layer] ?? 0) - (layerOrder[b.layer] ?? 0))
     .map((route) =>
       prepareRoute(
         route,
         margin / 4,
-        layout.flow[route.id],
+        arrowed.has(route.id) ? layout.flow[route.id] : undefined,
         cornerOf(route.style?.corner) ?? corner,
       ),
     );
@@ -214,6 +216,67 @@ function prepareRoute(
     scaleTo: route.scaleTo,
     style: route.style ?? null,
   };
+}
+
+/**
+ * One arrow per drawn run, not per connection. The compiler splits a pipe the reader sees as one
+ * line into several connections through inferred inline nodes and pipes (`D-105`, rule I7), each a
+ * route with its own state; the arrow belongs to the run, so it goes on the longest route of the
+ * chain between two drawn symbols and the others carry none.
+ */
+function routesThatCarryTheArrow(model: ModelContract, inline: ReadonlySet<string>): Set<string> {
+  const routeOf = new Map(model.layout.routes.map((r) => [r.id, r]));
+  const connectionOf = new Map(model.connections.map((c) => [c.id, c]));
+  const byInlineEnd = new Map<string, string[]>();
+  for (const connection of model.connections) {
+    for (const end of [connection.from.component, connection.to.component]) {
+      if (inline.has(end)) {
+        byInlineEnd.set(end, [...(byInlineEnd.get(end) ?? []), connection.id]);
+      }
+    }
+  }
+  const length = (id: string): number => {
+    const points = pointsOf(routeOf.get(id)?.points ?? []);
+    let total = 0;
+    for (let i = 1; i < points.length; i++) {
+      total +=
+        Math.abs(points[i]!.x - points[i - 1]!.x) + Math.abs(points[i]!.y - points[i - 1]!.y);
+    }
+    return total;
+  };
+
+  const seen = new Set<string>();
+  const carriers = new Set<string>();
+  for (const connection of model.connections) {
+    if (seen.has(connection.id)) {
+      continue;
+    }
+    // The run: every connection reachable through inline ends, in both directions.
+    const chain = new Set<string>([connection.id]);
+    const queue = [connection.id];
+    while (queue.length > 0) {
+      const c = connectionOf.get(queue.pop()!)!;
+      for (const end of [c.from.component, c.to.component]) {
+        for (const next of byInlineEnd.get(end) ?? []) {
+          if (!chain.has(next)) {
+            chain.add(next);
+            queue.push(next);
+          }
+        }
+      }
+    }
+    let longest: string | null = null;
+    for (const id of chain) {
+      seen.add(id);
+      if (longest === null || length(id) > length(longest)) {
+        longest = id;
+      }
+    }
+    if (longest !== null) {
+      carriers.add(longest);
+    }
+  }
+  return carriers;
 }
 
 function arrowOf(flow: string | undefined): PreparedRoute['arrow'] {

@@ -69,7 +69,16 @@ describe('prepareScene', () => {
       junction: false,
     });
     expect(scene.symbols.find((s) => s.id === 'N2')!.junction).toBe(true);
-    expect(scene.routes.every((r) => r.arrow === 'forward')).toBe(true);
+    // One arrow per drawn run: PU1 - HE1 (c2, c3), HE1 - 3WV (c4, c5) and 3WV - N3 (c7, c8, c9)
+    // each pass through inferred inline elements and carry one arrow, on the longest piece.
+    const arrows = scene.routes.filter((r) => r.arrow !== 'none').map((r) => r.id);
+    expect(arrows).toEqual(['c0', 'c1', 'c3', 'c4', 'c6', 'c7']);
+    expect(scene.routes.filter((r) => r.arrow === 'none').map((r) => r.id)).toEqual([
+      'c2',
+      'c5',
+      'c8',
+      'c9',
+    ]);
     expect(scene.routes.find((r) => r.id === 'c0')!.corner).toBe('fillet');
   });
 

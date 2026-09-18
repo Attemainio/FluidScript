@@ -42,8 +42,8 @@ cold end of the scale to orange and red at the hot end, so the drawing reads as 
 without a legend: the supply side warm, the return cool. Pipes are the script's `style` colour or
 the theme's neutral line; their gradients arrive with the state visualization.
 
-**Arrows** on the pipes point the way the solver found the fluid to move. A pipe with no arrow
-carries no flow.
+**Arrows** on the pipes point the way the solver found the fluid to move, one per line between two
+symbols. A pipe with no arrow carries no flow.
 
 **Two small marks** in a symbol's corners tell you something the picture alone cannot:
 
