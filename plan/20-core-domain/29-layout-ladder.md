@@ -584,8 +584,14 @@ in margins, not in units, and the pictures scale with the margin. The scripts we
 **Four in series (2026-09-17):** the user asked for four loops in series like the AHU and the
 radiators: `step-08c-header-series-four.fluid`, the radiators at 50/40 and 20 kW, then AHU, floor
 and DHW loads cooling the ring 40 → 36 → 33 → 30 with sized duties, `HS1` at 30 kW, `N4`–`N6`
-inline between the branches (marked `S-63` like 8b; since `S-63` closed it carries `S-68`, a
-seed flow-field defect of its own). A first draw had the two middle blocks a unit
+inline between the branches (marked `S-63` like 8b; since `S-63` closed it carried `S-68`, a
+seed flow-field defect of its own; since `S-68` closed on 2026-09-19 it carries `S-69`). The first
+form of the script had each load's `in` equal to the temperature it is fed -- 40 into an AHU
+stated `in=40` -- which asks its valve to sit exactly on its open bound with nothing to mix, the
+one point where the `in` constraint has no sensitivity to the position; the script now gives each
+block a real mixing point, half way between what reaches it and its own return (38, 34.5, 31.5),
+which leaves the story -- the stream cooled 40 → 36 → 33 → 30, duties 4, 3 and 3 kW -- unchanged,
+and states the valves' Kv as 8b does (`C-104`). A first draw had the two middle blocks a unit
 taller with their split junctions beside rather than under their exchangers: the script had written
 those loads with inlet *below* outlet, so they were heaters, no consumer was found in their loops
 and the junction stood in for it -- the script's error, and a reminder that a block's shape follows
@@ -621,7 +627,10 @@ the rule until a picture says otherwise.
 series: `step-08e-header-mixed.fluid`, the AHU and the DHW at 50/30 on the outer taps, the middle
 branch the radiators at 50/40 and 20 kW followed by the floor cooling that stream 40 → 30 with its
 duty sized, `N11` inline between them (marked `S-63`: the series pair stalls the solve as 8b did; `S-68` since
-`S-63` closed).
+`S-63` closed). **Settles (2026-09-19):** `S-68`'s chord ranking seeds the AHU's rated coil at its
+0.287 kg/s rather than the 0.048 the header's propagated flow left it; the script's floor had the same
+fault as 8c's first form, `in=40` fed at 40, and now mixes to 35; with its valves' Kv stated as 8b's
+are (`C-104`) it converges in two iterations and settles in two passes, and the marker is gone.
 The first draw left the floor loop to the fallback, hard 17: a hanging branch was one block, and
 this branch holds two. C14 now reads a branch as a rail does (C11): `Ranges` finds every inner
 loop along it, the first block hangs under the junction as before, each further block steps on from

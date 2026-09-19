@@ -17,15 +17,18 @@ public enum FlowBasis
     /// <summary>Nothing determined it, so the estimate is <see cref="BranchFlows.Nominal"/>.</summary>
     /// <remarks>This is the case <c>24</c>'s <c>FS2304</c> reports once a sizer asks for the number.</remarks>
     Nominal = 0,
-
     /// <summary>A junction element the branch reaches shares its estimate.</summary>
     Propagated = 1,
 
+    /// <summary>A three-way valve's leg, partitioned from a common leg a duty fixed; the two legs sum to that duty.</summary>
+    /// <remarks>Above <see cref="Propagated"/> because the seed's forest keeps its strongest estimates as chords (<c>S-68</c>): two partitioned legs kept, and the coil they sum to comes out at its rating.</remarks>
+    Partitioned = 2,
+
     /// <summary>An exchanger's stated duty and terminal temperatures fix it (<c>24</c>, step 1).</summary>
-    Duty = 2,
+    Duty = 3,
 
     /// <summary>The script stated a flow on the branch.</summary>
-    Stated = 3,
+    Stated = 4,
 }
 
 /// <summary>One branch's flow estimate, and what determined it.</summary>
@@ -245,6 +248,11 @@ public static class BranchFlows
         var firstKnown = estimates[first].Basis > FlowBasis.Nominal;
         var secondKnown = estimates[second].Basis > FlowBasis.Nominal;
 
+        // A leg partitioned from a common leg that a duty fixed carries that duty's authority: the two
+        // legs sum to the coil's flow exactly, and the seed's forest keeps them as chords so that the
+        // coil, their sum, comes out at its rating (`S-68`).
+        var partitioned = estimates[common].Basis >= FlowBasis.Duty ? FlowBasis.Partitioned : FlowBasis.Propagated;
+
         if (commonKnown && !firstKnown && !secondKnown)
         {
                 var firstMagnitude = estimates[common].Magnitude
@@ -252,9 +260,9 @@ public static class BranchFlows
                 var secondMagnitude = estimates[common].Magnitude - firstMagnitude;
 
                 estimates[first] =
-                    new BranchFlow(firstMagnitude, FlowBasis.Propagated, estimates[common].Source);
+                    new BranchFlow(firstMagnitude, partitioned, estimates[common].Source);
                 estimates[second] =
-                    new BranchFlow(secondMagnitude, FlowBasis.Propagated, estimates[common].Source);
+                    new BranchFlow(secondMagnitude, partitioned, estimates[common].Source);
 
             return true;
         }
@@ -268,7 +276,7 @@ public static class BranchFlows
             if (remainder > Solvers.Tolerances.FlowZero)
             {
                 estimates[missing] =
-                    new BranchFlow(remainder, FlowBasis.Propagated, estimates[common].Source);
+                    new BranchFlow(remainder, partitioned, estimates[common].Source);
                 return true;
             }
         }
@@ -323,11 +331,6 @@ public static class BranchFlows
                     hot = outlet;
                 }
             }
-        }
-
-        if (hot is null)
-        {
-            return null;
         }
 
         if (hot is null)

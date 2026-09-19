@@ -156,6 +156,7 @@ public sealed class SolutionSeedTests
         Assert.Equal("HE1", duty.Source);
         Assert.Equal(0.2392, duty.Magnitude, 3);
     }
+    /// <summary>The legs a valve partitions from a rated coil carry the coil's own basis one rank down, so the forest keeps them ahead of anything merely propagated (<c>S-68</c>).</summary>
     [Fact]
     public void AThreeWayValvePartitionsTheCommonDutyFlowAcrossItsInletLegs()
     {
@@ -202,7 +203,8 @@ public sealed class SolutionSeedTests
         Assert.Equal(common.Magnitude, first.Magnitude + second.Magnitude, 9);
         Assert.True(first.Magnitude < common.Magnitude);
         Assert.True(second.Magnitude < common.Magnitude);
-        Assert.Equal(FlowBasis.Propagated, second.Basis);
+        Assert.Equal(FlowBasis.Duty, first.Basis); // the source sits in the `a` leg's path
+        Assert.Equal(FlowBasis.Partitioned, second.Basis);
     }
 
     /// <summary>The ladder's series header: the radiators' block first, the AHU's block cooling what is left (<c>S-63</c>).</summary>
@@ -286,6 +288,38 @@ public sealed class SolutionSeedTests
         }
     }
 
+    [Fact]
+    public void ARatedCoilAmongUnratedBlocksKeepsItsDutyAsAChord()
+    {
+        // `S-68`. The ladder's 8c: four injection blocks in series on one ring, only the radiators rated.
+        // The forest used to keep the three unrated coils' 0.1 kg/s nominals as chords and let the rated
+        // coil fall out of continuity at 0.0197 kg/s against its 0.478 duty, which starved the ring and
+        // put `N1` below freezing. Ranked by basis, the rated coil and the ring are the chords and the
+        // nominal coils take what continuity leaves.
+        var source = File.ReadAllText(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08c-header-series-four.fluid"));
+        var graph = GraphFixture.Lower(source).Graph;
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        double Flow(string from, string to) => Math.Abs(seed.Values[layout.BranchFlow(Assert.Single(
+            graph.Branches,
+            branch => branch.From.Label == from && branch.To.Label == to).Index)]);
+
+        Assert.Equal(0.4784, Flow("TV_RAD.ab", "NM_RAD"), 3);
+        Assert.Equal(0.3587, Flow("TV_RAD.a", "NM_DHW"), 3);
+
+        foreach (var block in new[] { "AHU", "FLR", "DHW" })
+        {
+            Assert.Equal(0.3587, Flow($"TV_{block}.a", block == "AHU" ? "NM_RAD" : block == "FLR" ? "NM_AHU" : "NM_FLR"), 3);
+            Assert.InRange(Flow($"TV_{block}.ab", $"NM_{block}"), 0.2, 0.5);
+        }
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            Assert.InRange(seed.Values[layout.NodeEnthalpy(node)], 80_000, 280_000);
+        }
+    }
 
     [Fact]
     public void ABranchNothingDeterminesFallsToTheNominalAndSaysSo()

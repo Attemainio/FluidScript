@@ -204,6 +204,20 @@ would be filled with nothing.
 > by analogy, fail at the seed for a third reason -- the flow field overrides rated coils with
 > nominal ones and starves the source -- filed as **`S-68`**, which is the seed family's next item.
 > One closed, two opened; 63 open.
+> **`S-68` closed** (the same day): the seed's spanning forest chose its chords blind to what each
+> estimate rested on, so a rated coil could be a tree edge and come out of continuity at a twentieth
+> of its duty while three nominal coils kept theirs; the forest is now a minimum spanning tree over
+> the estimates' basis (`Nominal` < `Propagated` < `Partitioned` < `Duty` < `Stated`), and the
+> best-founded flows are the ones the closure never touches. Underneath it, `Prepare` sized pumps
+> and valves once, on the bootstrap graph where an unrated coil is ideal, so a pump no constraint
+> claimed got zero head; the rules now run twice before the first solve, and the simple loop settles
+> in two passes instead of three. The ladder's 8e settles (with a real mixing point for its floor
+> and its Kv stated, `C-104`); 8c's first form asked three valves to sit exactly on their open
+> bounds, is corrected, and still leaves the domain in a step for reasons that are not the seed's
+> flow field -- **`S-69`**: with three unrated loads every `out` promotes a power, every pump but one
+> is a rule's choice, and the first pass's answer puts the whole ring on the one promoted pump. The
+> header's residual norm moved in its third digit; nothing else in the corpus. One closed, one
+> opened; 63 open.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
@@ -872,7 +886,7 @@ Counts only. Every description lives in the file named.
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
 | | **63** | |
 
-Counted from the files on 2026-09-19 after sweep tier 4's `S-63` (one closed, two opened; 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
+Counted from the files on 2026-09-19 after sweep tier 4's `S-68` (one closed, one opened; 63 after `S-63`, 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
 nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
 its own unread documents.

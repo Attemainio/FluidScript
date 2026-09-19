@@ -75,8 +75,14 @@ start.
 **The first lowering is a bootstrap.** A pipe with no diameter has no bore and is not built, so a
 graph has to exist before flows can be estimated on it; each rule offers a provisional value for that
 and nothing else. Flow estimates come from stated duties and stated flows rather than from
-resistances, so nothing that survives the bootstrap depends on what it was built with. **A provisional
-decides nothing** (`D-96`): the overlay flags it, the graph carries the flag, and counting treats the
+resistances, so the flow estimates do not depend on what it was built with. The rules that read a
+loop's resistance do, and the bootstrap has none where an exchanger states no flow and no duty: such a
+coil is built ideal until a rule gives it a design point (`ComponentFactory`). So the rules are applied
+to the bootstrap **twice**, the second time on a graph lowered from the first application's sizes: one
+application sized a pump no constraint had claimed to zero head, "no modelled resistance", on a loop
+whose coil drops 20 kPa, and the first solve ran on a graph with no answer near its seed (`S-68`).
+Measured on the corpus, the second application costs milliseconds and takes the simple loop from three
+passes to two. **A provisional decides nothing** (`D-96`): the overlay flags it, the graph carries the flag, and counting treats the
 parameter as free — so a constraint the loop cannot otherwise absorb may promote it, in which case the
 solver determines it, the rule that would have sized it is skipped whole, and the flag stays. A rule's
 choice written over a provisional clears the flag. Until `D-96` the provisional sat in the sized map

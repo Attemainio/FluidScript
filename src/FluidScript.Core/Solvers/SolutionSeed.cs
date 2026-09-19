@@ -1160,7 +1160,7 @@ public static class SolutionSeed
             _order.Clear();
             Array.Clear(Flows);
 
-            Span(barred, out var chords);
+            Span(estimates, barred, out var chords);
             Boundaries(estimates);
 
             foreach (var chord in chords)
@@ -1256,7 +1256,7 @@ public static class SolutionSeed
                     return direct.Value;
                 }
 
-                if (estimate.Basis is FlowBasis.Propagated)
+                if (estimate.Basis is FlowBasis.Propagated or FlowBasis.Partitioned)
                 {
                     foreach (var junction in new[] { branch.From.Element, branch.To.Element })
                     {
@@ -1372,8 +1372,9 @@ public static class SolutionSeed
                 }
             }
 
-            /// <summary>Builds a spanning forest over the incidence lists already attached.</summary>
-            /// <param name="barred">Branches held back from parenting a vertex, by branch index.</param>
+        /// <summary>Builds a spanning forest over the incidence lists already attached, keeping the strongest estimates as chords.</summary>
+        /// <param name="estimates">One estimate per branch, whose <see cref="FlowBasis"/> is the branch's cost as a tree edge.</param>
+        /// <param name="barred">Branches held back from parenting a vertex, by branch index.</param>
             /// <param name="chords">Receives every branch the forest did not use.</param>
             /// <remarks>
             /// <para>
@@ -1413,98 +1414,116 @@ public static class SolutionSeed
             /// standstill, and a branch that is the only way into its vertex is attached regardless.
             /// </para>
             /// </remarks>
-            private void Span(bool[] barred, out List<int> chords)
+        private void Span(ImmutableArray<BranchFlow> estimates, bool[] barred, out List<int> chords)
+        {
+            _parent = new int[_vertices.Count];
+            _component = new int[_vertices.Count];
+            Array.Fill(_parent, -1);
+            Array.Fill(_component, -1);
+
+            var common = new int[_vertices.Count];
+
+            for (var vertex = 0; vertex < _vertices.Count; vertex++)
             {
-                _parent = new int[_vertices.Count];
-                _component = new int[_vertices.Count];
-                Array.Fill(_parent, -1);
-                Array.Fill(_component, -1);
+                common[vertex] = CommonBranch(vertex);
+            }
 
-                var common = new int[_vertices.Count];
+            // What a branch costs as a tree edge. The basis is the ordinary weight; a switched leg of a
+            // valve and a barred branch are penalties ordered so that either outweighs any basis, and the
+            // bar outweighs the leg. The leg's penalty is charged whichever way the branch would be walked:
+            // a cost that depended on direction made the greedy walk take a valve's `b` leg outward for 2
+            // and then have nothing cheaper than a rated `a` leg to go on with (`S-68`), where the same
+            // ring spanned by every coil and every `a` leg costs less and keeps every rating.
+            int Cost(int branch) =>
+                (int)estimates[branch].Basis
+                + (IsSwitchedLeg(branch) ? SwitchedLegPenalty : 0)
+                + (barred[branch] ? BarredPenalty : 0);
 
-                for (var vertex = 0; vertex < _vertices.Count; vertex++)
+            bool IsSwitchedLeg(int branch)
+            {
+                var from = _vertexOf[graph.Branches[branch].From.Element];
+                var to = _vertexOf[graph.Branches[branch].To.Element];
+
+                return (common[from] >= 0 && common[from] != branch) || (common[to] >= 0 && common[to] != branch);
+            }
+
+            var used = new bool[graph.Branches.Length];
+            var components = 0;
+
+            for (var root = 0; root < _vertices.Count; root++)
+            {
+                if (_component[root] >= 0)
                 {
-                    common[vertex] = CommonBranch(vertex);
+                    continue;
                 }
 
-                var used = new bool[graph.Branches.Length];
-                var components = 0;
+                var component = components++;
+                var first = _order.Count;
 
-                for (var root = 0; root < _vertices.Count; root++)
+                _component[root] = component;
+                _order.Add(root);
+
+                // Prim's walk: of every branch leading out of what is reached so far, take the cheapest,
+                // ties to the lower index. Every vertex is added after its parent, which is the order the
+                // leaves-inward solve reads back.
+                while (true)
                 {
-                    if (_component[root] >= 0)
+                    var bestCost = int.MaxValue;
+                    var bestBranch = -1;
+                    var bestTarget = -1;
+
+                    for (var at = first; at < _order.Count; at++)
                     {
-                        continue;
-                    }
-
-                    var queue = new Queue<int>();
-                    var held = new List<(int Vertex, int Branch)>();
-                    var component = components++;
-
-                    _component[root] = component;
-                    _order.Add(root);
-                    queue.Enqueue(root);
-
-                    while (true)
-                    {
-                        while (queue.Count > 0)
+                        foreach (var (branch, sign) in _incident[_order[at]])
                         {
-                            var vertex = queue.Dequeue();
+                            var other = Other(branch, sign);
 
-                            foreach (var (branch, sign) in _incident[vertex])
+                            if (_component[other] >= 0)
                             {
-                                var other = Other(branch, sign);
+                                continue;
+                            }
 
-                                if (_component[other] >= 0)
-                                {
-                                    continue;
-                                }
+                            var cost = Cost(branch);
 
-                                if ((common[other] >= 0 && common[other] != branch) || barred[branch])
-                                {
-                                    held.Add((other, branch));
-                                    continue;
-                                }
-
-                                used[branch] = true;
-                                _parent[other] = branch;
-                                _component[other] = component;
-                                _order.Add(other);
-                                queue.Enqueue(other);
+                            if (cost < bestCost || (cost == bestCost && branch < bestBranch))
+                            {
+                                bestCost = cost;
+                                bestBranch = branch;
+                                bestTarget = other;
                             }
                         }
-
-                        // Nothing preferred is left, so a held edge is now the only way on. Entries whose
-                        // target was reached by its common port in the meantime are simply dropped.
-                        var next = held.FindIndex(entry => _component[entry.Vertex] < 0);
-
-                        if (next < 0)
-                        {
-                            break;
-                        }
-
-                        var (target, edge) = held[next];
-
-                        held.RemoveAt(next);
-
-                        used[edge] = true;
-                        _parent[target] = edge;
-                        _component[target] = component;
-                        _order.Add(target);
-                        queue.Enqueue(target);
                     }
-                }
 
-                chords = [];
-
-                for (var branch = 0; branch < used.Length; branch++)
-                {
-                    if (!used[branch])
+                    if (bestBranch < 0)
                     {
-                        chords.Add(branch);
+                        break;
                     }
+
+                    used[bestBranch] = true;
+                    _parent[bestTarget] = bestBranch;
+                    _component[bestTarget] = component;
+                    _order.Add(bestTarget);
                 }
             }
+
+            chords = [];
+
+            for (var branch = 0; branch < used.Length; branch++)
+            {
+                if (!used[branch])
+                {
+                    chords.Add(branch);
+                }
+            }
+        }
+
+        /// <summary>What reaching a three-way valve by a switched leg adds to a branch's cost in <see cref="Span"/>.</summary>
+        /// <value>More than any basis, so the common port is still preferred over every estimate; less than <see cref="BarredPenalty"/>.</value>
+        private const int SwitchedLegPenalty = 10;
+
+        /// <summary>What a barred branch adds to its cost in <see cref="Span"/>.</summary>
+        /// <value>More than a switched leg and any basis together, so a bar is only overridden when nothing else reaches the vertex.</value>
+        private const int BarredPenalty = 100;
 
             /// <summary>The branch meeting a three-way valve's common port, or -1 for any other vertex.</summary>
             /// <param name="vertex">The vertex to classify.</param>

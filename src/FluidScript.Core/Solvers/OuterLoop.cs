@@ -156,9 +156,17 @@ public sealed class OuterLoop(
     /// all, and the graph quietly loses a component rather than failing.
     /// </para>
     /// <para>
-    /// <strong>The bootstrap lowering inside is thrown away.</strong> Its only job is to exist so flows
-    /// can be estimated on it, and flow estimates come from stated duties and stated flows rather than
-    /// from resistances — so nothing that survives depends on the provisional sizes it was built with.
+    /// <strong>The bootstrap lowering inside is thrown away, and the sizing is applied to it twice</strong>
+    /// (<c>S-68</c>). Flow estimates come from stated duties and stated flows rather than from
+    /// resistances, so the first application does not depend on the provisional sizes the bootstrap was
+    /// built with. But an exchanger with no stated flow and no duty is built <em>ideal</em> until a rule
+    /// gives it a design point, and the rules that read a loop's resistance -- a pump's head, a valve's
+    /// Kv and authority -- read it off the very graph the exchanger is ideal in. One application sized a
+    /// pump whose head no constraint had claimed to zero, "no modelled resistance", on a loop whose coil
+    /// drops 20 kPa; the first solve then ran on a graph that had no answer near its seed, and the
+    /// second pass that would have corrected the head never came. Applying the rules again on a graph
+    /// lowered from the first application's sizes lets each rule see what the others chose. Measured on
+    /// the corpus: the simple loop settles in two passes instead of three, and nothing else moved.
     /// </para>
     /// <para>
     /// <strong>The omitted duty is closed before the first count sees the graph</strong> (<c>S-59</c>).
@@ -193,7 +201,12 @@ public sealed class OuterLoop(
             bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
         }
 
-        var (sized, bases, notes, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
+        // Twice, because the bootstrap's exchangers are ideal: the first application gives each one its
+        // design point, and only the second lets the rules that read resistances -- a pump's head, a
+        // valve's Kv -- read the drops those design points create. See the remarks.
+        var (first, _, _, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
+        var resistive = Lowering.Lower(model, substance, new ComponentFactory(bores, first, substance), name);
+        var (sized, bases, notes, _) = Apply(resistive.Graph, Seed(resistive.Graph), first);
 
         return new PreparedModel(
             Lowering.Lower(model, substance, new ComponentFactory(bores, sized, substance), name),

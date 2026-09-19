@@ -200,6 +200,20 @@ branch taking whatever closes its vertex. The final vertex closes identically, a
 construction's whole claim. An approximation would have needed a tolerance, a test that argues about
 it, and a failure mode where a nearly-consistent seed is singular anyway.
 
+**Which branches are the chords is not a free choice, because the chords keep their estimates and
+the tree does not (`S-68`).** Every estimate carries a basis -- `Nominal` for a branch nothing
+determines, `Propagated` for one that inherited a neighbour's, `Partitioned` for a valve leg split
+from a rated coil's flow by its mixing fraction, `Duty` for a rated exchanger's own, `Stated` for a
+flow the script wrote -- and the forest is grown as a minimum spanning tree over that rank, so the
+best-founded estimates are the ones the closure never touches and the tree is built from the nominal
+ones. Grown blind, on the ladder's ring of four blocks with only the radiators rated, the three
+unrated coils' 0.1 kg/s nominals were the chords and the rated coil fell out of continuity at
+0.02 kg/s against its 0.478 duty; the ring's stream was that 0.02, the source's 30 kW at it a 364 K
+rise, and the seed was below the substance's floor before Newton started. A three-way valve's
+switched legs and a barred branch carry a penalty on top of their rank so they are chords where the
+cycle count allows, and the penalty is the same in both directions: a directed one had the greedy
+walk take a `b` leg outward and then give up a rated `a` leg to close the tree.
+
 **One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
 role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it
 appears in and its column is identically zero (`S-23`). That is the physics: stagnant fluid has no

@@ -367,6 +367,60 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task AMixedHeaderWithASeriesPairConvergesAndSettles()
+    {
+        // `S-68`, closed. The ladder's mixed header: the AHU and the DHW in parallel on the outer taps,
+        // the middle branch the radiators followed by the floor in series. The AHU's rated coil seeded at
+        // 0.0477 kg/s against its 0.287 duty because its `a` leg took a propagated header flow and the
+        // valve's remainder rule set the coil to the difference; ranked by basis, the rated coils are the
+        // chords. The floor mixes the radiators' 40 C return with its own 30 C to 35, half and half, so
+        // its stream is the radiators' `a` flow; the valves state their Kv as 8b does (`C-104`).
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08e-header-mixed.fluid"),
+            TestContext.Current.CancellationToken);
+        var result = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, "mixed", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());
+        Assert.True(result.Value.Settled, $"not settled after {result.Value.Passes} passes");
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string owner) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, owner)]);
+
+        Assert.Equal(0.2871, Flow("TV_AHU.ab->NM_AHU"), 0.001);
+        Assert.Equal(0.4784, Flow("TV_RAD.ab->NM_RAD"), 0.001);
+        Assert.Equal(0.2393, Flow("TV_RAD.a->N4"), 0.001);
+        Assert.Equal(0.2393, Flow("TV_FLR.a->NM_RAD"), 0.001);
+        Assert.Equal(0.1435, Flow("TV_DHW.ab->NM_DHW"), 0.001);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_FLR", "TV_FLR.position")], 0.45, 0.55);
+    }
+
+    [Fact]
+    public async Task APumpOnAnUnratedCoilIsSizedAgainstTheCoilsDropBeforeTheFirstSolve()
+    {
+        // `S-68`'s second half. On 8c the AHU, floor and DHW loads state `in`/`out` and no power, so with
+        // three of them the balance can size none and each `out` promotes its coil's power, leaving the
+        // pump's head to the rule. The rule read the loop's drop off the bootstrap graph, where a coil
+        // with no design point is ideal, and sized the head to zero -- "no modelled resistance" on a loop
+        // whose coil drops 20 kPa. Prepare now applies the rules twice, so the head is read against the
+        // coil.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08c-header-series-four.fluid"),
+            TestContext.Current.CancellationToken);
+        var prepared = Loop().Prepare(GraphFixture.Bind(source), Water.Instance, "series-four");
+
+        foreach (var pump in new[] { "PU_AHU", "PU_FLR", "PU_DHW" })
+        {
+            Assert.Contains("loop drop 20 kPa", prepared.Bases[$"{pump}.head"], StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain(prepared.Notes, note => note.Contains("no modelled resistance", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task TheSimpleLoopReproducesTheWorkedExampleEndToEnd()
     {
         // **`24`'s worked example, reached by the pipeline rather than by hand.** Every number in it is
