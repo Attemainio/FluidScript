@@ -580,3 +580,101 @@
   display: flex;
   gap: var(--space-1);
 }
+
+/* The colour scale (57): the legend, the band hover, and stale colours. */
+
+.legend {
+  position: absolute;
+  right: var(--space-3);
+  bottom: calc(var(--space-2) + var(--space-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: calc(var(--space-8) * 6);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-label-size);
+  color: var(--text-secondary);
+  background: var(--surface-overlay);
+  border: var(--focus-ring-width) solid var(--border-subtle);
+  border-radius: var(--radius-control);
+}
+
+.legend__title {
+  font-weight: var(--text-label-weight);
+  color: var(--text-primary);
+}
+
+.legend__ramp {
+  position: relative;
+  height: var(--space-3);
+  border-radius: var(--radius-control);
+}
+
+.legend__band {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.legend__band:hover {
+  outline: var(--focus-ring-width) solid var(--text-primary);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.legend__ticks {
+  position: relative;
+  height: var(--space-4);
+  font-family: var(--font-mono);
+}
+
+.legend__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.legend__note {
+  font-style: italic;
+}
+
+.legend__switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.legend__choice {
+  padding: 0 var(--space-2);
+  font: inherit;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: var(--focus-ring-width) solid transparent;
+  border-radius: var(--radius-control);
+}
+
+.legend__choice:hover {
+  background: var(--surface-sunken);
+}
+
+.legend__choice--active {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* Hovering a band: its elements stand, the rest recede (57: "show me everything above 60"). */
+.scene--banded .scene__symbol--out-of-band {
+  opacity: 0.25;
+}
+
+.scene--banded .scene__symbol--in-band {
+  opacity: 1;
+}
+
+/* Between compiles the colours may be stale (57 invariant 7): they go grey rather than pose as current. */
+.scene--stale .scene__symbols,
+.scene--stale .scene__routes {
+  filter: saturate(0.2);
+}

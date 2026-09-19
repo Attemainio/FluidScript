@@ -117,6 +117,63 @@ describe('the scene view', () => {
     expect(render(prepareScene(loop), 'names')).toContain('color-mix');
   });
 
+  it('draws a pipe as a gradient between its ends and an exchanger across its body, in Oklab (57 invariants 4, 5)', () => {
+    const loop = solvedGoldens().find((g) => g.name === 'm2-substation')!.model;
+    const markup = render(prepareScene(loop), 'names');
+    // The primary supply pipe, stated no colour: a gradient from its first point to its last.
+    expect(markup).toMatch(/<linearGradient id="scene-route-c\d+" gradientUnits="userSpaceOnUse"/);
+    expect(markup).toContain('stroke:url(#scene-route-');
+    expect(markup).toMatch(/stop-color:color-mix\(in oklab/);
+    // HX1 has an inlet and an outlet, so its state fill is its own gradient.
+    expect(markup).toContain('<linearGradient id="scene-symbol-HX1"');
+    expect(markup).toContain('fill="url(#scene-symbol-HX1)"');
+    // A node has one value: a flat fill, never a gradient.
+    expect(markup).not.toContain('scene-symbol-NPS"');
+  });
+
+  it('keeps a stated pipe colour over the gradient (D-104), and leaves a pipe with no value neutral', () => {
+    const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
+    // The cooling loop states `style blue`, so no route takes a gradient.
+    expect(render(prepareScene(loop), 'names')).not.toContain('scene-route-');
+    const half = {
+      ...loop,
+      layout: {
+        ...loop.layout,
+        routes: loop.layout.routes.map((r) => ({
+          ...r,
+          style: null,
+          scales: { temperature: { at: null, from: 0.2, to: null } },
+        })),
+      },
+    };
+    expect(render(prepareScene(half), 'names')).not.toContain('scene-route-');
+  });
+
+  it('marks the symbols in a hovered band and desaturates a stale scene (57 legend, invariant 7)', () => {
+    const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
+    const scene = prepareScene(loop);
+    const banded = renderToStaticMarkup(
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <SceneView scene={scene} detail="names" band={[0.8, 1]} stale />
+      </svg>,
+    );
+    expect(banded).toContain('class="scene scene--stale scene--banded"');
+    const inBand = [
+      ...banded.matchAll(/data-id="([^"]+)" class="scene__symbol[^"]*scene__symbol--in-band"/g),
+    ].map((m) => m[1]);
+    const outOfBand = [
+      ...banded.matchAll(/data-id="([^"]+)" class="scene__symbol[^"]*scene__symbol--out-of-band"/g),
+    ].map((m) => m[1]);
+    expect(inBand.sort()).toEqual(
+      scene.symbols
+        .filter((s) => s.scale !== null && s.scale >= 0.8)
+        .map((s) => s.id)
+        .sort(),
+    );
+    expect(inBand).toContain('HE1');
+    expect(outOfBand).toContain('PU1');
+  });
+
   it('draws an unknown symbol as a labelled rectangle', () => {
     const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
     const odd = {

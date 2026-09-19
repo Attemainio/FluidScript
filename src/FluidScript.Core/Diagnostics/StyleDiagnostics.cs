@@ -2,10 +2,12 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Diagnostics;
 
-/// <summary>What reading a <c>style</c> directive has to say: <c>FS1201</c>, <c>FS1202</c>, <c>FS1204</c>, <c>FS1205</c> (<c>12</c>, <c>D-104</c>).</summary>
+/// <summary>What reading a <c>style</c> or a <c>show</c> directive has to say: <c>FS1201</c>, <c>FS1202</c>, <c>FS1204</c>, <c>FS1205</c> (<c>12</c>, <c>D-104</c>) and <c>FS1210</c>, <c>FS1213</c>, <c>FS1214</c> (<c>57</c>).</summary>
 /// <remarks>
-/// All four are warnings: a style is presentation, and a diagram in the default colour is still the
-/// diagram. <c>FS1203</c>, the bare hex colour, is the parser's, because it is about a comment.
+/// None is an error: a style is presentation, and a diagram in the default colour is still the
+/// diagram; a bad <c>show</c> must never stop a circuit rendering. <c>FS1203</c>, the bare hex colour,
+/// is the parser's, because it is about a comment. <c>FS1211</c> and <c>FS1212</c> of <c>57</c> wait for
+/// humid air on the wire.
 /// </remarks>
 public static class StyleDiagnostics
 {
@@ -37,7 +39,28 @@ public static class StyleDiagnostics
         DiagnosticSeverity.Warning,
         "Style '{name}' is defined again; the later definition is used.");
 
+    /// <summary><c>show</c> names a property the scale does not know; it is skipped.</summary>
+    /// <value><c>FS1210</c>, a warning.</value>
+    public static DiagnosticDescriptor UnknownShowProperty { get; } = new(
+        "FS1210",
+        DiagnosticSeverity.Warning,
+        "Nothing to show called '{name}'. Available: {list}.");
+
+    /// <summary>The same property twice in one <c>show</c>.</summary>
+    /// <value><c>FS1213</c>, informational.</value>
+    public static DiagnosticDescriptor DuplicateShowProperty { get; } = new(
+        "FS1213",
+        DiagnosticSeverity.Info,
+        "'{name}' listed twice.");
+
+    /// <summary>A second <c>show</c> directive; only the first is read.</summary>
+    /// <value><c>FS1214</c>, a warning.</value>
+    public static DiagnosticDescriptor SecondShowDirective { get; } = new(
+        "FS1214",
+        DiagnosticSeverity.Warning,
+        "Only the first 'show' is used.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
-        [UnclassifiableToken, OverriddenToken, UndefinedStyle, RedefinedStyle];
+        [UnclassifiableToken, OverriddenToken, UndefinedStyle, RedefinedStyle, UnknownShowProperty, DuplicateShowProperty, SecondShowDirective];
 }

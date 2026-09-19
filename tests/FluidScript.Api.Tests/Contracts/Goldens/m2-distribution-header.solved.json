@@ -621,7 +621,7 @@
           "unit": "°C"
         },
         "tOut": {
-          "value": 30.0014,
+          "value": 30.0013,
           "unit": "°C"
         },
         "pIn": {
@@ -2915,7 +2915,24 @@
           -1.95
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.9356,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "HS1",
@@ -2982,7 +2999,24 @@
           -0.25
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.9356,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5,
+            "from": 0.7,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": 0,
+            "to": 0.75
+          }
+        }
       },
       {
         "componentId": "N3",
@@ -3039,7 +3073,24 @@
           1.25
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.9356,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "N4",
@@ -3086,7 +3137,24 @@
           1.15
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.2975,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.5,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "N4__TV_RAD",
@@ -3133,7 +3201,24 @@
           1.15
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.2975,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.4841,
+            "from": 0.5,
+            "to": 0.4841
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "componentId": "N4__TV_RAD__out",
@@ -3180,7 +3265,24 @@
           1.15
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.2975,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.4841,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "TV_RAD",
@@ -3237,7 +3339,24 @@
           1.65
         ],
         "source": "computed",
-        "scale": 0.5004
+        "scale": 0.5004,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.114,
+            "from": 0.4841,
+            "to": 0.114
+          },
+          "temperature": {
+            "at": 0.5004,
+            "from": 0.75,
+            "to": 0.5004
+          }
+        }
       },
       {
         "componentId": "TV_RAD__PU_RAD",
@@ -3284,7 +3403,24 @@
           1.15
         ],
         "source": "computed",
-        "scale": 0.5004
+        "scale": 0.5004,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.114,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.5004,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "PU_RAD",
@@ -3331,7 +3467,24 @@
           1.65
         ],
         "source": "computed",
-        "scale": 0.5
+        "scale": 0.5,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.9172,
+            "from": 0.114,
+            "to": 0.9172
+          },
+          "temperature": {
+            "at": 0.5,
+            "from": 0.5004,
+            "to": 0.5
+          }
+        }
       },
       {
         "componentId": "PU_RAD__HE_RAD",
@@ -3378,7 +3531,24 @@
           1.15
         ],
         "source": "computed",
-        "scale": 0.5
+        "scale": 0.5,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.9172,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.5,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "HE_RAD",
@@ -3445,7 +3615,24 @@
           0.65
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7172,
+            "from": 0.9172,
+            "to": 0.7172
+          },
+          "temperature": {
+            "at": 0,
+            "from": 0.5,
+            "to": 0
+          }
+        }
       },
       {
         "componentId": "NM_RAD",
@@ -3502,7 +3689,24 @@
           -0.75
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.6962,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7172,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "NM_RAD__N6",
@@ -3549,7 +3753,24 @@
           -2.65
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.2975,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7,
+            "from": 0.7172,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": 0,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "componentId": "N6",
@@ -3596,7 +3817,24 @@
           -2.65
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.2975,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "N5",
@@ -3653,7 +3891,24 @@
           -2.55
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.9356,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "NM_AHU__N5",
@@ -3700,7 +3955,24 @@
           -1.95
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.138,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7,
+            "from": 0.7077,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": 0,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "componentId": "NM_AHU",
@@ -3757,7 +4029,24 @@
           -1.85
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7077,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "TV_AHU",
@@ -3814,7 +4103,24 @@
           0.55
         ],
         "source": "computed",
-        "scale": 0.5003
+        "scale": 0.5003,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.2794,
+            "from": 0.493,
+            "to": 0.2794
+          },
+          "temperature": {
+            "at": 0.5003,
+            "from": 0.75,
+            "to": 0.5003
+          }
+        }
       },
       {
         "componentId": "TV_AHU__PU_AHU",
@@ -3861,7 +4167,24 @@
           0.05
         ],
         "source": "computed",
-        "scale": 0.5003
+        "scale": 0.5003,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.2794,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.5003,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "PU_AHU",
@@ -3908,7 +4231,24 @@
           0.55
         ],
         "source": "computed",
-        "scale": 0.5
+        "scale": 0.5,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.9077,
+            "from": 0.2794,
+            "to": 0.9077
+          },
+          "temperature": {
+            "at": 0.5,
+            "from": 0.5003,
+            "to": 0.5
+          }
+        }
       },
       {
         "componentId": "PU_AHU__HE_AHU",
@@ -3955,7 +4295,24 @@
           0.05
         ],
         "source": "computed",
-        "scale": 0.5
+        "scale": 0.5,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.9077,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.5,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "HE_AHU",
@@ -4022,7 +4379,24 @@
           -0.45
         ],
         "source": "computed",
-        "scale": 0
+        "scale": 0,
+        "scales": {
+          "flow": {
+            "at": 0.457,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.7077,
+            "from": 0.9077,
+            "to": 0.7077
+          },
+          "temperature": {
+            "at": 0,
+            "from": 0.5,
+            "to": 0
+          }
+        }
       },
       {
         "componentId": "N3__TV_AHU__out",
@@ -4069,7 +4443,24 @@
           0.383333
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.138,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.493,
+            "from": null,
+            "to": null
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": null,
+            "to": null
+          }
+        }
       },
       {
         "componentId": "N3__TV_AHU",
@@ -4116,7 +4507,24 @@
           0.716667
         ],
         "source": "computed",
-        "scale": 0.75
+        "scale": 0.75,
+        "scales": {
+          "flow": {
+            "at": 0.138,
+            "from": null,
+            "to": null
+          },
+          "pressure": {
+            "at": 0.493,
+            "from": 0.5,
+            "to": 0.493
+          },
+          "temperature": {
+            "at": 0.75,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       }
     ],
     "routes": [
@@ -4132,7 +4540,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0.75
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.9356,
+            "to": 0.9356
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c1",
@@ -4148,7 +4573,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.9356,
+            "to": 0.9356
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c2",
@@ -4162,7 +4604,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.9356,
+            "to": 0.2975
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c3",
@@ -4176,7 +4635,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2975,
+            "to": 0.9356
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c4",
@@ -4192,7 +4668,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.9356,
+            "to": 0.9356
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c5",
@@ -4206,7 +4699,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.9356,
+            "to": 0.138
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c6",
@@ -4220,7 +4730,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.138,
+            "to": 0.138
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.493,
+            "to": 0.493
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c7",
@@ -4236,7 +4763,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.5003
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.138,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.493,
+            "to": 0.493
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c8",
@@ -4250,7 +4794,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0.5003
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7077,
+            "to": 0.493
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c9",
@@ -4264,7 +4825,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5003,
-        "scaleTo": 0.5003
+        "scaleTo": 0.5003,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.2794,
+            "to": 0.2794
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5003,
+            "to": 0.5003
+          }
+        }
       },
       {
         "id": "c10",
@@ -4278,7 +4856,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5003,
-        "scaleTo": 0.5
+        "scaleTo": 0.5003,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.2794,
+            "to": 0.2794
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5003,
+            "to": 0.5003
+          }
+        }
       },
       {
         "id": "c11",
@@ -4292,7 +4887,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5,
-        "scaleTo": 0.5
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.9077,
+            "to": 0.9077
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
       },
       {
         "id": "c12",
@@ -4308,7 +4920,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5,
-        "scaleTo": 0
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.9077,
+            "to": 0.9077
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
       },
       {
         "id": "c13",
@@ -4324,7 +4953,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.457
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7077,
+            "to": 0.7077
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c14",
@@ -4338,7 +4984,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.457,
+            "to": 0.138
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7077,
+            "to": 0.7077
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c15",
@@ -4354,7 +5017,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.138,
+            "to": 0.9356
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c16",
@@ -4368,7 +5048,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2975,
+            "to": 0.2975
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c17",
@@ -4382,7 +5079,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.75
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2975,
+            "to": 0.2975
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.4841,
+            "to": 0.4841
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c18",
@@ -4396,7 +5110,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.75,
-        "scaleTo": 0.5004
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2975,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.4841,
+            "to": 0.4841
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.75,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c19",
@@ -4410,7 +5141,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0.5004
+        "scaleTo": 0.75,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7172,
+            "to": 0.4841
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0.75
+          }
+        }
       },
       {
         "id": "c20",
@@ -4424,7 +5172,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5004,
-        "scaleTo": 0.5004
+        "scaleTo": 0.5004,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.114,
+            "to": 0.114
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5004,
+            "to": 0.5004
+          }
+        }
       },
       {
         "id": "c21",
@@ -4438,7 +5203,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5004,
-        "scaleTo": 0.5
+        "scaleTo": 0.5004,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.114,
+            "to": 0.114
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5004,
+            "to": 0.5004
+          }
+        }
       },
       {
         "id": "c22",
@@ -4452,7 +5234,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5,
-        "scaleTo": 0.5
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.9172,
+            "to": 0.9172
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
       },
       {
         "id": "c23",
@@ -4468,7 +5267,24 @@
         ],
         "hops": [],
         "scaleFrom": 0.5,
-        "scaleTo": 0
+        "scaleTo": 0.5,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.9172,
+            "to": 0.9172
+          },
+          "temperature": {
+            "at": null,
+            "from": 0.5,
+            "to": 0.5
+          }
+        }
       },
       {
         "id": "c24",
@@ -4484,7 +5300,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.6962
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7172,
+            "to": 0.7172
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c25",
@@ -4502,7 +5335,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.6962,
+            "to": 0.2975
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7172,
+            "to": 0.7172
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       },
       {
         "id": "c26",
@@ -4516,7 +5366,24 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0
+        "scaleTo": 0,
+        "scales": {
+          "flow": {
+            "at": null,
+            "from": 0.2975,
+            "to": 0.2975
+          },
+          "pressure": {
+            "at": null,
+            "from": 0.7,
+            "to": 0.7
+          },
+          "temperature": {
+            "at": null,
+            "from": 0,
+            "to": 0
+          }
+        }
       }
     ]
   },
@@ -4538,6 +5405,44 @@
         "nice": true
       },
       "degenerate": false
+    },
+    "scales": {
+      "flow": {
+        "property": "flow",
+        "displayName": "Mass flow",
+        "unit": "kg/s",
+        "kind": "sequential",
+        "domain": {
+          "min": 0.15,
+          "max": 0.45,
+          "nice": true
+        },
+        "degenerate": false
+      },
+      "pressure": {
+        "property": "pressure",
+        "displayName": "Pressure",
+        "unit": "kPa",
+        "kind": "sequential",
+        "domain": {
+          "min": 180,
+          "max": 280,
+          "nice": true
+        },
+        "degenerate": false
+      },
+      "temperature": {
+        "property": "temperature",
+        "displayName": "Temperature",
+        "unit": "°C",
+        "kind": "sequential",
+        "domain": {
+          "min": 30,
+          "max": 70,
+          "nice": true
+        },
+        "degenerate": false
+      }
     }
   },
   "bindings": [],

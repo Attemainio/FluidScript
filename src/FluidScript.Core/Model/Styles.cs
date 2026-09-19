@@ -86,30 +86,6 @@ public sealed class Styles
     public string ToComponentOf(string routeId) =>
         _ends.TryGetValue(routeId, out var ends) ? ends.To : routeId;
 
-    /// <summary>Where a component's representative value sits on the active scale.</summary>
-    /// <param name="state">The component's state, or <see langword="null"/> when not computed.</param>
-    /// <param name="scale">The active scale.</param>
-    /// <returns>0 to 1, clamped, or <see langword="null"/>.</returns>
-    public static double? ScaleOf(ComponentStateWire? state, ScaleWire scale)
-    {
-        ArgumentNullException.ThrowIfNull(scale);
-
-        if (state is null || scale.Domain is not { } domain || domain.Max <= domain.Min)
-        {
-            return null;
-        }
-
-        var value = scale.Property switch
-        {
-            "temperature" => (state.TOut ?? state.TIn ?? state.T)?.Value,
-            "pressure" => (state.POut ?? state.PIn ?? state.P)?.Value,
-            "flow" => state.Flow?.Value,
-            "pressure_drop" => state.Dp?.Value,
-            _ => null,
-        };
-
-        return value is { } v ? Math.Round(Math.Clamp((v - domain.Min) / (domain.Max - domain.Min), 0, 1), 4) : null;
-    }
 
     /// <summary>A box as <c>[x, y, width, height]</c>, rounded.</summary>
     /// <param name="box">The box.</param>

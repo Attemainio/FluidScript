@@ -29,6 +29,8 @@ export type {
   Range,
   Related,
   Route,
+  Scale,
+  ScalePosition,
   Solve,
   Suggestion,
   Symbol as SymbolDefinition,

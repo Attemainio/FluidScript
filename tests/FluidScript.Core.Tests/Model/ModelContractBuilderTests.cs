@@ -333,6 +333,100 @@ public sealed class ModelContractBuilderTests
         Assert.DoesNotContain(ring.Diagnostics, static d => d.Code == "FS5002");
     }
 
+    // ---- the colour scales (57, D-117) ----------------------------------------------------------------------
+
+    [Fact]
+    public void AShowDirectiveIsReadAndItsMistakesAreSaid()
+    {
+        // 57's error cases were specified and never raised; `show nonsense` silently showed temperature.
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid")
+            .Replace("show temperature", "show nonsense t temperature h\nshow p", StringComparison.Ordinal);
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
+
+        var unknown = Assert.Single(contract.Diagnostics, static d => d.Code == "FS1210");
+        Assert.Contains("'nonsense'", unknown.Message, StringComparison.Ordinal);
+        Assert.Contains("density", unknown.Message, StringComparison.Ordinal);
+        Assert.Equal("warning", unknown.Severity);
+        var twice = Assert.Single(contract.Diagnostics, static d => d.Code == "FS1213");
+        Assert.Equal("info", twice.Severity);
+        var second = Assert.Single(contract.Diagnostics, static d => d.Code == "FS1214");
+        Assert.Equal("warning", second.Severity);
+        Assert.NotNull(second.Range);
+
+        // The first directive stands: temperature first, enthalpy after it, then the three every model offers.
+        Assert.Equal("temperature", contract.Visualization.Active);
+        Assert.Equal(["temperature", "enthalpy", "pressure", "flow"], contract.Visualization.Available);
+    }
+
+    [Fact]
+    public async Task EveryAvailableScaleIsOnTheWireWithEveryElementsPlaceOnIt()
+    {
+        // D-117: switching the shown property is a re-preparation on the client, never a request, so
+        // every available scale travels with its domain and every element's position on it. Enthalpy
+        // and density were documented and drew nothing before this (the mapper had no case for them).
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid")
+            .Replace("show temperature", "show density enthalpy", StringComparison.Ordinal);
+        var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(source));
+        var visualization = contract.Visualization;
+
+        Assert.Equal("density", visualization.Active);
+        Assert.Equal(visualization.Scale, visualization.Scales["density"]);
+        Assert.Equal(["density", "enthalpy", "flow", "pressure", "temperature"], visualization.Scales.Keys.Order(StringComparer.Ordinal));
+        Assert.All(visualization.Scales.Values, static scale => Assert.NotNull(scale.Domain));
+        Assert.Equal("kg/m3", visualization.Scales["density"].Unit);
+
+        var n1 = contract.Layout.Placements.Single(static p => p.ComponentId == "N1");
+        Assert.Equal(n1.Scale, n1.Scales["density"].At);
+        Assert.NotNull(n1.Scales["density"].At);
+        Assert.NotNull(n1.Scales["enthalpy"].At);
+        // The coldest node is the densest: highest on the density scale, low on temperature's (57: the domain includes N1); a niced domain reaches past it, so neither is exactly an end.
+        Assert.Equal(n1.Scales["density"].At, contract.Layout.Placements.Max(static p => p.Scales["density"].At));
+        Assert.True(n1.Scales["temperature"].At < 0.2);
+
+        // An exchanger has an inlet and an outlet on every scale; a node has neither.
+        var he1 = contract.Layout.Placements.Single(static p => p.ComponentId == "HE1");
+        Assert.NotNull(he1.Scales["temperature"].From);
+        Assert.NotNull(he1.Scales["temperature"].To);
+        Assert.True(he1.Scales["temperature"].From < he1.Scales["temperature"].To);
+        Assert.Null(n1.Scales["temperature"].From);
+
+        // A route ends at the inlet value of what it enters: the pipe into the pump is at suction pressure.
+        var pump = contract.Layout.Placements.Single(static p => p.ComponentId == "PU1");
+        var intoPump = contract.Layout.Routes.Single(static r => r.Id == "c1");
+        Assert.Equal(pump.Scales["pressure"].From, intoPump.Scales["pressure"].To);
+        Assert.True(pump.Scales["pressure"].From < pump.Scales["pressure"].To);
+        Assert.Equal(intoPump.Scales[visualization.Active].To, intoPump.ScaleTo);
+    }
+
+    [Fact]
+    public void BeforeASolveEveryScaleIsThereWithNoDomain()
+    {
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid")));
+        Assert.All(contract.Visualization.Scales.Values, static scale => Assert.Null(scale.Domain));
+        Assert.All(contract.Layout.Placements, static p => Assert.All(p.Scales.Values, static s => Assert.Null(s.At)));
+    }
+
+    [Fact]
+    public async Task APortAComponentDischargesThroughReadsItsOwnOutletNotTheMixedNode()
+    {
+        // C-103: the diverting valve passes HE1's 50 °C into N2, where the 6 °C primary also arrives. Its
+        // outlet is 50 °C; the node is the mix. Before the fix the valve, and the route out of it, read the mix.
+        var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(ContractFixture.Sample("m2-cooling-loop.fluid")));
+        var valve = contract.Components.Single(static c => c.Id == "3WV");
+        var exchanger = contract.Components.Single(static c => c.Id == "HE1");
+        var mixing = contract.Components.Single(static c => c.Id == "N2");
+
+        Assert.Equal(exchanger.State!.TOut!.Value!.Value, valve.State!.TOut!.Value!.Value, 1);
+        Assert.Equal(valve.State.TIn!.Value!.Value, valve.State.TOut.Value.Value, 1);
+        Assert.True(mixing.State!.T!.Value < valve.State.TOut.Value - 5);
+
+        // The recirculation route (c6: 3WV.a - N2) leaves the valve at the valve's outlet position, not the node's.
+        var placement = contract.Layout.Placements.Single(static p => p.ComponentId == "3WV");
+        var recirculation = contract.Layout.Routes.Single(static r => r.Id == "c6");
+        Assert.Equal(placement.Scales["temperature"].To, recirculation.Scales["temperature"].From);
+        Assert.True(recirculation.Scales["temperature"].From > recirculation.Scales["temperature"].To);
+    }
+
     [Fact]
     public void NoCoreTypeIsOnTheWire()
     {

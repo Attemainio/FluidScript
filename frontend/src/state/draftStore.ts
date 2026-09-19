@@ -25,6 +25,8 @@ export interface DraftState {
   readonly canvasMode: CanvasMode;
   /** A request-level failure to show: the status and the host's correlation id when it sent one. */
   readonly fault: { readonly status: number; readonly correlationId?: string } | null;
+  /** The reader's colour-scale switch (`57`): session-only, never written back; `null` follows the script's `show`. */
+  readonly shown: string | null;
 }
 
 /** The draft store: one `DraftState` per document id (`D-39`). */
@@ -39,6 +41,8 @@ export interface DraftStoreState {
   applyFault(documentId: string, revision: number, status: number, correlationId?: string): void;
   endCompile(documentId: string, revision: number): void;
   setCanvasMode(documentId: string, mode: CanvasMode): void;
+  /** Switches the property the colours follow, or back to the script's with `null` (`57` invariant 6: no request). */
+  setShown(documentId: string, property: string | null): void;
   dispose(documentId: string): void;
 }
 
@@ -52,6 +56,7 @@ const empty: DraftState = {
   timings: null,
   canvasMode: 'draft',
   fault: null,
+  shown: null,
 };
 
 /** Reads a document's draft, or the empty draft for one that has not compiled. */
@@ -134,6 +139,9 @@ export const useDraftStore = create<DraftStoreState>()((set) => {
 
     setCanvasMode: (documentId, mode) =>
       update(documentId, (draft) => ({ ...draft, canvasMode: mode })),
+
+    setShown: (documentId, shown) =>
+      update(documentId, (draft) => (draft.shown === shown ? draft : { ...draft, shown })),
 
     dispose: (documentId) =>
       set((state) => {

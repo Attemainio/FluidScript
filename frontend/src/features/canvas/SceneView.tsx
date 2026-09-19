@@ -22,20 +22,43 @@ export function SceneView({
   scene,
   detail,
   selected = emptySelection,
+  band = null,
+  stale = false,
+  idPrefix = 'scene',
 }: {
   scene: PreparedScene;
   detail: Detail;
   /** The selected component ids (`54`), drawn in the selection colour. */
   selected?: ReadonlySet<string>;
+  /** A band of the scale, 0 to 1, from the legend's hover (`57`): symbols inside it stand out, the rest recede. */
+  band?: readonly [number, number] | null;
+  /** True while a newer text is compiling: the colours desaturate rather than pose as current (`57` invariant 7). */
+  stale?: boolean;
+  /** Prefix for the gradient ids, so two scenes on one page do not share them. */
+  idPrefix?: string;
 }): React.ReactNode {
+  const className = [
+    'scene',
+    scene.solved ? '' : 'scene--unsolved',
+    stale ? 'scene--stale' : '',
+    band === null ? '' : 'scene--banded',
+  ]
+    .filter((c) => c.length > 0)
+    .join(' ');
+  const inBand = (position: number | null): boolean =>
+    band !== null && position !== null && position >= band[0] && position <= band[1];
+
   return (
-    <g
-      className={scene.solved ? 'scene' : 'scene scene--unsolved'}
-      fontFamily={`var(${typeMetrics.canvasLabel.family})`}
-    >
+    <g className={className} fontFamily={`var(${typeMetrics.canvasLabel.family})`}>
       <g className="scene__routes">
         {scene.routes.map((route) => (
-          <RouteView key={route.id} route={route} margin={scene.margin} />
+          <RouteView
+            key={route.id}
+            route={route}
+            margin={scene.margin}
+            solved={scene.solved}
+            gradientId={`${idPrefix}-route-${route.id}`}
+          />
         ))}
       </g>
       <g className="scene__symbols">
@@ -46,6 +69,8 @@ export function SceneView({
             detail={detail}
             solved={scene.solved}
             selected={selected.has(symbol.id)}
+            banded={band === null ? null : inBand(symbol.scale)}
+            gradientId={`${idPrefix}-symbol-${symbol.id}`}
           />
         ))}
         {scene.marks.map((mark) =>
@@ -95,19 +120,39 @@ function SymbolView({
   detail,
   solved,
   selected,
+  banded,
+  gradientId,
 }: {
   symbol: PreparedSymbol;
   detail: Detail;
   solved: boolean;
   selected: boolean;
+  /** Inside the legend's hovered band, outside it, or no band (`null`). */
+  banded: boolean | null;
+  gradientId: string;
 }): React.ReactNode {
   // Symbol space (y up) → world: mirror, then the clockwise quarter turn; the y flip is the root's.
   const transform = `translate(${symbol.centre.x} ${symbol.centre.y}) rotate(${-symbol.rotation}) scale(${symbol.mirrored ? -1 : 1} 1)`;
-  const stateFill = symbol.scale === null || !solved ? 'var(--canvas-bg)' : fluidFill(symbol.scale);
+  // An exchanger's fill runs from its inlet's colour to its outlet's across the symbol (57 Components).
+  const gradient =
+    solved && symbol.scaleFrom !== null && symbol.scaleTo !== null
+      ? gradientAcross(symbol, symbol.scaleFrom, symbol.scaleTo)
+      : null;
+  const stateFill =
+    symbol.scale === null || !solved
+      ? 'var(--canvas-bg)'
+      : gradient === null
+        ? fluidFill(symbol.scale)
+        : `url(#${gradientId})`;
   const className = [
     'scene__symbol',
     symbol.inferred ? 'scene__symbol--inferred' : '',
     selected ? 'scene__symbol--selected' : '',
+    banded === true
+      ? 'scene__symbol--in-band'
+      : banded === false
+        ? 'scene__symbol--out-of-band'
+        : '',
   ]
     .filter((c) => c.length > 0)
     .join(' ');
@@ -131,6 +176,21 @@ function SymbolView({
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       >
+        {gradient !== null ? (
+          <defs>
+            <linearGradient
+              id={gradientId}
+              gradientUnits="userSpaceOnUse"
+              x1={f(gradient.from.x)}
+              y1={f(gradient.from.y)}
+              x2={f(gradient.to.x)}
+              y2={f(gradient.to.y)}
+            >
+              <stop offset="0" style={{ stopColor: fluidFill(symbol.scaleFrom!) }} />
+              <stop offset="1" style={{ stopColor: fluidFill(symbol.scaleTo!) }} />
+            </linearGradient>
+          </defs>
+        ) : null}
         {symbol.primitives === null ? (
           <rect
             className="scene__unknown"
@@ -239,23 +299,61 @@ function pairs(values: readonly number[]): string {
   return out.join(' ');
 }
 
-function RouteView({ route, margin }: { route: PreparedRoute; margin: number }): React.ReactNode {
+function RouteView({
+  route,
+  margin,
+  solved,
+  gradientId,
+}: {
+  route: PreparedRoute;
+  margin: number;
+  solved: boolean;
+  gradientId: string;
+}): React.ReactNode {
   const width = route.style?.strokeWidth ?? 2;
-  const stroke = route.style?.stroke ?? undefined;
+  const stated = route.style?.stroke ?? undefined;
   const dashed = route.kind === 'signal' || route.style?.pattern === 'dashed';
-  const className = `scene__route scene__route--${route.kind} scene__route--${route.layer}`;
+  // A pipe is a gradient between its ends' values (57 Connections); a stated stroke colour keeps its word (D-104), and an end with no value leaves the pipe neutral (invariant 5).
+  const ends =
+    solved && stated === undefined && route.scaleFrom !== null && route.scaleTo !== null
+      ? gradientAlong(route.pieces)
+      : null;
+  const stroke = ends === null ? stated : `url(#${gradientId})`;
+  const className = [
+    'scene__route',
+    `scene__route--${route.kind}`,
+    `scene__route--${route.layer}`,
+    ends === null ? '' : 'scene__route--scaled',
+  ]
+    .filter((c) => c.length > 0)
+    .join(' ');
 
   return (
     <g
       data-id={route.id}
       className={className}
       fill="none"
-      style={stroke === undefined ? undefined : { stroke, color: stroke }}
+      style={stroke === undefined ? undefined : { stroke, color: stated ?? 'currentColor' }}
       strokeWidth={width}
       strokeLinejoin={route.corner === 'sharp' ? 'miter' : 'round'}
       strokeLinecap="round"
       strokeDasharray={dashed ? '6 4' : undefined}
     >
+      {ends !== null ? (
+        <defs>
+          <linearGradient
+            id={gradientId}
+            gradientUnits="userSpaceOnUse"
+            x1={f(ends.from.x)}
+            y1={f(ends.from.y)}
+            x2={f(ends.to.x)}
+            y2={f(ends.to.y)}
+          >
+            <stop offset="0" style={{ stopColor: fluidFill(route.scaleFrom!) }} />
+            <stop offset="1" style={{ stopColor: fluidFill(route.scaleTo!) }} />
+          </linearGradient>
+        </defs>
+      ) : null}
       {route.pieces.map((piece, index) => (
         <path
           key={index}
@@ -308,4 +406,47 @@ function Arrow({
       stroke="none"
     />
   );
+}
+
+/** A route's gradient runs from its first point to its last, in world units: the straight line between the ends of an orthogonal run, which is the two-point interpolation `57` says it is. */
+function gradientAlong(pieces: readonly (readonly Point[])[]): { from: Point; to: Point } | null {
+  const first = pieces[0]?.[0];
+  const lastPiece = pieces[pieces.length - 1];
+  const last = lastPiece?.[lastPiece.length - 1];
+  if (first === undefined || last === undefined) {
+    return null;
+  }
+  if (Math.abs(first.x - last.x) < 1e-9 && Math.abs(first.y - last.y) < 1e-9) {
+    return null;
+  }
+  return { from: first, to: last };
+}
+
+/**
+ * An exchanger's gradient runs from its inlet port to its outlet port, in symbol space, since the
+ * gradient is referenced from inside the symbol's transform: world → symbol is the inverse of
+ * `translate(c) rotate(-rot) scale(m 1)`.
+ */
+function gradientAcross(
+  symbol: PreparedSymbol,
+  _from: number,
+  _to: number,
+): { from: Point; to: Point } | null {
+  const inlet =
+    symbol.ports.find((p) => p.name === 'in') ?? symbol.ports.find((p) => p.name.startsWith('in'));
+  const outlet =
+    symbol.ports.find((p) => p.name === 'out') ??
+    symbol.ports.find((p) => p.name.startsWith('out'));
+  if (inlet === undefined || outlet === undefined) {
+    return null;
+  }
+  const local = (p: Point): Point => {
+    const dx = p.x - symbol.centre.x;
+    const dy = p.y - symbol.centre.y;
+    const angle = (symbol.rotation * Math.PI) / 180;
+    const rx = dx * Math.cos(angle) - dy * Math.sin(angle);
+    const ry = dx * Math.sin(angle) + dy * Math.cos(angle);
+    return { x: symbol.mirrored ? -rx : rx, y: ry };
+  };
+  return { from: local(inlet.at), to: local(outlet.at) };
 }

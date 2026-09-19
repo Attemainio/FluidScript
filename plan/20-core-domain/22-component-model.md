@@ -945,6 +945,16 @@ enthalpy block by the number of duty-bearing components.
 [`23-topology-and-graph`](23-topology-and-graph.md)'s counting table is the authority and shows no
 such row.
 
+**A solved port reads its own stream, not the node it discharges into** (`C-103`). The node's state
+is the *mixed* state where every arriving stream meets; a port carrying flow into the component sees
+exactly that, and a port the component discharges through does not -- a valve passing 50 °C into a
+node where a 10 °C return also arrives discharges 50 °C while the node reads 20 °C. `SolvedStates`
+reconstructs the outlet from the same term the balance used: `h_out = h_in + injection/ṁ` at the
+node's pressure, wherever the outlet's flow group has exactly one inlet. A port whose group mixes
+several inflows -- a mixing valve's common port, a vessel with two returns -- keeps the node's state,
+which is the mix the component itself produces. Reading every port from its node is the shortcut
+that drew the cooling loop's diverting valve at the mixed 20 °C.
+
 ## Acceptance criteria
 
 - [ ] Every component's governing equation has a test with hand-checked numbers, independent of the solver.

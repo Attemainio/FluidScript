@@ -238,7 +238,8 @@ The `show` directive resolved (`57`).
 |---|---|---|
 | `active` | string | The property the colour scale follows. |
 | `available` | array of string | The properties the switcher offers. |
-| `scale` | [`Scale`](#scale) | The scale for `Active`. |
+| `scale` | [`Scale`](#scale) | The scale for `Active`. The same as `Scales[Active]`. |
+| `scales` | object of [`Scale`](#scale) | A scale per available property (`D-117`), each with its own domain, so switching needs no recompile (`57` invariant 6). |
 
 ### `Binding`
 
@@ -327,7 +328,7 @@ A component's solved operating point. Fields a kind does not have are absent.
 |---|---|---|
 | `flow` | [`Quantity`](#quantity) or `null` | Mass flow through the component's first flow group, positive from its first port toward its second. Absent when not applicable. |
 | `tIn` | [`Quantity`](#quantity) or `null` | Temperature at the inlet port. Absent when not applicable. |
-| `tOut` | [`Quantity`](#quantity) or `null` | Temperature at the outlet port. Absent when not applicable. |
+| `tOut` | [`Quantity`](#quantity) or `null` | Temperature of the stream leaving through the outlet port — the component's own outlet, not the node it discharges into. A valve passing 50 °C into a node where a colder return also arrives reports 50 °C; the node reports the mix. A port that is itself a mix (a mixing valve's common port, a vessel outlet) reports the node. Absent when not applicable. |
 | `pIn` | [`Quantity`](#quantity) or `null` | Pressure at the inlet port, gauge in the canonical unit (`D-26`). Absent when not applicable. |
 | `pOut` | [`Quantity`](#quantity) or `null` | Pressure at the outlet port, gauge in the canonical unit (`D-26`). Absent when not applicable. |
 | `dp` | [`Quantity`](#quantity) or `null` | Pressure drop inlet to outlet; negative across a pump. Absent when not applicable. |
@@ -467,7 +468,8 @@ One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y`
 | `labelAt` | array of number | Where the label sits, `[x, y]`. |
 | `source` | string | `computed`; `pinned` is reserved for a placement the script states. |
 | `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style: the script's named or anonymous style (`D-104`); absent when the theme's defaults apply throughout. Absent when not applicable. |
-| `scale` | number or `null` | Where the component's representative value sits on the active colour scale, 0 to 1; `null` when not computed. |
+| `scale` | number or `null` | Where the component's representative value sits on the active colour scale, 0 to 1; `null` when not computed. The same as `Scales[visualization.active].At`. |
+| `scales` | object of [`ScalePosition`](#scaleposition) | The component's position on every available scale, keyed by property (`D-117`): the switcher needs no request. |
 
 ### `Route`
 
@@ -481,8 +483,9 @@ One connection's path.
 | `points` | array of number | The orthogonal polyline, flattened `[x0, y0, x1, y1, …]`; the first and last points are the anchors. |
 | `hops` | array of number | Where this route passes behind another it crosses, flattened `[x0, y0, …]` in world units; the renderer breaks this route around each so the one in front runs through (`28` C16). |
 | `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style, from the component the route leaves; absent when the theme's defaults apply throughout. Absent when not applicable. |
-| `scaleFrom` | number or `null` | The scale position at the start, for a gradient; `null` when not computed. |
+| `scaleFrom` | number or `null` | The scale position at the start, for a gradient; `null` when not computed. The same as `Scales[visualization.active].From`. |
 | `scaleTo` | number or `null` | The scale position at the end. |
+| `scales` | object of [`ScalePosition`](#scaleposition) | The route's ends on every available scale, keyed by property (`D-117`); `At` is unused for a route. |
 
 ### `Scale`
 
@@ -545,6 +548,16 @@ One tank layer.
 | `index` | integer | One-based, from the bottom. |
 | `elevation` | number | The layer's top as a fraction of the tank height, `0…1`. |
 | `t` | [`Quantity`](#quantity) | The layer temperature. |
+
+### `ScalePosition`
+
+An element's place on one colour scale, each 0 to 1 or `null` where the element has no such value (`57` invariant 5: neutral, never the low end).
+
+| Field | Type | Meaning |
+|---|---|---|
+| `at` | number or `null` | The representative value: a node's own, a component's outlet (`D-30`). |
+| `from` | number or `null` | Where a gradient starts: a component's inlet, a route's first end. |
+| `to` | number or `null` | Where it ends: a component's outlet, a route's last end. |
 
 ### `Domain`
 

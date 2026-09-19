@@ -532,8 +532,11 @@ public sealed record PlacementWire
     [AbsentWhenNull]
     public ResolvedStyleWire? Style { get; init; }
 
-    /// <summary>Where the component's representative value sits on the active colour scale, 0 to 1; <see langword="null"/> when not computed.</summary>
+    /// <summary>Where the component's representative value sits on the active colour scale, 0 to 1; <see langword="null"/> when not computed. The same as <c>Scales[visualization.active].At</c>.</summary>
     public required double? Scale { get; init; }
+
+    /// <summary>The component's position on every available scale, keyed by property (<c>D-117</c>): the switcher needs no request.</summary>
+    public required IReadOnlyDictionary<string, ScalePositionWire> Scales { get; init; }
 }
 
 /// <summary>One connection's path.</summary>
@@ -558,11 +561,14 @@ public sealed record RouteWire
     [AbsentWhenNull]
     public ResolvedStyleWire? Style { get; init; }
 
-    /// <summary>The scale position at the start, for a gradient; <see langword="null"/> when not computed.</summary>
+    /// <summary>The scale position at the start, for a gradient; <see langword="null"/> when not computed. The same as <c>Scales[visualization.active].From</c>.</summary>
     public required double? ScaleFrom { get; init; }
 
     /// <summary>The scale position at the end.</summary>
     public required double? ScaleTo { get; init; }
+
+    /// <summary>The route's ends on every available scale, keyed by property (<c>D-117</c>); <c>At</c> is unused for a route.</summary>
+    public required IReadOnlyDictionary<string, ScalePositionWire> Scales { get; init; }
 }
 
 /// <summary>A style with every name resolved (<c>D-104</c>). A <see langword="null"/> colour or width is the theme's default.</summary>
@@ -607,9 +613,18 @@ public sealed record VisualizationWire
     /// <summary>The properties the switcher offers.</summary>
     public required ImmutableArray<string> Available { get; init; }
 
-    /// <summary>The scale for <see cref="Active"/>.</summary>
+    /// <summary>The scale for <see cref="Active"/>. The same as <c>Scales[Active]</c>.</summary>
     public required ScaleWire Scale { get; init; }
+
+    /// <summary>A scale per available property (<c>D-117</c>), each with its own domain, so switching needs no recompile (<c>57</c> invariant 6).</summary>
+    public required IReadOnlyDictionary<string, ScaleWire> Scales { get; init; }
 }
+
+/// <summary>An element's place on one colour scale, each 0 to 1 or <see langword="null"/> where the element has no such value (<c>57</c> invariant 5: neutral, never the low end).</summary>
+/// <param name="At">The representative value: a node's own, a component's outlet (<c>D-30</c>).</param>
+/// <param name="From">Where a gradient starts: a component's inlet, a route's first end.</param>
+/// <param name="To">Where it ends: a component's outlet, a route's last end.</param>
+public sealed record ScalePositionWire(double? At, double? From, double? To);
 
 /// <summary>A colour scale.</summary>
 public sealed record ScaleWire

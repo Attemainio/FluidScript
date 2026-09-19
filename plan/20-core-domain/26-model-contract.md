@@ -167,11 +167,16 @@ converting there costs one pass and removes a whole class of consumer bug.
                      "in2": { "at": [3.5, 2.3], "direction": [1, 0] }, "out2": { "at": [3.5, 1.7], "direction": [1, 0] } },
         "labelAt": [3.25, 2.65], "source": "computed",
         "style": { "stroke": "#ff0000", "strokeWidth": null, "pattern": "solid", "fill": null, "corner": null },
-        "scale": 0.62 }                // position on the active `show` scale, 0..1; absent when unsolved
+        "scale": 0.62,                 // position on the active `show` scale, 0..1; null when unsolved
+        "scales": {                    // the same on every available scale (D-117): at = the representative
+          "temperature": { "at": 0.62, "from": 0.33, "to": 0.62 },   // value, from/to = inlet and outlet
+          "pressure":    { "at": 0.71, "from": 0.71, "to": 0.68 },   // where the component has both
+          "flow":        { "at": 0.99, "from": null, "to": null } } }
     ],
     "routes": [                        // one per connection: the stubs of margin/2 and the orthogonal join
       { "id": "c0", "kind": "pipe", "points": [2.25, 1.7, 3.0, 1.7], "hops": [],
-        "scaleFrom": 0.62, "scaleTo": 0.62 }
+        "scaleFrom": 0.62, "scaleTo": 0.33,   // the outlet it leaves and the inlet it enters
+        "scales": { "temperature": { "at": null, "from": 0.62, "to": 0.33 }, "…": {} } }
     ]
   },
 
@@ -181,8 +186,9 @@ converting there costs one pass and removes a whole class of consumer bug.
     "scale": { "property": "temperature", "displayName": "Temperature", "unit": "C",
                "kind": "sequential",
                "domain": { "min": 5.0, "max": 50.0, "nice": true },
-               "degenerate": false }
-  },
+               "degenerate": false },
+    "scales": { "temperature": { "…": "the same" }, "pressure": { "…": "its own domain" }, "flow": {} }
+  },                                     // one scale per available property (D-117): switching is client-side
 
   "bindings": [                          // evaluated `let` values, contract 1.0
     { "name": "dT", "value": 30, "unit": "dK", "dimension": "TemperatureDelta", "siUnit": null },
@@ -314,6 +320,18 @@ it, each recorded here rather than left for a reader of the golden files to disc
   `branchShapes` fields P5.1a added were derived for a solver that no longer exists and left the
   wire with it; [`25`](25-layout-hints.md) names each field's reader.
 - **`show` is read off the syntax**, not the model, because the binder does not bind it (`L-50`).
+- **Every available scale travels, with every element's place on each** (`D-117`, P5.10): `57`
+  invariant 6 wants the switcher to need no request, and `D-103` keeps the mapping in Core, so
+  `visualization.scales`, `placements[].scales` and `routes[].scales` carry the alternatives; the
+  singular `scale`/`scaleFrom`/`scaleTo` stay as the active property's. A component's `from`/`to`
+  are its inlet and outlet where it has both (an exchanger's gradient); a route's are the outlet it
+  leaves and the inlet it enters, so a pipe into a pump ends at suction pressure.
+- **`state.tOut` is the component's own outlet, not the node it discharges into** (`C-103`, `22`).
+  A port on the wire carries the stream leaving through it -- inlet enthalpy plus the component's
+  own injection over the flow, at the node's pressure -- so a diverting valve reports its inlet
+  temperature at both outlets and the mixing node downstream reports the mix. The exception is a
+  port whose flow group has more than one inlet (a mixing valve's common port, a vessel), which is
+  the mix and reads the node.
 - The duplicate `style` object the shape carried -- one of tokens, one of resolved stroke and
   pattern -- was a drafting slip; the tokens form is what Core carried and did not interpret
   (`D-37`). Superseded by `D-104` below: Core now resolves, and the object carries both.

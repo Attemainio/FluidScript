@@ -69,9 +69,13 @@ public static class ModelContractBuilder
         var run = input.Run;
         var solved = run is not null && run.Solve.Converged;
         var layout = run is null ? null : SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+
+        // A converged run has assembled this system once already; with it a discharging port reads
+        // the component's own outlet rather than the mixed node it discharges into (C-103).
+        var system = solved ? EquationSystem.Build(run!.Graph, WellPosedness.Check(run.Graph), run.Solve.Solution) : null;
         ImmutableArray<ImmutableArray<SolvedPort?>>? ports = run is null || layout is null || statesOmitted
             ? null
-            : SolvedStates.Ports(run.Graph, layout, run.Solve.Solution);
+            : SolvedStates.Ports(run.Graph, layout, run.Solve.Solution, system);
         var registry = ComponentRegistry.Default;
         var symbols = model.Components.ToDictionary(static component => component.Name, StringComparer.Ordinal);
         var expansions = graph.Groups
@@ -144,7 +148,7 @@ public static class ModelContractBuilder
                 new DiagnosticArgument("detail", breach.Detail)));
         }
         var styles = new Styles(model, graph);
-        var visualization = Visualization(input.Root, graph, ports, raised);
+        var scales = ColourScales.Resolve(input.Root, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
         var all = Diagnostics(input.Source, [.. diagnostics, .. raised], [.. components]);
 
@@ -172,8 +176,8 @@ public static class ModelContractBuilder
             Components = components.ToImmutable(),
             Symbols = SymbolCatalog.All,
             Connections = connections,
-            Layout = Layout(hints, scene, styles, id => Styles.ScaleOf(states.GetValueOrDefault(id), visualization.Scale)),
-            Visualization = visualization,
+            Layout = Layout(hints, scene, styles, scales),
+            Visualization = scales.Wire,
             Bindings = [.. model.Bindings.Select(binding => BindingOf(binding, raised))],
             Diagnostics = all,
             Solve = run is null
@@ -555,7 +559,7 @@ public static class ModelContractBuilder
 
     // ---- layout ------------------------------------------------------------------------------------------
 
-    private static LayoutWire Layout(LayoutHints hints, Scene scene, Styles styles, Func<string, double?> scale) => new()
+    private static LayoutWire Layout(LayoutHints hints, Scene scene, Styles styles, ColourScales scales) => new()
     {
         Margin = scene.Margin,
         Extent = Styles.BoxOf(scene.Extent),
@@ -575,7 +579,8 @@ public static class ModelContractBuilder
             LabelAt = [Round(p.LabelAt.X), Round(p.LabelAt.Y)],
             Source = p.Source,
             Style = styles.Of(p.ComponentId),
-            Scale = scale(p.ComponentId),
+            Scale = scales.Of(p.ComponentId)[scales.Active].At,
+            Scales = scales.Of(p.ComponentId),
         })],
         Routes = [.. scene.Routes.Select(r => new RouteWire
         {
@@ -585,8 +590,9 @@ public static class ModelContractBuilder
             Points = [.. r.Points.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
             Hops = [.. r.Hops.SelectMany(static point => new[] { Round(point.X), Round(point.Y) })],
             Style = styles.Of(styles.FromComponentOf(r.ConnectionId)),
-            ScaleFrom = r.Kind == "pipe" ? scale(styles.FromComponentOf(r.ConnectionId)) : null,
-            ScaleTo = r.Kind == "pipe" ? scale(styles.ToComponentOf(r.ConnectionId)) : null,
+            ScaleFrom = r.Kind == "pipe" ? scales.OfRoute(styles.FromComponentOf(r.ConnectionId), styles.ToComponentOf(r.ConnectionId))[scales.Active].From : null,
+            ScaleTo = r.Kind == "pipe" ? scales.OfRoute(styles.FromComponentOf(r.ConnectionId), styles.ToComponentOf(r.ConnectionId))[scales.Active].To : null,
+            Scales = r.Kind == "pipe" ? scales.OfRoute(styles.FromComponentOf(r.ConnectionId), styles.ToComponentOf(r.ConnectionId)) : ImmutableDictionary<string, ScalePositionWire>.Empty,
         })],
         Order = hints.Order,
 
@@ -610,141 +616,293 @@ public static class ModelContractBuilder
 
     // ---- visualization -------------------------------------------------------------------------------------
 
-    private static readonly ImmutableDictionary<string, (string Name, string Display, Dimension Dimension, bool Diverging)> Properties =
-        new Dictionary<string, (string, string, Dimension, bool)>(StringComparer.Ordinal)
-        {
-            ["temperature"] = ("temperature", "Temperature", Dimension.Temperature, false),
-            ["t"] = ("temperature", "Temperature", Dimension.Temperature, false),
-            ["pressure"] = ("pressure", "Pressure", Dimension.Pressure, false),
-            ["p"] = ("pressure", "Pressure", Dimension.Pressure, false),
-            ["flow"] = ("flow", "Mass flow", Dimension.MassFlow, false),
-            ["mdot"] = ("flow", "Mass flow", Dimension.MassFlow, false),
-            ["pressure_drop"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
-            ["dp"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
-            ["enthalpy"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
-            ["h"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
-            ["density"] = ("density", "Density", Dimension.Density, false),
-            ["rho"] = ("density", "Density", Dimension.Density, false),
-        }.ToImmutableDictionary(StringComparer.Ordinal);
-
-    /// <summary>The <c>show</c> directive resolved against what was solved (<c>57</c>).</summary>
-    /// <remarks>
-    /// The binder does not read <c>show</c> yet, so this reads the syntax: the first directive, its
-    /// properties by long or short name, and its range when it states one. A property with no
-    /// solved values has a <see langword="null"/> domain, which is <c>57</c>'s "before the first solve".
-    /// </remarks>
-    private static VisualizationWire Visualization(
-        ScriptSyntax root, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>>? ports, ImmutableArray<Diagnostic>.Builder raised)
+    /// <summary>
+    /// The <c>show</c> directive resolved against what was solved (<c>57</c>, <c>D-117</c>): one scale per
+    /// available property, each with its domain, and every element's place on each. Core maps because it
+    /// holds every value (<c>D-03</c>, <c>D-103</c>); the frontend owns the colours and, with every scale
+    /// on the wire, switches between them without a request (<c>57</c> invariant 6).
+    /// </summary>
+    private sealed class ColourScales
     {
-        var directive = root.Statements.OfType<ShowDirectiveSyntax>().FirstOrDefault();
-        var named = directive?.Properties
-            .Select(property => Properties.GetValueOrDefault(property.Text).Name)
-            .Where(static name => name is not null)
-            .Select(static name => name!)
-            .Distinct(StringComparer.Ordinal)
-            .ToImmutableArray() ?? [];
-        var active = named.Length > 0 ? named[0] : "temperature";
-        var available = named.Concat(["temperature", "pressure", "flow"]).Distinct(StringComparer.Ordinal).ToImmutableArray();
-        var (_, display, dimension, diverging) = Properties[active];
-        var unit = UnitTable.CanonicalUnitFor(dimension);
-
-        double? min = null, max = null;
-
-        if (directive?.Scale is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to }
-            && double.IsFinite(from.Value) && double.IsFinite(to.Value))
-        {
-            (min, max) = (Math.Min(from.Value, to.Value), Math.Max(from.Value, to.Value));
-        }
-        else if (ports is { } solved)
-        {
-            foreach (var value in Values(active, graph, solved, unit))
+        private static readonly ImmutableDictionary<string, (string Name, string Display, Dimension Dimension, bool Diverging)> Properties =
+            new Dictionary<string, (string, string, Dimension, bool)>(StringComparer.Ordinal)
             {
-                min = min is null ? value : Math.Min(min.Value, value);
-                max = max is null ? value : Math.Max(max.Value, value);
+                ["temperature"] = ("temperature", "Temperature", Dimension.Temperature, false),
+                ["t"] = ("temperature", "Temperature", Dimension.Temperature, false),
+                ["pressure"] = ("pressure", "Pressure", Dimension.Pressure, false),
+                ["p"] = ("pressure", "Pressure", Dimension.Pressure, false),
+                ["flow"] = ("flow", "Mass flow", Dimension.MassFlow, false),
+                ["mdot"] = ("flow", "Mass flow", Dimension.MassFlow, false),
+                ["pressure_drop"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
+                ["dp"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
+                ["enthalpy"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
+                ["h"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
+                ["density"] = ("density", "Density", Dimension.Density, false),
+                ["rho"] = ("density", "Density", Dimension.Density, false),
+            }.ToImmutableDictionary(StringComparer.Ordinal);
+
+        /// <summary>The properties every model offers, after the script's own.</summary>
+        private static readonly ImmutableArray<string> Always = ["temperature", "pressure", "flow"];
+
+        private readonly ImmutableDictionary<string, ScaleWire> _scales;
+        private readonly ImmutableDictionary<string, ImmutableDictionary<string, ScalePositionWire>> _positions;
+
+        private ColourScales(
+            string active,
+            ImmutableArray<string> available,
+            ImmutableDictionary<string, ScaleWire> scales,
+            ImmutableDictionary<string, ImmutableDictionary<string, ScalePositionWire>> positions)
+        {
+            Active = active;
+            Available = available;
+            _scales = scales;
+            _positions = positions;
+        }
+
+        /// <summary>The property the script shows first, or <c>temperature</c>.</summary>
+        public string Active { get; }
+
+        /// <summary>The properties the switcher offers: the script's, then <c>temperature</c>, <c>pressure</c>, <c>flow</c>.</summary>
+        public ImmutableArray<string> Available { get; }
+
+        /// <summary>The wire's <c>visualization</c> block.</summary>
+        public VisualizationWire Wire => new()
+        {
+            Active = Active,
+            Available = Available,
+            Scale = _scales[Active],
+            Scales = _scales.OrderBy(static pair => pair.Key, StringComparer.Ordinal).ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal),
+        };
+
+        /// <summary>A component's place on every scale; a component the scales never saw has every entry <see langword="null"/>.</summary>
+        public Dictionary<string, ScalePositionWire> Of(string componentId) =>
+            _scales.Keys.Order(StringComparer.Ordinal).ToDictionary(
+                static property => property,
+                property => _positions[property].GetValueOrDefault(componentId) ?? new ScalePositionWire(null, null, null),
+                StringComparer.Ordinal);
+
+        /// <summary>A route's ends on every scale: the outlet value of the component it leaves and the inlet value of the one it enters, so a pipe into a pump ends at the suction's colour and the pump's own gradient carries on to the discharge; a node has one value for both.</summary>
+        public Dictionary<string, ScalePositionWire> OfRoute(string fromComponentId, string toComponentId) =>
+            _scales.Keys.Order(StringComparer.Ordinal).ToDictionary(
+                static property => property,
+                property =>
+                {
+                    var from = _positions[property].GetValueOrDefault(fromComponentId);
+                    var to = _positions[property].GetValueOrDefault(toComponentId);
+                    return new ScalePositionWire(null, from?.To ?? from?.At, to?.From ?? to?.At);
+                },
+                StringComparer.Ordinal);
+
+        /// <summary>
+        /// Reads the first <c>show</c> directive off the syntax (the binder does not bind it, <c>L-50</c>),
+        /// raises <c>57</c>'s diagnostics for what it says, and maps every solved port onto every available
+        /// scale. Before a solve every domain is <see langword="null"/> and every position with it.
+        /// </summary>
+        public static ColourScales Resolve(
+            ScriptSyntax root, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>>? ports, ImmutableArray<Diagnostic>.Builder raised)
+        {
+            var directives = root.Statements.OfType<ShowDirectiveSyntax>().ToList();
+            var directive = directives.FirstOrDefault();
+
+            foreach (var second in directives.Skip(1))
+            {
+                raised.Add(Diagnostic.Create(StyleDiagnostics.SecondShowDirective, second.Keyword.Span));
             }
 
-            if (min is not null && max is not null)
+            var named = ImmutableArray.CreateBuilder<string>();
+
+            foreach (var property in directive?.Properties ?? [])
             {
-                (min, max) = diverging ? Symmetric(min.Value, max.Value) : Nice(min.Value, max.Value);
+                if (!Properties.TryGetValue(property.Text, out var known))
+                {
+                    raised.Add(Diagnostic.Create(
+                        StyleDiagnostics.UnknownShowProperty,
+                        property.Span,
+                        new DiagnosticArgument("name", property.Text),
+                        new DiagnosticArgument("list", string.Join(", ", Properties.Values.Select(static p => p.Name).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)))));
+                    continue;
+                }
+
+                if (named.Contains(known.Name))
+                {
+                    raised.Add(Diagnostic.Create(StyleDiagnostics.DuplicateShowProperty, property.Span, new DiagnosticArgument("name", property.Text)));
+                    continue;
+                }
+
+                named.Add(known.Name);
             }
+
+            var active = named.Count > 0 ? named[0] : "temperature";
+            var available = named.Concat(Always).Distinct(StringComparer.Ordinal).ToImmutableArray();
+            (double Min, double Max)? stated = directive?.Scale is { From: NumberLiteralSyntax from, To: NumberLiteralSyntax to }
+                && double.IsFinite(from.Value) && double.IsFinite(to.Value)
+                ? (Math.Min(from.Value, to.Value), Math.Max(from.Value, to.Value))
+                : null;
+            var scales = ImmutableDictionary.CreateBuilder<string, ScaleWire>(StringComparer.Ordinal);
+            var positions = ImmutableDictionary.CreateBuilder<string, ImmutableDictionary<string, ScalePositionWire>>(StringComparer.Ordinal);
+
+            foreach (var property in available)
+            {
+                var (_, display, dimension, diverging) = Properties[property];
+                var unit = UnitTable.CanonicalUnitFor(dimension);
+                var values = ports is { } solved ? Values(property, graph, solved, unit) : [];
+                var (scale, placed) = Build(property, display, unit, diverging, property == active ? stated : null, values);
+                scales[property] = scale;
+                positions[property] = placed;
+            }
+
+            return new ColourScales(active, available, scales.ToImmutable(), positions.ToImmutable());
         }
 
-        _ = raised;
+        /// <summary>One element's values for a property, in the scale's unit: the representative, and the gradient's ends where the element has two.</summary>
+        private readonly record struct Element(string Id, double? At, double? From, double? To);
 
-        return new VisualizationWire
+        private static (ScaleWire Scale, ImmutableDictionary<string, ScalePositionWire> Positions) Build(
+            string property, string display, UnitSymbol? unit, bool diverging, (double Min, double Max)? stated, ImmutableArray<Element> values)
         {
-            Active = active,
-            Available = available,
-            Scale = new ScaleWire
+            double? min = null, max = null;
+
+            if (stated is { } range)
             {
-                Property = active,
+                (min, max) = range;
+            }
+            else
+            {
+                // The domain is over every element's representative value (57 invariant 2); a null is unsolved, never zero (invariant 9).
+                foreach (var value in values.Select(static v => v.At).OfType<double>())
+                {
+                    min = min is null ? value : Math.Min(min.Value, value);
+                    max = max is null ? value : Math.Max(max.Value, value);
+                }
+
+                if (min is { } low && max is { } high)
+                {
+                    (min, max) = diverging ? Symmetric(low, high) : Nice(low, high);
+                }
+            }
+
+            var domain = min is { } l && max is { } h ? new DomainWire(Round(l), Round(h), Nice: stated is null) : null;
+            var positions = ImmutableDictionary.CreateBuilder<string, ScalePositionWire>(StringComparer.Ordinal);
+
+            foreach (var element in values)
+            {
+                positions[element.Id] = new ScalePositionWire(Position(element.At, domain), Position(element.From, domain), Position(element.To, domain));
+            }
+
+            var scale = new ScaleWire
+            {
+                Property = property,
                 DisplayName = display,
                 Unit = unit?.Text ?? string.Empty,
                 Kind = diverging ? "diverging" : "sequential",
-                Domain = min is { } low && max is { } high ? new DomainWire(Round(low), Round(high), Nice: directive?.Scale is null) : null,
+                Domain = domain,
                 Degenerate = min is not null && min == max,
-            },
-        };
-    }
+            };
 
-    private static IEnumerable<double> Values(
-        string property, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>> ports, UnitSymbol? unit)
-    {
-        for (var i = 0; i < graph.Components.Length; i++)
+            return (scale, positions.ToImmutable());
+        }
+
+        /// <summary>0 to 1 on the domain, clamped; the midpoint of a degenerate domain (<c>57</c> invariant 3); <see langword="null"/> without a value or a domain.</summary>
+        private static double? Position(double? value, DomainWire? domain)
         {
-            var component = graph.Components[i];
-
-            foreach (var port in ports[i])
+            if (value is not { } v || domain is null)
             {
-                if (port is not { } at)
+                return null;
+            }
+
+            return domain.Max <= domain.Min ? 0.5 : Math.Round(Math.Clamp((v - domain.Min) / (domain.Max - domain.Min), 0, 1), 4);
+        }
+
+        /// <summary>
+        /// Every element's values for a property: a node reads its one state; a component reads its inlet
+        /// and its outlet (the ports the fluid enters and leaves by) and represents itself by the outlet
+        /// (<c>D-30</c>); flow is the largest through any port, since a junction's net is zero and its
+        /// throughput is what the eye asks for; pressure drop is inlet less outlet, a pump's negative.
+        /// </summary>
+        private static ImmutableArray<Element> Values(
+            string property, CircuitGraph graph, ImmutableArray<ImmutableArray<SolvedPort?>> ports, UnitSymbol? unit)
+        {
+            var elements = ImmutableArray.CreateBuilder<Element>();
+
+            for (var i = 0; i < graph.Components.Length; i++)
+            {
+                var component = graph.Components[i];
+                var solved = ports[i].OfType<SolvedPort>().ToList();
+
+                if (solved.Count == 0)
                 {
                     continue;
                 }
 
-                double? si = property switch
-                {
-                    "temperature" when component is CircuitNode => at.Temperature,
-                    "pressure" when component is CircuitNode => at.Pressure,
-                    "enthalpy" when component is CircuitNode => at.Enthalpy,
-                    "density" when component is CircuitNode => at.Density,
-                    "flow" when component is not CircuitNode => Math.Abs(at.Flow),
-                    _ => null,
-                };
+                double? at = null, from = null, to = null;
+                var inlet = solved.Where(static p => p.Flow > 0).Select(static p => (SolvedPort?)p).FirstOrDefault();
+                var outlet = solved.Where(static p => p.Flow < 0).Select(static p => (SolvedPort?)p).FirstOrDefault();
 
-                if (si is { } value && double.IsFinite(value))
+                if (property == "flow")
                 {
-                    yield return unit is null ? value : Quantity.FromSi(value, unit.Dimension).ValueIn(unit);
+                    at = solved.Max(static p => Math.Abs(p.Flow));
+                }
+                else if (component is CircuitNode)
+                {
+                    at = Read(property, solved[0]);
+                }
+                else if (property == "pressure_drop")
+                {
+                    at = inlet is { } pIn && outlet is { } pOut ? pIn.Pressure - pOut.Pressure : null;
+                }
+                else
+                {
+                    from = inlet is { } a ? Read(property, a) : null;
+                    to = outlet is { } b ? Read(property, b) : null;
+                    at = to ?? from ?? Read(property, solved[0]);
+
+                    if (from is null || to is null)
+                    {
+                        (from, to) = (null, null);
+                    }
                 }
 
-                if (component is CircuitNode)
-                {
-                    break;
-                }
+                elements.Add(new Element(component.Name, InUnit(at, unit), InUnit(from, unit), InUnit(to, unit)));
             }
-        }
-    }
 
-    /// <summary>Rounded outward to a 1-2-5 step giving about five ticks (<c>57</c>'s "nice").</summary>
-    private static (double Min, double Max) Nice(double min, double max)
-    {
-        if (max <= min)
+            return elements.ToImmutable();
+        }
+
+        private static double? Read(string property, SolvedPort port) => property switch
         {
-            return (min, max);
+            "temperature" => port.Temperature,
+            "pressure" => port.Pressure,
+            "enthalpy" => port.Enthalpy,
+            "density" => port.Density,
+            _ => null,
+        };
+
+        private static double? InUnit(double? si, UnitSymbol? unit) =>
+            si is { } value && double.IsFinite(value) ? (unit is null ? value : Quantity.FromSi(value, unit.Dimension).ValueIn(unit)) : null;
+
+        /// <summary>Rounded outward to a 1-2-5 step giving about five ticks (<c>57</c>'s "nice").</summary>
+        private static (double Min, double Max) Nice(double min, double max)
+        {
+            if (max <= min)
+            {
+                return (min, max);
+            }
+
+            var raw = (max - min) / 5;
+            var power = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+            var fraction = raw / power;
+            var step = (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * power;
+
+            return (Math.Floor(min / step) * step, Math.Ceiling(max / step) * step);
         }
 
-        var raw = (max - min) / 5;
-        var power = Math.Pow(10, Math.Floor(Math.Log10(raw)));
-        var fraction = raw / power;
-        var step = (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * power;
-
-        return (Math.Floor(min / step) * step, Math.Ceiling(max / step) * step);
-    }
-
-    private static (double Min, double Max) Symmetric(double min, double max)
-    {
-        var (low, high) = Nice(Math.Min(min, 0), Math.Max(max, 0));
-        var reach = Math.Max(-low, high);
-        return (-reach, reach);
+        /// <summary>A diverging domain: niced, then made symmetric about zero so the neutral colour sits at zero (<c>57</c>).</summary>
+        private static (double Min, double Max) Symmetric(double min, double max)
+        {
+            var (low, high) = Nice(Math.Min(min, 0), Math.Max(max, 0));
+            var reach = Math.Max(-low, high);
+            return (-reach, reach);
+        }
     }
 
     // ---- bindings and diagnostics --------------------------------------------------------------------------

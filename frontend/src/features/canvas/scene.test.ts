@@ -131,6 +131,37 @@ describe('prepareScene', () => {
     expect(scene.symbols.find((s) => s.id === 'PU1')!.sized).toBe(true);
   });
 
+  it('follows the property the reader switches to, from the wire, with no request (57 invariant 6, D-117)', () => {
+    const byScript = prepareScene(loop);
+    expect(byScript.property).toBe('temperature');
+    expect(byScript.scale?.unit).toBe('°C');
+    expect(byScript.available).toEqual(['temperature', 'pressure', 'flow']);
+
+    const pressure = prepareScene(loop, 'pressure');
+    expect(pressure.property).toBe('pressure');
+    expect(pressure.scale?.displayName).toBe('Pressure');
+    const pump = pressure.symbols.find((s) => s.id === 'PU1')!;
+    expect(pump.scale).toBeCloseTo(0.8224, 3);
+    // The pump's gradient runs from its suction to its discharge; the route into it ends at the suction's value.
+    expect(pump.scaleFrom).toBeCloseTo(0.2, 3);
+    expect(pump.scaleTo).toBeCloseTo(0.8224, 3);
+    expect(pressure.routes.find((r) => r.id === 'c1')!.scaleTo).toBeCloseTo(0.2, 3);
+
+    // A property the wire does not carry falls back to the script's, never to an empty scale.
+    expect(prepareScene(loop, 'viscosity').property).toBe('temperature');
+  });
+
+  it('gives an exchanger its inlet and outlet positions, and a node none (57 Components)', () => {
+    const scene = prepareScene(loop);
+    const he1 = scene.symbols.find((s) => s.id === 'HE1')!;
+    expect(he1.scaleFrom).toBeCloseTo(0.3333, 3);
+    expect(he1.scaleTo).toBeCloseTo(0.8335, 3);
+    const n3 = scene.symbols.find((s) => s.id === 'N3');
+    const node = n3 ?? scene.symbols.find((s) => s.kind === 'node')!;
+    expect(node.scaleFrom).toBeNull();
+    expect(node.scaleTo).toBeNull();
+  });
+
   it('draws an unknown symbol id as a labelled rectangle rather than failing (53 error cases)', () => {
     const odd: ModelContract = {
       ...loop,
@@ -151,7 +182,7 @@ describe('prepareScene', () => {
       ...loop,
       layout: {
         ...loop.layout,
-        placements: loop.layout.placements.map((p) => ({ ...p, scale: null })),
+        placements: loop.layout.placements.map((p) => ({ ...p, scale: null, scales: {} })),
       },
     };
     expect(prepareScene(unsolved).symbols.every((s) => s.scale === null)).toBe(true);

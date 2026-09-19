@@ -743,9 +743,33 @@ export interface Placement {
    */
   style?: ResolvedStyle | null;
   /**
-   * Where the component's representative value sits on the active colour scale, 0 to 1; null when not computed.
+   * Where the component's representative value sits on the active colour scale, 0 to 1; null when not computed. The same as Scales[visualization.active].At.
    */
   scale: number | null;
+  /**
+   * The component's position on every available scale, keyed by property (D-117): the switcher needs no request.
+   */
+  scales: {
+    /**
+     * An element's place on one colour scale, each 0 to 1 or null where the element has no such value (57 invariant 5: neutral, never the low end).
+     */
+    [k: string]: ScalePosition | undefined;
+  };
+}
+
+export interface ScalePosition {
+  /**
+   * The representative value: a node's own, a component's outlet (D-30).
+   */
+  at: number | null;
+  /**
+   * Where a gradient starts: a component's inlet, a route's first end.
+   */
+  from: number | null;
+  /**
+   * Where it ends: a component's outlet, a route's last end.
+   */
+  to: number | null;
 }
 
 export interface Route {
@@ -774,13 +798,22 @@ export interface Route {
    */
   style?: ResolvedStyle | null;
   /**
-   * The scale position at the start, for a gradient; null when not computed.
+   * The scale position at the start, for a gradient; null when not computed. The same as Scales[visualization.active].From.
    */
   scaleFrom: number | null;
   /**
    * The scale position at the end.
    */
   scaleTo: number | null;
+  /**
+   * The route's ends on every available scale, keyed by property (D-117); At is unused for a route.
+   */
+  scales: {
+    /**
+     * An element's place on one colour scale, each 0 to 1 or null where the element has no such value (57 invariant 5: neutral, never the low end).
+     */
+    [k: string]: ScalePosition | undefined;
+  };
 }
 
 export interface Visualization {
@@ -793,9 +826,18 @@ export interface Visualization {
    */
   available: string[];
   /**
-   * The scale for Active.
+   * The scale for Active. The same as Scales[Active].
    */
   scale: Scale;
+  /**
+   * A scale per available property (D-117), each with its own domain, so switching needs no recompile (57 invariant 6).
+   */
+  scales: {
+    /**
+     * A colour scale.
+     */
+    [k: string]: Scale | undefined;
+  };
 }
 
 export interface Scale {

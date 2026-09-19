@@ -3255,6 +3255,32 @@
       ]
     },
     {
+      "code": "FS1210",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "Nothing to show called '{name}'. Available: {list}.",
+      "arguments": [
+        "name",
+        "list"
+      ]
+    },
+    {
+      "code": "FS1213",
+      "severity": "info",
+      "area": "StyleDirective",
+      "message": "'{name}' listed twice.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS1214",
+      "severity": "warning",
+      "area": "StyleDirective",
+      "message": "Only the first 'show' is used.",
+      "arguments": []
+    },
+    {
       "code": "FS1302",
       "severity": "error",
       "area": "Units",

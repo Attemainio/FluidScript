@@ -109,6 +109,28 @@ export function model(name: string): ModelContract {
       flow: {},
       inferred: [],
     },
+    visualization: {
+      active: 'temperature',
+      available: ['temperature'],
+      scale: {
+        property: 'temperature',
+        displayName: 'Temperature',
+        unit: '°C',
+        kind: 'sequential',
+        domain: null,
+        degenerate: false,
+      },
+      scales: {
+        temperature: {
+          property: 'temperature',
+          displayName: 'Temperature',
+          unit: '°C',
+          kind: 'sequential',
+          domain: null,
+          degenerate: false,
+        },
+      },
+    },
     diagnostics: [],
   } as unknown as ModelContract;
 }

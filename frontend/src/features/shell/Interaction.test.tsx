@@ -194,4 +194,45 @@ describe('hover, selection and the log (P5.8)', () => {
     });
     expect(container.querySelector('.hover-card')).toBeNull();
   });
+
+  it('shows the legend with the property and unit, switches without a request, and Home resets to the script (57)', async () => {
+    await compileWith([]);
+    const calls = client.calls.length;
+    const legend = (): Element => container.querySelector('.legend')!;
+    expect(legend().querySelector('.legend__title')!.textContent).toBe('Temperature · °C');
+    expect([...legend().querySelectorAll('.legend__tick')].map((t) => t.textContent)).toEqual([
+      '0',
+      '20',
+      '40',
+      '60',
+    ]);
+
+    const pressure = [...legend().querySelectorAll('.legend__choice')].find(
+      (b) => b.textContent === 'pressure',
+    )!;
+    act(() => (pressure as HTMLButtonElement).click());
+    expect(legend().querySelector('.legend__title')!.textContent).toBe('Pressure · kPa');
+    expect(pressure.getAttribute('aria-checked')).toBe('true');
+    expect(client.calls.length).toBe(calls);
+    expect(useDraftStore.getState().drafts.d1?.shown).toBe('pressure');
+
+    // Hovering a band marks exactly the symbols inside it.
+    const bands = legend().querySelectorAll('.legend__band');
+    act(() => {
+      // React derives onPointerEnter from pointerover entering the element.
+      bands[bands.length - 1]!.dispatchEvent(
+        new PointerEvent('pointerover', { bubbles: true, relatedTarget: document.body }),
+      );
+    });
+    expect(container.querySelector('.scene--banded')).not.toBeNull();
+    expect(container.querySelectorAll('.scene__symbol--in-band').length).toBeGreaterThan(0);
+    expect(container.querySelector('.scene__symbol--in-band[data-id="PU1"]')).not.toBeNull();
+
+    const pane = container.querySelector('.canvas-pane')!;
+    act(() => {
+      pane.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    });
+    expect(legend().querySelector('.legend__title')!.textContent).toBe('Temperature · °C');
+    expect(useDraftStore.getState().drafts.d1?.shown).toBeNull();
+  });
 });

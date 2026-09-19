@@ -1508,11 +1508,48 @@
                     ]
                   },
                   "scale": {
-                    "description": "Where the component\u0027s representative value sits on the active colour scale, 0 to 1; null when not computed.",
+                    "description": "Where the component\u0027s representative value sits on the active colour scale, 0 to 1; null when not computed. The same as Scales[visualization.active].At.",
                     "type": [
                       "number",
                       "null"
                     ]
+                  },
+                  "scales": {
+                    "description": "The component\u0027s position on every available scale, keyed by property (D-117): the switcher needs no request.",
+                    "type": "object",
+                    "additionalProperties": {
+                      "title": "ScalePosition",
+                      "description": "An element\u0027s place on one colour scale, each 0 to 1 or null where the element has no such value (57 invariant 5: neutral, never the low end).",
+                      "type": "object",
+                      "properties": {
+                        "at": {
+                          "description": "The representative value: a node\u0027s own, a component\u0027s outlet (D-30).",
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "from": {
+                          "description": "Where a gradient starts: a component\u0027s inlet, a route\u0027s first end.",
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "to": {
+                          "description": "Where it ends: a component\u0027s outlet, a route\u0027s last end.",
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "at",
+                        "from",
+                        "to"
+                      ]
+                    }
                   }
                 },
                 "required": [
@@ -1526,7 +1563,8 @@
                   "anchors",
                   "labelAt",
                   "source",
-                  "scale"
+                  "scale",
+                  "scales"
                 ]
               }
             },
@@ -1614,7 +1652,7 @@
                     ]
                   },
                   "scaleFrom": {
-                    "description": "The scale position at the start, for a gradient; null when not computed.",
+                    "description": "The scale position at the start, for a gradient; null when not computed. The same as Scales[visualization.active].From.",
                     "type": [
                       "number",
                       "null"
@@ -1626,6 +1664,13 @@
                       "number",
                       "null"
                     ]
+                  },
+                  "scales": {
+                    "description": "The route\u0027s ends on every available scale, keyed by property (D-117); At is unused for a route.",
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/properties/model/properties/layout/properties/placements/items/properties/scales/additionalProperties"
+                    }
                   }
                 },
                 "required": [
@@ -1635,7 +1680,8 @@
                   "points",
                   "hops",
                   "scaleFrom",
-                  "scaleTo"
+                  "scaleTo",
+                  "scales"
                 ]
               }
             }
@@ -1673,7 +1719,7 @@
             },
             "scale": {
               "title": "Scale",
-              "description": "The scale for Active.",
+              "description": "The scale for Active. The same as Scales[Active].",
               "type": "object",
               "properties": {
                 "property": {
@@ -1732,12 +1778,56 @@
                 "domain",
                 "degenerate"
               ]
+            },
+            "scales": {
+              "description": "A scale per available property (D-117), each with its own domain, so switching needs no recompile (57 invariant 6).",
+              "type": "object",
+              "additionalProperties": {
+                "title": "Scale",
+                "description": "A colour scale.",
+                "type": "object",
+                "properties": {
+                  "property": {
+                    "description": "The property.",
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "description": "The legend title.",
+                    "type": "string"
+                  },
+                  "unit": {
+                    "description": "The unit the domain is in.",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "description": "sequential or diverging.",
+                    "type": "string"
+                  },
+                  "domain": {
+                    "description": "The range mapped to the scale\u0027s ends, or null before anything is solved.",
+                    "$ref": "#/properties/model/properties/visualization/properties/scale/properties/domain"
+                  },
+                  "degenerate": {
+                    "description": "Whether every element has the same value.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "property",
+                  "displayName",
+                  "unit",
+                  "kind",
+                  "domain",
+                  "degenerate"
+                ]
+              }
             }
           },
           "required": [
             "active",
             "available",
-            "scale"
+            "scale",
+            "scales"
           ]
         },
         "bindings": {

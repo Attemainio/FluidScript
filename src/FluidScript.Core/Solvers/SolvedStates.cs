@@ -37,8 +37,28 @@ public static class SolvedStates
     /// <param name="graph">The solved graph.</param>
     /// <param name="layout">The unknown layout the solution is in.</param>
     /// <param name="solution">The solved vector.</param>
+    /// <param name="system">
+    /// The assembled system the solution satisfies, or <see langword="null"/> to read every port from
+    /// its node. With it, a port a component discharges through reads the component's own outlet
+    /// state rather than the state of the node it discharges into (<c>C-103</c>, see the remarks).
+    /// </param>
     /// <returns>Per component, per port, the solved condition or <see langword="null"/> where none could be read.</returns>
-    public static ImmutableArray<ImmutableArray<SolvedPort?>> Ports(CircuitGraph graph, SystemLayout layout, StateVector solution)
+    /// <remarks>
+    /// <para>
+    /// A port touches a node, and the node's state is the <em>mixed</em> state where every stream
+    /// arriving there meets. For a port that carries flow into the component that is what the
+    /// component sees. For a port it discharges through it is not: a valve passing 50 °C into a node
+    /// where a 10 °C return also arrives discharges 50 °C, and the node reads 20 °C. The equations
+    /// know the difference -- the node's energy balance takes the stream in as <c>ṁ·h_in + injection</c>
+    /// -- and this reading reconstructs it: the outlet's enthalpy is its inlet's plus the component's
+    /// energy injection at that port over the flow, at the node's pressure. It applies where the
+    /// outlet has exactly one inlet in its flow group; a port whose group mixes several inflows (a
+    /// mixing valve's common port, a vessel with two returns) keeps the node's state, which is the
+    /// mixed state the component itself produces.
+    /// </para>
+    /// </remarks>
+    public static ImmutableArray<ImmutableArray<SolvedPort?>> Ports(
+        CircuitGraph graph, SystemLayout layout, StateVector solution, EquationSystem? system = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(layout);
@@ -113,11 +133,83 @@ public static class SolvedStates
                 ports.Add(at with { Flow = flow });
             }
 
+            if (system is not null && own < 0 && values.Length == system.Columns)
+            {
+                Discharge(graph, system, component, values.AsSpan(), ports);
+            }
+
             result.Add(ports.ToImmutable());
         }
 
         return result.ToImmutable();
     }
+
+    /// <summary>Gives each port the component discharges through its own outlet state (<c>C-103</c>).</summary>
+    /// <param name="graph">The solved graph.</param>
+    /// <param name="system">The assembled system, whose injection is read at the solution.</param>
+    /// <param name="element">The component's index.</param>
+    /// <param name="values">The solved vector.</param>
+    /// <param name="ports">The component's ports as read from their nodes; outflow entries are rewritten in place.</param>
+    private static void Discharge(
+        CircuitGraph graph, EquationSystem system, int element, ReadOnlySpan<double> values, ImmutableArray<SolvedPort?>.Builder ports)
+    {
+        var component = graph.Components[element];
+        var groups = component.FlowGroups;
+
+        if (groups.Length != ports.Count)
+        {
+            return;
+        }
+
+        var injection = new double[ports.Count];
+
+        if (!system.TryEvaluateInjection(values, element, injection))
+        {
+            return;
+        }
+
+        for (var outlet = 0; outlet < ports.Count; outlet++)
+        {
+            if (ports[outlet] is not { Flow: < 0 } at)
+            {
+                continue;
+            }
+
+            SolvedPort? inlet = null;
+            var inlets = 0;
+
+            for (var port = 0; port < ports.Count; port++)
+            {
+                if (groups[port] == groups[outlet] && ports[port] is { Flow: > 0 } candidate)
+                {
+                    inlet = candidate;
+                    inlets++;
+                }
+            }
+
+            if (inlets != 1 || inlet is not { } from)
+            {
+                continue;
+            }
+
+            var enthalpy = from.Enthalpy + (injection[outlet] / -at.Flow);
+            var state = graph.Substance.FromPressureEnthalpy(
+                Quantity.FromSi(at.Pressure, Dimension.Pressure),
+                Quantity.FromSi(enthalpy, Dimension.Enthalpy));
+
+            if (state.IsSuccess)
+            {
+                ports[outlet] = at with
+                {
+                    Enthalpy = enthalpy,
+                    Temperature = state.Value.Temperature.SiValue,
+                    Density = state.Value.Density.SiValue,
+                    SpecificHeat = state.Value.SpecificHeat.SiValue,
+                };
+            }
+        }
+    }
+
 
     /// <summary>The solved value of a parameter the solver was asked to find, SI.</summary>
     /// <param name="layout">The unknown layout.</param>

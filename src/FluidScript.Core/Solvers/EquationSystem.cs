@@ -591,6 +591,59 @@ public sealed class EquationSystem
         return true;
     }
 
+    /// <summary>The energy each port of one component delivers into the node it touches, at one iterate, in watts (<c>C-103</c>).</summary>
+    /// <param name="x">The iterate, <see cref="Columns"/> long.</param>
+    /// <param name="element">The component's index in the graph.</param>
+    /// <param name="injection">Destination, one entry per port in the component's port order, positive into the node.</param>
+    /// <returns><see langword="false"/> when a node's state left the property domain, naming it in <see cref="OutOfDomainNode"/>.</returns>
+    /// <remarks>
+    /// What <see cref="Assemble"/> computes on its way to the node balances, exposed so that a solved
+    /// outlet port can be given the component's own outlet state -- its inlet's enthalpy plus this
+    /// injection over the flow -- rather than the state of the node it discharges into, which is the
+    /// mixed state where two streams meet. Promoted parameters are read from the iterate first, as
+    /// the assembly does.
+    /// </remarks>
+    /// <exception cref="ArgumentException">A span is the wrong length.</exception>
+    public bool TryEvaluateInjection(ReadOnlySpan<double> x, int element, Span<double> injection)
+    {
+        if (x.Length != Columns)
+        {
+            throw new ArgumentException($"Expected {Columns} unknowns, got {x.Length}.", nameof(x));
+        }
+
+        var component = _graph.Components[element];
+
+        if (injection.Length != component.Ports.Length)
+        {
+            throw new ArgumentException($"Expected {component.Ports.Length} ports, got {injection.Length}.", nameof(injection));
+        }
+
+        OutOfDomainNode = -1;
+
+        for (var node = 0; node < _graph.Nodes.Length; node++)
+        {
+            if (!Refresh(node, x))
+            {
+                return false;
+            }
+        }
+
+        foreach (var (owner, slot, column) in _promoted)
+        {
+            _parameters[owner][slot] = x[column];
+        }
+
+        injection.Clear();
+
+        if (component.InjectsEnergy)
+        {
+            var ports = Fill(element, x);
+            component.EvaluateEnergyInjection(Context(element, ports, x), injection);
+        }
+
+        return true;
+    }
+
     /// <summary>Evaluates at an iterate that differs from the last full one in a single unknown.</summary>
     /// <param name="x">The perturbed iterate, <see cref="Columns"/> long.</param>
     /// <param name="column">The unknown that moved.</param>

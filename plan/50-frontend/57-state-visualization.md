@@ -2,7 +2,7 @@
 id: 57-state-visualization
 title: State visualization and colour scales
 tier: 50-frontend
-status: draft
+status: implemented
 owns: [the show directive, property selection, colour scales, gradient rendering, the scale legend, domain computation]
 depends_on: [12-grammar, 21-fluid-and-state, 26-model-contract, 53-canvas-renderer, 55-design-system]
 traces_to: [R-23, R-26, R-27, R-08, R-34, R-45]
@@ -217,6 +217,47 @@ During a drag preview or between compiles, coloured elements desaturate toward `
 ([`55`](55-design-system.md)) rather than freezing at old colours. A stale gradient that looks live is
 worse than one that visibly says "recomputing".
 
+### As built (P5.10, 2026-09-18)
+
+- **Every scale is on the wire** (`D-117`): `visualization.scales`, `placements[].scales`,
+  `routes[].scales`, one entry per available property; the frontend prepares the scene for the
+  reader's pick (`prepareScene(model, property)`) and a switch is a re-preparation. Core's mapper is
+  `ColourScales` in `ModelContractBuilder`: the domain over every element's representative value,
+  niced or made symmetric, positions clamped, the midpoint for a degenerate domain, `null` for an
+  element with no value.
+- **The properties Core maps are six**: temperature, pressure, flow, pressure drop, enthalpy,
+  density. The table above is wider -- viscosity, specific heat, conductivity, volume flow,
+  velocity, Reynolds number, the humid-air four -- and none of those is on `SolvedPort` yet; `show`
+  names one of them and gets `FS1210`. That gap is this document's, recorded, not the code's.
+- **What a component reads.** A node reads its one state. A component reads its inlet (the port the
+  fluid enters by, `Flow > 0`) and its outlet (`Flow < 0`) and is represented by the outlet (`D-30`);
+  a pump on the pressure scale is therefore its discharge, with its gradient from suction. `flow` is
+  the largest through any port; `pressure_drop` is inlet less outlet. **A port reads its own
+  stream**, not the node it discharges into (`C-103`, closed with P5.10): the cooling loop's
+  three-way valve carries 50 °C water into `N2`, where the 6 °C primary also arrives, and draws at
+  50 °C with its recirculation line fading to the node's 20 °C -- before the fix the valve read `N2`
+  and drew mixed. A port whose flow group mixes several inflows (a mixing valve's common port, a
+  vessel) is the mix and does read its node.
+- **The route gradient** runs from the route's first point to its last in world units -- the
+  straight line between the ends of an orthogonal run, which is the two-point interpolation the
+  Connections section says it is -- with the stops in Oklab through `color-mix`. A stated stroke
+  colour keeps its word (`D-104`); an end with no value leaves the pipe neutral (invariant 5). A
+  discretized pipe's cells are separate components, so its multi-stop profile comes for free.
+- **The exchanger gradient** runs from the `in` port to the `out` port in symbol space; a component
+  with one state takes a flat fill as before.
+- **The legend**: title with the unit, the ramp as a CSS `linear-gradient(in oklab …)` over `55`'s
+  five stops, ticks on the 1-2-5 step (`legend.ts` mirrors Core's `Nice`; a fixed domain keeps its
+  ends), the switcher as a radio group, hover on a band between two ticks lighting the symbols
+  whose representative position lies in it and dimming the rest (`.scene--banded`). Degenerate:
+  `all 20 °C`; unavailable: `No solved temperature values`, no ramp. `Home` resets the viewport
+  *and* the switch, which is `57`'s "Reset view".
+- **Stale**: while a compile of newer text is in flight (`draft.compiling > draft.modelRevision`)
+  the scene carries `.scene--stale` and its fills and strokes desaturate.
+- **Not built**: tank layer bands (the wire has `state.layers` but no per-layer position; the tank
+  takes its outlet like any component), the run-wide transient domain (M4), `FS1211`/`FS1212`
+  (humid air is not on the wire), the pressure scale's gauge note in the legend (the wire's kPa is
+  gauge by `D-26`, so the legend is right as it stands).
+
 ## The legend
 
 Always visible when a scale is active, bottom-right of the canvas, unobtrusive.
@@ -338,28 +379,39 @@ transport delay, watchable.
 
 ## Acceptance criteria
 
-- [ ] `show t` and `show temperature` are equivalent.
-- [ ] `show viscosity` resolves to dynamic viscosity and the legend says so.
-- [ ] Default with no `show` is temperature.
-- [ ] The worked example's domain nices to 5…50 with the tabulated ticks, and includes `N1`'s 6 °C —
-      a domain that clips the coldest node is the bug this criterion exists to catch.
-- [ ] A discretized pipe renders a multi-stop gradient through its internal node values.
-- [ ] A transient uses a run-wide domain; a frame-local domain fails the test that colours are
-      comparable between frames.
-- [ ] Every element at one value renders the midpoint colour with a `all X` legend.
-- [ ] A mixed finite/null model computes its domain from finite values and renders null elements
-      neutral; an all-null model renders the unavailable legend with no ramp or ticks.
-- [ ] An element lacking the property renders neutral, not at the scale minimum.
-- [ ] Switching properties makes no network request.
-- [ ] Interpolation is Oklab, asserted against reference midpoint values.
-- [ ] `show nonsense` produces `FS1210` and still renders with the default.
-- [ ] Hovering a legend band highlights exactly the elements in that range.
-- [ ] A UI property override performs no write-back and Reset view restores the script-owned `show`.
-- [ ] `show temperature 0..80` fixes both static and transient domains without expansion.
-- [ ] A heat exchanger is counted in a legend band by its outlet value while its symbol/route retains
-      the inlet-to-outlet gradient.
-- [ ] A tank renders one fill band per layer and each connection gradient starts at its mapped layer;
-      legend-band queries count the tank once at its volume-weighted mean.
+- [x] `show t` and `show temperature` are equivalent (Core's property table, P5.1d; P5.10's
+      `AShowDirectiveIsReadAndItsMistakesAreSaid` reads `t` and `temperature` as one).
+- [ ] `show viscosity` resolves to dynamic viscosity and the legend says so. Viscosity is not on
+      `SolvedPort`; `FS1210` until it is.
+- [x] Default with no `show` is temperature (P5.10, `BeforeASolveEveryScaleIsThereWithNoDomain` and
+      the frontend's scene test).
+- [x] The domain includes `N1`'s 6 °C and nices outward on the 1-2-5 step (P5.10; the cooling loop's
+      hot end has since moved, so the sample's domain is 0…60, ticks 0, 20, 40, 60; the 5…50
+      example is `legend.test.ts`'s).
+- [x] A discretized pipe renders a multi-stop gradient through its internal node values (its cells
+      are components with their own routes; P5.6's one-arrow-per-run keeps the arrows apart).
+- [ ] A transient uses a run-wide domain. M4.
+- [x] Every element at one value renders the midpoint colour with an `all X` legend (Core's
+      `Position` midpoint, `legendNote`; P5.10).
+- [x] A mixed finite/null model computes its domain from finite values and renders null elements
+      neutral; an all-null model renders the unavailable legend with no ramp or ticks (P5.10).
+- [x] An element lacking the property renders neutral, not at the scale minimum (P5.10, the
+      half-valued route test; `fluidFill` is never called on `null`).
+- [x] Switching properties makes no network request (`Interaction.test.tsx`, P5.10: the client's
+      call count across a switch).
+- [x] Interpolation is Oklab -- `color-mix(in oklab …)` for fills and stops, `linear-gradient(in
+      oklab …)` for the ramp; asserted on the markup, not on sampled colours, since jsdom paints
+      nothing.
+- [x] `show nonsense` produces `FS1210` and still renders with the default (P5.10).
+- [x] Hovering a legend band highlights exactly the elements in that range (`SceneView.test.tsx`,
+      P5.10: the in-band set equals the symbols whose position lies in the band).
+- [x] A UI property override performs no write-back and Reset view restores the script-owned `show`
+      (P5.10: `draft.shown`, session-only; `Home`).
+- [x] `show temperature 0..80` fixes the static domain without expansion (Core, P5.1d); the
+      transient half is M4's.
+- [x] A heat exchanger is counted in a legend band by its outlet value while its symbol retains the
+      inlet-to-outlet gradient (P5.10: `at` is the outlet, `from`/`to` the gradient).
+- [ ] A tank renders one fill band per layer. Not built: no per-layer position on the wire.
 
 ## Open questions
 

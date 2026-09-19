@@ -11,6 +11,7 @@ import { componentCard, connectionCard, type Card } from '../hover/card.ts';
 import { HoverCard } from '../hover/HoverCard.tsx';
 import { prepareScene } from './scene.ts';
 import { detailFor } from './detail.ts';
+import { Legend } from './Legend.tsx';
 import { SceneView } from './SceneView.tsx';
 import {
   fit,
@@ -34,6 +35,14 @@ export function CanvasPane(): React.ReactNode {
   const documentId = useWorkspaceStore((state) => state.activeDocumentId);
   const model = useDraftStore((state) => draftOf(state, documentId).model);
   const diagnostics = useDraftStore((state) => draftOf(state, documentId).diagnostics);
+  const shown = useDraftStore((state) => draftOf(state, documentId).shown);
+  const setShown = useDraftStore((state) => state.setShown);
+  // Stale while a compile of newer text is in flight (57 invariant 7): the colours may not be current.
+  const stale = useDraftStore((state) => {
+    const draft = draftOf(state, documentId);
+    return draft.compiling !== null && draft.compiling > draft.modelRevision;
+  });
+  const [band, setBand] = useState<readonly [number, number] | null>(null);
   const selectedIds = useSelectionStore((state) => selectionOf(state, documentId));
   const select = useSelectionStore((state) => state.select);
   const clearSelection = useSelectionStore((state) => state.clear);
@@ -46,7 +55,10 @@ export function CanvasPane(): React.ReactNode {
   const drag = useRef<{ x: number; y: number } | null>(null);
   const space = useRef(false);
 
-  const scene = useMemo(() => (model === null ? null : prepareScene(model)), [model]);
+  const scene = useMemo(
+    () => (model === null ? null : prepareScene(model, shown ?? undefined)),
+    [model, shown],
+  );
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   // The element under the pointer, if it is a symbol, a mark or a route.
@@ -177,7 +189,9 @@ export function CanvasPane(): React.ReactNode {
         setView(fit(scene.bounds, size));
       }
     } else if (event.key === 'Home') {
+      // Reset view: the viewport, and the colour scale back to the script's show (57).
       setView(reset(size));
+      setShown(documentId, null);
     } else if (event.key === 'Escape') {
       clearSelection(documentId);
     }
@@ -219,7 +233,15 @@ export function CanvasPane(): React.ReactNode {
         <g transform={rootTransform(current)}>
           {step !== null ? <Grid world={world} step={step} /> : null}
           {current.zoom >= 0.5 ? <Axes /> : null}
-          {scene !== null ? <SceneView scene={scene} detail={detail} selected={selected} /> : null}
+          {scene !== null ? (
+            <SceneView
+              scene={scene}
+              detail={detail}
+              selected={selected}
+              band={band}
+              stale={stale}
+            />
+          ) : null}
         </g>
       </svg>
       {hover !== null ? (
@@ -230,6 +252,16 @@ export function CanvasPane(): React.ReactNode {
       <div className="canvas-pane__zoom" aria-live="polite">
         {Math.round(current.zoom * 100)}%
       </div>
+      {scene !== null && scene.scale !== null && model !== null ? (
+        <Legend
+          scale={scene.scale}
+          available={scene.available}
+          scales={model.visualization.scales}
+          active={scene.property}
+          onSwitch={(property) => setShown(documentId, property)}
+          onBand={setBand}
+        />
+      ) : null}
     </div>
   );
 }

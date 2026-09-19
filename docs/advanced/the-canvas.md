@@ -37,13 +37,48 @@ drawing matches an equipment schedule. A component the compiler added for you, a
 inferred or the pipe behind a connection line's properties, is drawn fainter and its name is
 italic.
 
-**Colour** is the active `show` property. With `show temperature` the fill runs from blue at the
-cold end of the scale to orange and red at the hot end, so the drawing reads as a temperature map
-without a legend: the supply side warm, the return cool. Pipes are the script's `style` colour or
-the theme's neutral line; their gradients arrive with the state visualization.
+**Colour** is the property the diagram follows -- the script's [`show`](../functions/show.md), or
+`temperature` when it says nothing. The fill runs from blue at the cold end of the scale to orange
+and red at the hot end, so the drawing reads as a temperature map: the supply side warm, the
+return cool. See [the colour scale](#the-colour-scale) below.
 
 **Arrows** on the pipes point the way the solver found the fluid to move, one per line between two
 symbols. A pipe with no arrow carries no flow.
+
+## The colour scale
+
+Every symbol and every pipe is coloured by one property of the fluid, and the **legend** at the
+bottom right says which and what the colours mean: the property and its unit at the top, the ramp,
+and the values along it. A drawing is never coloured without the legend, because a colour without a
+scale is decoration.
+
+- **A pipe is a gradient** between the value where it leaves one component and the value where it
+  enters the next. That is a straight two-point blend along the pipe, not a computed profile -- a
+  long pipe that loses heat along its length still draws as a smooth run from its hotter end to
+  its cooler one. A pipe you split with `nodes=` has a real value at every cell, so it draws its
+  profile cell by cell.
+- **A heat exchanger is a gradient across its body**, from its inlet's colour to its outlet's: the
+  duty made visible. A pump on the pressure scale runs from suction to discharge the same way.
+- **A pipe with a `style` colour keeps it.** The script's word about a pipe's colour is stronger
+  than the scale's; the symbols still take the scale.
+- **Grey means no value.** A component the solver gave no value for, or a property that does not
+  apply to it, draws in the neutral symbol colour, never at the cold end of the scale.
+
+**Switching the property** is the row of names under the ramp: the properties the script's `show`
+listed, then `temperature`, `pressure` and `mass flow`, which every diagram offers. A click switches
+at once, with no recompile, and changes nothing in the script; `Home` on the canvas puts the view
+and the property back to what the script says. Every property has its own range, from the lowest
+value in the plant to the highest, rounded outward to round numbers. `show temperature 0..80` fixes
+the range instead.
+
+**Hover the ramp** between two values and every symbol whose value lies in that band stands out
+while the rest recede: "show me everything above 60 °C" is a movement of the cursor.
+
+**Two things the legend says in words.** When every element has the same value it reads `all
+20 °C` and everything takes the middle colour; when nothing has been solved it reads `No solved
+temperature values` and everything is neutral. While a newer text is being compiled the colours
+turn grey, because they describe the text before your last edit and would otherwise pose as
+current.
 
 **A red plant did not solve.** When the script is refused before the solver, or the solver does not
 converge, the whole drawing turns red and loses its fills: the shape is still there to work on, and

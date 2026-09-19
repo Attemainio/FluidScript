@@ -929,6 +929,9 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
 | `FS1204` | A style applied by a name no definition gave (`D-104`) | Warning | `No style called '{name}' is defined; the components keep their previous style.` |
 | `FS1205` | A style name defined twice (`D-104`) | Warning | `Style '{name}' is defined again; the later definition is used.` |
+| `FS1210` | `show` names a property the colour scale does not know (`57`) | Warning | `Nothing to show called '{name}'. Available: {list}.` |
+| `FS1213` | The same property twice in one `show` (`57`) | Info | `'{name}' listed twice.` |
+| `FS1214` | A second `show` directive; only the first is read (`57`) | Warning | `Only the first 'show' is used.` |
 
 **`FS1103` was previously "Declare components before the 'connections' line" and is redefined here
 rather than retired**, because its trigger has widened rather than changed meaning: it still fires on

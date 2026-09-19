@@ -5238,3 +5238,41 @@ text that is at most tens of kilobytes.
 **Consequences.** `workspaceStore` carries `58`'s `DocumentState` less the text; `58`'s Open
 transition and contracts read this way; `docs/advanced/files-and-recovery.md` says a new document
 shows the unsaved dot until it is saved.
+
+## D-117 · Every available colour scale is on the wire, with every element's place on each
+
+**Accepted · 2026-09-18** · amends `26`'s `visualization`, `placements[]` and `routes[]`; keeps `D-03` and `D-103`
+
+[`57-state-visualization`](../50-frontend/57-state-visualization.md) invariant 6 says switching the
+shown property "requires no recompile and no network request", and `D-103`/`D-104` put the value→
+colour mapping in Core, where every value is: each placement carries its `scale` position and each
+route its ends, *for the active property*. One of the two had to give. It is the wire that grows:
+Core computes a `ScaleWire` per property in `available` (the script's, then `temperature`,
+`pressure`, `flow`) and each element's `{at, from, to}` on every one of them; the frontend prepares
+the scene for whichever the reader picks. `available` is three to five entries, so it is a handful
+of numbers per element, and a transient frame carries no more than a static model does.
+
+**Why not map in the frontend.** The mapping is `Nice`, the diverging symmetry about zero, the
+unit of the domain and, per kind, which port is the representative -- rules with numbers in them
+that two implementations would drift on, and that `D-03` places with the domain: "Core computes
+the domain because it holds every value."
+
+**Why not a request per switch.** `57` wrote invariant 6 for a reason: a click that goes to the host
+is a click that waits, and a switch during a transient would have to re-fetch every frame.
+
+**Also decided here.** A component's `from`/`to` are its inlet and its outlet where it has both, so
+an exchanger's fill is a gradient across it; a route's ends are the outlet it leaves and the inlet it
+enters, so a pipe into a pump ends at suction pressure and the pump's own gradient continues to
+the discharge. `flow` at a node is the largest through any of its ports, since a junction's net is
+zero and its throughput is what the eye asks for; `pressure_drop` is inlet less outlet, a pump's
+negative, on a diverging scale about zero.
+
+**Rejected.**
+- *Drop the singular `scale`/`scaleFrom`/`scaleTo`.* Cleaner wire. Cost: every reader of the
+  contract changes for a redundancy the serializer computes from one source; kept for the active
+  property.
+- *Send positions for the alternatives only on request (`GET /scales?property=`).* The request
+  invariant 6 forbids, with an endpoint to keep.
+
+**Consequences.** `ScalePositionWire`; `ColourScales` in `ModelContractBuilder`; the Api goldens;
+`26`'s example; the frontend's `prepareScene(model, property)`.

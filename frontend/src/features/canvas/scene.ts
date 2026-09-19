@@ -6,6 +6,8 @@ import type {
   Primitive,
   ResolvedStyle,
   Route,
+  Scale,
+  ScalePosition,
   SymbolDefinition,
 } from '../../api/types.ts';
 import {
@@ -42,6 +44,12 @@ export interface PreparedScene {
   /** Every route, from the back: signals, return, supply (`28` C16). */
   readonly routes: readonly PreparedRoute[];
   readonly labels: readonly PreparedLabel[];
+  /** The property the colours follow: the script's `show`, or the reader's switch (`57`, `D-117`). */
+  readonly property: string;
+  /** The scale behind the colours, for the legend; `null` when the wire has none for the property. */
+  readonly scale: Scale | null;
+  /** The properties the legend's switcher offers. */
+  readonly available: readonly string[];
 }
 
 export type Severity = 'error' | 'warning';
@@ -60,8 +68,11 @@ export interface PreparedSymbol {
   readonly mirrored: boolean;
   readonly inferred: boolean;
   readonly junction: boolean;
-  /** The active scale's position, 0 to 1, for the `state` fill slot (`57`); `null` when unsolved. */
+  /** The scale's position of the representative value, 0 to 1, for the `state` fill slot (`57`); `null` when unsolved. */
   readonly scale: number | null;
+  /** The inlet's and the outlet's positions where the component has both (an exchanger): the fill is a gradient from one to the other (`57` Components). */
+  readonly scaleFrom: number | null;
+  readonly scaleTo: number | null;
   /** The worst diagnostic addressed to the component (`R-24`). */
   readonly badge: Severity | null;
   /** True when a parameter of the component was sized or defaulted rather than stated (`D-02`). */
@@ -110,10 +121,20 @@ export interface PreparedLabel {
 
 const layerOrder: Readonly<Record<string, number>> = { supply: 2, return: 1 };
 
-/** Prepares the scene of a model. A model with `solved: false` prepares the same way: topology with no state (`53` invariant 4). */
-export function prepareScene(model: ModelContract): PreparedScene {
+/**
+ * Prepares the scene of a model. A model with `solved: false` prepares the same way: topology with
+ * no state (`53` invariant 4). `property` is the reader's switch (`57` invariant 6): every available
+ * scale is on the wire (`D-117`), so choosing another is a re-preparation, never a request; a
+ * property the wire does not carry falls back to the script's.
+ */
+export function prepareScene(model: ModelContract, property?: string): PreparedScene {
   const layout = model.layout;
   const margin = layout.margin;
+  const visualization = model.visualization;
+  const shown =
+    property !== undefined && property in visualization.scales ? property : visualization.active;
+  const positionOf = (scales: Placement['scales'] | Route['scales']): ScalePosition =>
+    scales[shown] ?? { at: null, from: null, to: null };
   const components = new Map<string, Component>(model.components.map((c) => [c.id, c]));
   const symbols = new Map<string, SymbolDefinition>(model.symbols.map((s) => [s.id, s]));
   const badges = worstBySubject(model.diagnostics);
@@ -155,7 +176,9 @@ export function prepareScene(model: ModelContract): PreparedScene {
       mirrored: placement.mirrored,
       inferred,
       junction: Object.keys(placement.anchors).length >= 3 && placement.symbolId.startsWith('node'),
-      scale: placement.scale,
+      scale: positionOf(placement.scales).at,
+      scaleFrom: positionOf(placement.scales).from,
+      scaleTo: positionOf(placement.scales).to,
       badge: badges.get(placement.componentId) ?? null,
       sized: component !== undefined && isSized(component),
       ports: portsOf(placement),
@@ -175,6 +198,7 @@ export function prepareScene(model: ModelContract): PreparedScene {
         margin / 4,
         arrowed.has(route.id) ? layout.flow[route.id] : undefined,
         cornerOf(route.style?.corner) ?? corner,
+        positionOf(route.scales),
       ),
     );
 
@@ -186,6 +210,9 @@ export function prepareScene(model: ModelContract): PreparedScene {
     marks,
     routes,
     labels,
+    property: shown,
+    scale: visualization.scales[shown] ?? null,
+    available: visualization.available,
   };
 }
 
@@ -211,6 +238,7 @@ function prepareRoute(
   gap: number,
   flow: string | undefined,
   corner: PreparedRoute['corner'],
+  position: ScalePosition,
 ): PreparedRoute {
   return {
     id: route.id,
@@ -219,8 +247,8 @@ function prepareRoute(
     pieces: cutAtHops(pointsOf(route.points), pointsOf(route.hops), gap),
     arrow: route.kind === 'signal' ? 'none' : arrowOf(flow),
     corner,
-    scaleFrom: route.scaleFrom,
-    scaleTo: route.scaleTo,
+    scaleFrom: position.from,
+    scaleTo: position.to,
     style: route.style ?? null,
   };
 }
