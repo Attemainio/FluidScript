@@ -74,6 +74,7 @@ docs/
 │   ├── files-and-recovery.md    the File menu, the unsaved dot, recovery, conflicts, read-only files
 │   ├── the-editor.md            colours, underlines and quick fixes, completion, formatting, shortcuts
 │   ├── the-canvas.md            pan, zoom, fit; what the symbols, labels, colours and marks mean; hover and select
+│   ├── exporting.md             SVG and PNG, the options, what the file records, the PNG's size limit
 │   ├── the-log.md               reading a line, filters and folding, the success line, the header, copy as text
 │   ├── reading-solver-status.md converging, converged, failed — and which computation it means
 │   ├── using-the-api.md         the five HTTP calls, the session id, limits and status codes

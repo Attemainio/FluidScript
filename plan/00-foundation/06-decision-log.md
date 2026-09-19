@@ -5276,3 +5276,36 @@ negative, on a diverging scale about zero.
 
 **Consequences.** `ScalePositionWire`; `ColourScales` in `ModelContractBuilder`; the Api goldens;
 `26`'s example; the frontend's `prepareScene(model, property)`.
+
+## D-118 · The export names a font stack ending in a generic family; it embeds no font and outlines no text
+
+**Accepted · 2026-09-19** (P5.11)
+
+[`59`](../50-frontend/59-static-export.md)'s contract carried `text: "embed-font" | "paths"`, default
+embed, with paths as the fallback when embedding fails. Neither can be built from what the project
+has: the canvas draws its labels in the system interface stack (`--font-ui`: `system-ui`,
+`-apple-system`, `Segoe UI`, `sans-serif`), and a system font is not a file the app holds, so there
+is nothing to base64 into a `@font-face`; outlining text needs glyph outlines, which means shipping a
+font *and* an outline library for a fallback nobody has asked for.
+
+**Decided.** The exported SVG names the same family list the app uses, whose last entry is a generic
+family (`sans-serif`; `monospace` for readouts). That satisfies `59` invariant 1 as written -- no
+*unavailable* font is required, because a generic family is always available -- and keeps the labels
+searchable text, which invariant 5 wants. The `text` option is removed from the contract. Glyph
+widths differ between machines; the label box is `D-73`'s declared advance width, not a measured
+one, so nothing overlaps on a wider face -- the label is merely wider or narrower inside its
+reservation. The export's stylesheet is the canvas's own `scene.css`, read as text with every token
+resolved to the chosen theme's colour and every `color-mix` blended in Oklab, so a file's colour is
+the canvas's colour and there is one stylesheet to change. Strokes are written in world units with
+`vector-effect` dropped, since converters outside the acceptance list (Office, cairo) ignore the
+effect and draw a 2 px line two world units wide.
+
+**Rejected.**
+- *Bundle an open font (JetBrains Mono, OFL) and embed it.* Identical rendering everywhere. Cost:
+  ~100 kB per file, a licence in the repository, and the canvas would have to adopt the same face
+  to keep "canvas = export"; a later `D-` if exports are diffed across machines.
+- *Ship the font and an outline library for `paths`.* Two dependencies for a fallback path.
+
+**Consequences.** `59`'s contract loses `text`; `frontend/src/features/export/exportSvg.tsx` and
+`resolveCss.ts`; `scene.css` split out of `shell.css`; `docs/advanced/exporting.md` says what the
+labels are set in.

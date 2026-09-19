@@ -58,6 +58,8 @@ export function EditorPane(): React.ReactNode {
     };
 
     configureDocuments([
+      // The name assistive technology reads for the editable region (R-42).
+      EditorView.contentAttributes.of({ 'aria-label': 'Script' }),
       lineNumbers(),
       history(),
       drawSelection(),

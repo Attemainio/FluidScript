@@ -2,6 +2,7 @@ import { Button, SplitPane, Toolbar } from '../../design/primitives/index.ts';
 import { useUiStore } from '../../state/uiStore.ts';
 import { CanvasPane } from '../canvas/CanvasPane.tsx';
 import { EditorPane } from '../editor/EditorPane.tsx';
+import { ExportButton } from '../export/ExportDialog.tsx';
 import { FileDialogHost } from '../files/FileDialogHost.tsx';
 import { FileMenu } from '../files/FileMenu.tsx';
 import { FileNoticeBar } from '../files/FileNoticeBar.tsx';
@@ -13,8 +14,7 @@ import { StatusLine } from './StatusLine.tsx';
 
 /**
  * `51`'s app shell: toolbar, tabs, the editor-left canvas-right split, the log, the status line.
- * Run, Stop and Export wait for their packages and are shown disabled so the toolbar's shape is
- * the final one.
+ * Run and Stop wait for M4 and are shown disabled so the toolbar's shape is the final one.
  */
 export function Shell(): React.ReactNode {
   const ratio = useUiStore((state) => state.splitRatio);
@@ -35,9 +35,7 @@ export function Shell(): React.ReactNode {
         <Button disabled title="Transient runs arrive with M4">
           Stop
         </Button>
-        <Button disabled title="Export arrives with P5.11">
-          Export
-        </Button>
+        <ExportButton />
         <span className="app-spacer" />
         <ThemeSwitch />
       </Toolbar>

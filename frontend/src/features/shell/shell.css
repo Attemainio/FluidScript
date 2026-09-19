@@ -165,98 +165,6 @@
   stroke: var(--canvas-grid);
 }
 
-.canvas-axes__x {
-  stroke: var(--canvas-axis-x);
-}
-
-.canvas-axes__y {
-  stroke: var(--canvas-axis-y);
-}
-
-.scene__symbol {
-  color: var(--canvas-symbol);
-  stroke: var(--canvas-symbol);
-  outline: none;
-}
-
-.scene__symbol:focus-visible {
-  stroke: var(--canvas-selection);
-}
-
-.scene__symbol--inferred {
-  color: var(--canvas-symbol-inferred);
-  stroke: var(--canvas-symbol-inferred);
-}
-
-.scene__unknown {
-  stroke-dasharray: 4 3;
-}
-
-.scene__mark {
-  fill: var(--canvas-bg);
-  stroke: var(--canvas-symbol);
-}
-
-.scene__mark--inferred {
-  stroke: var(--canvas-symbol-inferred);
-}
-
-.scene__port {
-  fill: var(--canvas-route);
-}
-
-.scene__badge--error {
-  fill: var(--status-error);
-}
-
-.scene__badge--warning {
-  fill: var(--status-warning);
-}
-
-.scene__sized {
-  fill: var(--canvas-bg);
-  stroke: var(--text-muted);
-  stroke-width: 1;
-}
-
-.scene__route {
-  color: var(--canvas-route);
-  stroke: var(--canvas-route);
-}
-
-.scene__route--signal {
-  color: var(--text-muted);
-  stroke: var(--text-muted);
-}
-
-.scene__arrow {
-  fill: currentColor;
-}
-
-/* An unsolved plant (53 invariant 4, drawn red at the user's request): the topology in the error colour, no state fill. */
-.scene--unsolved .scene__symbol,
-.scene--unsolved .scene__mark {
-  color: var(--status-error);
-  stroke: var(--status-error);
-}
-
-.scene--unsolved .scene__route,
-.scene--unsolved .scene__route--signal {
-  /* Over the script's own style colour, which is inline: an unsolved plant is red whatever it asked for. */
-  color: var(--status-error) !important;
-  stroke: var(--status-error) !important;
-}
-
-.scene__label {
-  fill: var(--text-primary);
-  user-select: none;
-}
-
-.scene__label--inferred {
-  fill: var(--text-muted);
-  font-style: italic;
-}
-
 .log-pane {
   border-top: var(--hairline) solid var(--border-subtle);
   background: var(--surface-raised);
@@ -402,6 +310,12 @@
   color: var(--text-secondary);
 }
 
+.status-line__state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
 .status-line__fault {
   color: var(--status-error);
 }
@@ -482,12 +396,6 @@
 
 .cm-selected-declaration {
   box-shadow: inset var(--space-1) 0 0 var(--canvas-selection);
-}
-
-.scene__symbol--selected,
-.scene__symbol--selected .scene__symbol {
-  color: var(--canvas-selection);
-  stroke: var(--canvas-selection);
 }
 
 .fs-tooltip--editor {
@@ -664,17 +572,116 @@
   border-color: var(--border-strong);
 }
 
-/* Hovering a band: its elements stand, the rest recede (57: "show me everything above 60"). */
-.scene--banded .scene__symbol--out-of-band {
-  opacity: 0.25;
+/* The export dialog's form (59). */
+.export-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.scene--banded .scene__symbol--in-band {
-  opacity: 1;
+.export-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-control);
 }
 
-/* Between compiles the colours may be stale (57 invariant 7): they go grey rather than pose as current. */
-.scene--stale .scene__symbols,
-.scene--stale .scene__routes {
-  filter: saturate(0.2);
+.export-form__group legend {
+  padding: 0 var(--space-1);
+  color: var(--text-secondary);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+}
+
+.export-form__row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.export-form select {
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-primary);
+  background: var(--surface-raised);
+  border: var(--hairline) solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+
+.export-form__notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  border-left: var(--space-1) solid var(--status-warning);
+  background: var(--surface-sunken);
+}
+
+.export-form__notice--error {
+  border-left-color: var(--status-error);
+}
+
+/* The diagram as a table (53, R-42): a disclosure over the drawing's top-left corner. */
+.scene-table {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  max-width: calc(100% - var(--space-4));
+  max-height: calc(100% - var(--space-4));
+  overflow: auto;
+  font-size: var(--text-label-size);
+  color: var(--text-primary);
+}
+
+.scene-table > summary {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  color: var(--text-muted);
+  background: var(--surface-raised);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.scene-table > summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+}
+
+.scene-table[open] {
+  padding: var(--space-2);
+  background: var(--surface-raised);
+  border: var(--hairline) solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-overlay);
+}
+
+.scene-table table {
+  margin-top: var(--space-2);
+  border-collapse: collapse;
+}
+
+.scene-table caption {
+  text-align: left;
+  color: var(--text-secondary);
+  padding-bottom: var(--space-1);
+}
+
+.scene-table th,
+.scene-table td {
+  padding: var(--space-1) var(--space-2);
+  vertical-align: top;
+  text-align: left;
+  border-top: var(--hairline) solid var(--border-subtle);
+}
+
+.scene-table ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scene-table__id {
+  color: var(--text-muted);
+  font-weight: normal;
 }

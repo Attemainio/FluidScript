@@ -1,0 +1,119 @@
+/*
+ * The scene's own rules (53, 57): what a symbol, a route, a mark and a label look like. The canvas
+ * loads this sheet like any other; the exporter reads it as text, resolves every token to the chosen
+ * theme's colour and embeds it in the SVG, so the two drawings share one stylesheet (59 invariant 2).
+ */
+
+/* The origin's rays (R-22), drawn by the canvas always and by the export on request. */
+.canvas-axes__x {
+  stroke: var(--canvas-axis-x);
+}
+
+.canvas-axes__y {
+  stroke: var(--canvas-axis-y);
+}
+
+.scene__symbol {
+  color: var(--canvas-symbol);
+  stroke: var(--canvas-symbol);
+  outline: none;
+}
+
+.scene__symbol:focus-visible {
+  stroke: var(--canvas-selection);
+}
+
+.scene__symbol--inferred {
+  color: var(--canvas-symbol-inferred);
+  stroke: var(--canvas-symbol-inferred);
+}
+
+.scene__unknown {
+  stroke-dasharray: 4 3;
+}
+
+.scene__mark {
+  fill: var(--canvas-bg);
+  stroke: var(--canvas-symbol);
+}
+
+.scene__mark--inferred {
+  stroke: var(--canvas-symbol-inferred);
+}
+
+.scene__port {
+  fill: var(--canvas-route);
+}
+
+.scene__badge--error {
+  fill: var(--status-error);
+}
+
+.scene__badge--warning {
+  fill: var(--status-warning);
+}
+
+.scene__sized {
+  fill: var(--canvas-bg);
+  stroke: var(--text-muted);
+  stroke-width: 1;
+}
+
+.scene__route {
+  color: var(--canvas-route);
+  stroke: var(--canvas-route);
+}
+
+.scene__route--signal {
+  color: var(--text-muted);
+  stroke: var(--text-muted);
+}
+
+.scene__arrow {
+  fill: currentColor;
+}
+
+/* An unsolved plant (53 invariant 4, drawn red at the user's request): the topology in the error colour, no state fill. */
+.scene--unsolved .scene__symbol,
+.scene--unsolved .scene__mark {
+  color: var(--status-error);
+  stroke: var(--status-error);
+}
+
+.scene--unsolved .scene__route,
+.scene--unsolved .scene__route--signal {
+  /* Over the script's own style colour, which is inline: an unsolved plant is red whatever it asked for. */
+  color: var(--status-error) !important;
+  stroke: var(--status-error) !important;
+}
+
+.scene__label {
+  fill: var(--text-primary);
+  user-select: none;
+}
+
+.scene__label--inferred {
+  fill: var(--text-muted);
+  font-style: italic;
+}
+
+.scene__symbol--selected,
+.scene__symbol--selected .scene__symbol {
+  color: var(--canvas-selection);
+  stroke: var(--canvas-selection);
+}
+
+/* Hovering a band: its elements stand, the rest recede (57: "show me everything above 60"). */
+.scene--banded .scene__symbol--out-of-band {
+  opacity: 0.25;
+}
+
+.scene--banded .scene__symbol--in-band {
+  opacity: 1;
+}
+
+/* Between compiles the colours may be stale (57 invariant 7): they go grey rather than pose as current. */
+.scene--stale .scene__symbols,
+.scene--stale .scene__routes {
+  filter: saturate(0.2);
+}

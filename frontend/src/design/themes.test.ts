@@ -144,7 +144,8 @@ describe('the source tree', () => {
   it('writes no literal colour, size or duration outside the token definitions', () => {
     // 55 invariant 1 and 63's architecture-test table. The token definitions are the theme files,
     // tokens.ts and the stylesheet generated from them; everything else names a token.
-    const allowed = new Set(['design/tokens.ts', 'design/themes.generated.css']);
+    // color.ts composes a colour from parsed channels for the export (59) and names none.
+    const allowed = new Set(['design/tokens.ts', 'design/themes.generated.css', 'design/color.ts']);
     const offenders: string[] = [];
     const colour = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|color-mix)\(/i;
     const cssMeasure = /(?<![\w-])\d+(?:\.\d+)?(?:px|ms|rem|em)\b/;

@@ -12,6 +12,8 @@ import { HoverCard } from '../hover/HoverCard.tsx';
 import { prepareScene } from './scene.ts';
 import { detailFor } from './detail.ts';
 import { Legend } from './Legend.tsx';
+import { Axes } from './Axes.tsx';
+import { SceneTable } from './SceneTable.tsx';
 import { SceneView } from './SceneView.tsx';
 import {
   fit,
@@ -25,11 +27,17 @@ import {
   type Viewport,
 } from './viewport.ts';
 
+/** How far one arrow key pans, pixels, and how much `+`/`-` zoom by (`53`: every control has a key). */
+const keyPanPx = 40;
+const keyZoomFactor = 1.25;
+
 /**
  * The drawing pane (`53`): the last successful model's scene under a CAD viewport. Wheel zooms
  * about the cursor, Shift+wheel and a trackpad's horizontal scroll pan, middle or Space+drag pans,
- * `F` fits, `Home` resets. The viewport is per pane, not per document: switching tabs fits the
- * incoming scene, which is what a reader wants from a diagram they have not seen.
+ * `F` fits, `Home` resets. The keyboard has the same: arrows pan, `+`/`-` zoom about the centre,
+ * Tab walks the symbols in layout order and shows each one's card, Enter selects it. The viewport
+ * is per pane, not per document: switching tabs fits the incoming scene, which is what a reader
+ * wants from a diagram they have not seen.
  */
 export function CanvasPane(): React.ReactNode {
   const documentId = useWorkspaceStore((state) => state.activeDocumentId);
@@ -108,6 +116,26 @@ export function CanvasPane(): React.ReactNode {
     select(documentId, target.id, 'canvas', event.shiftKey);
   };
 
+  // Keyboard focus on a symbol shows its card at the symbol, at once: the hover's equivalent (53, R-42).
+  const onFocus = (event: React.FocusEvent<SVGSVGElement>): void => {
+    const element = (event.target as Element).closest('[data-id]');
+    cancelHover();
+    if (element === null) {
+      return;
+    }
+    const id = element.getAttribute('data-id') ?? '';
+    const card = componentCard(model, id, diagnostics);
+    const box = (element as SVGGraphicsElement).getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (card !== null) {
+      setHover({ card, at: { x: box.right - rect.left, y: box.bottom - rect.top } });
+    }
+  };
+
+  const onBlur = (): void => {
+    cancelHover();
+  };
+
   useEffect(() => {
     const element = host.current;
     if (element === null) {
@@ -181,6 +209,11 @@ export function CanvasPane(): React.ReactNode {
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    // The table under the drawing has its own keys; nothing here applies inside it.
+    if ((event.target as Element).closest('.scene-table') !== null) {
+      return;
+    }
+    const focused = (event.target as Element).closest('.scene__symbol');
     if (event.key === ' ') {
       space.current = true;
       event.preventDefault();
@@ -194,6 +227,19 @@ export function CanvasPane(): React.ReactNode {
       setShown(documentId, null);
     } else if (event.key === 'Escape') {
       clearSelection(documentId);
+    } else if (event.key === 'Enter' && focused !== null) {
+      // Select the focused symbol, as a click would; Shift adds it.
+      select(documentId, focused.getAttribute('data-id') ?? '', 'canvas', event.shiftKey);
+      event.preventDefault();
+    } else if (event.key.startsWith('Arrow')) {
+      const dx = event.key === 'ArrowLeft' ? keyPanPx : event.key === 'ArrowRight' ? -keyPanPx : 0;
+      const dy = event.key === 'ArrowUp' ? keyPanPx : event.key === 'ArrowDown' ? -keyPanPx : 0;
+      setView(pan(current, dx, dy));
+      event.preventDefault();
+    } else if (event.key === '+' || event.key === '=' || event.key === '-') {
+      const factor = event.key === '-' ? 1 / keyZoomFactor : keyZoomFactor;
+      setView(zoomAt(current, factor, { x: size.width / 2, y: size.height / 2 }));
+      event.preventDefault();
     }
   };
 
@@ -228,6 +274,8 @@ export function CanvasPane(): React.ReactNode {
         onPointerCancel={onPointerUp}
         onPointerOver={onPointerOver}
         onPointerLeave={cancelHover}
+        onFocus={onFocus}
+        onBlur={onBlur}
         onClick={onClick}
       >
         <g transform={rootTransform(current)}>
@@ -252,6 +300,13 @@ export function CanvasPane(): React.ReactNode {
       <div className="canvas-pane__zoom" aria-live="polite">
         {Math.round(current.zoom * 100)}%
       </div>
+      {scene !== null && model !== null ? (
+        <SceneTable
+          model={model}
+          diagnostics={diagnostics}
+          order={[...scene.symbols.map((s) => s.id), ...scene.marks.map((m) => m.id)]}
+        />
+      ) : null}
       {scene !== null && scene.scale !== null && model !== null ? (
         <Legend
           scale={scene.scale}
@@ -285,24 +340,6 @@ function Grid({
   return (
     <g className="canvas-grid" strokeWidth={1} vectorEffect="non-scaling-stroke">
       {lines}
-    </g>
-  );
-}
-
-/** The origin's rays (`R-22`): X red, Y green, one world unit long with a tick at each half. */
-function Axes(): React.ReactNode {
-  return (
-    <g className="canvas-axes" strokeWidth={1.5} fill="none">
-      <g className="canvas-axes__x">
-        <line x1={0} y1={0} x2={1} y2={0} vectorEffect="non-scaling-stroke" />
-        <line x1={0.5} y1={-0.04} x2={0.5} y2={0.04} vectorEffect="non-scaling-stroke" />
-        <line x1={1} y1={-0.06} x2={1} y2={0.06} vectorEffect="non-scaling-stroke" />
-      </g>
-      <g className="canvas-axes__y">
-        <line x1={0} y1={0} x2={0} y2={1} vectorEffect="non-scaling-stroke" />
-        <line x1={-0.04} y1={0.5} x2={0.04} y2={0.5} vectorEffect="non-scaling-stroke" />
-        <line x1={-0.06} y1={1} x2={0.06} y2={1} vectorEffect="non-scaling-stroke" />
-      </g>
     </g>
   );
 }

@@ -146,8 +146,13 @@ would be filled with nothing.
 > found `C-103` -- a port read its node, so the three-way valve discharging into the mixing node
 > drew at the mixed temperature -- closed in the same package: a solved outlet port is now
 > reconstructed from the balance's own term, `h_in + injection/ṁ`, and the valve draws hot with its
-> recirculation line fading into the node. The next package is P5.11, static export and the
-> accessibility pass.
+> recirculation line fading into the node. **P5.11 shipped 2026-09-19:** the SVG and PNG export as
+> `59` specifies it, from the one `SceneView` the canvas mounts, with the canvas's own stylesheet
+> resolved to literal colours (`D-118`: no font is embedded, the stack ends in a generic family);
+> the accessibility pass over `53` -- the diagram as a table built from the hover's cards, every
+> control on the keyboard, axe clean under jsdom, two real findings fixed; and the M3 render
+> baseline measured where Node can measure it. `F-10` holds what only a browser can verify. The
+> next package is P5.12, look and feel, which the user judges on screenshots.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -363,6 +368,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.8 | Hover, selection, the console log, the status header ([`54`](50-frontend/54-interaction-and-writeback.md), [`56`](50-frontend/56-console-log.md)): the hover card with one implementation in the canvas and the editor, the selection store and its three sources, the reconciled and grouped log with filters, the success line and copy as text, `56`'s header; diagnostics attributed to their declaration on the wire; `docs/advanced/the-log.md` | `3a3ac8f` | Shipped 2026-09-18; `L-55`, `A-6` opened; editing and write-back are P7.2's |
 | P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | `19c7584` | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 | P5.10 | State visualization ([`57`](50-frontend/57-state-visualization.md), `D-117`): every available scale on the wire with every element's place on each (`ColourScales`), enthalpy and density mapped, `FS1210`/`FS1213`/`FS1214` raised; pipe gradients between the outlet left and the inlet entered, the exchanger gradient across its body, the legend with unit, 1-2-5 ticks, the switcher (no request), the band hover, degenerate and unavailable notes, stale desaturation, `Home` resetting the switch; `docs/advanced/the-canvas.md` and `show.md` | `f43774d` | Shipped 2026-09-18; `C-103` found and closed (a port read its node; an outlet now reads its own stream, `22`); not built: tank layer bands, the run-wide transient domain (M4), `57`'s wider property table |
+| P5.11 | Static export and the accessibility pass ([`59`](50-frontend/59-static-export.md), `D-118`, `D-45`): `renderExportSvg`/`exportSvg`/`exportPng` from the canvas's `SceneView` with `scene.css` resolved to the theme's literal colours (Oklab for the mixes), strokes in world units, the legend band, the value under each symbol, the provenance `<desc>`; the Export dialog and `Ctrl+E`; export goldens per sample; `SceneTable`, keyboard pan/zoom/select/card, axe-core under jsdom, the status line's landmark and the editor's accessible name fixed; `baseline.test.tsx`; `docs/advanced/exporting.md`, the canvas page's keyboard table | (this commit) | Shipped 2026-09-19; `F-10` opened (the browser-only checks: PNG pixels, four viewers, axe with layout, zoom, screen reader, the panning budget); the render budget is not met by extrapolation (`53`) |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -806,9 +812,9 @@ Counts only. Every description lives in the file named.
 | 20 · Core domain | 33 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 19 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 5 | [`40-api/defects.md`](40-api/defects.md) |
-| 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
+| 50 · Frontend | 9 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **79** | |
+| | **80** | |
 
 Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
@@ -885,9 +891,10 @@ a judgement.
 |---|---|---|
 | Core test suite | **1831 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
-| Frontend tests | **198 passed, 0 failed**, ~10 s | `cd frontend && npm test` |
+| Frontend tests | **219 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
+| Render baseline (M3, `D-45`) | **4.8 ms** to prepare and render the 24-placement header to static markup in Node; the browser numbers (`07`: 50 fps p95 panning 200 components, 8 ms per commit) are unmeasured, `F-10` | `frontend/src/features/canvas/baseline.test.tsx` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |
 | Unit tier | under 2 s | `--filter-trait Category=Unit` |
 

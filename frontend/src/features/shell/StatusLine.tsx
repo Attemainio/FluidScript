@@ -27,14 +27,16 @@ export function StatusLine(): React.ReactNode {
   const text = `${state.glyph} ${state.word} · ${computation} · ${name}`;
 
   return (
-    <footer className="status-line" role="status" aria-live="polite">
-      <StatusDot status={state.status} label={text} />
-      {draft.fault !== null && (
-        <span className="status-line__fault">
-          {draft.fault.status === 0 ? 'Not connected' : `Request failed (${draft.fault.status})`}
-          {draft.fault.correlationId !== undefined && ` · ${draft.fault.correlationId}`}
-        </span>
-      )}
+    <footer className="status-line">
+      <div role="status" aria-live="polite" className="status-line__state">
+        <StatusDot status={state.status} label={text} />
+        {draft.fault !== null && (
+          <span className="status-line__fault">
+            {draft.fault.status === 0 ? 'Not connected' : `Request failed (${draft.fault.status})`}
+            {draft.fault.correlationId !== undefined && ` · ${draft.fault.correlationId}`}
+          </span>
+        )}
+      </div>
     </footer>
   );
 }

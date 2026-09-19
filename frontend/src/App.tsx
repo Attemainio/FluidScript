@@ -3,6 +3,7 @@ import './design/base.css';
 import './design/primitives/primitives.css';
 import './features/theme/theme.css';
 import './features/shell/shell.css';
+import './features/canvas/scene.css';
 
 import type { FileBackend } from './files/backend.ts';
 import type { RecoveryStore } from './files/recovery.ts';

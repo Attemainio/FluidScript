@@ -17,9 +17,20 @@ The canvas works like a CAD viewport. Y is up: a component above another has the
 | Drag with the middle button, or hold Space and drag | Pan |
 | `F` | Fit the whole drawing with a small margin |
 | `Home` | Back to 100 % with the origin at the centre |
+| Arrow keys | Pan a step |
+| `+` / `-` | Zoom in and out about the centre |
+| Tab | Walk the components in the order they are drawn; each shows its card as hover would |
+| Enter | Select the focused component; Shift+Enter adds it |
+| `Ctrl+E` | Export the drawing (see [Exporting](exporting.md)) |
 
-The zoom is shown in the corner. Click the canvas first to give it the keyboard; Tab then walks
-the components in the order the compiler numbered them.
+The zoom is shown in the corner. Click the canvas first to give it the keyboard. Everything the
+pointer can do, the keyboard can do: nothing on the canvas is reachable only by hovering.
+
+**Diagram as a table.** The small disclosure at the top-left corner opens the whole drawing as two
+tables, components and connections, in the order they are drawn, with every parameter and where it
+came from, the solved state with units, and any warning -- the same content as the hover cards, laid
+out for a screen reader or for anyone who wants the numbers in one place. It is rebuilt with every
+compile, so it never lags the picture.
 
 A new document opens fitted. After that the view is yours: a recompile redraws the plant but does
 not move your viewpoint, so a component you are watching stays where you left it.
@@ -129,4 +140,4 @@ fails because of one symbol.
 
 ## See also
 
-[How the diagram is arranged](how-the-diagram-is-arranged.md) · [The editor](the-editor.md) · [The log](the-log.md) · [Style](../functions/style.md)
+[How the diagram is arranged](how-the-diagram-is-arranged.md) · [Exporting](exporting.md) · [The editor](the-editor.md) · [The log](the-log.md) · [Style](../functions/style.md)
