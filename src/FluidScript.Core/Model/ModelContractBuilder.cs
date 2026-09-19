@@ -97,9 +97,8 @@ public static class ModelContractBuilder
                 Mode = component.Mode,
                 SymbolId = SymbolCatalog.IdFor(component.Kind),
                 Origin = OriginOf(symbol, expansions.ContainsKey(component.Name)),
-                SourceSpan = symbol is { Origin: FluidScript.Core.Binding.Origin.Declared, DeclarationSpan: { } span }
-                    ? new SpanWire(span.Start, span.Length)
-                    : null,
+                // A declared component's declaration, or an implicit pipe's connection line (C-97); null for what nobody wrote.
+                SourceSpan = symbol?.DeclarationSpan is { } span ? new SpanWire(span.Start, span.Length) : null,
                 Circuit = graph.CircuitOf.GetValueOrDefault(component.Name)
                     ?? symbol?.CircuitName
                     ?? (expansions.TryGetValue(component.Name, out var parent) && symbols.TryGetValue(parent, out var owner) ? owner.CircuitName : model.Circuits[0].Name),
@@ -185,7 +184,7 @@ public static class ModelContractBuilder
                 : new SolveWire
                 {
                     Converged = run.Solve.Converged,
-                    Iterations = run.Solve.Iterations,
+                    Iterations = run.Iterations,
                     ResidualNorm = Round(run.Solve.ResidualNorm, significant: 3),
                     ElapsedMs = input.ElapsedMs,
                     SizingPasses = run.Passes,
@@ -973,7 +972,9 @@ public static class ModelContractBuilder
 
         foreach (var component in components)
         {
-            if (component.SourceSpan is { } declared && declared.Start <= at.Start && at.Start < declared.Start + declared.Length)
+            // A declared component only: an implicit pipe carries its connection line (C-97), and a
+            // diagnostic on that line is about whatever it names, not about the pipe.
+            if (component.Origin == "declared" && component.SourceSpan is { } declared && declared.Start <= at.Start && at.Start < declared.Start + declared.Length)
             {
                 return component.Id;
             }

@@ -108,12 +108,14 @@ public static class TopologyDiagnostics
     /// <strong>The message must name candidates.</strong> "Over-specified by 1" is a puzzle; naming the
     /// statements whose removal squares the system is a fix. Producing that list is what forces the
     /// counting pass to attribute each equation to the statement that added it, rather than accumulate
-    /// a total.
+    /// a total. <c>{advice}</c> is the second sentence <c>23</c>'s promotion rules promise -- a flow
+    /// nothing on its branch can change wants a valve <em>added</em>, not a statement removed -- and
+    /// is empty when no unmatched constraint is a flow (<c>C-28</c>).
     /// </remarks>
     public static DiagnosticDescriptor OverSpecified { get; } = new(
         "FS2210",
         DiagnosticSeverity.Error,
-        "This circuit is over-specified by {n}. Remove one of: {list}.");
+        "This circuit is over-specified by {n}. Remove one of: {list}{advice}.");
 
     /// <summary>Fewer equations than unknowns.</summary>
     /// <value><c>FS2211</c>, an error.</value>

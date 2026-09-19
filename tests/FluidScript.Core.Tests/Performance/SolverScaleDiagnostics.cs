@@ -71,7 +71,7 @@ public sealed class SolverScaleDiagnostics
 
         foreach (var consumers in Sizes)
         {
-            rows.Add(await Measure(consumers, resolved.Value.Catalog));
+            rows.Add(await Measure(consumers, resolved.Value));
         }
 
         var report = Path.Combine(RepositoryLayout.Diagnostics, "solver-scale.md");
@@ -121,11 +121,11 @@ public sealed class SolverScaleDiagnostics
         return text.ToString();
     }
 
-    private static async Task<Row> Measure(int consumers, ICatalog<PipeSpec> catalog)
+    private static async Task<Row> Measure(int consumers, ResolvedCatalog<PipeSpec> catalog)
     {
         var source = Header(consumers);
         var model = GraphFixture.Bind(source);
-        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog), 10);
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog), 10);
 
         var prepared = loop.Prepare(model, Water.Instance, "scale");
         var counting = WellPosedness.Check(prepared.Lowered.Graph).Counting;

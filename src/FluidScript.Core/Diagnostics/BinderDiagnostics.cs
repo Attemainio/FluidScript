@@ -11,15 +11,13 @@ namespace FluidScript.Core.Diagnostics;
 /// which is why the binder raises codes from all three.
 /// </para>
 /// <para>
-/// Codes this area owns and does not yet raise, each because it needs a stage that does not exist:
-/// <c>FS1405</c> (the fixed point did not converge) needs the outer sizing loop, P3.7; <c>FS1407</c>
-/// (a solved value where the consumer must be final) needs a consumer that is finalized before the
-/// loop — a catalogue id, a schedule time, a fixed visualization range — and steps 0–5 bind none of
-/// them;
-/// <c>FS1504</c>–<c>FS1507</c>, <c>FS1510</c>, <c>FS1511</c>, <c>FS1518</c>, <c>FS1520</c>–<c>FS1523</c>
-/// and <c>FS1526</c> are connections, inference, attachments and control bindings, which are binder
-/// steps 6–11 and land in P2.8. Registering them before they can fire would put codes on the
-/// documentation page that nothing produces.
+/// Codes this area owns and does not raise: <c>FS1405</c> (the fixed point did not converge) is the
+/// outer sizing loop's event, which <c>OuterLoopResult.Settled</c> records and nothing yet reports --
+/// whether the loop raises it or <c>24</c>'s <c>FS2301</c> is <c>C-74</c>'s decision (<c>L-21</c>);
+/// <c>FS1407</c> (a solved value where the consumer must be final) needs a consumer that is finalized
+/// before the loop -- a catalogue id, a schedule time, a fixed visualization range -- and nothing binds
+/// one yet. Registering a code before it can fire would put it on the documentation page with nothing
+/// producing it.
 /// </para>
 /// <para>
 /// The binder also raises the component-model codes that are decided by counting and comparing what a
@@ -662,8 +660,34 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' observes nothing. Place it with 'at' and the name of a node.");
 
+    /// <summary>A time curve's <c>format=</c> that cannot read a date.</summary>
+    /// <value><c>FS1534</c>, an error.</value>
+    /// <remarks>
+    /// <c>D-60</c>: the format is validated when the curve is bound, and a string with no month or no
+    /// day is a diagnostic rather than a silent misparse. Before this code a <c>format=</c> that was
+    /// not a quoted string was ignored and every row then failed on its own line -- a year of hourly
+    /// data was 8 760 <c>FS1117</c>s for one mistake on the header (<c>L-40</c>). The rows are not
+    /// reported when the header is the fault.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveFormatInvalid { get; } = new(
+        "FS1534",
+        DiagnosticSeverity.Error,
+        "'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format=\"dd/MM/yyyy HH:mm\".");
+
+    /// <summary>The rows of one curve that could not be read, past the first few reported one by one.</summary>
+    /// <value><c>FS1535</c>, an error.</value>
+    /// <remarks>
+    /// The cap on <c>FS1117</c>'s cascade (<c>L-40</c>): the first rows that fail are marked where
+    /// they are, and the rest are counted here on the header, because one wrong column layout is one
+    /// mistake however many rows repeat it.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveRowsUnreadable { get; } = new(
+        "FS1535",
+        DiagnosticSeverity.Error,
+        "'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.");
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty-one descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty-three descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScheduleWithoutTime,
@@ -710,6 +734,8 @@ public static class BinderDiagnostics
         NoSingleEndpoint,
         NotAnObserver,
         ObserverNotPlaced,
+        CurveFormatInvalid,
+        CurveRowsUnreadable,
         DeadEndNode,
         NegativeValue,
         SignedRoleCapacity,

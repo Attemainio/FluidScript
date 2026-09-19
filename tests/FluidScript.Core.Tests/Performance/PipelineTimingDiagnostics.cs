@@ -75,8 +75,8 @@ public sealed class PipelineTimingDiagnostics
         foreach (var path in Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid")
             .OrderBy(static candidate => candidate, StringComparer.Ordinal))
         {
-            await MeasureStages(path, resolved.Value.Catalog);
-            MeasureStep(path, resolved.Value.Catalog);
+            await MeasureStages(path, resolved.Value);
+            MeasureStep(path, resolved.Value);
         }
 
         var report = Path.Combine(RepositoryLayout.Diagnostics, "pipeline-timings.md");
@@ -89,7 +89,7 @@ public sealed class PipelineTimingDiagnostics
         Assert.All(_stages, stage => Assert.True(stage.Parse > 0));
     }
 
-    private async Task MeasureStages(string path, ICatalog<PipeSpec> catalog)
+    private async Task MeasureStages(string path, ResolvedCatalog<PipeSpec> catalog)
     {
         var name = Path.GetFileName(path);
         var source = File.ReadAllText(path);
@@ -122,7 +122,7 @@ public sealed class PipelineTimingDiagnostics
             run.IsSuccess ? run.Value.Solve.Termination.ToString() : "refused"));
     }
 
-    private void MeasureStep(string path, ICatalog<PipeSpec> catalog)
+    private void MeasureStep(string path, ResolvedCatalog<PipeSpec> catalog)
     {
         var name = Path.GetFileName(path);
         var source = File.ReadAllText(path);
@@ -139,7 +139,7 @@ public sealed class PipelineTimingDiagnostics
 
     /// <summary>One residual evaluation, which is the unit a Jacobian is <c>N+1</c> of.</summary>
     private static (int Unknowns, int Rows, double PerCall)? Residual(
-        string source, ICatalog<PipeSpec> catalog, ISubstance substance, int runs)
+        string source, ResolvedCatalog<PipeSpec> catalog, ISubstance substance, int runs)
     {
         // Lowered with the substance under test: `GraphFixture.Lower` pins constant properties, and what
         // the real backend costs is the whole question here.
@@ -195,10 +195,10 @@ public sealed class PipelineTimingDiagnostics
             CheapRuns);
     }
 
-    private static OuterLoop Loop(ICatalog<PipeSpec> catalog) => new(
+    private static OuterLoop Loop(ResolvedCatalog<PipeSpec> catalog) => new(
         new NewtonSolver(),
         new CatalogBoreLookup(catalog),
-        OuterLoop.Rules(catalog),
+        OuterLoop.Rules(catalog.Catalog),
         10);
 
     private static double Time(Action action, int runs)

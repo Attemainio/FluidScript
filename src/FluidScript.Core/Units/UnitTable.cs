@@ -310,6 +310,11 @@ public static class UnitTable
         yield return new UnitSymbol("J/kg", Dimension.Enthalpy, 1);
         yield return new UnitSymbol("kJ/kg", Dimension.Enthalpy, 1000);
 
+        // The exchanger's u and fouling (D-119, L-54): spelled as SpecificHeat is, with `*` inside the bracket.
+        yield return new UnitSymbol("W/(m2*K)", Dimension.HeatTransferCoefficient, 1);
+        yield return new UnitSymbol("kW/(m2*K)", Dimension.HeatTransferCoefficient, 1000);
+        yield return new UnitSymbol("m2*K/W", Dimension.ThermalResistance, 1);
+
         yield return new UnitSymbol("m2", Dimension.Area, 1);
         yield return new UnitSymbol("mm2", Dimension.Area, 1e-6);
         yield return new UnitSymbol("cm2", Dimension.Area, 1e-4);

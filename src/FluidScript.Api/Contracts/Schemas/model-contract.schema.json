@@ -342,7 +342,7 @@
           },
           "sourceSpan": {
             "title": "Span",
-            "description": "Where the declaration sits in the source; null for an inferred component.",
+            "description": "Where the declaration sits in the source: the component\u0027s line, or for an implicit pipe (I7) the connection line that made it; null for an inferred node, which has no text.",
             "type": [
               "object",
               "null"
@@ -474,7 +474,7 @@
               },
               "tOut": {
                 "title": "Quantity",
-                "description": "Temperature at the outlet port.",
+                "description": "Temperature of the stream leaving through the outlet port \u2014 the component\u0027s own outlet, not the node it discharges into. A valve passing 50 \u00B0C into a node where a colder return also arrives reports 50 \u00B0C; the node reports the mix. A port that is itself a mix (a mixing valve\u0027s common port, a vessel outlet) reports the node.",
                 "type": [
                   "object",
                   "null"
@@ -2086,7 +2086,7 @@
           "type": "boolean"
         },
         "iterations": {
-          "description": "Newton iterations on the last pass.",
+          "description": "Newton iterations over every sizing pass, retries included: the run\u0027s work, where a warm start\u0027s saving shows (A-4).",
           "type": "integer"
         },
         "residualNorm": {

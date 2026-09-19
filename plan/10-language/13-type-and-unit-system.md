@@ -68,6 +68,8 @@ Three columns, and they are three different things — conflating any two is how
 | `Head` | m | m | m | Metres **of the pumped fluid**. Not interchangeable with pressure without ρ and g. |
 | `NominalDiameter` | — | — | DN | A dimensionless **designation**, not a length ([`02-glossary`](../00-foundation/02-glossary.md)). Its own dimension so it cannot be assigned to or from a `Length`. |
 | `Pixels` | px | px | px | Presentation only. Never crosses into physics. |
+| `HeatTransferCoefficient` | W/(m²·K) | W/(m²·K) | W/(m²·K) | The exchanger's `u` (`D-119`). Reached by arithmetic as well as by statement: `FromVector` names it. |
+| `ThermalResistance` | m²·K/W | m²·K/W | m²·K/W | The exchanger's `fouling`, the reciprocal of the above (`D-119`). |
 
 ### The canonical unit is a property of the dimension, not of the parameter
 
@@ -147,6 +149,8 @@ Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for mult
 | Mass | `kg`, `g`, `t` |
 | Density | `kg/m3` |
 | SpecificHeat | `J/(kg*K)`, `kJ/(kg*K)` |
+| HeatTransferCoefficient | `W/(m2*K)`, `kW/(m2*K)` |
+| ThermalResistance | `m2*K/W` |
 | Enthalpy | `J/kg`, `kJ/kg` |
 | Area | `m2`, `mm2`, `cm2` |
 | Volume | `m3`, `l`, `dm3`, `ml` |

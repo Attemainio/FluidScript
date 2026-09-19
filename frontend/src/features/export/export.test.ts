@@ -95,7 +95,7 @@ describe('the SVG export (59)', () => {
     expect(desc).toContain('catalogue: steel_en10255 2026.1');
     expect(desc).toContain('property backend: sharp-prop');
     expect(desc).toContain('atmosphere: 101.325 kPa absolute');
-    expect(desc).toContain('status: solved in 2 iterations');
+    expect(desc).toContain('status: solved in 8 iterations');
     expect(desc).toContain('shown: temperature (°C), 0 to 60');
     expect(desc).toContain('tags: equipment tags are as of the source hash above');
     expect(desc).toContain('generated: 2026-09-19T00:00:00.000Z');

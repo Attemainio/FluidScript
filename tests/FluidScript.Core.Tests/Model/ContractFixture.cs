@@ -34,7 +34,7 @@ public static class ContractFixture
             Graph = prepared.Lowered.Graph,
             Run = null,
             Diagnostics = [.. parse.Diagnostics, .. bind.Diagnostics],
-            Catalog = catalog,
+            Catalog = catalog.Catalog,
         };
     }
 
@@ -54,13 +54,13 @@ public static class ContractFixture
             Graph = run.Value.Graph,
             Run = run.Value,
             Diagnostics = [.. parse.Diagnostics, .. bind.Diagnostics, .. run.Value.Solve.Diagnostics],
-            Catalog = catalog,
+            Catalog = catalog.Catalog,
         };
     }
 
     public static string Sample(string name) => File.ReadAllText(Path.Combine(RepositoryLayout.Samples, name));
 
-    private static (ParseResult Parse, BindResult Bind, ICatalog<PipeSpec> Catalog) Front(string source)
+    private static (ParseResult Parse, BindResult Bind, ResolvedCatalog<PipeSpec> Catalog) Front(string source)
     {
         var parse = FluidScriptParser.Parse(new SourceText(source));
         var bind = new Binder(ComponentRegistry.Default).Bind(parse, "script");
@@ -68,9 +68,9 @@ public static class ContractFixture
 
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
-        return (parse, bind, resolved.Value.Catalog);
+        return (parse, bind, resolved.Value);
     }
 
-    private static OuterLoop Loop(ICatalog<PipeSpec> catalog) =>
-        new(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog), 10);
+    private static OuterLoop Loop(ResolvedCatalog<PipeSpec> catalog) =>
+        new(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog), 10);
 }

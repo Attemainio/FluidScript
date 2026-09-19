@@ -195,4 +195,20 @@ public sealed class UnitTableTests
         Assert.Empty(UnitTable.Candidates("furlong"));
         Assert.False(UnitTable.TryResolve("furlong", out _));
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheExchangerCoefficientsHaveNamedDimensionsAndSpellings()
+    {
+        // D-119 (L-54, A-3): `u=800 W/(m2*K)` is writable and the wire names the unit rather than kg/(s³·K).
+        Assert.Equal(800, Symbol("W/(m2*K)", Dimension.HeatTransferCoefficient).ToSi(800), 6);
+        Assert.Equal(3300, Symbol("kW/(m2*K)", Dimension.HeatTransferCoefficient).ToSi(3.3), 6);
+        Assert.Equal(1e-5, Symbol("m2*K/W", Dimension.ThermalResistance).ToSi(1e-5), 12);
+        Assert.Equal("W/(m2*K)", Dimension.HeatTransferCoefficient.CanonicalUnit);
+        Assert.Equal("m2*K/W", Dimension.ThermalResistance.CanonicalUnit);
+        // Arithmetic that lands on the vector lands on the name, so the registry's u is the named dimension.
+        Assert.Equal(Dimension.HeatTransferCoefficient, Dimension.FromVector(new DimensionVector(1, 0, -3, -1)));
+        Assert.Equal(Dimension.ThermalResistance, Dimension.FromVector(new DimensionVector(-1, 0, 3, 1)));
+        Assert.Equal("W/(m2*K)", Dimension.HeatTransferCoefficient.SiUnit);
+    }
 }

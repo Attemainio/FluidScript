@@ -95,6 +95,12 @@ clock and `hh` is the 12-hour. `dd/mm/yyyy` is day, *minute*, year — which is 
 not guess a format from your data or from your computer's region: the same file has to mean the same
 thing everywhere.
 
+A format that cannot read a date is reported once, on the header (`FS1534`): not a quoted string,
+no day (`d`), or no month (`M`) — `dd/mm/yyyy` is the usual one. The rows are then left alone,
+because they are not the mistake. When the header is fine and rows still do not read, the first
+five are marked where they are and the rest are counted on the header (`FS1535`), so a year of
+hourly data with one wrong column layout is one message, not thousands.
+
 ## Where curves go
 
 Before the first `circuit`, with the other whole-file lines. A curve is shared by every circuit that

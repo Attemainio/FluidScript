@@ -149,6 +149,13 @@ describe('the source tree', () => {
     const offenders: string[] = [];
     const colour = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|color-mix)\(/i;
     const cssMeasure = /(?<![\w-])\d+(?:\.\d+)?(?:px|ms|rem|em)\b/;
+    // A size written on a JSX element (F-1): a presentational attribute or an inline style given a
+    // number rather than a token or a scene value. Geometry -- x, y, r, a viewBox -- is Core's
+    // number mapped to pixels (D-103) and is not a token, so it is not scanned; what is scanned is
+    // what the stylesheet could have said instead.
+    // A zero is no size (a measured box before its first measurement) and passes.
+    const jsxMeasure =
+      /\b(?:width|height|strokeWidth|fontSize|size)=(?:"|\{\s*)-?(?!0\b)\d|\b(?:width|height|top|left|right|bottom|gap|margin\w*|padding\w*|font-?[sS]ize|border\w*|min\w+|max\w+|inset\w*|strokeWidth)\s*:\s*['"`]?-?(?!0\b)\d/;
 
     for (const file of walk(srcDir)) {
       const relative = file.slice(srcDir.length + 1).replaceAll('\\', '/');
@@ -169,6 +176,9 @@ describe('the source tree', () => {
         }
         if (relative.endsWith('.css') && cssMeasure.test(code) && !/^\s*--/.test(code)) {
           offenders.push(`${relative}:${index + 1} measure: ${line.trim()}`);
+        }
+        if (relative.endsWith('.tsx') && jsxMeasure.test(code)) {
+          offenders.push(`${relative}:${index + 1} size: ${line.trim()}`);
         }
       });
     }

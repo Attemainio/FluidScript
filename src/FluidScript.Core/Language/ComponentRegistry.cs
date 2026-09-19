@@ -748,23 +748,20 @@ public sealed class ComponentRegistry : IComponentRegistry
         Sized("authority", Dimension.Dimensionless),
         Solved("flow", Dimension.MassFlow));
 
-    // These three are expression-bodied on purpose (C-99). `Default` is initialised at the top of the
-    // class, before a static field declared below it would be, so a stored value here was still
-    // `default(Dimension)` -- unnamed, with no vector -- when the shared registry read it, and u, ua and
-    // fouling were dimensionless in every model. Computing on access has no order to get wrong.
+    // Expression-bodied on purpose (C-99). `Default` is initialised at the top of the class, before a
+    // static field declared below it would be, so a stored value here was still `default(Dimension)` --
+    // unnamed, with no vector -- when the shared registry read it, and u, ua and fouling were
+    // dimensionless in every model. Computing on access has no order to get wrong.
 
-    // W/K: the exchanger's thermal size, independent of how it is achieved.
+    // W/K: the exchanger's thermal size, independent of how it is achieved. Unnamed: `13` names no
+    // conductance, and `ToSiUnitString` spells the vector W/K.
     private static Dimension ConductancePerKelvin =>
         Dimension.FromVector(new DimensionVector(Mass: 1, Length: 2, Time: -3, Temperature: -1));
 
-    // W/(m²·K).
-    private static Dimension HeatTransferCoefficient =>
-        Dimension.FromVector(new DimensionVector(Mass: 1, Length: 0, Time: -3, Temperature: -1));
+    // W/(m²·K) and m²·K/W are named since D-119 (L-54), so a script can write the unit and the wire reports it.
+    private static Dimension HeatTransferCoefficient => Dimension.HeatTransferCoefficient;
 
-    // m²·K/W.
-    private static Dimension FoulingResistance =>
-        Dimension.FromVector(new DimensionVector(Mass: -1, Length: 0, Time: 3, Temperature: 1));
-
+    private static Dimension FoulingResistance => Dimension.ThermalResistance;
     private static PortInfo Port(string name, PortRole role, bool optional = false) =>
         new() { Name = name, Role = role, IsOptional = optional };
 

@@ -156,7 +156,7 @@ public sealed class NullDirectionTests
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10);
 
@@ -193,7 +193,7 @@ public sealed class NullDirectionTests
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10);
 

@@ -382,7 +382,7 @@ positive number and lower it to negative side-1 heat flow, while `heater` and `b
 positive number to positive heat flow (`D-91`). Secondary properties promote it to Rated mode;
 secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 
-**Ports:** `in`, `out` (side 1) and optional `in2`, `out2` (side 2). Lowering computes exactly one
+**Ports:** `in`, `out` (side 1) and optional `in2`, `out2` (side 2) -- spelled `in[2]`, `out[2]` and the temperatures `in.t`/`in[2].t` under `D-120`, which P5.13 implements; the tables below are the pre-`D-120` spelling until then. Lowering computes exactly one
 mode; there is no script `mode=` parameter:
 
 | Mode | Trigger, in precedence order | Flow groups | Behaviour |

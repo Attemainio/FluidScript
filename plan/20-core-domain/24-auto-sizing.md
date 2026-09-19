@@ -662,8 +662,8 @@ public sealed record SizingResult
 | `FS2301` | Sizing loop did not converge | Warning | `Sizes did not settle for {list}. Showing the last values; state them directly to fix.` |
 | `FS2302` | Conflicting stated flows on one branch | Error | `'{a}' sets flow {v1} and '{b}' sets {v2} on the same branch.` |
 | `FS2303` | Stated value the circuit cannot satisfy | Error | `{name}: head={stated} m, but the loop needs {required} m at this flow.` |
-| `FS2304` | Nothing to size against | Error | `Cannot size '{name}' — no flow is determined anywhere in its branch. State a duty or a flow.` |
-| `FS2305` | Required size outside the catalogue | Warning | `'{name}' needs {value}, larger than the biggest catalogue size ({max}). Using {max}.` |
+| `FS2304` | Nothing to size against | Error | `Cannot size '{name}': no flow is determined anywhere in its branch. State a duty or a flow.` |
+| `FS2305` | Required size outside the catalogue | Warning | `'{name}' needs more than DN{max}, the largest size in {catalog}. Using DN{max}.` |
 | `FS2306` | Sized value hit a plausibility bound | Warning | `'{name}' sized to {value}, at the edge of the usual range. Check the duty.` |
 | `FS2307` | Velocity check forced a size increase | Info | `'{name}' stepped up to DN{n} for velocity.` |
 | `FS2308` | A parallel branch has no valve to balance with | Error | `'{branch}' needs {dp} kPa more resistance to carry its design flow, and has nothing adjustable on it. Add a valve.` |
@@ -672,6 +672,12 @@ public sealed record SizingResult
 | `FS2311` | Rated boundary profile cannot determine a second inlet state and capacity rate | Error | `'{name}' needs enough side-2 data to rate: provide an inlet plus flow2, or two temperatures with a duty; alternatively connect both secondary ports.` |
 | `FS2312` | Auto-sized pump circuit has no explicit resistance | Info | `'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.` |
 | `FS2313` | Parallel-set index branch has no valve | Info | `'{branch}' is the fixed index at {dp} kPa and has no valve; other branches are balanced to it, but no valve-authority target applies here.` |
+
+**Registered as of 2026-09-19 (`C-74`):** `FS2301`, `FS2304`, `FS2305`, `FS2307`, `FS2310` and
+`FS2312` -- the six a rule detects. Each is raised beside the note that carried it before, with the
+component's name, so the wire, the badge and the log see what the solve explanation always did.
+`FS2301` names what moved between the last two passes. The rest of the table waits on a rule that
+detects its case; a code nothing produces stays off the documentation page.
 
 `FS2304` is the one the syntax reference hits because no duty determines a flow. If a flow is known but
 all connections are ideal, the pump instead sizes to zero head and emits `FS2312` (`D-25`).

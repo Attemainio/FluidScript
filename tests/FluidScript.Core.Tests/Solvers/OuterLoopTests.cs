@@ -42,7 +42,7 @@ public sealed class OuterLoopTests
 
         return new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             maxPasses);
     }
@@ -65,6 +65,10 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination} after {run.Solve.Iterations}.");
         Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
+
+        // A-4: the run's iterations are the sum over its passes, the last pass's count being one term of it.
+        Assert.True(run.Passes > 1, "the sizing loop is expected to take more than one pass here");
+        Assert.True(run.Iterations > run.Solve.Iterations, $"{run.Iterations} over {run.Passes} passes against {run.Solve.Iterations} on the last");
 
         // `24`'s worked example, reached rather than transcribed: DN25 after DN15 and DN20 miss the
         // 150 Pa/m target at the flow HE1's duty fixes.
@@ -142,6 +146,16 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
         Assert.InRange(run.Passes, 1, 5);
+
+        // C-74, L-21: a cap the sizes have not settled under is said as FS2301, naming what moved,
+        // and the last pass's own findings still reach the run rather than being lost with the pass.
+        var capped = await RunAsync("m2-simple-loop.fluid", maxPasses: 1);
+
+        Assert.False(capped.Settled);
+        var notSettled = Assert.Single(capped.Solve.Diagnostics, static d => d.Code == "FS2301");
+        Assert.Contains("Sizes did not settle for ", notSettled.Message, StringComparison.Ordinal);
+        Assert.Contains(".", notSettled.Message.Split(" for ")[1], StringComparison.Ordinal);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS2301");
     }
 
     /// <summary>The simple loop with a second pump in series, for <c>S-29</c>.</summary>
@@ -1087,5 +1101,70 @@ public sealed class OuterLoopTests
         Assert.DoesNotContain("CV1.authority", run.Bases.Keys);
         Assert.True(run.Sizes.IsProvisional("CV1", "kv"), "the bootstrap Kv stays a placeholder, never a choice");
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS3008");
+    }
+
+    // ---- a warm start that fails is discarded, and the loop says so (S-20, FS3012) -----------------
+
+    [Fact]
+    public async Task AWarmStartThatDoesNotConvergeIsDiscardedForTheSeedAndReported()
+    {
+        // 32's retry-from-seed rule, implemented where the two seeds both exist -- the outer loop, not
+        // the solver. A solver that rejects whatever it is first handed stands in for a warm start in
+        // the wrong basin; the loop throws it away, reruns from the sizing seed, and the run carries
+        // FS3012 so the log can show the retry happened. Without a warm start the same solver's
+        // refusal is the answer, and no FS3012 is invented.
+        var resolved = PipeCatalogs.Resolve(pin: null);
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+        var model = GraphFixture.Bind(SimpleLoop);
+
+        var cold = await Loop().RunAsync(model, Water.Instance, "warm", TestContext.Current.CancellationToken);
+        Assert.True(cold.IsSuccess, cold.Error?.Message);
+        var warmStart = new WarmStart(cold.Value.Solve.Solution, cold.Value.TopologyHash);
+
+        var loop = new OuterLoop(new RejectsFirstCall(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
+        var warm = await loop.RunAsync(model, Water.Instance, warmStart, "warm", TestContext.Current.CancellationToken);
+
+        Assert.True(warm.IsSuccess, warm.Error?.Message);
+        Assert.True(warm.Value.Solve.Converged);
+        Assert.Single(warm.Value.Solve.Diagnostics, static d => d.Code == "FS3012");
+        Assert.Equal(cold.Value.Passes + 1, warm.Value.Passes); // the discarded pass ran, and is counted (A-4)
+
+        var noWarm = await new OuterLoop(new RejectsFirstCall(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10)
+            .RunAsync(model, Water.Instance, "cold", TestContext.Current.CancellationToken);
+
+        Assert.True(noWarm.IsSuccess, noWarm.Error?.Message);
+        Assert.False(noWarm.Value.Solve.Converged);
+        Assert.DoesNotContain(noWarm.Value.Solve.Diagnostics, static d => d.Code == "FS3012");
+    }
+
+    /// <summary>Refuses the first system it is handed as diverging, and is Newton for every one after.</summary>
+    private sealed class RejectsFirstCall : ISolver
+    {
+        private readonly NewtonSolver inner = new();
+        private bool first = true;
+
+        public string Name => inner.Name;
+
+        public Result<Unit> CanSolve(EquationSystem system) => inner.CanSolve(system);
+
+        public Task<SolveResult> SolveAsync(EquationSystem system, StateVector initialGuess, IProgress<SolveProgress>? progress, CancellationToken cancellationToken)
+        {
+            if (!first)
+            {
+                return inner.SolveAsync(system, initialGuess, progress, cancellationToken);
+            }
+
+            first = false;
+            return Task.FromResult(new SolveResult
+            {
+                Converged = false,
+                Solution = initialGuess,
+                Iterations = 1,
+                ResidualNorm = double.PositiveInfinity,
+                Termination = SolveTermination.Diverging,
+                WorstResiduals = [],
+                Diagnostics = [],
+            });
+        }
     }
 }

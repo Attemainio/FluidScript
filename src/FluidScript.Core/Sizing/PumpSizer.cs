@@ -78,6 +78,16 @@ public sealed class PumpSizer : ISizer
         var head = Math.Max(0, drop ?? 0) / (density * UnitTable.StandardGravity) * margin;
         var litresPerSecond = Math.Abs(context.MassFlow) / density * 1000;
         var notes = ImmutableArray.CreateBuilder<string>();
+        var raised = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        // A note and its code say the same thing (C-74): the note for the explanation, the code for
+        // the wire, anchored to the pump.
+        void Say(Diagnostics.DiagnosticDescriptor descriptor)
+        {
+            var diagnostic = Diagnostics.Diagnostic.Create(descriptor, span: null, new Diagnostics.DiagnosticArgument("name", pump.Name)) with { ComponentName = pump.Name };
+            raised.Add(diagnostic);
+            notes.Add(diagnostic.Message);
+        }
 
         // `FS2312`'s case, and it is three cases wearing one number. A pump on no loop, a loop nothing
         // drives, and a loop of ideal links all size to zero head; they are a missing connection, a
@@ -91,12 +101,14 @@ public sealed class PumpSizer : ISizer
         }
         else if (drop <= 0)
         {
-            notes.Add(context.MassFlow == 0
-                ? $"{pump.Name} sized to zero head because no flow was estimated through its circuit. A "
-                    + "duty is what sets the flow a head is sized to — an exchanger with a power and two "
-                    + "temperatures, or a stated flow."
-                : $"{pump.Name} sized to zero head because its circuit contains no modelled resistance. "
-                    + "Add a pipe, valve, exchanger drop, or other loss if resistance is intended.");
+            if (context.MassFlow == 0)
+            {
+                Say(Diagnostics.SizingDiagnostics.NothingToSizeAgainst);
+            }
+            else
+            {
+                Say(Diagnostics.SizingDiagnostics.NoModelledResistance);
+            }
         }
 
         // Stated only when it is not 1, because a margin of one is the absence of a margin and saying
@@ -120,6 +132,7 @@ public sealed class PumpSizer : ISizer
                 new SizedValue(
                     Quantity.FromSi(head, Dimension.Head), basis + allowance, FromDefault: false)),
             Notes = notes.ToImmutable(),
+            Diagnostics = raised.ToImmutable(),
         });
     }
 

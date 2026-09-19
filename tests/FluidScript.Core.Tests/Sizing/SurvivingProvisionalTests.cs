@@ -17,7 +17,7 @@ public sealed class SurvivingProvisionalTests
 
         return new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10);
     }

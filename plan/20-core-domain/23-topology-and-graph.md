@@ -620,6 +620,15 @@ skipped, so nothing reports an authority for a Kv the solver chose.
 over-specification (`FS2210`); a free sized parameter with no constraint to pin it is left to sizing,
 not to the solver, and only becomes `FS2211` when nothing determines it at all.
 
+**`FS2211`'s advice reads the constraint list, not the script** (`D-90`, `S-52`, 2026-09-19). A
+closed circuit's dropped enthalpy level is paid for by a stated temperature that promotes nothing;
+a terminal pair that pins a flow and a stated inlet a mixing valve answers are each matched to a
+promotion and pay for nothing. So a component can state four temperatures and the level still
+float, and the message then leads with *a temperature on …* -- the value the graph could not have
+chosen -- and keeps a pressure as the last resort. The earlier wording scanned the script for any
+stated temperature, found the matched ones, and told the header to add a pressure to a hydraulic
+half that was already square; taking that advice made the count square and the Jacobian singular.
+
 **A promoted parameter may not also be stated.** `3WV position=0.78` on a circuit that also states
 `HE1 in=20` is two things setting one unknown: `FS2210`, naming both, with the fix being to remove
 either. This is the trap `D-02` creates and it is worth naming explicitly, because both lines look
@@ -660,7 +669,7 @@ individually reasonable and the interaction is invisible.
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
 | `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
 | `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.` |
-| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}.` |
+| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, and empty otherwise (`C-28`). |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
 | `FS2213` | Isolated subgraph | Error | `'{list}' are not connected to the rest of the circuit.` |

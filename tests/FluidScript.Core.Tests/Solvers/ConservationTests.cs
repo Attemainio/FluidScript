@@ -126,7 +126,7 @@ public sealed class ConservationTests
 
         var loop = new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10);
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));

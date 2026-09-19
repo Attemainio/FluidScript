@@ -37,6 +37,13 @@ public sealed record OuterLoopResult
     /// <summary>Gets how many passes ran.</summary>
     public required int Passes { get; init; }
 
+    /// <summary>Gets the Newton iterations over every pass, retries included.</summary>
+    /// <value>
+    /// The work the run did, which is where a warm start's saving shows: the warm seed goes to the
+    /// <em>first</em> pass, and <see cref="Solve"/>'s own count is the last pass's (<c>A-4</c>).
+    /// </value>
+    public required int Iterations { get; init; }
+
     /// <summary>Gets whether the sizes stopped moving.</summary>
     /// <value>
     /// <see langword="false"/> means the cap was reached with sizes still changing — <c>FS2301</c>'s
@@ -222,7 +229,7 @@ public sealed class OuterLoop(
     /// <param name="name">The graph's name, for reporting.</param>
     /// <param name="cancellationToken">Honoured between passes and inside the solver.</param>
     /// <returns>As <see cref="RunAsync(SemanticModel, ISubstance, string, CancellationToken)"/>.</returns>
-    public async Task<Result<OuterLoopResult>> RunAsync(
+    public Task<Result<OuterLoopResult>> RunAsync(
         SemanticModel model,
         ISubstance substance,
         WarmStart? warmStart,
@@ -232,7 +239,28 @@ public sealed class OuterLoop(
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(substance);
 
-        var prepared = Prepare(model, substance, name);
+        return RunAsync(Prepare(model, substance, name), model, substance, warmStart, name, cancellationToken);
+    }
+
+    /// <summary>Runs the loop from a model already prepared, so a host that read the unknown count first does not prepare twice (<c>A-1</c>).</summary>
+    /// <param name="prepared">What <see cref="Prepare"/> returned for <paramref name="model"/>.</param>
+    /// <param name="model">The bound semantic model.</param>
+    /// <param name="substance">The fluid.</param>
+    /// <param name="warmStart">As <see cref="RunAsync(SemanticModel, ISubstance, WarmStart?, string, CancellationToken)"/>.</param>
+    /// <param name="name">The graph's name, for reporting.</param>
+    /// <param name="cancellationToken">Honoured between passes and inside the solver.</param>
+    /// <returns>As <see cref="RunAsync(SemanticModel, ISubstance, string, CancellationToken)"/>.</returns>
+    public async Task<Result<OuterLoopResult>> RunAsync(
+        PreparedModel prepared,
+        SemanticModel model,
+        ISubstance substance,
+        WarmStart? warmStart,
+        string name = "model",
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prepared);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(substance);
 
         if (!prepared.Lowered.Unresolved.IsEmpty)
         {
@@ -251,7 +279,17 @@ public sealed class OuterLoop(
         StateVector? warm = null;
         SolveResult? solve = null;
         var passes = 0;
+        var iterations = 0;
         var hash = string.Empty;
+
+        // What the loop itself has to say, beyond what the solver and the sizers said: a warm start
+        // discarded (`FS3012`). Attached to the last solve whichever way the loop ends.
+        var loopSaid = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        // What the sizers raised on the last pass, and the overlay before it, kept outside the loop so
+        // the unsettled exit can attach them and say what was still moving (FS2301).
+        ImmutableArray<Diagnostics.Diagnostic> raised = [];
+        SizingOverlay? previous = null;
 
         while (passes < maxPasses)
         {
@@ -264,14 +302,16 @@ public sealed class OuterLoop(
             // A malformed script is the normal case while one is being edited, and a script whose
             // equations outnumber its unknowns is malformed. Without this the system is built anyway and
             // `DenseLu.Factor` throws `ArgumentException` on a Jacobian that is not square -- a pipeline
-            // stage throwing on user input, which the contract forbids outright (`S-28`).
+            // stage throwing on user input, which the contract forbids outright (`S-28`). The check's own
+            // diagnostics travel with the refusal, each with its code, component and range (`S-65`); the
+            // error's text is the summary for a caller that reports one line.
             if (!posedness.CanSolve)
             {
                 return Result.Failure<OuterLoopResult>(ResultError.From(
                     Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
                     ("property", "a solution"),
                     ("name", name),
-                    ("state", Unsolvable(posedness))));
+                    ("state", Unsolvable(posedness))) with { Diagnostics = posedness.Diagnostics });
             }
 
             var layout = SystemLayout.Build(lowered.Graph, posedness.Counting);
@@ -306,6 +346,7 @@ public sealed class OuterLoop(
 
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
                 .ConfigureAwait(false);
+            iterations += solve.Iterations;
 
             if (!solve.Converged)
             {
@@ -314,13 +355,15 @@ public sealed class OuterLoop(
                 if (fromWarm)
                 {
                     warmStart = null;
+                    loopSaid.Add(Diagnostics.Diagnostic.Create(Diagnostics.SolverDiagnostics.RestartedFromSeed, span: null));
                     continue;
                 }
 
                 break;
             }
 
-            var (next, chosen, said, raised) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
+            var (next, chosen, said, raisedNow) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
+            raised = raisedNow;
 
             bases = chosen;
             notes = said;
@@ -328,9 +371,10 @@ public sealed class OuterLoop(
             if (next.Matches(overlay))
             {
                 return Result.Success(
-                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised) }, next, WithStated(model, bases), notes, passes, settled: true, hash));
+                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid) }, next, WithStated(model, bases), notes, passes, iterations, settled: true, hash));
             }
 
+            previous = overlay;
             overlay = next;
             warm = solve.Solution;
         }
@@ -342,7 +386,7 @@ public sealed class OuterLoop(
                 ("name", name),
                 ("state", "the pass cap is not positive")))
             : Result.Success(
-                Report(lowered.Graph, solve, overlay, WithStated(model, bases), notes, passes, settled: false, hash));
+                Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid).Add(NotSettled(previous, overlay)) }, overlay, WithStated(model, bases), notes, passes, iterations, settled: false, hash));
     }
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
@@ -372,6 +416,7 @@ public sealed class OuterLoop(
         ImmutableDictionary<string, string> bases,
         ImmutableArray<string> notes,
         int passes,
+        int iterations,
         bool settled,
         string topologyHash) =>
         new()
@@ -384,9 +429,36 @@ public sealed class OuterLoop(
             Bases = bases,
             Notes = notes,
             Passes = passes,
+            Iterations = iterations,
             Settled = settled,
             TopologyHash = topologyHash,
         };
+
+    /// <summary><c>FS2301</c>: the pass cap was reached with sizes still moving, naming what moved between the last two passes.</summary>
+    /// <param name="previous">The overlay the last pass started from, or <see langword="null"/> when only one pass ran.</param>
+    /// <param name="last">The overlay the last pass produced.</param>
+    private static Diagnostics.Diagnostic NotSettled(SizingOverlay? previous, SizingOverlay last)
+    {
+        var moving = new List<string>();
+
+        foreach (var (component, chosen) in last.Values.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+        {
+            foreach (var (parameter, value) in chosen.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+            {
+                var before = previous?.For(component, parameter);
+
+                if (before is null || Math.Abs(before.Value - value.SiValue) > 1e-6 * Math.Max(1, Math.Abs(value.SiValue)))
+                {
+                    moving.Add($"{component}.{parameter}");
+                }
+            }
+        }
+
+        return Diagnostics.Diagnostic.Create(
+            Diagnostics.SizingDiagnostics.NotSettled,
+            span: null,
+            new Diagnostics.DiagnosticArgument("list", moving.Count == 0 ? "the sized values" : string.Join(", ", moving)));
+    }
 
     /// <summary>Names the unknown layout a solution is indexed by, so a later run can tell whether it may reuse it.</summary>
     /// <param name="layout">The layout of the system about to be solved.</param>

@@ -151,8 +151,38 @@ would be filled with nothing.
 > resolved to literal colours (`D-118`: no font is embedded, the stack ends in a generic family);
 > the accessibility pass over `53` -- the diagram as a table built from the hover's cards, every
 > control on the keyboard, axe clean under jsdom, two real findings fixed; and the M3 render
-> baseline measured where Node can measure it. `F-10` holds what only a browser can verify. The
-> next package is P5.12, look and feel, which the user judges on screenshots.
+> baseline measured where Node can measure it. `F-10` holds what only a browser can verify. **The
+> user closed P5 there (2026-09-19: "no need for P5.12; the first phase of the frontend is
+> complete")**; look and feel waits for the product to be tested, as the layout does. What follows
+> is not a package: a **defect sweep** across every tier's register, quick fixes first, the solver's
+> harder ones after, each tier of it reported and approved before the next. Tier 1 (2026-09-19):
+> `L-1`, `L-3` and `L-21` were bookkeeping -- already shipped, half shipped, or folded into `C-74`.
+> Tier 2 (2026-09-19, the quick fixes): `S-65` (a refused solve reports the posedness check's own
+> diagnostics, codes and components intact, through `ResultError.Diagnostics`/`Report`), `L-53`
+> (`FS1503`/`FS1512` span the name), `L-54` and `A-3` (`D-119`: `HeatTransferCoefficient` and
+> `ThermalResistance` named, `W/(m2*K)` and `m2*K/W` on the wire), `C-28` (`FS2210` says "or add a
+> valve" when nothing on the branch can throttle), `C-97` (an implicit pipe carries its connection
+> line as `sourceSpan`), `A-1` (`RunAsync` from a `PreparedModel`; the pipeline prepares once),
+> `A-4` (`solve.iterations` is the total over passes), `C-39` (`CatalogBoreLookup` takes a resolved
+> catalogue only), `F-1` (the literal scan reads TSX sizes; the axes, grid and export type sizes
+> moved to tokens). Found on the way: `C-103`'s `tOut` wording had been written into the generated
+> page rather than the wire record's XML doc, so the docs gate would have failed on its next run;
+> moved. Ten closed, none opened; 67 open.
+> Tier 3 (2026-09-19, the medium ones): `S-20` (the outer loop's retry from the sizing seed was
+> already there; `FS3012` now registered and raised on it), `L-40` (`FS1534` validates a time curve's
+> `format=` on the header per `D-60`; `FS1535` caps `FS1117`'s cascade at five marked rows), `L-55`
+> (the binder attributes a diagnostic to the component its `name`/`node`/`component` argument names,
+> resolved at the end of the bind; the span fallback is declared-only again), `C-74` (`FS2301`,
+> `FS2304`, `FS2305`, `FS2307`, `FS2310`, `FS2312` registered and raised beside their notes with a
+> component; `FS2301` names what moved -- `L-21`'s event under its one code), `S-52` (`FS2211`'s
+> thermal candidates read from the constraint list per `D-90`, so a matched temperature no longer
+> silences the missing level). `L-50` narrowed: three of its five codes live since P5.10; the binder
+> home and `FS1211`/`FS1212` stay open. `C-87` not taken: a parked layout entry, the ladder's to
+> reproduce. Five closed, none opened; 62 open.
+> **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
+> one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
+> table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
+> is **P5.13**, to run before P6 so M4 is not specified in a spelling about to change. Not started.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -369,6 +399,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | `19c7584` | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 | P5.10 | State visualization ([`57`](50-frontend/57-state-visualization.md), `D-117`): every available scale on the wire with every element's place on each (`ColourScales`), enthalpy and density mapped, `FS1210`/`FS1213`/`FS1214` raised; pipe gradients between the outlet left and the inlet entered, the exchanger gradient across its body, the legend with unit, 1-2-5 ticks, the switcher (no request), the band hover, degenerate and unavailable notes, stale desaturation, `Home` resetting the switch; `docs/advanced/the-canvas.md` and `show.md` | `f43774d` | Shipped 2026-09-18; `C-103` found and closed (a port read its node; an outlet now reads its own stream, `22`); not built: tank layer bands, the run-wide transient domain (M4), `57`'s wider property table |
 | P5.11 | Static export and the accessibility pass ([`59`](50-frontend/59-static-export.md), `D-118`, `D-45`): `renderExportSvg`/`exportSvg`/`exportPng` from the canvas's `SceneView` with `scene.css` resolved to the theme's literal colours (Oklab for the mixes), strokes in world units, the legend band, the value under each symbol, the provenance `<desc>`; the Export dialog and `Ctrl+E`; export goldens per sample; `SceneTable`, keyboard pan/zoom/select/card, axe-core under jsdom, the status line's landmark and the editor's accessible name fixed; `baseline.test.tsx`; `docs/advanced/exporting.md`, the canvas page's keyboard table | `d3b7323` | Shipped 2026-09-19; `F-10` opened (the browser-only checks: PNG pixels, four viewers, axe with layout, zoom, screen reader, the panning budget); the render budget is not met by extrapolation (`53`) |
+| Sweep 1–3 | The defect sweep after P5 (tiers 1–3, 2026-09-19): 15 entries closed across five registers -- `L-1`, `L-3`, `L-21`, `S-65`, `L-53`, `L-54`, `A-3`, `C-28`, `C-97`, `A-1`, `A-4`, `C-39`, `F-1`, `S-20`, `L-40`, `L-55`, `C-74`, `S-52` -- with `D-119` (named exchanger dimensions), `D-120` (port-indexed state syntax, P5.13 to implement), `SizingDiagnostics`, `FS1534`/`FS1535`/`FS3012`, and the dotnet-toolkit observations report | *pending* | Recorded above under P5.11 |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
 lowered graph, its model and the solved branch flows, returning the hints and its three
@@ -808,15 +839,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 11 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 33 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 19 | [`30-solver/defects.md`](30-solver/defects.md) |
-| 40 · API | 5 | [`40-api/defects.md`](40-api/defects.md) |
-| 50 · Frontend | 9 | [`50-frontend/defects.md`](50-frontend/defects.md) |
+| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
+| 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **80** | |
+| | **62** | |
 
-Counted from the files on 2026-09-18 with P5.5; the table had not been recounted since P3 and read
+Counted from the files on 2026-09-19 after sweep tier 3 (77 before tier 2, 67 after it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
 nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
 its own unread documents.

@@ -958,6 +958,8 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role} to use here. Write it out, such as '{example}'.` |
 | `FS1532` | An `at` clause on a kind that carries flow rather than observing it | Error | `'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.` |
 | `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
+| `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |
+| `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`
@@ -972,6 +974,14 @@ what `at` means and says nothing about writing it on a pump, or about an instrum
 `at` at all. Both are ordinary user mistakes with no code, and the second is the one that mattered:
 an observer is exempt from `FS1507` because it is never connected to anything, so without a code of
 its own an unplaced sensor bound in silence.
+
+**`FS1534` and `FS1535` are `D-60`'s validation, added 2026-09-19 (`L-40`).** `D-60` said the format is
+validated when the curve is bound and that a string with no month or no day is a diagnostic; neither
+check existed, a `format=` that was not a quoted string was ignored, and every row of the curve then
+failed on its own line -- a year of hourly data was 8 760 `FS1117`s for one mistake on the header.
+`FS1534` is that mistake, once, on the argument; when it fires the rows are neither read nor
+reported, because they are not the fault. `FS1535` is the cap on `FS1117` when the header is fine
+and the rows are not: the first five are marked where they are, the rest are one count on the header.
 
 **`FS1509` is retired, not redefined, and the distinction matters.** It meant "more than one `circuit`
 header", a condition `D-33` makes legal. The tempting move is to keep the number for the nearest

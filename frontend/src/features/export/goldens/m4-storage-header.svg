@@ -18,7 +18,7 @@ generated: 2026-09-19T00:00:00.000Z</desc>
 .export__value { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 11px; fill: #1c2733; text-anchor: middle; }
 .export__value--unsolved { fill: #586672; font-style: italic; }
 .export__legend-title { font-size: 12px; font-weight: 600; fill: #1c2733; }
-.export__legend-tick { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 10px; fill: #3f4c58; text-anchor: middle; }
+.export__legend-tick { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 11px; fill: #3f4c58; text-anchor: middle; }
 .export__legend-note { font-size: 11px; fill: #586672; }
 .export__legend-frame { fill: none; stroke: #d9dee3; }
 .scene__route .scene__arrow { fill: #4a5a68; }

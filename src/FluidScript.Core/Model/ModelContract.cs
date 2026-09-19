@@ -163,7 +163,7 @@ public sealed record ComponentWire
     /// <summary><c>declared</c>, or <c>inferred:I1</c>, <c>inferred:I2</c>, <c>inferred:I3</c>, <c>inferred:I7</c> (a pipe a connection line's properties made, <c>D-110</c>).</summary>
     public required string Origin { get; init; }
 
-    /// <summary>Where the declaration sits in the source; <see langword="null"/> for an inferred component.</summary>
+    /// <summary>Where the declaration sits in the source: the component's line, or for an implicit pipe (I7) the connection line that made it; <see langword="null"/> for an inferred node, which has no text.</summary>
     public required SpanWire? SourceSpan { get; init; }
 
     /// <summary>The owning circuit (<c>D-33</c>; the losing side's under <c>D-36</c>).</summary>
@@ -220,7 +220,12 @@ public sealed record ComponentStateWire
     [AbsentWhenNull]
     public QuantityWire? TIn { get; init; }
 
-    /// <summary>Temperature at the outlet port.</summary>
+    /// <summary>
+    /// Temperature of the stream leaving through the outlet port — the component's own outlet, not the
+    /// node it discharges into. A valve passing 50 °C into a node where a colder return also arrives
+    /// reports 50 °C; the node reports the mix. A port that is itself a mix (a mixing valve's common
+    /// port, a vessel outlet) reports the node.
+    /// </summary>
     [AbsentWhenNull]
     public QuantityWire? TOut { get; init; }
 
@@ -725,7 +730,7 @@ public sealed record SolveWire
     /// <summary>Whether the last pass converged.</summary>
     public required bool Converged { get; init; }
 
-    /// <summary>Newton iterations on the last pass.</summary>
+    /// <summary>Newton iterations over every sizing pass, retries included: the run's work, where a warm start's saving shows (<c>A-4</c>).</summary>
     public required int Iterations { get; init; }
 
     /// <summary>The scaled residual norm at the end.</summary>

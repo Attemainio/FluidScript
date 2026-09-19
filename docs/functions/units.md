@@ -41,6 +41,8 @@ number you have not seen before still reads the way you would guess.
 | Head | `m` | `m` | `m` |
 | Nominal diameter | — | the value itself | `DN` |
 | Pixels | `px` | `px` | `px` |
+| Heat transfer coefficient | `W/(m2*K)` | `W/(m2*K)` | `W/(m2*K)` |
+| Thermal resistance | `m2*K/W` | `m2*K/W` | `m2*K/W` |
 <!-- END GENERATED: unit-dimensions -->
 
 ## Writing the unit out
@@ -74,6 +76,8 @@ accepted in any case.
 | Head | *a bare number only* |
 | Nominal diameter | *a bare number only* |
 | Pixels | `px` |
+| Heat transfer coefficient | `W/(m2*K)`, `kW/(m2*K)` |
+| Thermal resistance | `m2*K/W` |
 <!-- END GENERATED: unit-symbols -->
 
 ## Temperatures and temperature differences are not the same thing

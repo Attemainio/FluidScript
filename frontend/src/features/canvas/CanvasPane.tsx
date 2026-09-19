@@ -338,7 +338,7 @@ function Grid({
     lines.push(<line key={`y${y}`} x1={world.x} y1={y} x2={world.x + world.width} y2={y} />);
   }
   return (
-    <g className="canvas-grid" strokeWidth={1} vectorEffect="non-scaling-stroke">
+    <g className="canvas-grid" vectorEffect="non-scaling-stroke">
       {lines}
     </g>
   );

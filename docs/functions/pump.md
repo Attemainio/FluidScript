@@ -52,8 +52,11 @@ Zero is a real answer, and three different omissions produce it. The reported re
 | What you are told | What is missing |
 |---|---|
 | `on no closed circuit` | The pump is declared but never connected into a loop — check your `connections`. |
-| `no flow was estimated` | Nothing sets a flow. Give the circuit a duty: an exchanger with a power and two temperatures, or a stated flow. |
-| `no modelled resistance` | The loop has flow but nothing that resists it. Add the pipe, valve or exchanger drop you meant to write. |
+| `Cannot size … no flow is determined` (`FS2304`, an error) | Nothing sets a flow. Give the circuit a duty: an exchanger with a power and two temperatures, or a stated flow. |
+| `no modelled resistance` (`FS2312`, a note) | The loop has flow but nothing that resists it. Add the pipe, valve or exchanger drop you meant to write. |
+
+The second and third are diagnostics as well as lines in the report, so the editor underlines the
+pump and the log links to it.
 
 ## Ports
 

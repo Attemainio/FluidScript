@@ -111,7 +111,7 @@ public sealed class CircuitDiagnostics
         var resolved = PipeCatalogs.Resolve(pin: null);
         var run = await new OuterLoop(
                 new NewtonSolver(),
-                new CatalogBoreLookup(resolved.Value.Catalog),
+                new CatalogBoreLookup(resolved.Value),
                 OuterLoop.Rules(resolved.Value.Catalog),
                 10)
             .RunAsync(

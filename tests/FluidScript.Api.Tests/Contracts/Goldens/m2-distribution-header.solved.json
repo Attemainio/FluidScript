@@ -113,7 +113,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -261,7 +261,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -513,7 +513,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 3616,
+        "length": 29
+      },
       "circuit": "AHU",
       "tag": null,
       "parameters": {
@@ -584,7 +587,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 3918,
+        "length": 27
+      },
       "circuit": "AHU",
       "tag": null,
       "parameters": {
@@ -689,7 +695,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -941,7 +947,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 4134,
+        "length": 29
+      },
       "circuit": "radiators",
       "tag": null,
       "parameters": {
@@ -1012,7 +1021,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 4219,
+        "length": 27
+      },
       "circuit": "radiators",
       "tag": null,
       "parameters": {
@@ -5463,7 +5475,7 @@
         "offset": 3265,
         "length": 2
       },
-      "component": null,
+      "component": "N3",
       "suggestion": null,
       "related": []
     },
@@ -5483,7 +5495,7 @@
         "offset": 3360,
         "length": 2
       },
-      "component": null,
+      "component": "N4",
       "suggestion": null,
       "related": []
     },
@@ -5503,7 +5515,7 @@
         "offset": 3421,
         "length": 2
       },
-      "component": null,
+      "component": "N6",
       "suggestion": null,
       "related": []
     },
@@ -5523,7 +5535,7 @@
         "offset": 3426,
         "length": 2
       },
-      "component": null,
+      "component": "N5",
       "suggestion": null,
       "related": []
     },
@@ -5543,7 +5555,7 @@
         "offset": 3616,
         "length": 29
       },
-      "component": null,
+      "component": "N3__TV_AHU",
       "suggestion": null,
       "related": []
     },
@@ -5563,7 +5575,7 @@
         "offset": 3616,
         "length": 29
       },
-      "component": null,
+      "component": "N3__TV_AHU__out",
       "suggestion": null,
       "related": []
     },
@@ -5583,7 +5595,7 @@
         "offset": 3718,
         "length": 6
       },
-      "component": null,
+      "component": "NM_AHU",
       "suggestion": null,
       "related": []
     },
@@ -5603,7 +5615,7 @@
         "offset": 3817,
         "length": 36
       },
-      "component": null,
+      "component": "TV_AHU__PU_AHU",
       "suggestion": null,
       "related": []
     },
@@ -5623,7 +5635,7 @@
         "offset": 3817,
         "length": 36
       },
-      "component": null,
+      "component": "PU_AHU__HE_AHU",
       "suggestion": null,
       "related": []
     },
@@ -5643,7 +5655,7 @@
         "offset": 3918,
         "length": 27
       },
-      "component": null,
+      "component": "NM_AHU__N5",
       "suggestion": null,
       "related": []
     },
@@ -5663,7 +5675,7 @@
         "offset": 4134,
         "length": 29
       },
-      "component": null,
+      "component": "N4__TV_RAD",
       "suggestion": null,
       "related": []
     },
@@ -5683,7 +5695,7 @@
         "offset": 4134,
         "length": 29
       },
-      "component": null,
+      "component": "N4__TV_RAD__out",
       "suggestion": null,
       "related": []
     },
@@ -5703,7 +5715,7 @@
         "offset": 4164,
         "length": 6
       },
-      "component": null,
+      "component": "NM_RAD",
       "suggestion": null,
       "related": []
     },
@@ -5723,7 +5735,7 @@
         "offset": 4182,
         "length": 36
       },
-      "component": null,
+      "component": "TV_RAD__PU_RAD",
       "suggestion": null,
       "related": []
     },
@@ -5743,7 +5755,7 @@
         "offset": 4182,
         "length": 36
       },
-      "component": null,
+      "component": "PU_RAD__HE_RAD",
       "suggestion": null,
       "related": []
     },
@@ -5763,7 +5775,7 @@
         "offset": 4219,
         "length": 27
       },
-      "component": null,
+      "component": "NM_RAD__N6",
       "suggestion": null,
       "related": []
     },
@@ -5779,7 +5791,7 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 1,
+    "iterations": 7,
     "residualNorm": 6.17E-09,
     "elapsedMs": null,
     "sizingPasses": 2

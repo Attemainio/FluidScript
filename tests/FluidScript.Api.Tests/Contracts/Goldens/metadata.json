@@ -763,8 +763,8 @@
           "name": "fouling",
           "aliases": [],
           "valueKind": "quantity",
-          "dimension": null,
-          "unit": "s³·K/kg",
+          "dimension": "ThermalResistance",
+          "unit": "m2*K/W",
           "acceptedSymbols": [],
           "omission": "default",
           "default": "0.00001",
@@ -925,8 +925,8 @@
           "name": "u",
           "aliases": [],
           "valueKind": "quantity",
-          "dimension": null,
-          "unit": "kg/(s³·K)",
+          "dimension": "HeatTransferCoefficient",
+          "unit": "W/(m2*K)",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
@@ -1064,8 +1064,8 @@
         },
         {
           "name": "u",
-          "dimension": null,
-          "unit": "kg/(s³·K)",
+          "dimension": "HeatTransferCoefficient",
+          "unit": "W/(m2*K)",
           "availability": "sized"
         },
         {
@@ -2274,6 +2274,23 @@
       "canonicalUnit": "px",
       "units": [
         "px"
+      ]
+    },
+    {
+      "name": "HeatTransferCoefficient",
+      "siUnit": "W/(m2*K)",
+      "canonicalUnit": "W/(m2*K)",
+      "units": [
+        "W/(m2*K)",
+        "kW/(m2*K)"
+      ]
+    },
+    {
+      "name": "ThermalResistance",
+      "siUnit": "m2*K/W",
+      "canonicalUnit": "m2*K/W",
+      "units": [
+        "m2*K/W"
       ]
     }
   ],
@@ -3741,6 +3758,27 @@
       ]
     },
     {
+      "code": "FS1534",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format=\"dd/MM/yyyy HH:mm\".",
+      "arguments": [
+        "curve",
+        "reason"
+      ]
+    },
+    {
+      "code": "FS1535",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.",
+      "arguments": [
+        "curve",
+        "count",
+        "shown"
+      ]
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",
@@ -4023,10 +4061,11 @@
       "code": "FS2210",
       "severity": "error",
       "area": "Topology",
-      "message": "This circuit is over-specified by {n}. Remove one of: {list}.",
+      "message": "This circuit is over-specified by {n}. Remove one of: {list}{advice}.",
       "arguments": [
         "n",
-        "list"
+        "list",
+        "advice"
       ]
     },
     {
@@ -4133,6 +4172,68 @@
         "short",
         "substance",
         "needed"
+      ]
+    },
+    {
+      "code": "FS2301",
+      "severity": "warning",
+      "area": "Sizing",
+      "message": "Sizes did not settle for {list}. Showing the last values; state them directly to fix.",
+      "arguments": [
+        "list"
+      ]
+    },
+    {
+      "code": "FS2304",
+      "severity": "error",
+      "area": "Sizing",
+      "message": "Cannot size '{name}': no flow is determined anywhere in its branch. State a duty or a flow.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
+      "code": "FS2305",
+      "severity": "warning",
+      "area": "Sizing",
+      "message": "'{name}' needs more than DN{max}, the largest size in {catalog}. Using DN{max}.",
+      "arguments": [
+        "name",
+        "max",
+        "catalog"
+      ]
+    },
+    {
+      "code": "FS2307",
+      "severity": "info",
+      "area": "Sizing",
+      "message": "'{name}' stepped up to DN{n} for velocity.",
+      "arguments": [
+        "name",
+        "n"
+      ]
+    },
+    {
+      "code": "FS2310",
+      "severity": "info",
+      "area": "Sizing",
+      "message": "'{name}' sized to {plates} plates ({area} m²); {required} m² was needed, so it delivers {actual} kW against {stated} kW.",
+      "arguments": [
+        "name",
+        "plates",
+        "area",
+        "required",
+        "actual",
+        "stated"
+      ]
+    },
+    {
+      "code": "FS2312",
+      "severity": "info",
+      "area": "Sizing",
+      "message": "'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.",
+      "arguments": [
+        "name"
       ]
     },
     {
@@ -4334,6 +4435,13 @@
       "arguments": [
         "component"
       ]
+    },
+    {
+      "code": "FS3012",
+      "severity": "info",
+      "area": "Solver",
+      "message": "Restarted from the initial estimate.",
+      "arguments": []
     },
     {
       "code": "FS3013",

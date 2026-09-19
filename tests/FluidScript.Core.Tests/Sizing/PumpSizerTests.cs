@@ -144,6 +144,10 @@ public sealed class PumpSizerTests
 
         Assert.Equal(0, Head(sized));
         Assert.Contains("no flow", Assert.Single(sized.Notes), StringComparison.Ordinal);
+        // C-74: 24's FS2304, an error, because a head sized against no flow is not a size.
+        var code = Assert.Single(sized.Diagnostics);
+        Assert.Equal("FS2304", code.Code);
+        Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Error, code.Severity);
     }
 
     [Fact]
@@ -153,6 +157,10 @@ public sealed class PumpSizerTests
 
         Assert.Equal(0, Head(sized));
         Assert.Contains("no modelled resistance", Assert.Single(sized.Notes), StringComparison.Ordinal);
+        // C-74: FS2312 (D-25's informational) on the wire, anchored to the pump.
+        var code = Assert.Single(sized.Diagnostics);
+        Assert.Equal("FS2312", code.Code);
+        Assert.Equal("PU1", code.ComponentName);
     }
 
     [Fact]

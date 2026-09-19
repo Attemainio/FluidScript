@@ -5,6 +5,11 @@
  */
 
 /* The origin's rays (R-22), drawn by the canvas always and by the export on request. */
+.canvas-axes {
+  stroke-width: var(--stroke-axis);
+  fill: none;
+}
+
 .canvas-axes__x {
   stroke: var(--canvas-axis-x);
 }

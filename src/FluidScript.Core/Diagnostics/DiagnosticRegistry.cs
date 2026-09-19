@@ -115,6 +115,7 @@ public static class DiagnosticRegistry
         .. SolverDiagnostics.All,
         .. CatalogDiagnostics.All,
         .. DesignDiagnostics.All,
+        .. SizingDiagnostics.All,
         .. LayoutDiagnostics.All,
         .. ContractDiagnostics.All,
         .. LimitDiagnostics.All,

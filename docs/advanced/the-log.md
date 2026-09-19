@@ -35,6 +35,12 @@ and see each component's own message and value. Two of a kind stay as two lines.
 **A clean solve ends in a green line**, `✓ Solved · 4 iterations · 14 ms`. An empty panel never
 means "fine"; it means nothing has run. A solve that gives up ends in a red line saying so.
 
+**A recovery shows as a note.** A re-solve starts from the previous answer to save time; when that
+start does not converge — you changed a value and the old answer is now in the wrong place — the
+solver throws it away and starts again from its own estimate, and the log carries `FS3012 Restarted
+from the initial estimate.` The answer is the same either way; the line is there for anyone asking
+why a solve took longer than the one before it.
+
 ## The header
 
 The right side of the header says in one phrase what the solver did:

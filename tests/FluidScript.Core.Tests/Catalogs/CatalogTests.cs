@@ -12,6 +12,9 @@ public sealed class CatalogTests
 {
     /// <summary>Provenance a fixture row can carry, so verification is not what is under test.</summary>
     /// <remarks><c>example.invalid</c> is reserved precisely so a fixture cannot imply a real source.</remarks>
+    /// <summary>The shipped steel catalogue as a solve sees it: resolved, so provenance was checked (<c>C-39</c>).</summary>
+    private static ResolvedCatalog<PipeSpec> Steel => PipeCatalogs.Resolve(pin: null).Value;
+
     private static Provenance Sourced => new()
     {
         Standard = "fixture",
@@ -108,8 +111,8 @@ public sealed class CatalogTests
         // The trap the DesignationBasis field exists to state. `dn=15` is a *designation* in steel,
         // whose bore is larger than the number; in copper it is the outside diameter itself, whose
         // bore is smaller. Nothing about a script says which -- only the catalogue it resolved.
-        var steel = new CatalogBoreLookup(SteelEn10255.Instance).BoreFor(15)!.Value;
-        var copper = new CatalogBoreLookup(CopperEn1057.Instance).BoreFor(15)!.Value;
+        var steel = new CatalogBoreLookup(Steel).BoreFor(15)!.Value;
+        var copper = CopperEn1057.Instance.Entries.Single(static entry => entry.Spec.NominalDiameter == 15).Spec.InsideDiameter;
 
         Assert.Equal(0.0161, steel, 6);
         Assert.Equal(0.0136, copper, 6);
@@ -322,7 +325,7 @@ public sealed class CatalogTests
         // The number this whole document exists to get right. DN is a designation: an area computed
         // from 25 mm is 16 % small and the pressure gradient roughly a factor of two out, with nothing
         // in the result looking wrong.
-        var lookup = new CatalogBoreLookup(SteelEn10255.Instance);
+        var lookup = new CatalogBoreLookup(Steel);
 
         Assert.Equal(0.0273, lookup.BoreFor(25)!.Value, 6);
         Assert.Null(lookup.BoreFor(27));
@@ -362,7 +365,8 @@ public sealed class CatalogTests
         const double density = 994;
         const double viscosity = 0.7225e-3;
 
-        var bore = new CatalogBoreLookup(SteelEn10255.Instance).BoreFor(dn)!.Value;
+        var bore = new CatalogBoreLookup(Steel).BoreFor(dn)!.Value;
+
         var velocity = flow / (Math.PI * bore * bore / 4);
 
         // One metre, so the drop is the gradient.

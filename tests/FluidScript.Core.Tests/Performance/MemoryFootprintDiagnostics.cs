@@ -66,7 +66,7 @@ public sealed class MemoryFootprintDiagnostics
 
         foreach (var sample in Samples())
         {
-            rows.Add(await Measure(sample, resolved.Value.Catalog));
+            rows.Add(await Measure(sample, resolved.Value));
         }
 
         var report = Path.Combine(RepositoryLayout.Diagnostics, "memory-footprint.md");
@@ -81,10 +81,10 @@ public sealed class MemoryFootprintDiagnostics
                 $"{row.Sample}: each solve keeps {row.GrowthMbPerSolve:F1} MB; something holds memory across solves."));
     }
 
-    private static async Task<Row> Measure(string sample, ICatalog<PipeSpec> catalog)
+    private static async Task<Row> Measure(string sample, ResolvedCatalog<PipeSpec> catalog)
     {
         var text = new SourceText(File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample)));
-        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog), 10);
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog), 10);
 
         var (model, bindAllocated) = Allocated(() =>
             new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(text), sample).Model);

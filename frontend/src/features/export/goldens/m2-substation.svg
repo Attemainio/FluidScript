@@ -9,7 +9,7 @@ source hash: sha256:0450a7c406170f5280046f51fb92473738efcfd53c0bb926b872f7c4eb9e
 catalogue: steel_en10255 2026.1
 property backend: sharp-prop 1.0.0.0
 atmosphere: 101.325 kPa absolute
-status: solved in 2 iterations
+status: solved in 7 iterations
 shown: temperature (°C), 40 to 90
 tags: equipment tags are as of the source hash above; an insertion above a component renumbers it (D-34)
 generated: 2026-09-19T00:00:00.000Z</desc>
@@ -18,7 +18,7 @@ generated: 2026-09-19T00:00:00.000Z</desc>
 .export__value { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 11px; fill: #1c2733; text-anchor: middle; }
 .export__value--unsolved { fill: #586672; font-style: italic; }
 .export__legend-title { font-size: 12px; font-weight: 600; fill: #1c2733; }
-.export__legend-tick { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 10px; fill: #3f4c58; text-anchor: middle; }
+.export__legend-tick { font-family: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas, monospace; font-size: 11px; fill: #3f4c58; text-anchor: middle; }
 .export__legend-note { font-size: 11px; fill: #586672; }
 .export__legend-frame { fill: none; stroke: #d9dee3; }
 .scene__route .scene__arrow { fill: #4a5a68; }

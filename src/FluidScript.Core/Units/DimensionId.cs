@@ -87,4 +87,12 @@ public enum DimensionId
 
     /// <summary>A screen distance. Presentation only; never crosses into physics.</summary>
     Pixels,
+
+    /// <summary>A heat transfer coefficient. SI watt per square metre kelvin (<c>D-119</c>).</summary>
+    /// <remarks>The exchanger's <c>u</c>; named so that <c>u=800 W/(m2*K)</c> can be written and reported as such (<c>L-54</c>).</remarks>
+    HeatTransferCoefficient,
+
+    /// <summary>A thermal resistance per unit area. SI square metre kelvin per watt (<c>D-119</c>).</summary>
+    /// <remarks>The exchanger's <c>fouling</c>, the reciprocal of a heat transfer coefficient.</remarks>
+    ThermalResistance,
 }

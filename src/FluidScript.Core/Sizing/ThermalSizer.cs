@@ -195,14 +195,27 @@ public sealed class ThermalSizer : ISizer
 
         var surplus = (achievedDuty - duty) / duty;
 
+        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
         if (surplus > SizingDefaults.ExchangerOvershootReport && installedArea is { } finalArea && area is { } needed)
         {
-            notes.Add(string.Create(
-                CultureInfo.InvariantCulture,
-                $"'{exchanger.Name}' sized to {plates} plates ({finalArea:0.###} m²); {needed:0.###} m² was needed, so it delivers {achievedDuty / 1000:0.#} kW against {duty / 1000:0.#} kW"));
-        }
+            // A note and its code say the same thing (C-74): the note for the explanation, the code
+            // for the wire, anchored to the exchanger.
+            var overshoot = Diagnostic.Create(
+                SizingDiagnostics.PlateOvershoot,
+                span: null,
+                new DiagnosticArgument("name", exchanger.Name),
+                new DiagnosticArgument("plates", (plates ?? 0).ToString(CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("area", finalArea.ToString("0.###", CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("required", needed.ToString("0.###", CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("actual", (achievedDuty / 1000).ToString("0.#", CultureInfo.InvariantCulture)),
+                new DiagnosticArgument("stated", (duty / 1000).ToString("0.#", CultureInfo.InvariantCulture)))
+                with
+            { ComponentName = exchanger.Name };
 
-        var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+            diagnostics.Add(overshoot);
+            notes.Add(overshoot.Message);
+        }
         var floor = Si(stated, "approach") ?? SizingDefaults.ExchangerApproachMinimum;
 
         if (approach < floor - 1e-9)

@@ -1,3 +1,4 @@
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Units;
 
@@ -300,5 +301,26 @@ public sealed class SubstanceTests
         Assert.Equal("water", SubstanceRegistry.Constant.Resolve("water").Value.Name);
         Assert.IsType<ConstantPropertyWater>(SubstanceRegistry.Constant.Resolve("water").Value);
         Assert.IsType<LinearPropertyWater>(SubstanceRegistry.Linear.Resolve("water").Value);
+    }
+
+    // ---- an error that stands for diagnostics (S-65) ---------------------------------------------
+
+    [Fact]
+    public void AnErrorReportsTheDiagnosticsItStandsForAndItselfOnlyWhenNoneIsAnError()
+    {
+        var error = ResultError.From(FluidDiagnostics.PropertyNotEvaluable, ("property", "a solution"), ("name", "m"), ("state", "why"));
+        var refused = Diagnostic.Create(TopologyDiagnostics.BoundaryFanOut, span: null, new DiagnosticArgument("node", "S1"), new DiagnosticArgument("kind", "inlet"), new DiagnosticArgument("count", "2"));
+        var advised = Diagnostic.Create(TopologyDiagnostics.DatumChosen, span: null, new DiagnosticArgument("node", "N1"));
+
+        // Its own report when it stands for nothing else.
+        Assert.Equal(["FS2004"], error.Report(null).Select(static d => d.Code));
+
+        // The diagnostics alone when one of them is the error the refusal is about.
+        var withError = error with { Diagnostics = [refused, advised] };
+        Assert.Equal(["FS2205", "FS2201"], withError.Report(null).Select(static d => d.Code));
+
+        // Both when they are all warnings: the refusal still shows as an error, the advice is kept.
+        var withWarning = error with { Diagnostics = [advised] };
+        Assert.Equal(["FS2201", "FS2004"], withWarning.Report(null).Select(static d => d.Code));
     }
 }

@@ -162,6 +162,7 @@ internal sealed partial class BindingRun
         }
 
         string? format = null;
+        var formatIsBad = false;
 
         foreach (var argument in header.Arguments)
         {
@@ -171,10 +172,22 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            // A `format=` that is not a quoted string leaves the curve reading ISO 8601, and each row
-            // that is not says so on its own line. One code per unreadable row is the honest report:
-            // the rows are what failed.
+            // `D-60`: validated here, on the header, so one mistake is one diagnostic and not one per
+            // row. A bad format leaves the rows unread and unreported: they are not the fault.
             format = (argument.Value as StringLiteralSyntax)?.Value;
+            var reason = format is null
+                ? "it is not a quoted string"
+                : !format.Contains('d')
+                    ? "it has no day (d)"
+                    : !format.Contains('M')
+                        ? "it has no month (M)"
+                        : null;
+
+            if (reason is not null)
+            {
+                formatIsBad = true;
+                Report(BinderDiagnostics.CurveFormatInvalid, argument.Span, ("curve", name), ("reason", reason));
+            }
         }
 
         var driver = header.Driver?.Text;
@@ -187,11 +200,11 @@ internal sealed partial class BindingRun
             DriverKind = CurveDriverKind.Unresolved,
             IsExtrapolated = extrapolated,
             TimeFormat = format,
-            Points = ReadRows(draft, name, isTime, format),
+            Points = formatIsBad && isTime ? [] : ReadRows(draft, name, isTime, format),
             DeclarationSpan = header.Span,
         };
 
-        if (symbol.Points.Length < 2)
+        if (symbol.Points.Length < 2 && !(formatIsBad && isTime))
         {
             Report(BinderDiagnostics.CurveTooShort, header.Span, ("curve", name));
         }
@@ -209,6 +222,9 @@ internal sealed partial class BindingRun
             ("parameter", written),
             ("available", "extrapolated, format"));
 
+    /// <summary>How many unreadable rows of one curve are marked where they are before the rest are counted (<c>FS1535</c>).</summary>
+    private const int UnreadableRowsShown = 5;
+
     /// <summary>Reads every row of one curve into a sorted table.</summary>
     /// <remarks>
     /// Rows written out of order are sorted here rather than reported: a weather file is not obliged
@@ -217,6 +233,7 @@ internal sealed partial class BindingRun
     private ImmutableArray<CurvePoint> ReadRows(CurveDraft draft, string name, bool isTime, string? format)
     {
         var read = new List<CurvePoint>();
+        var unreadable = 0;
 
         foreach (var row in draft.Rows)
         {
@@ -226,7 +243,20 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            Report(ParserDiagnostics.MalformedCurveRow, row.Span);
+            if (++unreadable <= UnreadableRowsShown)
+            {
+                Report(ParserDiagnostics.MalformedCurveRow, row.Span);
+            }
+        }
+
+        if (unreadable > UnreadableRowsShown)
+        {
+            Report(
+                BinderDiagnostics.CurveRowsUnreadable,
+                draft.Header.Span,
+                ("curve", name),
+                ("count", (unreadable - UnreadableRowsShown).ToString(CultureInfo.InvariantCulture)),
+                ("shown", UnreadableRowsShown.ToString(CultureInfo.InvariantCulture)));
         }
 
         // Stable, so two rows at one x stay in the order they were written and the later one is the

@@ -519,13 +519,14 @@ public sealed class TopologyBindingTests
         Assert.Equal("100PU02", second.Model.Components.Single(static c => c.Name == "PU1").Tag);
 
         // The diagnostic about the unknown parameter anchors on the same text in both -- the span still
-        // covers the offending word on `HE1`'s line after it moved down one -- and no tag leaks into it.
+        // covers the offending name on `HE1`'s line after it moved down one (L-53: the name, not
+        // `name=value`) -- and no tag leaks into it.
         foreach (var (source, result) in ((string, BindResult)[])[(before, first), (after, second)])
         {
             var diagnostic = Assert.Single(result.Diagnostics, static d => d.Message.Contains("flavour", StringComparison.Ordinal));
             var span = Assert.NotNull(diagnostic.Span);
 
-            Assert.Equal("flavour=1", source.Substring(span.Start, span.Length));
+            Assert.Equal("flavour", source.Substring(span.Start, span.Length));
             Assert.Contains("HE1", source[..span.Start].Split('\n')[^1], StringComparison.Ordinal);
             Assert.DoesNotContain("100HE", diagnostic.Message, StringComparison.Ordinal);
         }

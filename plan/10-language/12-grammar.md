@@ -415,6 +415,8 @@ connection section so are `N1 node t=6` and `N1 - N2`. The rule:
 > connection; otherwise it is a component declaration. In the `schedule` section every non-reserved
 > line is a disturbance.
 
+**`D-120` (2026-09-19, P5.13 pending):** port indices are written in brackets (`HX1.in[2]`), a port's state as `in[2].t` on the declaration line, and `.` is allowed there too; the suffix spellings below (`in2`, `flow2`) are read for one major with a suggestion. This document is revised when P5.13 lands.
+
 `.` is in that clause because a connection's first endpoint may be port-qualified — `3WV.b - N3`
 (`D-56`). It costs no extra lookahead, and nothing else can put a `.` in second position: a component
 declaration is two identifiers, and a name cannot contain a dot.

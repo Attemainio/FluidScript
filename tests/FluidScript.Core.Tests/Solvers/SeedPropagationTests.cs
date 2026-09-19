@@ -87,7 +87,7 @@ public sealed class SeedPropagationTests
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"));
         var run = await new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10).RunAsync(
                 GraphFixture.Bind(source), Water.Instance, "cooling",
@@ -153,7 +153,7 @@ public sealed class SeedPropagationTests
 
         var run = await new OuterLoop(
             new NewtonSolver(),
-            new CatalogBoreLookup(resolved.Value.Catalog),
+            new CatalogBoreLookup(resolved.Value),
             OuterLoop.Rules(resolved.Value.Catalog),
             10).RunAsync(
                 GraphFixture.Bind(source), Water.Instance, "legs",

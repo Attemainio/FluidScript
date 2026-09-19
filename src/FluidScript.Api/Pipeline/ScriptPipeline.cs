@@ -131,7 +131,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
 
         var catalog = Catalog(compatibility.Catalog, diagnostics);
         var substance = Substance(bind.Model, diagnostics);
-        var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog));
+        var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog));
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -152,7 +152,8 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         if (request.Solve && !diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
         {
             var solveStarted = Stopwatch.GetTimestamp();
-            var result = await loop.RunAsync(bind.Model, substance, request.WarmStart, cancellationToken: cancellationToken)
+            // The model was prepared above for the unknown count; the loop runs from that (A-1).
+            var result = await loop.RunAsync(prepared, bind.Model, substance, request.WarmStart, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             solveMs = Elapsed(solveStarted);
 
@@ -167,7 +168,9 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
             }
             else
             {
-                diagnostics.Add(result.Error!.At(null));
+                // A refusal that stands for diagnostics of its own reports those, each with its code,
+                // component and range, rather than one line carrying their text (S-65).
+                diagnostics.AddRange(result.Error!.Report(null));
             }
         }
 
@@ -179,7 +182,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
             Graph = graph,
             Run = run,
             Diagnostics = diagnostics.ToImmutable(),
-            Catalog = catalog,
+            Catalog = catalog.Catalog,
             ElapsedMs = run is null ? null : solveMs,
         };
 
@@ -193,20 +196,22 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
             major);
     }
 
-    private static ICatalog<PipeSpec> Catalog(CatalogPin? pin, ImmutableArray<Diagnostic>.Builder diagnostics)
+    private static ResolvedCatalog<PipeSpec> Catalog(CatalogPin? pin, ImmutableArray<Diagnostic>.Builder diagnostics)
     {
         var resolved = PipeCatalogs.Resolve(pin);
 
         if (resolved.TryGetValue(out var catalog))
         {
             diagnostics.AddRange(catalog.Notes.Select(static note => note.At(null)));
-            return catalog.Catalog;
+            return catalog;
         }
 
         // A pin nothing matches is reported and the default takes its place, so the script still
-        // lowers and draws; the diagnostic says which catalogue the sizes did not come from.
+        // lowers and draws; the diagnostic says which catalogue the sizes did not come from. The
+        // default is resolved rather than read, so its rows went through the same provenance check
+        // (C-39).
         diagnostics.Add(resolved.Error!.At(null));
-        return PipeCatalogs.Default;
+        return PipeCatalogs.Resolve(pin: null).Value;
     }
 
     private static ISubstance Substance(SemanticModel model, ImmutableArray<Diagnostic>.Builder diagnostics)

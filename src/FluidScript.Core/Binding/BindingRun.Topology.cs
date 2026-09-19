@@ -1623,9 +1623,12 @@ internal sealed partial class BindingRun
             builder.Add(new SymbolReference.Binding(binding), binding.DeclarationSpan);
         }
 
+        // An implicit pipe (I7) carries its connection line as its span (C-97) but is not mapped at it:
+        // the line is the connection's, whose card already shows the pipe behind it (54), and mapping
+        // both would make the narrowest-span lookup pick by insertion order.
         foreach (var component in _components)
         {
-            if (component.DeclarationSpan is { } span)
+            if (component is { Origin: Origin.Declared, DeclarationSpan: { } span })
             {
                 builder.Add(new SymbolReference.Component(component), span);
             }

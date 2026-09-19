@@ -345,6 +345,35 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void AFlowNothingOnItsBranchCanChangeIsToldToAddAValve()
+    {
+        // C-28, 23's promotion rules: two parallel loads each fix their branch flow by power and dt, and
+        // neither branch holds a valve to absorb it. "Remove one of" is the wrong advice for a flow
+        // the designer wants; the second sentence says what is missing.
+        var result = Check("""
+            fluidscript 1
+            circuit parallel
+            fluid water
+
+            HS1  heat_exchanger power=50 out=70
+            PU1  pump
+            RAD1 load power=30 dt=20
+            RAD2 load power=20 dt=20
+
+            connections
+            N1 - PU1 - N2 - HS1 - N3
+            N3 - RAD1 - N4
+            N3 - RAD2 - N4
+            N4 - N1
+            """);
+
+        Assert.False(result.CanSolve);
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
+        Assert.Contains(", or add a valve: nothing on the branch through", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("RAD", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AStatedPumpHeadConstrainsRatherThanSeedsAndTheBalancingValveAbsorbsIt()
     {
         // M2a, `R-02`: `head=15` on the simple loop, whose ring needs 5.28 m. A stated value is never
@@ -742,6 +771,38 @@ public sealed class WellPosednessTests
 
         Assert.Equal(-1, result.Counting.Excess);
         Assert.Contains("a temperature on N1", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AStatedTerminalThatPinsAFlowDoesNotSilenceTheMissingTemperature()
+    {
+        // S-52, D-90: a component can state temperatures and still hold no level. `in=40` is a mixed
+        // inlet the three-way valve's position answers; `out=70` with `power` pins the flow and the
+        // pump's head absorbs it. Both statements are matched, so nothing pays for the dropped level
+        // and the circuit is short by one on the thermal side. The advice used to scan for any stated
+        // temperature, find these two, and offer a pressure to a hydraulic half that was already
+        // square -- advice that made the header square and singular when taken. Read from the
+        // constraint list, it leads with the temperatures and keeps the pressure as the last resort.
+        var result = Check("""
+            fluidscript 1
+            circuit ring
+            fluid water
+
+            PU1 pump
+            HS1 heat_exchanger power=50 in=40 out=70
+            LD1 load power=50
+            3WV three_way_valve
+            P1  pipe length=10 dn=25
+
+            connections
+            N1 - PU1 - N2 - HS1 - N3 - LD1 - N4 - 3WV - N1
+            N3 - P1 - 3WV
+            """);
+
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2211");
+
+        Assert.Equal(-1, result.Counting.Excess);
+        Assert.StartsWith("This circuit is under-specified by 1. Add one of: a temperature on N1", reported.Message, StringComparison.Ordinal);
     }
 
     [Fact]

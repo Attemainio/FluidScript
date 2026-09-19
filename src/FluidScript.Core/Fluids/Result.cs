@@ -34,6 +34,34 @@ public sealed record ResultError(DiagnosticDescriptor Descriptor, ImmutableArray
     /// <returns>The diagnostic.</returns>
     public Diagnostic At(TextSpan? span) => Diagnostic.Create(Descriptor, span, Arguments.AsSpan());
 
+    /// <summary>Gets the diagnostics this error stands for, when it stands for several.</summary>
+    /// <value>
+    /// Empty for an error that is its own report. A stage that refuses for reasons it has already
+    /// diagnosed -- the well-posedness check, with one code, component and range per finding -- puts
+    /// them here, so that a caller reports <em>those</em> rather than one error carrying their text
+    /// with the code, the component and the range lost (<c>S-65</c>).
+    /// </value>
+    public ImmutableArray<Diagnostic> Diagnostics { get; init; } = [];
+
+    /// <summary>What a caller reports for this error: the diagnostics it stands for, or itself.</summary>
+    /// <param name="span">Where to anchor the error's own diagnostic, when it is reported.</param>
+    /// <returns>
+    /// <see cref="Diagnostics"/> when at least one of them is an error; the error's own diagnostic when
+    /// there are none; both when they are all warnings, so that a refusal always shows as an error and
+    /// the warnings that explain it are not lost.
+    /// </returns>
+    public ImmutableArray<Diagnostic> Report(TextSpan? span)
+    {
+        if (Diagnostics.IsDefaultOrEmpty)
+        {
+            return [At(span)];
+        }
+
+        return Diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            ? Diagnostics
+            : Diagnostics.Add(At(span));
+    }
+
     /// <summary>Builds an error from a descriptor and its arguments.</summary>
     /// <param name="descriptor">The code.</param>
     /// <param name="arguments">Its message's values, as name and text pairs.</param>

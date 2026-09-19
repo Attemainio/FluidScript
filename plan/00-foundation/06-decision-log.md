@@ -5309,3 +5309,108 @@ effect and draw a 2 px line two world units wide.
 **Consequences.** `59`'s contract loses `text`; `frontend/src/features/export/exportSvg.tsx` and
 `resolveCss.ts`; `scene.css` split out of `shell.css`; `docs/advanced/exporting.md` says what the
 labels are set in.
+
+## D-119 · Heat transfer coefficient and thermal resistance are named dimensions, spelled `W/(m2*K)` and `m2*K/W`
+
+**Accepted · 2026-09-19** (defect sweep, `L-54`, `A-3`)
+
+The exchanger's `u` and `fouling` carried dimension vectors nothing in
+[`13`](../10-language/13-type-and-unit-system.md) names: `kg·s⁻³·K⁻¹` and its reciprocal. A script
+could not write `u=800 W/(m2*K)` -- the table had no symbol -- and the wire spelled the two by
+`Dimension.ToSiUnitString`, `kg/(s³·K)` and `s³·K/kg`, which no engineer reads as a U-value. `13`
+says every dimension the language exposes has a canonical unit, and these two did not.
+
+**Decided.** `DimensionId` gains `HeatTransferCoefficient` (SI W/(m²·K), canonical and bare unit the
+same) and `ThermalResistance` (m²·K/W). The unit table spells them as it spells `J/(kg*K)`: ASCII,
+`*` inside the bracket, `2` for the square -- `W/(m2*K)`, `kW/(m2*K)` (×1000) and `m2*K/W`.
+`Dimension.FromVector` returns the named entry for either vector, so `u` reached by arithmetic
+(`1 / fouling`) lands on the name as a stated one does. The exchanger's `u` and `fouling` registry
+rows name the dimensions directly; `ConductancePerKelvin` (W/K) stays a vector, since nothing writes
+it. The bare-number reading is unchanged: `u=800` is 800 W/(m²·K), as it always was.
+
+**Rejected.**
+- *Leave the vectors and add symbols only.* A symbol needs a dimension to belong to, and a
+  `FromVector` result with no name reports as `dimension: null` on the wire, which is what `A-3`
+  saw.
+- *`W/m2K` without the bracket.* Ambiguous by `13`'s own grammar (`W/m2·K` reads as (W/m²)·K), and
+  the table's existing spelling for the same shape is `J/(kg*K)`.
+
+**Consequences.** `DimensionId`, `Dimension`, `UnitTable`, `ComponentRegistry`; `13`'s dimension
+and symbol tables; `metadata` lists both dimensions; `docs/functions/units.md` and `properties.md`
+regenerate. Adding a `DimensionId` member is a language change and takes a `D-`, which is what this
+entry is.
+
+## D-120 · A port's state is written `port[n].quantity`; every port family is indexed in brackets; a node has one state
+
+**Accepted · 2026-09-19** (decided with the user after the defect sweep; implemented by P5.13)
+
+The language spells a port's state three different ways today. On a `heat_exchanger`, `in=50` is the
+inlet *temperature* -- the port's name stands for one quantity of it; the flow on the same side is
+`flow`, the second side's `flow2`, its drop `dp2`, and the readable inlet temperature of side 2 is
+`t_in2`. A tank's ports are `in1`…`in16` with `in1_level` beside them; a three-way valve's are the
+letters `a`, `b`, `ab`. A user has to know that `in` is a temperature but `flow` is not `in.flow`,
+that `2` is a port suffix in `in2` and a side suffix in `dp2`, and that `t_in2` reads what `in2=`
+states. The user, writing scripts by hand, asked for one scheme: the port, its index, the quantity.
+
+**Decided.**
+
+1. **Port families are `in` and `out`, indexed in brackets.** `in[1]`, `in[2]`, `out[1]`; a bare `in`
+   or `out` is port 1 (`in` ≡ `in[1]`). The suffix forms `in2`, `out2`, `in1`…`in16`, `in1_level` go.
+   A three-way valve's `a`, `b`, `ab` are roles, not an indexed family, and stay letters. In a
+   connection the same index qualifies the endpoint: `HX1.in[2]`, `T1.out[3]`.
+2. **A port's state is `port[n].quantity`**, on the declaration as a constraint and in an expression
+   as a read: `HX1 heat_exchanger in.t=50 out.t=70 in[2].t=85`, `PU1 pump head=1.2*HX1.in[2].p`.
+   The quantities come from **one property table** -- symbol and name both accepted: `t`/`temperature`,
+   `p`/`pressure`, `flow`/`mflow` (mass), `vflow`, `h`/`enthalpy`, `rho`/`density` -- owned by the
+   registry and shared by parameter binding, references and `show` (which today keeps its own copy in
+   the contract builder, `L-50`). Symbols are lowercase; the language is case-sensitive and `dK`/`dC`
+   already depend on it.
+3. **A port pressure is the adjacent node's pressure.** `in.p` on a component binds to the `p` of the
+   node its inlet touches; there is still one pressure per node. When both the component and the node
+   state it, `FS2210` names both lines.
+4. **A node keeps one state.** `p`, `t`, `flow` and the rest are written on the node without a port;
+   a node has no `in`/`out`. A pressure drop is a component (`pipe`, `valve`, or a fixed-drop kind if
+   one is wanted), never a node with two pressures. `D-114`'s inline drawing of a two-connection node
+   is unchanged.
+5. **Boundaries keep `D-115`'s spelling and meaning.** `N1 inlet t=10 p=30` is the node whose leaving
+   fluid is at 10 °C and 30 kPa; it has one connection and no inbound side.
+6. **The old spellings are read for one language major with a suggestion.** `in=50`, `out=70`,
+   `in2=`, `out2=`, `flow2=`, `dt2`, `dp2`, `t_in2`, `T1.in2`, `in1_level` bind as before and raise an
+   info diagnostic carrying the new spelling as its `Suggestion`, so the editor's quick-fix rewrites
+   the line; the printer reproduces whatever was written (`17`). The documentation teaches only the
+   new form. Removal is `18`'s business at the next major.
+
+**Why.** Regularity a user can predict beats brevity a user has to learn: with the scheme, every
+component's every port has every quantity available by one rule, and the reader of `in[2].t` knows
+which side and which quantity without a table. Brackets rather than a suffix because a suffix
+collides -- `dp2` is a side, `in2` a port, `t2` a tank layer -- and because the index is what the
+grammar already has for the tank, only spelled without the brackets. The node stays one-state because
+the equation system is nodal: one pressure and one enthalpy per node is what makes the mass and
+energy balances rows and the Jacobian the shape `36` scales; a node with `in.p ≠ out.p` is a resistance
+with no flow law, and `23`'s counting would either refuse it or the solver would find it singular.
+
+**Rejected.**
+- *`in2` as it stands, with `in.t` only for the quantity.* Smaller change. Cost: keeps the suffix
+  collision and two spellings of the same index (`in2` here, `in[2]` nowhere).
+- *A node with `in` and `out` states (`N1 node in.p=30 out.p=20`).* Reads naturally. Cost: breaks the
+  nodal formulation; what it describes is a component, and one already exists for every real case.
+- *`node/supply p= t=` for a boundary.* `D-115` retired `supply`/`return` two days earlier for a
+  reason that still holds -- a boundary is a terminal, not a node with a free side -- and a `/`
+  modifier is a second way to say a kind.
+- *Dropping the bare `in`/`out`.* Forces `in[1].t` everywhere. Cost: the common one-sided case pays for
+  the rare two-sided one; the user's own statement was that properties apply to the first port
+  automatically.
+- *Renaming `flow` to `mflow`.* One word for one thing. Cost: `flow` is the pump's, the sensor's and
+  the boundary's parameter and every sample's; `mflow` is an alias and `flow` stays canonical.
+
+**Open for P5.13.** `vflow` as a *constraint* needs a density, which needs the port's state: it is
+evaluated at the port's stated temperature, else the seed's, and the bound value is a mass flow with
+the conversion in its basis; whether that is honest enough is the package's to measure. Whether a
+component-side `in.p` should exist at all, given rule 3 makes it a node pressure in disguise, is the
+second question the package answers by trying to write the diagnostics for it.
+
+**Consequences.** `12` (a bracket token; `.` allowed on a declaration line), `13` (the property table
+with aliases, `vflow`), `15` (binding a port quantity to the port's node; the suggestion diagnostics),
+`22` (every kind's parameter table in the new spelling), `16` (a code for a port quantity on a node
+and one for the old spelling), `17` (the printer keeps both), `18` (removal at the next major), `57`
+and `L-50` (the shared property table), `08` (P5.13), the samples and `docs/functions/*` pages.

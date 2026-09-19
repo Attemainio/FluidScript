@@ -263,6 +263,13 @@ open, and the count will be one short in a way no line of your script explains.
 Everything the tool chose because you did not state it, with the basis it chose on. These are not
 solver unknowns — they are constants as far as the solve is concerned, recomputed between passes.
 
+What a rule had to say on the way is in the notes below this table, in order, and the findings
+that matter are also diagnostics with the component's name on them: a pipe stepped up a size for
+velocity (`FS2307`) or past the top of its catalogue (`FS2305`), a plate count that overshoots the
+duty by more than 2 % (`FS2310`), a pump sized against no flow (`FS2304`) or no resistance
+(`FS2312`), and the sizes not settling within the pass cap (`FS2301`, which names what was still
+moving between the last two passes — state one of those directly to break the cycle).
+
 A parameter you stated through a curve at a component's own point ([`sized_at`](../functions/design.md#sizing-one-component-somewhere-else-on-the-curve))
 is listed here too, because it was arrived at rather than typed:
 

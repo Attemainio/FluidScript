@@ -125,4 +125,42 @@ public sealed class ImplicitPipeTests
 
     private static string Link(ConnectionSymbol connection) =>
         $"{connection.From.Component}.{connection.From.Port}-{connection.To.Component}.{connection.To.Port}";
+
+    [Fact]
+    public void AnImplicitPipeCarriesItsConnectionLineAsItsSpanAndAnInferredNodeNone()
+    {
+        // C-97: the user wrote the line, so a click on the drawn pipe can land on it; an I2 node nobody
+        // wrote still has no span. The symbol map still answers the connection at that line (54).
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(Loop));
+        var pipe = contract.Components.Single(static c => c.Id == "N4__N1");
+        var line = Loop.IndexOf("N4 - N1 dn=25 length=12", StringComparison.Ordinal);
+
+        Assert.NotNull(pipe.SourceSpan);
+        Assert.Equal(line, pipe.SourceSpan.Start);
+        Assert.Equal("N4 - N1 dn=25 length=12".Length, pipe.SourceSpan.Length);
+        Assert.Null(contract.Components.Single(static c => c.Id == "N2").SourceSpan);
+
+        var model = GraphFixture.Bind(Loop);
+        Assert.IsType<SymbolReference.Connection>(model.SymbolMap.AtOffset(line + "N4 - N1 dn=".Length));
+    }
+
+    [Fact]
+    public void ADiagnosticOnAConnectionLineNamesTheComponentItIsAboutNotThePipeThatOwnsTheLine()
+    {
+        // L-55: the wire's `component` is what the badge, the card and the log key on. An I2 node's
+        // FS1510 and an I7 pipe's FS1510 are both raised on the same connection line; each carries
+        // the component it names, and the span fallback (a declared component's line) no longer hands
+        // the node's notice to the pipe because the pipe now owns the line (C-97).
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(Loop));
+        var added = contract.Diagnostics.Where(static d => d.Code == "FS1510").ToList();
+
+        var pipe = Assert.Single(added, static d => d.Message.Contains("pipe 'N4__N1'", StringComparison.Ordinal));
+        Assert.Equal("N4__N1", pipe.Component);
+
+        foreach (var node in added.Where(static d => d.Message.Contains("node '", StringComparison.Ordinal)))
+        {
+            var name = node.Message.Split('\'')[1];
+            Assert.Equal(name, node.Component);
+        }
+    }
 }

@@ -169,7 +169,9 @@ in the wrong basin, and a cold retry converges immediately. **It cannot live in 
 though, and this document put it there (`S-20`).** `SolveAsync` receives exactly one starting vector,
 and on a re-solve that vector *is* the warm start — so the solver has no second seed to retry from.
 Both seeds exist together only in [`31`](31-solver-architecture.md)'s outer loop, which is where the
-retry belongs.
+retry belongs. **It lives there as of 2026-09-19:** the loop discards a warm start whose pass did not
+converge, reruns the pass from the sizing seed, and raises `FS3012` on the run so the log shows the
+retry happened. The discarded pass counts in `passes` and its Newton steps in `iterations` (`A-4`).
 
 **A seed is a prerequisite for convergence, not a convenience, and the obvious stand-ins are singular
 (`S-21`).** Two hand-made guesses look reasonable and both produce `FS3002` on a well-posed circuit:
@@ -273,7 +275,7 @@ Inherited from [`31-solver-architecture`](31-solver-architecture.md): `FS3001` c
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS3011` | Line search hit `αmin` without improvement | Info | `Taking a reduced step near {component}; the solution is hard to reach here.` |
-| `FS3012` | Retried from the sizing seed after a warm-start failure | Info | `Restarted from the initial estimate.` |
+| `FS3012` | Retried from the sizing seed after a warm-start failure (raised by `31`'s outer loop, which holds both seeds; `S-20`) | Info | `Restarted from the initial estimate.` |
 | `FS3013` | A pump or exchanger carries flow against its written direction at a converged solve | Warning | `{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.` |
 
 Both are info: they describe recovery, not failure, and a user does not need them — but a support

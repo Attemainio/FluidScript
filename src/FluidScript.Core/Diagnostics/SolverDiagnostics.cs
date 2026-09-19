@@ -12,11 +12,10 @@ namespace FluidScript.Core.Diagnostics;
 /// rather than pointing at a span.
 /// </para>
 /// <para>
-/// <strong><c>FS3012</c> is not registered here.</strong> It reports a retry from the sizing seed after
-/// a warm start failed, and this solver is handed exactly one starting vector — the warm start
-/// <em>is</em> its <c>initialGuess</c>, so it has no second one to retry from. Retrying needs both
-/// seeds at once and belongs to <c>31</c>'s outer loop, which holds them (<c>S-20</c>). Registering it
-/// now would put a code on the documentation page that no path produces.
+/// <c>FS3012</c> is raised by <c>31</c>'s outer loop rather than by this solver: the solver is handed
+/// exactly one starting vector, and on a re-solve that vector <em>is</em> the warm start, so it has no
+/// second seed to retry from. The loop holds both, discards a warm start that did not converge and
+/// runs the pass again from the sizing seed, and says so with this code (<c>S-20</c>).
 /// </para>
 /// </remarks>
 public static class SolverDiagnostics
@@ -203,7 +202,19 @@ public static class SolverDiagnostics
         "FS3013",
         DiagnosticSeverity.Warning,
         "{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.");
+    /// <summary>A warm start did not converge and the pass was rerun from the sizing seed.</summary>
+    /// <value><c>FS3012</c>, an info.</value>
+    /// <remarks>
+    /// Recovery, not failure: a user edits a value, the previous solution lands in the wrong basin, and
+    /// the cold seed converges. Nothing in the answer changed; a support conversation wants to know the
+    /// retry happened, which is what the console log shows it for (<c>32</c>, <c>56</c>).
+    /// </remarks>
+    public static DiagnosticDescriptor RestartedFromSeed { get; } = new(
+        "FS3012",
+        DiagnosticSeverity.Info,
+        "Restarted from the initial estimate.");
 
+    /// <summary>Gets every code this area defines, in code order.</summary>
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -218,6 +229,7 @@ public static class SolverDiagnostics
         Undetermined,
         Redundant,
         ReducedStep,
+        RestartedFromSeed,
         ReversedFlow,
     ];
 }

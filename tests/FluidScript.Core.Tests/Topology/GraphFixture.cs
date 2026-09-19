@@ -51,7 +51,7 @@ public static class GraphFixture
 
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
-        return new CatalogBoreLookup(resolved.Value.Catalog);
+        return new CatalogBoreLookup(resolved.Value);
     }
 
     /// <summary>Binds and lowers a script, with sizing applied.</summary>
@@ -74,7 +74,7 @@ public static class GraphFixture
 
         return new OuterLoop(
                 new NewtonSolver(),
-                new CatalogBoreLookup(resolved.Value.Catalog),
+                new CatalogBoreLookup(resolved.Value),
                 OuterLoop.Rules(resolved.Value.Catalog))
             .Prepare(Bind(source), ConstantPropertyWater.Instance)
             .Lowered;

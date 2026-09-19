@@ -167,11 +167,11 @@ export function exportSvg(
 const exportCss = `
 svg { font-family: var(--font-ui); }
 .export__background { fill: var(--canvas-bg); }
-.export__value { font-family: var(--font-mono); font-size: 11px; fill: var(--text-primary); text-anchor: middle; }
+.export__value { font-family: var(--font-mono); font-size: var(--text-label-size); fill: var(--text-primary); text-anchor: middle; }
 .export__value--unsolved { fill: var(--text-muted); font-style: italic; }
-.export__legend-title { font-size: 12px; font-weight: 600; fill: var(--text-primary); }
-.export__legend-tick { font-family: var(--font-mono); font-size: 10px; fill: var(--text-secondary); text-anchor: middle; }
-.export__legend-note { font-size: 11px; fill: var(--text-muted); }
+.export__legend-title { font-size: var(--text-readout-size); font-weight: var(--text-heading-weight); fill: var(--text-primary); }
+.export__legend-tick { font-family: var(--font-mono); font-size: var(--text-label-size); fill: var(--text-secondary); text-anchor: middle; }
+.export__legend-note { font-size: var(--text-label-size); fill: var(--text-muted); }
 .export__legend-frame { fill: none; stroke: var(--border-subtle); }
 .scene__route .scene__arrow { fill: var(--canvas-route); }
 .scene__route--signal .scene__arrow { fill: var(--text-muted); }
@@ -347,7 +347,7 @@ function worldStrokes(markup: string, scale: number): string {
   return markup
     .replace(/ vector-effect="non-scaling-stroke"/g, '')
     .replace(/stroke-width="([\d.]+)"/g, (_, px: string) => `stroke-width="${world(px)}"`)
-    .replace(/stroke-width:\s*([\d.]+)/g, (_, px: string) => `stroke-width: ${world(px)}`)
+    .replace(/stroke-width:\s*([\d.]+)(?:px)?/g, (_, px: string) => `stroke-width: ${world(px)}`)
     .replace(
       /stroke-dasharray="([\d. ]+)"/g,
       (_, dashes: string) =>

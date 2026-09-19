@@ -225,7 +225,7 @@ export interface Component {
    */
   origin: string;
   /**
-   * Where the declaration sits in the source; null for an inferred component.
+   * Where the declaration sits in the source: the component's line, or for an implicit pipe (I7) the connection line that made it; null for an inferred node, which has no text.
    */
   sourceSpan: Span | null;
   /**
@@ -295,7 +295,7 @@ export interface ComponentState {
    */
   tIn?: Quantity | null;
   /**
-   * Temperature at the outlet port.
+   * Temperature of the stream leaving through the outlet port — the component's own outlet, not the node it discharges into. A valve passing 50 °C into a node where a colder return also arrives reports 50 °C; the node reports the mix. A port that is itself a mix (a mixing valve's common port, a vessel outlet) reports the node.
    */
   tOut?: Quantity | null;
   /**
@@ -998,7 +998,7 @@ export interface Solve {
    */
   converged: boolean;
   /**
-   * Newton iterations on the last pass.
+   * Newton iterations over every sizing pass, retries included: the run's work, where a warm start's saving shows (A-4).
    */
   iterations: number;
   /**

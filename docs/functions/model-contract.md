@@ -177,7 +177,7 @@ One graph component.
 | `mode` | string or `null` | The kind's canonical mode -- an exchanger's `duty`, `rated` or `coupled` -- absent for a kind without one. Absent when not applicable. |
 | `symbolId` | string | Which entry in `symbols` draws it. |
 | `origin` | string | `declared`, or `inferred:I1`, `inferred:I2`, `inferred:I3`, `inferred:I7` (a pipe a connection line's properties made, `D-110`). |
-| `sourceSpan` | [`Span`](#span) or `null` | Where the declaration sits in the source; `null` for an inferred component. |
+| `sourceSpan` | [`Span`](#span) or `null` | Where the declaration sits in the source: the component's line, or for an implicit pipe (I7) the connection line that made it; `null` for an inferred node, which has no text. |
 | `circuit` | string | The owning circuit (`D-33`; the losing side's under `D-36`). |
 | `tag` | string or `null` | The equipment tag, display metadata only; `null` when the kind has no code or the component is inferred (`D-34`). |
 | `parameters` | object of [`Parameter`](#parameter) | The design specification, by canonical parameter name, in declaration order of the kind's parameters. |
@@ -274,7 +274,7 @@ What the solve did.
 | Field | Type | Meaning |
 |---|---|---|
 | `converged` | boolean | Whether the last pass converged. |
-| `iterations` | integer | Newton iterations on the last pass. |
+| `iterations` | integer | Newton iterations over every sizing pass, retries included: the run's work, where a warm start's saving shows (`A-4`). |
 | `residualNorm` | number | The scaled residual norm at the end. |
 | `elapsedMs` | integer or `null` | Wall time, or `null` when the caller did not time it. |
 | `sizingPasses` | integer | Outer-loop passes. |

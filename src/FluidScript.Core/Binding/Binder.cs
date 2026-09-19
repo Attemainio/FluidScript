@@ -66,6 +66,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     : IValueScope
 {
     private readonly ImmutableArray<Diagnostic>.Builder _diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
+
+    /// <summary>Diagnostics whose <c>name</c>, <c>node</c> or <c>component</c> argument may name a component, resolved once every component exists (<c>L-55</c>).</summary>
+    private readonly List<(int Index, string Candidate)> _attributions = [];
     private readonly List<CircuitSymbol> _circuits = [];
     private readonly List<ComponentSymbol> _components = [];
     private readonly List<BindingSymbol> _bindings = [];
@@ -116,6 +119,17 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Curves = [.. _curves],
             Heights = _heights,
         };
+
+        // A diagnostic about a component carries the component (44): the producers name it in their
+        // arguments, so the name is read from there rather than restated at every site, and resolved
+        // here because a node's FS1510 is raised before the node it names has a slot (L-55).
+        foreach (var (index, candidate) in _attributions)
+        {
+            if (_diagnostics[index].ComponentName is null && _componentsByName.ContainsKey(candidate))
+            {
+                _diagnostics[index] = _diagnostics[index] with { ComponentName = candidate };
+            }
+        }
 
         return new BindResult(model, [.. _diagnostics.OrderBy(static d => d.Span?.Start ?? 0)]);
     }
@@ -388,7 +402,8 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     Kind = kind,
                     WrittenKind = "pipe",
                     Parameters = BindParameters(connection.Parameters, kind, name),
-                    DeclarationSpan = null,
+                    // The connection line is the pipe's declaration (C-97): a click on the drawn pipe lands there.
+                    DeclarationSpan = connection.Span,
                     CircuitName = circuit,
                     Ports = [.. (kind?.Ports ?? []).Select(static port => port.Name)],
                 };
@@ -696,12 +711,14 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         var match = NameResolution.Match(written, index2);
 
+        // A diagnostic about a name underlines the name (44), so a quick fix that replaces the range
+        // replaces the name and keeps the value (L-53).
         if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
             && match.IsClear)
         {
             Report(
                 BinderDiagnostics.ResolvedBySimilarity,
-                parameter.Span,
+                parameter.Name.Span,
                 ("written", written),
                 ("canonical", match.Best.Name));
             return match.Best;
@@ -709,11 +726,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         Report(
             BinderDiagnostics.UnknownParameter,
-            parameter.Span,
+            parameter.Name.Span,
             ("kind", kind.Keyword),
             ("parameter", written),
             ("available", string.Join(", ", kind.Parameters.Keys.Order(StringComparer.Ordinal))));
-
         return null;
     }
 
@@ -1257,6 +1273,15 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         for (var i = 0; i < arguments.Length; i++)
         {
             built[i] = new DiagnosticArgument(arguments[i].Name, arguments[i].Value);
+        }
+
+        foreach (var (argumentName, value) in arguments)
+        {
+            if (argumentName is "name" or "node" or "component")
+            {
+                _attributions.Add((_diagnostics.Count, value));
+                break;
+            }
         }
 
         var diagnostic = Diagnostic.Create(descriptor, span, built);

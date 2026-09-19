@@ -84,6 +84,7 @@ export const scaleTokens = {
   '--space-7': '28px',
   '--space-8': '32px',
   '--hairline': '1px',
+  '--stroke-axis': '1.5px',
   '--radius-control': '3px',
   '--radius-panel': '6px',
   '--radius-overlay': '8px',

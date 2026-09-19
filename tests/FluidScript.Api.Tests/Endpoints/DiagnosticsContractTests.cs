@@ -50,7 +50,7 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
 
         var unknown = Assert.Single(body.Diagnostics, static d => d.Code == "FS1503");
         Assert.NotNull(unknown.Range);
-        Assert.Equal(Script.IndexOf("zzz", StringComparison.Ordinal), unknown.Range.Offset);
+        Assert.Equal(3, unknown.Range.Length); // the name alone, never `zzz=30` (L-53)
         Assert.True(unknown.Range.Length >= 3, "the span does not cover the name"); // the binder spans `zzz=30`, not `zzz` alone: L-53
         Assert.Equal(2, unknown.Range.Start.Line);
         Assert.Equal("HE1 heat_exchanger ".Length, unknown.Range.Start.Character);
@@ -73,6 +73,40 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
 
         var keys = body.Diagnostics.Select(static d => (Rank(d.Severity), d.Range?.Offset ?? int.MaxValue)).ToList();
         Assert.Equal(keys.OrderBy(static k => k.Item1).ThenBy(static k => k.Item2), keys);
+    }
+
+    [Fact]
+    public async Task ARefusedSolveReportsTheCheckOwnDiagnosticsWithTheirCodesAndComponents()
+    {
+        // S-65: a script the well-posedness check refuses used to come back as one FS2004 carrying the
+        // check's text, with the code, the component and the range of the real finding lost. The
+        // boundary wired twice is FS2205, naming the node.
+        const string Script = """
+            fluidscript 1
+            circuit probe
+            fluid water
+
+            S1  inlet t=60 p=300
+            R1  outlet p=280
+            HE1 heat_exchanger power=-20
+            HE2 heat_exchanger power=-10
+
+            connections
+            S1 - HE1 - R1
+            S1 - HE2 - R1
+            """;
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync("/api/v1/solve", new { sessionId = "s65", script = Script });
+        var body = await response.ReadAsync<CompileResponse>();
+        var diagnostics = body.Model!.Diagnostics;
+
+        var fanOut = diagnostics.Where(static d => d.Code == "FS2205").ToList();
+        Assert.Equal(2, fanOut.Count);
+        Assert.Contains(fanOut, static d => d.Component == "S1");
+        Assert.Contains(fanOut, static d => d.Component == "R1");
+        // The range is L-55's: the check works on the graph, which carries no spans; the component is enough for the badge and the log.
+        Assert.DoesNotContain(diagnostics, static d => d.Code == "FS2004");
+        Assert.False(body.Model.Solve?.Converged ?? false);
     }
 
     [Fact]

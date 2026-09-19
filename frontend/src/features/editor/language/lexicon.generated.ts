@@ -25,7 +25,10 @@ export const reservedWords: readonly string[] = [
 /** Every accepted unit spelling, longest first, as the lexer probes them (maximal munch). */
 export const unitSymbols: readonly string[] = [
   'kJ/(kg*K)',
+  'kW/(m2*K)',
   'J/(kg*K)',
+  'W/(m2*K)',
+  'm2*K/W',
   'kJ/kg',
   'kg/m3',
   'l/min',

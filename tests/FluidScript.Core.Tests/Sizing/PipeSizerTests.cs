@@ -117,7 +117,10 @@ public sealed class PipeSizerTests
         // 150 Pa/m the ceiling is unreachable -- see the test below. The rule still has to be right for
         // the day a script states its own target.
         var sized = Size(0.2392, 35, target: 100_000);
-
+        Assert.Contains(sized.Notes, note => note.Contains("stepped up", StringComparison.Ordinal));
+        // C-74: the same finding as a code the wire can carry, anchored to the pipe.
+        var stepped = Assert.Single(sized.Diagnostics, static d => d.Code == "FS2307");
+        Assert.Equal("P1", stepped.ComponentName);
         Assert.Contains(sized.Notes, note => note.Contains("stepped up", StringComparison.Ordinal));
         Assert.True(
             SizingDefaults.VelocityMaximum((int)sized.Values["dn"].Value.SiValue)
@@ -150,6 +153,7 @@ public sealed class PipeSizerTests
 
         Assert.Equal(150.0, sized.Values["dn"].Value.SiValue);
         Assert.Contains(sized.Notes, note => note.Contains("largest size", StringComparison.Ordinal));
+        Assert.Equal("P1", Assert.Single(sized.Diagnostics, static d => d.Code == "FS2305").ComponentName); // C-74
 
         // And the velocity ceiling it also breaches, which the rule used to pass over in silence
         // because step 2 can only step up while there is somewhere to step to.

@@ -165,6 +165,29 @@ public sealed class ThermalSizerTests
     }
 
     [Fact]
+    public void ACoarsePlateRoundsUpPastTheReportingThresholdAndSaysSoAsFS2310()
+    {
+        // 3.658 m² over 5 m² a plate is one transfer plate and 5 m² installed, 37 % more area; the
+        // duty follows the effectiveness curve, not the area, and is 5.9 % over the 150 kW stated --
+        // above the 2 % `hx.overshoot_report` allows in silence (24). At 1 m² a plate the same rounding
+        // is 9 % of area and 1.9 % of duty, and says nothing. C-74: the finding is a note for the
+        // explanation and FS2310 on the wire, anchored to the exchanger.
+        var sized = Size(
+            Coupled(DesignPoint(
+                extra:
+                [
+                    ("u", Quantity.FromSi(3300, HeatTransferCoefficient)),
+                    ("plate_area", Quantity.FromSi(5.0, Dimension.Area)),
+                ])),
+            At(1.79));
+
+        var overshoot = Assert.Single(sized.Diagnostics, static d => d.Code == "FS2310");
+        Assert.Equal("HX1", overshoot.ComponentName);
+        Assert.Contains("3.658 m² was needed", overshoot.Message, StringComparison.Ordinal);
+        Assert.Contains(sized.Notes, note => note == overshoot.Message);
+    }
+
+    [Fact]
     public void AStatedConductanceIsNotSizedAgainOnlyDerivedFrom()
     {
         // The user's `ua=10000` is the size, whatever the design point wants; the rule reports what it

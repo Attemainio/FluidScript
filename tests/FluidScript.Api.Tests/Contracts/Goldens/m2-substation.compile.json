@@ -232,7 +232,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -311,7 +311,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -342,7 +342,7 @@
         },
         "u": {
           "value": 3300,
-          "unit": "kg/(s³·K)",
+          "unit": "W/(m2*K)",
           "source": "stated"
         },
         "ua": {
@@ -381,7 +381,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 1221,
+        "length": 29
+      },
       "circuit": "substation",
       "tag": null,
       "parameters": {
@@ -427,7 +430,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 1267,
+        "length": 30
+      },
       "circuit": "substation",
       "tag": null,
       "parameters": {
@@ -473,7 +479,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 1317,
+        "length": 25
+      },
       "circuit": "substation",
       "tag": null,
       "parameters": {
@@ -3378,7 +3387,7 @@
         "offset": 1221,
         "length": 29
       },
-      "component": null,
+      "component": "PCV__HX1",
       "suggestion": null,
       "related": []
     },
@@ -3398,7 +3407,7 @@
         "offset": 1221,
         "length": 29
       },
-      "component": null,
+      "component": "PCV__HX1__in",
       "suggestion": null,
       "related": []
     },
@@ -3418,7 +3427,7 @@
         "offset": 1221,
         "length": 29
       },
-      "component": null,
+      "component": "PCV__HX1__out",
       "suggestion": null,
       "related": []
     },
@@ -3438,7 +3447,7 @@
         "offset": 1267,
         "length": 30
       },
-      "component": null,
+      "component": "HX1__NSUP",
       "suggestion": null,
       "related": []
     },
@@ -3458,7 +3467,7 @@
         "offset": 1267,
         "length": 30
       },
-      "component": null,
+      "component": "HX1__NSUP__in",
       "suggestion": null,
       "related": []
     },
@@ -3478,7 +3487,7 @@
         "offset": 1277,
         "length": 4
       },
-      "component": null,
+      "component": "NSUP",
       "suggestion": null,
       "related": []
     },
@@ -3498,7 +3507,7 @@
         "offset": 1312,
         "length": 4
       },
-      "component": null,
+      "component": "NRET",
       "suggestion": null,
       "related": []
     },
@@ -3518,7 +3527,7 @@
         "offset": 1317,
         "length": 25
       },
-      "component": null,
+      "component": "NRET__SP",
       "suggestion": null,
       "related": []
     },
@@ -3538,7 +3547,7 @@
         "offset": 1317,
         "length": 25
       },
-      "component": null,
+      "component": "NRET__SP__out",
       "suggestion": null,
       "related": []
     },
@@ -3558,7 +3567,7 @@
         "offset": 1343,
         "length": 11
       },
-      "component": null,
+      "component": "SP__HX1",
       "suggestion": null,
       "related": []
     },

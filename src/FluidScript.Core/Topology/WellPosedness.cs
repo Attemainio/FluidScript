@@ -681,37 +681,6 @@ public static class WellPosedness
         return true;
     }
 
-    /// <summary>Whether anything in a component states the temperature its relations leave free.</summary>
-    /// <param name="hydraulic">The component to search.</param>
-    /// <returns><see langword="true"/> when a node temperature or an exchanger terminal is stated.</returns>
-    /// <remarks>
-    /// Used only to word <c>FS2211</c>: the count is the same either way, and this decides whether the
-    /// message may sensibly ask for a temperature the script has already given.
-    /// </remarks>
-    private static bool FixesEnthalpyLevel(HydraulicComponent hydraulic)
-    {
-        foreach (var node in hydraulic.Nodes)
-        {
-            if (HydraulicPartition.Stated(node.Component, HydraulicPartition.Temperature) is not null)
-            {
-                return true;
-            }
-        }
-
-        foreach (var element in hydraulic.Elements)
-        {
-            foreach (var parameter in Terminals)
-            {
-                if (HydraulicPartition.Stated(element, parameter) is not null)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
     /// <summary>Matches each constraint to the sized parameter that can absorb it.</summary>
     /// <param name="graph">The graph.</param>
     /// <param name="hydraulics">Its hydraulic partition.</param>
@@ -1562,7 +1531,8 @@ public static class WellPosedness
                         span: null,
                         new DiagnosticArgument("node", node.Component.Name),
                         new DiagnosticArgument("kind", node.Component.Boundary is BoundaryRole.Inlet ? "inlet" : "outlet"),
-                        new DiagnosticArgument("count", node.Component.Ports.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+                        new DiagnosticArgument("count", node.Component.Ports.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+                        with { ComponentName = node.Component.Name });
                 }
             }
 
@@ -1625,20 +1595,33 @@ public static class WellPosedness
             return;
         }
 
+        var absorbed = promotions.Select(static promotion => promotion.Constraint).ToHashSet();
+
         if (counting.Excess > 0)
         {
-            var absorbed = promotions.Select(static promotion => promotion.Constraint).ToHashSet();
             var unmatched = counting.Constraints.Where(constraint => !absorbed.Contains(constraint)).ToArray();
 
             var candidates = unmatched.Length > 0
                 ? unmatched.Select(static constraint => constraint.Label)
                 : Overstated(graph);
 
+            // A flow nothing on its branch can change is not a statement to remove but a valve to add
+            // (23's promotion rules, C-28): the second sentence names the branch by its component.
+            var unreachable = unmatched
+                .Where(static constraint => constraint.Kind == ConstraintKind.FixedFlow)
+                .Select(static constraint => constraint.Component)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var advice = unreachable.Length == 0
+                ? string.Empty
+                : $", or add a valve: nothing on the branch through {string.Join(", ", unreachable)} can change its flow";
+
             diagnostics.Add(Diagnostic.Create(
                 TopologyDiagnostics.OverSpecified,
                 span: null,
                 new DiagnosticArgument("n", counting.Excess.ToString(CultureInfo.InvariantCulture)),
-                new DiagnosticArgument("list", string.Join(", ", candidates))));
+                new DiagnosticArgument("list", string.Join(", ", candidates)),
+                new DiagnosticArgument("advice", advice)));
 
             return;
         }
@@ -1647,7 +1630,7 @@ public static class WellPosedness
             TopologyDiagnostics.UnderSpecified,
             span: null,
             new DiagnosticArgument("n", (-counting.Excess).ToString(CultureInfo.InvariantCulture)),
-            new DiagnosticArgument("list", string.Join(", ", Understated(graph, hydraulics)))));
+            new DiagnosticArgument("list", string.Join(", ", Understated(graph, hydraulics, counting.Constraints, absorbed)))));
     }
 
     /// <summary>What could be removed when no constraint is the culprit.</summary>
@@ -1666,21 +1649,42 @@ public static class WellPosedness
     /// <summary>What could be added to square an under-specified circuit.</summary>
     /// <param name="graph">The graph.</param>
     /// <param name="hydraulics">Its hydraulic partition, which is what knows a level is unfilled.</param>
+    /// <param name="constraints">The constraint list, which is what knows whether a statement paid for the level.</param>
+    /// <param name="absorbed">The constraints a promotion matched.</param>
     /// <returns>The candidates, the thermal ones first.</returns>
     /// <remarks>
+    /// <para>
     /// <strong>A missing temperature is named ahead of a missing pressure</strong>, because it is the one
     /// the graph could not have picked for itself. A circuit that states no pressure gets a datum and an
     /// <c>FS2201</c>, so it never arrives here short of one; a circuit whose temperature level nothing
     /// fixes has no such fallback.
+    /// </para>
+    /// <para>
+    /// <strong>Whether the level is fixed is read from the constraint list, not from the script</strong>
+    /// (<c>D-90</c>, <c>S-52</c>). A component can state four temperatures and still hold no level: a
+    /// terminal that pins a flow and a node temperature that a valve position answers are each matched
+    /// to a promotion, and what pays for the dropped level is a statement that promotes nothing. The
+    /// distribution header states <c>HE_AHU.in/out</c> and <c>HE_RAD.in/out</c>, all four claiming an
+    /// actuator, and was told to add a pressure to a hydraulic half that was already square; taking that
+    /// advice made the circuit square and singular.
+    /// </para>
     /// </remarks>
     private static string[] Understated(
-        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics)
+        CircuitGraph graph,
+        ImmutableArray<HydraulicComponent> hydraulics,
+        ImmutableArray<ComponentConstraint> constraints,
+        HashSet<ComponentConstraint> absorbed)
     {
         var candidates = new List<string>();
 
         foreach (var hydraulic in hydraulics)
         {
-            if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic) && !FixesEnthalpyLevel(hydraulic))
+            var levelled = constraints.Any(constraint =>
+                constraint.Hydraulic == hydraulic.Index
+                && (constraint.Kind == ConstraintKind.EnthalpyLevel
+                    || (constraint.Kind is ConstraintKind.NodeTemperature or ConstraintKind.MixedInlet && !absorbed.Contains(constraint))));
+
+            if (NeedsEnthalpyLevel(graph, hydraulics, hydraulic) && !levelled)
             {
                 candidates.AddRange(hydraulic.Nodes.Select(static node => $"a temperature on {node.Name}"));
             }

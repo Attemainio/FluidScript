@@ -422,6 +422,40 @@ public sealed class CurveBindingTests
         Assert.Equal(2, Curve(result.Model, "outdoor").Points.Length);
     }
 
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("format=ddMMyyyy", "it is not a quoted string")]
+    [InlineData("format=\"HH:mm\"", "it has no day (d)")]
+    [InlineData("format=\"dd/mm/yyyy\"", "it has no month (M)")]
+    public void AFormatThatCannotReadADateIsOneDiagnosticOnTheHeaderAndNoRowIsBlamed(string written, string reason)
+    {
+        // L-40, D-60: a bad `format=` was ignored and every row then failed on its own line. The
+        // header is the fault, so the header is what is marked -- once, with the reason -- and the
+        // rows are neither read nor reported. `dd/mm/yyyy` is the classic: minutes where months go.
+        var text = $"fluidscript 1\ncurve outdoor time {written}\n"
+            + "01/01/2026 00:00 -1\n01/01/2026 01:00 -3\n01/01/2026 02:00 -2\n";
+        var result = Bind(text);
+
+        var header = Assert.Single(result.Diagnostics, static d => d.Code == "FS1534");
+        Assert.Contains(reason, header.Message, StringComparison.Ordinal);
+        Assert.Equal(written, text.Substring(header.Span!.Value.Start, header.Span.Value.Length));
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS1117" or "FS1530" or "FS1535");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void UnreadableRowsAreMarkedFiveAtATimeAndTheRestCountedOnTheHeader()
+    {
+        // L-40's cap: a year of hourly data with one wrong column layout is one mistake, not 8 760.
+        var rows = string.Concat(Enumerable.Range(0, 12).Select(static i => $"2026-01-{i + 1:00} x y\n"));
+        var result = Bind("fluidscript 1\ncurve outdoor time\n2026-01-20 -1\n2026-01-21 -3\n" + rows);
+
+        Assert.Equal(5, result.Diagnostics.Count(static d => d.Code == "FS1117"));
+        var rest = Assert.Single(result.Diagnostics, static d => d.Code == "FS1535");
+        Assert.Contains("7 more rows", rest.Message, StringComparison.Ordinal);
+        Assert.Equal(2, Curve(result.Model, "outdoor").Points.Length);
+    }
+
     // ---- observers, and the short control form ------------------------------------------------
 
     [Fact]

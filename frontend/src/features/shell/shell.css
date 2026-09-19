@@ -163,6 +163,7 @@
 /* The drawing (53): every colour is a token; every stroke keeps its pixel width. */
 .canvas-grid {
   stroke: var(--canvas-grid);
+  stroke-width: var(--hairline);
 }
 
 .log-pane {

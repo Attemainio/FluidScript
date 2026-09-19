@@ -73,7 +73,8 @@ public sealed class LayoutLadderTests
         var resolved = PipeCatalogs.Resolve(pin: null);
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
-        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value.Catalog), OuterLoop.Rules(resolved.Value.Catalog));
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog));
+
         var source = File.ReadAllText(Path.Combine(Ladder, step + ".fluid"));
 
         if (source.StartsWith("# fragment", StringComparison.Ordinal) || source.StartsWith("# unsolved on purpose", StringComparison.Ordinal))

@@ -278,7 +278,8 @@ public sealed class LayoutHintsTests
         var resolved = PipeCatalogs.Resolve(pin: null);
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
-        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value.Catalog), OuterLoop.Rules(resolved.Value.Catalog), 10);
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
+
         var model = GraphFixture.Bind(source);
         var run = await loop.RunAsync(model, Water.Instance, name, TestContext.Current.CancellationToken);
         Assert.True(run.IsSuccess, run.Error?.Message);

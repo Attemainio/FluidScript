@@ -87,6 +87,16 @@ public sealed class PipeSizer(
         var volumeFlow = Math.Abs(context.MassFlow) / density;
         var entries = catalog.Entries;
         var notes = ImmutableArray.CreateBuilder<string>();
+        var raised = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        // A note and its code say the same thing (C-74): the note for the explanation, in order; the
+        // code for the wire, anchored to the pipe.
+        void Say(Diagnostics.DiagnosticDescriptor descriptor, params Diagnostics.DiagnosticArgument[] arguments)
+        {
+            var diagnostic = Diagnostics.Diagnostic.Create(descriptor, span: null, arguments) with { ComponentName = pipe.Name };
+            raised.Add(diagnostic);
+            notes.Add(diagnostic.Message);
+        }
 
         // Step 1: the smallest size meeting the gradient target, or the largest there is.
         var index = 0;
@@ -98,16 +108,21 @@ public sealed class PipeSizer(
 
         if (Gradient(entries[index], volumeFlow, density, viscosity) > gradientTarget)
         {
-            notes.Add(
-                $"{pipe.Name} needs more than DN{entries[index].Spec.NominalDiameter}, "
-                + $"the largest size in {catalog.Name}; using it.");
+            Say(
+                Diagnostics.SizingDiagnostics.OutsideCatalogue,
+                new Diagnostics.DiagnosticArgument("name", pipe.Name),
+                new Diagnostics.DiagnosticArgument("max", entries[index].Spec.NominalDiameter.ToString(CultureInfo.InvariantCulture)),
+                new Diagnostics.DiagnosticArgument("catalog", catalog.Name));
         }
 
         // Step 2: the velocity ceiling, which is hard.
         while (index < entries.Count - 1 && Velocity(entries[index], volumeFlow) > Ceiling(entries[index]))
         {
             index++;
-            notes.Add($"{pipe.Name} stepped up to DN{entries[index].Spec.NominalDiameter} for velocity.");
+            Say(
+                Diagnostics.SizingDiagnostics.SteppedUpForVelocity,
+                new Diagnostics.DiagnosticArgument("name", pipe.Name),
+                new Diagnostics.DiagnosticArgument("n", entries[index].Spec.NominalDiameter.ToString(CultureInfo.InvariantCulture)));
         }
 
         // Step 3: the velocity floor, which is soft and may not breach the ceiling.
@@ -146,6 +161,7 @@ public sealed class PipeSizer(
                         $"DN{chosen.Spec.NominalDiameter} ({chosen.Spec.Series}) — {gradient:0.#} Pa/m, {velocity:0.##} m/s"),
                     FromDefault: false)),
             Notes = notes.ToImmutable(),
+            Diagnostics = raised.ToImmutable(),
         });
     }
 

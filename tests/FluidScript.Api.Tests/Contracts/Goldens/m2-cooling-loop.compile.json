@@ -88,7 +88,7 @@
         },
         "fouling": {
           "value": 1E-05,
-          "unit": "s³·K/kg",
+          "unit": "m2*K/W",
           "source": "default",
           "basis": "clean surfaces"
         },
@@ -233,7 +233,10 @@
       "kind": "pipe",
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
-      "sourceSpan": null,
+      "sourceSpan": {
+        "start": 830,
+        "length": 24
+      },
       "circuit": "coolingLoop",
       "tag": null,
       "parameters": {
@@ -2556,7 +2559,7 @@
         "offset": 602,
         "length": 2
       },
-      "component": null,
+      "component": "N2",
       "suggestion": null,
       "related": []
     },
@@ -2576,7 +2579,7 @@
         "offset": 730,
         "length": 9
       },
-      "component": null,
+      "component": "PU1__HE1",
       "suggestion": null,
       "related": []
     },
@@ -2596,7 +2599,7 @@
         "offset": 740,
         "length": 9
       },
-      "component": null,
+      "component": "HE1__3WV",
       "suggestion": null,
       "related": []
     },
@@ -2616,7 +2619,7 @@
         "offset": 830,
         "length": 24
       },
-      "component": null,
+      "component": "3WV__N3",
       "suggestion": null,
       "related": []
     },
@@ -2636,7 +2639,7 @@
         "offset": 830,
         "length": 24
       },
-      "component": null,
+      "component": "3WV__N3__in",
       "suggestion": null,
       "related": []
     },

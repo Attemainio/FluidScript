@@ -119,6 +119,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1531` | Error | Binder | A {kind} has no single {role} to use here. Write it out, such as '{example}'. |
 | `FS1532` | Error | Binder | '{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead. |
 | `FS1533` | Warning | Binder | '{name}' observes nothing. Place it with 'at' and the name of a node. |
+| `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
+| `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
@@ -146,7 +148,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
 | `FS2204` | Error | Topology | '{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither. |
-| `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}. |
+| `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}{advice}. |
 | `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
 | `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |
 | `FS2213` | Error | Topology | '{list}' are not connected to the rest of the circuit. |
@@ -157,6 +159,12 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
 | `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2220` | Error | Topology | '{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa. |
+| `FS2301` | Warning | Sizing | Sizes did not settle for {list}. Showing the last values; state them directly to fix. |
+| `FS2304` | Error | Sizing | Cannot size '{name}': no flow is determined anywhere in its branch. State a duty or a flow. |
+| `FS2305` | Warning | Sizing | '{name}' needs more than DN{max}, the largest size in {catalog}. Using DN{max}. |
+| `FS2307` | Info | Sizing | '{name}' stepped up to DN{n} for velocity. |
+| `FS2310` | Info | Sizing | '{name}' sized to {plates} plates ({area} m²); {required} m² was needed, so it delivers {actual} kW against {stated} kW. |
+| `FS2312` | Info | Sizing | '{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended. |
 | `FS2401` | Info | Layout hints | The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum. |
 | `FS2402` | Info | Layout hints | '{group}' has {count} members and will start collapsed; expand it on the canvas to see them. |
 | `FS2403` | Info | Layout hints | '{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn. |
@@ -177,6 +185,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3009` | Error | Solver | Nothing in the circuit determines {combination}. These move together and no equation separates them, so a value stated for any one of them determines the rest. |
 | `FS3010` | Error | Solver | {combination} are not independent: one of them is already implied by the others, so the circuit constrains one thing fewer than it appears to. Stating something elsewhere will not help — one of these has to change. |
 | `FS3011` | Info | Solver | Taking a reduced step near {component}; the solution is hard to reach here. |
+| `FS3012` | Info | Solver | Restarted from the initial estimate. |
 | `FS3013` | Warning | Solver | {component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}. |
 | `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}. |
 | `FS4601` | Error | Request | The script has {count} {what}; the limit is {max}, so it is not solved. |

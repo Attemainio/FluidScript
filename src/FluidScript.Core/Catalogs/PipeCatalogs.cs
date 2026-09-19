@@ -101,16 +101,26 @@ public static class PipeCatalogs
     }
 }
 
-/// <summary>Turns a DN designation into a bore by reading a pipe catalogue.</summary>
-/// <param name="catalog">The catalogue to read.</param>
+/// <summary>Turns a DN designation into a bore by reading a resolved pipe catalogue.</summary>
+/// <param name="resolved">The catalogue, as <see cref="PipeCatalogs.Resolve(CatalogPin?)"/> returned it.</param>
 /// <remarks>
+/// <para>
 /// The implementation <c>P3.4a</c> put the <see cref="IBoreLookup"/> seam in front of, closing
 /// <c>C-24</c> and <c>F-18</c>. The seam stays rather than being inlined: <c>P3.7</c>'s outer loop
 /// re-instantiates components as sizing chooses values, so lowering has to be re-runnable against
 /// changing geometry, and a lookup it is handed is what makes that possible.
+/// </para>
+/// <para>
+/// It is built from a <em>resolved</em> catalogue and nothing else (<c>C-39</c>): resolution is where
+/// provenance is enforced (<c>FS2605</c>), and a lookup over an unverified catalogue would size a
+/// pipe from a row nobody has checked. Reading a row for what a designation means is a different
+/// act, and is done on the catalogue's entries directly.
+/// </para>
 /// </remarks>
-public sealed class CatalogBoreLookup(ICatalog<PipeSpec> catalog) : IBoreLookup
+public sealed class CatalogBoreLookup(ResolvedCatalog<PipeSpec> resolved) : IBoreLookup
 {
+    private readonly ICatalog<PipeSpec> catalog = (resolved ?? throw new ArgumentNullException(nameof(resolved))).Catalog;
+
     /// <inheritdoc/>
     /// <remarks>
     /// An exact designation match, never a nearest one. <c>dn=27</c> is a script naming a size that
