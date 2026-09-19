@@ -5,9 +5,9 @@
 # the AHU's duty too over-specifies a series circuit by one, and the solve ran non-finite. `N4`
 # joins the radiators' return to the AHU's supply and has two connections, so it is inline (D-114).
 # The series shape solves since S-63 closed (the seed read the boiler's 60 C as the AHU valve's
-# feed, and missed the datum on the inline N1). The valves state their Kv, the parallel header's
-# own figure: left to the authority rule, the second pass sizes TV_RAD to Kv 1.6, which at the
-# 50 % travel this mixing point needs would ask 15 bar of the radiator pump (C-104).
+# feed, and missed the datum on the inline N1). The valves stated their Kv while the authority rule
+# sized TV_RAD to Kv 1.6, which at the 50 % travel this mixing point needs asked 15 bar of the
+# radiator pump (C-104); the band rule sizes both to that same 6.3 (D-122).
 
 fluidscript 1
 project static plant_01
@@ -26,7 +26,7 @@ N1 node p=250
 circuit radiators 102
 
 HE_RAD  load in=50 out=40 power=20 kW
-TV_RAD  three_way_valve kv=6.3
+TV_RAD  three_way_valve
 PU_RAD  pump
 
 connections
@@ -38,7 +38,7 @@ NM_RAD - N4 length=18 dn=25
 circuit AHU 101
 
 HE_AHU  load in=35 out=30
-TV_AHU  three_way_valve kv=6.3
+TV_AHU  three_way_valve
 PU_AHU  pump
 
 connections

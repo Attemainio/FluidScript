@@ -5,7 +5,6 @@
 # sized (4, 3 and 3 kW), each mixing what reaches it with its own return half and half (38 from
 # 40/36, 34.5 from 36/33, 31.5 from 33/30), and HS1 states the total 30 kW. N4, N5 and N6 each join
 # one branch's return to the next branch's supply and, with two connections, are inline (D-114).
-# The valves state their Kv as 8b does (C-104).
 
 fluidscript 1
 project static plant_01
@@ -24,7 +23,7 @@ N1 node p=250
 circuit radiators 102
 
 HE_RAD  load in=50 out=40 power=20 kW
-TV_RAD  three_way_valve kv=6.3
+TV_RAD  three_way_valve
 PU_RAD  pump
 
 connections
@@ -36,7 +35,7 @@ NM_RAD - N4 length=18 dn=25
 circuit AHU 101
 
 HE_AHU  load in=38 out=36
-TV_AHU  three_way_valve kv=6.3
+TV_AHU  three_way_valve
 PU_AHU  pump
 
 connections
@@ -48,7 +47,7 @@ NM_AHU - N5 length=12 dn=25
 circuit floor 103
 
 HE_FLR  load in=34.5 out=33
-TV_FLR  three_way_valve kv=6.3
+TV_FLR  three_way_valve
 PU_FLR  pump
 
 connections
@@ -60,7 +59,7 @@ NM_FLR - N6 length=15 dn=25
 circuit dhw 104
 
 HE_DHW  load in=31.5 out=30
-TV_DHW  three_way_valve kv=6.3
+TV_DHW  three_way_valve
 PU_DHW  pump
 
 connections

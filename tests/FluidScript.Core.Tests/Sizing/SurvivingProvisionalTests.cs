@@ -40,9 +40,11 @@ public sealed class SurvivingProvisionalTests
         Assert.DoesNotContain("provisional", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
         Assert.Contains("R5 preferred numbers", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
 
-        // And it says which of `24`'s two shapes chose the drop, because the answer is not recoverable
-        // from the Kv alone: the same row means different things on a bounded and a pump-driven circuit.
-        Assert.Contains("free pump absorbs", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
+        // And it says which rule chose the row, because the answer is not recoverable from the Kv alone:
+        // a three-way valve is sized on its common-port flow to a drop band (`D-122`), and the basis
+        // names the band and the flow it was read at.
+        Assert.Contains("a mixing valve is sized to", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
+        Assert.Contains("through the common port", run.Value.Bases["3WV.kv"], StringComparison.Ordinal);
     }
 
     [Fact]

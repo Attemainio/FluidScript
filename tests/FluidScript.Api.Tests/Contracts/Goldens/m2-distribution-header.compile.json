@@ -281,7 +281,7 @@
       "tag": "101TV01",
       "parameters": {
         "authority": {
-          "value": 0.62215,
+          "value": 0.803323,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -293,7 +293,7 @@
           "basis": "no elevation stated"
         },
         "kv": {
-          "value": 6.3,
+          "value": 4,
           "unit": "m3/h",
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -558,7 +558,7 @@
       "tag": "102TV01",
       "parameters": {
         "authority": {
-          "value": 0.533473,
+          "value": 0.739352,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -570,7 +570,7 @@
           "basis": "no elevation stated"
         },
         "kv": {
-          "value": 6.3,
+          "value": 4,
           "unit": "m3/h",
           "source": "sized",
           "basis": "chosen by a sizing rule"

@@ -354,7 +354,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         ImmutableDictionary<string, Quantity> defaults) =>
         Value(symbol, kind, "kv") is not { } kv
             ? null
-            : new Valve(symbol.Name, kv, Value(symbol, kind, "position") ?? 1, Characteristic(symbol))
+            : new Valve(symbol.Name, kv, Value(symbol, kind, "position") ?? 1, Characteristic(symbol, kind))
             {
                 StatedParameters = stated,
                 SizedParameters = sized,
@@ -383,7 +383,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 symbol.Name,
                 kv,
                 Value(symbol, kind, "position") ?? 1,
-                Characteristic(symbol),
+                Characteristic(symbol, kind),
 
                 // Two connections and no explicit `b` is the two-way arrangement the page describes,
                 // and it is one Kv law rather than two (S-14a). `b` is the bypass port, which was spelt
@@ -566,15 +566,23 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             : null;
     }
 
-    private static ValveCharacteristic Characteristic(ComponentSymbol symbol) =>
-        symbol.Parameters.TryGetValue("characteristic", out var stated) && stated.Symbol is { } name
-            ? name switch
-            {
-                "linear" => ValveCharacteristic.Linear,
-                "quick_open" => ValveCharacteristic.QuickOpen,
-                _ => ValveCharacteristic.EqualPercentage,
-            }
-            : ValveCharacteristic.EqualPercentage;
+    // The registry's default is read here rather than hard-coded, because the two valve kinds default
+    // differently (`D-122`): a two-way control valve is equal-percentage and a three-way mixing valve
+    // is linear. Until `D-122` the fallback was a literal `EqualPercentage` that no parameter map
+    // recorded -- `C-58`'s shape for the characteristic -- and the registry's own default was never read.
+    private static ValveCharacteristic Characteristic(ComponentSymbol symbol, ComponentKindInfo kind)
+    {
+        var name = symbol.Parameters.TryGetValue("characteristic", out var stated) && stated.Symbol is { } written
+            ? written
+            : kind.Parameters.TryGetValue("characteristic", out var info) ? info.DefaultLiteral : null;
+
+        return name switch
+        {
+            "linear" => ValveCharacteristic.Linear,
+            "quick_open" => ValveCharacteristic.QuickOpen,
+            _ => ValveCharacteristic.EqualPercentage,
+        };
+    }
 
     private Pipe? Pipe(
         ComponentSymbol symbol,

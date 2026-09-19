@@ -17,7 +17,7 @@ V2 valve authority=0.5 characteristic=equal_percentage
 |---|---|---|---|
 | `kv` | m³/h at 1 bar | Flow coefficient | Sized from the design drop |
 | `position` | — | Opening, 0 to 1 | Sized, or driven by a controller |
-| `characteristic` | — | `linear`, `equal_percentage` or `quick_open` | `equal_percentage` |
+| `characteristic` | — | `linear`, `equal_percentage` or `quick_open` | `equal_percentage` (a [`three_way_valve`](three-way-valve.md) defaults to `linear`) |
 | `authority` | — | Target authority for sizing | Sized |
 | `dp` | kPa | Design pressure drop, an alternative to `kv` | Sized |
 | `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |

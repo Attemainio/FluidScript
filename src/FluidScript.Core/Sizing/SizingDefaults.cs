@@ -65,6 +65,31 @@ public static class SizingDefaults
     /// </remarks>
     public const double ValveAuthorityMinimum = 0.25;
 
+    /// <summary>The most a three-way valve is sized to drop at its common-port flow, fully open.</summary>
+    /// <value>Pa. 15 kPa: the top of the band a mixing valve is selected in (<c>24</c>'s <c>three_way.dp_max</c>).</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>A three-way valve in a mixing circuit is sized to a drop band, not to an authority</strong>
+    /// (<c>D-122</c>, <c>C-104</c>). ESBE's rotary mixing valves (series VRG130, VRG140, 3F): <em>"Start
+    /// with the heat demand in kW and move vertically to the chosen Δt. Move horizontally to the shaded
+    /// field (pressure drop of 3–15 kPa) and select the smaller Kvs-value."</em> The flow is the heat
+    /// demand at the mixed circuit's Δt -- the flow through the common port -- and the Kvs is the
+    /// smallest whose drop at that flow is inside the band. The authority rule sized the switched leg
+    /// fully open for authority 0.5 against the variable circuit, and a valve that mixes half and half
+    /// at design sits mid-travel where an equal-percentage leg passes 14 % of that: the ladder's series
+    /// header was sized to Kv 1.6 and asked 15 bar of its pump.
+    /// </para>
+    /// <para>
+    /// The same band is what the two-way rule's remarks call a balancing valve's job, 3–10 kPa, and
+    /// ESBE's upper figure is 15. Its lower edge is <see cref="ThreeWayDropMinimum"/>.
+    /// </para>
+    /// </remarks>
+    public const double ThreeWayDropMaximum = 15_000;
+
+    /// <summary>The least a three-way valve is meant to drop at its common-port flow, fully open.</summary>
+    /// <value>Pa. 3 kPa, the bottom of ESBE's band. Below it the smallest catalogue row is still too large for the flow, and the rule says so.</value>
+    public const double ThreeWayDropMinimum = 3_000;
+
     /// <summary>The closest approach an extended exchanger is sized to without a stated <c>approach</c>.</summary>
     /// <value>K. <c>24</c>'s <c>hx.approach_min</c>, the threshold for <c>FS4008</c>.</value>
     /// <remarks>

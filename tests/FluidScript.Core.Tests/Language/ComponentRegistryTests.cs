@@ -293,6 +293,17 @@ public sealed class ComponentRegistryTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void TheTwoValveKindsDefaultTheirCharacteristicDifferently()
+    {
+        // `D-122`. A two-way control valve is equal-percentage by convention; a three-way mixing valve is
+        // a constant-flow device whose legs open complementarily, which a linear pair does (Σφ = 1)
+        // and an equal-percentage pair does not (0.28 at mid-travel).
+        Assert.Equal("equal_percentage", Registry.ByKeyword("valve")!.Parameters["characteristic"].DefaultLiteral);
+        Assert.Equal("linear", Registry.ByKeyword("three_way_valve")!.Parameters["characteristic"].DefaultLiteral);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void TheTankCarriesItsAliasAndItsFamilies()
     {
         var tank = Registry.ByKeyword("tank")!;

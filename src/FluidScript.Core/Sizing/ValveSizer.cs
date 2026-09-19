@@ -115,6 +115,18 @@ public sealed class ValveSizer(
                 ("state", "the branch's resistance and a target authority between 0 and 1")));
         }
 
+        // `D-122`. A three-way valve with its bypass connected is a mixing valve and is sized on its
+        // common-port flow to a drop band -- unless the script states an authority, which asks for the
+        // control-valve rule by name.
+        if (valve is ThreeWayValve { BypassConnected: true }
+            && context.CommonFlow is { } common
+            && double.IsFinite(common)
+            && common > 0
+            && !valve.StatedParameters.ContainsKey("authority"))
+        {
+            return MixingBand(valve, context, common, density);
+        }
+
         // `24` step 2, in whichever of its two shapes the circuit allows. On a pump-driven circuit the
         // valve's share `a` of the branch total means a * (rest + valve) = valve, so valve = a * rest /
         // (1 - a); at a = 0.5 that is exactly the rest of the branch. On a bounded one there is nothing
@@ -250,8 +262,108 @@ public sealed class ValveSizer(
                 + "enough for this flow.");
         }
 
-        // `FS4006`. Rounding down can only raise authority, so reaching here means the *target* was
-        // already unreachable -- the branch resists far more than the valve can.
+        Poor(valve, achieved, notes);
+    }
+
+    /// <summary>The target authority for one valve.</summary>
+    /// <param name="valve">The valve.</param>
+    /// <returns>Dimensionless. A stated <c>authority</c> is a constraint; otherwise the rule's target.</returns>
+    private double Target(IFlowComponent valve) =>
+        valve.StatedParameters.TryGetValue("authority", out var stated) ? stated.SiValue : authorityTarget;
+
+    /// <summary>Sizes a three-way valve to the drop band a mixing valve is selected in (<c>D-122</c>).</summary>
+    /// <param name="valve">The valve, its bypass connected.</param>
+    /// <param name="context">Its context: <see cref="SizingContext.MassFlow"/> is the variable leg's flow and <see cref="SizingContext.BranchDrop"/> the variable circuit's resistance.</param>
+    /// <param name="common">kg/s through the common port.</param>
+    /// <param name="density">kg/m³ at the valve's inlet.</param>
+    /// <returns>The Kv, and the authority it achieves.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>ESBE's rule, verbatim from the VRG130, VRG140 and 3F datasheets:</strong> <em>"Start with
+    /// the heat demand in kW and move vertically to the chosen Δt. Move horizontally to the shaded field
+    /// (pressure drop of 3–15 kPa) and select the smaller Kvs-value."</em> The heat demand at the mixed
+    /// circuit's Δt is the flow through the common port, and "the smaller Kvs" is the smallest catalogue
+    /// row whose drop at that flow is under <see cref="SizingDefaults.ThreeWayDropMaximum"/>. The
+    /// catalogue's R5 series is ESBE's own (0.4, 0.63, 1 … 40).
+    /// </para>
+    /// <para>
+    /// <strong>Why not the authority rule</strong> (<c>C-104</c>): that rule presumes the controlled leg
+    /// carries its design flow fully open, and a load whose stated inlet lies between the feed and its
+    /// own return sits mid-travel at design by construction. Sized for authority 0.5 with an
+    /// equal-percentage leg, the ladder's series header got Kv 1.6, which at mid-travel passes 14 % of
+    /// that and asked 15 bar of its pump. Sized to the band with linear legs, the drop across the valve
+    /// is the band's whatever the mixing ratio, because the leg's opening and its share of the flow
+    /// move together.
+    /// </para>
+    /// <para>
+    /// The authority is the same figure the control-valve rule reports -- the variable leg fully open
+    /// against its circuit -- so that the two rules' figures compare like with like. It is reported,
+    /// not targeted, and <c>FS4006</c>'s note still fires below the minimum: Spirax's band for three-port
+    /// valves starts at 0.2, while Johnson Controls' VM-12 shows a constant-flow three-way valve doing
+    /// its job at 0.1, so a low figure is worth a line and not a refusal.
+    /// </para>
+    /// </remarks>
+    private Result<SizingResult> MixingBand(
+        IFlowComponent valve, in SizingContext context, double common, double density)
+    {
+        var chosen = catalog.SmallestSatisfying(
+            spec => Drop(common, spec.Kvs, density) <= SizingDefaults.ThreeWayDropMaximum);
+        var kvs = chosen.Entry.Spec.Kvs;
+        var commonDrop = Drop(common, kvs, density);
+        var rest = Math.Max(0, context.BranchDrop);
+        var legDrop = Drop(context.MassFlow, kvs, density);
+        var achieved = legDrop / (rest + legDrop);
+        var litresPerSecond = common / density * 1000;
+        var notes = ImmutableArray.CreateBuilder<string>();
+
+        if (chosen.Fit == CatalogFit.ClampedToLargest)
+        {
+            notes.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{valve.Name} wanted a drop under {SizingDefaults.ThreeWayDropMaximum / 1000:0.#} kPa at "
+                + $"{litresPerSecond:0.###} l/s and the series stops at Kv {kvs:0.##}, which drops "
+                + $"{commonDrop / 1000:0.#} kPa. Nothing in the catalogue passes this flow inside the band."));
+        }
+        else if (commonDrop < SizingDefaults.ThreeWayDropMinimum)
+        {
+            notes.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{valve.Name} drops only {commonDrop / 1000:0.#} kPa at {litresPerSecond:0.###} l/s: the "
+                + $"smallest row in the series, Kv {kvs:0.##}, is still larger than this flow wants, so the "
+                + $"valve will control near its stops."));
+        }
+
+        Poor(valve, achieved, notes);
+
+        var kvBasis = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{chosen.Entry.Designation} ({chosen.Entry.Spec.Series}) — {commonDrop / 1000:0.#} kPa at "
+            + $"{litresPerSecond:0.###} l/s through the common port, inside the "
+            + $"{SizingDefaults.ThreeWayDropMinimum / 1000:0.#}–{SizingDefaults.ThreeWayDropMaximum / 1000:0.#} kPa "
+            + $"a mixing valve is sized to; authority {achieved:0.##} against the variable circuit");
+
+        var authorityBasis = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{achieved:0.##} against the variable circuit, fully open — {chosen.Entry.Designation} drops "
+            + $"{legDrop / 1000:0.#} kPa of its {(rest + legDrop) / 1000:0.#} kPa; reported, not targeted: a "
+            + $"mixing valve is sized to its drop band");
+
+        var values = ImmutableDictionary<string, SizedValue>.Empty
+            .Add("kv", new SizedValue(Quantity.FromSi(kvs, Dimension.Kv), kvBasis, FromDefault: false))
+            .Add(
+                "authority",
+                new SizedValue(
+                    Quantity.FromSi(achieved, Dimension.Dimensionless), authorityBasis, FromDefault: false));
+
+        return Result.Success(new SizingResult { Values = values, Notes = notes.ToImmutable() });
+    }
+
+    /// <summary><c>FS4006</c>'s note: the valve will behave as a switch.</summary>
+    /// <param name="valve">The valve.</param>
+    /// <param name="achieved">The authority it achieves, dimensionless.</param>
+    /// <param name="notes">Where the note goes.</param>
+    private static void Poor(IFlowComponent valve, double achieved, ImmutableArray<string>.Builder notes)
+    {
         if (achieved < SizingDefaults.ValveAuthorityMinimum)
         {
             notes.Add(
@@ -260,10 +372,4 @@ public sealed class ValveSizer(
                 + "dominates until the valve is nearly shut.");
         }
     }
-
-    /// <summary>The target authority for one valve.</summary>
-    /// <param name="valve">The valve.</param>
-    /// <returns>Dimensionless. A stated <c>authority</c> is a constraint; otherwise the rule's target.</returns>
-    private double Target(IFlowComponent valve) =>
-        valve.StatedParameters.TryGetValue("authority", out var stated) ? stated.SiValue : authorityTarget;
 }

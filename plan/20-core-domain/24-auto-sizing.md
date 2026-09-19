@@ -267,7 +267,67 @@ rule the pressure datum uses.
 
 ### Three-way valve — `kv`
 
-A three-way valve is sized on its **controlled path**, and the criterion is the same authority the
+**A three-way valve with its bypass connected is sized on the flow through its common port, to a
+drop band, and its legs are linear** (`D-122`, closing `C-104`). The authority rule below is what the
+script gets when it states `authority=` by name; it is kept in full because the definition of
+authority against the variable circuit is the published one, and the achieved figure is still
+reported under the band rule so that the two compare like with like.
+
+**The band rule, verbatim from ESBE's rotary mixing valves** (series VRG130, VRG140 and 3F, the
+mixing valve of Nordic heating practice): *"Start with the heat demand in kW and move vertically to
+the chosen Δt. Move horizontally to the shaded field (pressure drop of 3–15 kPa) and select the
+smaller Kvs-value."*[^esbe] The heat demand at the mixed circuit's Δt is the flow through the common
+port — what the two legs mix, or what they split — and "the smaller Kvs" is the smallest catalogue
+row whose drop at that flow is under **15 kPa** (`three_way.dp_max`); under **3 kPa**
+(`three_way.dp_min`) the smallest row is still too large for the flow and the basis says so. ESBE's
+Kvs series 0.4, 0.63, 1, 1.6, 2.5, 4, 6.3, 10, 16, 25, 40 is the R5 series the catalogue carries.
+Nothing in the rule is a target; the achieved authority — the variable leg fully open against its
+circuit, the two-way rule's own definition — is reported beside the Kv, and `FS4006` still fires
+below 0.25: Spirax's band for three-port valves starts at 0.2, Johnson Controls' VM-12 shows a
+constant-flow three-way valve doing its job at an authority of 0.1, and a low figure is a line, not
+a refusal.[^vm12]
+
+**Why the authority rule is the wrong criterion for a mixing valve.** Spirax's rule presumes the
+controlled port carries its design flow *fully open* — a coil control valve, mixing only at part
+load. A load whose stated inlet lies between the feed and its own return sits mid-travel at design by
+construction: 60/40 to 50 is half and half. There an equal-percentage leg passes 14 % of its Kv, so
+a Kv chosen for authority 0.5 fully open asks fifty times the chosen drop at the design point: the
+ladder's series header was sized to Kv 1.6 and asked 15 bar of its pump (`C-104`); `S-58` had
+recorded the mild form on the parallel header. The band rule reproduces the Kv 6.3 those scripts
+stated by hand — 0.478 kg/s through Kv 4 drops 18.5 kPa, through 6.3 drops 7.5 — and with linear legs
+the drop across the valve at the mixing point is the full-open drop whatever the ratio, because a
+leg's opening and its share of the flow move together.
+
+**The legs are linear, both of them.** A three-way valve is a constant-flow device — VM-12's design
+requirement is *"a relatively constant system flowrate regardless of its stem position"* — and a
+linear pair opening complementarily holds the total (Σφ = 1) where an equal-percentage pair drops it
+to 28 % at mid-stroke (VM-12, fig. 2, which is exactly the model's 0.14 + 0.14). Siemens' VXG44 seat
+valve is linear in the body with equal-percentage as an actuator option and is *"to be used only as a
+mixing valve"*;[^vxg] Belimo's characterised three-way valves carry equal-percentage on A–AB and a
+*"modified linear for constant flow"* on B–AB.[^belimo] So the registry defaults `three_way_valve`
+to `characteristic=linear` and the two-way `valve` stays equal-percentage; `characteristic=` states
+the other. A linear leg keeps 2 % of its Kv at its stop — the equal-percentage law's own φ(0), so a
+closed leg passes the same on either characteristic — and the line continues through the stop, which
+is what keeps the position column alive when the other leg opens fully (`ValveLaw.LegOpening`; the
+two-way linear law is `S-26`'s, unchanged). The figure is this project's regularisation with a
+physical reading, not a catalogue one: ESBE quotes under 0.05 % for the seat, Belimo under 2 % on the
+B port.
+
+[^esbe]: ESBE, *Mixing valve series VRG130* and *series VRG140* data sheets, "Dimensioning — radiator
+    or underfloor heating systems"; *Rotary motorized valves series 3F*, "Dimensioning heating
+    systems". https://www.esbe.eu/group/products/rotary-valves/vrg130
+
+[^vm12]: Johnson Controls, *Application Note VM-12: Three-Way Valve Equal Percentage Flow
+    Characteristic*, LIT-977AN12.
+    https://docs.johnsoncontrols.com/bas/api/khub/documents/1HXsFMicFW1nDoZbAlSxow/content
+
+[^vxg]: Siemens Industry, *VE VXG Electronic Three-way Valves*, Technical Instructions 155-113P25.
+
+[^belimo]: Belimo, *2-way and 3-way characterised control valves*, notes for project planning.
+
+#### The authority rule, for a stated `authority=`
+
+A three-way valve is then sized on its **controlled path**, and the criterion is the same authority the
 two-way rule uses. What differs is what authority is measured *against*, and — more consequentially —
 that the drop is sometimes chosen and sometimes determined.
 
@@ -299,16 +359,6 @@ that for three-port valves the authority calculation uses the valve's drop "in r
 with the **variable flowrate**", and notes that a three-port valve is a constant-flowrate device —
 whether mixing or diverting, the total flow through it does not change, so the constant side carries no
 information about how well the valve controls.[^spirax]
-
-**The rule sizes at full open, and the mixing point decides the travel (`C-104`).** Authority at
-the design flow with the controlled leg fully open is the published criterion, and it says nothing
-about where the valve will sit at design: the energy balance chooses that -- a load rated 50/40 on a
-60 °C supply mixes half and half, position 0.5, where an equal-percentage leg has `φ = 0.14` and
-passes its design flow only at fifty times the full-open drop. On the ladder's series header the
-second pass sized the radiators' valve to Kv 1.6 for authority against the branch and the pump was
-asked for 15 bar. Whether practice sizes the mixing valve's `a` port to the design draw at the
-expected travel, and which characteristic a mixing valve's two legs actually carry, is to be looked
-up before the rule changes; `S-58` recorded the mild form, `C-104` the divergence.
 
 **Target and bands, from the same sources.** Below **0.2–0.25** control is unstable; **0.25–0.5** is
 fair to good; **0.5–1.0** gives excellent control at the cost of pumping energy.[^fluidflow] Spirax is
@@ -619,6 +669,8 @@ and a table with a source column is that answer.
 | `pipe.roughness` | 0.045 mm | Commercial steel |
 | `valve.authority_target` | 0.5 | Control-quality convention |
 | `valve.authority_min` | 0.25 | Below this, `FS4006` |
+| `three_way.dp_min` | 3 kPa | ESBE's band for a mixing valve at its common-port flow (`D-122`) |
+| `three_way.dp_max` | 15 kPa | The top of the same band; the smallest Kvs under it is chosen |
 | `pump.margin` | 1.0 | Deliberately none |
 | `pump.efficiency_hydraulic` | 0.7 | Typical small centrifugal. **The energy-balance number** — `(1 − η)` of the shaft work heats the fluid (`D-82`) |
 | `pump.efficiency_motor` | 0.6 | Small wet-rotor circulator. Wire-to-water is the product, 0.42 here — **the energy-cost number**, and not the row above |

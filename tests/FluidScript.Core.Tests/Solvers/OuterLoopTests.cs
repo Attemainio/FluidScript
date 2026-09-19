@@ -339,8 +339,11 @@ public sealed class OuterLoopTests
         // to 50 and 40/30 to 35 -- so both valves sit at mid-travel. It never converged because the
         // seed read the boiler's 60 C as the AHU valve's feed and put a sixth of its circulation on the
         // stream, and because the datum on the inline `N1` was invisible to the pressure walk. The
-        // valves state the parallel header's Kv: left to the authority rule, the second pass sizes
-        // TV_RAD to Kv 1.6, which at mid-travel asks 15 bar of its pump (`C-104`).
+        // band rule (`D-122`, closing `C-104`) sizes both valves to Kv 6.3 -- the figure the script
+        // stated while the authority rule sized TV_RAD to Kv 1.6, which at mid-travel of an
+        // equal-percentage leg asked 15 bar of its pump. With linear legs the radiators' valve, fed
+        // through the boiler's 20 kPa, opens past its mixing ratio and the AHU's, fed by the ring, short
+        // of it; both pumps carry a few metres rather than the 10-16 m the equal-percentage legs took.
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08b-header-series.fluid"),
             TestContext.Current.CancellationToken);
@@ -360,10 +363,12 @@ public sealed class OuterLoopTests
         // the AHU's from the radiators' return.
         Assert.Equal(0.2393, Stream("TV_RAD.a->NM_AHU"), 0.001);
         Assert.Equal(0.2393, Stream("TV_AHU.a->NM_RAD"), 0.001);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.45, 0.6);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.45, 0.55);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 10, 16);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_AHU", "PU_AHU.head")], 9, 14);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.7, 0.85);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.3, 0.5);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 4, 7);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_AHU", "PU_AHU.head")], 2, 3.5);
+        Assert.Contains("Kv 6.3", run.Bases["TV_RAD.kv"], StringComparison.Ordinal);
+        Assert.Contains("Kv 6.3", run.Bases["TV_AHU.kv"], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -373,7 +378,8 @@ public sealed class OuterLoopTests
         // the middle branch the radiators followed by the floor in series. The AHU's rated coil seeded at
         // 0.0477 kg/s against its 0.287 duty because its `a` leg took a propagated header flow and the
         // valve's remainder rule set the coil to the difference; ranked by basis, the rated coils are the
-        // chords. The floor mixes the radiators' 40 C return with its own 30 C to 35, half and half, so
+        // its stream is the radiators' `a` flow. The valves' Kv is the band rule's (`D-122`): 6.3 for the
+        // two 0.48 kg/s blocks, 4 for the AHU, 1.6 for the DHW.
         // its stream is the radiators' `a` flow; the valves state their Kv as 8b does (`C-104`).
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08e-header-mixed.fluid"),
@@ -395,7 +401,11 @@ public sealed class OuterLoopTests
         Assert.Equal(0.2393, Flow("TV_RAD.a->N4"), 0.001);
         Assert.Equal(0.2393, Flow("TV_FLR.a->NM_RAD"), 0.001);
         Assert.Equal(0.1435, Flow("TV_DHW.ab->NM_DHW"), 0.001);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_FLR", "TV_FLR.position")], 0.45, 0.55);
+        // The floor's legs are linear and unequally fed: its `a` arrives through the radiators' block at
+        // a higher pressure than its own return, so half-and-half mixing sits below mid-travel.
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_FLR", "TV_FLR.position")], 0.3, 0.5);
+        Assert.Contains("Kv 6.3", run.Bases["TV_FLR.kv"], StringComparison.Ordinal);
+        Assert.Contains("Kv 1.6", run.Bases["TV_DHW.kv"], StringComparison.Ordinal);
     }
 
     [Fact]

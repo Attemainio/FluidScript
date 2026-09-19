@@ -317,8 +317,10 @@ public sealed class ThreeWayValve : IFlowComponent
         var kv = context.Parameter(KvIndex, Kv);
         var position = context.Parameter(PositionIndex, Position);
 
+        // `LegOpening`, not `Opening`: a linear leg keeps its 2 % at the stop so the position column
+        // survives the other leg opening fully (`D-122`).
         var controlledPath = -context.Flows[1] - ValveLaw.MassFlow(
-            kv * ValveLaw.Opening(position, Characteristic),
+            kv * ValveLaw.LegOpening(position, Characteristic),
             common.Pressure - controlled.Pressure,
             (common.Density + controlled.Density) / 2);
 
@@ -334,7 +336,7 @@ public sealed class ThreeWayValve : IFlowComponent
         residuals[1] = controlledPath;
 
         residuals[2] = -context.Flows[2] - ValveLaw.MassFlow(
-            kv * ValveLaw.Opening(1 - position, Characteristic),
+            kv * ValveLaw.LegOpening(1 - position, Characteristic),
             common.Pressure - bypass.Pressure,
             (common.Density + bypass.Density) / 2);
     }

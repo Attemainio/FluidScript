@@ -845,6 +845,7 @@ public sealed class OuterLoop(
                 BranchDrop = Resistance(graph, state, legs[variable], flow, valve),
                 LoopDrop = Circuit(graph, layout, iterate, valve, state),
                 AvailableDrop = driven ? null : Offered(graph),
+                CommonFlow = flows[common],
             };
 
             if (!driven && context.AvailableDrop is null)

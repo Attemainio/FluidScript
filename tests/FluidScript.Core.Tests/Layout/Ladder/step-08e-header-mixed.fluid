@@ -3,8 +3,7 @@
 # the middle branch feeds the radiators at 50/40 and 20 kW, which fixes its stream at 0.239 kg/s,
 # and the floor then cools that stream from 40 to 30 with its duty sized (10 kW), mixing the 40 it
 # is fed with its own 30 return half and half to its 35 inlet. HS1 states the total. N11 joins the
-# radiators' return to the floor's supply inside the branch and is inline. The valves state their
-# Kv as 8b does (C-104).
+# radiators' return to the floor's supply inside the branch and is inline.
 
 fluidscript 1
 project static plant_01
@@ -27,7 +26,7 @@ N1 node p=250
 circuit AHU 101
 
 HE_AHU  load in=50 out=30 power=24 kW
-TV_AHU  three_way_valve kv=6.3
+TV_AHU  three_way_valve
 PU_AHU  pump
 
 connections
@@ -39,7 +38,7 @@ NM_AHU - N7 length=12 dn=25
 circuit radiators 102
 
 HE_RAD  load in=50 out=40 power=20 kW
-TV_RAD  three_way_valve kv=6.3
+TV_RAD  three_way_valve
 PU_RAD  pump
 
 connections
@@ -51,7 +50,7 @@ NM_RAD - N11 length=18 dn=25
 circuit floor 103
 
 HE_FLR  load in=35 out=30
-TV_FLR  three_way_valve kv=6.3
+TV_FLR  three_way_valve
 PU_FLR  pump
 
 connections
@@ -63,7 +62,7 @@ NM_FLR - N8 length=15 dn=25
 circuit dhw 104
 
 HE_DHW  load in=50 out=30 power=12 kW
-TV_DHW  three_way_valve kv=6.3
+TV_DHW  three_way_valve
 PU_DHW  pump
 
 connections

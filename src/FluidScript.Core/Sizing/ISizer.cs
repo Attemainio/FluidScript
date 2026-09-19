@@ -117,6 +117,16 @@ public readonly record struct SizingContext
     /// valve a little off its stop, which is the headroom a control valve is meant to have.
     /// </remarks>
     public double? AvailableDrop { get; init; }
+
+    /// <summary>Gets the flow through a three-way valve's common port, when the component is one.</summary>
+    /// <value>
+    /// kg/s, unsigned, through <c>ab</c>: what the two switched legs split, or what they mix. <see langword="null"/>
+    /// for anything that is not a three-way valve with its bypass connected, including a two-way valve,
+    /// whose one flow is <see cref="MassFlow"/>. A mixing valve is sized on this flow to a drop band
+    /// (<c>D-122</c>), while <see cref="MassFlow"/> stays the variable leg's, which the achieved authority
+    /// is still reported against.
+    /// </value>
+    public double? CommonFlow { get; init; }
 }
 
 /// <summary>Fills the parameters a user left out (<c>D-02</c>).</summary>

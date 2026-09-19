@@ -3,7 +3,7 @@
 A valve with three ports, used to mix two streams or to divert one.
 
 ```fluidscript
-TV1 three_way_valve authority=0.5
+TV1 three_way_valve
 ```
 
 ## Ports
@@ -51,20 +51,51 @@ TV1.b - N3
 The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`, and
 `elevation` — one height for all three ports; see [`node`](node.md#height).
 
+One default differs. A three-way valve's `characteristic` is **`linear`** where a two-way valve's is
+`equal_percentage`: its two legs open complementarily, so a linear pair keeps the total flow through
+the valve constant over the stroke — which is what a mixing valve is for — while an equal-percentage
+pair passes only 28 % of it at mid-travel. Write `characteristic=equal_percentage` for a valve built
+that way. A linear leg keeps 2 % of the coefficient at its stop, the same as an equal-percentage leg
+does, so a "closed" leg is never quite shut on either.
+
 `position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
 happens to run.
 
 ## How the Kv is chosen
 
-A three-way valve you do not give a `kv` is sized like a [`valve`](valve.md) — for **authority**, from
-the same R5 catalogue — but two things about a three-port valve change which numbers go into that.
+A three-way valve you do not give a `kv` is sized the way a rotary mixing valve is selected from a
+catalogue: on the **flow through its common port**, to a **pressure drop of 3–15 kPa** fully open,
+taking the smallest coefficient in the R5 series that drops less than 15 kPa. That is the rule
+ESBE prints on its mixing-valve data sheets — start from the heat demand at the circuit's Δt, move
+into the 3–15 kPa band, take the smaller Kvs — and the flow it uses is what the two legs mix or
+split, not the primary draw alone.
 
-**It is sized on the leg that varies, not on the flow through it.** A three-port valve is a
-constant-flow device: whether it mixes or diverts, the total crossing it does not change, and only the
-split does. So the design flow is the **controlled** leg's, which is not the common port's. In the
-cooling loop the common port carries 0.239 kg/s round the secondary while the controlled leg draws
-0.163 from the primary; sizing on the larger number would size the valve for a flow it never has to
-control.
+```
+TV_RAD  kv         6.3    sized   Kv 6.3 (R5 preferred numbers) — 7.6 kPa at 0.484 l/s through the
+                                  common port, inside the 3–15 kPa a mixing valve is sized to;
+                                  authority 0.54 against the variable circuit
+TV_RAD  authority  0.54   sized   0.54 against the variable circuit, fully open — Kv 6.3 drops 1.9 kPa
+                                  of its 3.5 kPa; reported, not targeted: a mixing valve is sized to
+                                  its drop band
+```
+
+The authority is still worked out and reported — the leg that varies, fully open, against the circuit
+whose flow it changes, exactly as a [`valve`](valve.md) reports it — but it is not what chose the
+coefficient. It is there so that the two rules read alike, and [`FS4006`](diagnostics.md) still
+tells you when it comes out below 0.25.
+
+**Why not authority.** A control valve is sized fully open at its design flow because that is where
+it runs at design, mixing only at part load. A mixing valve whose stated inlet lies between what
+feeds it and its own return runs *at* the mixing point at design — 60 and 40 to 50 is half and half
+— and a coefficient chosen for authority fully open is then far too small at the position the valve
+actually sits at: on one series header the authority rule chose Kv 1.6 and the pump was asked for
+15 bar. The band rule chose 6.3, and the pump for 5.7 m.
+
+**If you want the authority rule, ask for it.** Stating `authority=0.5` sizes the valve as a
+[`valve`](valve.md) is sized, on the leg that varies. Then everything below about which leg that is
+applies.
+
+### Which leg varies, for the authority rule and the reported figure
 
 **Name the ports and you have said which leg that is.** `a` is the control path and `b` the bypass —
 the A–AB and B–AB of the valve body — and that is also how the equations read them, so writing
@@ -83,18 +114,14 @@ has two blind spots: a short tap off a header feeding a long secondary looks inv
 injection circuit whose two switched legs land on the same header looks symmetric. Naming the ports is
 the answer to both.
 
-**Whether the drop is chosen or determined depends on what drives the circuit.** With a pump on the
-path whose head you have not stated, the driving pressure is free, the valve's drop is a choice, and
-the authority target makes it — rounding **down** as for a two-way valve. With no such pump the
-boundary pressures fix the driving pressure, the valve takes whatever the rest of the path leaves, and
-the selection rounds **up** instead: at a fixed differential a coefficient below the required one
-cannot pass the design flow at any position, so rounding down there would make the design point
-unreachable rather than safe. Which of the two was used is written into the reported basis.
-
-```
-3WV  kv         4      sized   Kv 4 (R5 preferred numbers) — authority 0.66 at 0.165 l/s, 2.2 kPa
-                               — chosen against the leg's own resistance, which a free pump absorbs
-```
+**Under the authority rule, whether the drop is chosen or determined depends on what drives the
+circuit.** With a pump on the path whose head you have not stated, the driving pressure is free, the
+valve's drop is a choice, and the authority target makes it — rounding **down** as for a two-way
+valve. With no such pump the boundary pressures fix the driving pressure, the valve takes whatever
+the rest of the path leaves, and the selection rounds **up** instead: at a fixed differential a
+coefficient below the required one cannot pass the design flow at any position, so rounding down
+there would make the design point unreachable rather than safe. Which of the two was used is written
+into the reported basis.
 
 ### The drop it is sized for is not always the drop it runs at
 

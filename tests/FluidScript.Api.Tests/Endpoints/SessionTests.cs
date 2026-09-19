@@ -68,7 +68,11 @@ public sealed class SessionTests
         var solvers = new CountingSolverFactory();
         using var host = new ApiFactory { Overrides = s => s.AddSingleton<ISolverFactory>(solvers) };
         using var client = host.CreateClient();
-        var script = Api.Sample("m2-cooling-loop.fluid");
+        // The storage header settles in one pass, so the warm request's first pass and the cold request's
+        // last are the same graph and the warm start is a converged point of it. The cooling loop, used
+        // before `D-122`, takes two passes whose valve Kv differs, and a warm start from the second's
+        // solution is no nearer the first's than the seed: 5 iterations either way.
+        var script = Api.Sample("m4-storage-header.fluid");
 
         using var first = await client.PostAsync(Compile, new { sessionId = "warm", script });
         using var second = await client.PostAsync(Compile, new { sessionId = "warm", script });

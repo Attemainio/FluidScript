@@ -1316,8 +1316,8 @@
             "quick_open"
           ],
           "omission": "default",
-          "default": "equal_percentage",
-          "defaultBasis": "the usual choice for a control valve",
+          "default": "linear",
+          "defaultBasis": "a mixing valve's legs open complementarily, so the total flow holds",
           "usualRange": null,
           "validRange": null,
           "wholeNumber": false,

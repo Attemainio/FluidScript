@@ -394,7 +394,15 @@ public static class SolutionSeed
             {
                 var vertex = queue.Dequeue();
 
-                foreach (var edge in incident[vertex])
+                // A branch carrying a promoted pump is walked last from every vertex, so that where the
+                // walk's tree closes a loop through such a pump the closure error falls across the pump
+                // and nowhere else (`D-122`). The seeded head is a nominal 2.2 m and the loop's actual
+                // need is whatever it is -- 54 kPa on the parallel header -- so every loop with a free
+                // pump carries that gap somewhere. Across the pump it is the promoted head's own column,
+                // which Newton moves in one linear step. Across a three-way valve's leg it is a √Δp law
+                // seeded the wrong way round: on the cooling loop the recirculating leg was seeded 41.6
+                // kPa against its flow, and the first step shut the leg and parked the pump at zero.
+                foreach (var edge in incident[vertex].OrderBy(edge => CarriesPromotedPump(graph, layout, edge)))
                 {
                     if (walked[edge])
                     {
@@ -445,6 +453,14 @@ public static class SolutionSeed
 
         return pressures;
     }
+
+    /// <summary>Whether a branch's path holds a pump whose head the solver is determining.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the state vector keeps each unknown.</param>
+    /// <param name="branch">The branch's index.</param>
+    /// <returns><see langword="true"/> when it does, which the pressure walk uses to walk it last.</returns>
+    private static bool CarriesPromotedPump(CircuitGraph graph, SystemLayout layout, int branch) =>
+        graph.Branches[branch].Path.Any(part => part is Pump pump && PromotesHead(layout, pump));
 
     /// <summary>The flow buffer an element accumulates its ports' flows into.</summary>
     /// <param name="carried">The map being built.</param>

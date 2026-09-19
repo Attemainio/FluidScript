@@ -144,6 +144,27 @@ public sealed class ValveAndPumpTests
     }
 
     [Fact]
+    public void AThreeWayValvesLinearLegKeepsTwoPercentAtItsStopAndItsSlopeThroughIt()
+    {
+        // `D-122`. A two-way linear valve is shut at 0 with a dead column below it (`S-26`); a three-way
+        // valve's leg reaches its stop whenever the other leg opens fully, so the leg keeps the
+        // equal-percentage law's own 2 % there and the line continues through the stop -- which is what
+        // the forward difference needs to find a slope on it. At 1 the leg is fully open; at half
+        // travel it is half way between the two, and the equal-percentage and quick-open legs are the
+        // two-way law unchanged.
+        Assert.Equal(ValveLaw.LegLeakage, ValveLaw.LegOpening(0, ValveCharacteristic.Linear), tolerance: 1e-12);
+        Assert.Equal(1, ValveLaw.LegOpening(1, ValveCharacteristic.Linear), tolerance: 1e-12);
+        Assert.Equal(0.51, ValveLaw.LegOpening(0.5, ValveCharacteristic.Linear), tolerance: 1e-12);
+        Assert.True(ValveLaw.LegOpening(-1e-6, ValveCharacteristic.Linear) < ValveLaw.LegLeakage);
+        Assert.True(ValveLaw.LegOpening(-1e-6, ValveCharacteristic.Linear) > 0);
+        Assert.Equal(0, ValveLaw.LegOpening(-1, ValveCharacteristic.Linear), tolerance: 1e-12);
+        Assert.Equal(
+            ValveLaw.Opening(0.3, ValveCharacteristic.EqualPercentage),
+            ValveLaw.LegOpening(0.3, ValveCharacteristic.EqualPercentage),
+            tolerance: 1e-12);
+    }
+
+    [Fact]
     public void AThreeWayValveBalancesMassWhicheverWayItIsWired()
     {
         // Mixing: two inflows at b and c, one outflow at a. The arrangement is read from the topology,
@@ -178,9 +199,11 @@ public sealed class ValveAndPumpTests
             new SolveContext(Water, [State(50_000), State(0), State(0)], [0.0, 0.0, 0.0]),
             wideOpen);
 
-        // Fully open to b, shut to c: the controlled path demands flow and the bypass demands none.
+        // Fully open to a, at its stop to b: the controlled path demands the whole flow and the bypass
+        // the 2 % a linear leg keeps at its stop (`D-122`, `ValveLaw.LegLeakage`) -- the same 2 % an
+        // equal-percentage leg has at 0, and what keeps the position column alive on the stop.
         Assert.True(Math.Abs(wideOpen[1]) > Math.Abs(wideOpen[2]));
-        Assert.Equal(0, wideOpen[2], tolerance: 1e-12);
+        Assert.Equal(ValveLaw.LegLeakage * wideOpen[1], wideOpen[2], tolerance: 1e-12);
     }
 
     [Theory]

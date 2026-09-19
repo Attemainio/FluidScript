@@ -551,7 +551,9 @@ public sealed class ComponentRegistry : IComponentRegistry
         TagCode = "TV",
         ActuatedParameter = "position",
         ParameterGroups = ValveGroups(),
-        Parameters = ValveParameters(),
+        Parameters = ValveParameters(
+            characteristic: "linear",
+            characteristicBasis: "a mixing valve's legs open complementarily, so the total flow holds"),
         Properties = ValveProperties(),
     };
 
@@ -728,15 +730,24 @@ public sealed class ComponentRegistry : IComponentRegistry
     private static ParameterInfo Elevation() =>
         Defaulted("elevation", Dimension.Length, -500, 500, "0 m", "no elevation stated", precision: 2);
 
-    private static ImmutableDictionary<string, ParameterInfo> ValveParameters() => Parameters(
+    // The characteristic is the one parameter the two valve kinds default differently (`D-122`). A
+    // two-way control valve is equal-percentage by long convention; a three-way valve in a mixing
+    // circuit is a constant-flow device, its two legs opening complementarily so that what one closes
+    // the other opens -- which is what a linear pair does (Σφ = 1) and an equal-percentage pair does not
+    // (Σφ = 0.28 at mid-travel, Johnson Controls VM-12 fig. 2). Rotary mixing valves are linear (ESBE
+    // VRG130: rangeability 100, A-AB), and Siemens' VXG44 seat valve is linear in the body with
+    // equal-percentage as an actuator option. `characteristic=equal_percentage` still states the other.
+    private static ImmutableDictionary<string, ParameterInfo> ValveParameters(
+        string characteristic = "equal_percentage",
+        string characteristicBasis = "the usual choice for a control valve") => Parameters(
         Sized("kv", Dimension.Kv, 0.01, 10000, precision: 2),
         Sized("position", Dimension.Dimensionless, 0, 1, precision: 3)
             with { Validity = Bounded(BinderDiagnostics.PositionOutsideRange, 0, 1) },
         Symbol(
             "characteristic",
             ["linear", "equal_percentage", "quick_open"],
-            "equal_percentage",
-            "the usual choice for a control valve"),
+            characteristic,
+            characteristicBasis),
         Sized("authority", Dimension.Dimensionless, 0, 1, precision: 2),
         Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1),
         Elevation());

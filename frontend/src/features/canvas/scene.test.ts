@@ -141,11 +141,11 @@ describe('prepareScene', () => {
     expect(pressure.property).toBe('pressure');
     expect(pressure.scale?.displayName).toBe('Pressure');
     const pump = pressure.symbols.find((s) => s.id === 'PU1')!;
-    expect(pump.scale).toBeCloseTo(0.8224, 3);
+    expect(pump.scale).toBeCloseTo(0.8865, 3);
     // The pump's gradient runs from its suction to its discharge; the route into it ends at the suction's value.
-    expect(pump.scaleFrom).toBeCloseTo(0.2, 3);
-    expect(pump.scaleTo).toBeCloseTo(0.8224, 3);
-    expect(pressure.routes.find((r) => r.id === 'c1')!.scaleTo).toBeCloseTo(0.2, 3);
+    expect(pump.scaleFrom).toBeCloseTo(0.4, 3);
+    expect(pump.scaleTo).toBeCloseTo(0.8865, 3);
+    expect(pressure.routes.find((r) => r.id === 'c1')!.scaleTo).toBeCloseTo(0.4, 3);
 
     // A property the wire does not carry falls back to the script's, never to an empty scale.
     expect(prepareScene(loop, 'viscosity').property).toBe('temperature');

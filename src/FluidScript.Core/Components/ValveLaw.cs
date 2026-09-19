@@ -120,6 +120,39 @@ public static class ValveLaw
             _ => Math.Max(position, 0),
         };
 
+    /// <summary>What fraction of a three-way valve's Kv one of its switched legs passes at an opening.</summary>
+    /// <param name="position">The leg's own opening, 0 shut to 1 fully open; the bypass leg reads <c>1 − position</c>.</param>
+    /// <param name="characteristic">Which characteristic the valve follows.</param>
+    /// <returns>φ, dimensionless, never below zero, and never below <see cref="LegLeakage"/> inside the travel.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>A three-way valve's linear leg keeps a leak at its stop, and that is what lets the
+    /// solver step back off the stop</strong> (<c>D-122</c>, after <c>S-26</c>). The two-way linear
+    /// law has φ(0) = 0 by definition and a dead column below it, which <c>S-26</c> recorded and left:
+    /// nothing in the corpus was linear. A mixing valve's legs are linear by default now, and each leg
+    /// reaches its stop whenever the other opens fully -- the first Newton step on the parallel header
+    /// overshot both positions to 1, the bypass legs' φ was 0 with no slope, the position column could
+    /// no longer be told from the pump head's (<c>FS3009</c>), and the run was singular at iteration one.
+    /// </para>
+    /// <para>
+    /// So the leg carries <see cref="LegLeakage"/> at its stop and the line continues through the
+    /// stop until φ reaches zero, one difference step and more beyond it. The figure is the
+    /// equal-percentage law's own φ(0) = 1/R, so a closed leg passes the same 2 % whichever
+    /// characteristic the script chose. Manufacturers quote less for the seat (ESBE VRG130: under
+    /// 0.05 % mixing; Belimo's B port: under 2 %); the 2 % is this project's regularisation with a
+    /// physical reading, not a catalogue figure. Equal-percentage and quick-open legs are
+    /// <see cref="Opening"/> unchanged.
+    /// </para>
+    /// </remarks>
+    public static double LegOpening(double position, ValveCharacteristic characteristic) =>
+        characteristic is ValveCharacteristic.Linear
+            ? Math.Max(0, LegLeakage + ((1 - LegLeakage) * position))
+            : Opening(position, characteristic);
+
+    /// <summary>The fraction of its Kv a three-way valve's linear leg passes at its stop.</summary>
+    /// <value>Dimensionless. 1/<see cref="Rangeability"/> = 0.02, the equal-percentage law's own φ(0).</value>
+    public const double LegLeakage = 1 / Rangeability;
+
     /// <summary>The mass flow the Kv relation gives at a pressure drop.</summary>
     /// <param name="effectiveKv">Kv · φ(position), in m³/h at 1 bar.</param>
     /// <param name="pressureDrop">Pa, signed along the nominal direction.</param>

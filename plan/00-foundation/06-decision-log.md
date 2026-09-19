@@ -5464,3 +5464,84 @@ floor with the same 370 kPa suggestion.
 [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *The datum is mandatory and
 usually implicit*, `FS2220`, `FS2221`; `Water.ValidRange`, `Water.TriplePointPressure`, `FillPressure`,
 `OuterLoop.Report`.
+
+## D-122 · A three-way valve is a constant-flow mixing device: linear legs by default, sized on its common-port flow to a drop band
+
+**Accepted · 2026-09-19** · amends `24` *Three-way valve — kv*, `22` *three-way valve* characteristic,
+the registry's `three_way_valve` defaults; refines `D-96`'s provisional and `S-26`'s linear law;
+closes `C-104`
+
+`24` sized a three-way valve the way it sizes a two-way control valve: the switched leg fully open,
+carrying the variable circuit's design flow, for authority 0.5 against that circuit (Spirax Sarco's
+rule for three-port valves), with both legs equal-percentage because the registry's one valve
+parameter map defaulted so. Spirax's rule presumes the controlled port carries its design flow when
+it is fully open — a coil control valve, mixing only at part load. A load whose stated inlet lies
+between the feed and its own return sits mid-travel *at design*, by construction, and there an
+equal-percentage leg passes 14 % of its Kv: the ladder's series header was sized to Kv 1.6, which at
+mid-travel asked 15 bar of its pump, and the run was `NonFinite` (`C-104`; `S-58` had recorded the
+mild form on the parallel header, 24–45 kPa on legs that drop 1–2 kPa fully open, the pump paying).
+Every ladder script with a mixing valve stated its Kv by hand to get past it.
+
+**What practice does.** Looked up, not derived. ESBE's rotary mixing valves (VRG130, VRG140, 3F):
+*"Start with the heat demand in kW and move vertically to the chosen Δt. Move horizontally to the
+shaded field (pressure drop of 3–15 kPa) and select the smaller Kvs-value"* — sized on the **flow
+through the valve** at a **drop band**, authority not mentioned; Kvs series 0.4 … 40 (the R5 series
+the catalogue carries). Johnson Controls VM-12: two equal-percentage plugs give a total flow that
+falls to about 28 % at mid-stroke at constant Δp — exactly the model's 0.14 + 0.14 — and the design
+requirement is *"a relatively constant system flowrate regardless of its stem position"*. Siemens
+VXG44: *"the valve provides a linear flow characteristic"*, equal-percentage an actuator option,
+*"use only as a mixing valve"*. Belimo's characterised three-way valves: A–AB equal-percentage,
+B–AB *"modified linear for constant flow"*. Equal-percentage on both legs at authority 0.5 is a
+combination no vendor ships for a constant-flow circuit.
+
+**The rule.**
+- **`three_way_valve` defaults `characteristic=linear`; `valve` stays `equal_percentage`.** A linear
+  pair opens complementarily, Σφ = 1, so the total flow holds over the stroke and the drop across
+  the valve at the mixing point is the full-open drop whatever the ratio. `characteristic=` still
+  states the other. `ComponentFactory` reads the kind's default; until now it held a literal
+  `EqualPercentage` no map recorded, `C-58`'s shape one level up.
+- **A three-way valve with its bypass connected is sized on its common-port flow to the band**
+  (`SizingDefaults.ThreeWayDropMinimum` 3 kPa, `ThreeWayDropMaximum` 15 kPa): the smallest catalogue
+  Kvs whose drop at that flow is under 15 kPa. The authority is reported — the variable leg fully
+  open against its circuit, the same figure the two-way rule reports, so the two compare like with
+  like — not targeted; `FS4006`'s note still fires below 0.25, because Spirax's band for three-port
+  valves starts at 0.2 while VM-12 shows a constant-flow valve doing its job at 0.1, and a low figure
+  is a line, not a refusal. A stated `authority=` asks for the control-valve rule by name and gets it.
+- **A three-way valve's linear leg keeps 2 % at its stop and continues through it**
+  (`ValveLaw.LegOpening`, `LegLeakage` = 1/R). `S-26` left the two-way linear law shut at 0 with a
+  dead column below, noting nothing in the corpus was linear. A mixing valve's leg reaches its stop
+  whenever the other opens fully; the first Newton step on the parallel header overshot both
+  positions to 1, the bypass legs had no slope, the position column could no longer be told from the
+  pump head's (`FS3009`), and the run was singular at iteration one. The 2 % is the equal-percentage
+  law's own φ(0), so a closed leg passes the same whichever characteristic the script chose; it is
+  this project's regularisation with a physical reading (ESBE quotes under 0.05 %, Belimo's B port
+  under 2 %), not a catalogue figure.
+- **The seed's pressure walk crosses a branch carrying a promoted pump last from every vertex**, so
+  that the closure error of a loop with a free pump falls across the pump — the column Newton moves
+  in one linear step — and not across a valve leg. The seeded head is a nominal 2.2 m and the
+  header's loop needs 54 kPa; that gap lands somewhere, and on the cooling loop it landed on the
+  recirculating leg 41.6 kPa the wrong way, which with linear legs (4.6 kPa of their own at the seed,
+  against 59 kPa equal-percentage) flipped the leg's √Δp sign and the first step shut the leg and
+  parked the pump at zero.
+
+**Measured.** The rule reproduces the Kv 6.3 the ladder's 8b, 8c and 8e stated by hand
+(0.478 kg/s: Kv 4 drops 18.5 kPa, 6.3 drops 7.5), and the scripts no longer state it. The
+distribution header takes Kv 4 on both valves (was 6.3), positions 0.85/0.82, heads 4.7/5.2 m
+(were 6.5/8.3), two iterations; the cooling loop Kv 2.5 (was 4), position 0.52, head 2.5 m (was
+6.4), the valve dropping 4.3 kPa (was 42); 8b's pumps 5.7/2.6 m (were 10–16 m at Kv 6.3
+equal-percentage). Flows and the vision's `01` figures do not move. Every ladder step but 8c
+(`S-69`) settles; the corpus converges throughout.
+
+**Rejected.**
+- *The authority rule evaluated at the design travel*, `Kv / φ(x_design)`. Derived, not published,
+  and still an equal-percentage pair with the total-flow dip.
+- *The linear default alone.* At mid-travel the leg passes half its Kv, so 8b's Kv 1.6 still asked
+  four times the sized drop; and the linear law's dead stop made every header singular.
+- *Starting the pressure walk at the datum.* Tried: it moved the closure error onto whichever leg the
+  breadth-first tree happened to close through, and the header, 8a, 8d and 8e stopped converging.
+  Which chord takes the error is what matters, and the pump is the right chord.
+
+**Constrains.** [`24-auto-sizing`](../20-core-domain/24-auto-sizing.md) *Three-way valve — kv*;
+[`22-component-model`](../20-core-domain/22-component-model.md) three-way valve; `ComponentRegistry`
+`three_way_valve`; `ValveSizer.MixingBand`; `ValveLaw.LegOpening`; `SolutionSeed.Integrate`;
+`docs/functions/three-way-valve.md`, `docs/functions/valve.md`.

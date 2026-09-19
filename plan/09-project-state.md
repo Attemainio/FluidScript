@@ -218,6 +218,18 @@ would be filled with nothing.
 > is a rule's choice, and the first pass's answer puts the whole ring on the one promoted pump. The
 > header's residual norm moved in its third digit; nothing else in the corpus. One closed, one
 > opened; 63 open.
+> **`C-104` closed, `D-122` (the same day):** the three-way valve had been sized as a two-way
+> control valve -- equal-percentage legs, fully open, authority 0.5 -- and a mixing point that sits
+> mid-travel by design then asked fifty times the chosen drop. Looked up: ESBE sizes a mixing valve on
+> the flow through it to a 3–15 kPa band and never mentions authority; Johnson Controls shows two
+> equal-percentage plugs passing 28 % at mid-stroke; Siemens' and Belimo's mixing valves are linear.
+> Now: `three_way_valve` defaults linear, is sized on its common-port flow to the band (`authority=`
+> stated still asks for the control-valve rule), its linear legs keep 2 % at the stop so the position
+> column survives the other leg opening fully, and the seed's pressure walk crosses a promoted pump's
+> branch last so a loop's closure error falls across the pump and not a valve leg. The rule reproduces
+> the Kv 6.3 three ladder scripts had stated by hand; the header's pumps fall from 6.5/8.3 to 4.7/5.2
+> m and the cooling loop's from 6.4 to 2.5; no flow moved; every three-way step in the ladder and the
+> corpus converges. Goldens re-recorded. One closed; 62 open.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
@@ -879,14 +891,14 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 30 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **63** | |
+| | **62** | |
 
-Counted from the files on 2026-09-19 after sweep tier 4's `S-68` (one closed, one opened; 63 after `S-63`, 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
+Counted from the files on 2026-09-19 after sweep tier 4's `C-104` (one closed; 63 after `S-68`, 63 after `S-63`, 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
 nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
 its own unread documents.

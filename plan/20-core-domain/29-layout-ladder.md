@@ -508,8 +508,10 @@ iteration. The series script converged in none of the forms tried -- the AHU's d
 sized, the AHU first or second: `S-63`, marked, and drawn all the same since the layout does not
 read the solution. **Closed 2026-09-19:** two seed defects only the series shape exposed (the AHU
 valve's feed read as the boiler's 60 °C, the datum on the inline `N1` invisible to the pressure
-walk); the script now states the valves' Kv, since the authority rule's second pass diverges on a
-mid-travel mixing point (`C-104`), and settles in three passes. Step 4's valve states its Kv too, citing `C-66`: a Kv on a bare loop has nothing
+walk); the script stated the valves' Kv, since the authority rule's second pass diverged on a
+mid-travel mixing point (`C-104`), and settled in three passes. **Since `D-122` (2026-09-19)** the
+band rule sizes both valves to that same Kv 6.3 and the script states nothing; with linear legs the
+radiators' valve sits at 0.78 and the AHU's at 0.39, the pumps at 5.7 and 2.6 m. Step 4's valve states its Kv too, citing `C-66`: a Kv on a bare loop has nothing
 to size against. The parallel script converges in one iteration.
 
 **Drawn (2026-09-17):** both scripts fell to the fallback at first, for two reasons of the
@@ -590,8 +592,8 @@ form of the script had each load's `in` equal to the temperature it is fed -- 40
 stated `in=40` -- which asks its valve to sit exactly on its open bound with nothing to mix, the
 one point where the `in` constraint has no sensitivity to the position; the script now gives each
 block a real mixing point, half way between what reaches it and its own return (38, 34.5, 31.5),
-which leaves the story -- the stream cooled 40 → 36 → 33 → 30, duties 4, 3 and 3 kW -- unchanged,
-and states the valves' Kv as 8b does (`C-104`). A first draw had the two middle blocks a unit
+which leaves the story -- the stream cooled 40 → 36 → 33 → 30, duties 4, 3 and 3 kW -- unchanged.
+It stated the valves' Kv as 8b did until `D-122` sized them to the same figure. A first draw had the two middle blocks a unit
 taller with their split junctions beside rather than under their exchangers: the script had written
 those loads with inlet *below* outlet, so they were heaters, no consumer was found in their loops
 and the junction stood in for it -- the script's error, and a reminder that a block's shape follows
@@ -630,7 +632,9 @@ duty sized, `N11` inline between them (marked `S-63`: the series pair stalls the
 `S-63` closed). **Settles (2026-09-19):** `S-68`'s chord ranking seeds the AHU's rated coil at its
 0.287 kg/s rather than the 0.048 the header's propagated flow left it; the script's floor had the same
 fault as 8c's first form, `in=40` fed at 40, and now mixes to 35; with its valves' Kv stated as 8b's
-are (`C-104`) it converges in two iterations and settles in two passes, and the marker is gone.
+were (`C-104`) it converged in two iterations and settled in two passes, and the marker is gone.
+Under `D-122` nothing is stated: the band rule sizes 6.3, 6.3, 4 and 1.6, and it settles in three
+iterations and two passes.
 The first draw left the floor loop to the fallback, hard 17: a hanging branch was one block, and
 this branch holds two. C14 now reads a branch as a rail does (C11): `Ranges` finds every inner
 loop along it, the first block hangs under the junction as before, each further block steps on from

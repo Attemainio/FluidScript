@@ -208,6 +208,65 @@ public sealed class ValveSizerTests
         Assert.Equal(630, sizer.Provisional["kv"].SiValue);
     }
 
+    private static SizingResult SizeThreeWay(double common, double variable, double branchDrop, double? authority = null)
+    {
+        var valve = new ThreeWayValve("TV1", kv: 630)
+        {
+            StatedParameters = authority is { } stated
+                ? ImmutableDictionary<string, Quantity>.Empty.Add(
+                    "authority", Quantity.FromSi(stated, Dimension.Dimensionless))
+                : ImmutableDictionary<string, Quantity>.Empty,
+        };
+
+        var context = At(branchDrop, variable) with { CommonFlow = common };
+        var result = new ValveSizer(ValveKvR5.Instance).Size(valve, context);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        return result.Value;
+    }
+
+    [Fact]
+    public void AThreeWayValveIsSizedOnItsCommonFlowToTheMixingBand()
+    {
+        // `D-122`, ESBE's rule: the ladder's radiator block circulates 0.4785 kg/s (1.72 m³/h) through
+        // its coil, the common port's flow. Kv 4 would drop 18.5 kPa, above the band's 15; Kv 6.3 drops
+        // 7.5 kPa, inside it, and is the smaller of the rows that fit -- the figure the ladder's scripts
+        // stated by hand while the authority rule was sizing Kv 1.6 and asking 15 bar of the pump.
+        var sized = SizeThreeWay(common: 0.4785, variable: 0.2393, branchDrop: 3_500);
+
+        Assert.Equal(6.3, Kv(sized));
+        Assert.Contains("7.5 kPa", sized.Values["kv"].Basis, StringComparison.Ordinal);
+        Assert.Contains("through the common port", sized.Values["kv"].Basis, StringComparison.Ordinal);
+
+        // The authority is still reported, against the variable circuit and fully open, and it is not
+        // what chose the row.
+        Assert.InRange(Authority(sized), 0.3, 0.4);
+        Assert.Contains("reported, not targeted", sized.Values["authority"].Basis, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AThreeWayValveTooSmallForTheSeriesSaysTheBandIsOutOfReach()
+    {
+        // 0.003 kg/s (0.011 m³/h) through the smallest row, Kv 0.1, drops 1.2 kPa: under the band's 3 kPa
+        // floor, and the rule says so rather than pretending the row fits.
+        var sized = SizeThreeWay(common: 0.003, variable: 0.0015, branchDrop: 2_000);
+
+        Assert.Equal(0.1, Kv(sized));
+        Assert.Contains(sized.Notes, note => note.Contains("still larger than this flow wants", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AStatedAuthorityOnAThreeWayValveAsksForTheControlValveRule()
+    {
+        // `authority=` names the other rule. The variable leg's 0.2393 kg/s against a 22.35 kPa branch at
+        // authority 0.5 is the worked example's own case, and it takes the worked example's Kv 1.6.
+        var sized = SizeThreeWay(common: 0.4785, variable: WorkedExampleFlow, branchDrop: WorkedExampleBranchDrop, authority: 0.5);
+
+        Assert.Equal(1.6, Kv(sized));
+        Assert.Contains("free pump absorbs", sized.Values["kv"].Basis, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheRuleRefusesAComponentThatIsNotAValve()
     {
