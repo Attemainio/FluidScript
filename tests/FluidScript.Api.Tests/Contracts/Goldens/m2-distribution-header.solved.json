@@ -5791,8 +5791,8 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 7,
-    "residualNorm": 6.17E-09,
+    "iterations": 8,
+    "residualNorm": 6.84E-09,
     "elapsedMs": null,
     "sizingPasses": 2
   }

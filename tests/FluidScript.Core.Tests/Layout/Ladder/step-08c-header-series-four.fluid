@@ -1,4 +1,4 @@
-# does not settle: S-63 -- the solve gate records the report and expects the stall until the defect closes.
+# does not settle: S-68 -- the solve gate records the report and expects the stall until the defect closes.
 # Layout ladder, step 8c (plan/20-core-domain/29-layout-ladder.md): four injection branches in
 # series on one ring. The radiators take 20 kW at 50/40 from the 60 C supply and fix the ring's
 # stream at 0.239 kg/s; the next three loads cool that stream 40 -> 36 -> 33 -> 30 with their duties

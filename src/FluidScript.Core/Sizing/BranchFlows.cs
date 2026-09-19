@@ -248,7 +248,7 @@ public static class BranchFlows
         if (commonKnown && !firstKnown && !secondKnown)
         {
                 var firstMagnitude = estimates[common].Magnitude
-                    * (MixingFraction(graph, estimates[common].Source) ?? 0.5);
+                    * (MixingFraction(graph, estimates[common].Source, graph.Branches[first], valve) ?? 0.5);
                 var secondMagnitude = estimates[common].Magnitude - firstMagnitude;
 
                 estimates[first] =
@@ -284,11 +284,20 @@ public static class BranchFlows
 
         return false;
     }
-    /// <summary>Returns the hot-leg fraction implied by a load's design temperatures and a source outlet.</summary>
+    /// <summary>Returns the hot-leg fraction implied by a load's design temperatures and the temperature that feeds its valve's <c>a</c> port.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="loadName">The exchanger that supplied the common-leg duty estimate.</param>
+    /// <param name="feed">The branch on the valve's <c>a</c> port, which is where the hot water arrives from.</param>
+    /// <param name="valve">The valve, so the walk along <paramref name="feed"/> starts from its end.</param>
     /// <returns>A fraction strictly between zero and one, or <see langword="null"/> without enough evidence.</returns>
-    private static double? MixingFraction(CircuitGraph graph, string loadName)
+    /// <remarks>
+    /// The hot temperature is what the <c>a</c> port actually receives, not the hottest source in the
+    /// graph: on a series header the second block's valve is fed by the first block's return (<c>S-63</c>),
+    /// and reading the boiler's 60 &#176;C there made a 35/30 coil's stream a sixth of its circulation
+    /// where it is half. <see cref="FeedTemperature"/> walks the feed branch for the exchanger that
+    /// last touched the water; the hottest source is the fallback when the walk finds nothing.
+    /// </remarks>
+    private static double? MixingFraction(CircuitGraph graph, string loadName, Branch feed, ThreeWayValve valve)
     {
         var load = graph.Components
             .OfType<HeatExchanger>()
@@ -301,15 +310,24 @@ public static class BranchFlows
             return null;
         }
 
-        Quantity? hot = null;
-        foreach (var source in graph.Components.OfType<HeatExchanger>())
+        var hot = FeedTemperature(graph, feed, valve);
+
+        if (hot is null)
         {
-            if (source.Power > 0
-                && source.StatedParameters.TryGetValue("out", out var outlet)
-                && (hot is null || outlet.SiValue > hot.Value.SiValue))
+            foreach (var source in graph.Components.OfType<HeatExchanger>())
             {
-                hot = outlet;
+                if (source.Power > 0
+                    && source.StatedParameters.TryGetValue("out", out var outlet)
+                    && (hot is null || outlet.SiValue > hot.Value.SiValue))
+                {
+                    hot = outlet;
+                }
             }
+        }
+
+        if (hot is null)
+        {
+            return null;
         }
 
         if (hot is null)
@@ -329,6 +347,64 @@ public static class BranchFlows
         var fraction = (mixedState.Enthalpy.SiValue - coldState.Enthalpy.SiValue) / span;
 
         return span > 0 && fraction > 0 && fraction < 1 ? fraction : null;
+    }
+
+    /// <summary>The temperature of the water arriving at a valve's <c>a</c> port, read from the exchanger that last touched it.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="feed">The branch on the <c>a</c> port.</param>
+    /// <param name="valve">The valve the branch ends at.</param>
+    /// <returns>A stated outlet temperature, or <see langword="null"/> when nothing on the way states one.</returns>
+    /// <remarks>
+    /// Walks the feed branch away from the valve: a source in the path (the boiler on the parallel
+    /// header) gives its <c>out</c>. Reaching the far end without one, the far junction is another
+    /// block's mixing node, and the exchanger on any branch meeting it that states an <c>out</c> is
+    /// what discharges there -- the first block's load on the series header. A stated temperature on
+    /// the junction node itself wins over both.
+    /// </remarks>
+    private static Quantity? FeedTemperature(CircuitGraph graph, Branch feed, ThreeWayValve valve)
+    {
+        var forward = ReferenceEquals(feed.To.Element, valve);
+        IEnumerable<IFlowComponent> path = feed.Path;
+
+        if (forward)
+        {
+            path = path.Reverse();
+        }
+
+        foreach (var element in path)
+        {
+            if (element is HeatExchanger { Power: > 0 } source
+                && source.StatedParameters.TryGetValue("out", out var outlet))
+            {
+                return outlet;
+            }
+        }
+
+        var far = forward ? feed.From.Element : feed.To.Element;
+
+        if (far is CircuitNode node && node.StatedParameters.TryGetValue("t", out var stated))
+        {
+            return stated;
+        }
+
+        foreach (var branch in graph.Branches)
+        {
+            if (branch.Index == feed.Index || !Meets(branch, far))
+            {
+                continue;
+            }
+
+            foreach (var element in branch.Path)
+            {
+                if (element is HeatExchanger exchanger
+                    && exchanger.StatedParameters.TryGetValue("out", out var outlet))
+                {
+                    return outlet;
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>Whether a branch terminates at any connected three-way valve.</summary>

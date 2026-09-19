@@ -294,6 +294,16 @@ with the **variable flowrate**", and notes that a three-port valve is a constant
 whether mixing or diverting, the total flow through it does not change, so the constant side carries no
 information about how well the valve controls.[^spirax]
 
+**The rule sizes at full open, and the mixing point decides the travel (`C-104`).** Authority at
+the design flow with the controlled leg fully open is the published criterion, and it says nothing
+about where the valve will sit at design: the energy balance chooses that -- a load rated 50/40 on a
+60 °C supply mixes half and half, position 0.5, where an equal-percentage leg has `φ = 0.14` and
+passes its design flow only at fifty times the full-open drop. On the ladder's series header the
+second pass sized the radiators' valve to Kv 1.6 for authority against the branch and the pump was
+asked for 15 bar. Whether practice sizes the mixing valve's `a` port to the design draw at the
+expected travel, and which characteristic a mixing valve's two legs actually carry, is to be looked
+up before the rule changes; `S-58` recorded the mild form, `C-104` the divergence.
+
 **Target and bands, from the same sources.** Below **0.2–0.25** control is unstable; **0.25–0.5** is
 fair to good; **0.5–1.0** gives excellent control at the cost of pumping energy.[^fluidflow] Spirax is
 more conservative for three-port valves specifically — "between 0.2 and 0.5, the closer to 0.5 the

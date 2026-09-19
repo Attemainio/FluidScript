@@ -1,12 +1,13 @@
-# does not settle: S-63 -- the solve gate records the report and expects the stall until the defect closes.
 # Layout ladder, step 8b (plan/20-core-domain/29-layout-ladder.md): the same two injection
 # branches in series. The radiators come first and take 20 kW at 50/40 from the 60 C supply, which
 # fixes the stream at 0.239 kg/s; the AHU then cools that stream from 40 to the 30 C return, so its
 # duty is not stated -- it is the 10 kW the balance leaves -- and HS1 states the total 30 kW. Stating
 # the AHU's duty too over-specifies a series circuit by one, and the solve ran non-finite. `N4`
 # joins the radiators' return to the AHU's supply and has two connections, so it is inline (D-114).
-# The solver does not converge on this series shape yet, whatever is stated (S-63); the layout does
-# not need the solution and is drawn all the same.
+# The series shape solves since S-63 closed (the seed read the boiler's 60 C as the AHU valve's
+# feed, and missed the datum on the inline N1). The valves state their Kv, the parallel header's
+# own figure: left to the authority rule, the second pass sizes TV_RAD to Kv 1.6, which at the
+# 50 % travel this mixing point needs would ask 15 bar of the radiator pump (C-104).
 
 fluidscript 1
 project static plant_01
@@ -25,7 +26,7 @@ N1 node p=250
 circuit radiators 102
 
 HE_RAD  load in=50 out=40 power=20 kW
-TV_RAD  three_way_valve
+TV_RAD  three_way_valve kv=6.3
 PU_RAD  pump
 
 connections
@@ -37,7 +38,7 @@ NM_RAD - N4 length=18 dn=25
 circuit AHU 101
 
 HE_AHU  load in=35 out=30
-TV_AHU  three_way_valve
+TV_AHU  three_way_valve kv=6.3
 PU_AHU  pump
 
 connections

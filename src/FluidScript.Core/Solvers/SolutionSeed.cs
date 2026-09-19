@@ -275,7 +275,12 @@ public static class SolutionSeed
         var walked = new bool[graph.Branches.Length];
         var anchored = new Dictionary<object, bool>(ReferenceEqualityComparer.Instance);
 
-        // Whether anything the branch graph connects to an element states a pressure.
+        // Whether anything the branch graph connects to an element states a pressure -- on a junction
+        // element or on any element inside a branch's path. A node with two connections is inline (`D-114`)
+        // and lives in a path, and a datum is usually written on exactly such a node; reading only the
+        // endpoints missed it, started the walk at the pressure scale, and left a 150 kPa closure error
+        // wherever the walk happened to meet the stated value (`S-63`: on the series header that was a
+        // three-way valve's leg, whose √Δp law Newton could not step through).
         bool Anchored(IFlowComponent start)
         {
             if (anchored.TryGetValue(start, out var known))
@@ -304,6 +309,11 @@ public static class SolutionSeed
                 foreach (var edge in edges)
                 {
                     var branch = graph.Branches[edge];
+
+                    foreach (var part in branch.Path)
+                    {
+                        found |= HydraulicPartition.Stated(part, HydraulicPartition.Pressure) is not null;
+                    }
 
                     foreach (var next in new[] { branch.From.Element, branch.To.Element })
                     {

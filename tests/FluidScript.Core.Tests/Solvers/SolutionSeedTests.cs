@@ -205,6 +205,87 @@ public sealed class SolutionSeedTests
         Assert.Equal(FlowBasis.Propagated, second.Basis);
     }
 
+    /// <summary>The ladder's series header: the radiators' block first, the AHU's block cooling what is left (<c>S-63</c>).</summary>
+    private const string SeriesHeader = """
+        fluidscript 1
+        project static plant_01
+
+        circuit heating 100
+        fluid water
+
+        HS1     heat_exchanger power=30 kW out=60
+
+        connections
+        N1 - HS1 - N3
+        N5 - N1
+
+        N1 node p=250
+
+        circuit radiators 102
+
+        HE_RAD  load in=50 out=40 power=20 kW
+        TV_RAD  three_way_valve
+        PU_RAD  pump
+
+        connections
+        N3 - TV_RAD.a length=18 dn=25
+        NM_RAD - TV_RAD.b
+        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+        NM_RAD - N4 length=18 dn=25
+
+        circuit AHU 101
+
+        HE_AHU  load in=35 out=30
+        TV_AHU  three_way_valve
+        PU_AHU  pump
+
+        connections
+        N4 - TV_AHU.a length=12 dn=25
+        NM_AHU - TV_AHU.b
+        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+        NM_AHU - N5 length=12 dn=25
+        """;
+
+    [Fact]
+    public void ASecondBlockInSeriesReadsItsFeedFromTheFirstBlocksReturn()
+    {
+        // `S-63`. The AHU's valve is fed by the radiators' 40 C return, not by the boiler's 60 C
+        // supply: mixing 40 and 30 to 35 is half and half, so the stream through its `a` port is half
+        // its 0.4785 kg/s circulation. Reading the graph's hottest source there made it a sixth,
+        // 0.0797 kg/s, and the seeded field was three times wrong on the ring's whole stream.
+        var graph = GraphFixture.Lower(SeriesHeader).Graph;
+        var valve = Assert.Single(graph.Components.OfType<ThreeWayValve>(), v => v.Name == "TV_AHU");
+        var estimates = BranchFlows.Estimate(graph);
+
+        var legs = graph.Branches
+            .Where(branch => ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+            .Select(branch => (Name: ValveLegs.PortName(branch, valve), Estimate: estimates[branch.Index]))
+            .ToArray();
+
+        BranchFlow Leg(string name) => Assert.Single(legs, leg => string.Equals(leg.Name, name, StringComparison.Ordinal)).Estimate;
+
+        Assert.Equal(0.4785, Leg("ab").Magnitude, 3);
+        Assert.Equal(0.2393, Leg("a").Magnitude, 3);
+        Assert.Equal(0.2393, Leg("b").Magnitude, 3);
+    }
+
+    [Fact]
+    public void AStatedPressureOnAnInlineNodeAnchorsThePressureWalk()
+    {
+        // `S-63`'s second half. `N1` has two connections, so it is inline (`D-114`) and sits inside a
+        // branch's path rather than at an end; the walk read only the ends, found no stated pressure,
+        // started at the 100 kPa scale, and met the 250 kPa datum half way round -- a 150 kPa closure
+        // error that landed on the AHU valve's leg. Anchored, every node of the seed sits near the datum.
+        var graph = GraphFixture.Lower(SeriesHeader).Graph;
+        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
+        var seed = SolutionSeed.Build(graph, layout);
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            Assert.InRange(seed.Values[layout.NodePressure(node)], 200_000, 300_000);
+        }
+    }
+
 
     [Fact]
     public void ABranchNothingDeterminesFallsToTheNominalAndSaysSo()

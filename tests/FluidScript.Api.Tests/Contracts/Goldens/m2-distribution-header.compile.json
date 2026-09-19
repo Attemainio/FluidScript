@@ -281,7 +281,7 @@
       "tag": "101TV01",
       "parameters": {
         "authority": {
-          "value": 0.622152,
+          "value": 0.62215,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -558,7 +558,7 @@
       "tag": "102TV01",
       "parameters": {
         "authority": {
-          "value": 0.533475,
+          "value": 0.533473,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"

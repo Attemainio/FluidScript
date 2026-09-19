@@ -192,6 +192,18 @@ would be filled with nothing.
 > seed is nearly singular in the Kv column and converges by the accident of the 100 kPa datum
 > residual -- which is why seeding the datum at 0 was tried and withdrawn). No corpus value moved.
 > Two closed, one opened; 62 open.
+> **`S-63` closed** (the same day): two injection blocks in series never converged because of two
+> seed defects the series shape alone exposes -- a mixing valve's hot-leg fraction read the graph's
+> hottest source instead of what feeds its `a` port (the AHU behind the radiators sees 40 °C, not
+> 60, so its stream was seeded at a sixth of its circulation instead of half), and the pressure
+> walk's anchor read only branch endpoints, so a datum on an inline node started the walk 150 kPa
+> away and the closure error fell on a valve's `√Δp` leg. The ladder's 8b now settles in three
+> passes with its Kv stated; left to the authority rule, the second pass sizes the radiator valve to
+> Kv 1.6, which at mid-travel asks 15 bar of its pump -- `S-58`'s observation as a divergence, filed
+> as **`C-104`** (a sizing convention to look up, not derive). The ladder's 8c and 8e, marked `S-63`
+> by analogy, fail at the seed for a third reason -- the flow field overrides rated coils with
+> nominal ones and starves the source -- filed as **`S-68`**, which is the seed family's next item.
+> One closed, two opened; 63 open.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
@@ -853,14 +865,14 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 20 · Core domain | 30 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **62** | |
+| | **63** | |
 
-Counted from the files on 2026-09-19 after sweep tier 4's `S-29` (one closed, one opened; 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
+Counted from the files on 2026-09-19 after sweep tier 4's `S-63` (one closed, two opened; 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
 nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
 its own unread documents.

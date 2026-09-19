@@ -504,9 +504,12 @@ skipped (steps 1 and 2 are not circuits); one beginning `# does not settle: S-nn
 stall until that defect closes; every other step must settle. It found two things before a line was
 laid. Step 7's lone valve was sized to Kv 1 against the ring's whole head and the solve ran
 non-finite: `C-91`, and the script states `kv=6.3`, the header's own figure, which converges in one
-iteration. The series script converges in none of the forms tried -- the AHU's duty stated or
+iteration. The series script converged in none of the forms tried -- the AHU's duty stated or
 sized, the AHU first or second: `S-63`, marked, and drawn all the same since the layout does not
-read the solution. Step 4's valve states its Kv too, citing `C-66`: a Kv on a bare loop has nothing
+read the solution. **Closed 2026-09-19:** two seed defects only the series shape exposed (the AHU
+valve's feed read as the boiler's 60 °C, the datum on the inline `N1` invisible to the pressure
+walk); the script now states the valves' Kv, since the authority rule's second pass diverges on a
+mid-travel mixing point (`C-104`), and settles in three passes. Step 4's valve states its Kv too, citing `C-66`: a Kv on a bare loop has nothing
 to size against. The parallel script converges in one iteration.
 
 **Drawn (2026-09-17):** both scripts fell to the fallback at first, for two reasons of the
@@ -581,7 +584,8 @@ in margins, not in units, and the pictures scale with the margin. The scripts we
 **Four in series (2026-09-17):** the user asked for four loops in series like the AHU and the
 radiators: `step-08c-header-series-four.fluid`, the radiators at 50/40 and 20 kW, then AHU, floor
 and DHW loads cooling the ring 40 → 36 → 33 → 30 with sized duties, `HS1` at 30 kW, `N4`–`N6`
-inline between the branches (marked `S-63` like 8b). A first draw had the two middle blocks a unit
+inline between the branches (marked `S-63` like 8b; since `S-63` closed it carries `S-68`, a
+seed flow-field defect of its own). A first draw had the two middle blocks a unit
 taller with their split junctions beside rather than under their exchangers: the script had written
 those loads with inlet *below* outlet, so they were heaters, no consumer was found in their loops
 and the junction stood in for it -- the script's error, and a reminder that a block's shape follows
@@ -616,7 +620,8 @@ the rule until a picture says otherwise.
 **Mixed (2026-09-17):** before step 9 the user asked for a parallel header with one branch in
 series: `step-08e-header-mixed.fluid`, the AHU and the DHW at 50/30 on the outer taps, the middle
 branch the radiators at 50/40 and 20 kW followed by the floor cooling that stream 40 → 30 with its
-duty sized, `N11` inline between them (marked `S-63`: the series pair stalls the solve as 8b does).
+duty sized, `N11` inline between them (marked `S-63`: the series pair stalls the solve as 8b did; `S-68` since
+`S-63` closed).
 The first draw left the floor loop to the fallback, hard 17: a hanging branch was one block, and
 this branch holds two. C14 now reads a branch as a rail does (C11): `Ranges` finds every inner
 loop along it, the first block hangs under the junction as before, each further block steps on from
@@ -716,7 +721,7 @@ radiator circuit, whose load states `power=heating` from a curve and is not read
 connected to the rest of the circuit". The binder takes a project as one hydraulic system and an
 unconnected subgraph as an error; the language's separate `circuit` blocks say otherwise. Filed
 as `C-93`; the script carries `# does not bind: C-93` on its first line and the gate expects the
-refusal until it closes, as it expects `S-63`'s stall. **Accepted (2026-09-17):** "the picture
+refusal until it closes, as it expected `S-63`'s stall. **Accepted (2026-09-17):** "the picture
 looks right now."
 
 `step-11b-tour-two.fluid`: the tour's first two circuits verbatim at its `spacing 0.75` -- the

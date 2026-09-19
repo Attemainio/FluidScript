@@ -331,6 +331,42 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task TwoInjectionBlocksInSeriesConvergeAndSettle()
+    {
+        // `S-63`, closed. The ladder's series header: the radiators take 20 kW at 50/40 from the 60 C
+        // supply, which fixes the stream at 0.239 kg/s, and the AHU cools that stream from 40 to the
+        // 30 C return with the 10 kW the balance leaves. Both mixing points are half and half -- 60/40
+        // to 50 and 40/30 to 35 -- so both valves sit at mid-travel. It never converged because the
+        // seed read the boiler's 60 C as the AHU valve's feed and put a sixth of its circulation on the
+        // stream, and because the datum on the inline `N1` was invisible to the pressure walk. The
+        // valves state the parallel header's Kv: left to the authority rule, the second pass sizes
+        // TV_RAD to Kv 1.6, which at mid-travel asks 15 bar of its pump (`C-104`).
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08b-header-series.fluid"),
+            TestContext.Current.CancellationToken);
+        var result = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, "series", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());
+        Assert.True(result.Value.Settled, $"not settled after {result.Value.Passes} passes");
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Stream(string owner) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, owner)]);
+
+        // The ring's stream, read on the leg into each block's valve: the radiators' from the boiler,
+        // the AHU's from the radiators' return.
+        Assert.Equal(0.2393, Stream("TV_RAD.a->NM_AHU"), 0.001);
+        Assert.Equal(0.2393, Stream("TV_AHU.a->NM_RAD"), 0.001);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.45, 0.6);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.45, 0.55);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 10, 16);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_AHU", "PU_AHU.head")], 9, 14);
+    }
+
+    [Fact]
     public async Task TheSimpleLoopReproducesTheWorkedExampleEndToEnd()
     {
         // **`24`'s worked example, reached by the pipeline rather than by hand.** Every number in it is

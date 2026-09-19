@@ -1,4 +1,4 @@
-# does not settle: S-63 -- the solve gate records the report and expects the stall until the defect closes.
+# does not settle: S-68 -- the solve gate records the report and expects the stall until the defect closes.
 # Layout ladder, step 8e (plan/20-core-domain/29-layout-ladder.md): three branches in parallel on
 # one header, the middle one two loops in series. The AHU and the DHW take the 60 C supply at 50/30;
 # the middle branch feeds the radiators at 50/40 and 20 kW, which fixes its stream at 0.239 kg/s,
