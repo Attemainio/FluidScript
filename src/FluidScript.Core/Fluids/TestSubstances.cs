@@ -42,8 +42,8 @@ public sealed class ConstantPropertyWater : SubstanceBase
     public override string Name => "water";
 
     /// <inheritdoc/>
-    /// <value>The same domain the real substance claims, so a test cannot pass here and fail there.</value>
-    public override StateRange ValidRange { get; } = new(273.15, 393.15, 100_000, 1_000_000);
+    /// <value>The real substance's own domain, so a test cannot pass here and fail there (<c>D-121</c> moved its floor, and a copy here missed it).</value>
+    public override StateRange ValidRange => Water.Instance.ValidRange;
 
     /// <inheritdoc/>
     public override Result<FluidState> FromPressureTemperature(Quantity gaugePressure, Quantity temperature)
@@ -144,7 +144,7 @@ public sealed class LinearPropertyWater : SubstanceBase
     public override string Name => "water";
 
     /// <inheritdoc/>
-    public override StateRange ValidRange { get; } = new(273.15, 393.15, 100_000, 1_000_000);
+    public override StateRange ValidRange => Water.Instance.ValidRange;
 
     /// <inheritdoc/>
     public override Result<FluidState> FromPressureTemperature(Quantity gaugePressure, Quantity temperature)

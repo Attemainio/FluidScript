@@ -419,12 +419,22 @@ also a solution. Rather than erroring, the graph **picks one and says so** (`FS2
 suction node of the first pump in graph order, and where the circuit has no pump, the node with the
 most connections, ties broken by declaration order — deterministic and stable across edits either way.
 
-**Why the suction (`D-98`).** The datum sits at 0 gauge and the property backend has a floor — water
-has no state below 100 kPa absolute — so the pick is not arbitrary to the solver even though it is
-arbitrary to the physics. The most-connected node is usually a header downstream of the pump, and
-the suction then sits *below* the datum by the losses between them; on the substation that was
-−21 kPa gauge, and the first property read there failed before Newton took a step. The suction is
-the loop's low point, so a datum there keeps every other node at or above zero gauge.
+**Why the suction (`D-98`).** The datum sits at 0 gauge, and until `D-121` the property backend
+had a floor there — water was said to have no state below 100 kPa absolute — so the pick was not
+arbitrary to the solver even though it is arbitrary to the physics. The most-connected node is usually
+a header downstream of the pump, and the suction then sits *below* the datum by the losses between
+them; on the substation that was −21 kPa gauge, and the first property read there failed before
+Newton took a step. A single pump's suction is its loop's low point, so a datum there keeps every
+other node at or above zero gauge.
+
+**What the suction cannot do (`D-121`).** With two pumps on one ring the first pump's suction is the
+second pump's discharge, and the second suction sits its own head below the datum (`S-29`: 29.4 kPa
+for a 3 m booster). In a ring of *k* pumps every suction is a local low and which is lowest depends
+on how the heads and losses fall out, which the solve finds and no pick can know. So the suction pick
+stays for what it is — a stable, deterministic zero that is right for the common case — and the
+property table no longer decides whether the solution is admissible: water's floor is its triple
+point, the solve reaches a field with nodes below its datum, and `FS2221` says afterwards what the
+relative figures cannot, which is the fill pressure that would keep the plant out of vacuum.
 
 This is a deliberate softening of principle P3 ("infer only what is unambiguous"). The choice of *which*
 node is arbitrary, but the choice's *consequence* is not — every pressure in the result is relative,
@@ -682,6 +692,7 @@ individually reasonable and the interaction is invisible.
 | `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |
 
 | `FS2220` | The static head above the datum takes a node below the pressure its fluid can exist at | Error | `'{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa.` |
+| `FS2221` | A converged node sits below atmospheric pressure | Warning | `'{node}' is {short} kPa below atmospheric pressure. State a pressure on '{datum}' of at least {needed} kPa.` |
 
 **`FS2220` is the fill-pressure check, and it runs before the seed** (`S-60`). A script that states
 no pressure has its datum picked at 0 gauge, and the top of a 32 m riser is then 213 kPa below
@@ -693,8 +704,19 @@ highest node, suggesting the static head plus half a bar in whole tens of kPa �
 expansion-vessel sizing uses (pre-charge = static height + 0.2 bar, fill = pre-charge + 0.3 bar:
 Flamco's *Reference Guide*, Reflex's *Professional planning, calculation and equipment*, IMI
 Pneumatex's Statico manual, all after EN 12828). An error because the solve cannot reach a state, not
-a warning about good practice: a plant whose top sits above atmospheric but below the 0.5 bar margin
-is not reported, because it solves.
+a warning about good practice. Since `D-121` the substance's floor is water's triple point, so this
+fires only where the top would be at or below no pressure at all — the 32 m riser still is, at
+−112 kPa absolute — and a top under partial vacuum solves.
+
+**`FS2221` is the same check after the solve, on the solved field** (`S-29`). Heights are known before
+the seed; where a loop's pressures fall relative to its datum — the second pump's suction on a ring,
+the losses behind a header datum — is what the solve finds out. `FillPressure.ReportSolved` runs on a
+converged solve, finds the lowest node of each hydraulic part, and where it sits below atmospheric
+reports it with the pressure to state on the datum: the datum's stated value (0 for a picked one)
+plus the depth of the vacuum plus the same half-bar margin, in whole tens. A warning, because the
+circuit solved and in a loop with no stated pressure the figures are relative — the plant as
+*written* would draw a vacuum there, and the message is the number that fixes it. A plant whose every
+node sits above its datum is not reported, which is every closed sample in the corpus.
 
 **`FS2219` is an error because the alternative fabricates pressure.** Only a pipe or a bare link
 spans two heights (`D-70`); a valve that says 0 m wired straight to a load that says 32 m has left

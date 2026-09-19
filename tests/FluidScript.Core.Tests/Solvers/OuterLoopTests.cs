@@ -285,16 +285,49 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
-    public async Task TwoPumpsInSeriesDoNotConvergeYet()
+    public async Task TwoPumpsInSeriesConvergeAndTheSecondSuctionIsNamedAsUnderVacuum()
     {
-        // `S-29`, pinned so that fixing it shows up as a failing test rather than as nothing at all.
-        // Two pumps in series is the one thing separating this from a circuit that converges in five
-        // iterations at the same 14 unknowns, and the second head is stated, so sizing is not involved.
+        // `S-29`, closed by `D-121`. The ring's datum is PU1's suction at 0 gauge (`D-98`), and PU2
+        // discharges into it, so PU2's own suction sits its 3 m head below the datum: 29.4 kPa under
+        // atmospheric, 72 kPa absolute. That is liquid water, and the solve reaches it now that the
+        // property floor is the triple point rather than the atmosphere; until then the true solution
+        // lay outside the table and the line search halved against it to NonFinite. What the relative
+        // figures cannot say -- that filled at 0 gauge at N1 the plant would draw a vacuum at N6 --
+        // FS2221 says, with the fill pressure practice would state: 29.4 + 50 rounded up to tens.
         var result = await Loop().RunAsync(
             GraphFixture.Bind(SeriesPumps), Water.Instance, "series", TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
-        Assert.False(result.Value.Solve.Converged, "S-29 is fixed -- delete this test and its note.");
+        Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());
+
+        var run = result.Value;
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0.0, solved[Index(layout, UnknownKind.NodePressure, "N1")], 1.0);
+        Assert.Equal(-998 * 9.80665 * 3, solved[Index(layout, UnknownKind.NodePressure, "N6")], 100.0);
+
+        var vacuum = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS2221");
+
+        Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Warning, vacuum.Severity);
+        Assert.Equal("N6", vacuum.ComponentName);
+        Assert.Equal(
+            "'N6' is 29 kPa below atmospheric pressure. State a pressure on 'N1' of at least 80 kPa.",
+            vacuum.Message);
+    }
+
+    [Fact]
+    public async Task ALoopWhoseEveryNodeSitsAboveItsDatumIsNotToldToFillIt()
+    {
+        // The other half of FS2221: one pump, so the datum at its suction is the loop's low point and
+        // nothing is under vacuum. The corpus's closed samples are all of this shape and none gained
+        // the warning.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(SimpleLoop), Water.Instance, "simple", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged);
+        Assert.DoesNotContain(result.Value.Solve.Diagnostics, static d => d.Code == "FS2221");
     }
 
     [Fact]

@@ -156,6 +156,15 @@ public interface ISubstance
 }
 ```
 
+**The range is the physical domain, not an engineering preference.** Water's `ValidRange` starts at
+the triple-point pressure and ends at 1000 kPa absolute, with the boiling line as the real lower bound
+on the liquid (`07`, `D-121`). It started at 100 kPa absolute until 2026-09-19, and that edge was doing
+engineering work it was never meant to do: a closed circuit's picked datum sits at 0 gauge, so a node
+the solve needed below its datum — the second pump's suction on a ring, the suction behind a header
+datum — was refused as a state water does not have, and the run ended `NonFinite` (`S-62`, `S-29`).
+Whether a plant should run sub-atmospheric is `FS2220`/`FS2221`'s question, asked with the fill
+pressure to state; the substance answers only whether the state exists.
+
 **`Result<T>`, not exceptions.** A state request outside the valid range is ordinary — a solver
 overshoots during iteration and asks for something impossible, then backtracks. Exceptions in that path
 would be both slow and wrong (`error-handling.md`'s rule; principle P4 extended into physics).

@@ -27,9 +27,11 @@ fluid dynamic water
 
 ## Where the properties are trusted
 
-`water` is validated from 0 to 120 °C at 1 to 10 bar absolute, as liquid water. Inside that box its
-density is within 0.1 % of an independent published correlation, and its viscosity and thermal
-conductivity within 0.5 %.
+`water` is validated from 0 to 120 °C, from its triple point up to 10 bar absolute, as liquid water.
+Inside that box its density is within 0.1 % of an independent published correlation, and its
+viscosity and thermal conductivity within 0.5 %. Below atmospheric pressure it is still liquid water
+— a node under partial vacuum is a state, and [`FS2221`](diagnostics.md) rather than the property
+table says whether the plant should be there.
 
 Outside it you get [`FS2003`](diagnostics.md) naming the bound you crossed, rather than a number
 nobody has checked. Two states *on* the boundary are refused differently, with

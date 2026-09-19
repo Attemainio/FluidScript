@@ -198,6 +198,51 @@ public sealed class SubstanceTests
         Assert.Equal("FS2002", result.Error!.Code);
     }
 
+    [Theory]
+    [InlineData(-29.4, 20)]
+    [InlineData(-90, 20)]
+    [InlineData(-70, 60)]
+    [Trait("Category", "Unit")]
+    public void LiquidWaterBelowAtmosphericPressureIsAState(double gaugeKilopascals, double celsius)
+    {
+        // `D-121`. The floor of the rectangle sat at 100 kPa absolute, and a closed loop's arbitrary zero
+        // sits at 0 gauge, so any node the solve needed below its datum was refused as if liquid water
+        // ceased to exist at 0.99 bar (`S-62`, `S-29`). It does not: IAPWS-IF97 Region 1 runs from the
+        // saturation pressure up, and water at 20 °C and 72 kPa absolute is the ordinary contents of a
+        // pump's suction line. What bounds the liquid from below is the boiling line, which the phase
+        // guard keeps enforcing (the test after this one).
+        var result = Water.Instance.FromPressureTemperature(Gauge(gaugeKilopascals), Celsius(celsius));
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.InRange(result.Value.Density.SiValue, 980, 1000);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void WaterUnderVacuumAboveItsBoilingPointIsStillRefused()
+    {
+        // At 31.3 kPa absolute water boils at 70.09 °C; 80 °C there is steam, and the lowered floor must not
+        // have let it through. The message quotes the boiling point at that pressure, not the rectangle.
+        var result = Water.Instance.FromPressureTemperature(Gauge(-70), Celsius(80));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("FS2003", result.Error!.Code);
+        Assert.Contains("70.09", result.Error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void NoPressureAtAllIsNotAState()
+    {
+        // Below the triple point there is no liquid at any temperature; a negative absolute pressure is
+        // the tall riser's case (`S-60`) and is refused as the rectangle's floor, naming it.
+        var result = Water.Instance.FromPressureTemperature(Gauge(-101.325), Celsius(20));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("FS2003", result.Error!.Code);
+        Assert.Contains("0.612 kPa absolute", result.Error.Message, StringComparison.Ordinal);
+    }
+
     // ---- the two doubles ----------------------------------------------------------------------
 
     [Fact]

@@ -277,6 +277,30 @@ public static class TopologyDiagnostics
         "'{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. "
         + "State a pressure on '{datum}' of at least {needed} kPa.");
 
+    /// <summary>A solved node sits below atmospheric pressure, so the plant as written has no adequate fill pressure.</summary>
+    /// <value><c>FS2221</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <see cref="StaticHeadBelowFloor"/>'s sibling after the solve, and the loss-driven half of the
+    /// same check: heights are known before the seed, but where a loop's pressures fall relative to its
+    /// datum is what the solve finds out. A closed loop with no stated pressure has its datum picked at
+    /// the first pump's suction and set to 0 gauge (<c>D-98</c>), and the suction is the low point only
+    /// while it is the only pump: a second pump on the ring discharges into that suction, and its own
+    /// suction sits its head below the datum (<c>S-29</c>). Water is liquid there and the solve completes
+    /// (<c>D-121</c>); this says what the relative figures cannot, which is the pressure to fill the
+    /// plant to so that nothing in it is under vacuum.
+    /// </para>
+    /// <para>
+    /// One per hydraulic part, on its lowest node; the suggested pressure is the shortfall plus the same
+    /// half-bar margin <see cref="StaticHeadBelowFloor"/> uses, in whole tens of kPa. A warning, not an
+    /// error: the circuit solved, and in a loop with no stated pressure the figures are relative anyway.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor BelowAtmospheric { get; } = new(
+        "FS2221",
+        DiagnosticSeverity.Warning,
+        "'{node}' is {short} kPa below atmospheric pressure. State a pressure on '{datum}' of at least {needed} kPa.");
+
     /// <summary>Gets every code this area registers.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
@@ -295,5 +319,6 @@ public static class TopologyDiagnostics
         ConstraintReachesAcross,
         HeightsMeetWithoutAPipe,
         StaticHeadBelowFloor,
+        BelowAtmospheric,
     ];
 }

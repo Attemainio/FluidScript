@@ -1232,18 +1232,6 @@ public static class WellPosedness
         }
     }
 
-    /// <summary>The fill-pressure margin practice adds above the static head, for the pressure the message suggests.</summary>
-    /// <value>
-    /// Pa. Half a bar: an expansion vessel's pre-charge is set to the static height plus 0.2 bar and the
-    /// fill pressure 0.3 bar above that (Flamco's <em>Reference Guide</em>, Reflex's <em>Professional
-    /// planning, calculation and equipment</em>, IMI Pneumatex's Statico manual, all after EN 12828).
-    /// </value>
-    private const double FillMargin = 50_000;
-
-    /// <summary>The temperature the static-head density is taken at.</summary>
-    /// <value>K. 20 °C: the plant is filled cold, and the check is about filling.</value>
-    private const double FillTemperature = 293.15;
-
     /// <summary>Reports the highest node of each hydraulic part whose static head takes it below the substance's floor (<c>S-60</c>).</summary>
     /// <remarks>
     /// <para>
@@ -1253,12 +1241,14 @@ public static class WellPosedness
     /// fluid state after 0 steps — which reads as a solver failure when the plant as written simply has
     /// no fill pressure. Now that every node has a height (<c>D-70</c>) the check is arithmetic before
     /// the seed: <c>p_datum − ρg(z − z_datum)</c> against the substance's floor, at the density the
-    /// plant is filled at.
+    /// plant is filled at. Since <c>D-121</c> water's floor is its triple-point pressure, so this fires
+    /// only where the top would be at or below no pressure at all; a top under partial vacuum solves,
+    /// and <see cref="FillPressure.ReportSolved"/> says so afterwards (<c>FS2221</c>).
     /// </para>
     /// <para>
     /// One diagnostic per hydraulic part, on its highest node, because every node above the floor line
     /// fails for the one reason and the fix is one number on the datum. The number suggested is what
-    /// practice writes: the static head plus half a bar.
+    /// practice writes: the static head plus half a bar (<see cref="FillPressure.Margin"/>).
     /// </para>
     /// </remarks>
     private static void ReportStaticHead(
@@ -1283,7 +1273,7 @@ public static class WellPosedness
             // is a state FS2215 has already reported, and there is nothing to add.
             if (!graph.Substance.FromPressureTemperature(
                     Quantity.FromSi(Math.Max(gauge, 0), Dimension.Pressure),
-                    Quantity.FromSi(FillTemperature, Dimension.Temperature)).TryGetValue(out var filled))
+                    Quantity.FromSi(FillPressure.FillTemperature, Dimension.Temperature)).TryGetValue(out var filled))
             {
                 continue;
             }
@@ -1315,8 +1305,8 @@ public static class WellPosedness
             }
 
             // The datum pressure practice would state: static head plus the fill margin, in whole tens
-            // of kPa above the floor's own gauge value.
-            var needed = Math.Ceiling((floor - UnitTable.StandardAtmosphere + head + FillMargin) / 10_000) * 10;
+            // of kPa.
+            var needed = FillPressure.Suggest(head);
 
             diagnostics.Add(Diagnostic.Create(
                 TopologyDiagnostics.StaticHeadBelowFloor,

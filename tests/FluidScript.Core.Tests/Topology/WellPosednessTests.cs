@@ -1000,17 +1000,18 @@ public sealed class WellPosednessTests
     [Fact]
     public void ATallPlantWithNoFillPressureIsNamedBeforeTheSeed()
     {
-        // `S-60`: with the datum picked at 0 gauge, the top of a 32 m riser sits 313 kPa lower, which is
-        // 312 kPa under the 100 kPa absolute water needs. Before, that was FS3007 after 0 steps and a
-        // report that said nothing about height. The number suggested is practice's: the static head
-        // plus half a bar, in whole tens -- 313 + 50 - 1.3 rounds up to 370.
+        // `S-60`: with the datum picked at 0 gauge, the top of a 32 m riser sits 313 kPa lower -- 212 kPa
+        // below zero absolute, which is 213 kPa under water's floor now that the floor is the triple point
+        // (`D-121`; it read 312 kPa against the old 100 kPa floor). Before, that was FS3007 after 0 steps
+        // and a report that said nothing about height. The number suggested is practice's: the static
+        // head plus half a bar, in whole tens -- 313 + 50 rounds up to 370, whatever the floor.
         var result = Check(RoofLoopWithoutAFillPressure);
 
         var head = Assert.Single(result.Diagnostics, static d => d.Code == "FS2220");
 
         Assert.Equal(DiagnosticSeverity.Error, head.Severity);
         Assert.Equal(
-            "'N4' is 32 m above 'N1', which puts it 312 kPa below the lowest pressure water can be at. "
+            "'N4' is 32 m above 'N1', which puts it 213 kPa below the lowest pressure water can be at. "
             + "State a pressure on 'N1' of at least 370 kPa.",
             head.Message);
         Assert.False(result.CanSolve);

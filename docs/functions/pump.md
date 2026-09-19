@@ -25,6 +25,12 @@ with their own pumps feeding consumers with their own — the source pump is siz
 the header sits at no differential, and each consumer's pump develops its own circuit's drop. A pump
 that shares no loop is sized to the worst of the loops through it, as before.
 
+**Two pumps on one ring put the second suction below the first.** With no `p=` anywhere the datum is
+the first pump's suction at 0 kPa, and a booster further round the ring discharges into it, so the
+booster's own suction sits its head below zero — 29 kPa under atmospheric for a 3 m booster. The circuit
+solves (that is liquid water, just under vacuum), and [`FS2221`](diagnostics.md) names the node and the
+fill pressure that would keep it out of vacuum; see [`node`](node.md#height).
+
 Pressure becomes metres at the density **entering the pump**, not at the loop's average. On the simple
 loop that is 51.7 kPa at 998 kg/m³, or 5.28 m; the same drop at the loop's 35 °C mean would read
 5.30 m. The gap is small on one ring and grows with the temperature spread, so the reported head and a

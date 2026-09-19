@@ -5414,3 +5414,53 @@ with aliases, `vflow`), `15` (binding a port quantity to the port's node; the su
 `22` (every kind's parameter table in the new spelling), `16` (a code for a port quantity on a node
 and one for the old spelling), `17` (the printer keeps both), `18` (removal at the next major), `57`
 and `L-50` (the shared property table), `08` (P5.13), the samples and `docs/functions/*` pages.
+
+## D-121 · Water's validated floor is its triple point, and whether a plant runs sub-atmospheric is a diagnostic's question, not the property table's
+
+**Accepted · 2026-09-19** · amends `07` *water properties*, `21` *ValidRange*, `23` *The datum is
+mandatory and usually implicit*; refines `D-98`; closes `S-29`
+
+`07`'s water row read "100–1000 kPa absolute", and the row was an accuracy band: the domain the
+density oracle had been checked over. `Water.ValidRange` carried it verbatim and refused any state
+below 100 kPa absolute, which is 0 gauge — the same number a closed circuit's picked datum sits at
+(`D-98`). So the arbitrary zero of a relative pressure field lay exactly on the property table's edge,
+and a bookkeeping choice decided whether the physics was admitted. `D-98` moved the datum to the first
+pump's suction on the reasoning that a suction is the loop's low point, which is true of one pump: with
+two on a ring the first suction is the second discharge, the second suction sits its own head below the
+datum (29.4 kPa for `S-29`'s 3 m booster, 72 kPa absolute), the correct solution lay outside the table,
+and Newton's line search halved against the wall to `NonFinite`. The solution was never in doubt — the
+same ring with `N1 p=50` converged in one pass — only its admissibility.
+
+**The rule.** `Water.ValidRange` starts at the triple-point pressure, 611.657 Pa absolute (IAPWS-IF97,
+section 1), where no liquid exists at any temperature; the boiling line, enforced by phase (`F-13`),
+is the real lower bound of the liquid, and IAPWS-IF97 Region 1 is stated from the saturation pressure
+up over the whole temperature range. Nothing changes above 100 kPa. The two test doubles read the real
+substance's range rather than copying it. Whether a plant *should* be sub-atmospheric is asked by the
+two fill-pressure checks, which share one margin (`FillPressure.Margin`, the half bar of EN 12828
+practice `S-60` cited) and one suggestion: `FS2220` before the seed, on heights, where the top of the
+plant would be at or below no pressure at all; `FS2221` after the solve, on the solved field, naming
+the lowest node of each hydraulic part that sits below atmospheric and the pressure to state on the
+datum. `FS2221` is a warning: the circuit solved, and in a loop with no stated pressure the figures are
+relative — the plant as written would draw a vacuum there, and the number is what fixes it.
+
+**Measured.** `S-29`'s ring converges (three passes, `N6` at −29.4 kPa gauge, `FS2221` advising
+80 kPa on `N1`); no corpus sample's solved value moved and none gained `FS2221`; the substation still
+converges in two iterations; the tall-riser message now quotes 213 kPa of shortfall against the new
+floor with the same 370 kPa suggestion.
+
+**Rejected.**
+- *A better datum pick.* No node is provably the lowest in a ring of *k* pumps before the solve; the
+  next arrangement fails the same way.
+- *The picked datum at +50 kPa gauge.* Covers a second pump to 5 m and fails at 6; shifts every
+  closed-loop pressure in the corpus by a number nobody stated; `D-98` rejected it for the same reason.
+- *Seeding the picked datum at 0 rather than at the pressure scale.* Tried and withdrawn in the same
+  package: the substation's seed is nearly singular in its promoted Kv (`S-66`), its first Newton step
+  is enormous in every direction, and the 100 kPa the datum row then takes off is what keeps the
+  first accepted fraction of that step inside the domain. The offset is a linear residual Newton
+  removes exactly; the singular seed is the defect and is filed, not papered over.
+
+**Constrains.** [`07-quality-attributes`](07-quality-attributes.md) *Water properties*;
+[`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md) *ValidRange*;
+[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) *The datum is mandatory and
+usually implicit*, `FS2220`, `FS2221`; `Water.ValidRange`, `Water.TriplePointPressure`, `FillPressure`,
+`OuterLoop.Report`.

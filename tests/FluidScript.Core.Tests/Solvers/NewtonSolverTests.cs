@@ -299,6 +299,32 @@ public sealed class NewtonSolverTests
         Assert.All(result.Solution.Values, static value => Assert.True(double.IsFinite(value)));
     }
 
+    [Theory]
+    [InlineData(0.5)]
+    [InlineData(1e-3)]
+    public async Task AStepUnderTheStepToleranceIsJudgedByWhereItLandsNotWhereItStarted(double residualTolerance)
+    {
+        // `S-67`. The stall exit fired on the step's size and reported the residual of the point the
+        // step *left*, without measuring the point it reached. Under quadratic convergence the last step
+        // is the size of the residual it removes, so a residual just above the tolerance produces a step
+        // under the step tolerance and a converged point that was reported as stalled: S-29's series ring
+        // went 1 -> 0.37 -> 1.4e-3 -> 1.16e-8 -> 2.4e-12 and stopped as 'Stalled at 1.157E-08'. With a
+        // step tolerance every step is under, the exit fires on the first step; what it reports must be
+        // the new point's residual, and whether that is Converged or Stalled is decided by that figure.
+        var system = Assemble(ClosedLoop, out var seed);
+        var solver = new NewtonSolver(new NewtonSettings { StepTolerance = 1e3, ResidualTolerance = residualTolerance });
+        var result = await solver.SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
+        var residuals = new double[system.Rows];
+
+        Assert.True(system.TryEvaluateScaled(result.Solution.Values.ToArray(), residuals));
+
+        var landed = residuals.Max(static r => Math.Abs(r));
+
+        Assert.Equal(1, result.Iterations);
+        Assert.Equal(landed, result.ResidualNorm, landed * 1e-9);
+        Assert.Equal(landed < residualTolerance ? SolveTermination.Converged : SolveTermination.Stalled, result.Termination);
+    }
+
     /// <summary>Lowers a script and assembles its system, seeded the way a real solve is.</summary>
     /// <remarks>
     /// <strong>The seed comes from <see cref="SolutionSeed"/> rather than from a constant, and it has

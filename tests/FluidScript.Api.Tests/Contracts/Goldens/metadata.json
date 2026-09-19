@@ -4175,6 +4175,18 @@
       ]
     },
     {
+      "code": "FS2221",
+      "severity": "warning",
+      "area": "Topology",
+      "message": "'{node}' is {short} kPa below atmospheric pressure. State a pressure on '{datum}' of at least {needed} kPa.",
+      "arguments": [
+        "node",
+        "short",
+        "datum",
+        "needed"
+      ]
+    },
+    {
       "code": "FS2301",
       "severity": "warning",
       "area": "Sizing",

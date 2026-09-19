@@ -76,7 +76,7 @@ assertions. The release claim is:
 
 | Capability | Validated v1 domain | Maximum error against independent reference |
 |---|---|---|
-| Water properties | Liquid water, 0–120 °C and 100–1000 kPa absolute, **below the boiling line at that pressure** | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
+| Water properties | Liquid water, 0–120 °C, from the triple-point pressure (611.657 Pa) up to 1000 kPa absolute, **below the boiling line at that pressure** (`D-121`) | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
 | Humid-air properties | 0–50 °C dry bulb, 10–90% RH, 80–110 kPa absolute; no condensation circuit | humidity ratio 0.5%; enthalpy 0.5%; dew point 0.1 K |
 | Conservation | Every converged supported circuit | mass residual ≤ max(1e-8 kg/s, 1e-6 of circuit flow); energy residual ≤ max(0.1 W, 1e-6 of circuit duty) |
 | Pressure drop | Single-phase water, Darcy–Weisbach correlations and catalogue geometry declared by the model | 1% against the same published correlation evaluated independently |
@@ -92,6 +92,17 @@ corner above the boiling line — 100 kPa absolute and 110 °C, for instance —
 rectangle and is vapour, and the property backend returns it without complaint at 0.573 kg/m³ against
 liquid's ~950. The domain is the rectangle **intersected with** the liquid region, and the
 implementation enforces it by rejecting any state whose phase is not liquid (`F-13`).
+
+**The row's low-pressure edge is the triple point, not the atmosphere (`D-121`).** Until 2026-09-19 it
+read 100 kPa absolute, and that edge was read by the solver as physics: a closed circuit's picked datum
+sits at 0 gauge, so any node the solve needed below its datum was a state water was said not to have
+(`S-62`, `S-29`). Liquid water at 20 °C and 72 kPa absolute is the ordinary contents of a pump's suction
+line; IAPWS-IF97 Region 1 is stated from the saturation pressure up at every temperature in the row, and
+the density oracle asserted at one atmosphere holds to 0.1 % down to 10 kPa absolute because liquid
+water is nearly incompressible. What bounds the liquid from below is the boiling line, which the phase
+guard enforces; the edge is where no liquid exists at any temperature. Whether a plant *should* run
+sub-atmospheric is an engineering question, and `FS2220`/`FS2221` ask it with the fill pressure to
+state — the property table no longer answers it by refusing.
 
 **Both endpoints of the temperature range are phase boundaries, not states.** 0 °C is the melting
 line just as 99.61 °C at atmospheric is the boiling line, and on either one a pressure and a

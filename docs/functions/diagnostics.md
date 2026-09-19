@@ -159,6 +159,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
 | `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2220` | Error | Topology | '{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa. |
+| `FS2221` | Warning | Topology | '{node}' is {short} kPa below atmospheric pressure. State a pressure on '{datum}' of at least {needed} kPa. |
 | `FS2301` | Warning | Sizing | Sizes did not settle for {list}. Showing the last values; state them directly to fix. |
 | `FS2304` | Error | Sizing | Cannot size '{name}': no flow is determined anywhere in its branch. State a duty or a flow. |
 | `FS2305` | Warning | Sizing | '{name}' needs more than DN{max}, the largest size in {catalog}. Using DN{max}. |

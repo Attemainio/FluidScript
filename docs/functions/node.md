@@ -54,17 +54,29 @@ pressure nothing wrote is the one mistake this feature exists to make unwritable
 
 **Mind the fill pressure.** Water at the top of a 32 m riser is 313 kPa below the bottom. With no
 `p=` anywhere the datum is picked at 0 kPa, the top of the building would sit 213 kPa below
-atmospheric, and [`FS2220`](diagnostics.md) says so before anything is solved — naming the node, the
-height, and the pressure to state:
+atmospheric — below no pressure at all — and [`FS2220`](diagnostics.md) says so before anything is
+solved, naming the node, the height, and the pressure to state:
 
 ```
-FS2220  'N4' is 32 m above 'N1', which puts it 312 kPa below the lowest pressure water can be at.
+FS2220  'N4' is 32 m above 'N1', which puts it 213 kPa below the lowest pressure water can be at.
         State a pressure on 'N1' of at least 370 kPa.
 ```
 
 The number is what practice sets: the static head plus half a bar — an expansion vessel's pre-charge
 at the static height plus 0.2 bar, and the fill pressure 0.3 bar above that. `N1 node p=370` in the
 plant room and the roof is fine.
+
+A plant that is merely *under vacuum* somewhere solves — liquid water exists well below atmospheric —
+and is told so afterwards. Every pressure in a loop with no `p=` is relative to the picked datum, and
+the solve can put a node below it: a second pump on the ring, say, whose suction sits its own head under
+the first pump's. [`FS2221`](diagnostics.md) then names the lowest node and the same practical number:
+
+```
+FS2221  'N6' is 29 kPa below atmospheric pressure. State a pressure on 'N1' of at least 80 kPa.
+```
+
+It is a warning, not an error: the figures are right relative to one another, and the plant as written
+would draw air at `N6` unless it is filled to that pressure.
 
 ## A temperature on an interior node is a setpoint
 

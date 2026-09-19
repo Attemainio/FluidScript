@@ -179,6 +179,19 @@ would be filled with nothing.
 > silences the missing level). `L-50` narrowed: three of its five codes live since P5.10; the binder
 > home and `FS1211`/`FS1212` stay open. `C-87` not taken: a parked layout entry, the ladder's to
 > reproduce. Five closed, none opened; 62 open.
+> Tier 4 (2026-09-19, the solver experiments), first item: **`S-29` closed by `D-121`.** Two pumps
+> in series never were a Newton or pump-curve defect: the ring's datum is the first pump's suction
+> at 0 gauge (`D-98`), the second pump discharges into it, so the second suction sits its own head
+> below the datum -- 72 kPa absolute, liquid water -- and `Water.ValidRange` began at 100 kPa
+> absolute, so the correct solution lay outside the property table and the line search halved
+> against the wall. The floor is now the triple point (`F-25`), the boiling line bounds the liquid
+> by phase, and `FS2221` says after the solve what the relative figures cannot: the fill pressure
+> that keeps the plant out of vacuum. Found on the way and closed: `S-67` (a step under the step
+> tolerance reported the residual of the point it left; the exit now measures where it landed).
+> Found and opened: `S-66` (the seed's pressure walk does not see a promoted Kv, so the substation's
+> seed is nearly singular in the Kv column and converges by the accident of the 100 kPa datum
+> residual -- which is why seeding the datum at 0 was tried and withdrawn). No corpus value moved.
+> Two closed, one opened; 62 open.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
@@ -847,7 +860,7 @@ Counts only. Every description lives in the file named.
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
 | | **62** | |
 
-Counted from the files on 2026-09-19 after sweep tier 3 (77 before tier 2, 67 after it); the table had not been recounted since P3 and read
+Counted from the files on 2026-09-19 after sweep tier 4's `S-29` (one closed, one opened; 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
 nothing has looked, not that nothing is wrong — the same caveat each existing file carries about
 its own unread documents.

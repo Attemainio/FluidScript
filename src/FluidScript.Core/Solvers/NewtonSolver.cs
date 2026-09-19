@@ -248,6 +248,22 @@ public sealed class NewtonSolver : ISolver
 
             if (scaledStep < _settings.StepTolerance)
             {
+                // The step was tiny, and where it landed has not been measured yet. Under quadratic
+                // convergence the last step is the size of the residual it removes, so a residual just
+                // above the tolerance produces a step under the step tolerance and a point that is
+                // converged: S-29's series ring went 1 -> 0.37 -> 1.4e-3 -> 1.16e-8 -> 2.4e-12 and was
+                // reported stalled at the fourth figure (`S-67`). Read the new point before calling it
+                // a stall; a stall is a tiny step that leaves the residual where it was.
+                if (system.TryEvaluateScaled(x, residuals))
+                {
+                    norm = Norm(residuals);
+
+                    if (norm < _settings.ResidualTolerance)
+                    {
+                        return Stop(system, x, iteration, norm, SolveTermination.Converged, diagnostics, pinned);
+                    }
+                }
+
                 var worst = system.Equations.Rows[Worst(residuals)];
 
                 diagnostics.Add(Diagnostic.Create(

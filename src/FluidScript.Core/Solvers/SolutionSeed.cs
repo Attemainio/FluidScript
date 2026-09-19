@@ -142,6 +142,17 @@ public static class SolutionSeed
     /// parameter carries no unit yet and falls to zero, which is honest and is the thing the outer loop
     /// replaces when promotion becomes live.
     /// </para>
+    /// <para>
+    /// <strong>A part with no stated pressure is not seeded with its datum at 0</strong>, although
+    /// since <c>D-121</c> the substance would allow it. <see cref="Integrate"/> starts its walk at the
+    /// pressure scale and the datum row pins the picked node to 0, so every closed circuit begins
+    /// 100 kPa above where its own datum row says it must end and Newton's first step slides the whole
+    /// field down by that. Sliding the seed there instead was measured (<c>S-66</c>): the substation's
+    /// seed is nearly singular in its promoted Kv, its first Newton step is enormous in every direction,
+    /// and the 100 kPa the datum row takes off is what keeps that step's first accepted fraction inside
+    /// the domain. The offset is a linear residual Newton removes exactly; the singular seed is the
+    /// defect, and it is filed rather than papered over here.
+    /// </para>
     /// </remarks>
     private static void Thermal(CircuitGraph graph, SystemLayout layout, double[] values)
     {
@@ -358,8 +369,11 @@ public static class SolutionSeed
             // and it starts where a lone closed circuit always has: at the pressure scale, not at the
             // average of pressures stated in some other circuit. The substation's secondary was seeded
             // at 475 kPa from its primary's 600/350, and Newton's step to the datum row 475 kPa away was
-            // what its line search kept cutting (`P4.1`). Not at the datum's own 0 Pa: the walk descends
-            // from its start through every law, and from 0 that reaches pressures water refuses.
+            // what its line search kept cutting (`P4.1`). Not at the datum's own 0 Pa, though since
+            // `D-121` water would allow it: sliding the finished field so that the datum sits at 0 was
+            // tried and withdrawn (`S-66`), because the substation's seed is nearly singular in its
+            // promoted Kv and only the 100 kPa the datum row then takes off keeps its first step in
+            // domain. The offset is a datum-row residual Newton removes in one linear step.
             _ = Place(start, 0, Anchored(start) ? level : Tolerances.PressureScale);
 
             var queue = new Queue<IFlowComponent>();

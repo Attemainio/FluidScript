@@ -136,8 +136,9 @@ public abstract class SubstanceBase : ISubstance
 /// <summary>Liquid water, measured by the property backend.</summary>
 /// <remarks>
 /// The v1 hydronic working fluid (<c>D-28</c>). Its validated domain is <c>07</c>'s engineering
-/// validity row — 0 to 120 °C and 100 to 1000 kPa absolute — and the domain is enforced here rather
-/// than by the backend, which returns a plausible density for water at 5000 °C.
+/// validity row — liquid water from 0 to 120 °C, from the triple-point pressure up to 1000 kPa absolute
+/// and below its boiling line — and the domain is enforced here rather than by the backend, which
+/// returns a plausible density for water at 5000 °C.
 /// </remarks>
 public sealed class Water : SubstanceBase
 {
@@ -153,8 +154,18 @@ public sealed class Water : SubstanceBase
     public override string Name => "water";
 
     /// <inheritdoc/>
-    /// <value>0 to 120 °C, 100 to 1000 kPa absolute — <c>07</c>'s water-properties row verbatim.</value>
-    public override StateRange ValidRange { get; } = new(273.15, 393.15, 100_000, 1_000_000);
+    /// <value>
+    /// 0 to 120 °C, <see cref="TriplePointPressure"/> to 1000 kPa absolute — <c>07</c>'s water-properties
+    /// row. The rectangle's low-pressure edge is a formality: what bounds liquid water from below is the
+    /// boiling line, which <see cref="Build"/> enforces by phase, and IAPWS-IF97 Region 1 is valid from
+    /// the saturation pressure at every temperature here. The edge sat at 100 kPa absolute until
+    /// <c>D-121</c>, which put every closed circuit's arbitrary zero exactly on it (<c>S-29</c>, <c>S-62</c>).
+    /// </value>
+    public override StateRange ValidRange { get; } = new(273.15, 393.15, TriplePointPressure, 1_000_000);
+
+    /// <summary>The pressure of water's triple point, the lowest pressure at which liquid water exists.</summary>
+    /// <value>Pa absolute. 611.657 Pa, IAPWS-IF97 (2007 revision), section 1.</value>
+    public const double TriplePointPressure = 611.657;
 
     /// <inheritdoc/>
     public override Result<FluidState> FromPressureTemperature(Quantity gaugePressure, Quantity temperature)

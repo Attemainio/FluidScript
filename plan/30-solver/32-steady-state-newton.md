@@ -44,7 +44,10 @@ for k in 1..maxIterations:
     α ← lineSearch(x, Δ, ‖F‖)                # α ∈ (0, 1]
     x ← x + α·Δ
 
-    if ‖α·Δ‖ < stepTolerance and ‖F‖ > tolerance: return FS3004 stalled
+    if ‖α·Δ‖ < stepTolerance:                # S-67: judge the point reached, not the one left
+        F ← residuals(x)
+        if ‖F‖∞ < tolerance: return converged
+        return FS3004 stalled
     if ‖F‖ > ‖F_previous‖ · divergenceFactor: return FS3003 diverging
 
 return FS3001 iteration cap

@@ -129,12 +129,17 @@ public sealed class PropertyAccuracyTests
         // The assumption the test above rests on, asserted rather than assumed. Liquid water is nearly
         // incompressible: across the validated domain's whole pressure span the density moves by far
         // less than the 0.1 % the density row allows, so a correlation stated at one atmosphere is a
-        // legitimate oracle at ten.
+        // legitimate oracle at ten -- and, since `D-121` took the floor down to the triple point, at a
+        // tenth. 10 kPa absolute is well under vacuum and still 4 times water's saturation pressure at
+        // 20 °C, so it is liquid there; IAPWS-IF97 Region 1 is stated from the saturation line up.
         var atmospheric = WaterAt(20).Density.SiValue;
         var atNineBar = WaterAt(20, gaugeKilopascals: 800).Density.SiValue;
+        var underVacuum = WaterAt(20, gaugeKilopascals: -91.325).Density.SiValue;
 
         Within(atmospheric, atNineBar, 0.001, "density across 100 to 901 kPa absolute");
+        Within(atmospheric, underVacuum, 0.001, "density across 10 to 100 kPa absolute");
         Assert.True(atNineBar > atmospheric, "Compressing water must make it denser, not lighter.");
+        Assert.True(underVacuum < atmospheric, "Relieving water must make it lighter, not denser.");
     }
 
     [Fact]

@@ -423,7 +423,7 @@ public sealed class OuterLoop(
         {
             Graph = graph,
             Solve = solve.Converged
-                ? solve with { Diagnostics = solve.Diagnostics.AddRange(Reversals(graph, solve.Solution)) }
+                ? solve with { Diagnostics = solve.Diagnostics.AddRange(Reversals(graph, solve.Solution)).AddRange(UnderVacuum(graph, solve.Solution)) }
                 : solve,
             Sizes = sizes,
             Bases = bases,
@@ -433,6 +433,19 @@ public sealed class OuterLoop(
             Settled = settled,
             TopologyHash = topologyHash,
         };
+
+    /// <summary><c>FS2221</c> on the lowest node of each hydraulic part the converged field puts below atmospheric (<c>S-29</c>, <c>D-121</c>).</summary>
+    /// <remarks>
+    /// After the solve rather than before it, because where a loop's pressures fall relative to its
+    /// datum is what the solve finds out: a second pump on a ring puts its own suction its head below
+    /// the datum at the first pump's suction, and no height check can see that.
+    /// </remarks>
+    private static ImmutableArray<Diagnostics.Diagnostic> UnderVacuum(CircuitGraph graph, StateVector solution)
+    {
+        var posedness = WellPosedness.Check(graph);
+
+        return FillPressure.ReportSolved(graph, posedness.Hydraulics, SystemLayout.Build(graph, posedness.Counting), solution);
+    }
 
     /// <summary><c>FS2301</c>: the pass cap was reached with sizes still moving, naming what moved between the last two passes.</summary>
     /// <param name="previous">The overlay the last pass started from, or <see langword="null"/> when only one pass ran.</param>

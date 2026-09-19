@@ -38,7 +38,7 @@ public enum Phase
 /// <remarks>
 /// <para>
 /// Pressures here are absolute, unlike everywhere else in the model, because that is how <c>07</c>
-/// states the domain — "100–1000 kPa absolute" — and converting the bound instead of the value would
+/// states the domain — "up to 1000 kPa absolute" — and converting the bound instead of the value would
 /// put the atmosphere in two places.
 /// </para>
 /// <para>
