@@ -1,0 +1,142 @@
+using FluidScript.Core.Catalogs;
+using FluidScript.Core.Components;
+using FluidScript.Core.Fluids;
+using FluidScript.Core.Sizing;
+using FluidScript.Core.Solvers;
+using FluidScript.Core.Tests.Topology;
+using FluidScript.Core.Topology;
+
+namespace FluidScript.Core.Tests.Solvers;
+
+/// <summary>
+/// <c>S-53</c>'s acceptance: the header seed once copied a consumer's whole circulation onto both
+/// legs of its mixing valve, so the coils were sized at twice their flow and the source at the sum
+/// of the doubled coils. The fixes landed one at a time under <c>S-58</c>, <c>S-63</c> and
+/// <c>S-68</c>; this pins the figures the entry asked for, on the entry's own script.
+/// </summary>
+[Trait("Category", "Unit")]
+public sealed class HeaderSeedTests
+{
+    /// <summary>The no-bypass header: the source heats the return straight into the supply, two pumped consumers mix 80 °C down to 50 °C.</summary>
+    private const string NoBypassHeader = """
+        fluidscript 1
+        project static plant_01
+
+        circuit heating 100
+        fluid water
+
+        HS1     heat_exchanger power=54 kW out.t=80
+
+        connections
+        N1 - HS1 - N3
+        N3 - N4
+        N6 - N5
+        N5 - N1
+
+        N1 node p=250
+
+        circuit AHU 101
+
+        HE_AHU  load in.t=50 out.t=30 power=24 kW
+        TV_AHU  three_way_valve
+        PU_AHU  pump
+
+        connections
+        N3 - TV_AHU.a length=12 dn=25
+        NM_AHU - TV_AHU.b
+        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+        NM_AHU - N5 length=12 dn=25
+
+        circuit radiators 102
+
+        HE_RAD  load in.t=50 out.t=30 power=30 kW
+        TV_RAD  three_way_valve
+        PU_RAD  pump
+
+        connections
+        N4 - TV_RAD.a length=18 dn=25
+        NM_RAD - TV_RAD.b
+        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+        NM_RAD - N6 length=18 dn=25
+        """;
+
+    [Fact]
+    public async Task TheNoBypassHeaderSizesItsCoilsAndItsSourceOnTheirOwnDuties()
+    {
+        // Water at 20 dK carries 24 kW at 0.2871 kg/s and 30 kW at 0.3589 kg/s; at 50 dK (80 → 30) the
+        // source's 54 kW is 0.2581 kg/s. Each consumer draws from the header the share its mix needs --
+        // (50 − 30)/(80 − 30) = 0.4 of its circulation -- and recirculates the rest.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(NoBypassHeader), Water.Instance, "s53", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s53");
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.True(run.Settled, report);
+        Assert.Equal(0.2871, run.Sizes.For("HE_AHU", "flow")!.Value, 3);
+        Assert.Equal(0.3589, run.Sizes.For("HE_RAD", "flow")!.Value, 3);
+        Assert.Equal(0.2581, run.Sizes.For("HS1", "flow")!.Value, 3);
+
+        var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0.2871, Through(run.Graph, layout, solved, "HE_AHU"), 3);
+        Assert.Equal(0.3589, Through(run.Graph, layout, solved, "HE_RAD"), 3);
+        Assert.Equal(0.2581, Through(run.Graph, layout, solved, "HS1"), 3);
+
+        // A three-way valve partitions one circulation: |a| + |b| = |ab|, and neither leg is the whole.
+        foreach (var valve in new[] { "TV_AHU", "TV_RAD" })
+        {
+            var a = Leg(run.Graph, layout, solved, valve, "a");
+            var b = Leg(run.Graph, layout, solved, valve, "b");
+            var ab = Leg(run.Graph, layout, solved, valve, "ab");
+
+            Assert.Equal(ab, a + b, 4);
+            Assert.InRange(a / ab, 0.3, 0.5);
+            Assert.InRange(b / ab, 0.5, 0.7);
+        }
+    }
+
+    [Fact]
+    public void WithoutTheSourceLevelTheHeaderIsAThermalContinuumAndSaysSo()
+    {
+        // 60 °C at 0.4306 kg/s and 80 °C at 0.2581 kg/s are both 54 kW designs, so dropping `out.t=80`
+        // leaves one degree free: 39 unknowns against 38 equations, refused with FS2211 naming the
+        // temperature it needs (S-52's thermal-first advice), not a pressure.
+        var check = WellPosedness.Check(GraphFixture.Lower(
+            NoBypassHeader.Replace("power=54 kW out.t=80", "power=54 kW", StringComparison.Ordinal)).Graph);
+
+        Assert.Equal(-1, check.Counting.Excess);
+
+        var refused = Assert.Single(check.Diagnostics, static d => d.Code == "FS2211");
+        Assert.StartsWith("This circuit is under-specified by 1. Add one of: a temperature on", refused.Message, StringComparison.Ordinal);
+    }
+
+    private static OuterLoop Loop()
+    {
+        var resolved = PipeCatalogs.Resolve(pin: null);
+
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+
+        return new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
+    }
+
+    /// <summary>The solved flow magnitude through the branch that carries a component.</summary>
+    private static double Through(CircuitGraph graph, SystemLayout layout, System.Collections.Immutable.ImmutableArray<double> solved, string component)
+    {
+        var branch = Assert.Single(graph.Branches, b => b.Path.Any(e => e.Name == component));
+        return Math.Abs(solved[layout.BranchFlow(branch.Index)]);
+    }
+
+    /// <summary>The solved flow magnitude in the branch that ends on a valve's named port.</summary>
+    private static double Leg(CircuitGraph graph, SystemLayout layout, System.Collections.Immutable.ImmutableArray<double> solved, string valve, string port)
+    {
+        var branch = Assert.Single(graph.Branches, b =>
+            (b.From.Element.Name == valve && b.From.Element.Ports[b.From.Port].Name == port)
+            || (b.To.Element.Name == valve && b.To.Element.Ports[b.To.Port].Name == port));
+        return Math.Abs(solved[layout.BranchFlow(branch.Index)]);
+    }
+}

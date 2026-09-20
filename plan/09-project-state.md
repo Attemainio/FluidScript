@@ -267,6 +267,10 @@ would be filled with nothing.
 > call, recorded under `C-105`). Also fixed: the editor's completion list was white on white in the
 > dark theme (CodeMirror's light base rule outranked the stylesheet; the colours are a view theme now).
 > Two closed, one opened; 63 open.
+> **`S-53` closed** (the same day): its four fixes had landed under `S-58`, `S-63` and `S-68`; the
+> acceptance is now measured and pinned on the entry's own no-bypass header (`HeaderSeedTests`:
+> coils 0.2871/0.3589 kg/s, source 0.2581, valve legs a partition at 0.4/0.6, two Newton
+> iterations; 39/38 and a thermal-first `FS2211` without the level). One closed; 62 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -963,9 +967,7 @@ unassessed, not clean.
    a test fixture; promoting it to `samples/` and `01` is a spec addition (`D-11`) and the user's
    call. Its natural next variants — one source off (`S-56`, and there is no check valve to stop
    reverse flow through it), a source-side mixing valve (`S-55`) — are the open entries it points at.
-3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-53` (measured met on
-   2026-09-20 -- coils 0.2871/0.3589, source 0.2581, two iterations -- and needs its pinned test
-   before it closes), `S-55` (reproduced with `N3 node t=60` and a source valve; the fix is
+3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-55` (reproduced with `N3 node t=60` and a source valve; the fix is
    biconnected blocks in `WellPosedness.ReportDriverlessLoops` and `OuterLoop.Driven`/`ThreeWay`
    rather than cycle-local checks, then `D-122`'s band sizes `TV_MAIN`), and `S-56` (a source with
    `power=0` and both terminals stated goes non-finite; the user picks between refusing it, dropping
