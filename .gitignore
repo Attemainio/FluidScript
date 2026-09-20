@@ -32,6 +32,9 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+# The Visual Studio template above swallows any source folder named `log`; the frontend's log
+# feature lived untracked under it from P5.4 to 2026-09-19 (T-5).
+!frontend/src/**/log/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/

@@ -108,6 +108,15 @@ as individual lines (so the two `FS2107` dead ends in the syntax example remain 
 more collapse into one group. The expanded rows use each flat wire diagnostic's `component` and
 already formatted `message`, which carries values such as 2.1 °C—there is no separate value array.
 
+## Height
+
+The list is 120 px by default (`--log-height`, four lines) and its top edge is a separator the
+pointer drags and the arrow keys move, like the editor/canvas divider (`55`'s panel-resize rule):
+dragging up gives the list the space above it. The height is `uiStore.logHeight`, persisted beside
+the split ratio and clamped to 60–900 px so a height dragged on a tall screen cannot swallow the
+editor on a short one; the fold button is unchanged and collapses the pane to its header. Added
+2026-09-19 at the user's request: a script with a dozen warnings could not show them in four lines.
+
 ## Filtering
 
 Three states — all / warnings and errors / errors only — plus a text filter. Default is **warnings and

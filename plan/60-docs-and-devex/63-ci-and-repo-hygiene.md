@@ -210,6 +210,14 @@ a design's sizing is reproducible only against a known catalogue.
 Invariant 5 is unusual and worth the effort: a README whose instructions have quietly broken is the
 most common defect in a public repository, and it is entirely preventable.
 
+**Invariant 1 is only as good as what is tracked, and `.gitignore` is the Visual Studio template.**
+That template ignores `bin/`, `obj/`, `out/`, `log/`, `logs/`, `debug/` and `release/` by name at any
+depth, so a *source* folder with one of those names is silently untracked and the working tree builds
+while a clean clone does not. `frontend/src/features/log/` sat that way for five days (`T-5`); the
+negation `!frontend/src/**/log/` follows the template's rule, and any new source folder with one of
+those names needs the same. A cheap check -- every file the build compiles is in `git ls-files` --
+would catch the next one on the day.
+
 ## Error cases
 
 | Situation | Handling |

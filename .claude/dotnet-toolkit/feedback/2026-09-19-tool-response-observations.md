@@ -189,3 +189,76 @@ and make `unheld_symbol` accept current versions on a fresh patch. This project 
 | 3 | noise | `detectedChanges` in full, boilerplate `notAssessed`, generic hints, `expiresAt` | ~200 lines per success |
 | 5 | structural | a third of `validate_patch` calls carry no edit; `get_symbol` used as a file reader for line numbers | 127 protocol calls, ~700 K chars |
 | 6 | design | line-anchored edits are the root of most failures; `Edit` + build hook covers the rest | recommendation: keep the explorer, drop the patcher |
+
+## 8. Addendum from tiers 3–4 (later the same day: `S-29`, `S-63`, `S-68`, `C-104`)
+
+Roughly forty more `validate_patch` calls and a hundred `get_symbol` calls. Everything above held;
+what follows is only what is new. Same standard: observed in responses, not inferred from source.
+
+### 8.1 `unleased_body`: a third pre-flight refusal, and it contradicts the tool's own advice
+
+A `get_symbol` without `source` returns `contentVersion: "decl:…"` with no body layer. A patch that
+then edits the body is refused with `unleased_body` and told to *"refetch with an include that
+serves the body (source, bodyOutline or mechanicalFacts)"*. Two things: the refusal's own response
+already carries the full version (`current[]{symbolId, "decl:…|body:…"}`), so the refetch is a copy
+of what was just returned -- same shape as 2.1; and `source: bodyOutline` is refused by `get_symbol`
+(`invalid_component: … Modes: full (default …) or code`), so one of the three suggested includes does
+not exist. Seen four times; each cost one round.
+
+### 8.2 `stale_base` on the containing type after any edit to a sibling member
+
+Adding a member needs the type's version in `baseVersions` (2.1). That version changes whenever any
+member of the type is edited -- including by the previous patch in the same session -- so a second
+addition to the same type is refused `stale_base` with the new version, and the patch is resent
+unchanged. Seen five times (`ValveSizerTests`, `SolutionSeedTests`, `OuterLoopTests`,
+`ComponentRegistryTests`, `ValveLaw`). For a fresh addition the type's version proves nothing:
+there is no old text being overwritten. The pin should apply to replaced ranges, not to the
+anchor of an insertion.
+
+### 8.3 `symbol_not_found` for an id the same response listed
+
+`get_symbol` on `sym_60f164cf64292f8a` -- one of two candidates an `ambiguous_symbol` response had
+just returned -- failed `symbol_not_found`; `FluidScript.Core.Sizing.BranchResistance` by full name
+also failed while `…BranchResistance.Along` resolved to the ambiguity. This is 1.3's stale cache;
+the workaround was reading the file with `sed`. An id returned by the tool should resolve for at
+least the life of the response.
+
+### 8.4 `search_index` finds neither members nor strings, and rejects its `kinds` values
+
+- `search_index("LoopDrop")` returned `items[0]` for a property declared in `ISizer.cs` and read in
+  three files. `grep` found four hits.
+- `search_index("sized to zero head because its circuit contains no modelled resistance")` returned
+  `termsWithNoHits` for every word of a string literal in `SizingDiagnostics.cs`. Whether string
+  contents are indexed at all is not stated anywhere I found; if not, the response should say so
+  rather than report each common English word as unindexed.
+- `kinds: ["Method","Property","Field"]` was answered `kindsHint: "… matched no symbol kind"`. The
+  parameter's accepted values are not in its description.
+
+### 8.5 Diagnostic locations point at the wrong operand for `CS1620`
+
+`string.Create(culture, $"…{a}…" + $"…{b}…" + "plain literal")` fails `CS1620: Argument 2 must be
+passed with the 'ref' keyword` because one operand of the concatenation is not interpolated and the
+handler falls back. The reported location was the *interpolated* line, two lines above the literal
+that caused it. Not a toolkit defect, but the toolkit is what surfaces it, and `ExchangerSizer.cs`
+already carries a comment about the ternary form of the same trap. Worth a `fixHint` that names it
+when `CS1620` appears on a `string.Create` argument.
+
+### 8.6 Range edits at a member's end: the closing brace
+
+Eight failed rounds this session were the same mistake: a range that ended one line before the
+member's `}` (leaving a duplicate), or that included a blank separator line after it (dropping the
+gap). The `@a-b` compact source view and `declarationSites.endLine` both give a line number, but
+neither says whether `endLine` *is* the brace or the last statement. For inserting after a member,
+the natural anchor is "after this symbol", not a line: an `insertAfter: sym_…` / `insertBefore`
+edit form would remove the whole class of error. (§6's string-anchored `Edit` also removes it.)
+
+### 8.7 Numbers for tiers 3–4
+
+| Response | Count | Share |
+|---|---|---|
+| `validate_patch` succeeded and applied | 31 | 55 % |
+| `unheld_symbol` / `unleased_body` / `stale_base` (no edit carried) | 14 | 25 % |
+| validation failed (all but two were 8.6 or 8.5) | 11 | 20 % |
+
+`get_symbol` ~100 calls; three `symbol_not_found` (8.3); one `invalid_component` (8.1). The
+knowledge cache corrupted once more (`knowledge.db.corrupt-*` now 15 files).

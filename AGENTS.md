@@ -34,9 +34,12 @@ updating it is part of finishing a package rather than a courtesy to the next se
 
 ## If you write C#
 
-`.cs` files in this repository are edited through the `dotnet-toolkit` MCP server's `validate_patch`,
-not through a text editor or a shell redirect. `PreToolUse` hooks block the alternatives, and the
-reason is in `CLAUDE.md` and the plugin's `dotnet-write` skill: a patch that goes around the tool is a
-change whose reasoning is gone the moment the session ends.
+`.cs` files in this repository are edited with `Edit` and `Write`, anchored on text you have read,
+never through a shell redirect or `sed`; a `PreToolUse` hook blocks Bash writes to `.cs`. The
+`dotnet-toolkit` MCP server (2.0) is the navigation side of every C# change -- `search_index`,
+`get_symbol`, `get_references`, the hierarchies, `rename_symbol` for a rename -- and a `PostToolUse`
+hook keeps its index in step with each edit. `dotnet build` is the compile gate, run after a burst of
+related edits. The protocol is the plugin's `dotnet-read` / `dotnet-write` skills, and `CLAUDE.md`
+says why grep is the wrong tool for C#.
 
-An agent without that server available should say so and stop, rather than route around the guard.
+An agent without that server available should say so and stop, rather than navigate C# by grep.

@@ -230,6 +230,11 @@ would be filled with nothing.
 > the Kv 6.3 three ladder scripts had stated by hand; the header's pumps fall from 6.5/8.3 to 4.7/5.2
 > m and the cooling loop's from 6.4 to 2.5; no flow moved; every three-way step in the ladder and the
 > corpus converges. Goldens re-recorded. One closed; 62 open.
+> **Two small things the same day.** The log pane's top edge is draggable and its height persists
+> (`56` *Height*, the user could not see a dozen warnings in four lines). Found on the way: the
+> frontend's whole log feature had never been committed -- the Visual Studio `.gitignore`'s `[Ll]og/`
+> swallowed `frontend/src/features/log/` since `P5.4`, so a clean clone did not build the frontend --
+> negated and committed, `T-5` closed in the same change, the trap recorded in `63`.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and

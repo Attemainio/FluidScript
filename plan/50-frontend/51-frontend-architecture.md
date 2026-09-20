@@ -97,7 +97,7 @@ State library: **Zustand**. The state is small, mostly flat, and mutated from ou
 (WebSocket frames). P5.4 built the four stores as `51`'s table has them -- `draftStore` keyed by
 document with the last successful model, the diagnostics and their revisions; `runStore` with a
 run's id, snapshot hash and status and nothing of its frames; `workspaceStore` persisted as ids and
-names; `uiStore` with theme, split and the log's fold -- and the text of every open document lives
+names; `uiStore` with theme, split, the log's fold and height -- and the text of every open document lives
 in the editor feature's own map, which is what a CodeMirror state per document becomes in P5.5. Redux is ceremony at this size; Context re-renders too broadly for a canvas
 receiving frames at 1 Hz. Per-document stores are slices keyed by `documentId` in one store rather
 than one store per document, so a tab close disposes its slice in a single action and cannot leak a

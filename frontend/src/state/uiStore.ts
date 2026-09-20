@@ -22,11 +22,23 @@ export interface UiState {
   readonly logOpen: boolean;
   /** `56`'s filter; warnings and errors by default. */
   readonly logFilter: LogFilter;
+  /** The height of the log's list in CSS pixels, dragged at its top edge; `logHeightMin`..`logHeightMax`. */
+  readonly logHeight: number;
   readonly setTheme: (theme: ThemeChoice) => void;
   readonly setSplitRatio: (ratio: number) => void;
   readonly setLogOpen: (open: boolean) => void;
   readonly setLogFilter: (filter: LogFilter) => void;
+  readonly setLogHeight: (height: number) => void;
 }
+
+/** The least the log's list can be dragged to: one header's worth of lines. */
+export const logHeightMin = 60;
+
+/** The most, so a persisted height from a taller screen cannot swallow the editor. */
+export const logHeightMax = 900;
+
+/** The `--log-height` token's value, the height before anyone drags. */
+export const logHeightDefault = 120;
 
 /**
  * The one global UI store, persisted to localStorage. When storage is unavailable the store still
@@ -39,10 +51,13 @@ export const useUiStore = create<UiState>()(
       splitRatio: 0.45,
       logOpen: true,
       logFilter: 'warnings',
+      logHeight: logHeightDefault,
       setTheme: (theme) => set({ theme }),
       setSplitRatio: (ratio) => set({ splitRatio: Math.min(0.8, Math.max(0.2, ratio)) }),
       setLogOpen: (open) => set({ logOpen: open }),
       setLogFilter: (filter) => set({ logFilter: filter }),
+      setLogHeight: (height) =>
+        set({ logHeight: Math.round(Math.min(logHeightMax, Math.max(logHeightMin, height))) }),
     }),
     {
       name: 'fluidscript.ui',
@@ -52,6 +67,7 @@ export const useUiStore = create<UiState>()(
         splitRatio: state.splitRatio,
         logOpen: state.logOpen,
         logFilter: state.logFilter,
+        logHeight: state.logHeight,
       }),
     },
   ),

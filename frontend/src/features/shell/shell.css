@@ -171,6 +171,19 @@
   background: var(--surface-raised);
 }
 
+/* The top edge, dragged to give the list more room; a row-resize grip like the split's divider. */
+.log-pane__edge {
+  height: var(--space-2);
+  cursor: row-resize;
+  background: transparent;
+}
+
+.log-pane__edge:hover,
+.log-pane__edge:focus-visible {
+  background: var(--border-subtle);
+  outline: none;
+}
+
 .log-pane__header {
   display: flex;
   align-items: center;

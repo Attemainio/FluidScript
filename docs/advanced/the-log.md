@@ -57,6 +57,12 @@ The right side of the header says in one phrase what the solver did:
 The button beside it copies the visible lines as text, one per line with code, severity, component
 and message, ready for a message or a bug report.
 
+**Drag the panel's top edge to give it more room.** The edge above the header is a grip: drag it up
+and the list grows into the space above, drag it down and it shrinks back to a few lines; with the
+grip focused, the up and down arrow keys move it a line at a time. The height you choose is kept
+across a reload, like the split between editor and canvas. The last button folds the panel away to
+its header alone.
+
 ## How it behaves while you type
 
 Every compile replaces the panel's contents, but you will not see it flicker: a line that is still

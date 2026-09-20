@@ -170,6 +170,40 @@ describe('the shell', () => {
     ).toContain('0.6fr');
   });
 
+  it('lets the log be dragged taller at its top edge, and keeps the height across a reload', () => {
+    // A default 120 px shows four lines; the edge is a separator the pointer drags and the keyboard
+    // moves, and the height persists like the split does (51, 56).
+    const edge = container.querySelector<HTMLDivElement>('.log-pane__edge')!;
+    expect(edge.getAttribute('aria-orientation')).toBe('horizontal');
+    const list = (): HTMLOListElement =>
+      container.querySelector<HTMLOListElement>('.log-pane__entries')!;
+    expect(list().style.height).toBe('120px');
+
+    act(() => {
+      edge.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, clientY: 500, pointerId: 1 }),
+      );
+      window.dispatchEvent(new PointerEvent('pointermove', { clientY: 380 }));
+      window.dispatchEvent(new PointerEvent('pointerup', {}));
+    });
+    expect(useUiStore.getState().logHeight).toBe(240);
+    expect(list().style.height).toBe('240px');
+
+    act(() => {
+      edge.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    });
+    expect(useUiStore.getState().logHeight).toBe(256);
+
+    // Clamped: nothing dragged below one header's worth or above the screen's worth.
+    act(() => useUiStore.getState().setLogHeight(10));
+    expect(useUiStore.getState().logHeight).toBe(60);
+    act(() => useUiStore.getState().setLogHeight(5000));
+    expect(useUiStore.getState().logHeight).toBe(900);
+
+    const saved = localStorage.getItem('fluidscript.ui')!;
+    expect(saved).toContain('"logHeight":900');
+  });
+
   it('keeps the tabs, and only the tabs, across a reload', () => {
     act(() => {
       useWorkspaceStore.getState().open('substation');
