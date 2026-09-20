@@ -259,10 +259,9 @@ public static class SolveExplanation
 
         foreach (var constraint in t.Constraints)
         {
-            var match = t.Promotions.FirstOrDefault(promotion =>
-                promotion.Constraint.Kind == constraint.Kind
-                && string.Equals(
-                    promotion.Constraint.Component, constraint.Component, StringComparison.Ordinal));
+            // The whole record, not kind and component: a two-sided exchanger states a flow on each
+            // side, and matching on the component alone answered both with side 1's pump (S-70).
+            var match = t.Promotions.FirstOrDefault(promotion => promotion.Constraint == constraint);
 
             if (match is null)
             {
@@ -274,7 +273,7 @@ public static class SolveExplanation
                 : $"solved for as {match.Component}.{match.Parameter}";
 
             report.AppendLine(CultureInfo.InvariantCulture,
-                $"    {constraint.Kind,-12} on {constraint.Component,-10} -> {answer}");
+                $"    {constraint.Kind,-12} on {constraint.Label,-12} -> {answer}");
         }
 
         if (unanswered == 0)
@@ -371,6 +370,75 @@ public static class SolveExplanation
             $"    end {solve.ResidualNorm,15:G4}         {solve.Termination}");
     }
 
+    /// <summary>
+    /// A branch's flow direction in words a reader can check against the script: <c>forward</c> or
+    /// <c>reversed</c> against the first ported element's own <c>in</c>/<c>out</c>; for a direct link
+    /// with a named port at one end, <c>into</c> or <c>out of</c> that port; for a bare node-to-node
+    /// link, along or against the printed arrow.
+    /// </summary>
+    private static string Direction(CircuitGraph graph, PortMap ports, Branch branch, double flow)
+    {
+        if (Math.Abs(flow) <= Tolerances.FlowZero)
+        {
+            return "still";
+        }
+
+        if (WrittenSign(graph, ports, branch) is { } written)
+        {
+            return written * flow > 0 ? "forward" : "reversed";
+        }
+
+        // A direct link's orientation is the walk's, not the script's, and the script's is not kept
+        // (the graph carries no syntax). What is checkable is which way water crosses the named port.
+        foreach (var end in new[] { branch.From, branch.To })
+        {
+            var index = end.PortName is null ? -1 : graph.Components.IndexOf(end.Element);
+            var binding = index < 0 ? PortBinding.Unconnected : ports[index, end.Port];
+
+            if (binding.Branch == branch.Index && binding.Sign != 0)
+            {
+                return binding.Sign * flow > 0 ? $"into {end.Label}" : $"out of {end.Label}";
+            }
+        }
+
+        return flow > 0 ? "along the arrow" : "against the arrow";
+    }
+
+    /// <summary>
+    /// The sign that turns a branch's flow into the script's own direction: <c>+1</c> when the branch's
+    /// orientation runs from the first ported element's <c>in</c> to its <c>out</c>, <c>-1</c> when the
+    /// walk crossed that element backwards, and <see langword="null"/> for a branch with no ported element.
+    /// </summary>
+    private static int? WrittenSign(CircuitGraph graph, PortMap ports, Branch branch)
+    {
+        foreach (var element in branch.Path)
+        {
+            var index = graph.Components.IndexOf(element);
+
+            if (index < 0)
+            {
+                continue;
+            }
+
+            for (var port = 0; port < element.Ports.Length; port++)
+            {
+                if (!string.Equals(element.Ports[port].Name, "in", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var binding = ports[index, port];
+
+                if (binding.Branch == branch.Index && binding.Sign != 0)
+                {
+                    return binding.Sign;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static string Clip(string text, int width) =>
         text.Length <= width ? text : text[..(width - 1)] + "…";
 
@@ -415,7 +483,14 @@ public static class SolveExplanation
         }
 
         report.AppendLine(CultureInfo.InvariantCulture,
-            $"    branches ({label})   kg/s      against the written order");
+            $"    branches ({label})   kg/s      direction, against the script");
+
+        // "Written order" is what the port map knows, not the branch's sign: a ring's path may start
+        // at whichever element the walk reached first, and on the two-ring substation both branches
+        // were labelled reversed while every pump pushed the way it was written (S-70). The sign of
+        // the flow entering the first ported element's `in` is the direction the script would call
+        // forward, which is what `OuterLoop.Reversals` reads for FS3013.
+        var ports = PortMap.Build(graph);
 
         foreach (var branch in graph.Branches)
         {
@@ -427,9 +502,7 @@ public static class SolveExplanation
             }
 
             var flow = at.Values[column];
-            var direction = Math.Abs(flow) <= Tolerances.FlowZero
-                ? "still"
-                : flow > 0 ? "forward" : "reversed";
+            var direction = Direction(graph, ports, branch, flow);
             var path = branch.Path.Length == 0
                 ? "(direct)"
                 : string.Join(" - ", branch.Path.Select(static element => element.Name));

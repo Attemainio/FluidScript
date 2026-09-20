@@ -64,9 +64,9 @@ public sealed class SolveExplanationTests
         var report = await Explain("m2-distribution-header.fluid");
 
         Assert.Contains(
-            "FixedFlow    on HE_AHU     -> solved for as PU_AHU.head", report, StringComparison.Ordinal);
+            "FixedFlow    on HE_AHU.out   -> solved for as PU_AHU.head", report, StringComparison.Ordinal);
         Assert.Contains(
-            "MixedInlet   on HE_AHU     -> solved for as TV_AHU.position", report, StringComparison.Ordinal);
+            "MixedInlet   on HE_AHU.in    -> solved for as TV_AHU.position", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class SolveExplanationTests
         // adds. Calling that over-specification would have been the report confidently misleading.
         var report = await Explain("m2-simple-loop.fluid");
 
-        Assert.Contains("MixedInlet   on HE1        -> no promotion", report, StringComparison.Ordinal);
+        Assert.Contains("MixedInlet   on HE1.in       -> no promotion", report, StringComparison.Ordinal);
         Assert.Contains(
             "1 with no promotion, against 1 enthalpy level(s) dropped",
             report,
@@ -185,6 +185,43 @@ public sealed class SolveExplanationTests
 
         Assert.Contains("solve        not run", report, StringComparison.Ordinal);
         Assert.Contains("evaluated at the seed", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public async Task ATwoSidedExchangerBetweenTwoRingsIsReportedSideBySide()
+    {
+        // S-70. A coupled exchanger sits in both hydraulics it separates, and two things read it
+        // wrongly: `FS2203` named a hydraulic by its first element's circuit, so both rings could
+        // carry the exchanger's circuit name; and the constraints section matched a promotion to a
+        // constraint by component alone, so side 2's stated flow was answered by side 1's pump. The
+        // branch direction is read off the port map too -- a ring's walk may start anywhere, and
+        // both rings were labelled "reversed" while every pump pushed the way it was written.
+        const string source = """
+            fluidscript 1
+            fluid water
+
+            circuit first
+            PU1 pump
+            HX1 heat_exchanger power=40 in.t=40 out.t=60 in[2].t=80 out[2].t=60
+            connections
+            HX1.out - N1 length=10 dn=32
+            N1 - PU1 - HX1.in
+
+            circuit second
+            PU2 pump
+            connections
+            HX1.out[2] - PU2 - N3 - HX1.in[2] length=10 dn=25
+            """;
+
+        var report = await Explain(source, "two-rings");
+
+        Assert.Contains("FS2203       'first' is closed", report, StringComparison.Ordinal);
+        Assert.Contains("FS2203       'second' is closed", report, StringComparison.Ordinal);
+        Assert.Contains("FixedFlow    on HX1.out      -> solved for as PU1.head", report, StringComparison.Ordinal);
+        Assert.Contains("FixedFlow    on HX1.out2     -> solved for as PU2.head", report, StringComparison.Ordinal);
+        Assert.Matches(@"N1 -> N1 +0\.4780  forward", report);
+        Assert.Matches(@"N3 -> N3 +0\.4780  forward", report);
     }
 
     private static Task<string> Explain(string sample) =>

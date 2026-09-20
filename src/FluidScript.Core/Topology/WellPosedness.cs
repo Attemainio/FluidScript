@@ -1439,11 +1439,42 @@ public static class WellPosedness
         return string.Join(" and ", parts);
     }
 
-    /// <summary>A hydraulic component's reportable name: the circuit its first element belongs to.</summary>
-    private static string Name(CircuitGraph graph, HydraulicComponent hydraulic) =>
-        hydraulic.Elements.Length > 0
-            ? graph.CircuitOf.GetValueOrDefault(hydraulic.Elements[0].Name, hydraulic.Index.ToString(CultureInfo.InvariantCulture))
-            : hydraulic.Index.ToString(CultureInfo.InvariantCulture);
+    /// <summary>A hydraulic component's reportable name: the circuit most of its own elements belong to.</summary>
+    /// <remarks>
+    /// "Its own" excludes an element that also sits in another hydraulic -- a coupled exchanger is in
+    /// both the hydraulics it separates, and naming a hydraulic by its first element named the
+    /// exchanger's circuit for both sides of a substation (<c>S-70</c>). Ties fall to graph order.
+    /// </remarks>
+    private static string Name(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, HydraulicComponent hydraulic)
+    {
+        var fallback = hydraulic.Index.ToString(CultureInfo.InvariantCulture);
+        string? best = null;
+        var bestCount = 0;
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var element in hydraulic.Elements)
+        {
+            if (!graph.CircuitOf.TryGetValue(element.Name, out var circuit)
+                || hydraulics.Any(other => other.Index != hydraulic.Index && other.Elements.Contains(element)))
+            {
+                continue;
+            }
+
+            var count = counts.GetValueOrDefault(circuit) + 1;
+            counts[circuit] = count;
+
+            if (count > bestCount)
+            {
+                (best, bestCount) = (circuit, count);
+            }
+        }
+
+        return best
+            ?? (hydraulic.Elements.Length > 0
+                ? graph.CircuitOf.GetValueOrDefault(hydraulic.Elements[0].Name, fallback)
+                : fallback);
+    }
 
     /// <summary>Reports a closed circuit whose stated duties cannot sum to zero (<c>FS2203</c>).</summary>
     /// <param name="graph">The graph.</param>
@@ -1481,7 +1512,7 @@ public static class WellPosedness
             diagnostics.Add(Diagnostic.Create(
                 TopologyDiagnostics.UnbalancedClosedCircuit,
                 span: null,
-                new DiagnosticArgument("circuit", Name(graph, hydraulic)),
+                new DiagnosticArgument("circuit", Name(graph, hydraulics, hydraulic)),
                 new DiagnosticArgument(
                     "power",
                     (imbalance / 1000).ToString("0.###", CultureInfo.InvariantCulture) + " kW")));
@@ -1660,7 +1691,7 @@ public static class WellPosedness
             diagnostics.Add(Diagnostic.Create(
                 TopologyDiagnostics.UnpairedBoundary,
                 span: null,
-                new DiagnosticArgument("circuit", Name(graph, hydraulic)),
+                new DiagnosticArgument("circuit", Name(graph, hydraulics, hydraulic)),
                 new DiagnosticArgument("present", present),
                 new DiagnosticArgument("missing", missing)));
         }
