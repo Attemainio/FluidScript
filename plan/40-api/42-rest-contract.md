@@ -221,10 +221,10 @@ POST /api/v1/solve   { sessionId, script: <the brief's example> }
       "message": "'PU1' is not connected to anything.",
       "span": { "start": 214, "length": 3 }, "component": "PU1" },
     { "code": "FS2107", "severity": "warning",
-      "message": "'N1' is a dead end. Set t, p or flow to make it a boundary.",
+      "message": "'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.",
       "component": "N1" },
     { "code": "FS2107", "severity": "warning",
-      "message": "'N3' is a dead end. Set t, p or flow to make it a boundary.",
+      "message": "'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.",
       "component": "N3" }
              ] },
   "timings": { "parseMs": 1, "bindMs": 2, "sizeMs": 0, "solveMs": 0, "totalMs": 4 }

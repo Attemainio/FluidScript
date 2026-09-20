@@ -1606,6 +1606,21 @@ public static class WellPosedness
                 ? string.Empty
                 : $", or add a valve: nothing on the branch through {string.Join(", ", unreachable)} can change its flow";
 
+            // A stated pressure on a node with one pipe is a datum on a stub (D-86): it holds the level and passes
+            // no mass, which is the surplus whenever the plant already has a level. What the user nearly always
+            // meant is a boundary, which only the keyword makes (D-115); the message says which word.
+            var stubs = graph.Nodes
+                .Where(static node => node.Component.Boundary == BoundaryRole.Interior
+                    && node.Component.Ports.Length == 1
+                    && HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null)
+                .Select(static node => node.Name)
+                .ToArray();
+
+            if (stubs.Length > 0)
+            {
+                advice += $", or write '{stubs[0]} outlet' (or inlet) if fluid crosses there: a node's p= holds the pressure level and passes no mass";
+            }
+
             diagnostics.Add(Diagnostic.Create(
                 TopologyDiagnostics.OverSpecified,
                 span: null,
@@ -1630,10 +1645,11 @@ public static class WellPosedness
     /// statement.
     /// </remarks>
     private static IEnumerable<string> Overstated(CircuitGraph graph) =>
+        // Every stated pressure, boundary or datum: with no unmatched constraint the surplus is a level stated
+        // twice, and which of the two goes is the user's. The old filter on the mass balance listed nothing
+        // once a boundary carried one (D-115), so FS2210 read "remove one of: ." on a dead-end datum.
         graph.Nodes
-            .Where(static node =>
-                HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null
-                && !node.Component.CarriesMassBalance)
+            .Where(static node => HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null)
             .Select(static node => $"{node.Name}.p");
 
     /// <summary>What could be added to square an under-specified circuit.</summary>

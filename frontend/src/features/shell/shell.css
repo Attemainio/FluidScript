@@ -88,14 +88,11 @@
   text-decoration-skip-ink: none;
 }
 
+/* Colours and borders are set by the editor's view theme (EditorPane), which outranks
+   CodeMirror's light/dark base rules; only typography lives here. */
 .cm-tooltip {
   font-family: var(--font-ui);
   font-size: var(--text-body-size);
-  color: var(--text-primary);
-  background: var(--surface-overlay);
-  border: var(--hairline) solid var(--border-subtle);
-  border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-overlay);
 }
 
 .cm-tooltip.cm-tooltip-lint {

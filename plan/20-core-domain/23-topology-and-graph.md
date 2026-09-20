@@ -456,7 +456,7 @@ Inference rule I3 terminates open ports. What condition the created node carries
 |---|---|---|
 | Open port on a valve's bypass (`b`) | **Dead leg**: zero flow | A three-way valve used as a two-way. Zero flow is the physical truth. |
 | Open port on any other component | Zero flow, plus `FS2202` (warning) | Almost certainly an unfinished script |
-| A node with exactly one connection and no stated boundary | Zero flow, plus `FS2107` | Same |
+| A node with exactly one connection that is not an `inlet` or `outlet` | Zero flow, plus `FS2107`; a stated `p=` there is a datum on a stub, not a boundary (`D-86`, `D-115`) | Same |
 
 The first two rows are the **inferred** cases and the third the **declared** one, which is what `C-7`
 asked for: an I3 node carries zero flow and is a boundary in its own right. That is why the binder
@@ -481,7 +481,7 @@ than in the linear algebra.
 | `FS2205` | A boundary node with more than one connection | Error | `'{node}' is an {kind} with {count} connections. A boundary has one; split or merge the flow at a node after it.` |
 | Two stated pressures in one loop with no through-flow path between them | A second, contradictory datum | `FS2212` |
 | Every branch is reachable from the pressure datum | Isolated subgraph | `FS2213` |
-| No node has exactly one connection without a boundary condition | Dead end | `FS2107` |
+| No node has exactly one connection without being an `inlet` or `outlet` | Dead end | `FS2107` |
 | Every loop contains at least one flow-driving component | A passive loop can only have zero flow | `FS2214` (**warning**) |
 | Substance is resolvable and every state is inside its valid range at the initial guess | | `FS2215` |
 
@@ -678,8 +678,8 @@ individually reasonable and the interaction is invisible.
 | `FS2201` | No pressure stated anywhere in a connected component | Warning | `Using '{node}' as the pressure datum. Pressures are relative to it.` |
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
 | `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
-| `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.` |
-| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, and empty otherwise (`C-28`). |
+| `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither.` |
+| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, and empty otherwise (`C-28`); with no unmatched constraint `{list}` is every stated pressure, boundary or datum, and a stated pressure on a one-connection `node` adds `, or write '{node} outlet' (or inlet) if fluid crosses there: a node's p= holds the pressure level and passes no mass` (`C-106`) |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
 | `FS2213` | Isolated subgraph | Error | `'{list}' are not connected to the rest of the circuit.` |

@@ -86,7 +86,7 @@ public static class TopologyDiagnostics
     public static DiagnosticDescriptor UnpairedBoundary { get; } = new(
         "FS2204",
         DiagnosticSeverity.Error,
-        "'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.");
+        "'{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither.");
 
     /// <summary>A boundary node with more than one connection.</summary>
     /// <value><c>FS2205</c>, an error.</value>

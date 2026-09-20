@@ -378,6 +378,20 @@ swapped` in the one and `rotation 90 mirrored` in the other, two bends, length 6
 0. The sample swap was reverted before it was committed; the `6b` variant is gone. The step's final
 picture is the second one above with the sample's own letters.
 
+**Step 6c · the cooling loop as a consumer (2026-09-20, `C-105`).** `step-06c-cooling-load.fluid`:
+the same ring with `HE1 heat_exchanger power=-30 in.t=50 out.t=30` and a 60 °C supply. The user
+found it while testing the product: flipping the sign turned the picture into a chain -- `N1` on top
+of `N2`, the valve on the left side, `N3` under it -- and asked for the mirror of step 6. Measured:
+the sign routes the script to C18 (no positive duty, so C1 falls to the inlet as head and C2's ring is
+never attempted), and C18 lacked two things C2 had: a corner-taking member (C9) and a level free port
+at the corner junction (C8/C10's clause). Both added to C18, nothing else moved: `N1` at (−1.1, 0)
+level with `N2`; the valve at the bottom-left corner, `rotation 270 mirrored swapped`, `ab` from
+`HE1` on the right, `a` up the left side into `N2`, `b` left; `N3` at x = −1.1 under `N1`. Hard 0,
+soft 0, two bends, length 6.6 -- step 6's figures. Steps 1–11 byte-identical. Open from the same
+conversation and not taken: whether the layout should read `power`'s sign at all (`D-108`'s C1);
+the user's principle is that the drawing follows the connection structure only, and the argument
+either way is recorded under `C-105`.
+
 ### Step 7 · a ring with one injection branch
 
 `step-07-ring-one-branch.fluid`: the header's source `HS1 heat_exchanger out=60` (the power sized by

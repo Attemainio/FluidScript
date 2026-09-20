@@ -57,6 +57,38 @@ export function EditorPane(): React.ReactNode {
       return true;
     };
 
+    // CodeMirror's base theme paints a tooltip light (#f5f5f5) unless the editor declares itself
+    // dark, and a bare `.cm-tooltip` rule in the stylesheet loses to it on specificity -- which put
+    // white text on a white completion list in the dark theme. A view theme outranks the base theme
+    // by construction, so the overlay tokens are applied here and follow whichever theme is active.
+    const tooltipTheme = EditorView.theme({
+      '.cm-tooltip': {
+        color: 'var(--text-primary)',
+        backgroundColor: 'var(--surface-overlay)',
+        border: 'var(--hairline) solid var(--border-subtle)',
+        borderRadius: 'var(--radius-overlay)',
+        boxShadow: 'var(--shadow-overlay)',
+      },
+      '.cm-tooltip.cm-tooltip-autocomplete > ul > li': {
+        color: 'var(--text-primary)',
+      },
+      '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+        color: 'var(--text-primary)',
+        backgroundColor: 'var(--surface-sunken)',
+      },
+      '.cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail': {
+        color: 'var(--text-secondary)',
+      },
+      '.cm-tooltip.cm-tooltip-autocomplete .cm-completionMatchedText': {
+        color: 'var(--canvas-selection)',
+        textDecoration: 'none',
+      },
+      '.cm-tooltip.cm-completionInfo': {
+        color: 'var(--text-primary)',
+        backgroundColor: 'var(--surface-overlay)',
+      },
+    });
+
     configureDocuments([
       // The name assistive technology reads for the editable region (R-42).
       EditorView.contentAttributes.of({ 'aria-label': 'Script' }),
@@ -67,6 +99,7 @@ export function EditorPane(): React.ReactNode {
       fluidscriptLanguage,
       fluidscriptHighlighting,
       autocompletion({ override: [fluidscriptCompletion], activateOnTyping: true, icons: false }),
+      tooltipTheme,
       keymap.of([
         // Tab commits the selected item (52: Tab inserts the canonical keyword); Enter does too.
         { key: 'Tab', run: acceptCompletion },

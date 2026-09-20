@@ -954,6 +954,26 @@ internal sealed class LayoutEngine
         }
 
         var bottomMembers = cycle.GetRange(innerEnd + 1, end - innerEnd - 1);
+
+        // C9, mirrored to the ring's bottom-left corner (C-105): the last bottom member that can turn the flow
+        // from leftward to upward takes the corner, and the left side rises out of it instead of a bare bend
+        // beside it -- the case C18 had recorded as not built. A junction there is C10's (Corners), not this.
+        (Member Member, Transform Transform)? leftTurner = null;
+
+        if (corner is not null && bottomMembers.Count > 0 && !Wildcard(bottomMembers[^1].Component) && !_inline[bottomMembers[^1].Component])
+        {
+            var last = bottomMembers[^1];
+            var turning = Admitted(last.Component)
+                .Where(t => Outward(last.Component, last.InPort, t) == Direction.Right && Outward(last.Component, last.OutPort, t) == Direction.Up)
+                .ToList();
+
+            if (turning.Count > 0)
+            {
+                leftTurner = (last, turning[0]);
+                bottomMembers = bottomMembers.GetRange(0, bottomMembers.Count - 1);
+            }
+        }
+
         var items = cycle.GetRange(end + (cornerAt >= 0 ? 1 : 0), cycle.Count - end - (cornerAt >= 0 ? 1 : 0)).Select(static m => new Item(m, null)).ToList();
         PlacedAnchor cOut;
         PlacedAnchor cIn;
@@ -988,10 +1008,23 @@ internal sealed class LayoutEngine
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, cIn.Along(_margin).Y, right?.Component ?? -1);
         yBottom = Math.Min(yBottom, Under(hangers));
 
-        if (!Close(top, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], null, right, hangers, runs))
+        if (leftTurner is { } lt)
+        {
+            // The rail is where the turner's inlet lies; its outlet's tip must sit a margin under the corner's inlet.
+            var dIn = AnchorOffset(lt.Member.Component, lt.Member.InPort, lt.Transform)!.Value.Offset;
+            var dOut = AnchorOffset(lt.Member.Component, lt.Member.OutPort, lt.Transform)!.Value.Offset;
+            yBottom = Math.Min(yBottom, cIn.Along(_margin).Y - (dOut.Y - dIn.Y));
+        }
+
+        if (!Close(top, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], null, right, hangers, runs, leftTurner))
         {
             return Fail();
         }
+
+        // C8 reads a junction's free side against the loop's centre. This ring is built from its corner at the
+        // origin, so the centre had stayed there and the corner's own free port -- at zero distance from it --
+        // fell to the default order and went up; an open end there stands off the ring's side, level (C-105).
+        _loopCentre = new Point(cycle.Average(m => _centre[m.Component].X), cycle.Average(m => _centre[m.Component].Y));
 
         if (corner is null)
         {
@@ -1967,7 +2000,7 @@ internal sealed class LayoutEngine
     /// junctions (C10), the unit slid into the right side at the top rail's end, and the hanging branches' returns
     /// down into their bottom junctions. Appends the ring's remaining runs.
     /// </summary>
-    private bool Close((PlacedAnchor End, List<Point> Pending, Member Previous) top, Unit unit, double drop, double yBottom, List<Member> bottomMembers, List<Point> bottomStart, Member? leftJunction, Member? rightJunction, List<Hanger> hangers, List<(Member From, List<Point> Points)> runs)
+    private bool Close((PlacedAnchor End, List<Point> Pending, Member Previous) top, Unit unit, double drop, double yBottom, List<Member> bottomMembers, List<Point> bottomStart, Member? leftJunction, Member? rightJunction, List<Hanger> hangers, List<(Member From, List<Point> Points)> runs, (Member Member, Transform Transform)? leftTurner = null)
     {
         var (topEnd, topPending, topPrevious) = top;
 
@@ -1989,6 +2022,21 @@ internal sealed class LayoutEngine
             cursor = AnchorOf(lj.Component, lj.InPort);
             pending = [cursor.At];
             first--;
+        }
+        else if (leftTurner is { } lt)
+        {
+            // A member that turns the flow from leftward to upward takes the bottom-left corner (C9 mirrored): its
+            // inlet on the rail facing right, its outlet on the left side's line facing up, so the side's run ends on
+            // it and the rail starts from it.
+            var dIn = AnchorOffset(lt.Member.Component, lt.Member.InPort, lt.Transform)!.Value.Offset;
+            var dOut = AnchorOffset(lt.Member.Component, lt.Member.OutPort, lt.Transform)!.Value.Offset;
+            var at = bottomStart[^1];
+            Place(lt.Member.Component, lt.Transform, new Point(at.X - dOut.X, at.Y - dIn.Y));
+            pending.RemoveAt(pending.Count - 1);
+            pending.Add(AnchorOf(lt.Member.Component, lt.Member.OutPort).At);
+            bottomRuns.Add((lt.Member, pending));
+            cursor = AnchorOf(lt.Member.Component, lt.Member.InPort);
+            pending = [cursor.At];
         }
 
         for (var k = first; k >= 0; k--)

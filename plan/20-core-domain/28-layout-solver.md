@@ -439,7 +439,15 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   `chiller`) is a consumer, a stated positive power or a `heater`/`boiler` a source, and a load
   whose power is a curve (`power=heating`) is a consumer by its kind alone, since the layout is
   solved before any curve is read. Not built: a sourceless loop with a branch, and where the
-  bare corner should turn when the valve is the last member before the consumer.
+  bare corner should turn when the valve is the last member before the consumer. *Built 2026-09-20
+  (`C-105`, ladder step 6c):* the last bottom member that can turn the flow from leftward to upward
+  takes the bottom-left corner -- C9 mirrored, placed by its outlet on the left side's line and its
+  inlet on the rail -- and the left side rises out of it; a junction there stays C10's. The same fix
+  set the loop's centre for C8: this ring is built from its corner at the origin, so the centre had
+  stayed there and the corner junction's own free port, at zero distance from it, fell to the default
+  order and went up; it is now the ring members' mean, and the corner's open end goes level, where
+  C7 columns it with the other. The cooling loop written as a consumer (`load` or `power=-30`)
+  draws as the mirror of step 6, hard 0, soft 0, two bends, length 6.6.
 - **C19** *(step 11d, re-keyed under `D-115`, provisional)* -- **An inlet whose junction feeds two
   paths to one outlet's junction is the open form of the ring: the inlet's junction is the left end
   of the top rail and the outlet's junction, directly under it, the left end of the bottom rail; the

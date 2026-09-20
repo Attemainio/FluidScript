@@ -1,0 +1,22 @@
+# Layout ladder, step 6c (plan/20-core-domain/29-layout-ladder.md): the cooling loop as a consumer --
+# the same ring with a load on it and a 60 C supply, so the unsourced ring rule (C18) draws it: the
+# valve takes the bottom-left corner and the two boundaries stand in a column on the left (C-105).
+
+fluidscript 1
+circuit coolingLoop
+fluid water
+
+HE1 heat_exchanger power=-30 in.t=50 out.t=30
+3WV three_way_valve
+PU1 pump
+
+connections
+N1 - N2
+N2 - PU1
+PU1 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - N3 length=25 dn=25
+
+N1 inlet t=60 p=300
+N3 outlet p=280

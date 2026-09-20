@@ -192,8 +192,8 @@ The brief's example, unmodified, on first compile:
 │  ○ all   ● warnings   ○ errors               not solved — 1 error   ⌄    │
 ├──────────────────────────────────────────────────────────────────────────┤
 │  ✕  PU1     'PU1' is not connected to anything.                          │
-│  ▲  N1      'N1' is a dead end. Set t, p or flow to make it a boundary.  │
-│  ▲  N3      'N3' is a dead end. Set t, p or flow to make it a boundary.  │
+│  ▲  N1      'N1' is a dead end. Declare it 'inlet' or 'outlet' if …    │
+│  ▲  N3      'N3' is a dead end. Declare it 'inlet' or 'outlet' if …    │
 │                                                     6 info               │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
