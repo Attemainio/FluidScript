@@ -625,7 +625,8 @@ taps on each rail: supply `N3 → N6`, return `N10 → N7`, every load at 50/30 
 branches hang between the rails under `N3`, `N4`, `N5` at `x = 0.85, 4.85, 8.85` and over `N7`,
 `N8`, `N9` at the same `x`, each block 3.5 × 2.6 and slid right until it clears the one before it;
 the DHW branch, last on the ring, is the ring's right side. Eighteen bends, length 63.6, hard 0,
-soft 0. The one asymmetry: the last branch stands on the supply rail with its valve level with
+soft 0 (soft 6 since the audit counts a pipe along an outer edge, `C-87`, 2026-09-20: each next
+branch's supply drop and return brush the previous coil's clearance, `C-108`). The one asymmetry: the last branch stands on the supply rail with its valve level with
 the header, one margin higher than the three that hang, because the ring's right unit is placed by
 C11 and the hangers by C14.
 
@@ -657,7 +658,8 @@ hanging under `N3` at `x = 0.85`, the radiator block under `N4` at `4.85` with i
 the bottom-right facing on, the floor block stepped down from it at `[(9.35, −4.3), (12.85, −1.7)]`
 with its outlet facing left, the return running left under the radiator block to `N8` directly
 under `N4` on the return rail at `y = −4.9`, `N7` under `N3`, the DHW block the ring's right side.
-Sixteen bends, length 72.3, hard 0, soft 0; steps 1–8d and `header-200` unchanged. Accepted:
+Sixteen bends, length 72.3, hard 0, soft 0 (soft 1 since `C-87`, the same brushing as 8d); steps 1–8d
+and `header-200` unchanged. Accepted:
 "it looks fine."
 
 ### Step 9 · a tank between two supplies and two returns

@@ -221,9 +221,12 @@ supply header along the top and the return header along the bottom with the bran
 between them, which is `R-48`'s picture re-derived from topology; for an open supply-to-return
 path with no ring, `D-107`'s stacked branches remain the candidate (D).
 
-**Soft -- counted, and the fewer the better.** A pipe through a margin; a pipe running beside another
-closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running along a
-pipe (a signal crosses pipes freely: C16 hops it).
+**Soft -- counted, and the fewer the better.** A pipe through a margin, *or exactly along its edge*
+-- the clearance is `≥ m` between inner boxes, and a pipe one margin from a box it does not serve
+satisfied a strict interior test and drew as a line brushing the clearance (`C-87`); a sensor's
+clearance touching the pipe it measures is the rule of §29 and not a finding; a pipe running beside
+another closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running
+along a pipe (a signal crosses pipes freely: C16 hops it).
 
 **Priorities, in strict order, when a choice remains.**
 
@@ -251,7 +254,13 @@ cycle through inline nodes -- where both anchors sit on one point -- is enumerat
 from its own two components' clearance but never from their bodies; and a signal line is measured
 against every inner box but its two ends' (hard) and along every pipe (soft). `SceneAuditTests`
 holds each on a scene bent to break it: the loop samples mirrored, a pipe bent back through its
-own component, a signal through an exchanger and along a pipe.
+own component, a signal through an exchanger and along a pipe, and a pipe laid exactly along an
+unrelated box's outer edge. **Since the edge counts (2026-09-20), three pictures that were soft 0
+are not**: the parallel header's consumers pack at exactly one margin (C11's slide, C14's hang),
+so the next branch's supply drop and return run along the previous coil's outer edge for half a
+unit -- `08d` soft 6, `08e` soft 1, `header-200` soft 48, every one of them this shape. The audit is
+right and the packing is now an open question (`C-108`): a margin plus one raster step between
+consumers, decided when a picture is judged.
 
 ## C. The rules
 

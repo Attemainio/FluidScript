@@ -81,6 +81,29 @@ public sealed class SceneAuditTests
         Assert.Contains(soft, f => f.First == signal.ConnectionId && f.Second == pipe.ConnectionId && !f.Hard);
     }
 
+    [Fact]
+    public void APipeExactlyOnAnUnrelatedBoxsClearanceIsSoftAndASensorsClearanceIsNot()
+    {
+        // C-87. The clearance rule is >= m between inner boxes, so a pipe exactly one margin from a box
+        // it does not serve satisfied a strict interior test and drew as a line brushing the clearance.
+        // A pipe past a box it does not serve wants > m. A sensor stands one margin off the pipe it
+        // measures by rule (28 §29), so its clearance touching that pipe is not a finding.
+        var (scene, input) = Solve(File.ReadAllText(Path.Combine(Ladder, "step-10-instruments.fluid")));
+        var sensor = scene.Placements.First(static p => p.ComponentId == "TE1");
+        var measured = scene.Routes.First(r => r.Kind == "pipe"
+            && r.Points.Zip(r.Points.Skip(1)).Any(s => Math.Abs(s.First.Y - sensor.Outer.Y) < 1e-9 && Math.Abs(s.Second.Y - sensor.Outer.Y) < 1e-9));
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "pipe-in-outer"));
+
+        // The same pipe laid along the *valve's* outer top edge, a box it does not serve (c2/c3 run
+        // HE1 -> N1 -> LOAD; CV1 is on the return).
+        var victim = scene.Placements.First(static p => p.ComponentId == "CV1");
+        var brushing = measured with { Points = [new Point(victim.Outer.X - 1, victim.Outer.Top), new Point(victim.Outer.Right + 1, victim.Outer.Top)] };
+
+        var soft = SceneAudit.Findings(scene with { Routes = Swap(scene.Routes, brushing) }, input.Model).Where(static f => f.Kind == "pipe-in-outer").ToList();
+        Assert.Contains(soft, f => f.First == measured.ConnectionId && f.Second == "CV1" && !f.Hard);
+    }
+
     private static ImmutableArray<Route> Swap(ImmutableArray<Route> routes, Route replacement) =>
         [.. routes.Select(r => r.ConnectionId == replacement.ConnectionId ? replacement : r)];
 

@@ -42,6 +42,12 @@ public static class SceneAudit
         var inline = scene.Placements.Where(static p => p.IsInline).Select(static p => p.ComponentId).ToHashSet(StringComparer.Ordinal);
         var pipes = scene.Routes.Where(static r => r.Kind == "pipe").ToList();
         var owners = pipes.Select(r => Owners(r, model, inline)).ToList();
+        // A sensor stands one margin off the pipe it observes (28 §29), so its clearance touches that
+        // pipe by rule; the brushing test below excuses it, and only it.
+        var instruments = scene.Routes
+            .Where(static r => r.Kind == "signal")
+            .Select(static r => r.ConnectionId.Split(':')[0])
+            .ToHashSet(StringComparer.Ordinal);
 
         for (var i = 0; i < boxes.Count; i++)
         {
@@ -77,7 +83,8 @@ public static class SceneAudit
                     {
                         findings.Add(new Finding("pipe-in-inner", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters inner {Text(box.Inner)}"));
                     }
-                    else if (!owners[r].Contains(box.ComponentId) && Enters(box.Outer, a, b))
+                    else if (!owners[r].Contains(box.ComponentId)
+                        && (Enters(box.Outer, a, b) || (!instruments.Contains(box.ComponentId) && Brushes(box.Outer, a, b))))
                     {
                         findings.Add(new Finding("pipe-in-outer", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters outer {Text(box.Outer)}"));
                     }
@@ -586,6 +593,23 @@ public static class SceneAudit
         return vertical
             ? a.X > outer.X + Eps && a.X < outer.Right - Eps && Math.Max(Math.Min(a.Y, b.Y), outer.Y) < Math.Min(Math.Max(a.Y, b.Y), outer.Top) - Eps
             : a.Y > outer.Y + Eps && a.Y < outer.Top - Eps && Math.Max(Math.Min(a.X, b.X), outer.X) < Math.Min(Math.Max(a.X, b.X), outer.Right) - Eps;
+    }
+
+    /// <summary>
+    /// Whether a segment runs along an outer box's edge for any length: on the boundary, not inside it.
+    /// The clearance rule is <c>≥ m</c> between inner boxes, and a pipe exactly a margin from a box it
+    /// does not serve satisfies it and draws as a line brushing the box's clearance (C-87). Strict
+    /// <see cref="Enters"/> called that clean; a pipe past a box it does not serve wants <c>&gt; m</c>.
+    /// </summary>
+    private static bool Brushes(Box outer, Point a, Point b)
+    {
+        var vertical = Math.Abs(a.X - b.X) < Eps;
+
+        return vertical
+            ? (Math.Abs(a.X - outer.X) < Eps || Math.Abs(a.X - outer.Right) < Eps)
+                && Math.Max(Math.Min(a.Y, b.Y), outer.Y) < Math.Min(Math.Max(a.Y, b.Y), outer.Top) - Eps
+            : (Math.Abs(a.Y - outer.Y) < Eps || Math.Abs(a.Y - outer.Top) < Eps)
+                && Math.Max(Math.Min(a.X, b.X), outer.X) < Math.Min(Math.Max(a.X, b.X), outer.Right) - Eps;
     }
 
     private static bool Within(Box box, Box stretch) =>
