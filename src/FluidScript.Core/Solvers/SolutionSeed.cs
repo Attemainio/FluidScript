@@ -147,11 +147,13 @@ public static class SolutionSeed
     /// since <c>D-121</c> the substance would allow it. <see cref="Integrate"/> starts its walk at the
     /// pressure scale and the datum row pins the picked node to 0, so every closed circuit begins
     /// 100 kPa above where its own datum row says it must end and Newton's first step slides the whole
-    /// field down by that. Sliding the seed there instead was measured (<c>S-66</c>): the substation's
-    /// seed is nearly singular in its promoted Kv, its first Newton step is enormous in every direction,
-    /// and the 100 kPa the datum row takes off is what keeps that step's first accepted fraction inside
-    /// the domain. The offset is a linear residual Newton removes exactly; the singular seed is the
-    /// defect, and it is filed rather than papered over here.
+    /// field down by that. Sliding the seed there instead was measured twice (<c>S-66</c>): first with
+    /// the seed nearly singular in its promoted Kv, then again on 2026-09-20 with that fixed (the walk
+    /// now reads promoted values, pivot ratio 3e-6 to 1e-2), and the substation still went
+    /// <c>NonFinite</c> at zero steps -- the walk from a datum at 0 puts <c>NSUP</c> at −70 kPa
+    /// absolute before Newton starts, because a seeded 2.2 m head cannot lift what the ring's drops
+    /// take at the seeded flow. The offset is a linear residual Newton removes exactly, and the seed
+    /// keeps it.
     /// </para>
     /// </remarks>
     private static void Thermal(CircuitGraph graph, SystemLayout layout, double[] values)
@@ -166,6 +168,13 @@ public static class SolutionSeed
         var datum = Datum(graph);
         var steps = Steps(graph);
         var levels = Levels(graph, layout, values, datum, SpecificHeat(graph, level, datum));
+
+        // Promotions first, so the pressure walk reads the Kv and head the solve will start from
+        // rather than the bootstrap's provisional 630 (`S-66`): walked with the provisional, the
+        // substation's promoted valve was seeded with 11 Pa across it and the Kv column's pivot was
+        // 1.2e-4 at the seed, which made the first Newton step enormous in every direction.
+        Promoted(graph, layout, values);
+
         var integrated = Integrate(graph, layout, values, level, datum);
 
         for (var index = 0; index < graph.Nodes.Length; index++)
@@ -194,8 +203,54 @@ public static class SolutionSeed
                 _ => 0,
             };
         }
+    }
 
-        Promoted(graph, layout, values);
+    /// <summary>A component's resolvable parameters as the seed holds them, promoted values included.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the state vector keeps each promoted parameter.</param>
+    /// <param name="values">The seed so far; <see cref="Promoted"/> must have run.</param>
+    /// <param name="element">The component.</param>
+    /// <returns>
+    /// One value per <c>IFlowComponent.Resolvable</c> entry, the promoted ones read from the seed, or
+    /// <see langword="null"/> when nothing of this component's is promoted and its own values serve.
+    /// </returns>
+    private static double[]? Parameters(CircuitGraph graph, SystemLayout layout, double[] values, IFlowComponent element)
+    {
+        double[]? parameters = null;
+
+        for (var index = layout.PromotionOffset; index < layout.Count; index++)
+        {
+            var declaration = layout.Unknowns[index];
+
+            if (!string.Equals(declaration.OwnerComponentId, element.Name, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var parameter = declaration.Name[(declaration.OwnerComponentId.Length + 1)..];
+
+            // Kv and head only. A promoted position is seeded at mid-travel (`S-50`), and letting the
+            // walk lay the legs' drops at 0.5 instead of the valve's own 1.0 was measured (2026-09-20):
+            // it cost one to two first-pass iterations on every three-way-valve circuit in the corpus
+            // (cooling loop 5 to 7, header 5 to 6, s55 9 to 11) and bought nothing the solve needed.
+            // The Kv and head columns are the ones that were nearly singular; the position column was not.
+            if (string.Equals(parameter, "position", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+
+            for (var slot = 0; slot < element.Resolvable.Length; slot++)
+            {
+                if (string.Equals(element.Resolvable[slot].Name, parameter, StringComparison.Ordinal))
+                {
+                    parameters ??= [.. element.Resolvable.Select(static resolvable => resolvable.Value)];
+                    parameters[slot] = values[index];
+                }
+            }
+        }
+
+        return parameters;
     }
 
     /// <summary>The pressure field the components' own laws imply at the seeded flows.</summary>
@@ -341,7 +396,7 @@ public static class SolutionSeed
             if (!across.TryGetValue(element, out var offsets))
             {
                 offsets = carried.TryGetValue(element, out var flows)
-                    ? BranchResistance.Across(graph, state, element, flows)
+                    ? BranchResistance.Across(graph, state, element, flows, Parameters(graph, layout, values, element))
                     : new double[Math.Max(element.Ports.Length, 1)];
 
                 across[element] = offsets;
@@ -381,9 +436,9 @@ public static class SolutionSeed
             // at 475 kPa from its primary's 600/350, and Newton's step to the datum row 475 kPa away was
             // what its line search kept cutting (`P4.1`). Not at the datum's own 0 Pa, though since
             // `D-121` water would allow it: sliding the finished field so that the datum sits at 0 was
-            // tried and withdrawn (`S-66`), because the substation's seed is nearly singular in its
-            // promoted Kv and only the 100 kPa the datum row then takes off keeps its first step in
-            // domain. The offset is a datum-row residual Newton removes in one linear step.
+            // tried and withdrawn twice (`S-66`) -- the second time with the seed well conditioned --
+            // because the walk then leaves nodes below zero absolute before Newton starts. The offset
+            // is a datum-row residual Newton removes in one linear step.
             _ = Place(start, 0, Anchored(start) ? level : Tolerances.PressureScale);
 
             var queue = new Queue<IFlowComponent>();
@@ -435,7 +490,7 @@ public static class SolutionSeed
                         }
                         var drop = part is Pump { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
                             ? -state.Density.SiValue * UnitTable.StandardGravity * NominalPumpHead
-                            : BranchResistance.Of(graph, state, part, flow);
+                            : BranchResistance.Of(graph, state, part, flow, Parameters(graph, layout, values, part));
 
                         running += forward ? -drop : drop;
                     }

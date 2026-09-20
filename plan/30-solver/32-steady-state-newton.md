@@ -274,6 +274,20 @@ than by [`24`](../20-core-domain/24-auto-sizing.md)'s exact propagation (`C-44`)
 branch falls back to a nominal 0.1 kg/s. That one is a genuine weakness and costs iterations rather
 than correctness.
 
+**The pressure walk reads the promoted values the solve will start from, not the component's own**
+(`S-66`, closed 2026-09-20). A promoted `kv` is seeded from the Kv law at the seeded flow and a
+promoted `head` at a nominal 2.2 m *before* the walk lays the pressures, and the walk evaluates each
+component with those values. Walked with the bootstrap's provisional Kv 630 instead, the substation's
+promoted valve was seeded with 11 Pa across it, and since `∂(Kv law)/∂Kv ∝ √Δp` the Kv column's pivot
+at the seed was 1.2e-4 against a largest of 39 — a ratio of 3e-6, and a first Newton step enormous in
+every direction. With the walk reading the seeded Kv the ratio is 1.4e-2 on the substation and 6.7e-2
+on the `head=15` loop, which converges in four iterations instead of six; no other script in the corpus
+changed by an iteration. A promoted *position* is deliberately not read by the walk: it is seeded at
+mid-travel (`S-50`) and laying the legs' drops at 0.5 instead of the valve's own 1.0 was measured to
+cost one to two first-pass iterations on every three-way-valve circuit while buying nothing the solve
+needed. The solve report prints the seed's conditioning beside the solution's and the iterations of
+each sizing pass, because both were what this measurement needed and neither existed.
+
 ## Contracts
 
 ```csharp

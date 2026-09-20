@@ -159,7 +159,7 @@ public sealed class SolveExplanationTests
         var report = await Explain("m2-substation.fluid");
 
         Assert.Contains("--- iterations", report, StringComparison.Ordinal);
-        Assert.Matches(@"\n      1 +[0-9.E+-]+ +1  HX1: HX1 side-1 drop +SP\.head", report);
+        Assert.Matches(@"\n      1 +[0-9.E+-]+ +1  (HX1: HX1|LOAD: LOAD) side-1 drop +SP\.head", report);
         Assert.Contains("Converged", report, StringComparison.Ordinal);
         Assert.Matches(@"NPS -> NPR +0\.8953  forward", report);
         Assert.Matches(@"NPS +85\.00 +600\.00", report);

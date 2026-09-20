@@ -44,6 +44,14 @@ public sealed record OuterLoopResult
     /// </value>
     public required int Iterations { get; init; }
 
+    /// <summary>Gets the Newton iterations of each pass in order, retries included.</summary>
+    /// <value>
+    /// One entry per solve the loop ran, so that a change to the seed can be read per pass rather than
+    /// as one sum (<c>S-66</c>): a seed that helps the first pass and hurts the third shows here and
+    /// nowhere else. Sums to <see cref="Iterations"/>.
+    /// </value>
+    public required ImmutableArray<int> PassIterations { get; init; }
+
     /// <summary>Gets whether the sizes stopped moving.</summary>
     /// <value>
     /// <see langword="false"/> means the cap was reached with sizes still changing — <c>FS2301</c>'s
@@ -293,6 +301,7 @@ public sealed class OuterLoop(
         SolveResult? solve = null;
         var passes = 0;
         var iterations = 0;
+        var perPass = ImmutableArray.CreateBuilder<int>();
         var hash = string.Empty;
 
         // What the loop itself has to say, beyond what the solver and the sizers said: a warm start
@@ -360,6 +369,7 @@ public sealed class OuterLoop(
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
                 .ConfigureAwait(false);
             iterations += solve.Iterations;
+            perPass.Add(solve.Iterations);
 
             if (!solve.Converged)
             {
@@ -384,7 +394,7 @@ public sealed class OuterLoop(
             if (next.Matches(overlay))
             {
                 return Result.Success(
-                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid) }, next, WithStated(model, bases), notes, passes, iterations, settled: true, hash));
+                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid) }, next, WithStated(model, bases), notes, passes, iterations, perPass.ToImmutable(), settled: true, hash));
             }
 
             previous = overlay;
@@ -399,7 +409,7 @@ public sealed class OuterLoop(
                 ("name", name),
                 ("state", "the pass cap is not positive")))
             : Result.Success(
-                Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid).Add(NotSettled(previous, overlay)) }, overlay, WithStated(model, bases), notes, passes, iterations, settled: false, hash));
+                Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid).Add(NotSettled(previous, overlay)) }, overlay, WithStated(model, bases), notes, passes, iterations, perPass.ToImmutable(), settled: false, hash));
     }
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
@@ -430,6 +440,7 @@ public sealed class OuterLoop(
         ImmutableArray<string> notes,
         int passes,
         int iterations,
+        ImmutableArray<int> passIterations,
         bool settled,
         string topologyHash) =>
         new()
@@ -443,6 +454,7 @@ public sealed class OuterLoop(
             Notes = notes,
             Passes = passes,
             Iterations = iterations,
+            PassIterations = passIterations,
             Settled = settled,
             TopologyHash = topologyHash,
         };

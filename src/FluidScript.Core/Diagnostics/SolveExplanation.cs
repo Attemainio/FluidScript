@@ -45,7 +45,7 @@ public static class SolveExplanation
     {
         ArgumentNullException.ThrowIfNull(result);
 
-        return Render(result.Graph, name, result.Solve, result.Bases, result.Notes, result.Passes);
+        return Render(result.Graph, name, result.Solve, result.Bases, result.Notes, result.Passes, result.PassIterations);
     }
 
     /// <summary>Explains a circuit that has not been solved, or could not be.</summary>
@@ -53,7 +53,7 @@ public static class SolveExplanation
     /// <param name="name">The script's name.</param>
     /// <returns>The report, as lines of text.</returns>
     public static string Render(CircuitGraph graph, string name = "circuit") =>
-        Render(graph, name, solve: null, bases: null, notes: default, passes: 0);
+        Render(graph, name, solve: null, bases: null, notes: default, passes: 0, passIterations: default);
 
     /// <summary>Explains a run whether or not it produced a result.</summary>
     /// <param name="run">What <c>OuterLoop.RunAsync</c> returned.</param>
@@ -77,14 +77,15 @@ public static class SolveExplanation
         SolveResult? solve,
         ImmutableDictionary<string, string>? bases,
         ImmutableArray<string> notes,
-        int passes)
+        int passes,
+        ImmutableArray<int> passIterations)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
         var report = new StringBuilder();
         var posedness = WellPosedness.Check(graph);
 
-        Summary(report, name, posedness, solve, passes);
+        Summary(report, name, posedness, solve, passes, passIterations);
         Iterations(report, solve);
         Counting(report, posedness);
         Partition(report, posedness);
@@ -137,7 +138,8 @@ public static class SolveExplanation
         string name,
         WellPosednessResult posedness,
         SolveResult? solve,
-        int passes)
+        int passes,
+        ImmutableArray<int> passIterations)
     {
         report.AppendLine(CultureInfo.InvariantCulture, $"=== {name}");
 
@@ -164,7 +166,13 @@ public static class SolveExplanation
 
             if (passes > 0)
             {
-                report.AppendLine(CultureInfo.InvariantCulture, $"    sizing       {passes} pass(es)");
+                // Per pass, because a seed change moves them unevenly (S-66): a sum hides a first pass
+                // that got cheaper behind a third that got dearer.
+                var perPass = passIterations.IsDefaultOrEmpty
+                    ? string.Empty
+                    : $", {string.Join(" + ", passIterations)} iterations";
+
+                report.AppendLine(CultureInfo.InvariantCulture, $"    sizing       {passes} pass(es){perPass}");
             }
         }
 
@@ -1060,6 +1068,21 @@ public static class SolveExplanation
         report.AppendLine(CultureInfo.InvariantCulture,
             $"    rank         {rank}: {undetermined} unknown(s) nothing determines, "
             + $"{dependent} equation(s) the others imply");
+
+        // The seed's conditioning beside the solution's, because the seed is where a first step goes
+        // wrong: a nearly singular pivot there is a first step enormous in every direction, and it is
+        // invisible at the solved iterate (S-66). Printed only when the two differ.
+        if (solve is not null && Jacobian(system, seed.Values.AsSpan(), rows, columns) is { } atSeed)
+        {
+            var seedPivots = Pivots([.. atSeed], rows, columns);
+            var seedLargest = seedPivots.Length == 0 ? 0 : seedPivots.Max();
+            var seedSmallest = seedPivots.Length == 0 ? 0 : seedPivots.Min();
+            var seedRank = seedPivots.Count(pivot => seedLargest > 0 && pivot / seedLargest >= RankTolerance);
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    at the seed  pivots largest {seedLargest:G4}, smallest {seedSmallest:G4}, "
+                + $"ratio {(seedLargest > 0 ? seedSmallest / seedLargest : 0):G4}; rank {seedRank}");
+        }
 
         if (undetermined == 0 && dependent == 0)
         {

@@ -46,6 +46,11 @@ public static class BranchResistance
     /// <param name="state">The fluid to evaluate the law against.</param>
     /// <param name="element">The component.</param>
     /// <param name="flow">kg/s through it.</param>
+    /// <param name="parameters">
+    /// The component's resolvable parameters as the caller holds them -- a promoted Kv or head the
+    /// seed has already chosen -- or <see langword="null"/> to evaluate against the component's own
+    /// values. Indexed as <c>IFlowComponent.Resolvable</c> declares them (<c>S-66</c>).
+    /// </param>
     /// <returns>Pa, positive against the flow; zero where its own laws determine none.</returns>
     /// <remarks>
     /// <para>
@@ -64,7 +69,8 @@ public static class BranchResistance
     /// Reading by it returned a tank's energy imbalance in watts as though it were a pressure.
     /// </para>
     /// </remarks>
-    public static double Of(CircuitGraph graph, FluidState state, IFlowComponent element, double flow)
+    public static double Of(
+        CircuitGraph graph, FluidState state, IFlowComponent element, double flow, double[]? parameters = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(element);
@@ -81,7 +87,7 @@ public static class BranchResistance
             // No row in pascals. A two-port component still has one drop across it, and solving its own
             // law for the port pressures is the only way to learn what that drop is.
             var solved = element.Ports.Length == 2
-                ? Across(graph, state, element, [flow, -flow])
+                ? Across(graph, state, element, [flow, -flow], parameters)
                 : [0, 0];
 
             return solved[0] - solved[1];
@@ -95,7 +101,7 @@ public static class BranchResistance
         Array.Fill(flows, flow);
 
         element.EvaluateResiduals(
-            new SolveContext(graph.Substance, ports, flows, Own(element, state)), residuals);
+            new SolveContext(graph.Substance, ports, flows, Own(element, state), parameters), residuals);
 
         return double.IsFinite(residuals[ordinal]) ? -residuals[ordinal] : 0;
     }
@@ -105,6 +111,10 @@ public static class BranchResistance
     /// <param name="state">The fluid to evaluate the laws against.</param>
     /// <param name="element">The component.</param>
     /// <param name="flows">kg/s into the component at each of its ports, one entry per port.</param>
+    /// <param name="parameters">
+    /// The component's resolvable parameters as the caller holds them, or <see langword="null"/> for
+    /// its own values; see <see cref="Of"/>.
+    /// </param>
     /// <returns>
     /// Pa at each port, relative to port 0, which is zero. All zero where the component's own laws do
     /// not determine them.
@@ -133,7 +143,7 @@ public static class BranchResistance
     /// </para>
     /// </remarks>
     public static double[] Across(
-        CircuitGraph graph, FluidState state, IFlowComponent element, double[] flows)
+        CircuitGraph graph, FluidState state, IFlowComponent element, double[] flows, double[]? parameters = null)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(element);
@@ -158,14 +168,14 @@ public static class BranchResistance
         {
             Fill(ports, state, pressures);
             element.EvaluateResiduals(
-                new SolveContext(graph.Substance, ports, flows, unknowns), residuals);
+                new SolveContext(graph.Substance, ports, flows, unknowns, parameters), residuals);
 
             for (var port = 1; port < count; port++)
             {
                 pressures[port] += Probe;
                 Fill(ports, state, pressures);
                 element.EvaluateResiduals(
-                    new SolveContext(graph.Substance, ports, flows, unknowns), probed);
+                    new SolveContext(graph.Substance, ports, flows, unknowns, parameters), probed);
                 pressures[port] -= Probe;
 
                 for (var row = 0; row < residuals.Length; row++)
