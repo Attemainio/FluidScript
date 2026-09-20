@@ -235,9 +235,32 @@ audited*; `ModelContractBuilderTests.ALayoutThatBreaksItsOwnStandardSaysSoWithFS
 on a two-pump ring the rules still cannot seat, and must move to another breaching script when they
 learn it).
 
-**Open:** a two-member ring with no source and no consumer (`PU1 - PU2 - PU1`, `PU1 - V1 - PU1`)
-still falls to C5 and breaches; it now says so with `FS5002` rather than drawing as if right. A
-member whose port is anchored inside its symbol has no stub on the outer box and is left to C5 too.
+**Open:** a member whose port is anchored inside its symbol has no stub on the outer box and is
+left to C5.
+
+### Step 3d · a ring of two with neither source nor consumer
+
+`step-03d-two-pump-ring.fluid`: `PU1 pump`, `PU2 pump`; `PU1 - PU2 - PU1`. And
+`step-03d-pump-valve-ring.fluid`: `PU1 pump`, `V1 valve`; `PU1 - V1 - PU1`. Neither solves; both are
+`# unsolved on purpose`. Filed as `C-102` on 2026-09-18 from probing `C-101`'s fix: seven hard
+findings each, the same fault as the ring of one, one member wider -- C2 wants a source, C18 an
+exchanger, C20 takes only a ring of one, so C5 placed them as a chain and the closing run went
+leftwards along the second member's centreline through its box.
+
+**Drawn (2026-09-20, C18 widened):** any boxed member but the head may take the consumer's seat, the
+first that is not a pump for choice, so the pump stays on the top rail; a ring of pumps seats the one
+that is not the head. Two pumps: `PU2` is the head (first declared member, nothing else to go on) on
+the top rail at `(1, 0)`, `PU1` stands on the right side at `(2.5, −1)` turned to face the top rail,
+the return runs under both and up the bare left side; four bends, length 7, hard 0, soft 0, clockwise.
+Pump and valve: `V1` the head on the top rail, `PU1` on the right side, the same picture. The
+guardrail test (`ALayoutThatBreaksItsOwnStandardSaysSoWithFS5002`) moved to two bare nodes joined
+twice, `N1 - N2 - N1`, which no rule seats: the fallback stacks the nodes and the two direct links
+overlap (hard 5).
+
+**Rules established:** C18 widened: the consumer's seat falls to any boxed member but the head when
+nothing has a duty and nothing is an exchanger.
+
+**Open:** a ring of bare nodes.
 
 ### Step 4 · a valve on the return
 

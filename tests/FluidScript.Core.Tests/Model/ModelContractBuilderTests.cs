@@ -320,10 +320,11 @@ public sealed class ModelContractBuilderTests
     {
         // C-101: the audit's hard checks ran over fixtures only, so a user's script could get a picture the
         // engine would have failed on. Now every layout is audited and a hard breach is a warning on the wire.
-        // Two pumps on a ring have no source and no consumer, so no ring rule seats them and the chain rule
-        // routes the closing pipe through the second pump's box; when a rule learns this shape, this test
-        // needs a new breaching script, not deleting -- the guardrail must stay provably live.
-        var breached = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 1\n\ncircuit plant\n\nPU1 pump\nPU2 pump\n\nconnections\nPU1 - PU2 - PU1\n"));
+        // Two bare nodes joined twice have no boxed member for any ring rule to seat (the two-pump ring that
+        // stood here breaches no more since C-102 seated it), so every form declines, the fallback stacks
+        // the nodes and the two direct links overlap; when a rule learns this shape too, this test needs a
+        // new breaching script, not deleting -- the guardrail must stay provably live.
+        var breached = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 1\n\ncircuit plant\n\nconnections\nN1 - N2 - N1\n"));
         var ring = ModelContractBuilder.Build(ContractFixture.Compile("fluidscript 1\n\ncircuit plant\n\nPU1 pump\n\nconnections\nPU1 - PU1\n"));
 
         var raised = breached.Diagnostics.Where(static d => d.Code == "FS5002").ToArray();

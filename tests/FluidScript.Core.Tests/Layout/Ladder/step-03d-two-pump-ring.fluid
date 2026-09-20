@@ -1,0 +1,12 @@
+# unsolved on purpose: layout ladder, step 3d (plan/20-core-domain/29-layout-ladder.md): a ring of two members with
+# neither a source nor a consumer (C-102). Nothing has a duty and nothing is an exchanger, so C18 seats the
+# member that is not the head -- the second pump stands on the right side and the first stays on the top rail.
+
+fluidscript 1
+circuit plant
+
+PU1 pump
+PU2 pump
+
+connections
+PU1 - PU2 - PU1

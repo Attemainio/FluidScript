@@ -167,7 +167,7 @@ internal sealed class LayoutEngine
                 var drawn = Tried(subject, "C2 sourced loop", () => Loop(head))
                     || Tried(subject, "C20 ring of one", () => Ring(head, fragment))
                     || Tried(subject, "C19 open supply-to-return", () => Open(head, fragment))
-                    || Tried(subject, "C18 unsourced ring", () => Closed(fragment));
+                    || Tried(subject, "C18 unsourced ring", () => Closed(fragment, head));
 
                 if (!drawn)
                 {
@@ -924,7 +924,7 @@ internal sealed class LayoutEngine
     /// is still a ring (<c>C-100</c>): its first exchanger takes the consumer's seat, so the loop reads as a
     /// loop before it solves.
     /// </summary>
-    private bool Closed(List<int> fragment)
+    private bool Closed(List<int> fragment, int head)
     {
         var consumer = fragment.Where(i => Duty(i) is not null).OrderBy(i => Duty(i)).ThenBy(static i => i).FirstOrDefault(-1);
 
@@ -933,9 +933,18 @@ internal sealed class LayoutEngine
             consumer = fragment.Where(i => _graph.Components[i] is HeatExchanger).Order().FirstOrDefault(-1);
         }
 
+        // A ring with no duty and no exchanger -- two pumps, a pump and a valve -- is still a ring (C-102):
+        // any member but the head can take the consumer's seat, and the first that is not a pump does, so
+        // the pump stays on the top rail; a ring of pumps seats the one that is not the head.
         if (consumer < 0)
         {
-            return Decline("no exchanger to take the consumer's seat");
+            var seats = fragment.Where(i => i != head && !Inline(i) && !Wildcard(i)).Order().ToList();
+            consumer = seats.FirstOrDefault(i => _graph.Components[i] is not Pump, seats.FirstOrDefault(-1));
+        }
+
+        if (consumer < 0)
+        {
+            return Decline("no member besides the head to take the consumer's seat");
         }
 
         if (Cycle(consumer) is not { } cycle)

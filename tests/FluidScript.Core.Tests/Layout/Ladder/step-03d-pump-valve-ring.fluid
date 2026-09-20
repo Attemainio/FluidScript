@@ -1,0 +1,12 @@
+# unsolved on purpose: layout ladder, step 3d (plan/20-core-domain/29-layout-ladder.md): a pump and a valve on a ring
+# with nothing that gains or loses heat (C-102). The valve is the first declared member and the head; the pump takes
+# the consumer's seat on the right side.
+
+fluidscript 1
+circuit plant
+
+PU1 pump
+V1 valve
+
+connections
+PU1 - V1 - PU1
