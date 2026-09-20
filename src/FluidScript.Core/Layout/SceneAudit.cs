@@ -84,12 +84,35 @@ public static class SceneAudit
                         findings.Add(new Finding("pipe-in-inner", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters inner {Text(box.Inner)}"));
                     }
                     else if (!owners[r].Contains(box.ComponentId)
-                        && (Enters(box.Outer, a, b) || (!instruments.Contains(box.ComponentId) && Brushes(box.Outer, a, b))))
+                        && (Enters(box.Outer, a, b) || (!instruments.Contains(box.ComponentId) && Brushes(box.Outer, a, b)))
+                        && !SiblingRun(box, r))
                     {
                         findings.Add(new Finding("pipe-in-outer", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters outer {Text(box.Outer)}"));
                     }
                 }
             }
+        }
+
+        // A terminal node is a point and its clearance a convention (C-96): where its one pipe and
+        // another are two runs of one symbol -- the tank's two supplies, at the symbol's port pitch --
+        // the other run passing inside the node's clearance is the same allowance the beside test
+        // makes below, and not a finding. A node with a body's worth of connections keeps its clearance.
+        bool SiblingRun(Placement box, int r)
+        {
+            if (box.Anchors.Count != 1)
+            {
+                return false;
+            }
+
+            for (var s = 0; s < pipes.Count; s++)
+            {
+                if (s != r && owners[s].Contains(box.ComponentId) && owners[s].Any(o => o != box.ComponentId && owners[r].Contains(o)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         for (var r = 0; r < pipes.Count; r++)

@@ -104,6 +104,24 @@ public sealed class SceneAuditTests
         Assert.Contains(soft, f => f.First == measured.ConnectionId && f.Second == "CV1" && !f.Hard);
     }
 
+    [Fact]
+    public void ATerminalNodesClearanceYieldsToASiblingRunOfTheSameSymbol()
+    {
+        // C-96. At `spacing 1` the tank's inlet ports are 0.96 apart, under the margin, so the second
+        // supply's pipe ran 0.14 inside the first supply's outer box: soft 2 on step 9 and on the storage
+        // header. A terminal node is a point and its clearance a convention; where its pipe and another
+        // are two runs of one symbol at the symbol's port pitch, the other run is allowed through it --
+        // the same allowance the beside test already makes. At 0.5 nothing changes.
+        var source = File.ReadAllText(Path.Combine(Ladder, "step-09-tank.fluid"))
+            .Replace("fluidscript 1\n", "fluidscript 1\nspacing 1\n", StringComparison.Ordinal)
+            .Replace("fluidscript 1\r\n", "fluidscript 1\r\nspacing 1\r\n", StringComparison.Ordinal);
+        var (scene, input) = Solve(source);
+
+        Assert.Equal(1, scene.Margin);
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "pipe-in-outer"));
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard));
+    }
+
     private static ImmutableArray<Route> Swap(ImmutableArray<Route> routes, Route replacement) =>
         [.. routes.Select(r => r.ConnectionId == replacement.ConnectionId ? replacement : r)];
 

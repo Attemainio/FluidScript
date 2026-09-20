@@ -98,6 +98,11 @@ Every investigation of a circuit follows the same loop:
 5. Rerun the script and repeat from step 2.
 
 Do not diagnose a circuit from a grep excerpt, its termination headline, or only the largest residual.
+
+The same loop for a picture: a variant dropped in `diagnostics/scratch/` is drawn by `LayoutDiagnostics`
+as `28` §31 text and SVG beside the samples, and the whole `SceneText` -- components, connections,
+placement trace, raster, validation, interference -- is read before a rule is touched. One scratch
+folder serves both harnesses, so one file gives a variant its solve report and its picture.
 The report is one causal record and must be read as one.
 
 **The budget is execution time, not what `dotnet test` prints.** Measured on the reference

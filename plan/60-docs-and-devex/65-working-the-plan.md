@@ -115,8 +115,10 @@ A row whose numbers predate a rule change is not reopened: it stays open, gets a
 DOTNET_GCHeapHardLimit=0x100000000 timeout 900 \
   ~/.dotnet-artifacts/bin/FluidScript.Core.Tests/debug/FluidScript.Core.Tests \
   -filter "/*/FluidScript.Core.Tests.Performance/CircuitDiagnostics/*"
-# layout: the ladder writes diagnostics/layout-ladder/*.txt
+# layout: the ladder writes diagnostics/layout-ladder/*.txt; a variant in diagnostics/scratch/ is drawn
+# to diagnostics/layout/scratch-<name>.txt and .svg
 ... -filter "/*/FluidScript.Core.Tests.Layout/LayoutLadderTests/*"
+... -filter "/*/FluidScript.Core.Tests.Performance/LayoutDiagnostics/*"
 ```
 
 2. **Move the row** to the top of the Closed table: `| id | effort-actual | documents | **what was

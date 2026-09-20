@@ -224,7 +224,10 @@ path with no ring, `D-107`'s stacked branches remain the candidate (D).
 **Soft -- counted, and the fewer the better.** A pipe through a margin, *or exactly along its edge*
 -- the clearance is `≥ m` between inner boxes, and a pipe one margin from a box it does not serve
 satisfied a strict interior test and drew as a line brushing the clearance (`C-87`); a sensor's
-clearance touching the pipe it measures is the rule of §29 and not a finding; a pipe running beside
+clearance touching the pipe it measures is the rule of §29 and not a finding; a *terminal node's*
+clearance yields to a sibling run of the same symbol -- the tank's second supply at the symbol's
+0.96 port pitch under a margin of 1.0 (`C-96`), a node being a point and its outer box a
+convention, the same allowance the beside test makes for two runs of one symbol; a pipe running beside
 another closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running
 along a pipe (a signal crosses pipes freely: C16 hops it).
 
