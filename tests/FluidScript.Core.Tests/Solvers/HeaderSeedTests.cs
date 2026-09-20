@@ -282,6 +282,47 @@ public sealed class HeaderSeedTests
         Assert.InRange(solved[Promotion(layout, "PU_AHU", "head")], -8.0, -4.0);
     }
 
+    [Fact]
+    public async Task ADeadLegTakesTheTemperatureOfTheNodeItHangsFromAndTheLoopStillSolves()
+    {
+        // S-23. A stub to a terminal node nothing else touches -- a script between two keystrokes --
+        // carries zero flow by its own mass balance, and then the node's energy balance is ṁ·h with
+        // ṁ = 0: a zero row on a zero column, and the whole loop went Singular at zero iterations
+        // naming N9.h. The closure S-56 built for a pinned branch applies with the live end as anchor.
+        const string script = """
+            fluidscript 1
+            circuit simpleLoop
+            fluid water
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
+            LOAD heat_exchanger power=-30 dp=0
+            CV1  valve
+            PU1  pump
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+            N5 - N1 length=25
+            N3 - N9 length=5 dn=25
+            """;
+
+        var result = await Loop().RunAsync(GraphFixture.Bind(script), Water.Instance, "s23", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s23");
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code is "FS3002" or "FS3009" or "FS3010");
+
+        var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+        var n3 = Assert.Single(Enumerable.Range(0, run.Graph.Nodes.Length), i => run.Graph.Nodes[i].Name == "N3");
+        var n9 = Assert.Single(Enumerable.Range(0, run.Graph.Nodes.Length), i => run.Graph.Nodes[i].Name == "N9");
+
+        Assert.Equal(0, Through(run.Graph, layout, solved, "N3__N9"), 9);
+        Assert.Equal(solved[layout.NodeEnthalpy(n3)], solved[layout.NodeEnthalpy(n9)], 3);
+        Assert.Contains("rank         15: 0 unknown(s) nothing determines", report, StringComparison.Ordinal);
+    }
+
     private static OuterLoop Loop()
     {
         var resolved = PipeCatalogs.Resolve(pin: null);

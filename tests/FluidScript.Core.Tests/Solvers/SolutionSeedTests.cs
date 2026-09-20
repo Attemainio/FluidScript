@@ -82,8 +82,9 @@ public sealed class SolutionSeedTests
     /// <remarks>
     /// <strong>A dead leg is exempt, and that is not the claim weakening.</strong> A terminal node with
     /// no boundary role admits no external flux (<c>D-64</c>), so its branch's mass balance forces the
-    /// flow to exactly zero — that is the answer, reported as <c>FS4010</c>, and a seed putting it
-    /// anywhere else would be seeding a value the first Newton step has to undo.
+    /// flow to exactly zero — that is the answer, and a seed putting it anywhere else would be seeding
+    /// a value the first Newton step has to undo. (Its enthalpy is closed against the live end since
+    /// <c>S-23</c>; the flow was never the question.)
     /// </remarks>
     [Theory]
     [MemberData(nameof(Samples))]

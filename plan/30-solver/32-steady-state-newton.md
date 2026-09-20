@@ -218,7 +218,12 @@ walk take a `b` leg outward and then give up a rated `a` leg to close the tree.
 role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it
 appears in and its column is identically zero (`S-23`). That is the physics: stagnant fluid has no
 steady temperature. It needs a modelling decision — refuse the graph, or close the node against its
-neighbour — and not a different starting point.
+neighbour — and not a different starting point. **The decision is the closure below, applied to the
+dead leg as well** (`S-23`, closed 2026-09-20): the dead-end node and every node inside its branch
+take the enthalpy of the node at the branch's live end. A leg whose live end is a junction element
+rather than a node — a stub off a valve port — has no anchor and keeps its rows. Measured on the
+simple loop with `N3 - N9 length=5 dn=25` added: singular at zero iterations naming `N9.h` before,
+converged in four with `N9` at `N3`'s 50 °C and rank 15 of 15 after.
 
 **A branch pinned at zero flow takes the second of those** (`S-56`, 2026-09-20). A consumer written
 `power=0` with its terminals stated is switched off: its `out` with `in` is a flow pin at exactly zero

@@ -212,7 +212,10 @@ come out at zero — and a pipe's resistance law `Δp = R·ṁ|ṁ|` has no slop
 cannot move away from it. When that happens the seed spans the circuit again, this time refusing to
 make that branch the leftover, and keeps the new tree only if fewer branches stand still. A branch that
 is genuinely not flowing — a dead leg with nowhere for its water to go — stands still under every tree,
-and the seed accepts it and says so.
+and the seed accepts it and says so. Standing water has no steady temperature of its own, so the
+report shows a dead leg's nodes at the temperature of the node the leg hangs from, the same rule a
+switched-off consumer's branch follows; a stub you are still typing does not stop the rest of the loop
+from solving.
 
 **Where the seed's pressures come from.** Not from a fixed ladder. The flows are chosen first, so that
 every node balances; the pressures are then walked out from a starting point through the circuit,

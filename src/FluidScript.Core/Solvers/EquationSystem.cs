@@ -739,7 +739,62 @@ public sealed class EquationSystem
             }
         }
 
+        // A dead leg is the same closure with no constraint behind it (S-23): a branch ending at a
+        // terminal node the script gave no role has its flow forced to zero by that node's own mass
+        // balance, and then the node's energy balance is ṁ·h with ṁ = 0 -- a zero row on a zero
+        // column, singular for a reason that has nothing to do with the circuit. The dead-end node and
+        // everything inside its branch take the temperature of the node at the live end. A leg whose
+        // live end is a junction element rather than a node has no anchor and keeps its rows.
+        foreach (var branch in graph.Branches)
+        {
+            var deadEnd = DeadEnd(branch.To) ? branch.To : DeadEnd(branch.From) ? branch.From : null;
+
+            if (deadEnd is null)
+            {
+                continue;
+            }
+
+            var live = ReferenceEquals(deadEnd, branch.To) ? branch.From : branch.To;
+
+            if (live.Element is not CircuitNode || DeadEnd(live))
+            {
+                continue;
+            }
+
+            var anchor = byComponent[live.Element];
+            var claimed = stagnant.Select(static pair => pair.Node).ToHashSet();
+            var nodes = new SortedSet<int> { byComponent[deadEnd.Element] };
+
+            foreach (var component in branch.Path)
+            {
+                var element = index[component];
+
+                for (var port = 0; port < component.Ports.Length; port++)
+                {
+                    var binding = ports[element, port];
+
+                    if (binding.Branch == branch.Index && binding.Node >= 0 && binding.Node != anchor)
+                    {
+                        nodes.Add(binding.Node);
+                    }
+                }
+            }
+
+            foreach (var node in nodes)
+            {
+                if (!claimed.Contains(node))
+                {
+                    stagnant.Add((node, anchor));
+                }
+            }
+        }
+
         return [.. stagnant];
+
+        // A terminal node with nothing stated: one connection, no boundary role. A supply or a return
+        // with one connection is a boundary whose flux is an unknown, not a dead end (D-64).
+        static bool DeadEnd(BranchEnd end) =>
+            end.Element is CircuitNode { Boundary: BoundaryRole.Interior, Ports.Length: 1 };
     }
 
     /// <summary>The node a named port of one component attaches to.</summary>
