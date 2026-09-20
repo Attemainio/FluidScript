@@ -844,7 +844,7 @@
                   "type": "object",
                   "properties": {
                     "name": {
-                      "description": "The port name.",
+                      "description": "The port id: in, out, in2, a. The id is the model\u0027s key, not the script\u0027s spelling -- a script writes the second side in[2] (D-120) and the wire carries in2, so the ids never changed.",
                       "type": "string"
                     },
                     "role": {

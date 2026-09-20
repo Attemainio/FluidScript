@@ -46,7 +46,7 @@ public sealed class WellPosednessTests
         circuit cooling 100
         fluid water
 
-        HE1 heat_exchanger power=30 in=20 out=50
+        HE1 heat_exchanger power=30 in.t=20 out.t=50
         3WV three_way_valve
         PU1 pump
         P1  pipe length=25 dn=25
@@ -115,7 +115,7 @@ public sealed class WellPosednessTests
     {
         // The check that the counting scheme is the right one: the equation and the unknown disappear
         // together, so the system stays square rather than swinging by one in either direction.
-        var without = Check(Documented.Replace(" out=50", string.Empty, StringComparison.Ordinal));
+        var without = Check(Documented.Replace(" out.t=50", string.Empty, StringComparison.Ordinal));
         var table = without.Counting;
 
         Assert.Single(table.Constraints);
@@ -185,11 +185,11 @@ public sealed class WellPosednessTests
         SR   pipe length=30 dn=32
         LOAD heat_exchanger power=-150 dt=20
 
-        HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45
+        HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45
 
         connections
-        NPS - PCV - PP - HX1.in2
-        HX1.out2 - NPR
+        NPS - PCV - PP - HX1.in[2]
+        HX1.out[2] - NPR
 
         HX1.out - SS - NSUP
         NSUP - LOAD - NRET
@@ -236,11 +236,11 @@ public sealed class WellPosednessTests
         // The other half of the same check: without the shared component nothing couples the sides, and
         // FS2213 must still catch what it was written for.
         var split = Substation
-            .Replace("NPS - PCV - PP - HX1.in2", "NPS - PCV - PP - NPX", StringComparison.Ordinal)
-            .Replace("HX1.out2 - NPR", "NPX - NPR", StringComparison.Ordinal)
+            .Replace("NPS - PCV - PP - HX1.in[2]", "NPS - PCV - PP - NPX", StringComparison.Ordinal)
+            .Replace("HX1.out[2] - NPR", "NPX - NPR", StringComparison.Ordinal)
             .Replace("HX1.out - SS - NSUP", "NSX - SS - NSUP", StringComparison.Ordinal)
             .Replace("NRET - SR - SP - HX1.in", "NRET - SR - SP - NSX", StringComparison.Ordinal)
-            .Replace("HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45", string.Empty, StringComparison.Ordinal);
+            .Replace("HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45", string.Empty, StringComparison.Ordinal);
 
         Assert.Contains("FS2213", Codes(Check(split)));
     }
@@ -266,8 +266,9 @@ public sealed class WellPosednessTests
         // D-19: once both sides are wired, in/out/in2/out2 are what 24 sizes UA from. Counting them as
         // demands on the solved state reports the substation over-specified by three. D-97 keeps one of
         // them as a flow pin: the primary loop has no other constraint on its flow, so the design point
-        // 85/45 at 150 kW is what fixes it, and `HX1.out2` is that pin -- a derived-flow row, not a
-        // temperature demand.
+        // 85/45 at 150 kW is what fixes it, and `HX1.out[2].t` is that pin -- a derived-flow row, not a
+        // temperature demand. The counting table labels a constraint by the model's parameter key
+        // (`out2`), not the script spelling; the report's spelling is P5.13b's (L-56).
         var table = Check(Substation).Counting;
 
         Assert.Equal(["LOAD.dt", "HX1.out2"], table.Constraints.Select(static c => c.Label).ToArray());
@@ -311,15 +312,15 @@ public sealed class WellPosednessTests
 
         S1 inlet t=60 flow=0.12
         S2 inlet t=45 flow=0.08
-        T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
+        T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
         RAD_NETWORK outlet flow=0.12
         AHU_NETWORK outlet flow=0.08
 
         connections
-        S1 - T1.in1
-        S2 - T1.in2
-        T1.out1 - RAD_NETWORK
-        T1.out2 - AHU_NETWORK
+        S1 - T1.in
+        S2 - T1.in[2]
+        T1.out - RAD_NETWORK
+        T1.out[2] - AHU_NETWORK
         """;
 
     // ---- over- and under-specification ------------------------------------------------------------
@@ -327,7 +328,7 @@ public sealed class WellPosednessTests
     [Fact]
     public void AConstraintWithNothingToPromoteIsAnOverSpecificationThatNamesIt()
     {
-        // The balanced ring with one temperature too many. `HE1 in=20` is its enthalpy datum -- the one
+        // The balanced ring with one temperature too many. `HE1 in.t=20` is its enthalpy datum -- the one
         // absolute value a closed circuit's difference relations cannot supply -- and `N1 t=20` demands
         // the same level a second time. Nothing is free to meet it: there is no mixing valve for either
         // to promote, and letting one fall back to the valve's kv would square the count by moving a
@@ -345,6 +346,26 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void FS2210_AStatedPressureOnADeadEndNodeIsToldToWriteOutlet()
+    {
+        // The cooling loop with its return written `N3 node p=280` instead of `N3 outlet p=280` (C-106).
+        // Since D-86 a node's p= is a datum that passes no mass, so the return branch carries zero and
+        // N1's and N3's pressures both set the level of one hydraulic: over-specified by one. The old
+        // list named nothing -- its filter on the mass balance excluded every node once a boundary
+        // carried one -- and the fix a user needs is a word, not a removal.
+        var script = FluidScript.Fixtures.ScriptCorpus.Samples()
+            .Single(static s => s.Name.EndsWith("m2-cooling-loop.fluid", StringComparison.Ordinal)).Text
+            .Replace("N3 outlet p=280", "N3 node p=280", StringComparison.Ordinal);
+        var result = Check(script);
+
+        Assert.Equal(1, result.Counting.Excess);
+
+        var reported = result.Diagnostics.Single(static d => d.Code == "FS2210");
+        Assert.Contains("N1.p, N3.p", reported.Message, StringComparison.Ordinal);
+        Assert.Contains("write 'N3 outlet'", reported.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AFlowNothingOnItsBranchCanChangeIsToldToAddAValve()
     {
         // C-28, 23's promotion rules: two parallel loads each fix their branch flow by power and dt, and
@@ -355,7 +376,7 @@ public sealed class WellPosednessTests
             circuit parallel
             fluid water
 
-            HS1  heat_exchanger power=50 out=70
+            HS1  heat_exchanger power=50 out.t=70
             PU1  pump
             RAD1 load power=30 dt=20
             RAD2 load power=20 dt=20
@@ -387,7 +408,7 @@ public sealed class WellPosednessTests
             circuit simpleLoop
             fluid water
 
-            HE1  heat_exchanger power=30 in=20 out=50
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
             LOAD heat_exchanger power=-30 dp=0
             CV1  valve
             PU1  pump head=15
@@ -416,7 +437,7 @@ public sealed class WellPosednessTests
             circuit simpleLoop
             fluid water
 
-            HE1  heat_exchanger power=30 in=20 out=50
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
             LOAD heat_exchanger power=-30 dp=0
             CV1  valve
             PU1  pump head=15
@@ -565,7 +586,7 @@ public sealed class WellPosednessTests
         circuit ring
         fluid water
 
-        HE1 heat_exchanger power=30 in=20 out=50
+        HE1 heat_exchanger power=30 in.t=20 out.t=50
         CV1 valve
         PU1 pump
         P1  pipe length=25 dn=25
@@ -580,7 +601,7 @@ public sealed class WellPosednessTests
         circuit ring
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD load power=30
         CV1  valve
         PU1  pump
@@ -690,7 +711,7 @@ public sealed class WellPosednessTests
             circuit closed
             fluid water
 
-            HS2 heat_exchanger power=30 out=60
+            HS2 heat_exchanger power=30 out.t=60
             HE2 heat_exchanger power=-30
             PU2 pump
             N4 node p=150 t=40
@@ -776,8 +797,8 @@ public sealed class WellPosednessTests
     [Fact]
     public void AStatedTerminalThatPinsAFlowDoesNotSilenceTheMissingTemperature()
     {
-        // S-52, D-90: a component can state temperatures and still hold no level. `in=40` is a mixed
-        // inlet the three-way valve's position answers; `out=70` with `power` pins the flow and the
+        // S-52, D-90: a component can state temperatures and still hold no level. `in.t=40` is a mixed
+        // inlet the three-way valve's position answers; `out.t=70` with `power` pins the flow and the
         // pump's head absorbs it. Both statements are matched, so nothing pays for the dropped level
         // and the circuit is short by one on the thermal side. The advice used to scan for any stated
         // temperature, find these two, and offer a pressure to a hydraulic half that was already
@@ -789,7 +810,7 @@ public sealed class WellPosednessTests
             fluid water
 
             PU1 pump
-            HS1 heat_exchanger power=50 in=40 out=70
+            HS1 heat_exchanger power=50 in.t=40 out.t=70
             LD1 load power=50
             3WV three_way_valve
             P1  pipe length=10 dn=25
@@ -863,8 +884,8 @@ public sealed class WellPosednessTests
             connections
             NA1 - PA - NA2 - HX1.in
             HX1.out - NA1
-            NB1 - PB - NB2 - HX1.in2
-            HX1.out2 - NB1
+            NB1 - PB - NB2 - HX1.in[2]
+            HX1.out[2] - NB1
             """);
 
         Assert.DoesNotContain("FS2216", Codes(result));
@@ -915,7 +936,7 @@ public sealed class WellPosednessTests
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // Not a solvable circuit by design, and its own header says so: PU1 appears in no
-                // connection, so nothing is left to absorb `HE1 out=50`.
+                // connection, so nothing is left to absorb `HE1 out.t=50`.
                 ["m1-syntax-reference.fluid"] = "1",
 
                 // PB1 used to read "unresolved": a pipe with no `dn` had no bore and so was not built,
@@ -986,7 +1007,7 @@ public sealed class WellPosednessTests
         circuit heating
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30 dp=0 elevation=32
         CV1  valve
         PU1  pump

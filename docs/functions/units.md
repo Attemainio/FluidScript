@@ -5,7 +5,7 @@ means the usual unit for whatever you are describing**, and you can always write
 would rather be explicit.
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
+HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
 That is 30 kilowatts between 20 °C and 50 °C. Writing `power=30 kW` means exactly the same thing.

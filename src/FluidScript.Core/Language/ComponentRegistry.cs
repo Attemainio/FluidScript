@@ -237,7 +237,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             {
                 foreach (var parameter in group.Parameters)
                 {
-                    if (!kind.Parameters.ContainsKey(parameter))
+                    // Groups name keys, since they are read against what a component stated.
+                    if (!kind.Parameters.Values.Any(row => string.Equals(row.Key, parameter, StringComparison.Ordinal)))
                     {
                         throw new InvalidOperationException(
                             $"'{kind.Keyword}' groups '{parameter}', which is not one of its parameters.");
@@ -434,12 +435,13 @@ public sealed class ComponentRegistry : IComponentRegistry
     {
         Keyword = "heat_exchanger",
         Aliases = ["exchanger", "hx", "heater", "cooler", "radiator", "load", "boiler", "chiller"],
+        // `D-120`: side 2's ports are `in[2]`/`out[2]` to the script and `in2`/`out2` to the model.
         Ports =
         [
             Port("in", PortRole.Inlet),
             Port("out", PortRole.Outlet),
-            Port("in2", PortRole.Inlet, optional: true),
-            Port("out2", PortRole.Outlet, optional: true),
+            Keyed(Port("in[2]", PortRole.Inlet, optional: true), "in2"),
+            Keyed(Port("out[2]", PortRole.Outlet, optional: true), "out2"),
         ],
         PortFamilies = [],
         IndexedParameterFamilies = [],
@@ -448,19 +450,24 @@ public sealed class ComponentRegistry : IComponentRegistry
 
         // Three relations, counted rather than solved. Q = m . cp . (out - in) makes any three of
         // power/in/out/flow fix the fourth, side 2 has the same relation with its own terminals and
-        // flow (S-32), and UA = U . A makes any two of ua/area/u fix the third.
+        // flow (S-32), and UA = U . A makes any two of ua/area/u fix the third. Groups name keys.
         ParameterGroups =
         [
             Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in", "out", "flow"),
             Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in2", "out2", "flow2"),
             Group(BinderDiagnostics.OverDetermined, freedoms: 2, "ua", "area", "u"),
         ],
+
+        // A port's state is `port.quantity` (`D-120`): `in.t` is the side-1 inlet temperature the
+        // script once wrote as `in`, and `in[2].flow`, `in[2].dp`, `in[2].dt` are side 2's stream --
+        // the one entering at `in[2]` -- where the bare `flow`, `dp`, `dt` are side 1's, as a bare
+        // quantity is always the first port's. Each is stored under the key the physics reads.
         Parameters = Parameters(
             Sized("power", Dimension.Power, -100000, 100000, precision: 1),
-            Sized("in", Dimension.Temperature, -50, 300, precision: 1),
-            Sized("out", Dimension.Temperature, -50, 300, precision: 1),
-            Sized("in2", Dimension.Temperature, -50, 300, precision: 1),
-            Sized("out2", Dimension.Temperature, -50, 300, precision: 1),
+            Keyed(Sized("in.t", Dimension.Temperature, -50, 300, precision: 1), "in"),
+            Keyed(Sized("out.t", Dimension.Temperature, -50, 300, precision: 1), "out"),
+            Keyed(Sized("in[2].t", Dimension.Temperature, -50, 300, precision: 1), "in2"),
+            Keyed(Sized("out[2].t", Dimension.Temperature, -50, 300, precision: 1), "out2"),
             Defaulted(
                 "dp",
                 Dimension.PressureDelta,
@@ -468,19 +475,21 @@ public sealed class ComponentRegistry : IComponentRegistry
                 1000,
                 "20 kPa",
                 "a plate exchanger at its design flow; write dp=0 for an ideal block",
-                precision: 1),
-            Defaulted(
-                "dp2",
-                Dimension.PressureDelta,
-                0,
-                1000,
-                "20 kPa",
-                "the secondary side, on the same basis as dp",
-                precision: 1),
-            Sized("dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1),
-            Sized("dt2", Dimension.TemperatureDelta, 0.1, 200, precision: 1),
-            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
-            Sized("flow2", Dimension.MassFlow, 0, 1000, precision: 3),
+                precision: 1) with { Aliases = ["in.dp"] },
+            Keyed(
+                Defaulted(
+                    "in[2].dp",
+                    Dimension.PressureDelta,
+                    0,
+                    1000,
+                    "20 kPa",
+                    "the secondary side, on the same basis as dp",
+                    precision: 1),
+                "dp2"),
+            Sized("dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1) with { Aliases = ["in.dt"] },
+            Keyed(Sized("in[2].dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1), "dt2"),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3) with { Aliases = ["in.flow"] },
+            Keyed(Sized("in[2].flow", Dimension.MassFlow, 0, 1000, precision: 3), "flow2"),
             Sized("ua", ConductancePerKelvin, 1, 1e7, precision: 1),
             Sized("area", Dimension.Area, 1e-3, 1e4, precision: 3),
             Sized("u", HeatTransferCoefficient, 10, 20000, precision: 1),
@@ -502,15 +511,15 @@ public sealed class ComponentRegistry : IComponentRegistry
             Solved("approach", Dimension.TemperatureDelta),
             Sized("plates", Dimension.Dimensionless),
             Solved("dp", Dimension.PressureDelta),
-            Solved("dp2", Dimension.PressureDelta),
+            Keyed(Solved("in[2].dp", Dimension.PressureDelta), "dp2"),
             Solved("dt", Dimension.TemperatureDelta),
-            Solved("dt2", Dimension.TemperatureDelta),
+            Keyed(Solved("in[2].dt", Dimension.TemperatureDelta), "dt2"),
             Solved("flow", Dimension.MassFlow),
-            Solved("flow2", Dimension.MassFlow),
-            Solved("t_in", Dimension.Temperature),
-            Solved("t_out", Dimension.Temperature),
-            Solved("t_in2", Dimension.Temperature),
-            Solved("t_out2", Dimension.Temperature)),
+            Keyed(Solved("in[2].flow", Dimension.MassFlow), "flow2"),
+            Keyed(Solved("in.t", Dimension.Temperature), "t_in"),
+            Keyed(Solved("out.t", Dimension.Temperature), "t_out"),
+            Keyed(Solved("in[2].t", Dimension.Temperature), "t_in2"),
+            Keyed(Solved("out[2].t", Dimension.Temperature), "t_out2")),
     };
 
     private static ComponentKindInfo Valve() => new()
@@ -589,22 +598,30 @@ public sealed class ComponentRegistry : IComponentRegistry
     {
         Keyword = "tank",
         Aliases = ["container"],
-        Ports = [Port("in1", PortRole.Bidirectional), Port("out1", PortRole.Bidirectional)],
+        // `D-120`: the first inlet and outlet are the bare `in` and `out` (keys `in1`, `out1`), the
+        // rest a family written `in[n]` and keyed `in{n}`; a port's height is `in[n].level`, a layer's
+        // initial temperature `layer[n].t`. Each family starts at 2 because its first member is the
+        // fixed row beside it, which is how a bare word and `[1]` come to be one port.
+        Ports =
+        [
+            Keyed(Port("in", PortRole.Bidirectional), "in1"),
+            Keyed(Port("out", PortRole.Bidirectional), "out1"),
+        ],
         PortFamilies =
         [
             new PortFamilyInfo
             {
                 Prefix = "in",
-                MinIndex = 1,
-                MaxIndex = 16,
+                MinIndex = 2,
+                MaxIndex = TankPorts,
                 Role = PortRole.Bidirectional,
                 LevelParameterSuffix = "_level",
             },
             new PortFamilyInfo
             {
                 Prefix = "out",
-                MinIndex = 1,
-                MaxIndex = 16,
+                MinIndex = 2,
+                MaxIndex = TankPorts,
                 Role = PortRole.Bidirectional,
                 LevelParameterSuffix = "_level",
             },
@@ -613,28 +630,30 @@ public sealed class ComponentRegistry : IComponentRegistry
         [
             new IndexedParameterFamilyInfo
             {
-                Pattern = "t{index}",
+                Pattern = "layer[{index}].t",
+                KeyPattern = "t{index}",
+                LegacyPattern = "t{index}",
                 MinIndex = 1,
                 MaxIndexParameter = "layers",
                 Element = Sized("t", Dimension.Temperature, -50, 300, precision: 1),
             },
             new IndexedParameterFamilyInfo
             {
-                Pattern = "in{index}_level",
-                MinIndex = 1,
-                MaxIndex = 16,
-                Element = Defaulted(
-                    "in_level", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
-                    with { Validity = Bounded(BinderDiagnostics.LevelOutsideRange, 0, 1) },
+                Pattern = "in[{index}].level",
+                KeyPattern = "in{index}_level",
+                LegacyPattern = "in{index}_level",
+                MinIndex = 2,
+                MaxIndex = TankPorts,
+                Element = LevelParameter("in_level"),
             },
             new IndexedParameterFamilyInfo
             {
-                Pattern = "out{index}_level",
-                MinIndex = 1,
-                MaxIndex = 16,
-                Element = Defaulted(
-                    "out_level", Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
-                    with { Validity = Bounded(BinderDiagnostics.LevelOutsideRange, 0, 1) },
+                Pattern = "out[{index}].level",
+                KeyPattern = "out{index}_level",
+                LegacyPattern = "out{index}_level",
+                MinIndex = 2,
+                MaxIndex = TankPorts,
+                Element = LevelParameter("out_level"),
             },
         ],
         DrivesFlow = false,
@@ -645,24 +664,32 @@ public sealed class ComponentRegistry : IComponentRegistry
             Defaulted("layers", Dimension.Dimensionless, 1, 100, "5", "enough to show stratification", precision: 0)
                 with { Validity = Bounded(BinderDiagnostics.InvalidLayerCount, 1, 100, wholeNumber: true) },
             Sized("t", Dimension.Temperature, -50, 300, precision: 1),
+            Keyed(LevelParameter("in.level"), "in1_level"),
+            Keyed(LevelParameter("out.level"), "out1_level"),
             // One height for the whole vessel and every port on it. `D-70`'s z_port = z_tank + f·H
             // waits for the tank to have a height, which is P6.2's geometry, not this registry's.
             Elevation()),
         Properties = Properties(
             Declared("volume", Dimension.Volume),
             Declared("layers", Dimension.Dimensionless),
-            Solved("stored_energy", Dimension.Energy)),
+            Solved("stored_energy", Dimension.Energy),
+            Keyed(Solved("in.t", Dimension.Temperature), "in1_t"),
+            Keyed(Solved("out.t", Dimension.Temperature), "out1_t")),
 
-        // t{index} is on both sides of the registry and means two things: the parameter is an initial
-        // condition, the property is the solved layer temperature. in{index}_t and out{index}_t have
+        // layer[n].t is on both sides of the registry and means two things: the parameter is an
+        // initial condition, the property is the solved layer temperature. in[n].t and out[n].t have
         // no parameter behind them at all -- a port's temperature is read, never stated.
         IndexedPropertyFamilies =
         [
-            PropertyFamily("t{index}", Dimension.Temperature, maxIndexParameter: "layers"),
-            PropertyFamily("in{index}_t", Dimension.Temperature, maxIndex: TankPorts),
-            PropertyFamily("out{index}_t", Dimension.Temperature, maxIndex: TankPorts),
+            PropertyFamily("layer[{index}].t", "t{index}", Dimension.Temperature, maxIndexParameter: "layers"),
+            PropertyFamily("in[{index}].t", "in{index}_t", Dimension.Temperature, minIndex: 2, maxIndex: TankPorts),
+            PropertyFamily("out[{index}].t", "out{index}_t", Dimension.Temperature, minIndex: 2, maxIndex: TankPorts),
         ],
     };
+
+    private static ParameterInfo LevelParameter(string name) =>
+        Defaulted(name, Dimension.Dimensionless, 0, 1, "0.5", "mid height", precision: 2)
+            with { Validity = Bounded(BinderDiagnostics.LevelOutsideRange, 0, 1) };
 
     private static ComponentKindInfo Controller() => new()
     {
@@ -775,6 +802,19 @@ public sealed class ComponentRegistry : IComponentRegistry
     private static Dimension FoulingResistance => Dimension.ThermalResistance;
     private static PortInfo Port(string name, PortRole role, bool optional = false) =>
         new() { Name = name, Role = role, IsOptional = optional };
+
+    // `D-120` respelled the surface and not the model: a row written `in[2].t` is stored as `in2`,
+    // which every reader of StatedParameters, every port key and every published property has used
+    // since before the spelling changed, and the old spelling is exactly that key -- so one word
+    // says all three. The suggestion `FS1536` offers is the row's Name.
+    private static ParameterInfo Keyed(ParameterInfo row, string key) =>
+        row with { Key = key, LegacySpellings = [key] };
+
+    private static PropertyInfo Keyed(PropertyInfo row, string key) =>
+        row with { Key = key, LegacySpellings = [key] };
+
+    private static PortInfo Keyed(PortInfo row, string key) =>
+        row with { Key = key, LegacySpellings = [key] };
 
     private static ParameterInfo Sized(
         string name, Dimension dimension, double min, double max, int precision) => new()
@@ -935,8 +975,10 @@ public sealed class ComponentRegistry : IComponentRegistry
     private const int TankPorts = 16;
 
     /// <summary>One indexed property family, for a value that exists once per layer or per port.</summary>
-    /// <param name="pattern">The canonical pattern, with one <c>{index}</c> placeholder.</param>
+    /// <param name="pattern">The pattern a reference writes, with one <c>{index}</c> placeholder.</param>
+    /// <param name="keyPattern">The pattern the value is published under, which is also the pre-<c>D-120</c> spelling.</param>
     /// <param name="dimension">The dimension of the value read back.</param>
+    /// <param name="minIndex">The lowest member; 2 for a port family whose first member is a fixed row.</param>
     /// <param name="maxIndex">The fixed highest index, when the family has one.</param>
     /// <param name="maxIndexParameter">The parameter supplying the highest index instead.</param>
     /// <returns>The family to hang on a kind.</returns>
@@ -947,15 +989,19 @@ public sealed class ComponentRegistry : IComponentRegistry
     /// </remarks>
     private static IndexedPropertyFamilyInfo PropertyFamily(
         string pattern,
+        string keyPattern,
         Dimension dimension,
+        int minIndex = 1,
         int? maxIndex = null,
         string? maxIndexParameter = null) => new()
         {
             Pattern = pattern,
-            MinIndex = 1,
+            KeyPattern = keyPattern,
+            LegacyPattern = keyPattern,
+            MinIndex = minIndex,
             MaxIndex = maxIndex,
             MaxIndexParameter = maxIndexParameter,
-            Element = Solved(pattern, dimension),
+            Element = Keyed(Solved(pattern, dimension), keyPattern),
         };
 
     /// <summary>Every indexed family a kind declares, parameter and property alike.</summary>
@@ -968,7 +1014,7 @@ public sealed class ComponentRegistry : IComponentRegistry
                 .Select(static family => (family.Pattern, family.MaxIndexParameter)));
 
     private static ImmutableDictionary<string, ParameterInfo> Parameters(params ParameterInfo[] parameters) =>
-        parameters.ToImmutableDictionary(static parameter => parameter.Name, StringComparer.Ordinal);
+        parameters.ToImmutableDictionary(static parameter => parameter.Key, StringComparer.Ordinal);
 
     private static ImmutableDictionary<string, PropertyInfo> Properties(params PropertyInfo[] properties) =>
         properties.ToImmutableDictionary(static property => property.Name, StringComparer.Ordinal);

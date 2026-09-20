@@ -255,7 +255,7 @@ public sealed class LoweringTests
 
             N1 node t=50 C p=300 kPa
             N2 node t=30 C
-            HX1 {writtenKind} power={writtenPower} kW in=50 C out=30 C
+            HX1 {writtenKind} power={writtenPower} kW in.t=50 C out.t=30 C
 
             connections
             N1 - HX1

@@ -46,7 +46,7 @@ public static class ReferenceModels
         script.Append("circuit heating 100\n");
         script.Append("fluid water\n");
         script.Append('\n');
-        script.Append("HS1     heat_exchanger power=").Append(power.ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW out=60\n");
+        script.Append("HS1     heat_exchanger power=").Append(power.ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW out.t=60\n");
         script.Append('\n');
         script.Append("connections\n");
         script.Append("N1 - HS1 - S1\n");
@@ -73,7 +73,7 @@ public static class ReferenceModels
             script.Append('\n');
             script.Append("circuit consumer_").Append(n).Append(' ').Append(100 + k).Append('\n');
             script.Append('\n');
-            script.Append("HE_").Append(n).Append("  load in=50 out=30 power=").Append(LoadKilowatts(k).ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW\n");
+            script.Append("HE_").Append(n).Append("  load in.t=50 out.t=30 power=").Append(LoadKilowatts(k).ToString("0.#", CultureInfo.InvariantCulture)).Append(" kW\n");
             script.Append("TV_").Append(n).Append("  three_way_valve\n");
             script.Append("PU_").Append(n).Append("  pump\n");
             script.Append("PA_").Append(n).Append("  pipe length=").Append(length).Append(" dn=25\n");

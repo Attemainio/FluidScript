@@ -10,7 +10,7 @@ circuit heating 100
 fluid water
 
 PU_H  pump
-HS_H  heat_exchanger power=30 in=20 out=50
+HS_H  heat_exchanger power=30 in.t=20 out.t=50
 LOAD  heat_exchanger power=-30
 CV_H  valve kv=6.3
 
@@ -23,7 +23,7 @@ CV_H - PU_H
 circuit cooling 101
 fluid water
 
-HE_C  heat_exchanger power=30 in=20 out=50
+HE_C  heat_exchanger power=30 in.t=20 out.t=50
 TV_C  three_way_valve
 PU_C  pump
 

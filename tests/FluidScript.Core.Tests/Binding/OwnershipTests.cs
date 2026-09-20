@@ -39,8 +39,8 @@ public sealed class OwnershipTests
         {0}
 
         connections
-        NPS - PCV - PP - HX1.in2
-        HX1.out2 - NPR
+        NPS - PCV - PP - HX1.in[2]
+        HX1.out[2] - NPR
         """;
 
     private const string Heating = """
@@ -59,7 +59,7 @@ public sealed class OwnershipTests
         NRET - SR - SP - HX1.in
         """;
 
-    private const string Exchanger = "HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300";
+    private const string Exchanger = "HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300";
 
     private static string Script(bool districtFirst, bool declaredInDistrict, string exchanger = Exchanger)
     {
@@ -118,8 +118,8 @@ public sealed class OwnershipTests
     {
         // The mirror image: `power=-150` means side 1 loses, so the heating circuit owns it -- and the
         // role word carries the same sign. A chiller cooling circuit 100 from circuit 400 is 100HE01.
-        var signed = Exchanger1(Model(Script(true, true, "HX1 heat_exchanger power=-150 in=60 out=40 in2=45 out2=85")));
-        var worded = Exchanger1(Model(Script(true, true, "HX1 chiller power=150 in=60 out=40 in2=45 out2=85")));
+        var signed = Exchanger1(Model(Script(true, true, "HX1 heat_exchanger power=-150 in.t=60 out.t=40 in[2].t=45 out[2].t=85")));
+        var worded = Exchanger1(Model(Script(true, true, "HX1 chiller power=150 in.t=60 out.t=40 in[2].t=45 out[2].t=85")));
 
         Assert.Equal("100HE01", signed.Tag);
         Assert.Equal("100HE01", worded.Tag);
@@ -129,7 +129,7 @@ public sealed class OwnershipTests
     public void WithoutADutyTheTerminalTemperaturesDecideTheDirection()
     {
         // No `power`: 85 -> 45 on side 2 is a drop, 40 -> 60 on side 1 a rise. Side 2 loses.
-        var exchanger = Exchanger1(Model(Script(true, false, "HX1 heat_exchanger in=40 out=60 in2=85 out2=45")));
+        var exchanger = Exchanger1(Model(Script(true, false, "HX1 heat_exchanger in.t=40 out.t=60 in[2].t=85 out[2].t=45")));
 
         Assert.Equal("400HE01", exchanger.Tag);
     }
@@ -166,8 +166,8 @@ public sealed class OwnershipTests
             connections
             NA1 - PA - NA2 - HX1.in
             HX1.out - NA1
-            NB1 - PB - NB2 - HX1.in2
-            HX1.out2 - NB1
+            NB1 - PB - NB2 - HX1.in[2]
+            HX1.out[2] - NB1
 
             """);
 
@@ -189,7 +189,7 @@ public sealed class OwnershipTests
             SS   pipe length=30 dn=32
             SR   pipe length=30 dn=32
             LOAD heat_exchanger power=-150 dt=20
-            HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45
+            HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45
 
             connections
             HX1.out - SS - NSUP

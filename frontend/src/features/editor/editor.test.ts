@@ -40,7 +40,7 @@ describe('highlighting', () => {
   it('classes every token with 55 syntax names, with no network and no server', () => {
     // 52 invariant 2 and the acceptance row: highlighting is client-side, from the tokenizer.
     const doc =
-      'fluidscript 1\nHE1 heat_exchanger power=30kW in=20 # coil\nconnections\nN1 - HE1.in\n';
+      'fluidscript 1\nHE1 heat_exchanger power=30kW in.t=20 # coil\nconnections\nN1 - HE1.in\n';
     const state = EditorState.create({
       doc,
       extensions: [fluidscriptLanguage, fluidscriptHighlighting],
@@ -61,6 +61,8 @@ describe('highlighting', () => {
       '30:syn-number',
       'kW:syn-unit',
       'in:syn-parameter',
+      '.:syn-operator',
+      't:syn-parameter',
       '=:syn-operator',
       '20:syn-number',
       '# coil:syn-comment',

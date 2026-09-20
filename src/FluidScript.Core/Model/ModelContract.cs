@@ -287,7 +287,7 @@ public sealed record LayerWire(int Index, double Elevation, QuantityWire T);
 /// <summary>One port.</summary>
 public sealed record PortWire
 {
-    /// <summary>The port name.</summary>
+    /// <summary>The port id: <c>in</c>, <c>out</c>, <c>in2</c>, <c>a</c>. The id is the model's key, not the script's spelling -- a script writes the second side <c>in[2]</c> (<c>D-120</c>) and the wire carries <c>in2</c>, so the ids never changed.</summary>
     public required string Name { get; init; }
 
     /// <summary><c>inlet</c>, <c>outlet</c> or <c>bidirectional</c>.</summary>

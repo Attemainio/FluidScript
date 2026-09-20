@@ -756,7 +756,7 @@ The **simple loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scop
 circuit, one flow, so every step is checkable by hand:
 
 ```fluidscript
-HE1  heat_exchanger power=30 in=20 out=50
+HE1  heat_exchanger power=30 in.t=20 out.t=50
 LOAD heat_exchanger power=-30
 CV1  valve
 PU1  pump

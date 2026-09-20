@@ -72,7 +72,7 @@ internal sealed partial class BindingRun
                     ("name", component.Name),
                     ("kind", kind.Keyword),
                     ("count", Count(group.Minimum)),
-                    ("parameters", string.Join(", ", group.Parameters)));
+                    ("parameters", string.Join(", ", group.Parameters.Select(kind.ParameterName))));
                 continue;
             }
 
@@ -81,10 +81,11 @@ internal sealed partial class BindingRun
                 continue;
             }
 
+            // Groups are keys; the sentence quotes the script's spelling (`D-120`).
             var arguments = new List<(string Name, string Value)>(stated.Length + 3)
             {
                 ("name", component.Name),
-                ("parameters", string.Join(", ", stated)),
+                ("parameters", string.Join(", ", stated.Select(kind.ParameterName))),
                 ("count", group.Freedoms.ToString(CultureInfo.InvariantCulture)),
             };
 
@@ -123,7 +124,7 @@ internal sealed partial class BindingRun
                 component.DeclarationSpan ?? default,
                 ("name", component.Name),
                 ("kind", kind.Keyword),
-                ("parameter", name));
+                ("parameter", parameter.Name));
         }
     }
 
@@ -170,9 +171,10 @@ internal sealed partial class BindingRun
         var indexed = new SortedSet<int>();
         TextSpan? earliest = null;
 
+        // Stated parameters are keyed, so the family's key pattern is the one to match.
         foreach (var (name, value) in component.Parameters)
         {
-            if (!Indexed.Matches(family.Pattern, name, out var index))
+            if (!Indexed.Matches(family.KeyPattern, name, out var index))
             {
                 continue;
             }
@@ -193,7 +195,7 @@ internal sealed partial class BindingRun
         // A sorted set of distinct indices is 1..layers exactly when it has that many entries and
         // those two endpoints, so contiguity needs no further pass.
         var complete = indexed.Count == layers && indexed.Min == 1 && indexed.Max == layers;
-        var bulk = component.Parameters.TryGetValue(family.Element.Name, out var whole)
+        var bulk = component.Parameters.TryGetValue(family.Element.Key, out var whole)
             ? whole.Span
             : (TextSpan?)null;
 

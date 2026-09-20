@@ -623,22 +623,8 @@ public static class ModelContractBuilder
     /// </summary>
     private sealed class ColourScales
     {
-        private static readonly ImmutableDictionary<string, (string Name, string Display, Dimension Dimension, bool Diverging)> Properties =
-            new Dictionary<string, (string, string, Dimension, bool)>(StringComparer.Ordinal)
-            {
-                ["temperature"] = ("temperature", "Temperature", Dimension.Temperature, false),
-                ["t"] = ("temperature", "Temperature", Dimension.Temperature, false),
-                ["pressure"] = ("pressure", "Pressure", Dimension.Pressure, false),
-                ["p"] = ("pressure", "Pressure", Dimension.Pressure, false),
-                ["flow"] = ("flow", "Mass flow", Dimension.MassFlow, false),
-                ["mdot"] = ("flow", "Mass flow", Dimension.MassFlow, false),
-                ["pressure_drop"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
-                ["dp"] = ("pressure_drop", "Pressure drop", Dimension.PressureDelta, true),
-                ["enthalpy"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
-                ["h"] = ("enthalpy", "Enthalpy", Dimension.Enthalpy, false),
-                ["density"] = ("density", "Density", Dimension.Density, false),
-                ["rho"] = ("density", "Density", Dimension.Density, false),
-            }.ToImmutableDictionary(StringComparer.Ordinal);
+        // The spellings come from the one property table (`D-120`, `L-50`); a scale is keyed by the
+        // quantity's name, which is what the wire carries.
 
         /// <summary>The properties every model offers, after the script's own.</summary>
         private static readonly ImmutableArray<string> Always = ["temperature", "pressure", "flow"];
@@ -712,13 +698,13 @@ public static class ModelContractBuilder
 
             foreach (var property in directive?.Properties ?? [])
             {
-                if (!Properties.TryGetValue(property.Text, out var known))
+                if (PropertyTable.Find(property.Text) is not { } known)
                 {
                     raised.Add(Diagnostic.Create(
                         StyleDiagnostics.UnknownShowProperty,
                         property.Span,
                         new DiagnosticArgument("name", property.Text),
-                        new DiagnosticArgument("list", string.Join(", ", Properties.Values.Select(static p => p.Name).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)))));
+                        new DiagnosticArgument("list", string.Join(", ", PropertyTable.All.Select(static p => p.Name).Order(StringComparer.Ordinal)))));
                     continue;
                 }
 
@@ -742,7 +728,8 @@ public static class ModelContractBuilder
 
             foreach (var property in available)
             {
-                var (_, display, dimension, diverging) = Properties[property];
+                var entry = PropertyTable.Find(property)!; // `available` holds names the table produced
+                var (display, dimension, diverging) = (entry.Display, entry.Dimension, entry.Diverging);
                 var unit = UnitTable.CanonicalUnitFor(dimension);
                 var values = ports is { } solved ? Values(property, graph, solved, unit) : [];
                 var (scale, placed) = Build(property, display, unit, diverging, property == active ? stated : null, values);
@@ -840,6 +827,10 @@ public static class ModelContractBuilder
                 if (property == "flow")
                 {
                     at = solved.Max(static p => Math.Abs(p.Flow));
+                }
+                else if (property == "volume_flow")
+                {
+                    at = solved.Max(static p => p.Density > 0 ? Math.Abs(p.Flow) / p.Density : 0);
                 }
                 else if (component is CircuitNode)
                 {

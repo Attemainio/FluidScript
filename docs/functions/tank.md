@@ -9,15 +9,15 @@ T1 tank volume=500 dm3 layers=8
 
 ## Ports
 
-Indexed: `in1`…`in16` and `out1`…`out16`, all bidirectional. `in1` and `out1` always exist; the
-higher ones appear when a connection names them or a level parameter mentions them. With several
-ports, name them explicitly:
+Indexed: `in`, `in[2]`…`in[16]` and `out`, `out[2]`…`out[16]`, all bidirectional. `in` and `out`
+always exist (`in[1]` is another way of writing `in`); the higher ones appear when a connection names
+them or a level parameter mentions them. With several ports, name them explicitly:
 
 ```fluidscript
 fluidscript 1
 connections
-T1.in2 - N4
-T1.out1 - N5
+T1.in[2] - N4
+T1.out - N5
 ```
 
 Which way fluid actually moves through a port is decided by the solve — an `in` port with reverse flow
@@ -30,12 +30,16 @@ draws from its layer.
 | `volume` | dm³ | Total liquid volume | 300 dm³, a domestic buffer vessel |
 | `layers` | — | Equal-volume layers, bottom to top | 5 |
 | `t` | °C | One initial temperature for every layer | The mixed steady solution |
-| `t1`…`tN` | °C | The complete bottom-to-top initial profile | As above |
-| `in1_level`…`in16_level` | — | Normalized inlet height, 0 at the bottom and 1 at the top | 0.5, mid height |
-| `out1_level`…`out16_level` | — | Normalized outlet height | 0.5, mid height |
+| `layer[1].t`…`layer[N].t` | °C | The complete bottom-to-top initial profile | As above |
+| `in.level`, `in[2].level`…`in[16].level` | — | Normalized inlet height, 0 at the bottom and 1 at the top | 0.5, mid height |
+| `out.level`, `out[2].level`…`out[16].level` | — | Normalized outlet height | 0.5, mid height |
 | `elevation` | m | Height above the project datum, for the vessel and every port on it; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
-**`t` and the indexed `t1`…`tN` are mutually exclusive**, and if you use the indexed form you must
+A port's level is written on the port, the way every port state is ([syntax](syntax.md#a-ports-state)):
+`in[3].level=0.9` places the third inlet near the top. The old `in3_level=` and `t3=` spellings still
+bind and are pointed at the new one ([`FS1536`](diagnostics.md)).
+
+**`t` and the indexed `layer[1].t`…`layer[N].t` are mutually exclusive**, and if you use the indexed form you must
 state every layer. Half a profile is an error rather than a guess — the layers you left out have no
 value, and no default that would not be an invention. Either mistake is
 [`FS2113`](diagnostics.md), and it counts against the `layers` you stated, or against the five you
@@ -50,7 +54,7 @@ every port sits hydraulically; the pipes reaching the tank carry the rise to and
 
 | If you write | You get |
 |---|---|
-| `t` beside any `t1`…`tN`, or only some of them | [`FS2113`](diagnostics.md) |
+| `t` beside any `layer[N].t`, or only some of them | [`FS2113`](diagnostics.md) |
 | `layers` fractional, below 1, or above 100 | [`FS2114`](diagnostics.md) |
 | A level below 0 or above 1 | [`FS2115`](diagnostics.md) |
 
@@ -59,10 +63,12 @@ design, not an edge case.
 
 ## Properties
 
-`volume`, `layers`, `stored_energy`, `t1`…`tN`, and `inN_t` / `outN_t` for every port that exists.
+`volume`, `layers`, `stored_energy`, `layer[1].t`…`layer[N].t`, and `in[N].t` / `out[N].t` for
+every port that exists.
 
-`tN` is the solved temperature of layer N, counted from the bottom, and `inN_t` / `outN_t` are the
-temperatures at the ports. All three are readable in any expression — `let top = T1.t5` — and are
+`layer[N].t` is the solved temperature of layer N, counted from the bottom, and `in[N].t` /
+`out[N].t` are the temperatures at the ports. All three are readable in any expression —
+`let top = T1.layer[5].t`, `let supply = T1.out.t` — and are
 available after the solve. Reading a layer above the tank's `layers` is not an error at bind time;
 you get no value for it.
 

@@ -13,7 +13,7 @@ circuit coolingLoop                       # R-01: declarative block
 fluid dynamic water                       # R-12: `dynamic` selects the transient model
 style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
 
-HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+HE1 heat_exchanger power=30 in.t=20 out.t=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
 3WV three_way_valve                       # R-02: no parameters at all — size it
 PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
 
@@ -46,7 +46,7 @@ let share  = 50 %                         # `%` is a unit symbol and never an op
 let scale  = 1.2e3                        # exponent form, and a bare number
 let bore   = 27.3 mm                      # DN25 steel bore: a designation is not a diameter
 
-HE2 load in=50 out=30 power=Q                       # a parameter whose value is a reference to a `let`
+HE2 load in.t=50 out.t=30 power=Q                       # a parameter whose value is a reference to a `let`
 TV2 three_way_valve characteristic=equal_percentage authority=0.5   # a symbol, bound not evaluated
 NB1 inlet t=6 p=300                      # mass crosses here, so it says so (D-64). A `p=` on a
 NB2 outlet p=280                          # plain `node` is a *datum* instead, and admits none (D-86)

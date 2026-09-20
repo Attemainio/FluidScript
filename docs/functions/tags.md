@@ -47,10 +47,10 @@ Which side loses heat is read from what you wrote:
 |---|---|
 | `power=150` (or `heater`, `boiler`) | side 2 — heat enters side 1 |
 | `power=-150` (or `load`, `cooler`, `radiator`, `chiller`) | side 1 |
-| No `power`, but `in=40 out=60` or `in2=85 out2=45` | whichever side's temperature drops |
+| No `power`, but `in.t=40 out.t=60` or `in[2].t=85 out[2].t=45` | whichever side's temperature drops |
 
 If both sides are in the same circuit, that circuit owns it. If one side is a stated profile rather
-than a circuit (`in2=85 out2=45` with nothing connected), the circuit you declared it in keeps it. If
+than a circuit (`in[2].t=85 out[2].t=45` with nothing connected), the circuit you declared it in keeps it. If
 it spans two circuits and nothing says which way heat goes, the lower circuit number takes it and
 [`FS2216`](diagnostics.md) says so — the choice affects the tag and the diagram's grouping, never
 the solve.

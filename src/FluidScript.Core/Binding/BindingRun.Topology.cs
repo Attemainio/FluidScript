@@ -77,7 +77,7 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            var ports = new List<string>(kind.Ports.Select(static port => port.Name));
+            var ports = new List<string>(kind.Ports.Select(static port => port.Key));
 
             if (evidenced.TryGetValue(component.Name, out var named))
             {
@@ -118,10 +118,19 @@ internal sealed partial class BindingRun
         {
             foreach (var endpoint in connection.Endpoints)
             {
-                if (endpoint.Port is { } port)
+                if (endpoint.Port is not { } port)
                 {
-                    Evidence(endpoint.Component.Token.Text, port.Token.Text);
+                    continue;
                 }
+
+                // Evidence is in keys: `T1.in[3]` and the old `T1.in3` both materialize `in3`. An
+                // unresolvable spelling is kept as written and falls out at `Fit`.
+                var name = endpoint.Component.Token.Text;
+                var key = _componentsByName.TryGetValue(name, out var slot) && _components[slot.Index].Kind is { } kind
+                    ? kind.ResolvePort(port.Text, out _, out _) ?? port.Text
+                    : port.Text;
+
+                Evidence(name, key);
             }
         }
 
@@ -155,7 +164,7 @@ internal sealed partial class BindingRun
     /// </remarks>
     private static IEnumerable<string> Order(ComponentKindInfo kind, List<string> ports)
     {
-        var declared = kind.Ports.Select(static port => port.Name).ToList();
+        var declared = kind.Ports.Select(static port => port.Key).ToList();
 
         return ports
             .OrderBy(port => declared.IndexOf(port) is var at && at >= 0 ? at : int.MaxValue)
@@ -267,7 +276,7 @@ internal sealed partial class BindingRun
         // add a second one saying the same thing.
         if (component.Kind is not { } kind)
         {
-            return new EndpointSymbol(component.Name, endpoint.Port?.Token.Text ?? string.Empty);
+            return new EndpointSymbol(component.Name, endpoint.Port?.Text ?? string.Empty);
         }
 
         return endpoint.Port is { } written
@@ -276,31 +285,39 @@ internal sealed partial class BindingRun
     }
 
     private EndpointSymbol? Qualified(
-        ComponentSymbol component, ComponentKindInfo kind, IdentifierSyntax written, TextSpan span)
+        ComponentSymbol component, ComponentKindInfo kind, QualifiedNameSyntax written, TextSpan span)
     {
-        var port = written.Token.Text;
-
-        if (component.Ports.Contains(port, StringComparer.Ordinal))
-        {
-            return Claim(component.Name, port, span, stated: true);
-        }
+        var port = written.Text;
 
         if (kind.HasUnlimitedPorts)
         {
             return new EndpointSymbol(component.Name, port, PortStated: true);
         }
 
-        if (Fit(kind, port) == PortFit.OutsideRange)
-        {
-            var family = kind.PortFamilies.First(
-                candidate => Indexed.Matches($"{candidate.Prefix}{{index}}", port, out _));
+        // The written spelling to the model's key (`D-120`): `in[2]` and the old `in2` are the port
+        // `in2`, and the old form says so once, here, where the endpoint is.
+        var key = kind.ResolvePort(port, out var suggestion, out var outside);
 
+        if (key is not null && suggestion is not null)
+        {
+            ReportLegacySpelling(written.Span, port, suggestion);
+        }
+
+        if (key is not null && component.Ports.Contains(key, StringComparer.Ordinal))
+        {
+            return Claim(component.Name, key, span, stated: true);
+        }
+
+        if (outside is { } family)
+        {
+            // The family proper starts at 2, its first member being the fixed row `in`; to the user
+            // the range is 1…16.
             Report(
                 BinderDiagnostics.IndexOutsideFamily,
                 written.Span,
                 ("written", port),
                 ("kind", kind.Keyword),
-                ("min", family.MinIndex.ToString(CultureInfo.InvariantCulture)),
+                ("min", Math.Min(1, family.MinIndex).ToString(CultureInfo.InvariantCulture)),
                 ("max", family.MaxIndex.ToString(CultureInfo.InvariantCulture)));
         }
         else
@@ -310,7 +327,7 @@ internal sealed partial class BindingRun
                 written.Span,
                 ("kind", kind.Keyword),
                 ("port", port),
-                ("available", string.Join(", ", component.Ports)));
+                ("available", string.Join(", ", component.Ports.Select(kind.PortName))));
         }
 
         return null;
@@ -351,7 +368,7 @@ internal sealed partial class BindingRun
     {
         foreach (var declared in kind.Ports)
         {
-            if (string.Equals(declared.Name, port, StringComparison.Ordinal))
+            if (string.Equals(declared.Key, port, StringComparison.Ordinal))
             {
                 return declared.Role;
             }
@@ -505,18 +522,18 @@ internal sealed partial class BindingRun
             {
                 var claimed = _claimed.TryGetValue(component.Name, out var used) ? used : [];
 
-                if (port.IsOptional || claimed.ContainsKey(port.Name))
+                if (port.IsOptional || claimed.ContainsKey(port.Key))
                 {
                     continue;
                 }
 
-                var slot = Infer($"{component.Name}__{port.Name}", "I3", component.CircuitName, span);
+                var slot = Infer($"{component.Name}__{port.Key}", "I3", component.CircuitName, span);
                 var boundary = new EndpointSymbol(_components[slot.Index].Name, string.Empty);
 
                 _connections.Add(new ConnectionSymbol(
-                    new EndpointSymbol(component.Name, port.Name), boundary, span));
+                    new EndpointSymbol(component.Name, port.Key), boundary, span));
 
-                Claim(component.Name, port.Name, span, stated: false);
+                Claim(component.Name, port.Key, span, stated: false);
                 Count(component.Name);
                 Count(boundary.Component);
 
@@ -730,7 +747,7 @@ internal sealed partial class BindingRun
     {
         foreach (var declared in kind.Ports)
         {
-            if (string.Equals(declared.Name, port, StringComparison.Ordinal))
+            if (string.Equals(declared.Key, port, StringComparison.Ordinal))
             {
                 return !declared.IsOptional;
             }
@@ -803,7 +820,7 @@ internal sealed partial class BindingRun
 
         foreach (var argument in statement.Arguments)
         {
-            arguments[argument.Name.Token.Text] = argument;
+            arguments[argument.Name.Text] = argument;
         }
 
         if (statement.IsShortForm)
@@ -814,7 +831,7 @@ internal sealed partial class BindingRun
 
         foreach (var argument in statement.Arguments)
         {
-            arguments[argument.Name.Token.Text] = argument;
+            arguments[argument.Name.Text] = argument;
         }
 
         var missing = ControlArguments.Where(name => !arguments.ContainsKey(name)).ToArray();
@@ -969,7 +986,7 @@ internal sealed partial class BindingRun
         }
 
         var candidates = actuated
-            ? kind?.Parameters.Keys.Order(StringComparer.Ordinal)
+            ? kind?.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal)
             : kind?.Properties.Keys.Order(StringComparer.Ordinal);
 
         Report(
@@ -996,7 +1013,7 @@ internal sealed partial class BindingRun
 
     private static PropertyReference? Reference(ParameterSyntax argument) =>
         argument.Value is ReferenceSyntax { Parts.Length: > 0 } reference
-            ? new PropertyReference(reference.Head.Token.Text, reference.Parts[^1].Name.Token.Text)
+            ? new PropertyReference(reference.Head.Token.Text, reference.PropertyPath())
             : null;
 
     /// <summary>Binds the <c>schedule</c> section — the step <c>15</c>'s binding order never had.</summary>
@@ -1031,7 +1048,7 @@ internal sealed partial class BindingRun
             return;
         }
 
-        var parameter = written.Token.Text;
+        var parameter = written.Text;
 
         if (!_componentsByName.TryGetValue(component, out var slot))
         {
@@ -1044,15 +1061,27 @@ internal sealed partial class BindingRun
 
         ParameterInfo? info = null;
 
-        if (_components[slot.Index].Kind is { } kind && !kind.Parameters.TryGetValue(parameter, out info))
+        if (_components[slot.Index].Kind is { } kind)
         {
-            Report(
-                BinderDiagnostics.UnknownParameter,
-                target.Span,
-                ("kind", kind.Keyword),
-                ("parameter", parameter),
-                ("available", string.Join(", ", kind.Parameters.Keys.Order(StringComparer.Ordinal))));
-            return;
+            // The same spellings a declaration accepts (`D-120`), the old ones with their suggestion;
+            // the target is stored by key, which is how the transient finds the parameter.
+            info = kind.ResolveParameter(parameter, out var suggestion, out _);
+
+            if (info is null)
+            {
+                Report(
+                    BinderDiagnostics.UnknownParameter,
+                    target.Span,
+                    ("kind", kind.Keyword),
+                    ("parameter", parameter),
+                    ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
+                return;
+            }
+
+            if (suggestion is not null)
+            {
+                ReportLegacySpelling(written.Span, parameter, suggestion);
+            }
         }
 
         var (from, to) = Bounds(statement.When, Dimension.Time);
@@ -1060,7 +1089,7 @@ internal sealed partial class BindingRun
 
         _disturbances.Add(new DisturbanceSymbol(
             circuit,
-            new PropertyReference(component, parameter),
+            new PropertyReference(component, info?.Key ?? parameter),
             from,
             to ?? from,
             fromValue,
@@ -1128,7 +1157,7 @@ internal sealed partial class BindingRun
     /// <remarks>
     /// <c>C-67</c>. <c>power</c> is positive when side 1 gains heat (<c>22</c>), so on side 1 the outlet must
     /// then be the warmer end and on side 2 the cooler one. Only the neutral spellings are checked: a role
-    /// word carries the sign (<c>D-91</c>) and lowering applies it, so <c>load power=24 in=50 out=30</c>
+    /// word carries the sign (<c>D-91</c>) and lowering applies it, so <c>load power=24 in.t=50 out.t=30</c>
     /// is consistent by construction. A stated <c>dt</c> is a magnitude and cannot contradict anything.
     /// Arithmetic on stated values, nothing more -- the fluid is not needed to compare two temperatures.
     /// </remarks>
@@ -1136,7 +1165,7 @@ internal sealed partial class BindingRun
     {
         foreach (var component in _components)
         {
-            if (component.Kind is not { Keyword: "heat_exchanger" }
+            if (component.Kind is not { Keyword: "heat_exchanger" } kind
                 || NameResolution.Normalize(component.WrittenKind) is "load" or "cooler" or "radiator" or "chiller" or "heater" or "boiler"
                 || !component.Parameters.TryGetValue("power", out var duty)
                 || duty.Value is not { } power
@@ -1175,9 +1204,9 @@ internal sealed partial class BindingRun
                     ("power", Format(unit is null ? power.SiValue : power.ValueIn(unit), unit?.Text)),
                     ("side", side.ToString(CultureInfo.InvariantCulture)),
                     ("duty", (side == 1 ? gains : !gains) ? "gains heat" : "loses heat"),
-                    ("inlet", inlet),
+                    ("inlet", kind.ParameterName(inlet)),
                     ("in", Format(celsius is null ? a.SiValue : a.ValueIn(celsius), celsius?.Text)),
-                    ("outlet", outlet),
+                    ("outlet", kind.ParameterName(outlet)),
                     ("out", Format(celsius is null ? b.SiValue : b.ValueIn(celsius), celsius?.Text)),
                     ("change", warms ? "warms" : "cools"));
             }
@@ -1207,7 +1236,7 @@ internal sealed partial class BindingRun
     {
         foreach (var component in _components)
         {
-            if (component.Kind is not { Keyword: "heat_exchanger" })
+            if (component.Kind is not { Keyword: "heat_exchanger" } kind)
             {
                 continue;
             }
@@ -1222,7 +1251,7 @@ internal sealed partial class BindingRun
                     BinderDiagnostics.OneSecondaryPortOpen,
                     component.DeclarationSpan ?? default,
                     ("name", component.Name),
-                    ("port", inletWired ? "out2" : "in2"));
+                    ("port", kind.PortName(inletWired ? "out2" : "in2")));
             }
 
             var stated = component.Parameters;
@@ -1365,9 +1394,10 @@ internal sealed partial class BindingRun
         // code standing in for an edge that exists. Removing it changes no sample's diagnostics.
         foreach (var node in _components)
         {
-            // A node with one connection and no boundary parameter is a dead end: nothing sets its
-            // state and nothing else can. A node inferred by I3 is exempt — it *is* the boundary that
-            // rule created, so it terminates a port rather than dead-ending on one.
+            // A node with one connection that is not a boundary is a dead end: since D-115 only the
+            // kind says mass crosses, so a `node p=` on a stub is a datum that passes nothing, and the
+            // message says which word makes it a boundary. A node inferred by I3 is exempt — it *is*
+            // the boundary that rule created, so it terminates a port rather than dead-ending on one.
             if (node.Kind?.HasUnlimitedPorts != true
                 || node.Origin is Origin.Inferred { Rule: "I3" }
                 || _degrees.GetValueOrDefault(node.Name) != 1
@@ -1384,9 +1414,7 @@ internal sealed partial class BindingRun
     }
 
     private static bool IsBoundary(ComponentSymbol node) =>
-        node.Parameters.ContainsKey("t")
-        || node.Parameters.ContainsKey("p")
-        || node.Parameters.ContainsKey("flow");
+        node.Kind?.Keyword is "inlet" or "outlet";
 
     private TextSpan SpanOfFirstMention(string component) =>
         _connections.FirstOrDefault(connection =>
@@ -1464,8 +1492,8 @@ internal sealed partial class BindingRun
 
     /// <summary>Whether a kind has a second flow group: <c>in2</c> and <c>out2</c> beside <c>in</c> and <c>out</c>.</summary>
     private static bool IsTwoSided(ComponentKindInfo kind) =>
-        kind.Ports.Any(static port => string.Equals(port.Name, "in2", StringComparison.Ordinal))
-        && kind.Ports.Any(static port => string.Equals(port.Name, "out2", StringComparison.Ordinal));
+        kind.Ports.Any(static port => string.Equals(port.Key, "in2", StringComparison.Ordinal))
+        && kind.Ports.Any(static port => string.Equals(port.Key, "out2", StringComparison.Ordinal));
 
     /// <summary>The circuit one side of a component is wired into, read from the first declared component beyond its ports.</summary>
     /// <returns>The circuit name, or <see langword="null"/> when neither port reaches a declared component.</returns>

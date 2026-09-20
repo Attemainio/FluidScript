@@ -5,8 +5,8 @@ a role word when you want to write a positive capacity, or `heat_exchanger` when
 explicitly signed heat flow.
 
 ```fluidscript
-RAD1 load power=30 in=50 out=30
-BLR1 heater power=30 in=30 out=50
+RAD1 load power=30 in.t=50 out.t=30
+BLR1 heater power=30 in.t=30 out.t=50
 ```
 
 ## What it is doing depends on what you wrote
@@ -16,7 +16,7 @@ There is no `mode=` parameter. Which of the three it is follows from the script:
 | It is | when |
 |---|---|
 | **Duty** | Nothing describes a second side. A stated duty crosses the model boundary; no area or effectiveness is claimed |
-| **Rated** | No second-side connections, but one of `in2`, `out2`, `dt2`, `flow2` is stated. Side 2 is an external profile |
+| **Rated** | No second-side connections, but one of `in[2].t`, `out[2].t`, `in[2].dt`, `in[2].flow` is stated. Side 2 is an external profile |
 | **Coupled** | Either second-side port is connected. Two real streams, coupled by ε-NTU |
 
 Coupled wins over Rated, so connecting a real second side to an external-profile design has one
@@ -24,10 +24,17 @@ predictable meaning.
 
 ## Ports
 
-`in` and `out` for side 1; `in2` and `out2` for side 2, both optional. If you connect one of the pair
-you must connect the other — one open is [`FS2112`](diagnostics.md), naming the open port.
+`in` and `out` for side 1; `in[2]` and `out[2]` for side 2, both optional. If you connect one of the
+pair you must connect the other — one open is [`FS2112`](diagnostics.md), naming the open port.
 
-**Side 1 is the side the unsuffixed parameters describe.** The sides are numbered rather than named
+A port's state is written on the port: `in.t=40` is the temperature entering side 1, `in[2].t=85`
+the temperature entering side 2, and `HX1.in[2].t` reads it back. A side's flow, pressure drop and
+temperature change are written on its inlet — `in[2].flow`, `in[2].dp`, `in[2].dt` — since a side
+has one of each; side 1's are the bare `flow`, `dp` and `dt`. `in[1]` is `in`. The
+[syntax page](syntax.md#a-ports-state) has the rule; the old `in2=`/`flow2=` spellings still bind
+and are pointed at the new one ([`FS1536`](diagnostics.md)).
+
+**Side 1 is the side the unindexed parameters describe.** The sides are numbered rather than named
 hot and cold, because which side is hot is a solved outcome and a script that says `hot_in=40` when
 the solve makes it the cold side is worse than one that says nothing.
 
@@ -36,11 +43,11 @@ the solve makes it the cold side is worse than one that says nothing.
 | Parameter | A bare number means | Meaning |
 |---|---|---|
 | `power` | kW | Capacity on a role spelling; signed side-1 heat flow on `heat_exchanger`, `exchanger`, or `hx` |
-| `in`, `out` | °C | Side-1 inlet and outlet temperature |
-| `in2`, `out2` | °C | Side-2 inlet and outlet temperature |
-| `dt`, `dt2` | dK | Temperature change across that side. Always positive; the sign follows `power` |
-| `dp`, `dp2` | kPa | Pressure drop at design flow, per side. Defaults to 20 kPa; write `dp=0` for an ideal block |
-| `flow`, `flow2` | kg/s | Flow constraint, per side |
+| `in.t`, `out.t` | °C | Side-1 inlet and outlet temperature |
+| `in[2].t`, `out[2].t` | °C | Side-2 inlet and outlet temperature |
+| `dt`, `in[2].dt` | dK | Temperature change across that side. Always positive; the sign follows `power` |
+| `dp`, `in[2].dp` | kPa | Pressure drop at design flow, per side. Defaults to 20 kPa; write `dp=0` for an ideal block |
+| `flow`, `in[2].flow` | kg/s | Flow constraint, per side |
 | `ua` | W/K | Overall conductance — the thermal size, independent of how it is achieved |
 | `area` | m² | Heat transfer area |
 | `u` | W/(m²·K) | Overall heat transfer coefficient |
@@ -58,7 +65,7 @@ that no area follows from it. `lamella` is read but not yet used — deriving `u
 waits for the plate catalogue.
 
 **`ua`, `area` and `u` are related by UA = U·A, so any two fix the third.** Stating all three is an
-error, and so is stating `power`, `in`, `out` and `flow` together — any three of those fix the fourth.
+error, and so is stating `power`, `in.t`, `out.t` and `flow` together — any three of those fix the fourth.
 Plate geometry is a fourth route to the same pair: it derives both `area` and `u`.
 
 ## The thermal size
@@ -68,7 +75,7 @@ the solved circuit, and the thermal size is what follows from them. The district
 — 150 kW, 85/45 primary, 40/60 secondary — is the worked example:
 
 ```fluidscript
-HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
+HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
 ```
 
 | Step | Number |
@@ -91,7 +98,7 @@ what was asked.
 
 **What pins the flow.** A design point says what each side runs at, so on a side whose circuit has
 no other flow constraint — no `flow` on a node, no `dt` on a load — the exchanger's own
-`power` with `in`/`out` (or `in2`/`out2`, or a `dt`) pins it. The substation's primary runs at
+`power` with `in.t`/`out.t` (or `in[2].t`/`out[2].t`, or a `dt`) pins it. The substation's primary runs at
 150 kW / (cp · 40 K) = 0.895 kg/s because `HX1` says 85/45, and its secondary at 1.79 kg/s because
 `LOAD` says `dt=20`; where both would pin the same side, the load's wins and the exchanger's is
 treated as design information only.
@@ -108,13 +115,13 @@ the substation that is 60 °C out and 40 °C back.
 |---|---|
 | All four of `power`, `in`, `out`, `flow` | [`FS2101`](diagnostics.md) |
 | All three of `ua`, `area`, `u` | [`FS2101`](diagnostics.md) |
-| `in`, `out`, `in2`, `out2`, `power` **and** a thermal size (`ua`, or `u` with `area`) | [`FS2109`](diagnostics.md) — the four temperatures and the duty already fix the size |
+| `in.t`, `out.t`, `in[2].t`, `out[2].t`, `power` **and** a thermal size (`ua`, or `u` with `area`) | [`FS2109`](diagnostics.md) — the four temperatures and the duty already fix the size |
 | `ua`, `area`, `u`, `approach`, `plates` or `plate_area` with no second side at all | [`FS2110`](diagnostics.md) — a warning; the parameter is inert in Duty mode |
 | A duty above what the two inlet temperatures allow, `Cmin · (T_hot,in − T_cold,in)` | [`FS2111`](diagnostics.md), naming the maximum — checked before anything is sized |
-| One of `in2`/`out2` connected without the other | [`FS2112`](diagnostics.md) |
+| One of `in[2]`/`out[2]` connected without the other | [`FS2112`](diagnostics.md) |
 | A design whose approach comes out under 3 K, or under your stated `approach` | [`FS4008`](diagnostics.md) — the size is still reported; the design is what is questioned |
-| A neutral spelling whose signed `power` disagrees with its temperatures — `heat_exchanger in=50 out=30 power=24` says the water cools while the duty says it is heated | [`FS2119`](diagnostics.md) — flip the sign, swap the temperatures, or use a role word |
-| A negative `dt` or `dt2` | [`FS1307`](diagnostics.md) |
+| A neutral spelling whose signed `power` disagrees with its temperatures — `heat_exchanger in.t=50 out.t=30 power=24` says the water cools while the duty says it is heated | [`FS2119`](diagnostics.md) — flip the sign, swap the temperatures, or use a role word |
+| A negative `dt` or `in[2].dt` | [`FS1307`](diagnostics.md) |
 | A negative `power` on `load`, `cooler`, `radiator`, `chiller`, `heater` or `boiler` | [`FS1308`](diagnostics.md) — the word carries the sign; the magnitude is taken |
 | Water running through it from `out` to `in` at a converged solve | [`FS3013`](diagnostics.md) — a warning naming any stated terminal now on the wrong end |
 
@@ -122,7 +129,7 @@ the substation that is 60 °C out and 40 °C back.
 role word's job (or the sign on the neutral spelling); which way the water runs is solved from the
 circuit, and the connection order is only what you *intended*. If the solve runs a component
 backwards it still does its duty on the node it actually discharges into, and `FS3013` tells you —
-because `in=50` stays bound to the port you called `in`, exactly as a temperature sensor stays
+because `in.t=50` stays bound to the port you called `in`, exactly as a temperature sensor stays
 mounted where the installer put it.
 
 **`dt` is never negative.** It says how far the temperature moves, not which way. The component word
@@ -160,8 +167,8 @@ match.
 
 ### The second side
 
-`dp2` behaves the same way, but its design flow is **not** worked out for you: state `flow2` alongside
-it if you want the secondary side to resist. Until you do, side 2 is ideal — it still carries the
+`in[2].dp` behaves the same way, but its design flow is **not** worked out for you: state
+`in[2].flow` alongside it if you want the secondary side to resist. Until you do, side 2 is ideal — it still carries the
 relation that its two connections are at the same pressure, which is what makes a two-sided exchanger
 solvable at all.
 
@@ -172,18 +179,19 @@ arrangement — the usual one — puts the heat on the right port of each stream
 say which way round they run.
 
 The second side's **flow** follows from its design point the same way side 1's does: `power` with
-`in2` and `out2` (or `dt2`) implies the flow that carries it, and where nothing else in that circuit
-pins a flow, that is what the circuit runs at. State `flow2` instead when you know the flow and want
-the temperatures solved.
+`in[2].t` and `out[2].t` (or `in[2].dt`) implies the flow that carries it, and where nothing else in
+that circuit pins a flow, that is what the circuit runs at. State `in[2].flow` instead when you know
+the flow and want the temperatures solved.
 
-**Rated is Coupled with side 2 written down.** Leave `in2`/`out2` unconnected and state them, and the
-exchanger behaves exactly as it would against a real stream at those conditions — same size, same
-duty relation, same answer for the side you did wire — with nothing to draw for the side you did not.
+**Rated is Coupled with side 2 written down.** Leave `in[2]`/`out[2]` unconnected and state their
+temperatures, and the exchanger behaves exactly as it would against a real stream at those conditions
+— same size, same duty relation, same answer for the side you did wire — with nothing to draw for the
+side you did not.
 
 ## Properties
 
-`power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `dp`, `dp2`, `dt`,
-`dt2`, `flow`, `flow2`, `t_in`, `t_out`, `t_in2`, `t_out2`.
+`power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `dp`, `in[2].dp`,
+`dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`, `in[2].t`, `out[2].t`.
 
 `lmtd` is reported, never solved: it is formed from the terminal temperatures the solve produced, and
 the conductance it implies is printed beside the rated one so the two can be compared.

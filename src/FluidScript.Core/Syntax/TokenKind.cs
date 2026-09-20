@@ -63,6 +63,17 @@ public enum TokenKind
     /// <summary>An <c>@</c>, which occurs only before a catalogue version.</summary>
     At,
 
+    /// <summary>An opening bracket, which begins a port or layer index (<c>D-120</c>).</summary>
+    /// <remarks>
+    /// <c>in[2]</c> is three tokens — the family, the bracket and the number — and the grammar
+    /// admits no whitespace between them, which the parser checks by span rather than the lexer
+    /// by context; the lexer stays context-free (<c>12</c> invariant 5).
+    /// </remarks>
+    OpenBracket,
+
+    /// <summary>A closing bracket, which ends a port or layer index.</summary>
+    CloseBracket,
+
     /// <summary>A colon, which separates the fields of a clock time.</summary>
     /// <remarks>
     /// It has no meaning in any expression and appears in no production. It exists so that a curve

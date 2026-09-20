@@ -185,6 +185,8 @@ public static class Lexer
                 ')' => TokenKind.CloseParenthesis,
                 '@' => TokenKind.At,
                 ':' => TokenKind.Colon,
+                '[' => TokenKind.OpenBracket,
+                ']' => TokenKind.CloseBracket,
                 _ => TokenKind.Unknown,
             };
 
@@ -379,8 +381,12 @@ public static class Lexer
                 }
 
                 // Rule 5's '=' clause, and the whole safety of the whitespace-separated form: 'in' is
-                // the inch symbol and a parameter name, and only the '=' tells them apart.
-                if (rejectBeforeEquals && end < Length && source[end] == '=')
+                // the inch symbol and a parameter name, and only what follows tells them apart -- the
+                // '=' of `in=20`, and since `D-120` the '[' of `in[2].t=` and the '.' of `in.t=`. A
+                // '.' counts only before a word, so a range's `..` still ends a unit (`50 m..60 m`).
+                if (rejectBeforeEquals && end < Length
+                    && (source[end] is '=' or '['
+                        || (source[end] == '.' && end + 1 < Length && IsWordStart(source[end + 1]))))
                 {
                     continue;
                 }

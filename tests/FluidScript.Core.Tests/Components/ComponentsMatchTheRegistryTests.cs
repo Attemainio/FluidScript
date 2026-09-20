@@ -61,8 +61,11 @@ public sealed class ComponentsMatchTheRegistryTests
         var registry = Kind(keyword);
 
         Assert.Equal(keyword, component.Kind);
+
+        // A component's port names are the registry's keys, which the wire carries; the script
+        // spelling (`in[2]`) is the registry row's Name (D-120).
         Assert.Equal(
-            registry.Ports.Select(static port => port.Name),
+            registry.Ports.Select(static port => port.Key),
             component.Ports.Select(static port => port.Name));
         Assert.Equal(
             registry.Ports.Select(static port => port.Role),
@@ -90,13 +93,13 @@ public sealed class ComponentsMatchTheRegistryTests
     [Fact]
     public void ATanksFirstInletAndOutletMatchTheRegistryAndTheRestComeFromItsFamilies()
     {
-        // in1 and out1 always exist and are in the registry's fixed list; in2 onwards materialize only
-        // when named, which is what PortFamilies describes.
+        // `in` and `out` (keyed in1 and out1) always exist and are in the registry's fixed list; in[2]
+        // onwards materialize only when named, which is what PortFamilies describes.
         var registry = Kind("tank");
         var minimal = new Tank("T1");
 
         Assert.Equal(
-            registry.Ports.Select(static port => port.Name),
+            registry.Ports.Select(static port => port.Key),
             minimal.Ports.Select(static port => port.Name));
 
         var extended = new Tank("T2", inletElevations: [0.0, 0.9], outletElevations: [0.3, 1.0]);

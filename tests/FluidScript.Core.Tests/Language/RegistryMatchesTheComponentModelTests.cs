@@ -53,7 +53,7 @@ public sealed partial class RegistryMatchesTheComponentModelTests
 
                 // An alias counts as covered: `22` writes the tank's row as ``volume` (`v` alias)`, and
                 // `v` is a spelling of `volume` rather than a parameter of its own (D-32).
-                var covered = kind.Parameters.ContainsKey(parameter)
+                var covered = kind.Parameters.Values.Any(known => string.Equals(known.Name, parameter, StringComparison.Ordinal))
                     || kind.Parameters.Values.Any(known => known.Aliases.Contains(parameter))
                     || IsFamilyMember(kind, parameter);
 
@@ -82,7 +82,8 @@ public sealed partial class RegistryMatchesTheComponentModelTests
                 continue;
             }
 
-            foreach (var parameter in kind.Parameters.Keys)
+            // The dictionary is keyed by the model's identifier (`in2`); 22 writes the script spelling (`in[2].t`).
+            foreach (var parameter in kind.Parameters.Values.Select(static info => info.Name))
             {
                 if (!section.Parameters.Contains(parameter))
                 {
@@ -109,9 +110,9 @@ public sealed partial class RegistryMatchesTheComponentModelTests
 
             foreach (var property in section.Properties)
             {
-                // `t1`…`tN` and `inN_t` are per-layer and per-port, materialized from `layers` and
-                // from whichever ports a script actually names; they cannot be a fixed dictionary.
-                if (kind.Properties.ContainsKey(property) || IsFamilyMember(kind, property) || IsPortProperty(property))
+                // `layer[1].t`…`layer[N].t` and `in[N].t` are per-layer and per-port, materialized from
+                // `layers` and from whichever ports a script actually names; they cannot be a fixed dictionary.
+                if (kind.Properties.ContainsKey(property) || IsFamilyMember(kind, property))
                 {
                     continue;
                 }
@@ -170,19 +171,17 @@ public sealed partial class RegistryMatchesTheComponentModelTests
         Assert.Contains("velocity", documented["pipe"].Properties);
     }
 
-    // `22` writes a family as `t1`…`tN`, which reaches here as the two names `t1` and `tN`. Both stand
-    // for the same registry family, whose index runs to whatever `layers` says.
+    // `22` writes a family as `layer[1].t`…`layer[N].t`, which reaches here as the two names `layer[1].t`
+    // and `layer[N].t`. Both stand for the same registry family, whose index runs to whatever `layers`
+    // says; a port family (`in[N].t`) is a property family whose extent the connections decide.
     private static bool IsFamilyMember(ComponentKindInfo kind, string documented) =>
-        kind.IndexedParameterFamilies.Any(family =>
-            IndexPattern(family.Pattern).IsMatch(documented)
-            || IndexPattern(family.Pattern).IsMatch(documented.Replace('N', '1')));
+        kind.IndexedParameterFamilies.Select(static family => family.Pattern)
+            .Concat(kind.IndexedPropertyFamilies.Select(static family => family.Pattern))
+            .Any(pattern =>
+                IndexPattern(pattern).IsMatch(documented)
+                || IndexPattern(pattern).IsMatch(documented.Replace('N', '1')));
 
-    // `inN_t` and `outN_t` exist per materialized port, so they are neither a fixed property nor a
-    // parameter family: which of them exist is decided by the connections a script writes.
-    private static bool IsPortProperty(string documented) =>
-        documented.EndsWith("N_t", StringComparison.Ordinal);
-
-    // `t1`…`tN` in the document stands for a family the registry writes as `t{index}`.
+    // `layer[1].t`…`layer[N].t` in the document stands for a family the registry writes as `layer[{index}].t`.
     private static Regex IndexPattern(string pattern) =>
         new("^" + Regex.Escape(pattern).Replace(@"\{index}", @"\d+", StringComparison.Ordinal) + "$",
             RegexOptions.None,

@@ -13,16 +13,18 @@ fits the solved values.
 
 ## What it resolves to
 
-The first `show` line is used. Each property can be written long or short:
+The first `show` line is used. Each property can be written long or short — the same spellings a
+[port's state](syntax.md#a-ports-state) and a [property](properties.md) use:
 
-| Long | Short | Where it is read |
-|---|---|---|
-| `temperature` | `t` | Every node |
-| `pressure` | `p` | Every node, gauge |
-| `flow` | `mdot` | Every connection |
-| `pressure_drop` | `dp` | Components, with zero at the scale's middle |
-| `enthalpy` | `h` | Every node |
-| `density` | `rho` | Every node |
+| Long | Short | Also | Where it is read |
+|---|---|---|---|
+| `temperature` | `t` | `temp` | Every node |
+| `pressure` | `p` | | Every node, gauge |
+| `flow` | `flow` | `mdot`, `mflow`, `mass_flow` | Every connection |
+| `volume_flow` | `vflow` | `q` | Every connection, at the solved density |
+| `pressure_drop` | `dp` | | Components, with zero at the scale's middle |
+| `enthalpy` | `h` | | Every node |
+| `density` | `rho` | | Every node |
 
 With no `show` at all the diagram follows `temperature`. The scale's range is the solved minimum and
 maximum, rounded outward to legend ticks; a stated `min..max` is used as written and fixes the first

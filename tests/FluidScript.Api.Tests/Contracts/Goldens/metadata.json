@@ -566,12 +566,12 @@
           "optional": false
         },
         {
-          "name": "in2",
+          "name": "in[2]",
           "role": "inlet",
           "optional": true
         },
         {
-          "name": "out2",
+          "name": "out[2]",
           "role": "outlet",
           "optional": true
         }
@@ -635,7 +635,9 @@
         },
         {
           "name": "dp",
-          "aliases": [],
+          "aliases": [
+            "in.dp"
+          ],
           "valueKind": "quantity",
           "dimension": "PressureDelta",
           "unit": "kPa",
@@ -652,44 +654,10 @@
           "displayPrecision": 1
         },
         {
-          "name": "dp2",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "PressureDelta",
-          "unit": "kPa",
-          "acceptedSymbols": [],
-          "omission": "default",
-          "default": "20 kPa",
-          "defaultBasis": "the secondary side, on the same basis as dp",
-          "usualRange": {
-            "min": 0,
-            "max": 1000
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
           "name": "dt",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "TemperatureDelta",
-          "unit": "dK",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0.1,
-            "max": 200
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "dt2",
-          "aliases": [],
+          "aliases": [
+            "in.dt"
+          ],
           "valueKind": "quantity",
           "dimension": "TemperatureDelta",
           "unit": "dK",
@@ -725,25 +693,9 @@
         },
         {
           "name": "flow",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "MassFlow",
-          "unit": "kg/s",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0,
-            "max": 1000
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 3
-        },
-        {
-          "name": "flow2",
-          "aliases": [],
+          "aliases": [
+            "in.flow"
+          ],
           "valueKind": "quantity",
           "dimension": "MassFlow",
           "unit": "kg/s",
@@ -778,7 +730,7 @@
           "displayPrecision": 6
         },
         {
-          "name": "in",
+          "name": "in.t",
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "Temperature",
@@ -796,7 +748,61 @@
           "displayPrecision": 1
         },
         {
-          "name": "in2",
+          "name": "in[2].dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "20 kPa",
+          "defaultBasis": "the secondary side, on the same basis as dp",
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "in[2].dt",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 200
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "in[2].flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "in[2].t",
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "Temperature",
@@ -832,7 +838,7 @@
           "displayPrecision": 4
         },
         {
-          "name": "out",
+          "name": "out.t",
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "Temperature",
@@ -850,7 +856,7 @@
           "displayPrecision": 1
         },
         {
-          "name": "out2",
+          "name": "out[2].t",
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "Temperature",
@@ -979,19 +985,7 @@
           "availability": "solved"
         },
         {
-          "name": "dp2",
-          "dimension": "PressureDelta",
-          "unit": "kPa",
-          "availability": "solved"
-        },
-        {
           "name": "dt",
-          "dimension": "TemperatureDelta",
-          "unit": "dK",
-          "availability": "solved"
-        },
-        {
-          "name": "dt2",
           "dimension": "TemperatureDelta",
           "unit": "dK",
           "availability": "solved"
@@ -1009,9 +1003,33 @@
           "availability": "solved"
         },
         {
-          "name": "flow2",
+          "name": "in.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "in[2].dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "in[2].dt",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "in[2].flow",
           "dimension": "MassFlow",
           "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "in[2].t",
+          "dimension": "Temperature",
+          "unit": "°C",
           "availability": "solved"
         },
         {
@@ -1027,6 +1045,18 @@
           "availability": "sized"
         },
         {
+          "name": "out.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "out[2].t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
           "name": "plates",
           "dimension": "Dimensionless",
           "unit": "",
@@ -1037,30 +1067,6 @@
           "dimension": "Power",
           "unit": "kW",
           "availability": "sized"
-        },
-        {
-          "name": "t_in",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
-        },
-        {
-          "name": "t_in2",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
-        },
-        {
-          "name": "t_out",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
-        },
-        {
-          "name": "t_out2",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
         },
         {
           "name": "u",
@@ -1643,12 +1649,12 @@
       "symbolId": "tank.stratified",
       "ports": [
         {
-          "name": "in1",
+          "name": "in",
           "role": "bidirectional",
           "optional": false
         },
         {
-          "name": "out1",
+          "name": "out",
           "role": "bidirectional",
           "optional": false
         }
@@ -1656,14 +1662,16 @@
       "portFamilies": [
         {
           "prefix": "in",
-          "minIndex": 1,
+          "pattern": "in[{index}]",
+          "minIndex": 2,
           "maxIndex": 16,
           "role": "bidirectional",
           "levelParameterSuffix": "_level"
         },
         {
           "prefix": "out",
-          "minIndex": 1,
+          "pattern": "out[{index}]",
+          "minIndex": 2,
           "maxIndex": 16,
           "role": "bidirectional",
           "levelParameterSuffix": "_level"
@@ -1689,6 +1697,27 @@
           "displayPrecision": 2
         },
         {
+          "name": "in.level",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0.5",
+          "defaultBasis": "mid height",
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": {
+            "min": 0,
+            "max": 1
+          },
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
           "name": "layers",
           "aliases": [],
           "valueKind": "quantity",
@@ -1708,6 +1737,27 @@
           },
           "wholeNumber": true,
           "displayPrecision": 0
+        },
+        {
+          "name": "out.level",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "0.5",
+          "defaultBasis": "mid height",
+          "usualRange": {
+            "min": 0,
+            "max": 1
+          },
+          "validRange": {
+            "min": 0,
+            "max": 1
+          },
+          "wholeNumber": false,
+          "displayPrecision": 2
         },
         {
           "name": "t",
@@ -1750,7 +1800,7 @@
       ],
       "indexedParameters": [
         {
-          "pattern": "t{index}",
+          "pattern": "layer[{index}].t",
           "minIndex": 1,
           "maxIndex": null,
           "maxIndexParameter": "layers",
@@ -1774,8 +1824,8 @@
           }
         },
         {
-          "pattern": "in{index}_level",
-          "minIndex": 1,
+          "pattern": "in[{index}].level",
+          "minIndex": 2,
           "maxIndex": 16,
           "maxIndexParameter": null,
           "element": {
@@ -1801,8 +1851,8 @@
           }
         },
         {
-          "pattern": "out{index}_level",
-          "minIndex": 1,
+          "pattern": "out[{index}].level",
+          "minIndex": 2,
           "maxIndex": 16,
           "maxIndexParameter": null,
           "element": {
@@ -1830,10 +1880,22 @@
       ],
       "properties": [
         {
+          "name": "in.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
           "name": "layers",
           "dimension": "Dimensionless",
           "unit": "",
           "availability": "declared"
+        },
+        {
+          "name": "out.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
         },
         {
           "name": "stored_energy",
@@ -1850,36 +1912,36 @@
       ],
       "indexedProperties": [
         {
-          "pattern": "t{index}",
+          "pattern": "layer[{index}].t",
           "minIndex": 1,
           "maxIndex": null,
           "maxIndexParameter": "layers",
           "element": {
-            "name": "t{index}",
+            "name": "layer[{index}].t",
             "dimension": "Temperature",
             "unit": "°C",
             "availability": "solved"
           }
         },
         {
-          "pattern": "in{index}_t",
-          "minIndex": 1,
+          "pattern": "in[{index}].t",
+          "minIndex": 2,
           "maxIndex": 16,
           "maxIndexParameter": null,
           "element": {
-            "name": "in{index}_t",
+            "name": "in[{index}].t",
             "dimension": "Temperature",
             "unit": "°C",
             "availability": "solved"
           }
         },
         {
-          "pattern": "out{index}_t",
-          "minIndex": 1,
+          "pattern": "out[{index}].t",
+          "minIndex": 2,
           "maxIndex": 16,
           "maxIndexParameter": null,
           "element": {
-            "name": "out{index}_t",
+            "name": "out[{index}].t",
             "dimension": "Temperature",
             "unit": "°C",
             "availability": "solved"
@@ -3226,6 +3288,13 @@
       "arguments": []
     },
     {
+      "code": "FS1119",
+      "severity": "error",
+      "area": "Parser",
+      "message": "An index is a whole number in brackets right after the name, such as 'in[2]'.",
+      "arguments": []
+    },
+    {
       "code": "FS1201",
       "severity": "warning",
       "area": "StyleDirective",
@@ -3779,6 +3848,27 @@
       ]
     },
     {
+      "code": "FS1536",
+      "severity": "info",
+      "area": "Binder",
+      "message": "'{written}' is now written '{current}'.",
+      "arguments": [
+        "written",
+        "current"
+      ]
+    },
+    {
+      "code": "FS1537",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.",
+      "arguments": [
+        "kind",
+        "quantity",
+        "written"
+      ]
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",
@@ -3891,7 +3981,7 @@
       "code": "FS2107",
       "severity": "warning",
       "area": "Components",
-      "message": "'{name}' is a dead end. Set t, p or flow to make it a boundary.",
+      "message": "'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.",
       "arguments": [
         "name"
       ]
@@ -3909,7 +3999,7 @@
       "code": "FS2109",
       "severity": "error",
       "area": "Components",
-      "message": "'{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved.",
+      "message": "'{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved.",
       "arguments": [
         "name",
         "param"
@@ -3919,7 +4009,7 @@
       "code": "FS2110",
       "severity": "warning",
       "area": "Components",
-      "message": "'{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.",
+      "message": "'{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it.",
       "arguments": [
         "name",
         "param"
@@ -3942,7 +4032,7 @@
       "code": "FS2112",
       "severity": "error",
       "area": "Components",
-      "message": "'{name}': Coupled mode requires both in2 and out2 connections; {port} is open.",
+      "message": "'{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open.",
       "arguments": [
         "name",
         "port"
@@ -3952,7 +4042,7 @@
       "code": "FS2113",
       "severity": "error",
       "area": "Components",
-      "message": "'{name}': state either t for every layer, or all of t1…t{layers}; do not mix them.",
+      "message": "'{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them.",
       "arguments": [
         "name",
         "layers"

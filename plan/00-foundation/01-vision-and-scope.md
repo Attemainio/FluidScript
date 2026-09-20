@@ -173,7 +173,7 @@ circuit coolingLoop                       # R-01: declarative block
 fluid dynamic water                       # R-12: `dynamic` selects the transient model
 style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
 
-HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+HE1 heat_exchanger power=30 in.t=20 out.t=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
 3WV three_way_valve                       # R-02: no parameters at all — size it
 PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
 
@@ -265,7 +265,7 @@ fluid water
 style blue 2px fillet --
 show temperature
 
-HE1 heat_exchanger power=30 in=20 out=50
+HE1 heat_exchanger power=30 in.t=20 out.t=50
 3WV three_way_valve
 PU1 pump
 
@@ -351,7 +351,7 @@ fluidscript 1
 circuit simpleLoop
 fluid water
 
-HE1  heat_exchanger power=30 in=20 out=50
+HE1  heat_exchanger power=30 in.t=20 out.t=50
 LOAD heat_exchanger power=-30
 CV1  valve
 PU1  pump
@@ -395,12 +395,12 @@ SP   pump
 LOAD heat_exchanger power=-150 dt=20
 
 # --- the exchanger between them ------------------------------------
-HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
+HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
 
 connections
 NPS - PCV
-PCV - HX1.in2 length=12
-HX1.out2 - NPR
+PCV - HX1.in[2] length=12
+HX1.out[2] - NPR
 
 HX1.out - NSUP length=30
 NSUP - LOAD - NRET
@@ -482,7 +482,7 @@ circuit demandStep
 fluid dynamic water
 show temperature
 
-HE1 heat_exchanger power=30 out=50
+HE1 heat_exchanger power=30 out.t=50
 3WV three_way_valve
 PU1 pump
 P1  pipe length=25
@@ -578,15 +578,15 @@ show temperature
 
 S1 inlet t=60 flow=0.12
 S2 inlet t=45 flow=0.08
-T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
+T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
 RAD_NETWORK outlet flow=0.12
 AHU_NETWORK outlet flow=0.08
 
 connections
-S1 - T1.in1
-S2 - T1.in2
-T1.out1 - RAD_NETWORK
-T1.out2 - AHU_NETWORK
+S1 - T1.in
+S2 - T1.in[2]
+T1.out - RAD_NETWORK
+T1.out[2] - AHU_NETWORK
 ```
 
 This reference deliberately terminates the two sources and two heating networks at declared
@@ -634,7 +634,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54 out=60             # the plant-side source
+HS1     heat_exchanger power=54 out.t=60             # the plant-side source
 PU_MAIN pump
 
 connections
@@ -647,7 +647,7 @@ N1 node p=250
 
 circuit AHU 101
 
-HE_AHU  heat_exchanger in=50 out=30 power=24 kW
+HE_AHU  heat_exchanger in.t=50 out.t=30 power=24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
 
@@ -659,7 +659,7 @@ outlet N5
 
 circuit radiators 102
 
-HE_RAD  heat_exchanger in=50 out=30 power=30 kW
+HE_RAD  heat_exchanger in.t=50 out.t=30 power=30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 

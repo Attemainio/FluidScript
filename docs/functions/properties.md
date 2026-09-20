@@ -11,6 +11,12 @@ probably meant.
 typing the circuit, and a reference to one from somewhere that is needed earlier — a sizing input, for
 instance — is reported rather than silently zero.
 
+**A port's state is a property of the port.** `HX1.in[2].t` is the temperature entering the
+exchanger's second side, `T1.out.t` the temperature at a tank's first outlet, `T1.layer[3].t` its
+third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long — `HX1.in[2].temperature`
+— and the old flat names (`HX1.t_in2`, `T1.t3`, `T1.in2_t`) still resolve with a notice pointing at
+the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-state) has the rule.
+
 <!-- BEGIN GENERATED: component-properties -->
 | Kind | Property | Unit | Available |
 |---|---|---|---|
@@ -39,20 +45,20 @@ instance — is reported rather than silently zero.
 | `heat_exchanger` | `approach` | `dK` | after the solve |
 | `heat_exchanger` | `area` | `m2` | after sizing |
 | `heat_exchanger` | `dp` | `kPa` | after the solve |
-| `heat_exchanger` | `dp2` | `kPa` | after the solve |
 | `heat_exchanger` | `dt` | `dK` | after the solve |
-| `heat_exchanger` | `dt2` | `dK` | after the solve |
 | `heat_exchanger` | `effectiveness` | — | after the solve |
 | `heat_exchanger` | `flow` | `kg/s` | after the solve |
-| `heat_exchanger` | `flow2` | `kg/s` | after the solve |
+| `heat_exchanger` | `in.t` | `°C` | after the solve |
+| `heat_exchanger` | `in[2].dp` | `kPa` | after the solve |
+| `heat_exchanger` | `in[2].dt` | `dK` | after the solve |
+| `heat_exchanger` | `in[2].flow` | `kg/s` | after the solve |
+| `heat_exchanger` | `in[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `lmtd` | `dK` | after the solve |
 | `heat_exchanger` | `ntu` | — | after sizing |
+| `heat_exchanger` | `out.t` | `°C` | after the solve |
+| `heat_exchanger` | `out[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `plates` | — | after sizing |
 | `heat_exchanger` | `power` | `kW` | after sizing |
-| `heat_exchanger` | `t_in` | `°C` | after the solve |
-| `heat_exchanger` | `t_in2` | `°C` | after the solve |
-| `heat_exchanger` | `t_out` | `°C` | after the solve |
-| `heat_exchanger` | `t_out2` | `°C` | after the solve |
 | `heat_exchanger` | `u` | `W/(m2*K)` | after sizing |
 | `heat_exchanger` | `ua` | `W/K` | after sizing |
 | `valve` | `authority` | — | after sizing |
@@ -71,12 +77,14 @@ instance — is reported rather than silently zero.
 | `pump` | `head` | `m` | after sizing |
 | `pump` | `power` | `kW` | after the solve |
 | `pump` | `speed` | — | after the solve |
+| `tank` | `in.t` | `°C` | after the solve |
 | `tank` | `layers` | — | as written |
+| `tank` | `out.t` | `°C` | after the solve |
 | `tank` | `stored_energy` | `J` | after the solve |
 | `tank` | `volume` | `dm3` | as written |
-| `tank` | `in{index}_t`, 1 to 16 | `°C` | after the solve |
-| `tank` | `out{index}_t`, 1 to 16 | `°C` | after the solve |
-| `tank` | `t{index}`, 1 to `layers` | `°C` | after the solve |
+| `tank` | `in[{index}].t`, 2 to 16 | `°C` | after the solve |
+| `tank` | `layer[{index}].t`, 1 to `layers` | `°C` | after the solve |
+| `tank` | `out[{index}].t`, 2 to 16 | `°C` | after the solve |
 | `t_sensor` | `t` | `°C` | after the solve |
 | `p_sensor` | `p` | `kPa` | after the solve |
 | `flow_sensor` | `flow` | `kg/s` | after the solve |

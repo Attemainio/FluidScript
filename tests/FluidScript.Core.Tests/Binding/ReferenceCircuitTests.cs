@@ -108,7 +108,7 @@ public sealed class ReferenceCircuitTests
     {
         // The part `01` says is easy to get wrong: with `PU1` on the primary branch the secondary loop
         // contains nothing that drives flow, the only solution is zero recirculation, and `HE1`'s
-        // stated in=20 cannot be met. Asserted structurally so a later edit to the fixture cannot
+        // stated in.t=20 cannot be met. Asserted structurally so a later edit to the fixture cannot
         // quietly move it.
         var model = Model("m2-cooling-loop.fluid");
 

@@ -312,12 +312,17 @@ public sealed class ComponentRegistryTests
         Assert.Equal("300 dm3", tank.Parameters["volume"].DefaultLiteral);
         Assert.Equal("5", tank.Parameters["layers"].DefaultLiteral);
 
+        // Written as D-120 spells them; keyed as the model and the wire still do, which is also the
+        // pre-D-120 spelling every family accepts with FS1536.
+        Assert.Equal(
+            ["in[{index}].level", "layer[{index}].t", "out[{index}].level"],
+            tank.IndexedParameterFamilies.Select(static family => family.Pattern).Order(StringComparer.Ordinal));
         Assert.Equal(
             ["in{index}_level", "out{index}_level", "t{index}"],
-            tank.IndexedParameterFamilies.Select(static family => family.Pattern).Order(StringComparer.Ordinal));
+            tank.IndexedParameterFamilies.Select(static family => family.KeyPattern).Order(StringComparer.Ordinal));
 
         // The layer count is a parameter, so the family's maximum is not a constant.
-        var layers = tank.IndexedParameterFamilies.Single(static f => f.Pattern == "t{index}");
+        var layers = tank.IndexedParameterFamilies.Single(static f => f.Pattern == "layer[{index}].t");
         Assert.Equal("layers", layers.MaxIndexParameter);
         Assert.Null(layers.MaxIndex);
 
@@ -348,7 +353,8 @@ public sealed class ComponentRegistryTests
     {
         var exchanger = Registry.ByKeyword("heat_exchanger")!;
 
-        Assert.Equal(["in2", "out2"], exchanger.Ports.Where(static p => p.IsOptional).Select(static p => p.Name));
+        Assert.Equal(["in[2]", "out[2]"], exchanger.Ports.Where(static p => p.IsOptional).Select(static p => p.Name));
+        Assert.Equal(["in2", "out2"], exchanger.Ports.Where(static p => p.IsOptional).Select(static p => p.Key));
     }
 
     [Fact]

@@ -166,8 +166,8 @@ public sealed class SolutionSeedTests
             circuit heating
             fluid water
 
-            SOURCE heater in=30 out=80 power=24 kW
-            LOAD   load in=50 out=30 power=24 kW
+            SOURCE heater in.t=30 out.t=80 power=24 kW
+            LOAD   load in.t=50 out.t=30 power=24 kW
             TV     three_way_valve kv=25
             PU     pump
             P1     pipe length=10 dn=25
@@ -215,7 +215,7 @@ public sealed class SolutionSeedTests
         circuit heating 100
         fluid water
 
-        HS1     heat_exchanger power=30 kW out=60
+        HS1     heat_exchanger power=30 kW out.t=60
 
         connections
         N1 - HS1 - N3
@@ -225,7 +225,7 @@ public sealed class SolutionSeedTests
 
         circuit radiators 102
 
-        HE_RAD  load in=50 out=40 power=20 kW
+        HE_RAD  load in.t=50 out.t=40 power=20 kW
         TV_RAD  three_way_valve
         PU_RAD  pump
 
@@ -237,7 +237,7 @@ public sealed class SolutionSeedTests
 
         circuit AHU 101
 
-        HE_AHU  load in=35 out=30
+        HE_AHU  load in.t=35 out.t=30
         TV_AHU  three_way_valve
         PU_AHU  pump
 
@@ -660,7 +660,7 @@ public sealed class SolutionSeedTests
             circuit heating 100
             fluid water
 
-            HS1     heat_exchanger power=54 out=80
+            HS1     heat_exchanger power=54 out.t=80
             PU_SRC  pump
             TV_MAIN three_way_valve
             PU_MAIN pump
@@ -686,7 +686,7 @@ public sealed class SolutionSeedTests
 
             circuit AHU 101
 
-            HE_AHU  heat_exchanger in=50 out=30 power=-24 kW
+            HE_AHU  heat_exchanger in.t=50 out.t=30 power=-24 kW
             TV_AHU  three_way_valve
             PU_AHU  pump
             PA1     pipe length=12 dn=25
@@ -700,7 +700,7 @@ public sealed class SolutionSeedTests
 
             circuit radiators 102
 
-            HE_RAD  heat_exchanger in=50 out=30 power=-30 kW
+            HE_RAD  heat_exchanger in.t=50 out.t=30 power=-30 kW
             TV_RAD  three_way_valve
             PU_RAD  pump
             PR1     pipe length=18 dn=25

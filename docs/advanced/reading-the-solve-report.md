@@ -76,7 +76,7 @@ relation per component — and you never influence it directly. The terms worth 
 | Term | What it is |
 |---|---|
 | **promotions** | Values you did not state that the solver is finding anyway, because a constraint you *did* state has to be paid for. A pump with no `head` on a circuit whose flow is fixed by a duty is the usual one |
-| **constraints** | The equations your stated values add — `in=50` on a heat exchanger is one |
+| **constraints** | The equations your stated values add — `in.t=50` on a heat exchanger is one |
 | **datums** | The equation that pins the arbitrary pressure zero. Exactly one per hydraulically connected part, and zero when an `inlet` or `outlet` already states a pressure |
 | **less enthalpy levels** | Balances *removed*. A closed loop's energy balances are one equation short of independent — the temperatures are only fixed relative to each other until something states an absolute level — so one is dropped |
 
@@ -141,7 +141,7 @@ basis — no rule chose it and none reports an authority for it. A loop with no 
 over-specified, and the report says so.
 
 **A constraint with no promotion is not automatically a defect.** It can be paid for by a dropped
-enthalpy level instead, which is exactly what happens above: `MixedInlet on HE1` is `in=50`, and the
+enthalpy level instead, which is exactly what happens above: `MixedInlet on HE1` is `in.t=50`, and the
 loop's redundant energy balance is what it consumes. The footer states the arithmetic so you can
 check it. Unanswered constraints *beyond* the levels dropped are the ones with nothing behind them,
 and that is over-specification.

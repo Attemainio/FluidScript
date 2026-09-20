@@ -119,8 +119,9 @@ describe('parameter completion', () => {
     const result = at('HE1 heat_exchanger power=30 ');
     expect(result.context).toBe('parameter');
     expect(labels(result.items)).not.toContain('power');
-    const inlet = result.items.find((i) => i.label === 'in');
+    const inlet = result.items.find((i) => i.label === 'in.t');
     expect(inlet?.detail).toBe('Temperature · °C · typically -50…300');
+    expect(labels(result.items)).toContain('in[2].flow');
     expect(result.items.find((i) => i.label === 'dt')?.detail).toBe(
       'TemperatureDelta · dK · typically 0.1…200',
     );
@@ -147,22 +148,54 @@ describe('parameter completion', () => {
         'volume',
         't',
         'elevation',
-        't1',
-        't2',
-        't3',
-        'in1_level',
-        'out16_level',
+        'layer[1].t',
+        'layer[2].t',
+        'layer[3].t',
+        'in.level',
+        'out[16].level',
       ]),
     );
-    expect(names).not.toContain('t4');
-    expect(names).not.toContain('in17_level');
+    expect(names).not.toContain('layer[4].t');
+    expect(names).not.toContain('in[17].level');
+    expect(names).not.toContain('in[1].level');
+  });
+});
+
+describe("a port's state (D-120)", () => {
+  it('after a port and a dot offers the quantities that port takes, minus the ones written', () => {
+    const second = at('HE1 heat_exchanger in[2].');
+    expect(second.context).toBe('parameter');
+    expect(labels(second.items)).toEqual(expect.arrayContaining(['t', 'flow', 'dp', 'dt']));
+    expect(labels(second.items)).not.toContain('power');
+
+    const first = at('HE1 heat_exchanger in.t=40 in.');
+    expect(labels(first.items)).not.toContain('t');
+
+    const folded = at('HE1 heat_exchanger in[1].');
+    expect(labels(folded.items)).toContain('t');
+
+    expect(labels(at('T1 tank in[3].').items)).toEqual(['level']);
+  });
+
+  it('after in[2].t= filters values by temperature, as in.t= does', () => {
+    const value = at('HE1 heat_exchanger in[2].t=');
+    expect(value.context).toBe('value');
+    expect(labels(value.items)).toContain('Tsupply');
+    expect(labels(value.items)).not.toContain('dTdesign');
+  });
+
+  it('a state already written is not offered again, and the port index closes a parameter', () => {
+    const next = at('HE1 heat_exchanger in[2].t=85 ');
+    expect(next.context).toBe('parameter');
+    expect(labels(next.items)).not.toContain('in[2].t');
+    expect(labels(next.items)).toContain('out[2].t');
   });
 });
 
 describe('value completion is dimension-filtered', () => {
-  it('after out= offers a Temperature let and not a TemperatureDelta one; after dt= the reverse', () => {
+  it('after out.t= offers a Temperature let and not a TemperatureDelta one; after dt= the reverse', () => {
     // The single highest-value completion test (52): the distinction FS1302 exists to catch.
-    const out = at('HE1 heat_exchanger out=');
+    const out = at('HE1 heat_exchanger out.t=');
     expect(out.context).toBe('value');
     expect(labels(out.items)).toContain('Tsupply');
     expect(labels(out.items)).not.toContain('dTdesign');
@@ -230,7 +263,7 @@ describe('connection and dotted completion', () => {
     expect(labels(property.items)).toEqual(expect.arrayContaining(['dp', 'power']));
   });
 
-  it('container and v find tank and volume; T1.in2 materializes in2 and nothing offers in17', () => {
+  it('container and v find tank and volume; T1.in[2] materializes in2 and nothing offers in17', () => {
     expect(at('T1 contai').items[0]?.label).toBe('tank');
     expect(labels(at('T1 tank v').items)).toContain('volume');
     const tank = {
@@ -246,8 +279,10 @@ describe('connection and dotted completion', () => {
     } as ModelContract;
     const ports = at(`${doc}T1.`, { model: tank });
     const template = ports.items.find((i) => i.type === 'template' && i.label.startsWith('in'));
-    expect(template?.insert).toBe('in2');
-    expect(labels(ports.items)).not.toContain('in17');
+    expect(template?.insert).toBe('in[2]');
+    expect(labels(ports.items)).toContain('in');
+    expect(labels(ports.items)).not.toContain('in[17]');
+    expect(labels(ports.items)).not.toContain('in2');
   });
 });
 

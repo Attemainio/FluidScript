@@ -115,7 +115,13 @@ export function lexLine(line: string): Lexed[] {
       if (end < n && isWordChar(at(end))) {
         continue;
       }
-      if (rejectBeforeEquals && end < n && at(end) === '=') {
+      // Rule 5's clause, extended by D-120 to a port's state: `30 in.t=` and `30 in[2]` are a
+      // number and a parameter name, not thirty inches.
+      if (
+        rejectBeforeEquals &&
+        end < n &&
+        (at(end) === '=' || at(end) === '[' || (at(end) === '.' && isWordStart(at(end + 1))))
+      ) {
         continue;
       }
       if (units.has(line.slice(start, end))) {
@@ -239,7 +245,7 @@ export function lexLine(line: string): Lexed[] {
       continue;
     }
 
-    const punctuation = '=-+*/.,()@:';
+    const punctuation = '=-+*/.,()@:[]';
     if (punctuation.includes(c)) {
       out.push({ from: i, to: i + 1, kind: 'Punctuation', text: c });
     } else {
@@ -258,6 +264,7 @@ function assignRoles(lexed: readonly Lexed[], state: TokenizerState): LineToken[
   const second = significant[1];
 
   const directive = first?.kind === 'Keyword';
+  const parameterNames = parameterNameTokens(significant);
   const connection =
     !directive &&
     state.section !== 'schedule' &&
@@ -315,6 +322,7 @@ function assignRoles(lexed: readonly Lexed[], state: TokenizerState): LineToken[
         role = 'unknown';
         break;
       case 'Identifier': {
+        const inName = parameterNames.has(index - 1);
         const afterDot = previous?.kind === 'Punctuation' && previous.text === '.';
         const beforeEquals = next?.kind === 'Punctuation' && next.text === '=';
         const beforeParen = next?.kind === 'Punctuation' && next.text === '(';
@@ -322,7 +330,10 @@ function assignRoles(lexed: readonly Lexed[], state: TokenizerState): LineToken[
           directive &&
           index === 2 &&
           (first?.text === 'let' || first?.text === 'circuit' || first?.text === 'project');
-        if (afterDot) {
+        if (inName) {
+          // Every word of `in[2].t=` is the parameter's name (D-120), the port included.
+          role = 'parameter';
+        } else if (afterDot) {
           role = connection ? 'port' : 'reference';
         } else if (named) {
           role = 'declaration';
@@ -351,4 +362,40 @@ function assignRoles(lexed: readonly Lexed[], state: TokenizerState): LineToken[
   }
 
   return out;
+}
+
+/**
+ * The indices (into the significant tokens) of every identifier that is part of a name before `=`:
+ * `power` in `power=30`, and `in` and `t` in `in.t=20` or `in[2].t=85`. The name is whatever runs
+ * back from the `=` without a gap, over words, dots, brackets and the index between them -- the
+ * same adjacency the parser demands (`12`, D-120).
+ */
+function parameterNameTokens(significant: readonly Lexed[]): Set<number> {
+  const names = new Set<number>();
+  for (let k = 0; k < significant.length; k++) {
+    const token = significant[k];
+    if (token?.kind !== 'Punctuation' || token.text !== '=') {
+      continue;
+    }
+    let end = token.from;
+    for (let j = k - 1; j >= 0; j--) {
+      const part = significant[j];
+      if (part === undefined || part.to !== end) {
+        break;
+      }
+      const joins =
+        part.kind === 'Identifier' ||
+        part.kind === 'NumberLiteral' ||
+        (part.kind === 'Punctuation' &&
+          (part.text === '.' || part.text === '[' || part.text === ']'));
+      if (!joins) {
+        break;
+      }
+      if (part.kind === 'Identifier') {
+        names.add(j);
+      }
+      end = part.from;
+    }
+  }
+  return names;
 }

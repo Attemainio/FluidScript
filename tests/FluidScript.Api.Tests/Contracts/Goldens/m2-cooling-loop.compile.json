@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:557454729c1853e53d822266700ef87b628fdf55f4733da476d4ec4918efe5c5",
+    "sourceHash": "sha256:1066b56cee5d0d06b3b77c2108721150a3930af073c33d6280b50a9f9792017f",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -57,7 +57,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 514,
-        "length": 40
+        "length": 44
       },
       "circuit": "coolingLoop",
       "tag": "100HE01",
@@ -139,7 +139,7 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 555,
+        "start": 559,
         "length": 19
       },
       "circuit": "coolingLoop",
@@ -189,7 +189,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 575,
+        "start": 579,
         "length": 8
       },
       "circuit": "coolingLoop",
@@ -234,7 +234,7 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 830,
+        "start": 834,
         "length": 24
       },
       "circuit": "coolingLoop",
@@ -283,7 +283,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 894,
+        "start": 898,
         "length": 18
       },
       "circuit": "coolingLoop",
@@ -315,7 +315,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 972,
+        "start": 976,
         "length": 15
       },
       "circuit": "coolingLoop",
@@ -2556,7 +2556,7 @@
           "line": 18,
           "character": 7
         },
-        "offset": 602,
+        "offset": 606,
         "length": 2
       },
       "component": "N2",
@@ -2576,7 +2576,7 @@
           "line": 20,
           "character": 9
         },
-        "offset": 730,
+        "offset": 734,
         "length": 9
       },
       "component": "PU1__HE1",
@@ -2596,7 +2596,7 @@
           "line": 21,
           "character": 9
         },
-        "offset": 740,
+        "offset": 744,
         "length": 9
       },
       "component": "HE1__3WV",
@@ -2616,7 +2616,7 @@
           "line": 23,
           "character": 24
         },
-        "offset": 830,
+        "offset": 834,
         "length": 24
       },
       "component": "3WV__N3",
@@ -2636,7 +2636,7 @@
           "line": 23,
           "character": 24
         },
-        "offset": 830,
+        "offset": 834,
         "length": 24
       },
       "component": "3WV__N3__in",

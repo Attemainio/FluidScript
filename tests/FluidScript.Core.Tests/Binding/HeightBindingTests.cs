@@ -13,7 +13,7 @@ public sealed class HeightBindingTests
         circuit heating
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30 dp=0 elevation=32
         CV1  valve
         PU1  pump
@@ -114,7 +114,7 @@ public sealed class HeightBindingTests
             circuit heating
             fluid water
 
-            HE1  heat_exchanger power=30 in=20 out=50
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
             LOAD heat_exchanger power=-30 dp=0 elevation=32
             CV1  valve
             PU1  pump

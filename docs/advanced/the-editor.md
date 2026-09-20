@@ -66,7 +66,7 @@ typed it. The compiler accepts the same aliases and misspellings the list does, 
 offers is refused later, and nothing the compiler would accept is missing from the list.
 
 **Values are filtered by dimension.** After `power=` you see the `let`s and properties that are a
-power and the power units, `kW` and `W` among them; a temperature `let` is not there. After `out=` a
+power and the power units, `kW` and `W` among them; a temperature `let` is not there. After `out.t=` a
 `let` holding `70 C` is offered and one holding `20 dK` is not, because a temperature and a
 temperature difference are different things and the filter says so before the compiler has to. A
 `let` whose value waits for the solve is offered with its dimension and no value. Where the kind did

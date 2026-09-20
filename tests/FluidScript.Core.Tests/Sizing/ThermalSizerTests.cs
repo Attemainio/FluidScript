@@ -261,7 +261,7 @@ public sealed class ThermalSizerTests
     [Fact]
     public void ARatedExchangerTakesItsMissingSideOneFlowFromTheCircuit()
     {
-        // `in=40 in2=85 out2=45`, no `out` and no `dt`: side 1's capacity rate is the branch's own flow
+        // `in.t=40 in[2].t=85 out[2].t=45`, no `out` and no `dt`: side 1's capacity rate is the branch's own flow
         // times cp at 40 °C. At 1.7932 kg/s that is the substation's 7500 W/K, and UA lands on 12 071.
         var stated = ImmutableDictionary<string, Quantity>.Empty
             .Add("in", Celsius(40))

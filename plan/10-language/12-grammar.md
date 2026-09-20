@@ -44,7 +44,7 @@ marker, not a block: there are no braces and no `end`.
 
 ```ebnf
 token          = keyword | identifier | quantity | number | string
-               | "=" | "-" | "." | ".." | "," | "(" | ")" | "+" | "*" | "/" | "@" ;
+               | "=" | "-" | "." | ".." | "," | "(" | ")" | "[" | "]" | "+" | "*" | "/" | "@" ;
 
 trivia         = whitespace | line-comment | newline ;
 line-comment   = "#" , { any-char - newline } ;
@@ -121,15 +121,18 @@ rules 1–4 could not see across one, and
 that contradiction resolved — the permissive reading, because `4.18kJ/(kg*K)` is materially harder to
 read than `4.18 kJ/(kg*K)`.
 
-**The `=` clause is what makes the permissive reading safe.** `in` is the inch symbol and a parameter
+**The `=` clause is what makes the permissive reading safe.** `in` is the inch symbol and a port
 name in the brief's own line:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
+HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
 Without the clause, `30 in` is thirty inches and that line means nothing like what it says. One token
-of lookahead is enough to tell them apart, and it is the only lookahead in the lexer.
+of lookahead is enough to tell them apart, and it is the only lookahead in the lexer. `D-120` widened
+the clause without adding lookahead: a spaced unit is also refused before `[` and before `.` followed
+by a word character, so `30 in.t=` and `30 in[2]` are a number and a name. `30 in.` alone -- a dot
+with nothing after it -- is still inches followed by a stray dot, which is what it is.
 
 **The consequence, stated plainly:** a component may not be named such that it parses as a quantity.
 `3K` is three kelvin, not a component named `3K`. This is checked at declaration and produces `FS1003`
@@ -307,17 +310,24 @@ component-decl      = identifier , kind-name , [ "at" , identifier ] , { paramet
                          the registry as one. A clause with no `driver=value` after it is FS1105 *)
 kind-name           = identifier | keyword ;        (* resolved against the registry at bind time;
                                                        a keyword here is a kind, never a statement -- D-64 *)
-parameter           = identifier , "=" , parameter-value ;
+parameter           = qualified-name , "=" , parameter-value ;
 parameter-value     = expression | reference | symbol ;   (* by the parameter's declared kind — see 15 *)
+qualified-name      = indexed-name , { "." , indexed-name } ;   (* power; in.t; in[2].flow; layer[3].t -- D-120 *)
+indexed-name        = identifier , [ "[" , unsigned-integer , "]" ] ;
+                      (* the brackets and the integer touch the name on both sides: `in [2]`,
+                         `in[ 2 ]` and `in[a]` are FS1119. `in[1]` is `in` (D-120) *)
 symbol              = identifier ;                  (* e.g. equal_percentage; bound, not evaluated *)
 
 connection          = endpoint , "-" , endpoint , { "-" , endpoint } , { parameter } ;
                                                     (* trailing pipe properties apply to every
                                                        connection on the line -- D-110 *)
-endpoint            = identifier , [ "." , identifier ] ;   (* component[.port] *)
+endpoint            = identifier , [ "." , qualified-name ] ;   (* component[.port]; the port may be
+                                                                   indexed, `HX1.in[2]`, and a schedule
+                                                                   target may reach a port's state,
+                                                                   `HX1.in[2].t` -- D-120 *)
 
 disturbance         = ( "at" , expression | "over" , range ) , target , "=" , ( expression | range ) ;
-target              = identifier , "." , identifier ;       (* component.parameter *)
+target              = identifier , "." , qualified-name ;   (* component.parameter, `HX1.in[2].t` included *)
 range               = expression , ".." , expression ;
 
 expression          = (* see 14-expressions-and-references *) ;
@@ -415,7 +425,10 @@ connection section so are `N1 node t=6` and `N1 - N2`. The rule:
 > connection; otherwise it is a component declaration. In the `schedule` section every non-reserved
 > line is a disturbance.
 
-**`D-120` (2026-09-19, P5.13 pending):** port indices are written in brackets (`HX1.in[2]`), a port's state as `in[2].t` on the declaration line, and `.` is allowed there too; the suffix spellings below (`in2`, `flow2`) are read for one major with a suggestion. This document is revised when P5.13 lands.
+**`D-120` (2026-09-19, shipped by P5.13a 2026-09-20):** port indices are written in brackets
+(`HX1.in[2]`) and a port's state as `in[2].t` on the declaration line. The disambiguation clause is
+unchanged by it: a `.` in second position is still a connection, because a declaration's second token
+is its kind and a kind-name has no dot; `in.t=` puts the dot in third position or later.
 
 `.` is in that clause because a connection's first endpoint may be port-qualified — `3WV.b - N3`
 (`D-56`). It costs no extra lookahead, and nothing else can put a `.` in second position: a component
@@ -457,7 +470,7 @@ language version.
 
 ```fluidscript
 circuit AHU 101
-HE1 duty in=50 out=30 power=24 kW
+HE1 duty in.t=50 out.t=30 power=24 kW
 TV1 three_way_valve
 PU1 pump
 
@@ -842,7 +855,15 @@ public sealed record ComponentDeclarationSyntax(
     IdentifierSyntax Kind,
     ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax;
 
-public sealed record ParameterSyntax(IdentifierSyntax Name, ExpressionSyntax Value) : SyntaxNode;
+public sealed record ParameterSyntax(QualifiedNameSyntax Name, Token EqualsToken, ExpressionSyntax Value) : SyntaxNode;
+
+/// <summary>A name with an optional index touching it: <c>in</c>, <c>in[2]</c>, <c>layer[3]</c> (D-120).</summary>
+public sealed record IndexedNameSyntax(IdentifierSyntax Name, IndexSyntax? Index) : SyntaxNode;
+public sealed record IndexSyntax(Token OpenBracket, Token Number, Token CloseBracket) : SyntaxNode;
+
+/// <summary>Dotted indexed names: <c>power</c>, <c>in.t</c>, <c>in[2].flow</c>. <c>Text</c> joins them as written.</summary>
+public sealed record QualifiedNameSyntax(IndexedNameSyntax Head, ImmutableArray<QualifiedNamePart> Parts) : SyntaxNode;
+public sealed record QualifiedNamePart(Token Dot, IndexedNameSyntax Name) : SyntaxNode;
 
 public sealed record ConnectionsHeaderSyntax : StatementSyntax;
 
@@ -852,7 +873,9 @@ public sealed record ConnectionSyntax(
                                                          // chain prints as the one line it was
     ImmutableArray<ParameterSyntax> Parameters) : StatementSyntax;   // empty for a bare line (D-110)
 
-public sealed record EndpointSyntax(IdentifierSyntax Component, IdentifierSyntax? Port) : SyntaxNode;
+public sealed record EndpointSyntax(IdentifierSyntax Component, Token? Dot, QualifiedNameSyntax? Port) : SyntaxNode;
+                                                    // the port is a qualified name so `HX1.in[2]`
+                                                    // and a schedule's `HX1.in[2].t` share it
 
 /// <summary>A statement the parser could not classify. Carries its raw text so the printer
 /// can reproduce it and the renderer can skip it without losing the rest of the script.</summary>
@@ -926,6 +949,7 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on, such as 'curve {name} tout'.` |
 | `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
 | `FS1118` | `design` with no arguments, or an argument with no `=` | Error | `A 'design' line needs named values, such as 'design tout=-26'.` |
+| `FS1119` | An index that is not a whole number touching its name: `in[a]`, `in[ 2 ]`, `in[]` (`D-120`) | Error | `An index is a whole number in brackets right after the name, such as 'in[2]'.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |

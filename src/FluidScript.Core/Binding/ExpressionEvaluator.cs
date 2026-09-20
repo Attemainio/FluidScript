@@ -201,7 +201,7 @@ public sealed class ExpressionEvaluator
                     BinderDiagnostics.UnknownProperty,
                     reference.Span,
                     new DiagnosticArgument("kind", unknown.Kind),
-                    new DiagnosticArgument("property", reference.Parts[^1].Name.Token.Text),
+                    new DiagnosticArgument("property", reference.PropertyPath()),
                     new DiagnosticArgument("available", string.Join(", ", unknown.Available)));
 
             case ScopeLookup.UnknownName { Suggestion: { } suggestion }:

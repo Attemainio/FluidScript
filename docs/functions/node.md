@@ -38,7 +38,7 @@ Every piece of equipment sits at one height, and `elevation` says which, in metr
 you call zero — usually the plant room floor:
 
 ```fluidscript
-HE_AHU load power=24 in=50 out=30 elevation=32
+HE_AHU load power=24 in.t=50 out.t=30 elevation=32
 N4     node elevation=32
 ```
 

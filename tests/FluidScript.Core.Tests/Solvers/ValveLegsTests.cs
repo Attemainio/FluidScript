@@ -166,7 +166,7 @@ public sealed class ValveLegsTests
             fluidscript 1
             circuit heating 100
             fluid water
-            HS1     heat_exchanger out=80
+            HS1     heat_exchanger out.t=80
             connections
             N1 - HS1 - N3
             N3 - N4
@@ -175,7 +175,7 @@ public sealed class ValveLegsTests
             N1 node p=250
 
             circuit AHU 101
-            HE_AHU  load in=50 out=30 power=24 kW
+            HE_AHU  load in.t=50 out.t=30 power=24 kW
             TV_AHU  three_way_valve
             PU_AHU  pump
             PA1     pipe length=12 dn=25
@@ -187,7 +187,7 @@ public sealed class ValveLegsTests
             NM_AHU - PA2 - N5
 
             circuit radiators 102
-            HE_RAD  load in=50 out=30 power=30 kW
+            HE_RAD  load in.t=50 out.t=30 power=30 kW
             TV_RAD  three_way_valve
             PU_RAD  pump
             PR1     pipe length=18 dn=25

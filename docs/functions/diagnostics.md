@@ -66,6 +66,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1116` | Error | Parser | 'curve {name}' needs what it depends on, such as 'curve {name} tout'. |
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
 | `FS1118` | Error | Parser | A 'design' line needs named values, such as 'design tout=-26'. |
+| `FS1119` | Error | Parser | An index is a whole number in brackets right after the name, such as 'in[2]'. |
 | `FS1201` | Warning | Style directive | Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern. |
 | `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
@@ -121,6 +122,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1533` | Warning | Binder | '{name}' observes nothing. Place it with 'at' and the name of a node. |
 | `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
 | `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
+| `FS1536` | Info | Binder | '{written}' is now written '{current}'. |
+| `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
@@ -132,13 +135,13 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2101` | Error | Components | '{name}': {parameters} cannot all be set. Any {count} of them fix the rest. |
 | `FS2103` | Warning | Components | '{name}': using kv={kv}; dp is implied by it. |
 | `FS2105` | Error | Components | '{name}': position must be between 0 and 1. |
-| `FS2107` | Warning | Components | '{name}' is a dead end. Set t, p or flow to make it a boundary. |
+| `FS2107` | Warning | Components | '{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass. |
 | `FS2108` | Error | Components | '{name}': efficiency must be between 0 and 1. |
-| `FS2109` | Error | Components | '{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
-| `FS2110` | Warning | Components | '{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it. |
+| `FS2109` | Error | Components | '{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
+| `FS2110` | Warning | Components | '{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it. |
 | `FS2111` | Error | Components | {name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW. |
-| `FS2112` | Error | Components | '{name}': Coupled mode requires both in2 and out2 connections; {port} is open. |
-| `FS2113` | Error | Components | '{name}': state either t for every layer, or all of t1…t{layers}; do not mix them. |
+| `FS2112` | Error | Components | '{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open. |
+| `FS2113` | Error | Components | '{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
 | `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
@@ -147,7 +150,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |
-| `FS2204` | Error | Topology | '{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither. |
+| `FS2204` | Error | Topology | '{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither. |
 | `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}{advice}. |
 | `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
 | `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |

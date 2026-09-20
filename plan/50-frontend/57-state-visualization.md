@@ -58,22 +58,25 @@ looks at first, and the one that makes a hydronic diagram immediately legible.
 ### Property names and aliases
 
 Both a long name and a short one, because the language trades on density and `show t` is what someone
-will type.
+will type. The names are the language's, not this document's: `D-120` made the quantities of a
+state one table, `PropertyTable` ([`13`](../10-language/13-type-and-unit-system.md)), read by a port's
+state (`in[2].t`), a reference (`HX1.in[2].t`) and `show` alike. The short form is the symbol that
+table makes canonical; `show` accepts every spelling in it and the wire carries the long name.
 
 | Long | Short | Dimension | Notes |
 |---|---|---|---|
-| `temperature` | `t` | Temperature | Default |
+| `temperature` | `t` | Temperature | Default; `temp` also |
 | `pressure` | `p` | Pressure | Gauge for display; contract/Core retain absolute pressure (`D-26`) |
 | `enthalpy` | `h` | Enthalpy | Per kg fluid; per kg **dry air** for humid air |
 | `density` | `rho` | Density | |
-| `viscosity` | `mu` | — | **Dynamic** viscosity by default; `kinematic_viscosity` / `nu` for the other |
-| `specific_heat` | `cp` | SpecificHeat | |
-| `conductivity` | `k` | — | Thermal conductivity |
-| `flow` | `mdot` | MassFlow | On connections; a node shows its net |
-| `volume_flow` | `q` | VolumeFlow | |
-| `velocity` | `v` | Velocity | Connections only — a node has no velocity |
-| `reynolds` | `re` | Dimensionless | Connections only |
-| `pressure_drop` | `dp` | PressureDelta | Connections and components only |
+| `viscosity` | `mu` | — | **Dynamic** viscosity by default; `kinematic_viscosity` / `nu` for the other. Not in the table yet |
+| `specific_heat` | `cp` | SpecificHeat | Not in the table yet |
+| `conductivity` | `k` | — | Thermal conductivity. Not in the table yet |
+| `flow` | `flow` | MassFlow | On connections; a node shows its net. `mdot`, `mflow`, `mass_flow` also; `flow` is canonical because it is the pump's and the boundary's parameter (`D-120`) |
+| `volume_flow` | `vflow` | VolumeFlow | `q` also; at the solved density of the connection |
+| `velocity` | `v` | Velocity | Connections only — a node has no velocity. Not in the table yet |
+| `reynolds` | `re` | Dimensionless | Connections only. Not in the table yet |
+| `pressure_drop` | `dp` | PressureDelta | Connections and components only; a diverging scale centred on zero |
 
 Humid air adds, when the substance is `air`:
 

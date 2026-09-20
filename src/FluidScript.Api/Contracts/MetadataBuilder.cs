@@ -95,7 +95,7 @@ public sealed class MetadataDocument
         SymbolId = SymbolCatalog.IdFor(kind.Keyword),
         Ports = [.. kind.Ports.Select(static port => new PortWire(port.Name, Role(port.Role), port.IsOptional))],
         PortFamilies = [.. kind.PortFamilies.Select(static family => new PortFamilyWire(
-            family.Prefix, family.MinIndex, family.MaxIndex, Role(family.Role), family.LevelParameterSuffix))],
+            family.Prefix, family.Pattern, family.MinIndex, family.MaxIndex, Role(family.Role), family.LevelParameterSuffix))],
         // The registry holds parameters and properties in dictionaries, whose order is the process's
         // string hashing and differs between runs; the document must be the same bytes on every host
         // (42: a pure function of the deployed build, and the ETag depends on it), so both are ordered

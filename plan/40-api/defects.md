@@ -78,3 +78,12 @@ without a title nothing here works, which is why it is not optional.
 501 is a promise the frontend would have to code around, and the endpoint's whole contract — the
 revision echo, edits not text — is the mutation API's shape, which is better written once with it.
 `42`'s two `edit` criteria stay unticked with that note.
+
+**The metadata's port family gained a `pattern`; nothing else on the wire moved** (P5.13a, `D-120`,
+2026-09-20). `PortFamilyWire` now carries `pattern` (`in[{index}]`) beside `prefix` (`in`), and its
+`minIndex` is 2: the first member is the fixed port `in` under `ports`, and the family proper starts
+above it, which is how the registry has it. `levelParameterSuffix` stays the *key* suffix (`_level`);
+the script spelling of that parameter is under `indexedParameters` as `in[{index}].level`. Component
+port ids (`in2`), `ComponentStateWire` fields (`flow2`, `tIn2`) and the `solved`/`sizes` maps are
+unchanged by decision -- they are keys, and a client that showed them before shows them still. What a
+client cannot yet do is turn a key back into the spelling the script uses (`L-56`).

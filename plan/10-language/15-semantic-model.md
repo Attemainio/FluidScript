@@ -63,7 +63,12 @@ public sealed record ComponentKindInfo
     public required ImmutableArray<PortInfo> Ports { get; init; }
 
     /// <summary>Indexed port families materialized from qualified endpoints or matching parameters.</summary>
-    /// <remarks>Empty for fixed-port kinds; <c>tank</c> declares <c>in{n}</c>/<c>out{n}</c> (`D-32`).</remarks>
+    /// <remarks>
+    /// Empty for fixed-port kinds; <c>tank</c> declares <c>in[n]</c>/<c>out[n]</c> (`D-32`, `D-120`).
+    /// The first member of a family is a fixed row in <see cref="Ports"/> (<c>in</c>, keyed
+    /// <c>in1</c>) and the family proper starts at 2, so an unqualified endpoint binds <c>in</c> by
+    /// the same order rule as on any other kind.
+    /// </remarks>
     public required ImmutableArray<PortFamilyInfo> PortFamilies { get; init; }
 
     /// <summary>Patterned parameter families such as tank layer temperatures and port elevations.</summary>
@@ -94,7 +99,12 @@ public sealed record ComponentKindInfo
     /// </remarks>
     public string? TagCode { get; init; }
 
-    /// <summary>Every parameter this kind accepts, keyed by script name.</summary>
+    /// <summary>Every parameter this kind accepts, keyed by <see cref="ParameterInfo.Key"/>.</summary>
+    /// <remarks>
+    /// The key is the model's identifier -- what a stated parameter, a sizing decision and the wire
+    /// carry; the script spelling is <see cref="ParameterInfo.Name"/>, reached through
+    /// <c>ResolveParameter</c> (`D-120`). The two coincide for every parameter without a port index.
+    /// </remarks>
     public required ImmutableDictionary<string, ParameterInfo> Parameters { get; init; }
 
     /// <summary>Properties referenceable as <c>Name.property</c>.</summary>
@@ -103,9 +113,16 @@ public sealed record ComponentKindInfo
 
 public sealed record ParameterInfo
 {
+    /// <summary>The script spelling: <c>power</c>, <c>in.t</c>, <c>in[2].flow</c> (`D-120`).</summary>
     public required string Name { get; init; }
 
-    /// <summary>Curated input spellings. Binding stores <see cref="Name"/>; printing preserves source.</summary>
+    /// <summary>The model's identifier, which the bound symbol, the sizes and the wire carry: <c>in2</c> for <c>in[2].t</c>, <c>flow2</c> for <c>in[2].flow</c>. Defaults to <see cref="Name"/>.</summary>
+    public string Key { get; init; }
+
+    /// <summary>Spellings scripts wrote before `D-120`, bound with <c>FS1536</c>; the key, for every keyed row.</summary>
+    public ImmutableArray<string> LegacySpellings { get; init; }
+
+    /// <summary>Curated input spellings. Binding stores <see cref="Key"/>; printing preserves source.</summary>
     public required ImmutableArray<string> Aliases { get; init; }
 
     /// <summary>What shape of value this parameter accepts.</summary>
@@ -154,20 +171,26 @@ public sealed record PortInfo
 
 public sealed record PortFamilyInfo
 {
-    /// <summary>Canonical prefix before a positive decimal index, such as <c>in</c>.</summary>
+    /// <summary>The word before the index, such as <c>in</c>. A member is written <c>in[n]</c> (<see cref="Name"/>), keyed <c>in{n}</c> (<see cref="Key"/>), and was written as its key before `D-120` (<see cref="LegacyName"/>).</summary>
     public required string Prefix { get; init; }
+    /// <summary>The script spelling with one <c>{index}</c> placeholder: <c>in[{index}]</c>.</summary>
+    public string Pattern { get; }
     public required int MinIndex { get; init; }
     public required int MaxIndex { get; init; }
     public required PortRole Role { get; init; }
-    /// <summary>Associated normalized-height parameter suffix; <c>_level</c> for a tank.</summary>
-    public required string? ElevationParameterSuffix { get; init; }
+    /// <summary>Associated normalized-height parameter key suffix; <c>_level</c> for a tank. The script writes <c>in[n].level</c>.</summary>
+    public required string? LevelParameterSuffix { get; init; }
 }
 
 public sealed record IndexedParameterFamilyInfo
 {
-    /// <summary>Canonical pattern with one <c>{index}</c> placeholder.</summary>
-    /// <value><c>t{index}</c>, <c>in{index}_level</c>, or <c>out{index}_level</c>.</value>
+    /// <summary>Canonical pattern with one <c>{index}</c> placeholder, as a script writes it.</summary>
+    /// <value><c>layer[{index}].t</c>, <c>in[{index}].level</c>, or <c>out[{index}].level</c>.</value>
     public required string Pattern { get; init; }
+    /// <summary>The pattern of the key a member is stored under: <c>t{index}</c>, <c>in{index}_level</c>.</summary>
+    public required string KeyPattern { get; init; }
+    /// <summary>The pattern scripts wrote before `D-120`, read with <c>FS1536</c>; the key pattern.</summary>
+    public string? LegacyPattern { get; init; }
     public required int MinIndex { get; init; }
     /// <summary>Fixed maximum, or null when <see cref="MaxIndexParameter"/> supplies it.</summary>
     public int? MaxIndex { get; init; }
@@ -657,8 +680,16 @@ expects `AirHandlingUnit` to find `ahu`.
    Unresolved → `FS1502`; ambiguous → `FS1513`. Either way the component is still created with an
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
 3. **Bind parameters.** Each parameter name is looked up in the kind's canonical names and curated
-   aliases, by the same normalisation as a kind name. Indexed tank parameters (`t1`…`tN`,
-   `in1_level`…`out16_level`) are matched against their declared family before similarity.
+   aliases, by the same normalisation as a kind name. A dotted name is a port's state (`D-120`):
+   its quantity steps are folded to the property table's symbols (`in[2].temperature` → `in[2].t`)
+   and `[1]` is folded away (`in[1].t` → `in.t`), then the folded form and the written form are
+   tried in that order -- the folded first so `in[1].level` reaches the fixed `in.level` row, the
+   written second so `layer[1].t` still reaches its family. Indexed families (`layer[1].t`…,
+   `in[2].level`…`out[16].level`) are matched against their declared pattern before similarity,
+   and an index outside the family is `FS1516` rather than a near miss. A pre-`D-120` spelling
+   (`in=`, `in2=`, `t3=`) binds to the same key and reports `FS1536` with the current spelling as
+   the suggestion; a port state on a kind with unlimited unnamed ports is `FS1537`. The bound
+   symbol stores the row's `Key`, never the written text.
    Unknown → `FS1503` listing the accepted names/patterns. The value binds
    according to `ParameterInfo.ValueKind`: a quantity is evaluated, a symbol is matched against
    `AcceptedSymbols` (`FS1514`), and a reference is recorded unevaluated (`FS1515`) for a later stage
@@ -766,8 +797,8 @@ been bound. Nothing in steps 0–10 may read `ComponentSymbol.Tag`; an architect
 because a binder stage that resolved a reference by tag would reintroduce exactly the identity `D-34`
 removed.
 
-The binder preserves the exact presence of `in2`, `out2`, `dt2`, and `flow2` plus secondary-port
-connections. During lowering, the heat-exchanger factory derives `duty`, `rated`, or `coupled` from
+The binder preserves the exact presence of `in[2].t`, `out[2].t`, `in[2].dt`, and `in[2].flow`
+(keyed `in2`, `out2`, `dt2`, `flow2`) plus secondary-port connections. During lowering, the heat-exchanger factory derives `duty`, `rated`, or `coupled` from
 that evidence using `D-19`'s precedence. It must not collapse “secondary ports unconnected” to Duty:
 that would erase Rated external-profile designs before Core sees them.
 
@@ -839,7 +870,7 @@ only that it is a boundary.
 
 **I7 — implicit pipe** (`D-110`). A connection line that ends in pipe properties makes one `pipe`
 per connection on it, named `{A}__{B}` after the two endpoint identifiers (ports dropped: `PCV -
-HX1.in2 length=12` makes `PCV__HX1`), with an ordinal on collision as I2 appends one. The symbol is
+HX1.in[2] length=12` makes `PCV__HX1`), with an ordinal on collision as I2 appends one. The symbol is
 `Origin = Inferred(I7, key)` where the key is the line's start offset and the connection's index on
 it, so the same line binds to the same pipe on every parse; `WrittenKind = pipe`; its parameters are
 the line's, **stated**. It is created in step 1, not step 9, because its parameters must go through
@@ -960,6 +991,8 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
 | `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |
 | `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
+| `FS1536` | A parameter, port or property written in its pre-`D-120` spelling: `in=`, `in2=`, `T1.in2`, `HX1.t_in2`. Bound as the current spelling would be; the suggestion replaces the name | Info | `'{written}' is now written '{current}'.` |
+| `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`
@@ -1073,8 +1106,9 @@ and `HE1`. I3 therefore adds only the two terminating nodes for `PU1`. Final com
       field and no connection, and Coupled with both secondary ports connected.
 - [ ] `T1 container v=300` binds to canonical kind `tank` and canonical parameter `volume` without a
       diagnostic; source and printer retain `container` and `v` byte for byte.
-- [ ] `T1.in2` materializes `in2`; `in17` produces `FS1516`; unused `in3`…`in16` do not appear in the
-      semantic model. Unqualified `A - T1 - B` binds `in1` then `out1`.
+- [x] `T1.in[2]` materializes the port keyed `in2`; `in[17]` produces `FS1516`; unused `in[3]`…`in[16]`
+      do not appear in the semantic model. Unqualified `A - T1 - B` binds `in` then `out` (keyed
+      `in1`, `out1`). `PortStateSyntaxTests`, `IndexedPropertyTests`.
 - [ ] `Origin` round-trips: every component with `DeclarationSpan == null` has an inferred origin.
 - [ ] An architecture test asserts no tier-20 type is referenced from the binder's assembly namespace.
 - [ ] Every `FS15xx` code has a triggering test.

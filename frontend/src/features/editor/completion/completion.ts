@@ -102,6 +102,26 @@ export function complete(position: Position, sources: Sources): Completion {
   const first = preceding[0];
   const directive = first?.kind === 'Keyword' && !(first.role === 'kind');
 
+  // After a dot on a declaration line, behind a port: the port's state -- `in.` offers `t`,
+  // `in[2].` offers `t`, `flow`, `dp`, `dt` (D-120). Checked before the reference rule below,
+  // since `in` is not a component.
+  if (
+    last?.kind === 'Punctuation' &&
+    last.text === '.' &&
+    !directive &&
+    section !== 'connections' &&
+    section !== 'schedule' &&
+    preceding.length >= 3 &&
+    preceding[1] !== undefined
+  ) {
+    const kind = resolveKind(metadata, preceding[1].text);
+    const head = nameEndingAt(preceding, preceding.length - 2);
+    const items = kind === null || head === null ? [] : portQuantities(kind, preceding, head);
+    if (items.length > 0) {
+      return { from, items, context: 'parameter' };
+    }
+  }
+
   // After a dot: a port in a connection, else a property.
   if (last?.kind === 'Punctuation' && last.text === '.' && beforeLast?.kind === 'Identifier') {
     const owner = beforeLast.text;
@@ -130,7 +150,12 @@ export function complete(position: Position, sources: Sources): Completion {
       // A pipe property on the connection line (I7): the pipe kind's parameter.
       return {
         from,
-        items: values(metadata, sources, parameterOf(metadata, 'pipe', beforeLast.text), prefix),
+        items: values(
+          metadata,
+          sources,
+          parameterOf(metadata, 'pipe', nameEndingAt(preceding, preceding.length - 2) ?? ''),
+          prefix,
+        ),
         context: 'value',
       };
     }
@@ -172,9 +197,11 @@ export function complete(position: Position, sources: Sources): Completion {
   const kindToken = preceding[1];
   const kind = kindToken === undefined ? null : resolveKind(metadata, kindToken.text);
 
-  // After `param=`: the value, filtered by the parameter's dimension.
+  // After `param=`: the value, filtered by the parameter's dimension. The name may be a port's
+  // state, `in[2].t=`, which runs back from the `=` over the dots and brackets (D-120).
   if (last?.kind === 'Punctuation' && last.text === '=' && beforeLast?.kind === 'Identifier') {
-    const parameter = kind === null ? null : parameterOf(metadata, kind.keyword, beforeLast.text);
+    const name = nameEndingAt(preceding, preceding.length - 2) ?? beforeLast.text;
+    const parameter = kind === null ? null : parameterOf(metadata, kind.keyword, name);
     return { from, items: values(metadata, sources, parameter, prefix), context: 'value' };
   }
 
@@ -195,7 +222,8 @@ export function complete(position: Position, sources: Sources): Completion {
       last?.kind === 'Keyword' ||
       last?.kind === 'NumberLiteral' ||
       last?.kind === 'QuantityLiteral' ||
-      last?.kind === 'StringLiteral')
+      last?.kind === 'StringLiteral' ||
+      (last?.kind === 'Punctuation' && last.text === ']'))
   ) {
     return {
       from,
@@ -246,10 +274,65 @@ function parameterBefore(tokens: readonly LineToken[]): string | null {
       token.text === '=' &&
       tokens[i - 1]?.kind === 'Identifier'
     ) {
-      return tokens[i - 1]?.text ?? null;
+      return nameEndingAt(tokens, i - 1);
     }
   }
   return null;
+}
+
+/**
+ * The parameter name whose last token is `tokens[end]`: `power`, or `in[2].t` -- whatever runs
+ * back without a gap over words, dots, brackets and the index between them, the adjacency the
+ * parser demands (`12`, D-120). Null when `tokens[end]` is neither a word nor a closing bracket.
+ */
+function nameEndingAt(tokens: readonly LineToken[], end: number): string | null {
+  const tail = tokens[end];
+  if (tail?.kind !== 'Identifier' && !(tail?.kind === 'Punctuation' && tail.text === ']')) {
+    return null;
+  }
+  let start = end;
+  let from = tail.from;
+  for (let j = end - 1; j >= 0; j--) {
+    const part = tokens[j];
+    if (part === undefined || part.to !== from) {
+      break;
+    }
+    const joins =
+      part.kind === 'Identifier' ||
+      part.kind === 'NumberLiteral' ||
+      (part.kind === 'Punctuation' &&
+        (part.text === '.' || part.text === '[' || part.text === ']'));
+    if (!joins) {
+      break;
+    }
+    start = j;
+    from = part.from;
+  }
+  return tokens
+    .slice(start, end + 1)
+    .map((t) => t.text)
+    .join('');
+}
+
+/** The names already written on the line, `power` and `in[2].t` alike, normalised. */
+function writtenNames(preceding: readonly LineToken[]): Set<string> {
+  const written = new Set<string>();
+  for (let i = 1; i + 1 < preceding.length; i++) {
+    const next = preceding[i + 1];
+    if (next?.kind === 'Punctuation' && next.text === '=') {
+      const name = nameEndingAt(preceding, i);
+      if (name !== null) {
+        written.add(normalize(name));
+      }
+    }
+  }
+  return written;
+}
+
+/** Escapes a family pattern's brackets and dots and turns `{index}` into a capture. */
+function familyPattern(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp('^' + escaped.replace('\\{index\\}', '(\\d+)') + '$');
 }
 
 // ---- kinds ------------------------------------------------------------------------------------------
@@ -382,12 +465,55 @@ function parameterOf(metadata: Metadata, keyword: string, written: string): Para
     return direct;
   }
   for (const family of kind.indexedParameters) {
-    const pattern = new RegExp('^' + family.pattern.replace('{index}', '(\\d+)') + '$');
-    if (pattern.test(written)) {
+    if (familyPattern(family.pattern).test(written)) {
       return family.element;
     }
   }
   return null;
+}
+
+/**
+ * The quantities a port's state may be written with, for `in.` or `in[2].`: every parameter of the
+ * kind whose name is `{head}.{quantity}`, minus the ones the line already states (D-120).
+ */
+function portQuantities(kind: Kind, preceding: readonly LineToken[], head: string): Item[] {
+  const written = writtenNames(preceding);
+  const folded = head.replace('[1]', '');
+  const items: Item[] = [];
+  let rank = 1000;
+  for (const parameter of kind.parameters) {
+    const dot = parameter.name.indexOf('.');
+    if (dot < 0) {
+      continue;
+    }
+    const port = parameter.name.slice(0, dot);
+    if ((port !== folded && port !== head) || written.has(normalize(parameter.name))) {
+      continue;
+    }
+    items.push({
+      label: parameter.name.slice(dot + 1),
+      type: 'parameter',
+      detail: describeParameter(parameter),
+      info: omissionText(parameter),
+      rank: rank--,
+    });
+  }
+  for (const family of kind.indexedParameters) {
+    const match = familyPattern(family.pattern.slice(0, family.pattern.indexOf('.'))).exec(head);
+    if (match === null || family.pattern.indexOf('.') < 0) {
+      continue;
+    }
+    const name = family.pattern.replace('{index}', match[1] ?? '');
+    if (!written.has(normalize(name))) {
+      items.push({
+        label: family.pattern.slice(family.pattern.indexOf('.') + 1),
+        type: 'parameter',
+        detail: describeParameter(family.element),
+        rank: rank--,
+      });
+    }
+  }
+  return items;
 }
 
 function describeParameter(parameter: ParameterMeta): string {
@@ -413,14 +539,7 @@ function parameters(
   if (kind === null) {
     return [];
   }
-  const written = new Set<string>();
-  for (let i = 2; i + 1 < preceding.length; i++) {
-    const token = preceding[i];
-    const next = preceding[i + 1];
-    if (token?.kind === 'Identifier' && next?.kind === 'Punctuation' && next.text === '=') {
-      written.add(normalize(token.text));
-    }
-  }
+  const written = writtenNames(preceding);
   const items: Item[] = [];
   let rank = 1000;
   for (const parameter of kind.parameters) {
@@ -604,24 +723,33 @@ function ports(kind: Kind | null, owner: string, sources: Sources, prefix: strin
     items.push({ label: port.name, type: 'port', detail: port.role, rank: rank-- });
   }
   for (const family of kind.portFamilies) {
+    // The model's port ids are the keys (`in2`); the script writes the pattern (`in[2]`), and the
+    // first member is the fixed port already listed above (D-120).
+    const spell = (index: number): string => family.pattern.replace('{index}', String(index));
+    let count = 0;
     for (const name of materialized) {
-      if (name.startsWith(family.prefix) && /^\d+$/.test(name.slice(family.prefix.length))) {
+      const digits = name.startsWith(family.prefix) ? name.slice(family.prefix.length) : '';
+      if (!/^\d+$/.test(digits)) {
+        continue;
+      }
+      count++;
+      const index = Number(digits);
+      if (index >= family.minIndex) {
         items.push({
-          label: name,
+          label: spell(index),
           type: 'port',
           detail: `${family.role} · materialized`,
           rank: rank--,
         });
       }
     }
-    const next =
-      [...materialized].filter((n) => n.startsWith(family.prefix)).length + family.minIndex;
+    const next = Math.max(count + 1, family.minIndex);
     if (next <= family.maxIndex) {
       items.push({
-        label: `${family.prefix}{${family.minIndex}..${family.maxIndex}}`,
-        insert: `${family.prefix}${next}`,
+        label: `${family.prefix}[${family.minIndex}..${family.maxIndex}]`,
+        insert: spell(next),
         type: 'template',
-        detail: `${family.role} · the next is ${family.prefix}${next}`,
+        detail: `${family.role} · the next is ${spell(next)}`,
         rank: rank--,
       });
     }

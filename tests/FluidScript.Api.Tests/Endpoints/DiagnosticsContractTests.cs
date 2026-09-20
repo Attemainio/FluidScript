@@ -61,7 +61,7 @@ public sealed class DiagnosticsContractTests(ApiFactory factory) : IClassFixture
     public async Task DiagnosticsAreOrderedBySeverityThenOffset()
     {
         // 44's worked example: the unit error is produced before the binder's, and read after it.
-        const string Script = "fluidscript 1\nHE1 heat_exchanger zzz=30 in=20 out=20C+30C\n";
+        const string Script = "fluidscript 1\nHE1 heat_exchanger zzz=30 in.t=20 out.t=20C+30C\n";
         using var client = factory.CreateClient();
         using var response = await client.PostAsync(Validate, new { script = Script });
         var body = await response.ReadAsync<ValidateResponse>();

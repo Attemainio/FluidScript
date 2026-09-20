@@ -880,7 +880,7 @@ internal sealed class LineParser(
                 break;
             }
 
-            if (tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+            if (!EqualsFollowsName())
             {
                 Report(
                     ParserDiagnostics.ParameterWithoutValue,
@@ -890,12 +890,28 @@ internal sealed class LineParser(
                 return [];
             }
 
-            var name = new IdentifierSyntax(Advance());
+            // `style=` is a keyword where a name belongs, so it bypasses the identifier check that
+            // would report it as a reserved word.
+            var name = nameToken.Kind == TokenKind.Keyword
+                ? new QualifiedNameSyntax(new IndexedNameSyntax(new IdentifierSyntax(Advance()), null), [])
+                : TakeQualifiedName();
+            if (name is null)
+            {
+                failed = true;
+                return [];
+            }
+
             var equals = Advance();
+            var explained = diagnostics.Count;
             var value = ParseExpression();
             if (value is null)
             {
-                Report(ParserDiagnostics.UnclassifiableStatement, LineSpan);
+                // A value that failed with its own message (`FS1119`) does not also need the general one.
+                if (diagnostics.Count == explained)
+                {
+                    Report(ParserDiagnostics.UnclassifiableStatement, LineSpan);
+                }
+
                 failed = true;
                 return [];
             }
@@ -904,6 +920,26 @@ internal sealed class LineParser(
         }
 
         return parameters.ToImmutable();
+    }
+
+    /// <summary>Whether the name starting at the current token — a word, its index, its dotted quantity — is followed by <c>=</c>.</summary>
+    /// <remarks>
+    /// The one-token lookahead of <c>12</c> is over statements, not over a name: a parameter name is
+    /// one lexical unit to the grammar and several tokens to the lexer, so deciding "is this a
+    /// parameter" reads to the end of the name. Nothing else can start with a word and a bracket.
+    /// </remarks>
+    private bool EqualsFollowsName()
+    {
+        var index = _index + 1;
+
+        while (tokens.ElementAtOrDefault(index) is { } token
+               && token.Kind is TokenKind.OpenBracket or TokenKind.NumberLiteral or TokenKind.CloseBracket
+                   or TokenKind.Dot or TokenKind.Identifier)
+        {
+            index++;
+        }
+
+        return tokens.ElementAtOrDefault(index) is { Kind: TokenKind.Equals };
     }
 
     private EndpointSyntax? TakeEndpoint()
@@ -918,8 +954,8 @@ internal sealed class LineParser(
             && tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Identifier })
         {
             var dot = Advance();
-            var port = new IdentifierSyntax(Advance());
-            return new EndpointSyntax(component, dot, port);
+            var port = TakeQualifiedName();
+            return port is null ? null : new EndpointSyntax(component, dot, port);
         }
 
         return new EndpointSyntax(component, null, null);
@@ -1103,7 +1139,7 @@ internal sealed class LineParser(
             : null;
     }
 
-    private ReferenceSyntax ParseReference(IdentifierSyntax head)
+    private ReferenceSyntax? ParseReference(IdentifierSyntax head)
     {
         var parts = ImmutableArray.CreateBuilder<QualifiedNamePart>();
 
@@ -1111,7 +1147,15 @@ internal sealed class LineParser(
                && tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Identifier })
         {
             var dot = Advance();
-            parts.Add(new QualifiedNamePart(dot, new IdentifierSyntax(Advance())));
+            var part = TakeIndexedName();
+            if (part is null)
+            {
+                // `FS1119` is reported; the line becomes malformed, which is what keeps the consumed
+                // tokens in the tree (losslessness) and what makes the reference one diagnostic.
+                return null;
+            }
+
+            parts.Add(new QualifiedNamePart(dot, part));
         }
 
         return new ReferenceSyntax(head, parts.ToImmutable());
@@ -1168,6 +1212,88 @@ internal sealed class LineParser(
 
     private NumberLiteralSyntax? TakeNumber() =>
         Current is { Kind: TokenKind.NumberLiteral } ? new NumberLiteralSyntax(Advance()) : null;
+
+    /// <summary>Reads a name and the <c>[n]</c> that may follow it (<c>D-120</c>).</summary>
+    /// <returns>
+    /// The name, or <see langword="null"/> when there is no name here or the index after it is not
+    /// one whole number in touching brackets — reported as <c>FS1119</c>, with the bracket and
+    /// whatever follows it up to the <c>]</c> consumed so the line's remaining tokens are not read as
+    /// something else.
+    /// </returns>
+    private IndexedNameSyntax? TakeIndexedName()
+    {
+        var name = TakeIdentifier();
+        if (name is null)
+        {
+            return null;
+        }
+
+        if (Current is not { Kind: TokenKind.OpenBracket } open)
+        {
+            return new IndexedNameSyntax(name, null);
+        }
+
+        var number = tokens.ElementAtOrDefault(_index + 1);
+        var close = tokens.ElementAtOrDefault(_index + 2);
+
+        // Touching, and a whole number: `Value` alone would accept `2.0` and `2e0`, which read as an
+        // index to no one, so the text is what decides.
+        var wellFormed = open.Span.Start == name.Span.End
+            && number is { Kind: TokenKind.NumberLiteral }
+            && number.Span.Start == open.Span.End
+            && number.Text.All(static c => c is >= '0' and <= '9')
+            && close is { Kind: TokenKind.CloseBracket }
+            && close.Span.Start == number.Span.End;
+
+        if (wellFormed)
+        {
+            return new IndexedNameSyntax(name, new IndexSyntax(Advance(), Advance(), Advance()));
+        }
+
+        var start = open.Span.Start;
+        var end = open.Span.End;
+        while (Current is { } stray && stray.Kind != TokenKind.EndOfFile)
+        {
+            end = Advance().Span.End;
+            if (stray.Kind == TokenKind.CloseBracket)
+            {
+                break;
+            }
+        }
+
+        Report(ParserDiagnostics.MalformedIndex, TextSpan.FromBounds(start, end));
+        return null;
+    }
+
+    /// <summary>Reads a parameter's name: a word, an indexed port, or a port's quantity (<c>D-120</c>).</summary>
+    /// <returns>The name, or <see langword="null"/> after a malformed index; the caller has already checked that a name starts here.</returns>
+    private QualifiedNameSyntax? TakeQualifiedName()
+    {
+        var head = TakeIndexedName();
+        if (head is null)
+        {
+            return null;
+        }
+
+        var parts = ImmutableArray.CreateBuilder<QualifiedNamePart>();
+
+        while (Current is { Kind: TokenKind.Dot } dot
+               && tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Identifier } next
+               && dot.Span.Start == tokens[_index - 1].Span.End
+               && next.Span.Start == dot.Span.End)
+        {
+            Advance();
+            var part = TakeIndexedName();
+            if (part is null)
+            {
+                return null;
+            }
+
+            parts.Add(new QualifiedNamePart(dot, part));
+        }
+
+        return new QualifiedNameSyntax(head, parts.ToImmutable());
+    }
 
     private bool TryReadHyphenated(out string written, out string underscored)
     {

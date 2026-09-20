@@ -75,50 +75,50 @@ public sealed class ComponentDiagnosticsTests
     {
         // C-67. `power` is positive when side 1 gains heat; 50 -> 30 is the water cooling. The two cannot
         // both hold, and until now the contradiction surfaced only as a convergence residual.
-        var diagnostic = Only("HE1 heat_exchanger in=50 out=30 power=24", "FS2119");
+        var diagnostic = Only("HE1 heat_exchanger in.t=50 out.t=30 power=24", "FS2119");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("side 1 gains heat", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("cools", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("in=50 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in.t=50 °C", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void FS2119_ANegativeDutyWithAWarmingSideOne() =>
-        Assert.Contains("side 1 loses heat", Only("HE1 heat_exchanger in=30 out=50 power=-24", "FS2119").Message, StringComparison.Ordinal);
+        Assert.Contains("side 1 loses heat", Only("HE1 heat_exchanger in.t=30 out.t=50 power=-24", "FS2119").Message, StringComparison.Ordinal);
 
     [Fact]
     public void FS2119_SideTwoIsTheMirror()
     {
         // A positive duty leaves side 2, so in2 must be the warmer end: 45 -> 85 on side 2 is wrong.
-        var diagnostic = Only("HX1 heat_exchanger in=40 out=60 in2=45 out2=85 power=150", "FS2119");
+        var diagnostic = Only("HX1 heat_exchanger in.t=40 out.t=60 in[2].t=45 out[2].t=85 power=150", "FS2119");
 
         Assert.Contains("side 2 loses heat", diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains("in2=45 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("in[2].t=45 °C", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void FS2119_DoesNotFireWhenTheSignsAgree()
     {
-        None("HE1 heat_exchanger in=30 out=50 power=24", "FS2119");
-        None("HE1 heat_exchanger in=50 out=30 power=-24", "FS2119");
-        None("HX1 heat_exchanger in=40 out=60 in2=85 out2=45 power=150", "FS2119");
+        None("HE1 heat_exchanger in.t=30 out.t=50 power=24", "FS2119");
+        None("HE1 heat_exchanger in.t=50 out.t=30 power=-24", "FS2119");
+        None("HX1 heat_exchanger in.t=40 out.t=60 in[2].t=85 out[2].t=45 power=150", "FS2119");
     }
 
     [Fact]
     public void FS2119_ARoleWordCarriesTheSignAndCannotContradict()
     {
-        // D-91: `load power=24 in=50 out=30` lowers to -24 kW. The word decided the direction; the
+        // D-91: `load power=24 in.t=50 out.t=30` lowers to -24 kW. The word decided the direction; the
         // magnitude has nothing to contradict, and a check here would be second-guessing the word.
-        None("HE1 load in=50 out=30 power=24", "FS2119");
-        None("HE1 heater in=30 out=50 power=24", "FS2119");
+        None("HE1 load in.t=50 out.t=30 power=24", "FS2119");
+        None("HE1 heater in.t=30 out.t=50 power=24", "FS2119");
     }
 
     [Fact]
     public void FS2119_NeedsBothTerminalsAndADuty()
     {
-        None("HE1 heat_exchanger in=50 power=24", "FS2119");
-        None("HE1 heat_exchanger in=50 out=30", "FS2119");
+        None("HE1 heat_exchanger in.t=50 power=24", "FS2119");
+        None("HE1 heat_exchanger in.t=50 out.t=30", "FS2119");
         None("HE1 heat_exchanger dt=20 power=24", "FS2119");
     }
 
@@ -159,7 +159,7 @@ public sealed class ComponentDiagnosticsTests
         // `D-91`: `load` reads `power` as a capacity and supplies the sign itself, so a minus beside it
         // is a typo or a misreading of the convention -- it does not make the load heat, and it does not
         // say which way the water runs (`L-47`). Kept running for older scripts; told.
-        var diagnostic = Only("LOAD load power=-24 kW in=50 out=30", "FS1308");
+        var diagnostic = Only("LOAD load power=-24 kW in.t=50 out.t=30", "FS1308");
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Contains("LOAD", diagnostic.Message, StringComparison.Ordinal);
@@ -169,26 +169,26 @@ public sealed class ComponentDiagnosticsTests
     [Fact]
     public void FS1308_DoesNotFireOnTheNeutralSpelling() =>
         // `heat_exchanger` keeps the number signed; a negative there is a cooler and says so.
-        None("HE1 heat_exchanger power=-24 kW in=50 out=30", "FS1308");
+        None("HE1 heat_exchanger power=-24 kW in.t=50 out.t=30", "FS1308");
 
     [Fact]
     public void FS1308_DoesNotFireOnAPositiveCapacity() =>
-        None("LOAD load power=24 kW in=50 out=30", "FS1308");
+        None("LOAD load power=24 kW in.t=50 out.t=30", "FS1308");
 
     // ---- FS2101: over-determined groups ---------------------------------------------------------
 
     [Fact]
     public void FS2101_AllFourOfPowerInOutAndFlow()
     {
-        var diagnostic = Only("HE1 heat_exchanger power=30 in=20 out=50 flow=0.24", "FS2101");
+        var diagnostic = Only("HE1 heat_exchanger power=30 in.t=20 out.t=50 flow=0.24", "FS2101");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
-        Assert.Contains("power, in, out, flow", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("power, in.t, out.t, flow", diagnostic.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void FS2101_ThreeOfThemAreFine() =>
-        None("HE1 heat_exchanger power=30 in=20 out=50", "FS2101");
+        None("HE1 heat_exchanger power=30 in.t=20 out.t=50", "FS2101");
 
     [Fact]
     public void FS2101_UaAreaAndUTogether()
@@ -205,7 +205,7 @@ public sealed class ComponentDiagnosticsTests
     {
         // The caret goes on what a fix deletes. Anywhere else and the user is told four assignments
         // are one too many, with no indication which.
-        var source = "fluidscript 1\nHE1 heat_exchanger power=30 in=20 out=50 flow=0.24\n";
+        var source = "fluidscript 1\nHE1 heat_exchanger power=30 in.t=20 out.t=50 flow=0.24\n";
         var result = new Binder(ComponentRegistry.Default)
             .Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
 
@@ -315,21 +315,21 @@ public sealed class ComponentDiagnosticsTests
 
     [Fact]
     public void FS2113_TheBulkTemperatureBesideAnIndexedOne() =>
-        Assert.Equal(DiagnosticSeverity.Error, Only("T1 tank layers=2 t=60 t1=50 t2=70", "FS2113").Severity);
+        Assert.Equal(DiagnosticSeverity.Error, Only("T1 tank layers=2 t=60 layer[1].t=50 layer[2].t=70", "FS2113").Severity);
 
     [Fact]
     public void FS2113_APartialProfile() =>
         // Two of three layers. The third has no value and no default that would not be an invention.
-        Assert.Equal("FS2113", Only("T1 tank layers=3 t1=50 t2=60", "FS2113").Code);
+        Assert.Equal("FS2113", Only("T1 tank layers=3 layer[1].t=50 layer[2].t=60", "FS2113").Code);
 
     [Fact]
     public void FS2113_APartialProfileAgainstTheDefaultLayerCount() =>
-        // No `layers`, so the tank has the five its visible default gives it and t1..t3 is partial.
-        Assert.Equal("FS2113", Only("T1 tank t1=50 t2=60 t3=70", "FS2113").Code);
+        // No `layers`, so the tank has the five its visible default gives it and t1..layer[3].t is partial.
+        Assert.Equal("FS2113", Only("T1 tank layer[1].t=50 layer[2].t=60 layer[3].t=70", "FS2113").Code);
 
     [Fact]
     public void FS2113_ACompleteProfileIsFine() =>
-        None("T1 tank layers=3 t1=50 t2=60 t3=70", "FS2113");
+        None("T1 tank layers=3 layer[1].t=50 layer[2].t=60 layer[3].t=70", "FS2113");
 
     [Fact]
     public void FS2113_TheBulkTemperatureAloneIsFine() =>
@@ -340,8 +340,8 @@ public sealed class ComponentDiagnosticsTests
     {
         // One mistake, one message again: `layers=2.5` already has FS2114, and adding "your profile
         // does not have 2.5 entries" underneath would count the same error twice.
-        Only("T1 tank layers=2.5 t1=50 t2=60", "FS2114");
-        None("T1 tank layers=2.5 t1=50 t2=60", "FS2113");
+        Only("T1 tank layers=2.5 layer[1].t=50 layer[2].t=60", "FS2114");
+        None("T1 tank layers=2.5 layer[1].t=50 layer[2].t=60", "FS2113");
     }
 
     [Theory]
@@ -356,8 +356,8 @@ public sealed class ComponentDiagnosticsTests
         None("T1 tank layers=5", "FS2114");
 
     [Theory]
-    [InlineData("T1 tank in1_level=1.4")]
-    [InlineData("T1 tank out2_level=-0.2")]
+    [InlineData("T1 tank in.level=1.4")]
+    [InlineData("T1 tank out[2].level=-0.2")]
     public void FS2115_APortAboveOrBelowItsOwnTank(string body)
     {
         var diagnostic = Only(body, "FS2115");
@@ -371,7 +371,7 @@ public sealed class ComponentDiagnosticsTests
     {
         // Bottom and top are legal heights, and 22's layer mapping depends on them being so: 0 is
         // layer 1 and 1.0 is the top layer rather than a sixth that does not exist.
-        None("T1 tank in1_level=0 out1_level=1", "FS2115");
+        None("T1 tank in.level=0 out.level=1", "FS2115");
     }
 
     // ---- what the registry itself guarantees ----------------------------------------------------

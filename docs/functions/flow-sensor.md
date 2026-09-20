@@ -14,7 +14,7 @@ where the instrument really is — the same decision you make on a drawing.
 That distinction matters more than it looks:
 
 ```fluidscript
-HX1 heat_exchanger in=50 out=30      # what the design asks for
+HX1 heat_exchanger in.t=50 out.t=30      # what the design asks for
 FE1 flow_sensor at N2                      # what the model produced
 ```
 

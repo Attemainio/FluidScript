@@ -421,14 +421,14 @@ public sealed record DesignDirectiveSyntax(
 }
 
 /// <summary>One <c>name=value</c> pair.</summary>
-/// <param name="Name">The parameter name.</param>
+/// <param name="Name">The parameter name: <c>power</c>, or a port's quantity such as <c>in[2].t</c> (<c>D-120</c>).</param>
 /// <param name="EqualsToken">The <c>=</c>.</param>
 /// <param name="Value">
 /// An expression, a reference, or a symbol — which of the three depends on the parameter's declared
 /// kind, so the parser records an expression and the binder decides.
 /// </param>
 public sealed record ParameterSyntax(
-    IdentifierSyntax Name,
+    QualifiedNameSyntax Name,
     Token EqualsToken,
     ExpressionSyntax Value) : SyntaxNode
 {
@@ -489,13 +489,15 @@ public sealed record ConnectionSyntax(
 /// <param name="Component">The component's name.</param>
 /// <param name="Dot">The separator before a port, if there is one.</param>
 /// <param name="Port">
-/// The port, or <see langword="null"/> for "the next free port, in the component's declared port
-/// order" — which is what makes the reference circuits work with no port names at all.
+/// The port — <c>b</c>, <c>in[2]</c> — or <see langword="null"/> for "the next free port, in the
+/// component's declared port order" — which is what makes the reference circuits work with no port
+/// names at all. A schedule target reuses the shape with a parameter here, <c>in[2].t</c>, which
+/// is why the name may carry a dotted step; a connection's port never does, and the binder says so.
 /// </param>
 public sealed record EndpointSyntax(
     IdentifierSyntax Component,
     Token? Dot,
-    IdentifierSyntax? Port) : SyntaxNode
+    QualifiedNameSyntax? Port) : SyntaxNode
 {
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>

@@ -69,7 +69,7 @@ difference:
 
 ```fluidscript
 PU1    pump
-HE_AHU load power=24 in=50 out=30 elevation=32
+HE_AHU load power=24 in.t=50 out.t=30 elevation=32
 P1     pipe length=35 dn=25
 P2     pipe length=35 dn=25
 

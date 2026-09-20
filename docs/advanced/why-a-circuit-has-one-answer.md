@@ -63,17 +63,17 @@ Here is the tutorial's cooling loop, counted in full:
 | Pressure at each of 6 nodes | 6 | Mass balance at `N1`, `N2`, `N3` and `3WV` | 4 |
 | Temperature at each of 6 nodes | 6 | Energy balance at each node | 6 |
 | Mass entering at `N1` and leaving at `N3` | 2 | The two stated pressures | 2 |
-| `PU1.head` | 1 | `HE1 out=50` | 1 |
-| `3WV.position` | 1 | `HE1 in=20` | 1 |
+| `PU1.head` | 1 | `HE1 out.t=50` | 1 |
+| `3WV.position` | 1 | `HE1 in.t=20` | 1 |
 | **Total** | **20** | **Total** | **20** |
 
-Notice the last two rows on each side. `HE1 in=20` is not a fact about the exchanger — it is a
+Notice the last two rows on each side. `HE1 in.t=20` is not a fact about the exchanger — it is a
 *demand* on the circuit: make the water arriving here 20 °C. Something has to move to meet it, and on
 this circuit the only thing that can is how the three-way valve splits the flow. So stating it turns
 `3WV.position` from a number the sizing step would have chosen into a number the solver has to find.
 
 **The demand and the freedom arrive together, which is why the count stays balanced.** Delete
-`in=20` and both rows disappear.
+`in.t=20` and both rows disappear.
 
 ## Promotion, and what can absorb what
 

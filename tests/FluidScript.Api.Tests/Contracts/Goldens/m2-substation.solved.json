@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:0450a7c406170f5280046f51fb92473738efcfd53c0bb926b872f7c4eb9ee0ff",
+    "sourceHash": "sha256:e578cc6e3431b9166abd1e3f201317ca5b097123d8b76aad24621c1f94df68c5",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -393,7 +393,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 1134,
-        "length": 63
+        "length": 75
       },
       "circuit": "substation",
       "tag": "100HE02",
@@ -542,8 +542,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1221,
-        "length": 29
+        "start": 1233,
+        "length": 31
       },
       "circuit": "substation",
       "tag": null,
@@ -616,7 +616,7 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1267,
+        "start": 1283,
         "length": 30
       },
       "circuit": "substation",
@@ -690,7 +690,7 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1317,
+        "start": 1333,
         "length": 25
       },
       "circuit": "substation",
@@ -3776,10 +3776,10 @@
         },
         "end": {
           "line": 31,
-          "character": 29
+          "character": 31
         },
-        "offset": 1221,
-        "length": 29
+        "offset": 1233,
+        "length": 31
       },
       "component": "PCV__HX1",
       "suggestion": null,
@@ -3796,10 +3796,10 @@
         },
         "end": {
           "line": 31,
-          "character": 29
+          "character": 31
         },
-        "offset": 1221,
-        "length": 29
+        "offset": 1233,
+        "length": 31
       },
       "component": "PCV__HX1__in",
       "suggestion": null,
@@ -3816,10 +3816,10 @@
         },
         "end": {
           "line": 31,
-          "character": 29
+          "character": 31
         },
-        "offset": 1221,
-        "length": 29
+        "offset": 1233,
+        "length": 31
       },
       "component": "PCV__HX1__out",
       "suggestion": null,
@@ -3838,7 +3838,7 @@
           "line": 34,
           "character": 30
         },
-        "offset": 1267,
+        "offset": 1283,
         "length": 30
       },
       "component": "HX1__NSUP",
@@ -3858,7 +3858,7 @@
           "line": 34,
           "character": 30
         },
-        "offset": 1267,
+        "offset": 1283,
         "length": 30
       },
       "component": "HX1__NSUP__in",
@@ -3878,7 +3878,7 @@
           "line": 34,
           "character": 14
         },
-        "offset": 1277,
+        "offset": 1293,
         "length": 4
       },
       "component": "NSUP",
@@ -3898,7 +3898,7 @@
           "line": 35,
           "character": 18
         },
-        "offset": 1312,
+        "offset": 1328,
         "length": 4
       },
       "component": "NRET",
@@ -3918,7 +3918,7 @@
           "line": 36,
           "character": 25
         },
-        "offset": 1317,
+        "offset": 1333,
         "length": 25
       },
       "component": "NRET__SP",
@@ -3938,7 +3938,7 @@
           "line": 36,
           "character": 25
         },
-        "offset": 1317,
+        "offset": 1333,
         "length": 25
       },
       "component": "NRET__SP__out",
@@ -3958,7 +3958,7 @@
           "line": 37,
           "character": 11
         },
-        "offset": 1343,
+        "offset": 1359,
         "length": 11
       },
       "component": "SP__HX1",

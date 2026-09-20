@@ -100,7 +100,7 @@
             }
           },
           "portFamilies": {
-            "description": "Indexed port families such as a tank\u0027s in1..in16 (D-32).",
+            "description": "Indexed port families such as a tank\u0027s in[2]..in[16] (D-32, D-120).",
             "type": "array",
             "items": {
               "title": "PortFamily",
@@ -108,11 +108,15 @@
               "type": "object",
               "properties": {
                 "prefix": {
-                  "description": "The name before the index, in for in1.",
+                  "description": "The name before the index, in for the port id in2: a component\u0027s port ids and the model\u0027s keys are {Prefix}{index}.",
+                  "type": "string"
+                },
+                "pattern": {
+                  "description": "How a script writes a member, with one {index} placeholder: in[{index}] (D-120). The first member is the fixed port in, listed under ports.",
                   "type": "string"
                 },
                 "minIndex": {
-                  "description": "The lowest index.",
+                  "description": "The lowest index the family itself covers; the fixed first port sits below it.",
                   "type": "integer"
                 },
                 "maxIndex": {
@@ -124,7 +128,7 @@
                   "type": "string"
                 },
                 "levelParameterSuffix": {
-                  "description": "The suffix of the parameter that places the port, or null.",
+                  "description": "The suffix of the parameter key that places the port (in2_level), or null; the script spelling of that parameter is under indexedParameters.",
                   "type": [
                     "string",
                     "null"
@@ -133,6 +137,7 @@
               },
               "required": [
                 "prefix",
+                "pattern",
                 "minIndex",
                 "maxIndex",
                 "role",

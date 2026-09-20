@@ -137,3 +137,23 @@ document as a golden for the completion tests (`A-5`) showed it: two runs of the
 a kind's parameters in different orders, so the ETag differed between processes for the same
 registry. Ordered by name now, on the Api side; the frontend never sorted, and its completion
 ranking is its own.
+
+**A parameter name is no longer one token, and the editor had three places that assumed it was**
+(P5.13a, `D-120`, 2026-09-20). The tokenizer classed the identifier before `=` as a parameter, so in
+`in[2].t=85` only `t` was one and `in` fell to the reference rule (`.` after a word); the completion's
+"already written" set collected the same single token, so `in.t=40` marked `t` as written and offered
+`in.t` again; and the value filter after `=` looked `t` up as the parameter, which no kind has. All
+three now run a name back from the `=` over words, dots, brackets and the index between them while
+the tokens touch -- the same adjacency the parser demands -- and the `written` set, the highlight and
+the dimension filter agree on `in[2].t`. Two things were added rather than fixed: after `in.` or
+`in[2].` on a declaration line the completion offers the quantities that port takes (`t`; `t`,
+`flow`, `dp`, `dt` on an exchanger's second inlet; `level` on a tank's), which is the rule the
+[syntax page](../../docs/functions/syntax.md) teaches and was not derivable from the kind's flat
+parameter list before; and the port completion after `T1.` spells a family member from the wire's new
+`pattern` (`in[{index}]`) rather than concatenating prefix and digits, since the model's port ids stay
+`in2` and the script must not. The tokenizer's rule-5 clause grew with Core's (`[`, `.`+word).
+`velocity`, `reynolds`, `viscosity`, `cp` and `k` from `57`'s table are still not quantities the
+table knows, and `show velocity` is `FS1210`; `57` now says so. A register finding on the way: this
+file and `00-foundation/defects.md` both number their entries `F-n` (`F-16` is a foundation entry,
+`F-10` a frontend one), and `09` cites both; one of them should carry a different letter before a
+third reader trips on it.

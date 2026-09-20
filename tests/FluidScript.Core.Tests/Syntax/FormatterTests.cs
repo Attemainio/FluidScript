@@ -65,9 +65,9 @@ public sealed class FormatterTests
     [Fact]
     public void ItRemovesSpacesAroundAParametersEqualsAndKeepsAQuantitysInnerSpace()
     {
-        const string Text = "   HE1   heat_exchanger  power = 30 kW   in=20\n";
+        const string Text = "   HE1   heat_exchanger  power = 30 kW   in.t=20\n";
 
-        Assert.Equal("HE1 heat_exchanger power=30 kW in=20\n", Formatter.FormatText(Text));
+        Assert.Equal("HE1 heat_exchanger power=30 kW in.t=20\n", Formatter.FormatText(Text));
     }
 
     [Fact]

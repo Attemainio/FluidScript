@@ -44,8 +44,8 @@ public static class RegistryPages
                 static f => f.Pattern, StringComparer.Ordinal))
             {
                 var bound = family.MaxIndexParameter is { } parameter
-                    ? $"1 to `{parameter}`"
-                    : $"1 to {family.MaxIndex}";
+                    ? $"{family.MinIndex} to `{parameter}`"
+                    : $"{family.MinIndex} to {family.MaxIndex}";
 
                 builder.AppendLine(
                     $"| `{kind.Keyword}` | `{family.Pattern}`, {bound} | {Unit(family.Element)} "

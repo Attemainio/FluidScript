@@ -238,7 +238,35 @@ would be filled with nothing.
 > **`D-120` (2026-09-19):** the user's reading of the language after writing scripts by hand --
 > one scheme for a port's state, `in[n].quantity`, brackets for every indexed port, one property
 > table with symbol and name, the node kept one-state, `D-115`'s boundaries kept -- is decided and
-> is **P5.13**, to run before P6 so M4 is not specified in a spelling about to change. Not started.
+> is **P5.13**, to run before P6 so M4 is not specified in a spelling about to change.
+> **P5.13a shipped 2026-09-20**, ahead of the sweep's `S-53`/`S-55`/`S-56` at the user's request
+> (the sweep would otherwise have written its tests in `in=`). The lexer has `[` and `]` and its
+> rule-5 clause reads through `in.t=` and `in[2]`; the parser reads a parameter's name, an endpoint's
+> port and a schedule target as a qualified name (`FS1119` for a malformed index); the registry's
+> rows carry a script `Name` and a model `Key` with the pre-`D-120` spelling as a legacy of the key,
+> and its dictionary is keyed by the key; `PropertyTable` owns the quantities and `show` reads it
+> (`L-50` narrowed); the binder folds `[1]` and the long quantity names, binds the old spellings with
+> `FS1536` and a name-span suggestion, refuses a port state on a node with `FS1537`, and quotes
+> `kind.ParameterName(key)` in every message; the tank's port families start at 2 behind the fixed
+> `in`/`out`, and the metadata's port family carries a `pattern`. Samples, the ladder scripts, the
+> fenced blocks in `plan/` and `docs/`, `22`'s tables and the seven docs pages are in the new form;
+> the frontend tokenizer and completion read a name back from its `=` and offer a port's quantities
+> after `in[2].`. Port ids, `ComponentStateWire` fields and the `solved`/`sizes` maps are keys by
+> decision. **P5.13b** holds what the package deliberately left: `in.p` on a component binding to
+> the touching node, `vflow` as a constraint, and the report's and the wire's spelling of a keyed
+> parameter (`L-56`). Goldens re-recorded; no corpus value moved. One narrowed, one opened; 64 open.
+> **The product's first test by the user (the same day), three findings.** `C-105`: the cooling
+> loop with its sign flipped drew as a chain -- C18, the unsourced ring, had no corner-taker and its
+> corner junction's free port went up because the loop centre was never set; both fixed, ladder step
+> 6c pins the mirror of step 6, nothing else moved. `C-106`: `FS2107` and `FS2210` still spoke
+> pre-`D-115` -- a dead-end `node p=` was told to state a parameter and then refused with an empty
+> list; both now say "write `N3 outlet`", and the dead-end check reads the kind. `S-70`: a two-circuit
+> substation's refusal names the wrong circuit twice and the wrong pump. Discussed and left as
+> decided: inferring a boundary from a one-connection node (`D-115`, the vessel stub), and whether
+> the layout may read `power`'s sign at all (`D-108`; the user's principle is structure only -- his
+> call, recorded under `C-105`). Also fixed: the editor's completion list was white on white in the
+> dark theme (CodeMirror's light base rule outranked the stylesheet; the colours are a view theme now).
+> Two closed, one opened; 63 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -455,6 +483,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | `19c7584` | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 | P5.10 | State visualization ([`57`](50-frontend/57-state-visualization.md), `D-117`): every available scale on the wire with every element's place on each (`ColourScales`), enthalpy and density mapped, `FS1210`/`FS1213`/`FS1214` raised; pipe gradients between the outlet left and the inlet entered, the exchanger gradient across its body, the legend with unit, 1-2-5 ticks, the switcher (no request), the band hover, degenerate and unavailable notes, stale desaturation, `Home` resetting the switch; `docs/advanced/the-canvas.md` and `show.md` | `f43774d` | Shipped 2026-09-18; `C-103` found and closed (a port read its node; an outlet now reads its own stream, `22`); not built: tank layer bands, the run-wide transient domain (M4), `57`'s wider property table |
 | P5.11 | Static export and the accessibility pass ([`59`](50-frontend/59-static-export.md), `D-118`, `D-45`): `renderExportSvg`/`exportSvg`/`exportPng` from the canvas's `SceneView` with `scene.css` resolved to the theme's literal colours (Oklab for the mixes), strokes in world units, the legend band, the value under each symbol, the provenance `<desc>`; the Export dialog and `Ctrl+E`; export goldens per sample; `SceneTable`, keyboard pan/zoom/select/card, axe-core under jsdom, the status line's landmark and the editor's accessible name fixed; `baseline.test.tsx`; `docs/advanced/exporting.md`, the canvas page's keyboard table | `d3b7323` | Shipped 2026-09-19; `F-10` opened (the browser-only checks: PNG pixels, four viewers, axe with layout, zoom, screen reader, the panning budget); the render budget is not met by extrapolation (`53`) |
+| P5.13a | Port-indexed state syntax (`D-120`): `in[n].quantity` on declarations, references, endpoints and schedule targets; `FS1119`, `FS1536`, `FS1537`; `PropertyTable`; registry rows keyed by model key with a script name; the corpus, `22` and `docs/functions/{syntax,heat-exchanger,tank,show,properties}.md` respelled; frontend tokenizer and completion | *(uncommitted, 2026-09-20)* | Shipped 2026-09-20. `L-56` opened for P5.13b (`in.p` on a component, `vflow` as a constraint, keyed spellings in the report and on the wire) |
 | Sweep 1–3 | The defect sweep after P5 (tiers 1–3, 2026-09-19): 15 entries closed across five registers -- `L-1`, `L-3`, `L-21`, `S-65`, `L-53`, `L-54`, `A-3`, `C-28`, `C-97`, `A-1`, `A-4`, `C-39`, `F-1`, `S-20`, `L-40`, `L-55`, `C-74`, `S-52` -- with `D-119` (named exchanger dimensions), `D-120` (port-indexed state syntax, P5.13 to implement), `SizingDiagnostics`, `FS1534`/`FS1535`/`FS3012`, and the dotnet-toolkit observations report | `20fccb9` | Recorded above under P5.11 |
 
 **P5.1a is `LayoutHintsDerivation.Derive(graph, model, branchFlows)`**, a pure function of the
@@ -934,9 +963,14 @@ unassessed, not clean.
    a test fixture; promoting it to `samples/` and `01` is a spec addition (`D-11`) and the user's
    call. Its natural next variants — one source off (`S-56`, and there is no check valve to stop
    reverse flow through it), a source-side mixing valve (`S-55`) — are the open entries it points at.
-3. **`S-53`'s four ordered fixes**, and the valve-sizing observation under `S-58`: an
-   equal-percentage valve sized for authority at full open sits at 0.6 travel dropping 24–45 kPa,
-   and the pump pays.
+3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-53` (measured met on
+   2026-09-20 -- coils 0.2871/0.3589, source 0.2581, two iterations -- and needs its pinned test
+   before it closes), `S-55` (reproduced with `N3 node t=60` and a source valve; the fix is
+   biconnected blocks in `WellPosedness.ReportDriverlessLoops` and `OuterLoop.Driven`/`ThreeWay`
+   rather than cycle-local checks, then `D-122`'s band sizes `TV_MAIN`), and `S-56` (a source with
+   `power=0` and both terminals stated goes non-finite; the user picks between refusing it, dropping
+   the mixed-inlet promotion at zero duty, and a check valve). Then **P5.13b** (`L-56`), then
+   the valve-sizing observation under `S-58`.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
    Core-side and closed by golden files before a pixel exists. `D-100` (2026-09-15) triaged a
    proposed layout standard before P5.1 started: hard constraints as a named class, an explicit

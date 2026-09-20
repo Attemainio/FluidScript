@@ -91,7 +91,7 @@ public sealed class TopologyBindingTests
         // A tank has sixteen possible inlets. It gets the ones the script wrote and no others, which
         // is what keeps the model contract's port list a description of this script.
         var model = Model(
-            "fluidscript 1\nT1 tank v=300 in3_level=0.8\nconnections\nT1.in3 - N1\nT1.out1 - N2\n");
+            "fluidscript 1\nT1 tank v=300 in[3].level=0.8\nconnections\nT1.in[3] - N1\nT1.out - N2\n");
 
         var tank = model.Components.Single(static component => component.Name == "T1");
 
@@ -102,7 +102,7 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void APortOutsideItsFamilysRangeIsReported()
     {
-        var result = Bind("fluidscript 1\nT1 tank v=300\nconnections\nT1.in17 - N1\n");
+        var result = Bind("fluidscript 1\nT1 tank v=300\nconnections\nT1.in[17] - N1\n");
 
         Assert.Contains("FS1516", Codes(result));
     }
@@ -393,7 +393,7 @@ public sealed class TopologyBindingTests
         // canonical unit — `HE4.power = 45` is 45 kW, exactly as `power=45` would be (`D-14`).
         var model = Model(
             "fluidscript 1\ncircuit demandStep 400\nfluid dynamic water\n"
-            + "HE4 load in=50 out=30 power=30 kW\n"
+            + "HE4 load in.t=50 out.t=30 power=30 kW\n"
             + "schedule\nat 60 s HE4.power = 45\nover 60 s .. 120 s HE4.power = 30 .. 45\n");
 
         Assert.Equal(2, model.Disturbances.Length);
@@ -442,13 +442,22 @@ public sealed class TopologyBindingTests
     [Trait("Category", "Unit")]
     public void ANodeWithABoundaryIsNotADeadEnd()
     {
-        // A degree-1 node that states t, p or flow is a boundary condition, which is exactly the shape
-        // FS2107 exists to ask for.
-        var result = Bind("fluidscript 1\nN1 node t=6 p=300\nconnections\nN1 - N2\n");
+        // Since D-115 the kind says mass crosses: a degree-1 `inlet` is the shape FS2107 exists to ask
+        // for, and a degree-1 `node` that states t and p is a datum on a stub -- still a dead end, and
+        // the message says which word makes it a boundary (C-106).
+        var result = Bind("fluidscript 1\nN1 inlet t=6 p=300\nconnections\nN1 - N2\n");
 
         Assert.Equal(["N2"], result.Diagnostics
             .Where(static d => d.Code == "FS2107")
             .Select(static d => d.Message.Split('\'')[1]));
+
+        var datum = Bind("fluidscript 1\nN1 node t=6 p=300\nconnections\nN1 - N2\n");
+
+        Assert.Equal(["N1", "N2"], datum.Diagnostics
+            .Where(static d => d.Code == "FS2107")
+            .Select(static d => d.Message.Split('\'')[1])
+            .Order(StringComparer.Ordinal));
+        Assert.Contains("'inlet' or 'outlet'", datum.Diagnostics.First(static d => d.Code == "FS2107").Message, StringComparison.Ordinal);
     }
 
     // ---- step 11: tags, last -----------------------------------------------------------------------

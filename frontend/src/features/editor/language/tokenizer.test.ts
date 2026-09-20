@@ -25,10 +25,10 @@ describe('the tokenizer follows 12', () => {
   });
 
   it('joins a spaced unit to its number unless = follows', () => {
-    // Rule 5: `30 K` is one quantity; `30 in=20` is a number and a parameter named in.
+    // Rule 5: `30 K` is one quantity; `30 in.t=20` is a number and a parameter named in.
     expect(roles('let dT = 30 K')).toBe('let:keyword dT:declaration =:operator 30:number K:unit');
-    expect(roles('HE1 heat_exchanger power=30 in=20')).toBe(
-      'HE1:declaration heat_exchanger:kind power:parameter =:operator 30:number in:parameter =:operator 20:number',
+    expect(roles('HE1 heat_exchanger power=30 in.t=20 in[2].t=85')).toBe(
+      'HE1:declaration heat_exchanger:kind power:parameter =:operator 30:number in:parameter .:operator t:parameter =:operator 20:number in:parameter [:operator 2:number ]:operator .:operator t:parameter =:operator 85:number',
     );
   });
 
@@ -131,6 +131,10 @@ function punctuationName(text: string): string {
       return 'CloseParenthesis';
     case '@':
       return 'At';
+    case '[':
+      return 'OpenBracket';
+    case ']':
+      return 'CloseBracket';
     case ':':
       return 'Colon';
     default:

@@ -35,19 +35,41 @@ public sealed class IndexedPropertyTests
     private static ComponentKindInfo Tank => ComponentRegistry.Default.ByKeyword("tank")!;
 
     [Theory]
-    [InlineData("t1")]
-    [InlineData("t3")]
-    [InlineData("in1_t")]
-    [InlineData("in16_t")]
-    [InlineData("out2_t")]
-    public void AFamilyMemberResolvesAndKeepsTheNameAsWritten(string property)
+    [InlineData("layer[1].t", "layer[1].t", "t1")]
+    [InlineData("layer[3].t", "layer[3].t", "t3")]
+    [InlineData("in.t", "in.t", "in1_t")]
+    [InlineData("in[1].t", "in.t", "in1_t")]
+    [InlineData("in[16].t", "in[16].t", "in16_t")]
+    [InlineData("out[2].t", "out[2].t", "out2_t")]
+    public void AFamilyMemberResolvesToItsOwnNameAndKey(string property, string name, string key)
     {
-        var resolved = Tank.ResolveProperty(property);
+        // The name is the script's spelling with a port's `[1]` folded away -- a layer keeps its index,
+        // since `layer[1]` is the bottom layer and not a first port -- and the key is the one the
+        // solved value is published under (D-120).
+        var resolved = Tank.ResolveProperty(property, out var suggestion);
 
         Assert.NotNull(resolved);
-        Assert.Equal(property, resolved.Name);
+        Assert.Null(suggestion);
+        Assert.Equal(name, resolved.Name);
+        Assert.Equal(key, resolved.Key);
         Assert.Equal(Dimension.Temperature, resolved.Dimension);
         Assert.Equal(PropertyAvailability.Solved, resolved.Availability);
+    }
+
+    [Theory]
+    [InlineData("t1", "layer[1].t")]
+    [InlineData("t3", "layer[3].t")]
+    [InlineData("in1_t", "in.t")]
+    [InlineData("in16_t", "in[16].t")]
+    [InlineData("out2_t", "out[2].t")]
+    public void TheOldSpellingResolvesAndSuggestsTheNewOne(string legacy, string current)
+    {
+        var resolved = Tank.ResolveProperty(legacy, out var suggestion);
+
+        Assert.NotNull(resolved);
+        Assert.Equal(current, suggestion);
+        Assert.Equal(current, resolved.Name);
+        Assert.Equal(legacy, resolved.Key);
     }
 
     [Theory]
@@ -58,11 +80,13 @@ public sealed class IndexedPropertyTests
         Assert.NotNull(Tank.ResolveProperty(property));
 
     [Theory]
-    [InlineData("t")]        // The bulk parameter, not a property.
-    [InlineData("t0")]       // Below the family's first index.
-    [InlineData("in17_t")]   // Above the sixteen ports a tank materializes.
-    [InlineData("in_t")]     // No index at all.
-    [InlineData("t3x")]      // The digits must be the whole of the placeholder.
+    [InlineData("t")]           // The bulk parameter, not a property.
+    [InlineData("layer[0].t")]  // Below the family's first index.
+    [InlineData("in[17].t")]    // Above the sixteen ports a tank materializes.
+    [InlineData("in17_t")]      // The same, in the old spelling.
+    [InlineData("layer.t")]     // No index at all.
+    [InlineData("layer[3]")]    // No quantity.
+    [InlineData("t3x")]         // The digits must be the whole of the placeholder.
     public void AnythingElseResolvesToNothing(string property) =>
         Assert.Null(Tank.ResolveProperty(property));
 
@@ -70,20 +94,20 @@ public sealed class IndexedPropertyTests
     public void AFamilyBoundedByAParameterHasNoFixedCeilingHere()
     {
         // `t{index}` is bounded by `layers`, which is per component, so the registry cannot check it.
-        // T1.t9 on a five-layer tank resolves and is a graph-time question -- stated deliberately,
+        // T1.layer[9].t on a five-layer tank resolves and is a graph-time question -- stated deliberately,
         // because the alternative reading is that the ceiling was forgotten.
-        Assert.NotNull(Tank.ResolveProperty("t9"));
+        Assert.NotNull(Tank.ResolveProperty("layer[9].t"));
         Assert.Null(Tank.IndexedPropertyFamilies.Single(
-            static family => family.Pattern == "t{index}").MaxIndex);
+            static family => family.Pattern == "layer[{index}].t").MaxIndex);
     }
 
     [Fact]
     public void AReferenceToALayerTemperatureBindsWithoutError() =>
-        NoErrors("T1 tank layers=3\nlet warm = T1.t3");
+        NoErrors("T1 tank layers=3\nlet warm = T1.layer[3].t");
 
     [Fact]
     public void AReferenceToAPortTemperatureBindsWithoutError() =>
-        NoErrors("T1 tank\nlet supply = T1.out1_t");
+        NoErrors("T1 tank\nlet supply = T1.out.t");
 
     [Fact]
     public void FS1406_StillFiresForANameNoFamilyMatches()
@@ -94,7 +118,7 @@ public sealed class IndexedPropertyTests
         // The family patterns are in the list, not just the fixed names: a message that offered only
         // `volume, layers, stored_energy` would say a layer temperature is unreadable, which is the
         // opposite of what this package changed.
-        Assert.Contains("t{index}", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("layer[{index}].t", diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains("stored_energy", diagnostic.Message, StringComparison.Ordinal);
     }
 

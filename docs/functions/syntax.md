@@ -68,15 +68,15 @@ let mdot = Q / (cp * dT)      # three operators: divide, multiply
 Compound units like `kJ/(kg*K)`, `m3/h` and `l/min` are single units, not little formulas — FluidScript
 never reads inside one.
 
-**A unit is never recognised before an `=`.** This is what keeps a parameter named after a unit
-working:
+**A unit is never recognised before an `=`, a `[` or a `.name`.** This is what keeps a parameter
+named after a unit working:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
+HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
-`in` is the symbol for inches *and* the name of the inlet-temperature parameter. Because `=` follows
-it, this line is three parameters — not thirty inches.
+`in` is the symbol for inches *and* the name of the inlet port. Because `.t=` follows it, this line
+is three parameters — not thirty inches.
 
 You can write a number on its own. It picks up the unit the parameter expects, so `power=30` is
 30 kW and `length=25` is 25 metres. [Units](units.md) lists what a bare number means for every
@@ -84,6 +84,39 @@ quantity.
 
 A decimal point must have a digit after it: `30.5` is one number, and `30..60` is a range from 30
 to 60.
+
+## A port's state
+
+A component's ports have states, and a state is written on its port: the port, a dot, and the
+quantity.
+
+```fluidscript
+HX1 heat_exchanger power=150 kW in.t=40 out.t=60 in[2].t=85 out[2].t=45
+```
+
+`in.t` is the temperature entering side 1, `out[2].t` the temperature leaving side 2. Ports that come
+in families take an index in square brackets — `in[2]`, `layer[3]`, `out[16]` — and the first member
+needs none: `in[1]` and `in` are the same port, and `in` is how it is printed. The index is a whole
+number touching its name on both sides; `in[ 2 ]` and `in[a]` are [`FS1119`](diagnostics.md).
+
+The same spelling reads the state back in an expression, names the port in a connection and picks a
+target in a schedule:
+
+```fluidscript
+let approach = HX1.in[2].t - HX1.out.t
+connections
+HX1.out[2] - PP - N2 - HX1.in[2]
+```
+
+The quantities are the ones [`show`](show.md) and [Properties](properties.md) use: `t`, `p`, `flow`,
+`vflow`, `h`, `rho`, `dp`, and their long names — `in[2].temperature` is `in[2].t`. Which of them a
+port takes is the component's business: an exchanger's inlet takes `t`, and its second inlet also
+`flow`, `dp` and `dt` for the whole side; a tank's takes `level`. A node has one state and no ports,
+so `t=` and `p=` are written bare on it; `N1 node in.t=50` is [`FS1537`](diagnostics.md).
+
+Scripts written before this form used `in=`, `in2=`, `flow2=`, `t3=` and `T1.in2`. They still bind,
+to exactly the same thing, and each is pointed at the spelling above once, where it stands
+([`FS1536`](diagnostics.md), an information notice with a one-click fix).
 
 ## Text
 
@@ -152,3 +185,5 @@ separate command you run when you want it (`Shift+Alt+F`), and it is one undo st
 | `3K pump` | three kelvin, then `pump` | the name reads as a quantity |
 | `let x = 5 - 3` | subtraction | `-` is not a unit |
 | `head=15` | 15 m of the fluid being pumped | head has no unit symbol; see [Units](units.md) |
+| `in[ 2 ].t=85` | an error, [`FS1119`](diagnostics.md) | an index touches its name and holds a whole number |
+| `N1 node in.t=50` | an error, [`FS1537`](diagnostics.md) | a node has one state and no ports: `t=50` |

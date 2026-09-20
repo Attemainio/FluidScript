@@ -348,7 +348,7 @@ One port.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `name` | string | The port name. |
+| `name` | string | The port id: `in`, `out`, `in2`, `a`. The id is the model's key, not the script's spelling -- a script writes the second side `in[2]` (`D-120`) and the wire carries `in2`, so the ids never changed. |
 | `role` | string | `inlet`, `outlet` or `bidirectional`. |
 | `connectedTo` | string or `null` | The component the port is wired to, or `null` when open. |
 | `elevation` | number or `null` | A tank port's normalized elevation; absent otherwise. Absent when not applicable. |

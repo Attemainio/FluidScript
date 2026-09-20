@@ -36,7 +36,7 @@ additive     = multiplicative , { ("+" | "-") , multiplicative } ;
 multiplicative = unary , { ("*" | "/") , unary } ;
 unary        = [ "-" ] , primary ;
 primary      = quantity | number | reference | "(" , expression , ")" | call ;
-reference    = identifier , { "." , identifier } ;
+reference    = identifier , { "." , indexed-name } ;   (* HE1.dp; HX1.in[2].t; T1.layer[3].t -- `12`, D-120 *)
 call         = identifier , "(" , [ expression , { "," , expression } ] , ")" ;
 ```
 
@@ -118,11 +118,18 @@ let mdot    = Q / (4.18 kJ/(kg*K) * dT)
 | **Declared parameters** | Always, immediately | `HE1.power` — what the user wrote |
 | **Sized parameters** | After sizing | `PU1.head` when the pump was auto-sized |
 | **Solved state** | After the solve | `N2.t`, `N2.p`, `HE1.dp`, `PU1.flow` |
+| **A port's state** | After the solve | `HX1.in[2].t`, `T1.out.t`, `T1.layer[3].t` (`D-120`) |
 | **Derived geometry** | After sizing | `P1.diameter` |
 
 The property names are declared per component in
 [`22-component-model`](../20-core-domain/22-component-model.md) and must be short — `dp`, `t`, `p`,
-`flow` — because they appear inline in a language that trades on density.
+`flow` — because they appear inline in a language that trades on density. A port's state is the
+port, its index and the quantity, `in[2].t`; the quantity may also be spelled by its long name
+(`in[2].temperature`), which the binder folds to the symbol through the one property table
+([`13`](13-type-and-unit-system.md)). The whole dotted path after the component is the property: the
+binder resolves it as one name against the kind's fixed properties and its indexed families, so
+`in[2].t` and the pre-`D-120` `t_in2` are the same property with two spellings, the second read with
+`FS1536`.
 
 ### The circularity that matters
 
@@ -265,7 +272,7 @@ let Q    = 30 kW
 let cp   = 4.18 kJ/(kg*K)
 let mdot = Q / (cp * dT)
 
-HE1 heat_exchanger power=Q in=20 out=20C+dT
+HE1 heat_exchanger power=Q in.t=20 out.t=20C+dT
 PU1 pump head=1.2*HE1.dp
 ```
 

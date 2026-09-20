@@ -46,7 +46,7 @@ public sealed class RatedExchangerSolveTests
         SR   pipe length=30 dn=32
         LOAD heat_exchanger power=-150 dt=20
 
-        HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
+        HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
 
         connections
         HX1.out - SS - NSUP
@@ -172,7 +172,7 @@ public sealed class RatedExchangerSolveTests
         // 62/45 on the primary against 40/60 closes the hot end to 2 K. The sizer raises it, the loop
         // carries it to the solve's diagnostics, and the solve still runs: the design is questionable,
         // not unsolvable.
-        var run = await RunAsync(Substation().Replace("in2=85", "in2=62", StringComparison.Ordinal), "close");
+        var run = await RunAsync(Substation().Replace("in[2].t=85", "in[2].t=62", StringComparison.Ordinal), "close");
 
         Assert.Contains(run.Solve.Diagnostics, static d => d.Code == "FS4008");
     }
@@ -205,7 +205,7 @@ public sealed class RatedExchangerSolveTests
         // left is the exchanger's own, and the seed starts from Q/(cp·dt) rather than the nominal 0.1.
         var source = RatedLoop
             .Replace("power=-150 dt=20", "power=-150", StringComparison.Ordinal)
-            .Replace("in=40 out=60", "in=40 dt=20", StringComparison.Ordinal);
+            .Replace("in.t=40 out.t=60", "in.t=40 dt=20", StringComparison.Ordinal);
 
         var run = await RunAsync(source, "rated");
 
@@ -220,7 +220,7 @@ public sealed class RatedExchangerSolveTests
     [Fact]
     public async Task ARatedExchangersTerminalsAreADesignPointNotConstraints()
     {
-        // In Duty mode `in=40 out=60` would be a mixed-inlet demand and a flow pin, and with LOAD's `dt`
+        // In Duty mode `in.t=40 out.t=60` would be a mixed-inlet demand and a flow pin, and with LOAD's `dt`
         // the loop would be over-specified by two. Rated, they are what sizes UA, and the count is square.
         var posedness = CoreTopology.WellPosedness.Check(GraphFixture.Lower(RatedLoop).Graph);
 
@@ -233,7 +233,7 @@ public sealed class RatedExchangerSolveTests
     /// <summary>The substation as two circuit blocks, with HX1's declaration placed by the caller.</summary>
     private static string TwoCircuits(bool exchangerInDistrict)
     {
-        const string exchanger = "HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300";
+        const string exchanger = "HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300";
 
         return $"""
             fluidscript 1
@@ -247,8 +247,8 @@ public sealed class RatedExchangerSolveTests
             {(exchangerInDistrict ? exchanger : string.Empty)}
 
             connections
-            NPS - PCV - PP - HX1.in2
-            HX1.out2 - NPR
+            NPS - PCV - PP - HX1.in[2]
+            HX1.out[2] - NPR
 
             circuit heating 100
             fluid water

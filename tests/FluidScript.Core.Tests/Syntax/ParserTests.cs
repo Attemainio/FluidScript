@@ -447,6 +447,65 @@ public sealed class ParserTests
     [Trait("Category", "Unit")]
     public void FS1118_DesignWithNoValues() => OnlyDiagnostic("design", "FS1118");
 
+    [Theory]
+    [InlineData("HX1 heat_exchanger in [2].t=85")]
+    [InlineData("HX1 heat_exchanger in[ 2 ].t=85")]
+    [InlineData("HX1 heat_exchanger in[2.5].t=85")]
+    [InlineData("HX1 heat_exchanger in[].t=85")]
+    [InlineData("PU1 pump head=1.2*HX1.in[2.t")]
+    [Trait("Category", "Unit")]
+    public void FS1119_AnIndexThatIsNotAWholeNumberTouchingItsName(string text)
+    {
+        // One message, not two: the general FS1104 stays quiet when the index already explained the
+        // line, and the tokens the failed index consumed are still in the tree for the printer.
+        var result = Parse(text);
+        var diagnostic = Assert.Single(result.Diagnostics);
+
+        Assert.Equal("FS1119", diagnostic.Code);
+        Assert.IsType<MalformedStatementSyntax>(Assert.Single(result.Root.Statements));
+        Assert.Equal(text, SyntaxPrinter.Print(new SourceText(text), result.Root));
+    }
+
+    // ---- port-indexed names (D-120) -----------------------------------------------------------
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AParameterNameCarriesItsPortIndexAndQuantity()
+    {
+        // `in[2].t` is one name to the grammar and five tokens to the lexer; the binder receives the
+        // registry's spelling of it and the printer the tokens.
+        var declaration = Single<ComponentDeclarationSyntax>(
+            "HX1 heat_exchanger in.t=50 in[2].t=85 layer[3].t=40 power=30");
+
+        Assert.Equal(["in.t", "in[2].t", "layer[3].t", "power"], declaration.Parameters.Select(static p => p.Name.Text));
+        Assert.Equal(2, declaration.Parameters[1].Name.Head.Index!.Value);
+        Assert.Equal("t", declaration.Parameters[1].Name.Parts[0].Name.Text);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnEndpointAndAReferenceCarryAPortIndex()
+    {
+        var result = Parse("""
+            fluidscript 1
+            circuit demo
+            connections
+            T1.out[3] - HX1.in[2]
+            """);
+
+        Assert.Empty(result.Diagnostics);
+        var connection = Assert.IsType<ConnectionSyntax>(result.Root.Statements[^1]);
+
+        Assert.Equal("out[3]", connection.First.Port!.Text);
+        Assert.Equal("in[2]", connection.Links[0].Endpoint.Port!.Text);
+
+        var pump = Single<ComponentDeclarationSyntax>("PU1 pump head=1.2*HX1.in[2].p");
+        var reference = Assert.IsType<BinaryExpressionSyntax>(pump.Parameters[0].Value).Right;
+        var parts = Assert.IsType<ReferenceSyntax>(reference).Parts;
+
+        Assert.Equal(["in[2]", "p"], parts.Select(static part => part.Name.Text));
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1203_BareHexColourEatenByTheComment()

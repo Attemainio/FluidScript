@@ -56,7 +56,7 @@ fluid water
 
 HP1  heater power=heating sized_at tout=-5
 BL1  heater
-LOAD load power=heating in=70 out=40
+LOAD load power=heating in.t=70 out.t=40
 PU1  pump
 P1   pipe length=20 dn=32
 

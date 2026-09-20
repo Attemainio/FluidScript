@@ -78,7 +78,7 @@ public sealed record KindWire
     /// <summary>The fixed ports, in declaration order.</summary>
     public required ImmutableArray<PortWire> Ports { get; init; }
 
-    /// <summary>Indexed port families such as a tank's <c>in1</c>..<c>in16</c> (<c>D-32</c>).</summary>
+    /// <summary>Indexed port families such as a tank's <c>in[2]</c>..<c>in[16]</c> (<c>D-32</c>, <c>D-120</c>).</summary>
     public required ImmutableArray<PortFamilyWire> PortFamilies { get; init; }
 
     /// <summary>The parameters, in the registry's order.</summary>
@@ -107,12 +107,13 @@ public sealed record KindWire
 public sealed record PortWire(string Name, string Role, bool Optional);
 
 /// <summary>An indexed port family.</summary>
-/// <param name="Prefix">The name before the index, <c>in</c> for <c>in1</c>.</param>
-/// <param name="MinIndex">The lowest index.</param>
+/// <param name="Prefix">The name before the index, <c>in</c> for the port id <c>in2</c>: a component's port ids and the model's keys are <c>{Prefix}{index}</c>.</param>
+/// <param name="Pattern">How a script writes a member, with one <c>{index}</c> placeholder: <c>in[{index}]</c> (<c>D-120</c>). The first member is the fixed port <c>in</c>, listed under <c>ports</c>.</param>
+/// <param name="MinIndex">The lowest index the family itself covers; the fixed first port sits below it.</param>
 /// <param name="MaxIndex">The highest index.</param>
 /// <param name="Role"><c>inlet</c>, <c>outlet</c> or <c>bidirectional</c>.</param>
-/// <param name="LevelParameterSuffix">The suffix of the parameter that places the port, or <see langword="null"/>.</param>
-public sealed record PortFamilyWire(string Prefix, int MinIndex, int MaxIndex, string Role, string? LevelParameterSuffix);
+/// <param name="LevelParameterSuffix">The suffix of the parameter key that places the port (<c>in2_level</c>), or <see langword="null"/>; the script spelling of that parameter is under <c>indexedParameters</c>.</param>
+public sealed record PortFamilyWire(string Prefix, string Pattern, int MinIndex, int MaxIndex, string Role, string? LevelParameterSuffix);
 
 /// <summary>One parameter of a kind.</summary>
 public sealed record ParameterMetaWire

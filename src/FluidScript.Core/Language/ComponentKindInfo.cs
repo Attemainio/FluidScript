@@ -83,7 +83,13 @@ public sealed record ComponentKindInfo
     /// </remarks>
     public string? TagCode { get; init; }
 
-    /// <summary>Gets every parameter this kind accepts, keyed by canonical script name.</summary>
+    /// <summary>Gets every parameter this kind accepts, keyed by <see cref="ParameterInfo.Key"/>.</summary>
+    /// <remarks>
+    /// The key is the model's identifier, which is what a stated parameter, a sizing decision and the
+    /// wire carry; the script spelling is <see cref="ParameterInfo.Name"/>, reached through
+    /// <see cref="ResolveParameter"/> (<c>D-120</c>). The two coincide for every parameter that has no
+    /// port index.
+    /// </remarks>
     public required ImmutableDictionary<string, ParameterInfo> Parameters { get; init; }
 
     /// <summary>Gets the parameter sets one relation ties together, checked for over-determination.</summary>
@@ -143,24 +149,254 @@ public sealed record ComponentKindInfo
     /// <c>T1.t9</c> on a five-layer tank resolves and is caught where the layer count is known.
     /// </para>
     /// </remarks>
-    public PropertyInfo? ResolveProperty(string written)
-    {
-        if (Properties.TryGetValue(written, out var exact))
-        {
-            return exact;
-        }
+    public PropertyInfo? ResolveProperty(string written) => ResolveProperty(written, out _);
 
-        foreach (var family in IndexedPropertyFamilies)
+    /// <summary>Resolves a property name, saying whether it was written in a spelling <c>D-120</c> retired.</summary>
+    /// <param name="written">The property name as the reference wrote it.</param>
+    /// <param name="suggestion">
+    /// The current spelling when <paramref name="written"/> is a legacy one — <c>in[2].t</c> for
+    /// <c>t_in2</c> — else <see langword="null"/>. What <c>FS1536</c> offers as its quick fix.
+    /// </param>
+    /// <returns>
+    /// The property, with <see cref="PropertyInfo.Name"/> and <see cref="PropertyInfo.Key"/> set to
+    /// the member's own for a family member, or <see langword="null"/> when this kind has no such
+    /// property.
+    /// </returns>
+    /// <remarks>
+    /// <c>in[1].t</c> and <c>in.t</c> are one port written two ways, so the bracketed first index is
+    /// folded before matching and draws no suggestion.
+    /// </remarks>
+    public PropertyInfo? ResolveProperty(string written, out string? suggestion)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+        suggestion = null;
+
+        // With the quantity by its symbol and `[1]` folded first, then as written: `in[1].t` is the
+        // fixed `in.t` once folded, and `layer[1].t` is a family member only as written, since its
+        // family keeps its index.
+        var folded = IndexedName.FoldFirstIndex(PropertyTable.Canonical(written));
+
+        foreach (var name in string.Equals(folded, written, StringComparison.Ordinal) ? [written] : new[] { folded, written })
         {
-            if (IndexedName.Matches(family.Pattern, written, out var index)
-                && index >= family.MinIndex
-                && (family.MaxIndex is not { } max || index <= max))
+            if (Properties.TryGetValue(name, out var exact))
             {
-                return family.Element with { Name = written };
+                return exact;
+            }
+
+            foreach (var property in Properties.Values)
+            {
+                if (property.LegacySpellings.Contains(name, StringComparer.Ordinal))
+                {
+                    suggestion = property.Name;
+                    return property;
+                }
+            }
+
+            foreach (var family in IndexedPropertyFamilies)
+            {
+                var legacy = false;
+
+                if (!IndexedName.Matches(family.Pattern, name, out var index)
+                    && !(legacy = family.LegacyPattern is { } old && IndexedName.Matches(old, name, out index)))
+                {
+                    continue;
+                }
+
+                if (index < family.MinIndex || (family.MaxIndex is { } max && index > max))
+                {
+                    continue;
+                }
+
+                var member = family.Element with
+                {
+                    Name = IndexedName.Spell(family.Pattern, index),
+                    Key = IndexedName.Spell(family.KeyPattern, index),
+                };
+
+                suggestion = legacy ? member.Name : null;
+                return member;
             }
         }
 
         return null;
+    }
+
+    /// <summary>Resolves a parameter name as a declaration wrote it: by name, alias, legacy spelling, or indexed family (<c>D-120</c>).</summary>
+    /// <param name="written">The name as written: <c>power</c>, <c>in[2].t</c>, <c>layer[3].t</c>, or the old <c>in2</c>, <c>t3</c>.</param>
+    /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
+    /// <param name="outsideFamily">The family the name belongs to when its index is out of the family's fixed range, else <see langword="null"/>.</param>
+    /// <returns>
+    /// The parameter, with <see cref="ParameterInfo.Name"/> and <see cref="ParameterInfo.Key"/> set
+    /// to the member's own for a family member, or <see langword="null"/> when nothing matches
+    /// exactly — similarity is the binder's, since it reports.
+    /// </returns>
+    /// <remarks>
+    /// A family bounded by a <em>parameter</em> (a tank's <c>layers</c>) has no fixed maximum to check
+    /// here, so <c>layer[9].t</c> on a five-layer tank resolves and is caught where the count is known.
+    /// </remarks>
+    public ParameterInfo? ResolveParameter(string written, out string? suggestion, out IndexedParameterFamilyInfo? outsideFamily)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+        suggestion = null;
+        outsideFamily = null;
+
+        // `in[2].temperature` is `in[2].t` (the table's name for its symbol), then `[1]` folds.
+        var folded = IndexedName.FoldFirstIndex(PropertyTable.Canonical(written));
+
+        foreach (var name in string.Equals(folded, written, StringComparison.Ordinal) ? [written] : new[] { folded, written })
+        {
+            foreach (var candidate in Parameters.Values)
+            {
+                if (string.Equals(candidate.Name, name, StringComparison.Ordinal)
+                    || candidate.Aliases.Contains(name, StringComparer.Ordinal))
+                {
+                    return candidate;
+                }
+
+                if (candidate.LegacySpellings.Contains(name, StringComparer.Ordinal))
+                {
+                    suggestion = candidate.Name;
+                    return candidate;
+                }
+            }
+
+            foreach (var family in IndexedParameterFamilies)
+            {
+                var legacy = false;
+
+                if (!IndexedName.Matches(family.Pattern, name, out var index)
+                    && !(legacy = family.LegacyPattern is { } old && IndexedName.Matches(old, name, out index)))
+                {
+                    continue;
+                }
+
+                if (index < family.MinIndex || (family.MaxIndex is { } max && index > max))
+                {
+                    outsideFamily = family;
+                    return null;
+                }
+
+                suggestion = legacy ? IndexedName.Spell(family.Pattern, index) : null;
+                return family.Element with
+                {
+                    Name = IndexedName.Spell(family.Pattern, index),
+                    Key = IndexedName.Spell(family.KeyPattern, index),
+                };
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Resolves a port as an endpoint wrote it to the key the model knows it by (<c>D-120</c>).</summary>
+    /// <param name="written">The port name as written: <c>in</c>, <c>in[2]</c>, <c>b</c>, or the old <c>in2</c>.</param>
+    /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
+    /// <param name="outsideFamily">The family the name belongs to when its index is out of range, else <see langword="null"/>.</param>
+    /// <returns>The key — <c>in2</c>, <c>in1</c>, <c>b</c> — or <see langword="null"/> when this kind has no such port.</returns>
+    /// <remarks>
+    /// The fixed ports first, so a family's first member — a tank's <c>in</c>, keyed <c>in1</c> — is
+    /// the fixed row and the family proper starts above it; <c>in[1]</c> folds to <c>in</c> before
+    /// matching, as everywhere. A kind with unlimited unnamed ports has no port to resolve and
+    /// answers <see langword="null"/>; the caller knows that case already.
+    /// </remarks>
+    public string? ResolvePort(string written, out string? suggestion, out PortFamilyInfo? outsideFamily)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+        suggestion = null;
+        outsideFamily = null;
+
+        var folded = IndexedName.FoldFirstIndex(written);
+
+        foreach (var name in string.Equals(folded, written, StringComparison.Ordinal) ? [written] : new[] { folded, written })
+        {
+            foreach (var port in Ports)
+            {
+                if (string.Equals(port.Name, name, StringComparison.Ordinal))
+                {
+                    return port.Key;
+                }
+
+                if (port.LegacySpellings.Contains(name, StringComparer.Ordinal))
+                {
+                    suggestion = port.Name;
+                    return port.Key;
+                }
+            }
+
+            foreach (var family in PortFamilies)
+            {
+                var legacy = false;
+
+                if (!IndexedName.Matches(family.Prefix + "[{index}]", name, out var index)
+                    && !(legacy = IndexedName.Matches(family.Prefix + "{index}", name, out index)))
+                {
+                    continue;
+                }
+
+                if (index < family.MinIndex || index > family.MaxIndex)
+                {
+                    outsideFamily = family;
+                    return null;
+                }
+
+                suggestion = legacy ? family.Name(index) : null;
+                return family.Key(index);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>Spells a parameter's key the way a script writes it: <c>in2</c> as <c>in[2].t</c>, <c>t3</c> as <c>layer[3].t</c>.</summary>
+    /// <param name="key">The key a stated value is stored under.</param>
+    /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>
+    public string ParameterName(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        foreach (var parameter in Parameters.Values)
+        {
+            if (string.Equals(parameter.Key, key, StringComparison.Ordinal))
+            {
+                return parameter.Name;
+            }
+        }
+
+        foreach (var family in IndexedParameterFamilies)
+        {
+            if (IndexedName.Matches(family.KeyPattern, key, out var index))
+            {
+                return IndexedName.Spell(family.Pattern, index);
+            }
+        }
+
+        return key;
+    }
+
+    /// <summary>Spells a port's key the way a script writes it: <c>in2</c> as <c>in[2]</c>, a tank's <c>in1</c> as <c>in</c>.</summary>
+    /// <param name="key">The key the model knows the port by.</param>
+    /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>
+    public string PortName(string key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+
+        foreach (var port in Ports)
+        {
+            if (string.Equals(port.Key, key, StringComparison.Ordinal))
+            {
+                return port.Name;
+            }
+        }
+
+        foreach (var family in PortFamilies)
+        {
+            if (IndexedName.Matches(family.Prefix + "{index}", key, out var index))
+            {
+                return family.Name(index);
+            }
+        }
+
+        return key;
     }
 
     /// <summary>Gets every name a property reference may write, with each family shown as its pattern.</summary>
@@ -184,15 +420,41 @@ public sealed record ComponentKindInfo
 /// <summary>One parameter a component kind accepts.</summary>
 public sealed record ParameterInfo
 {
-    /// <summary>Gets the canonical name, which is what binding stores.</summary>
+    private readonly string? _key;
+
+    /// <summary>Gets the canonical name: the spelling a script writes, <c>/docs</c> teach and a diagnostic quotes.</summary>
+    /// <value><c>power</c>, or a port's quantity in <c>D-120</c>'s form — <c>in[2].t</c>.</value>
     public required string Name { get; init; }
+
+    /// <summary>Gets the identifier binding stores the value under, which is what Core reads.</summary>
+    /// <value>
+    /// <see cref="Name"/> unless <c>D-120</c> respelled the surface: an exchanger's <c>in[2].t</c> is
+    /// stored as <c>in2</c>, the key every sizer, seed and residual has read since before the
+    /// spelling changed. The split keeps the language free to change its surface without a rename
+    /// through the physics.
+    /// </value>
+    public string Key
+    {
+        get => _key ?? Name;
+        init => _key = value;
+    }
 
     /// <summary>Gets the curated input spellings.</summary>
     /// <value>
-    /// Binding stores <see cref="Name"/>; printing preserves whatever the source said, so
-    /// <c>T1 tank v=300</c> keeps its <c>v</c> (<c>D-32</c>).
+    /// Binding stores <see cref="Key"/>; printing preserves whatever the source said, so
+    /// <c>T1 tank v=300</c> keeps its <c>v</c> (<c>D-32</c>). An alias is silent: <c>in[1].t</c> for
+    /// <c>in.t</c> is one port written two ways, not an old form.
     /// </value>
     public ImmutableArray<string> Aliases { get; init; } = [];
+
+    /// <summary>Gets the spellings a script wrote before <c>D-120</c>, read for one language major.</summary>
+    /// <value>
+    /// <c>in</c> for <c>in.t</c>, <c>flow2</c> for <c>in[2].flow</c>. Each binds exactly as
+    /// <see cref="Name"/> does and raises <c>FS1536</c> with the new spelling as its suggestion, so
+    /// the editor's quick fix rewrites the line and the documentation teaches one form (<c>18</c>
+    /// retires them at the next major).
+    /// </value>
+    public ImmutableArray<string> LegacySpellings { get; init; } = [];
 
     /// <summary>Gets what shape of value this parameter accepts.</summary>
     /// <value>
@@ -365,8 +627,25 @@ public enum ParameterOmissionBehavior
 /// <summary>One named port of a component kind.</summary>
 public sealed record PortInfo
 {
-    /// <summary>Gets the port's name, as a qualified endpoint writes it.</summary>
+    private readonly string? _key;
+
+    /// <summary>Gets the port's name, as a qualified endpoint writes it: <c>in</c>, <c>in[2]</c>, <c>ab</c>.</summary>
     public required string Name { get; init; }
+
+    /// <summary>Gets the identifier the model, the wire and the symbol anchors know the port by.</summary>
+    /// <value>
+    /// <see cref="Name"/> unless <c>D-120</c> respelled it: <c>in[2]</c> is the port <c>in2</c> to
+    /// everything downstream of the binder, which is what keeps the scene's anchors and the frontend
+    /// unaware that the script's spelling changed.
+    /// </value>
+    public string Key
+    {
+        get => _key ?? Name;
+        init => _key = value;
+    }
+
+    /// <summary>Gets the spellings an endpoint wrote before <c>D-120</c>, read for one language major with <c>FS1536</c>.</summary>
+    public ImmutableArray<string> LegacySpellings { get; init; } = [];
 
     /// <summary>Gets the nominal direction of flow through the port.</summary>
     public required PortRole Role { get; init; }
@@ -396,8 +675,34 @@ public enum PortRole
 /// <summary>A family of indexed ports, such as a tank's inlets.</summary>
 public sealed record PortFamilyInfo
 {
-    /// <summary>Gets the canonical prefix before a positive decimal index, such as <c>in</c>.</summary>
+    /// <summary>Gets the family's name, such as <c>in</c>: the word before the index.</summary>
+    /// <remarks>
+    /// A member is written <c>in[n]</c>, with the bare word standing for <c>in[1]</c> (<c>D-120</c>);
+    /// it is stored as <c>in{n}</c>, the key the model has always used; and before <c>D-120</c> it was
+    /// written as that key. <see cref="Name"/>, <see cref="Key"/> and <see cref="LegacyName"/> are the
+    /// three spellings of one port.
+    /// </remarks>
     public required string Prefix { get; init; }
+
+    /// <summary>Gets the script spelling of a member with one <c>{index}</c> placeholder: <c>in[{index}]</c>.</summary>
+    /// <remarks>The same shape an indexed parameter family's <see cref="IndexedParameterFamilyInfo.Pattern"/> has, so a reader of either can spell a member one way.</remarks>
+    public string Pattern => Prefix + "[{index}]";
+
+    /// <summary>Gets the script spelling of one member.</summary>
+    /// <param name="index">The member's index.</param>
+    /// <returns><c>in</c> for index 1, else <c>in[n]</c>.</returns>
+    public string Name(int index) =>
+        index == 1 ? Prefix : string.Create(CultureInfo.InvariantCulture, $"{Prefix}[{index}]");
+
+    /// <summary>Gets the model's identifier for one member.</summary>
+    /// <param name="index">The member's index.</param>
+    /// <returns><c>in1</c>, <c>in2</c>, …</returns>
+    public string Key(int index) => string.Create(CultureInfo.InvariantCulture, $"{Prefix}{index}");
+
+    /// <summary>Gets the spelling a script used before <c>D-120</c>, which is the key.</summary>
+    /// <param name="index">The member's index.</param>
+    /// <returns><c>in1</c>, <c>in2</c>, …</returns>
+    public string LegacyName(int index) => Key(index);
 
     /// <summary>Gets the lowest index that exists.</summary>
     public required int MinIndex { get; init; }
@@ -416,9 +721,23 @@ public sealed record PortFamilyInfo
 /// <summary>A family of indexed parameters, such as a tank's per-layer temperatures.</summary>
 public sealed record IndexedParameterFamilyInfo
 {
-    /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder.</summary>
-    /// <value><c>t{index}</c>, <c>in{index}_level</c>, or <c>out{index}_level</c>.</value>
+    private readonly string? _keyPattern;
+
+    /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder, as a script writes it.</summary>
+    /// <value><c>layer[{index}].t</c>, <c>in[{index}].level</c>, or <c>out[{index}].level</c>.</value>
     public required string Pattern { get; init; }
+
+    /// <summary>Gets the pattern of the key a member is stored under.</summary>
+    /// <value><see cref="Pattern"/> unless <c>D-120</c> respelled the surface: <c>t{index}</c>, <c>in{index}_level</c>.</value>
+    public string KeyPattern
+    {
+        get => _keyPattern ?? Pattern;
+        init => _keyPattern = value;
+    }
+
+    /// <summary>Gets the pattern a script wrote before <c>D-120</c>, read for one language major with <c>FS1536</c>.</summary>
+    /// <value><see langword="null"/> for a family that never changed spelling.</value>
+    public string? LegacyPattern { get; init; }
 
     /// <summary>Gets the lowest index the family accepts.</summary>
     public required int MinIndex { get; init; }
@@ -445,9 +764,23 @@ public sealed record IndexedParameterFamilyInfo
 /// </remarks>
 public sealed record IndexedPropertyFamilyInfo
 {
-    /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder.</summary>
-    /// <value><c>t{index}</c>, <c>in{index}_t</c>, or <c>out{index}_t</c>.</value>
+    private readonly string? _keyPattern;
+
+    /// <summary>Gets the canonical pattern with one <c>{index}</c> placeholder, as a reference writes it.</summary>
+    /// <value><c>layer[{index}].t</c>, <c>in[{index}].t</c>, or <c>out[{index}].t</c>.</value>
     public required string Pattern { get; init; }
+
+    /// <summary>Gets the pattern of the key a member's value is published under.</summary>
+    /// <value><see cref="Pattern"/> unless <c>D-120</c> respelled the surface: <c>t{index}</c>, <c>in{index}_t</c>.</value>
+    public string KeyPattern
+    {
+        get => _keyPattern ?? Pattern;
+        init => _keyPattern = value;
+    }
+
+    /// <summary>Gets the pattern a reference wrote before <c>D-120</c>, read for one language major with <c>FS1536</c>.</summary>
+    /// <value><see langword="null"/> for a family that never changed spelling.</value>
+    public string? LegacyPattern { get; init; }
 
     /// <summary>Gets the lowest index the family accepts.</summary>
     public required int MinIndex { get; init; }
@@ -511,13 +844,54 @@ public static class IndexedName
         return int.TryParse(
             digits, NumberStyles.None, CultureInfo.InvariantCulture, out index);
     }
+
+    /// <summary>Writes one member of a pattern's family.</summary>
+    /// <param name="pattern">A pattern with one <c>{index}</c> placeholder.</param>
+    /// <param name="index">The member's index.</param>
+    /// <returns><c>in[2].level</c> for <c>in[{index}].level</c> and 2.</returns>
+    public static string Spell(string pattern, int index)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+
+        return pattern.Replace(
+            Placeholder, index.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal);
+    }
+
+    /// <summary>Folds a bracketed first index away: <c>in[1].t</c> reads as <c>in.t</c>, <c>in[1]</c> as <c>in</c> (<c>D-120</c>).</summary>
+    /// <param name="written">A name as the script wrote it.</param>
+    /// <returns>The name with every <c>[1]</c> removed; unchanged when there is none.</returns>
+    /// <remarks>
+    /// The bare word and the first index are one port, so they are one spelling to the registry, and
+    /// neither draws a suggestion. Only <c>[1]</c> folds: <c>in[2]</c> is a different port.
+    /// </remarks>
+    public static string FoldFirstIndex(string written)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+
+        return written.Contains("[1]", StringComparison.Ordinal)
+            ? written.Replace("[1]", string.Empty, StringComparison.Ordinal)
+            : written;
+    }
 }
 
 /// <summary>One property readable as <c>Name.property</c>.</summary>
 public sealed record PropertyInfo
 {
-    /// <summary>Gets the property's name.</summary>
+    private readonly string? _key;
+
+    /// <summary>Gets the property's name, as a reference writes it: <c>dp</c>, <c>in[2].t</c>.</summary>
     public required string Name { get; init; }
+
+    /// <summary>Gets the identifier a solved value is published under, which is what a deferred reference is keyed by.</summary>
+    /// <value><see cref="Name"/> unless <c>D-120</c> respelled it: <c>in[2].t</c> is published as <c>t_in2</c>.</value>
+    public string Key
+    {
+        get => _key ?? Name;
+        init => _key = value;
+    }
+
+    /// <summary>Gets the spellings a reference used before <c>D-120</c>, read for one language major with <c>FS1536</c>.</summary>
+    public ImmutableArray<string> LegacySpellings { get; init; } = [];
 
     /// <summary>Gets the dimension of the value read back.</summary>
     public required Dimension Dimension { get; init; }

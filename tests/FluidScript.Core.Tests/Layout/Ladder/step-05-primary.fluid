@@ -9,14 +9,14 @@ NPR  outlet p=350
 PCV  valve
 
 PU1  pump
-HE1  heat_exchanger power=30 in=20 out=50 in2=85 out2=45
+HE1  heat_exchanger power=30 in.t=20 out.t=50 in[2].t=85 out[2].t=45
 LOAD heat_exchanger power=-30
 CV1  valve
 
 connections
 NPS - PCV
-PCV - HE1.in2 length=12 dn=25
-HE1.out2 - NPR
+PCV - HE1.in[2] length=12 dn=25
+HE1.out[2] - NPR
 
 PU1 - HE1.in
 HE1.out - LOAD

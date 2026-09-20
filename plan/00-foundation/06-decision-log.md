@@ -1148,7 +1148,7 @@ attachment explicitly, with two statements naming the parent's nodes:
 
 ```fluidscript
 circuit AHU 101
-HE1 duty in=50 out=30 power=24 kW
+HE1 duty in.t=50 out.t=30 power=24 kW
 TV1 three_way_valve
 PU1 pump
 
@@ -4188,7 +4188,7 @@ fluid water
 
 HP1  heater power=heating sized_at tout=-5
 BL1  heater
-LOAD load power=heating in=70 out=40
+LOAD load power=heating in.t=70 out.t=40
 PU1  pump
 P1   pipe length=20 dn=32
 
@@ -5342,7 +5342,7 @@ entry is.
 
 ## D-120 · A port's state is written `port[n].quantity`; every port family is indexed in brackets; a node has one state
 
-**Accepted · 2026-09-19** (decided with the user after the defect sweep; implemented by P5.13)
+**Accepted · 2026-09-19** (decided with the user after the defect sweep; P5.13a shipped decisions 1, 2, 4, 5 and 6 on 2026-09-20 with the model below the binder keyed as before; decision 3 and the `vflow` constraint are P5.13b's, with `L-56`)
 
 The language spells a port's state three different ways today. On a `heat_exchanger`, `in=50` is the
 inlet *temperature* -- the port's name stands for one quantity of it; the flow on the same side is

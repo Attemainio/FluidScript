@@ -254,7 +254,9 @@ deliberately rather than discovered.
 
 ## Invariants
 
-1. **`Print(Parse(x)) == x` byte for byte**, for every input, including malformed ones.
+1. **`Print(Parse(x)) == x` byte for byte**, for every input, including malformed ones. A
+   pre-`D-120` spelling (`in2=`, `HX1.t_in2`) is printed as written: the rewrite is the editor's,
+   through `FS1536`'s suggestion, never the printer's.
 2. `Parse(Apply(Print(t), edits))` is well formed for every `EditResult` any method returns.
 3. An `EditResult` touches only spans belonging to the element named; a test asserts every other byte
    of the file is unchanged.
@@ -314,7 +316,7 @@ makes invariant 2 enforced rather than hoped for.
 The user drags `3WV`'s Kv to 12.4 on the canvas. Source before:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50    # heat exchanger with power of 30 kW
+HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
 3WV three_way_valve                # auto size
 PU1 pump                    # auto size by pressure difference in loop
 ```
@@ -332,7 +334,7 @@ PU1 pump                    # auto size by pressure difference in loop
 Result:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50    # heat exchanger with power of 30 kW
+HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
 3WV three_way_valve kv=12.4                # auto size
 PU1 pump                    # auto size by pressure difference in loop
 ```

@@ -19,7 +19,7 @@ public sealed class ImplicitPipeTests
         fluidscript 1
         circuit loop 100
         PU1 pump
-        HE1 heat_exchanger power=30 in=20 out=50
+        HE1 heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30
         connections
         N1 - PU1 - N2 - HE1 - N3 - LOAD - N4

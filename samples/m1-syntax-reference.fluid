@@ -10,7 +10,7 @@ circuit coolingLoop                       # R-01: declarative block
 fluid dynamic water                       # R-12: `dynamic` selects the transient model
 style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
 
-HE1 heat_exchanger power=30 in=20 out=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+HE1 heat_exchanger power=30 in.t=20 out.t=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
 3WV three_way_valve                       # R-02: no parameters at all — size it
 PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
 

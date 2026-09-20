@@ -118,6 +118,17 @@ case, and the test is the sentence above: no word stops being an identifier, no 
 changes meaning, and the only lines that read differently are ones that were malformed before. It
 ships within major 1.
 
+`D-120`'s port-state spelling (P5.13a, 2026-09-20) is additive on the same test, with one edge. `[`
+and `]` were not characters of the language, and `in.t=` was a syntax error, so no well-formed line
+reads differently; `50 in.t=` and `50 in[2]` were fifty inches followed by a syntax error and are now
+a number and a name. The old spellings -- `in=`, `in2=`, `flow2=`, `t3=`, `in1_level=`, `T1.in2`,
+`HX1.t_in2` -- are not removed: each binds to the same key it always did and raises `FS1536`, an
+information notice whose `Suggestion` replaces the name span with the current spelling, so a
+saved v1 file opens, solves and prints byte for byte. **Removing them is the next major's**, and the
+migration is the same rename the suggestion already knows. The one thing a pre-`D-120` script can
+no longer do is name a component `in`, `out` or `layer` and give it a parameter on the same line
+that happens to be a unit symbol -- which nothing in the corpus did.
+
 The pre-release exemption is the same one `D-32` relies on below: **until a v1 file can be saved, the
 reserved list may grow freely.** `D-33`, `D-37` and `D-40` added `project`, `spacing`, `supply`,
 `return` and `control` under that exemption, `D-115` (2026-09-17) used it to respell those two as `inlet` and

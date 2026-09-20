@@ -21,7 +21,7 @@ circuit demandStep 400
 fluid dynamic water
 style green 1px sharp -.                  # the dash-dot pattern
 
-HE4 load in=50 out=30 power=30 kW
+HE4 load in.t=50 out.t=30 power=30 kW
 TV4 valve
 PU4 pump
 NC1 node t=6 p=300 flow=0.24
@@ -43,7 +43,7 @@ at 300 s             TV4.position = 0.3   # any settable parameter
 circuit radiators 500
 fluid static water
 
-HE5  load in=50 out=30 power=heating             # the curve's -26 row: 50 kW, by D-14's bare rule
+HE5  load in.t=50 out.t=30 power=heating             # the curve's -26 row: 50 kW, by D-14's bare rule
 TV5  valve
 PU5  pump
 PID5 pid kp=2

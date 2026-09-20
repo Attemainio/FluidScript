@@ -163,7 +163,7 @@ public sealed class LayoutHintsTests
             circuit radiators
             fluid water
 
-            HS1 heat_exchanger power=54 kW out=60
+            HS1 heat_exchanger power=54 kW out.t=60
             PU1 pump
             P1  pipe length=10 dn=25
 
@@ -302,11 +302,11 @@ public sealed class LayoutHintsTests
             NPR outlet p=350
             PCV valve
             PP  pipe length=12 dn=25
-            HX1 heat_exchanger power=150 in=40 out=60 in2=85 out2=45 u=3300
+            HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
 
             connections
-            NPS - PCV - PP - HX1.in2
-            HX1.out2 - NPR
+            NPS - PCV - PP - HX1.in[2]
+            HX1.out[2] - NPR
             """;
 
         const string heating = """

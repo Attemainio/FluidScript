@@ -305,7 +305,7 @@ public sealed class BinderTests
     {
         // Every layer, because a profile that names only some of them is FS2113 and Model asserts a
         // clean bind. What is under test is that `t2` resolves against the family at all.
-        var model = Model("fluidscript 1\nT1 tank layers=3 t1=50 t2=60 t3=70\n");
+        var model = Model("fluidscript 1\nT1 tank layers=3 layer[1].t=50 layer[2].t=60 layer[3].t=70\n");
 
         Assert.True(model.Components[0].Parameters.ContainsKey("t2"));
     }
@@ -313,7 +313,7 @@ public sealed class BinderTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1516_AnIndexOutsideItsFamily() =>
-        OnlyDiagnostic("fluidscript 1\nT1 tank in40_level=0.5\n", "FS1516");
+        OnlyDiagnostic("fluidscript 1\nT1 tank in[40].level=0.5\n", "FS1516");
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -410,11 +410,11 @@ public sealed class BinderTests
     [Trait("Category", "Unit")]
     public void ATemperatureDifferenceAddsToATemperature()
     {
-        // M1's criterion: `let dT = 30 dK` then `out=20C+dT` is 50 °C, stored as 323.15 K.
+        // M1's criterion: `let dT = 30 dK` then `out.t=20C+dT` is 50 °C, stored as 323.15 K.
         var model = Model("""
             fluidscript 1
             let dT = 30 dK
-            HE1 heat_exchanger out=20 C + dT
+            HE1 heat_exchanger out.t=20 C + dT
             """);
 
         Assert.Equal(323.15, model.Components[0].Parameters["out"].Value!.Value.SiValue, 6);
@@ -429,7 +429,7 @@ public sealed class BinderTests
         // The message is asserted whole rather than for the letters `dK`, because the point of it is the
         // correction it offers and a correction with the wrong number in it is worse than none: a user
         // who pastes it gets a second wrong answer and no error the second time.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out=20 C + 30 C\n", "FS1302");
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out.t=20 C + 30 C\n", "FS1302");
 
         Assert.Equal(
             "Cannot add two temperatures. To offset by a difference, write '20 °C + 30 dK'.",
@@ -444,7 +444,7 @@ public sealed class BinderTests
         // is the same error as adding two Celsius readings, which is not obvious to anyone who has ever
         // written a temperature rise in kelvin -- and it is the reason the message has to name the
         // spelling that works.
-        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out=40 C + 30 K\n", "FS1302");
+        var diagnostic = OnlyDiagnostic("fluidscript 1\nHE1 heat_exchanger out.t=40 C + 30 K\n", "FS1302");
 
         Assert.Equal(
             "Cannot add two temperatures. To offset by a difference, write '40 °C + 30 dK'.",
@@ -457,7 +457,7 @@ public sealed class BinderTests
     {
         // The other half of the pair above: what the corrected line does. 40 °C + 30 dK is 70 °C, stored
         // as 343.15 K.
-        var model = Model("fluidscript 1\nHE1 heat_exchanger out=40 C + 30 dK\n");
+        var model = Model("fluidscript 1\nHE1 heat_exchanger out.t=40 C + 30 dK\n");
 
         Assert.Equal(343.15, model.Components[0].Parameters["out"].Value!.Value.SiValue, 6);
     }

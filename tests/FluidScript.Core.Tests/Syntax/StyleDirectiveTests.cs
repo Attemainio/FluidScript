@@ -16,14 +16,14 @@ public sealed class StyleDirectiveTests
 
         circuit heating 100
         style hot
-        HS1  heat_exchanger power=54 kW out=60
+        HS1  heat_exchanger power=54 kW out.t=60
 
         circuit ahu 101
         style cold
         TV  three_way_valve style=trace
         PU  pump
         style gray 1px
-        HE  load in=50 out=30 power=24 kW
+        HE  load in.t=50 out.t=30 power=24 kW
 
         connections
         HS1 - TV.a

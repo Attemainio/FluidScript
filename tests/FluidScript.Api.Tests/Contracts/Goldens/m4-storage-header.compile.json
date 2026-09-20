@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.0",
   "provenance": {
-    "sourceHash": "sha256:e494f657646b7c257d44360d448e749355102fc28019ab61ece315643f016e24",
+    "sourceHash": "sha256:750b39f4e6bb6e6d282b96a89581b0bab383827c4e2b2fad67f11d69be5a8cda",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -115,7 +115,7 @@
       "origin": "declared",
       "sourceSpan": {
         "start": 820,
-        "length": 115
+        "length": 157
       },
       "circuit": "storageHeader",
       "tag": "100S01",
@@ -220,7 +220,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 936,
+        "start": 978,
         "length": 28
       },
       "circuit": "storageHeader",
@@ -247,7 +247,7 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 965,
+        "start": 1007,
         "length": 28
       },
       "circuit": "storageHeader",

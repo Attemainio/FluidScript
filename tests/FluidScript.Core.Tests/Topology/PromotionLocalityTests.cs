@@ -28,12 +28,12 @@ public sealed class PromotionLocalityTests
         // component is the whole connected plant rather than one circuit -- so which pump a constraint got
         // depended on where its owner happened to sit in the file.
         //
-        // Dropping `out=30` from `HE_AHU` removes its flow constraint, leaving `HE_RAD` the only claimant.
+        // Dropping `out.t=30` from `HE_AHU` removes its flow constraint, leaving `HE_RAD` the only claimant.
         // `PU_AHU` is then free and comes first in graph order, and `PU_RAD` is the one on the radiator's
         // own branch. The old order handed the radiator the air handler's pump; the new one does not.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
-            .Replace("HE_AHU  heat_exchanger in=50 out=30 power=-24 kW",
-                "HE_AHU  heat_exchanger in=50 power=-24 kW", StringComparison.Ordinal);
+            .Replace("HE_AHU  heat_exchanger in.t=50 out.t=30 power=-24 kW",
+                "HE_AHU  heat_exchanger in.t=50 power=-24 kW", StringComparison.Ordinal);
 
         var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
 
@@ -49,11 +49,11 @@ public sealed class PromotionLocalityTests
         // and the one `34-controllers` describes when it says the circuit is *solved* into position and a
         // controller does that job dynamically. Before this, the constraint reached for nothing.
         //
-        // The cooling loop states the same physical fact two ways. `HE1 in=20` is the exchanger's inlet,
+        // The cooling loop states the same physical fact two ways. `HE1 in.t=20` is the exchanger's inlet,
         // fed from `N2`; `N2 node t=20` is that node directly. Dropping the first frees `3WV` so the second
         // has something to claim, and it must claim the same valve.
         var counting = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out=50",
+            "HE1 heat_exchanger power=30 out.t=50",
             "N3 outlet p=280\nN2 node t=20")).Graph).Counting;
 
         Assert.Equal(("3WV", "position"), Claimed(counting, "N2", ConstraintKind.NodeTemperature));
@@ -70,10 +70,10 @@ public sealed class PromotionLocalityTests
         // Asserted as a difference rather than as an absolute, because the absolute is the sum of every
         // other counting rule and would have to be restated here to be checked.
         var without = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out=50", "N3 outlet p=280")).Graph).Counting;
+            "HE1 heat_exchanger power=30 out.t=50", "N3 outlet p=280")).Graph).Counting;
 
         var with = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out=50",
+            "HE1 heat_exchanger power=30 out.t=50",
             "N3 outlet p=280\nN2 node t=20")).Graph).Counting;
 
         Assert.Equal(without.Excess, with.Excess);
@@ -83,7 +83,7 @@ public sealed class PromotionLocalityTests
 
     private static string CoolingLoop(string exchanger, string boundary) =>
         File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
-            .Replace("HE1 heat_exchanger power=30 in=20 out=50", exchanger, StringComparison.Ordinal)
+            .Replace("HE1 heat_exchanger power=30 in.t=20 out.t=50", exchanger, StringComparison.Ordinal)
             .Replace("N3 outlet p=280", boundary, StringComparison.Ordinal);
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class PromotionLocalityTests
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-distribution-header.fluid"))
             .Replace(
                 "HS1     heat_exchanger power=54",
-                "HS1     heat_exchanger power=54 out=80",
+                "HS1     heat_exchanger power=54 out.t=80",
                 StringComparison.Ordinal);
 
         var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
@@ -121,7 +121,7 @@ public sealed class PromotionLocalityTests
         // The other side of `D-90`, and the reason it is conditional rather than a blanket reading of
         // `out`. With both ends stated, `power` gives m = Q/(h_out - h_in) and the flow genuinely
         // follows, so the statement needs an unknown to pay for it exactly as before. `m2-cooling-loop`
-        // states `HE1 power=30 in=20 out=50` and is open besides, so no level is dropped at all.
+        // states `HE1 power=30 in.t=20 out.t=50` and is open besides, so no level is dropped at all.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"));
         var counting = WellPosedness.Check(GraphFixture.Lower(source).Graph).Counting;
 

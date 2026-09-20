@@ -1,0 +1,114 @@
+using System.Collections.Immutable;
+
+using FluidScript.Core.Units;
+
+namespace FluidScript.Core.Language;
+
+/// <summary>The quantities of a fluid state the language names, by symbol and by name (<c>D-120</c>).</summary>
+/// <remarks>
+/// <para>
+/// One table for three readers: a port's state on a declaration (<c>in[2].t=85</c>), a reference to
+/// it (<c>HX1.in[2].t</c>), and the <c>show</c> directive (<c>show t</c>, <c>show temperature</c>).
+/// Before <c>D-120</c> the contract builder kept its own copy for <c>show</c> and the registry rows
+/// spelled the quantities by hand, which is the drift <c>L-50</c> recorded. The symbol is the
+/// canonical spelling in a port's state, since the language trades on density; the name is what the
+/// wire and a scale carry, since a reader of JSON does not know <c>rho</c>.
+/// </para>
+/// <para>
+/// The symbols are lowercase and the table is case-sensitive, because the language is:
+/// <c>dK</c>/<c>dC</c> already depend on it.
+/// </para>
+/// </remarks>
+public static class PropertyTable
+{
+    /// <summary>Every quantity the table names, in the order <c>57</c> lists them.</summary>
+    public static ImmutableArray<PropertyEntry> All { get; } =
+    [
+        new("t", "temperature", "Temperature", Dimension.Temperature, Diverging: false, ["temp"]),
+        new("p", "pressure", "Pressure", Dimension.Pressure, Diverging: false, []),
+        new("flow", "flow", "Mass flow", Dimension.MassFlow, Diverging: false, ["mflow", "mdot", "mass_flow"]),
+        new("vflow", "volume_flow", "Volume flow", Dimension.VolumeFlow, Diverging: false, ["q"]),
+        new("h", "enthalpy", "Enthalpy", Dimension.Enthalpy, Diverging: false, []),
+        new("rho", "density", "Density", Dimension.Density, Diverging: false, []),
+        new("dp", "pressure_drop", "Pressure drop", Dimension.PressureDelta, Diverging: true, []),
+    ];
+
+    private static readonly ImmutableDictionary<string, PropertyEntry> BySpelling = Index();
+
+    /// <summary>Finds the quantity a spelling names.</summary>
+    /// <param name="written">A symbol, a name, or an alias: <c>t</c>, <c>temperature</c>, <c>mdot</c>.</param>
+    /// <returns>The entry, or <see langword="null"/> when the table has no such quantity.</returns>
+    public static PropertyEntry? Find(string written)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+
+        return BySpelling.GetValueOrDefault(written);
+    }
+
+    /// <summary>Rewrites the quantity steps of a dotted name to their symbols: <c>in[2].temperature</c> reads as <c>in[2].t</c>.</summary>
+    /// <param name="written">A parameter or property name as the script wrote it.</param>
+    /// <returns>
+    /// The same name with every step after the first, and a lone step that is a known quantity,
+    /// spelled by its symbol; unchanged when nothing in it is a quantity.
+    /// </returns>
+    /// <remarks>
+    /// The first step of a dotted name is a port and is left alone; a name with no dot is a bare
+    /// quantity only when the table knows it, so <c>power</c> and <c>layers</c> pass through.
+    /// </remarks>
+    public static string Canonical(string written)
+    {
+        ArgumentNullException.ThrowIfNull(written);
+
+        var dot = written.IndexOf('.', StringComparison.Ordinal);
+
+        if (dot < 0)
+        {
+            return Find(written) is { } bare ? bare.Symbol : written;
+        }
+
+        var steps = written.Split('.');
+
+        for (var i = 1; i < steps.Length; i++)
+        {
+            if (Find(steps[i]) is { } quantity)
+            {
+                steps[i] = quantity.Symbol;
+            }
+        }
+
+        return string.Join('.', steps);
+    }
+
+    private static ImmutableDictionary<string, PropertyEntry> Index()
+    {
+        var builder = ImmutableDictionary.CreateBuilder<string, PropertyEntry>(StringComparer.Ordinal);
+
+        foreach (var entry in All)
+        {
+            builder[entry.Symbol] = entry;
+            builder[entry.Name] = entry;
+
+            foreach (var alias in entry.Aliases)
+            {
+                builder[alias] = entry;
+            }
+        }
+
+        return builder.ToImmutable();
+    }
+}
+
+/// <summary>One quantity of a fluid state, with every spelling the language accepts for it.</summary>
+/// <param name="Symbol">The short canonical spelling a port's state is written in: <c>t</c>, <c>rho</c>.</param>
+/// <param name="Name">The long spelling, which is what the wire and a colour scale carry: <c>temperature</c>.</param>
+/// <param name="Display">The heading a scale shows.</param>
+/// <param name="Dimension">The dimension of the value.</param>
+/// <param name="Diverging">Whether a scale of it is centred on zero, which a drop is and a temperature is not (<c>57</c>).</param>
+/// <param name="Aliases">Further accepted spellings, never printed: <c>mdot</c> for <c>flow</c>.</param>
+public sealed record PropertyEntry(
+    string Symbol,
+    string Name,
+    string Display,
+    Dimension Dimension,
+    bool Diverging,
+    ImmutableArray<string> Aliases);

@@ -11,7 +11,7 @@ namespace FluidScript.Core.Tests.Syntax;
 /// <remarks>
 /// Word classification is the sharp edge of this language. A word may begin with a digit, so
 /// <c>3WV</c> is a name and <c>3K</c> is three kelvin; a unit symbol may be separated from its number
-/// by a space, so <c>30 in=20</c> is a number and a parameter rather than thirty inches. Each of those
+/// by a space, so <c>30 in.t=20</c> is a number and a parameter rather than thirty inches. Each of those
 /// readings differs from its neighbour by a factor or by a whole statement, and none of them fails
 /// loudly when it is wrong.
 /// </remarks>
@@ -95,20 +95,25 @@ public sealed class LexerTests
     public void AnEqualsAfterASpacedSymbolMakesItAParameterName()
     {
         // Rule 5's '=' clause, and the whole safety of the whitespace-separated form. Drop it and
-        // '30 in' is thirty inches, 'power' loses its value, and the line still parses.
-        var tokens = Significant("HE1 heat_exchanger power=30 in=20 out=50");
+        // '30 in' is thirty inches, 'power' loses its value, and the line still parses. Under D-120 the
+        // clause also reads through a port's state: '30 in.t=' and '30 in[2]' are a name, not inches.
+        var tokens = Significant("HE1 heat_exchanger power=30 in.t=20 out.t=50 in[2].t=85");
 
         Assert.Equal(
             [
                 TokenKind.Identifier, TokenKind.Identifier,
                 TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
-                TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
-                TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
+                TokenKind.Identifier, TokenKind.Dot, TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
+                TokenKind.Identifier, TokenKind.Dot, TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
+                TokenKind.Identifier, TokenKind.OpenBracket, TokenKind.NumberLiteral, TokenKind.CloseBracket,
+                TokenKind.Dot, TokenKind.Identifier, TokenKind.Equals, TokenKind.NumberLiteral,
             ],
             tokens.Select(static token => token.Kind));
 
         Assert.Equal("in", tokens[5].Text);
         Assert.Equal(30, tokens[4].Value);
+        Assert.Equal("in", tokens[15].Text);
+        Assert.Equal(50, tokens[14].Value);
     }
 
     [Fact]
@@ -263,7 +268,7 @@ public sealed class LexerTests
     [InlineData(";")]
     [InlineData("|")]
     [InlineData("&")]
-    [InlineData("[")]
+    [InlineData("{")]
     [InlineData("é")]
     [Trait("Category", "Unit")]
     public void AnUnusedCharacterIsReportedAsFS1002AndStillHeldAsAToken(string text)

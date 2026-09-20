@@ -381,7 +381,7 @@ export interface Layer {
 
 export interface Port {
   /**
-   * The port name.
+   * The port id: in, out, in2, a. The id is the model's key, not the script's spelling -- a script writes the second side in[2] (D-120) and the wire carries in2, so the ids never changed.
    */
   name: string;
   /**
@@ -1153,7 +1153,7 @@ export interface Kind {
    */
   ports: Port[];
   /**
-   * Indexed port families such as a tank's in1..in16 (D-32).
+   * Indexed port families such as a tank's in[2]..in[16] (D-32, D-120).
    */
   portFamilies: PortFamily[];
   /**
@@ -1184,11 +1184,15 @@ export interface Kind {
 
 export interface PortFamily {
   /**
-   * The name before the index, in for in1.
+   * The name before the index, in for the port id in2: a component's port ids and the model's keys are {Prefix}{index}.
    */
   prefix: string;
   /**
-   * The lowest index.
+   * How a script writes a member, with one {index} placeholder: in[{index}] (D-120). The first member is the fixed port in, listed under ports.
+   */
+  pattern: string;
+  /**
+   * The lowest index the family itself covers; the fixed first port sits below it.
    */
   minIndex: number;
   /**
@@ -1200,7 +1204,7 @@ export interface PortFamily {
    */
   role: string;
   /**
-   * The suffix of the parameter that places the port, or null.
+   * The suffix of the parameter key that places the port (in2_level), or null; the script spelling of that parameter is under indexedParameters.
    */
   levelParameterSuffix: string | null;
 }

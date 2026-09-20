@@ -11,7 +11,7 @@ style cold = "#2f6f9f" 2px - fill="#e8f1f8"
 
 circuit heating 100
 style hot                                # this circuit draws in `hot`
-HS1  heat_exchanger power=54 kW out=60
+HS1  heat_exchanger power=54 kW out.t=60
 
 circuit ahu 101
 style cold

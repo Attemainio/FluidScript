@@ -181,7 +181,7 @@ public sealed class NullDirectionTests
         // in the matrix as the dependent row `FS3010` was naming. With the level dropped the count was
         // short by one and refused the circuit before the solver saw it.
         //
-        // The sample then stated its source outlet (`HS1 out=80`, `F-23`), which is an `EnthalpyLevel`
+        // The sample then stated its source outlet (`HS1 out.t=80`, `F-23`), which is an `EnthalpyLevel`
         // constraint promoting nothing: it pays for the dropped level, the count is square at 39, and the
         // matrix is full rank at every iterate. So neither code fires here any more for the opposite
         // reason it used not to -- the deficiency is gone, not hidden. What the header does instead is

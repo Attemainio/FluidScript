@@ -9,12 +9,12 @@ show temperature
 
 S1 inlet t=60 flow=0.12
 S2 inlet t=45 flow=0.08
-T1 tank volume=300 layers=5 t1=25 t2=30 t3=40 t4=50 t5=60 in1_level=90% in2_level=30% out1_level=90% out2_level=30%
+T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
 RAD_NETWORK outlet flow=0.12
 AHU_NETWORK outlet flow=0.08
 
 connections
-S1 - T1.in1
-S2 - T1.in2
-T1.out1 - RAD_NETWORK
-T1.out2 - AHU_NETWORK
+S1 - T1.in
+S2 - T1.in[2]
+T1.out - RAD_NETWORK
+T1.out[2] - AHU_NETWORK

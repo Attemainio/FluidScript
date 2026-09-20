@@ -12,7 +12,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=30 kW out=60
+HS1     heat_exchanger power=30 kW out.t=60
 
 connections
 N1 - HS1 - N3
@@ -22,7 +22,7 @@ N1 node p=250
 
 circuit radiators 102
 
-HE_RAD  load in=50 out=40 power=20 kW
+HE_RAD  load in.t=50 out.t=40 power=20 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 
@@ -34,7 +34,7 @@ NM_RAD - N4 length=18 dn=25
 
 circuit AHU 101
 
-HE_AHU  load in=38 out=36
+HE_AHU  load in.t=38 out.t=36
 TV_AHU  three_way_valve
 PU_AHU  pump
 
@@ -46,7 +46,7 @@ NM_AHU - N5 length=12 dn=25
 
 circuit floor 103
 
-HE_FLR  load in=34.5 out=33
+HE_FLR  load in.t=34.5 out.t=33
 TV_FLR  three_way_valve
 PU_FLR  pump
 
@@ -58,7 +58,7 @@ NM_FLR - N6 length=15 dn=25
 
 circuit dhw 104
 
-HE_DHW  load in=31.5 out=30
+HE_DHW  load in.t=31.5 out.t=30
 TV_DHW  three_way_valve
 PU_DHW  pump
 

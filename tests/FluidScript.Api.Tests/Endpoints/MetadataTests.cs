@@ -72,7 +72,8 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
     [Fact]
     public async Task TheTankExposesItsAliasesFamiliesAndIndexedPatterns()
     {
-        // 42's acceptance row for the tank (D-32): canonical tank/volume, the container/v aliases, the 1..16 families.
+        // 42's acceptance row for the tank (D-32): canonical tank/volume, the container/v aliases, the
+        // 2..16 families beyond the fixed `in`/`out`, written `in[n]` and keyed `in{n}` (D-120).
         using var client = factory.CreateClient();
         using var response = await client.GetAsync(Metadata, TestContext.Current.CancellationToken);
         var body = await response.ReadAsync<MetadataWire>();
@@ -81,8 +82,9 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Contains("container", tank.Aliases);
         var volume = Assert.Single(tank.Parameters, static p => p.Name == "volume");
         Assert.Contains("v", volume.Aliases);
-        Assert.Contains(tank.PortFamilies, static f => f.Prefix == "in" && f.MinIndex == 1 && f.MaxIndex == 16 && f.Role == "bidirectional");
-        Assert.Contains(tank.PortFamilies, static f => f.Prefix == "out" && f.MinIndex == 1 && f.MaxIndex == 16 && f.Role == "bidirectional");
+        Assert.Contains(tank.Ports, static p => p.Name == "in");
+        Assert.Contains(tank.PortFamilies, static f => f.Prefix == "in" && f.Pattern == "in[{index}]" && f.MinIndex == 2 && f.MaxIndex == 16 && f.Role == "bidirectional");
+        Assert.Contains(tank.PortFamilies, static f => f.Prefix == "out" && f.Pattern == "out[{index}]" && f.MinIndex == 2 && f.MaxIndex == 16 && f.Role == "bidirectional");
         Assert.Contains(tank.IndexedParameters, static f => f.Pattern.Contains("{index}", StringComparison.Ordinal));
     }
 

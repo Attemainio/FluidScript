@@ -192,7 +192,7 @@ The `=` clause is the whole reason the rule can be permissive. `in` is a unit (i
 name in the brief's own line:
 
 ```fluidscript
-HE1 heat_exchanger power=30 in=20 out=50
+HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
 Without the clause, `30 in` lexes as thirty inches and the brief's flagship example silently becomes
@@ -237,8 +237,8 @@ The brief's line, plus a pipe, resolves as:
 | Written | Parameter's dimension | Canonical unit | Value | Stored (SI) |
 |---|---|---|---|---|
 | `power=30` | Power | kW *(exception)* | 30 kW | 30 000 W |
-| `in=20` | Temperature | °C *(exception)* | 20 °C | 293.15 K |
-| `out=50` | Temperature | °C *(exception)* | 50 °C | 323.15 K |
+| `in.t=20` | Temperature | °C *(exception)* | 20 °C | 293.15 K |
+| `out.t=50` | Temperature | °C *(exception)* | 50 °C | 323.15 K |
 | `p=300` | Pressure | kPa *(exception)* | 300 kPa | 300 000 Pa |
 | `length=45` | Length | m | 45 m | 45 |
 | `length=45 mm` | Length | m | 45 mm | 0.045 |
@@ -252,6 +252,32 @@ follows the dimension, so every `Length` parameter reads in metres. Pipe roughne
 that costs a token — `0.045 mm` rather than `0.045` — and it is worth it: the alternative, letting one
 parameter mean millimetres while its neighbour means metres, is precisely the trap that made
 `length=25` ambiguous in the first place. The default is 0.045 mm and most scripts never write it.
+
+### The property table: one name for each quantity of a state
+
+`D-120` put a port's state on the port -- `in[2].t`, `HX1.in[2].flow` -- and `show temperature` had
+named the same quantities since `57`. Both read one table, `PropertyTable` in Core's language layer,
+which is the registry of quantities a fluid state has and every spelling the language accepts for
+each:
+
+| Symbol | Name | Also | Dimension | Scale |
+|---|---|---|---|---|
+| `t` | `temperature` | `temp` | Temperature | sequential |
+| `p` | `pressure` | | Pressure | sequential |
+| `flow` | `flow` | `mdot`, `mflow`, `mass_flow` | MassFlow | sequential |
+| `vflow` | `volume_flow` | `q` | VolumeFlow | sequential |
+| `h` | `enthalpy` | | Enthalpy | sequential |
+| `rho` | `density` | | Density | sequential |
+| `dp` | `pressure_drop` | | PressureDelta | diverging, centred on zero |
+
+The **symbol** is the canonical spelling in a port's state, because the language trades on density;
+the **name** is what the wire and a colour scale carry, because a reader of JSON does not know `rho`.
+The registry's parameter and property rows are spelled with the symbol (`in[2].t`, never
+`in[2].temperature`), and the binder folds any other spelling of a quantity step to its symbol before
+it looks a name up, so one row serves every spelling. The table is case-sensitive, as the language is.
+`flow` is both symbol and name: the pump's, the sensor's and the boundary's parameter is `flow` in
+every sample, and `D-120` kept it so (`mflow` is an alias, not the canonical). `vflow` is readable
+and showable; as a *constraint* it needs a density, which is P5.13b's question (`D-120`, open).
 
 ## Dimensional algebra
 

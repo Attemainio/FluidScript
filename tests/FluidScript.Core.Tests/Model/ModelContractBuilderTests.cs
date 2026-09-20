@@ -96,7 +96,7 @@ public sealed class ModelContractBuilderTests
         var duty = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid")));
         var coupled = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-substation.fluid")));
         var rated = ModelContractBuilder.Build(ContractFixture.Compile(
-            ContractFixture.Sample("m2-cooling-loop.fluid").Replace("HE1 heat_exchanger power=30 in=20 out=50", "HE1 heat_exchanger in=20 out=50 in2=80 out2=60 ua=2")));
+            ContractFixture.Sample("m2-cooling-loop.fluid").Replace("HE1 heat_exchanger power=30 in.t=20 out.t=50", "HE1 heat_exchanger in.t=20 out.t=50 in[2].t=80 out[2].t=60 ua=2")));
 
         Assert.Equal("duty", duty.Components.Single(static c => c.Id == "HE1").Mode);
         Assert.Equal("coupled", coupled.Components.Single(static c => c.Id == "HX1").Mode);

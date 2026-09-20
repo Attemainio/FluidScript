@@ -169,7 +169,7 @@ public sealed class OuterLoopTests
         circuit series
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30
         CV1  valve
         PU1  pump
@@ -613,8 +613,8 @@ public sealed class OuterLoopTests
         circuit heating
         fluid water
 
-        SOURCE heater in=30 out=80
-        LOAD   load power=20 in=80 out=30
+        SOURCE heater in.t=30 out.t=80
+        LOAD   load power=20 in.t=80 out.t=30
         PU1    pump
         P1     pipe length=10 dn=25
 
@@ -627,7 +627,7 @@ public sealed class OuterLoopTests
         circuit heating
         fluid water
 
-        SOURCE heater in=30 out=80
+        SOURCE heater in.t=30 out.t=80
         LOAD1  load power=20
         LOAD2  load power=20
         PU1    pump
@@ -645,7 +645,7 @@ public sealed class OuterLoopTests
         fluid water
 
         PB      pipe length=4 dn=32
-        SOURCE  heater out=80
+        SOURCE  heater out.t=80
         TV_MAIN three_way_valve kv=25
 
         connections
@@ -658,7 +658,7 @@ public sealed class OuterLoopTests
 
         circuit AHU
 
-        HE_AHU load in=50 out=30 power=20 kW
+        HE_AHU load in.t=50 out.t=30 power=20 kW
         TV_AHU three_way_valve kv=25
         PU_AHU pump
         PA1 pipe length=12 dn=25
@@ -672,7 +672,7 @@ public sealed class OuterLoopTests
 
         circuit radiators
 
-        HE_RAD load in=50 out=30 power=20 kW
+        HE_RAD load in.t=50 out.t=30 power=20 kW
         TV_RAD three_way_valve kv=25
         PU_RAD pump
         PR1 pipe length=18 dn=25
@@ -732,8 +732,8 @@ public sealed class OuterLoopTests
         circuit heating 100
         fluid water
 
-        HS_A    heater power=40 kW out=70
-        HS_B    heater out=70
+        HS_A    heater power=40 kW out.t=70
+        HS_B    heater out.t=70
         PU_A    pump
         PU_B    pump
         PS_A    pipe length=6 dn=32
@@ -752,7 +752,7 @@ public sealed class OuterLoopTests
 
         circuit AHU 101
 
-        HE_AHU  load in=50 out=30 power=24 kW
+        HE_AHU  load in.t=50 out.t=30 power=24 kW
         TV_AHU  three_way_valve
         PU_AHU  pump
         PA1     pipe length=12 dn=25
@@ -766,7 +766,7 @@ public sealed class OuterLoopTests
 
         circuit radiators 102
 
-        HE_RAD  load in=50 out=30 power=30 kW
+        HE_RAD  load in.t=50 out.t=30 power=30 kW
         TV_RAD  three_way_valve
         PU_RAD  pump
         PR1     pipe length=18 dn=25
@@ -780,7 +780,7 @@ public sealed class OuterLoopTests
 
         circuit dhw 103
 
-        HE_DHW  load out=40 power=16 kW
+        HE_DHW  load out.t=40 power=16 kW
         PU_DHW  pump
         PD1     pipe length=10 dn=25
         PD2     pipe length=10 dn=25
@@ -886,7 +886,7 @@ public sealed class OuterLoopTests
             fluidscript 1
             circuit loop
             fluid water
-            HE1  heat_exchanger power=30 in=20 out=50
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
             LOAD heat_exchanger power=-30 dp=0
             CV1  valve
             PU1  pump
@@ -925,7 +925,7 @@ public sealed class OuterLoopTests
 
         HP1  heater power=heating sized_at tout=-5
         BL1  heater
-        LOAD load power=heating in=70 out=40
+        LOAD load power=heating in.t=70 out.t=40
         PU1  pump
         P1   pipe length=20 dn=32
 
@@ -970,7 +970,7 @@ public sealed class OuterLoopTests
         circuit heating
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30 dp=0 elevation=32
         CV1  valve
         PU1  pump
@@ -1092,7 +1092,7 @@ public sealed class OuterLoopTests
         circuit simpleLoop
         fluid water
 
-        HE1  heat_exchanger power=30 in=20 out=50
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
         LOAD heat_exchanger power=-30 dp=0
         CV1  valve
         PU1  pump
@@ -1191,7 +1191,7 @@ public sealed class OuterLoopTests
             circuit loop
             fluid water
 
-            HE1  heat_exchanger power=30 in=20 out=50 dp=0
+            HE1  heat_exchanger power=30 in.t=20 out.t=50 dp=0
             LOAD heat_exchanger power=-30 dp=0
             PU1  pump
 

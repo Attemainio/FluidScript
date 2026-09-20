@@ -102,6 +102,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         Evaluate();
         ReviewComponents();
         ReviewCurveReferences();
+        ReviewLegacyReferences();
         BindTopology(circuits);
 
         var model = new SemanticModel
@@ -226,7 +227,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     }
 
     private void BindProject(ProjectDirectiveSyntax project) =>
-        _project = new ProjectSettings(project.Name.Token.Text, project.Mode);
+        _project = new ProjectSettings(project.Name.Text, project.Mode);
 
     private void AssignCircuits(List<CircuitBlock> blocks)
     {
@@ -246,7 +247,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         foreach (var block in blocks)
         {
             var header = block.Header;
-            var name = header?.Name.Token.Text ?? documentName;
+            var name = header?.Name.Text ?? documentName;
             var span = header?.Span ?? new TextSpan(0, 0);
 
             if (header is null)
@@ -405,7 +406,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     // The connection line is the pipe's declaration (C-97): a click on the drawn pipe lands there.
                     DeclarationSpan = connection.Span,
                     CircuitName = circuit,
-                    Ports = [.. (kind?.Ports ?? []).Select(static port => port.Name)],
+                    Ports = [.. (kind?.Ports ?? []).Select(static port => port.Key)],
                 };
 
                 _components.Add(pipe);
@@ -441,7 +442,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private void DeclareBinding(LetBindingSyntax let, string circuitName)
     {
-        var name = let.Name.Token.Text;
+        var name = let.Name.Text;
 
         if (_bindingsByName.TryGetValue(name, out var existing))
         {
@@ -463,7 +464,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private void DeclareComponent(ComponentDeclarationSyntax declaration, string circuitName)
     {
-        var name = declaration.Name.Token.Text;
+        var name = declaration.Name.Text;
 
         if (_componentsByName.TryGetValue(name, out var existing))
         {
@@ -563,7 +564,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var parameter in parameters)
         {
-            var written = parameter.Name.Token.Text;
+            var written = parameter.Name.Text;
 
             // `style=name` is presentation every kind accepts (D-104); it is read by DeclareComponent
             // and is not a registry parameter, so it is neither bound nor reported here.
@@ -594,7 +595,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             var value = BindParameterValue(kind, info, parameter, componentName, written);
             if (value is not null)
             {
-                bound[info.Name] = value;
+                // Stored under the key, which is what every reader of a component's stated
+                // parameters has always used; the name is the script's and the docs' (`D-120`).
+                bound[info.Key] = value;
             }
         }
 
@@ -608,7 +611,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var parameter in declaration.Parameters)
         {
-            if (!string.Equals(parameter.Name.Token.Text, "style", StringComparison.Ordinal))
+            if (!string.Equals(parameter.Name.Text, "style", StringComparison.Ordinal))
             {
                 continue;
             }
@@ -666,47 +669,49 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private ParameterInfo? ResolveParameter(
         ComponentKindInfo kind, string written, ParameterSyntax parameter)
     {
-        if (kind.Parameters.TryGetValue(written, out var exact))
+        // A node has one state and no ports (`D-120` rule 4): `in.t=` on one is the one shape the
+        // registry cannot explain by listing what it accepts, because the quantity is right and the
+        // port is the mistake.
+        if (kind.HasUnlimitedPorts && parameter.Name.Parts.Length > 0)
         {
-            return exact;
+            Report(
+                BinderDiagnostics.PortStateOnNode,
+                parameter.Name.Span,
+                ("kind", kind.Keyword),
+                ("quantity", parameter.Name.Parts[^1].Name.Text),
+                ("written", written));
+            return null;
         }
 
-        foreach (var candidate in kind.Parameters.Values)
+        // Name, alias, the spelling `D-120` retired, or an indexed family member -- `layer[3].t`,
+        // `in[2].level`, the old `t3` -- all before similarity, so a tank's fortieth layer is an index
+        // error rather than an unknown parameter, and an old spelling is a suggestion rather than a
+        // near miss.
+        if (kind.ResolveParameter(written, out var suggestion, out var outside) is { } resolved)
         {
-            if (candidate.Aliases.Contains(written, StringComparer.Ordinal))
+            if (suggestion is not null)
             {
-                return candidate;
+                ReportLegacySpelling(parameter.Name.Span, written, suggestion);
             }
+
+            return resolved;
         }
 
-        // An indexed family member — `t3`, `in2_level` — is matched against its pattern before
-        // similarity, so a tank's fortieth layer is an index error rather than an unknown parameter.
-        foreach (var family in kind.IndexedParameterFamilies)
+        if (outside is { } family)
         {
-            if (!Indexed.Matches(family.Pattern, written, out var index))
-            {
-                continue;
-            }
-
-            var max = family.MaxIndex;
-            if (index < family.MinIndex || (max is not null && index > max))
-            {
-                Report(
-                    BinderDiagnostics.IndexOutsideFamily,
-                    parameter.Span,
-                    ("written", written),
-                    ("kind", kind.Keyword),
-                    ("min", family.MinIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                    ("max", (max ?? 100).ToString(System.Globalization.CultureInfo.InvariantCulture)));
-                return null;
-            }
-
-            return family.Element with { Name = written };
+            Report(
+                BinderDiagnostics.IndexOutsideFamily,
+                parameter.Span,
+                ("written", written),
+                ("kind", kind.Keyword),
+                ("min", Math.Min(1, family.MinIndex).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                ("max", (family.MaxIndex ?? 100).ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            return null;
         }
 
-        var index2 = kind.Parameters.ToImmutableDictionary(
-            static entry => NameResolution.Normalize(entry.Key),
-            static entry => entry.Value,
+        var index2 = kind.Parameters.Values.ToImmutableDictionary(
+            static info => NameResolution.Normalize(info.Name),
+            static info => info,
             StringComparer.Ordinal);
 
         var match = NameResolution.Match(written, index2);
@@ -729,7 +734,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             parameter.Name.Span,
             ("kind", kind.Keyword),
             ("parameter", written),
-            ("available", string.Join(", ", kind.Parameters.Keys.Order(StringComparer.Ordinal))));
+            ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
         return null;
     }
 
@@ -781,7 +786,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     WrittenName = written,
                     Reference = new PropertyReference(
                         reference.Head.Token.Text,
-                        reference.Parts[^1].Name.Token.Text),
+                        reference.PropertyPath()),
                     Expression = parameter.Value,
                     Span = span,
                 };
@@ -789,7 +794,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
             default:
             {
-                var id = new ValueId.ComponentParameter(componentName, info.Name);
+                var id = new ValueId.ComponentParameter(componentName, info.Key);
                 _graph.Add(id);
                 _pending[id] = new PendingValue(parameter.Value, id, span, new ParameterTarget(componentName, kind, info));
 
@@ -1167,7 +1172,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 : new ScopeLookup.Deferred(binding.Id);
         }
 
-        var property = reference.Parts[^1].Name.Token.Text;
+        var written = reference.PropertyPath();
 
         if (!_componentsByName.TryGetValue(head, out var slot))
         {
@@ -1178,12 +1183,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         var kind = component.Kind;
         if (kind is null)
         {
-            return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property));
+            return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, written));
         }
 
         // Through the kind rather than against `Properties` directly, so an indexed family member --
-        // a tank's `t3`, `in2_t` -- resolves like the fixed names beside it.
-        if (kind.ResolveProperty(property) is null)
+        // a tank's `layer[3].t`, `in[2].t` -- resolves like the fixed names beside it. The old
+        // spellings resolve too; `ReviewLegacyReferences` is what says so, once per site.
+        if (kind.ResolveProperty(written) is not { } property)
         {
             return new ScopeLookup.UnknownProperty(kind.Keyword, [.. kind.ReadableNames]);
         }
@@ -1191,11 +1197,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         // A parameter the user stated is readable at once, whatever the property's availability says:
         // `14`'s table reads "declared parameters: always, immediately", and availability describes
         // where the value comes from when nobody stated it. Reading the pending value rather than the
-        // symbol's is what makes it work during evaluation, before anything has been published.
-        var parameterId = new ValueId.ComponentParameter(head, property);
-
-        if (component.Parameters.ContainsKey(property))
+        // symbol's is what makes it work during evaluation, before anything has been published. The
+        // stated value is keyed by the *parameter's* key, which `D-120` lets differ from the
+        // property's: `in[2].t` is the parameter `in2` when stated and the property `t_in2` when solved.
+        if (StatedParameterKey(kind, written) is { } key && component.Parameters.ContainsKey(key))
         {
+            var parameterId = new ValueId.ComponentParameter(head, key);
+
             return _pending.TryGetValue(parameterId, out var stated) && stated.Value is { } value
                 ? new ScopeLookup.Value(value, IsBare: false, parameterId)
                 : new ScopeLookup.Deferred(parameterId);
@@ -1203,7 +1211,118 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         // Sized or solved, and nobody stated it: this is the deferral `14`'s two-phase evaluation
         // exists for, not an error.
-        return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property));
+        return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property.Key));
+    }
+
+    /// <summary>The key a stated parameter spelled like a property is stored under, or null when no parameter is spelled so.</summary>
+    /// <remarks>
+    /// Names, aliases and legacy spellings, and the indexed families -- the same walk
+    /// <see cref="ResolveParameter"/> makes, without its diagnostics, because this is a read and the
+    /// declaration already said what it had to.
+    /// </remarks>
+    private static string? StatedParameterKey(ComponentKindInfo kind, string written) =>
+        kind.ResolveParameter(written, out _, out _)?.Key;
+
+    /// <summary>Says, once per site, which property references were written in a spelling <c>D-120</c> retired.</summary>
+    /// <remarks>
+    /// Not in <see cref="Lookup"/>: a reference is evaluated as often as the fixed point needs, and a
+    /// diagnostic raised there would repeat with it. One walk over the statements after evaluation is
+    /// one message per written name, at the reference's own span, with the current spelling of the
+    /// whole reference as the quick fix -- <c>HX1.t_in2</c> becomes <c>HX1.in[2].t</c>.
+    /// </remarks>
+    private void ReviewLegacyReferences()
+    {
+        foreach (var statement in parse.Root.Statements)
+        {
+            foreach (var expression in Expressions(statement))
+            {
+                foreach (var reference in References(expression))
+                {
+                    if (reference.Parts.IsEmpty
+                        || !_componentsByName.TryGetValue(reference.Head.Token.Text, out var slot)
+                        || _components[slot.Index].Kind is not { } kind)
+                    {
+                        continue;
+                    }
+
+                    var written = reference.PropertyPath();
+                    kind.ResolveProperty(written, out var suggestion);
+
+                    if (suggestion is not null)
+                    {
+                        var span = TextSpan.FromBounds(reference.Parts[0].Name.Span.Start, reference.Span.End);
+                        ReportLegacySpelling(span, written, suggestion);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>Every expression a statement carries: its parameters' values and a <c>let</c>'s right-hand side.</summary>
+    private static IEnumerable<ExpressionSyntax> Expressions(StatementSyntax statement)
+    {
+        var parameters = statement switch
+        {
+            ComponentDeclarationSyntax declaration => declaration.Parameters.Concat(declaration.SizingPoint),
+            ConnectionSyntax connection => connection.Parameters,
+            ControlBindingSyntax control => control.Arguments,
+            DesignDirectiveSyntax design => design.Arguments,
+            CurveHeaderSyntax curve => curve.Arguments,
+            _ => [],
+        };
+
+        foreach (var parameter in parameters)
+        {
+            yield return parameter.Value;
+        }
+
+        if (statement is LetBindingSyntax let)
+        {
+            yield return let.Value;
+        }
+    }
+
+    /// <summary>Every reference inside an expression, in source order.</summary>
+    private static IEnumerable<ReferenceSyntax> References(ExpressionSyntax expression)
+    {
+        switch (expression)
+        {
+            case ReferenceSyntax reference:
+                yield return reference;
+                break;
+
+            case BinaryExpressionSyntax binary:
+                foreach (var inner in References(binary.Left).Concat(References(binary.Right)))
+                {
+                    yield return inner;
+                }
+
+                break;
+
+            case UnaryExpressionSyntax unary:
+                foreach (var inner in References(unary.Operand))
+                {
+                    yield return inner;
+                }
+
+                break;
+
+            case ParenthesizedExpressionSyntax parenthesized:
+                foreach (var inner in References(parenthesized.Inner))
+                {
+                    yield return inner;
+                }
+
+                break;
+
+            case CallSyntax call:
+                foreach (var inner in call.Arguments.SelectMany(static argument => References(argument.Value)))
+                {
+                    yield return inner;
+                }
+
+                break;
+        }
     }
 
     private string? ClosestName(string written)
@@ -1262,6 +1381,18 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private void Report(DiagnosticDescriptor descriptor, TextSpan span, params (string Name, string Value)[] arguments) =>
         Report(descriptor, span, null, arguments);
+
+    /// <summary>Says a name was written in a spelling <c>D-120</c> retired, with the current one as the quick fix.</summary>
+    /// <param name="span">The name alone, so the fix replaces the name and keeps the value (<c>L-53</c>).</param>
+    /// <param name="written">What the script wrote.</param>
+    /// <param name="current">The spelling it is now written in.</param>
+    private void ReportLegacySpelling(TextSpan span, string written, string current) =>
+        Report(
+            BinderDiagnostics.LegacySpelling,
+            span,
+            new Suggestion($"Write '{current}'", span, current),
+            ("written", written),
+            ("current", current));
 
     private void Report(
         DiagnosticDescriptor descriptor,
@@ -1342,7 +1473,7 @@ internal static class Indexed
     /// <remarks>
     /// A forwarder, kept because the parameter path reads better calling <c>Indexed.Matches</c> in a
     /// file about binding. The rule itself moved to the registry when property families needed it
-    /// too: <see cref="ComponentKindInfo.ResolveProperty"/> is read by the model contract as well as
+    /// too: <see cref="ComponentKindInfo.ResolveProperty(string)"/> is read by the model contract as well as
     /// by this class, and two copies of the pattern rule is one place for the two halves to diverge.
     /// </remarks>
     public static bool Matches(string pattern, string written, out int index) =>

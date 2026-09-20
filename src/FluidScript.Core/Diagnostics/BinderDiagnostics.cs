@@ -364,7 +364,7 @@ public static class BinderDiagnostics
         "'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one "
         + "parent; write the second link as a connection.");
 
-    /// <summary>A node with one connection and nothing to fix its state.</summary>
+    /// <summary>A node with one connection that is not a boundary.</summary>
     /// <value><c>FS2107</c>, a warning.</value>
     /// <remarks>
     /// The code belongs to the component model's range because a node is its subject (<c>D-53</c>),
@@ -374,7 +374,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor DeadEndNode { get; } = new(
         "FS2107",
         DiagnosticSeverity.Warning,
-        "'{name}' is a dead end. Set t, p or flow to make it a boundary.");
+        "'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.");
 
     /// <summary>A negative value for a parameter whose declared range starts at or above zero.</summary>
     /// <value><c>FS1307</c>, an error.</value>
@@ -465,7 +465,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor MixedTankTemperatures { get; } = new(
         "FS2113",
         DiagnosticSeverity.Error,
-        "'{name}': state either t for every layer, or all of t1…t{layers}; do not mix them.");
+        "'{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them.");
 
     /// <summary>A layer count that is not a whole number in range.</summary>
     /// <value><c>FS2114</c>, an error.</value>
@@ -518,7 +518,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ExchangerOverDetermined { get; } = new(
         "FS2109",
         DiagnosticSeverity.Error,
-        "'{name}': in, out, in2, out2 and power already fix the thermal size. Remove {param}, or let a temperature be solved.");
+        "'{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved.");
 
     /// <summary>A rating parameter on an exchanger with no second side to rate against.</summary>
     /// <value><c>FS2110</c>, a warning.</value>
@@ -531,7 +531,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor RatingWithoutASecondSide { get; } = new(
         "FS2110",
         DiagnosticSeverity.Warning,
-        "'{name}': '{param}' has no second-side profile to rate. State in2/out2/dt2/flow2, connect both secondary ports, or remove it.");
+        "'{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it.");
 
     /// <summary>A duty larger than the two inlet temperatures allow any exchanger to move.</summary>
     /// <value><c>FS2111</c>, an error.</value>
@@ -557,16 +557,16 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor OneSecondaryPortOpen { get; } = new(
         "FS2112",
         DiagnosticSeverity.Error,
-        "'{name}': Coupled mode requires both in2 and out2 connections; {port} is open.");
+        "'{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open.");
 
     /// <summary>A neutral exchanger's signed duty contradicts the direction its stated terminals give.</summary>
     /// <value><c>FS2119</c>, an error.</value>
     /// <remarks>
-    /// <c>power</c> is positive when side 1 gains heat, so <c>in=50 out=30 power=+24</c> says the water
+    /// <c>power</c> is positive when side 1 gains heat, so <c>in.t=50 out.t=30 power=+24</c> says the water
     /// cools while the duty says it is heated, and the component's own energy balance cannot satisfy
     /// both (<c>C-67</c>). Only the neutral spellings can write it: a role word carries the sign
     /// (<c>D-91</c>) and its magnitude cannot contradict anything. Side 2 is the mirror -- with a
-    /// positive duty it loses heat, so <c>in2</c> must be the warmer end.
+    /// positive duty it loses heat, so <c>in[2].t</c> must be the warmer end.
     /// </remarks>
     public static DiagnosticDescriptor DutyContradictsTerminals { get; } = new(
         "FS2119",
@@ -686,10 +686,38 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.");
 
+    /// <summary>A port, parameter or property written in the spelling <c>D-120</c> retired.</summary>
+    /// <value><c>FS1536</c>, informational, carrying the new spelling as its suggestion.</value>
+    /// <remarks>
+    /// Read exactly as the new form is, for one language major (<c>18</c>): <c>in=50</c> binds as
+    /// <c>in.t=50</c>, <c>T1.in2</c> as <c>T1.in[2]</c>, <c>HX1.t_in2</c> as <c>HX1.in[2].t</c>. Info
+    /// rather than a warning because the script is right; the editor's quick fix rewrites the name and
+    /// keeps the value, and the documentation teaches only the new form.
+    /// </remarks>
+    public static DiagnosticDescriptor LegacySpelling { get; } = new(
+        "FS1536",
+        DiagnosticSeverity.Info,
+        "'{written}' is now written '{current}'.");
+
+    /// <summary>A port's quantity written on a node, which has one state and no ports (<c>D-120</c> rule 4).</summary>
+    /// <value><c>FS1537</c>, an error.</value>
+    /// <remarks>
+    /// <c>N1 node in.t=5</c> asks for a state a node does not have two of: one pressure and one
+    /// enthalpy per node is what makes the balances rows, and a node with an inlet and an outlet state
+    /// is a component with no flow law. The fix is the bare quantity, or a component where a drop was
+    /// meant.
+    /// </remarks>
+    public static DiagnosticDescriptor PortStateOnNode { get; } = new(
+        "FS1537",
+        DiagnosticSeverity.Error,
+        "A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.");
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty-three descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty-five descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        LegacySpelling,
+        PortStateOnNode,
         ScheduleWithoutTime,
         CannotAddAbsolutes,
         ParameterDimensionMismatch,

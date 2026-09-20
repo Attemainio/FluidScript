@@ -129,7 +129,7 @@ public sealed class SeedPropagationTests
             circuit coolingLoop
             fluid water
 
-            HE1 heat_exchanger power=30 in=20 out=50
+            HE1 heat_exchanger power=30 in.t=20 out.t=50
             3WV three_way_valve
             PU1 pump
             P1  pipe length=25 dn=25

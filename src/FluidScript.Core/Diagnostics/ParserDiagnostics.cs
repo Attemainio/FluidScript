@@ -195,10 +195,23 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "A 'design' line needs named values, such as 'design tout=-26'.");
 
+    /// <summary>A bracket after a name that does not enclose one whole number touching the name (<c>D-120</c>).</summary>
+    /// <value><c>FS1119</c>, an error.</value>
+    /// <remarks>
+    /// <c>in [2]</c>, <c>in[2.5]</c>, <c>in[]</c> and <c>in[2</c> all land here. The index is part of
+    /// the name to the eye, so the grammar admits no whitespace inside it; a space would otherwise be a
+    /// choice the printer had to make on every write-back.
+    /// </remarks>
+    public static DiagnosticDescriptor MalformedIndex { get; } = new(
+        "FS1119",
+        DiagnosticSeverity.Error,
+        "An index is a whole number in brackets right after the name, such as 'in[2]'.");
+
     /// <summary>Gets every code the parser emits, for the registry to collect.</summary>
-    /// <value>Twenty descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Twenty-one descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        MalformedIndex,
         NameReadsAsQuantity,
         ReservedWordAsName,
         DuplicateSectionHeader,

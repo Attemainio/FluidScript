@@ -3,7 +3,7 @@
 # Three circuits: one source in the shared header and two pumped consumers. Every consumer runs cooler
 # than the 60 C supply, so each blends supply water with its own return.
 #
-# `HS1` states `power` and `out` and not `in`, as `01` says it must: `out=60` is the one absolute
+# `HS1` states `power` and `out` and not `in`, as `01` says it must: `out.t=60` is the one absolute
 # temperature a closed circuit needs (`D-90`) -- it pays for the energy balance dropped as the level
 # and pins nothing else -- and the return header's 30 C is an answer, not a demand (`F-16`). Omit the
 # power and the two loads size it to +54 kW from the closed-circuit balance; both spellings solve.
@@ -20,7 +20,7 @@
 # boundary, which turned this closed circuit into an open one, dropped no redundant mass balance, and
 # left the system deficient by exactly one -- fixable only by moving the datum somewhere unnatural.
 #
-# `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in=50` on a 60 C header is a
+# `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in.t=50` on a 60 C header is a
 # demand its valve can actually meet. Both ends of each attachment are written out because
 # `supply`/`return` cannot express a mixing subcircuit: the rule takes the first unconnected inlet,
 # and on this shape that is the valve's outlet, which wires the consumer's return to the *supply*
@@ -44,7 +44,7 @@ project static plant_01
 circuit heating 100
 fluid water
 
-HS1     heat_exchanger power=54 kW out=60          # the plant-side source; the outlet is the level
+HS1     heat_exchanger power=54 kW out.t=60          # the plant-side source; the outlet is the level
 
 connections
 N1 - HS1 - N3                                     # return is heated directly into the supply header
@@ -56,7 +56,7 @@ N1 node p=250
 
 circuit AHU 101
 
-HE_AHU  load in=50 out=30 power=24 kW
+HE_AHU  load in.t=50 out.t=30 power=24 kW
 TV_AHU  three_way_valve
 PU_AHU  pump
 
@@ -68,7 +68,7 @@ NM_AHU - N5 length=12 dn=25                                 # injected header fl
 
 circuit radiators 102
 
-HE_RAD  load in=50 out=30 power=30 kW
+HE_RAD  load in.t=50 out.t=30 power=30 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 
