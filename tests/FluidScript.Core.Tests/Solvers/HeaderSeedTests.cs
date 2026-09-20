@@ -100,6 +100,92 @@ public sealed class HeaderSeedTests
         }
     }
 
+    /// <summary>The mixing-supply header (<c>S-55</c>): a source valve blends the 80 °C source with the return to the 60 °C the header states, and nothing but the consumer pumps moves anything.</summary>
+    private const string MixingSupplyHeader = """
+        fluidscript 1
+        project static plant_01
+
+        circuit heating 100
+        fluid water
+
+        HS1     heat_exchanger power=54 kW out.t=80
+        TV_MAIN three_way_valve
+
+        connections
+        N1 - HS1 - TV_MAIN.a
+        N1 - TV_MAIN.b
+        TV_MAIN.ab - N3
+        N3 node t=60
+        N3 - N4
+        N6 - N5
+        N5 - N1
+
+        N1 node p=250
+
+        circuit AHU 101
+
+        HE_AHU  load in.t=50 out.t=30 power=24 kW
+        TV_AHU  three_way_valve
+        PU_AHU  pump
+
+        connections
+        N3 - TV_AHU.a length=12 dn=25
+        NM_AHU - TV_AHU.b
+        TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+        NM_AHU - N5 length=12 dn=25
+
+        circuit radiators 102
+
+        HE_RAD  load in.t=50 out.t=30 power=30 kW
+        TV_RAD  three_way_valve
+        PU_RAD  pump
+
+        connections
+        N4 - TV_RAD.a length=18 dn=25
+        NM_RAD - TV_RAD.b
+        TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
+        NM_RAD - N6 length=18 dn=25
+        """;
+
+    [Fact]
+    public async Task ThePumpFreeMixingHeaderIsDrivenByItsConsumerPumpsAndSizesItsMainValve()
+    {
+        // S-55's acceptance, as the entry wrote it: no source pump -- adding one would change the plant,
+        // not repair the analysis. The main valve's cycle (TV_MAIN.b → TV_MAIN.a → HS1 → N1) has no pump on
+        // it and is driven by PU_AHU and PU_RAD through the block it shares with them; the driver check and
+        // the valve's sizer both read the block now (HydraulicBlocks), so the graph is square and full
+        // rank, FS2214 is silent, the main valve leaves the bootstrap Kv 630 for D-122's band, and each
+        // consumer's head carries its own loss plus the shared source path at the combined operating point.
+        var check = WellPosedness.Check(GraphFixture.Lower(MixingSupplyHeader).Graph);
+
+        Assert.Equal(0, check.Counting.Excess);
+        Assert.DoesNotContain(check.Diagnostics, static d => d.Code == "FS2214");
+
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(MixingSupplyHeader), Water.Instance, "s55", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s55");
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.True(run.Settled, report);
+        Assert.DoesNotContain("FS2214", report, StringComparison.Ordinal);
+        Assert.Equal(6.3, run.Sizes.For("TV_MAIN", "kv")!.Value, 1);
+        Assert.Equal(0.2871, run.Sizes.For("HE_AHU", "flow")!.Value, 3);
+        Assert.Equal(0.3589, run.Sizes.For("HE_RAD", "flow")!.Value, 3);
+
+        var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0.4307, Through(run.Graph, layout, solved, "HS1") + Leg(run.Graph, layout, solved, "TV_MAIN", "b"), 3);
+        Assert.Equal(0.2581, Through(run.Graph, layout, solved, "HS1"), 3);
+        Assert.InRange(solved[Promotion(layout, "PU_AHU", "head")], 1.0, 10.0);
+        Assert.InRange(solved[Promotion(layout, "PU_RAD", "head")], 1.0, 10.0);
+        Assert.True(solved[Promotion(layout, "PU_RAD", "head")] > solved[Promotion(layout, "PU_AHU", "head")], report);
+    }
+
     [Fact]
     public void WithoutTheSourceLevelTheHeaderIsAThermalContinuumAndSaysSo()
     {
@@ -122,6 +208,24 @@ public sealed class HeaderSeedTests
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
         return new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
+    }
+
+    /// <summary>The index of a promoted parameter in the solved vector.</summary>
+    private static int Promotion(SystemLayout layout, string owner, string parameter)
+    {
+        for (var index = 0; index < layout.Unknowns.Length; index++)
+        {
+            var unknown = layout.Unknowns[index];
+
+            if (unknown.Kind == UnknownKind.Parameter
+                && string.Equals(unknown.OwnerComponentId, owner, StringComparison.Ordinal)
+                && unknown.Name.EndsWith(parameter, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        throw new InvalidOperationException($"{owner}.{parameter} is not a promoted unknown.");
     }
 
     /// <summary>The solved flow magnitude through the branch that carries a component.</summary>

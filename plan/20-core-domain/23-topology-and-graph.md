@@ -482,7 +482,7 @@ than in the linear algebra.
 | Two stated pressures in one loop with no through-flow path between them | A second, contradictory datum | `FS2212` |
 | Every branch is reachable from the pressure datum | Isolated subgraph | `FS2213` |
 | No node has exactly one connection without being an `inlet` or `outlet` | Dead end | `FS2107` |
-| Every loop contains at least one flow-driving component | A passive loop can only have zero flow | `FS2214` (**warning**) |
+| Every loop lies in a block with a flow-driving component or a boundary pair | A passive block can only have zero flow | `FS2214` (**warning**) |
 | Substance is resolvable and every state is inside its valid range at the initial guess | | `FS2215` |
 
 ### The counting argument
@@ -730,6 +730,17 @@ upstream pump from a sibling consumer's, and the case it was written for was sil
 own pump had been sized before its constraint was matched took a consumer's pump, that consumer took
 the next, and the plant reported over-specified by one three promotions later with nothing naming
 the first wrong claim (`S-59`). A warning, because the count is still right and the solve may be.
+
+**`FS2214` asks the loop's block, not the loop** (`S-55`, 2026-09-20). The graph's loops are a
+fundamental cycle basis, and a cycle with no pump on it still carries flow when a pump on another cycle
+of the same biconnected block pushes through it: the pump-free mixing header's source valve and
+exchanger form the small cycle `TV_MAIN.b → TV_MAIN.a → HS1 → N1`, driven by the consumer pumps that
+draw from the supply and return through the same block, and the check reported it as carrying none on
+a circuit that solves 45/45 in one iteration. `HydraulicBlocks.ForDrivers` labels every branch with its
+block (Tarjan over branch endpoints) and a block is driven when any branch in it carries a
+`DrivesFlow` kind or when a virtual ground joins two of its boundary nodes -- an `inlet`-to-`outlet`
+path is driven by their pressures. A loop is reported only when nothing in its block moves anything;
+a ring of one (`N1 - PU1 - HE1 - N1`) is its own block.
 
 **`FS2214` is a warning, not info.** A loop with no driver is almost always a mis-placed pump — the
 mistake the cooling loop's own history records ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) —

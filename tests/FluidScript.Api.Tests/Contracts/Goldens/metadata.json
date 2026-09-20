@@ -4140,7 +4140,7 @@
       "code": "FS2204",
       "severity": "error",
       "area": "Topology",
-      "message": "'{circuit}' has a {present} and no {missing}. Fluid must both enter and leave, or neither.",
+      "message": "'{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither.",
       "arguments": [
         "circuit",
         "present",

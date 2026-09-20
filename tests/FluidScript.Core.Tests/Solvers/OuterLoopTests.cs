@@ -688,12 +688,13 @@ public sealed class OuterLoopTests
     [Fact]
     public async Task TheDistributedHeaderFindsItsFortyKilowattSourceDutyAndConverges()
     {
-        // `S-55`'s acceptance test, written before its fix. The fixture has no source pump on purpose: each
-        // distribution pump draws from the shared supply and discharges to the shared return, which is the
-        // pressure difference that drives both legs of `TV_MAIN`. The driver analysis looks for a pump on
-        // one cycle-local loop, finds none, and reports `FS2214` on a circuit the equations can solve.
-        // Skipped while that symptom is present rather than deleted, so the day the analysis is repaired
-        // this runs -- and `S-55` says in as many words that adding a source pump to pass it is wrong.
+        // `S-55`'s acceptance test, written before its fix and running since it (2026-09-20). The fixture
+        // has no source pump on purpose: each distribution pump draws from the shared supply and discharges
+        // to the shared return, which is the pressure difference that drives both legs of `TV_MAIN`. The
+        // driver analysis used to look for a pump on one cycle-local loop, find none, and report `FS2214`
+        // on a circuit the equations can solve; it reads the loop's biconnected block now
+        // (`HydraulicBlocks`). The skip is kept as the tripwire it was: `S-55` says in as many words that
+        // adding a source pump to pass this is wrong.
         var model = GraphFixture.Bind(DistributedHeaderWithAutomaticSourceDuty);
         var result = await Loop().RunAsync(
             model,

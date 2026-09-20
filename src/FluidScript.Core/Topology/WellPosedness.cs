@@ -1167,24 +1167,28 @@ public static class WellPosedness
 
     /// <summary>Reports every loop nothing can drive flow around.</summary>
     /// <remarks>
+    /// <para>
     /// Read from <c>ComponentKindInfo.DrivesFlow</c>, which is explicit registry metadata. Inspecting
     /// residual code or guessing from parameter names is forbidden (<c>D-30</c>): a rule that infers
     /// structure from an implementation detail changes meaning when the implementation does.
+    /// </para>
+    /// <para>
+    /// <strong>Driven is asked of the loop's block, not of the loop</strong> (<c>S-55</c>). A fundamental
+    /// cycle with no pump on it still carries flow when a pump elsewhere in the same biconnected block
+    /// pushes through it -- the pump-free mixing header's source valve and exchanger are that cycle, driven
+    /// by the consumer pumps -- and a path between two boundaries is driven by them. <see cref="HydraulicBlocks"/>
+    /// holds both facts; a loop is reported only when nothing in its block moves anything.
+    /// </para>
     /// </remarks>
     private static void ReportDriverlessLoops(
         CircuitGraph graph, ImmutableArray<Diagnostic>.Builder diagnostics)
     {
+        var blocks = HydraulicBlocks.ForDrivers(graph);
+
         foreach (var loop in graph.Loops)
         {
-            var driven = false;
-
-            foreach (var branch in loop.Branches)
-            {
-                foreach (var part in branch.Path)
-                {
-                    driven |= ComponentRegistry.Default.ByKeyword(part.Kind)?.DrivesFlow == true;
-                }
-            }
+            // A cycle lies inside one block, so its first branch answers for it.
+            var driven = loop.Branches.Length > 0 && blocks.Drives(loop.Branches[0]);
 
             if (!driven)
             {

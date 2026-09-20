@@ -411,6 +411,14 @@ headroom a control valve is supposed to have.
 > shapes: with a free pump on a circuit through the valve the drop is a choice and the selection rounds
 > **down**; with none the boundaries fix it and the selection rounds **up**. Which of the two was used
 > is written into the reported basis, because the same catalogue row means different things under each.
+>
+> **"A circuit through the valve" is the valve's biconnected block, not one fundamental cycle** (`S-55`,
+> 2026-09-20). In a block any two branches lie on a common cycle, so a free pump anywhere in the block
+> reaches the valve's legs: the pump-free mixing header's source valve has no pump on either of its
+> legs and is driven by the consumer pumps that draw from its common port -- it sized to Kv 630, the
+> bootstrap, until the sizer read the block. The boundaries do not join the blocks for this question,
+> so a bounded primary beside a pumped secondary still reads as bounded and rounds up
+> (`HydraulicBlocks.ForFreePumps`); the driver diagnostic's reading, where they do, is `23`'s.
 
 **Authority is reported in both cases and targeted only in the first.** On a bounded circuit it is an
 outcome, and `FS4006` still fires when it comes out low.

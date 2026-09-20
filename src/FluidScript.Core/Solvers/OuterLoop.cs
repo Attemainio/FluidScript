@@ -832,10 +832,11 @@ public sealed class OuterLoop(
             }
 
             // Not `Driven(graph, valve)`: a three-way valve with its bypass connected is a junction
-            // element, so it sits in no branch's `Path` and that helper would find no circuit through it
-            // and call every one of them bounded. The legs the drawn flow crosses are its equivalent.
-            var driven = legs[common].Path.Concat(legs[variable].Path).Any(static element =>
-                element is Pump pump && !pump.StatedParameters.ContainsKey("head"));
+            // element, so it sits in no branch's `Path`. The legs the drawn flow crosses answer instead --
+            // by their block (S-55): the pump-free mixing header's main valve has no pump on either leg
+            // and is driven by the consumer pumps that draw from its common port through the same block.
+            var blocks = HydraulicBlocks.ForFreePumps(graph);
+            var driven = blocks.Drives(legs[common]) || blocks.Drives(legs[variable]);
 
             var flow = flows[variable];
             var context = new SizingContext
@@ -1091,12 +1092,15 @@ public sealed class OuterLoop(
     /// <see langword="false"/>, which is right: an open path between two boundaries is the bounded case.
     /// </para>
     /// </remarks>
-    private static bool Driven(CircuitGraph graph, IFlowComponent component) =>
-        graph.Loops
-            .Where(loop => loop.Branches.Any(branch => branch.Path.Contains(component)))
-            .SelectMany(static loop => loop.Branches)
-            .SelectMany(static branch => branch.Path)
-            .Any(static element => element is Pump pump && !pump.StatedParameters.ContainsKey("head"));
+    private static bool Driven(CircuitGraph graph, IFlowComponent component)
+    {
+        // The component's block, not its fundamental cycle (S-55): a free pump anywhere in the same
+        // biconnected block reaches this branch. The boundaries do not join the blocks here, so a bounded
+        // primary beside a pumped secondary keeps reading as bounded (D-89).
+        var blocks = HydraulicBlocks.ForFreePumps(graph);
+
+        return graph.Branches.Any(branch => branch.Path.Contains(component) && blocks.Drives(branch));
+    }
 
     /// <summary>The flow through a component and the fluid state there.</summary>
     /// <param name="graph">The graph.</param>
