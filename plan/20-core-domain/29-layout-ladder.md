@@ -270,7 +270,10 @@ and turns left, `PCV` stands on that line at `[(−1.75, 0.7), (−0.75, 1.3)]` 
 left until its box clears the exchanger's margin, `NPS` one clearance beyond it at `(−2.35, 1)`;
 `PP` and the two inferred nodes are inline, spread evenly along the run's longest segment at
 `x = −0.6, −0.45, −0.3`. `out2`'s pipe drops its margin to `(−0.15, −1)`, turns left, and `NPR`
-sits at `(−0.85, −1)`. Six bends, length 10.1, hard 0, soft 0.
+sits at `(−0.85, −1)`. Six bends, length 10.1, hard 0, soft 0. **Since `C-86` (2026-09-20)** the
+flank lead is two margins: the primary runs at `y = 1.5` and drops a full unit into `in2`, its
+inline nodes spread down that drop, and the return leaves `out2` to `y = −1.5`; six bends, length
+12.4, hard 0, soft 0, and the substation the same (9.6 → 10.4).
 
 **Three corrections the text forced before the user saw it.** (1) The first draw gave `PP` a box:
 the inline pass-through followed one inline element and placed whatever came next, and here node,

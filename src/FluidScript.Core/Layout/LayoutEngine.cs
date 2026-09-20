@@ -574,7 +574,11 @@ internal sealed class LayoutEngine
         }
 
         var flank = anchor.At.X < _centre[i].X - Eps ? Direction.Left : Direction.Right;
-        var corner = anchor.Along(_margin);
+        // Two margins, not one: the loop's own rail on this side runs along the outer anchors' line, and a
+        // corner there put the primary's approach and the secondary's rail on one line 0.3 apart, reading
+        // as a pipe crossing the exchanger's top with a gap (C-86). One margin further out, the two corners
+        // sit on different lines and the picture separates them.
+        var corner = anchor.Along(2 * _margin);
         return (Anchor(corner, flank, flank), [anchor.At]);
     }
 

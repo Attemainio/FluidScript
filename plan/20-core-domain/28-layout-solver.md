@@ -313,10 +313,13 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
 - **C6** *(step 5, provisional)* -- **What hangs from a loop member's flank port runs level, away
   from the loop.** A standing exchanger on a loop has its loop side on one flank (C2) and its
   other side on the outer flank; whatever is piped to the outer flank -- a chain, a boundary node
-  -- leaves the port along its straight margin, turns towards that flank's side and continues
+  -- leaves the port along **two** straight margins, turns towards that flank's side and continues
   level: the substation's primary arrives from the left into `in2` at the top and its return
-  leaves `out2` at the bottom back to the left. Off a chain's exchanger (step 2) a port's
-  continuation hangs straight.
+  leaves `out2` at the bottom back to the left. Two margins, not one, since `C-86` (2026-09-20):
+  the loop's own rail on that side runs along the outer anchors' line, and a corner on it put the
+  primary's approach and the secondary's rail on one line 0.3 apart -- a reader saw a pipe crossing
+  the exchanger's top with a gap. One margin further out, the two lines separate. Off a chain's
+  exchanger (step 2) a port's continuation hangs straight.
 - **C7** *(step 5, provisional; widened by steps 6 and 11b)* -- **An open end aligns with its supply.** Where a supply and a
   return boundary -- or any two open ends, the terminating nodes the language infers for open
   ports as much as declared boundaries (step 11b) -- hang level off the same loop on the same side
