@@ -942,6 +942,27 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > filing / reopening / closing steps, package and phase close — is now `65-working-the-plan`, which
 > `CLAUDE.md` points at; the same runbook went into `agent-planner` as a template.
 
+> **2026-09-20 — sweep tier 4b, the rows the columns called fixable.** Seven closed by the runbook,
+> each on its own script with the whole report read, solver first: `S-70` (a coupled exchanger's two
+> rings named by their own elements, each stated flow by its own pump, the report's direction read
+> off the port map -- eleven rows across the corpus had been labelled *reversed* for pointing against
+> the walk); `S-23` (a dead leg's nodes take the live end's enthalpy, the closure `S-56` built; the
+> simple loop with a stub converges instead of going singular at `N9.h`); `S-66` (the seed's walk
+> reads the promoted Kv and head -- substation seed pivot ratio 3e-6 → 1.4e-2, `head15` 6 → 4
+> iterations; the position deliberately not, measured to cost 1–2 first-pass iterations on every
+> three-way circuit; the datum-at-0 re-seed measured again and withdrawn again for a different
+> reason). The report gained the seed's conditioning beside the solution's and the iterations per
+> sizing pass. Layout: `C-87` (a pipe along an unrelated box's edge is soft; a sensor's clearance
+> excused), which surfaced `C-108` (header consumers pack at exactly one margin -- `08d` soft 6,
+> `header-200` soft 48 -- a spacing for a picture judgement); `C-86` (the flank lead is two margins,
+> so a primary's approach and the secondary's rail no longer share a line across the exchanger);
+> `C-96` (a terminal node's clearance yields to a sibling run of the same symbol; `LayoutDiagnostics`
+> now draws every `diagnostics/scratch/*.fluid`, the layout half of the circuit harness); `C-102`
+> (C18 seats any boxed member but the head, ladder step 3d, the `FS5002` guardrail moved to
+> `N1 - N2 - N1`). Six rows re-triaged rather than fixed: `C-91`, `C-54`, `C-38`, `C-36` are the
+> user's decisions, `C-47` waits on `D-82`, `S-42` got harder by its own account. Core 1936/0/3,
+> Api 59/0. Next: **P5.13b** items 1 and 3.
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -974,21 +995,23 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 26 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **64** | |
+| | **58** | |
 
-Counted from the files on 2026-09-20, when every open row received its Effort / Risk / Basis (`08`,
-*The register's shape*) and the frontend's ids became `U-` (they had shared `F-` with the
-foundation's, and `F-3`…`F-10` meant two things). Of the 64: **42 measured, 22 hunch**; 4 tiny,
-20 small, 27 medium, 9 big, 4 large. **Fixable now** (tiny or small, measured): `L-57`, `L-35`,
-`C-102`, `C-91`, `C-96`, `C-87`, `C-86`, `C-54`, `C-47`, `C-38`, `C-36`, `S-70`, `S-42`, `S-23`,
-`S-66`, `A-2`, `U-6` — seventeen, most of them an afternoon together. **Largest** (big or large,
-high risk): `F-19`, `C-73`, `C-68` (large); `C-98`, `C-72`, `S-37`, `S-27` (big). The estimates are
-the filer's and are meant to be checked against the Closed tables' actual efforts as rows close.
+Counted from the files on 2026-09-20 after the sweep's tier 4b (seven closed, `C-108` opened, six
+re-triaged). Of the 58: **35 measured, 23 hunch**; 3 tiny, 12 small, 30 medium, 9 big, 4 large.
+**Fixable now** (tiny or small, measured): `L-57`, `L-35`, `C-108`, `C-54`, `C-38`, `C-36`, `A-2`,
+`U-6` -- and five of those eight wait on a decision of the user's (`L-57` the bare `vflow` unit,
+`C-54` whether `24`'s velocity bound is a guard, `C-38`/`C-36` which pipe series, `C-108` a spacing
+judged on a picture), so the sweep's quick list is three rows long. **Largest** (big or large, high
+risk): `F-19`, `C-73`, `C-68` (large); `C-98`, `C-72`, `S-37`, `S-27` (big). The estimates are the
+filer's and are meant to be checked against the Closed tables' actual efforts as rows close: of the
+seven closed today, five took what was estimated, `S-66` took medium against small (the instruments
+were most of it), and `C-87` tiny as estimated.
 
 Counted from the files on 2026-09-19 after sweep tier 4's `C-104` (one closed; 63 after `S-68`, 63 after `S-63`, 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
@@ -1021,8 +1044,9 @@ unassessed, not clean.
    a test fixture; promoting it to `samples/` and `01` is a spec addition (`D-11`) and the user's
    call. Its natural next variants — one source off (`S-56`, closed: the pump dead-heads and `FS3015` says a
    check valve is what an off pump would need), a source-side mixing valve (`S-55`) — are the open entries it points at.
-3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b); next
-   is **P5.13b** (`L-56`), then the valve-sizing observation under `S-58`. Two report packages the
+3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b) and tier 4b
+   (2026-09-20) closed the seven rows the columns called fixable; next is **P5.13b** (`L-56`), then the
+   valve-sizing observation under `S-58`. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
@@ -1064,8 +1088,8 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1831 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
-| API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
+| Core test suite | **1936 total, 0 failed, 3 skipped** (2026-09-20), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **219 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
