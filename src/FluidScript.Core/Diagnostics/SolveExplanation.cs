@@ -85,6 +85,7 @@ public static class SolveExplanation
         var posedness = WellPosedness.Check(graph);
 
         Summary(report, name, posedness, solve, passes);
+        Iterations(report, solve);
         Counting(report, posedness);
         Partition(report, posedness);
         Claims(report, posedness);
@@ -97,7 +98,10 @@ public static class SolveExplanation
         // square system; only this line did.
         var system = Assemble(graph, posedness, seed);
 
-        Unknowns(report, layout, seed, solve);
+        Unknowns(report, graph, layout, seed, solve);
+        State(report, graph, layout, seed, solve);
+        HeatBalance(report, graph, posedness, layout, solve);
+        OperatingPoints(report, graph, layout, solve);
         Equations(report, system, seed, solve);
         Sized(report, bases, notes);
         Ratings(report, graph, layout, solve);
@@ -292,6 +296,7 @@ public static class SolveExplanation
 
     private static void Unknowns(
         StringBuilder report,
+        CircuitGraph graph,
         SystemLayout layout,
         StateVector seed,
         SolveResult? solve)
@@ -299,9 +304,14 @@ public static class SolveExplanation
         report.AppendLine();
         report.AppendLine("--- unknowns, seeded and solved");
         report.AppendLine(
-            "      # kind             owner        name                            seed        solved");
+            "      # kind             owner        name                            seed        solved       seed basis");
 
         var solved = solve?.Solution.Values;
+
+        // The basis each branch flow was seeded on (`S-68`): which rule produced the estimate and from
+        // what. The seed's failures were all "which estimate did the closure overwrite", and the number
+        // alone never said (`S-71`).
+        var estimates = Estimates(graph);
 
         for (var index = 0; index < layout.Unknowns.Length; index++)
         {
@@ -309,11 +319,360 @@ public static class SolveExplanation
             var start = index < seed.Values.Length ? seed.Values[index] : double.NaN;
             var end = solved is { } values && index < values.Length ? values[index] : double.NaN;
             var endText = double.IsNaN(end) ? "-" : end.ToString("G6", CultureInfo.InvariantCulture);
+            var branch = index - layout.BranchFlowOffset;
+            var basis = declaration.Kind == UnknownKind.BranchFlow && branch >= 0 && branch < estimates.Length
+                ? $"  {estimates[branch].Basis}({estimates[branch].Source})"
+                : string.Empty;
 
             report.AppendLine(CultureInfo.InvariantCulture,
                 $"    {index,3} {declaration.Kind,-16} {declaration.OwnerComponentId,-12} "
-                + $"{declaration.Name,-28} {start,11:G6} {endText,13} {declaration.SiUnit}");
+                + $"{declaration.Name,-28} {start,11:G6} {endText,13} {declaration.SiUnit}{basis}");
         }
+    }
+
+    /// <summary>The seed's branch-flow estimates, or none rather than an exception out of a report.</summary>
+    private static ImmutableArray<BranchFlow> Estimates(CircuitGraph graph)
+    {
+        try
+        {
+            return BranchFlows.Estimate(graph);
+        }
+#pragma warning disable CA1031 // A diagnostic that throws is worse than one that omits.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return [];
+        }
+    }
+
+    private static void Iterations(StringBuilder report, SolveResult? solve)
+    {
+        if (solve is null || solve.History.IsDefaultOrEmpty)
+        {
+            return;
+        }
+
+        // The trajectory (`S-71`): each row is what the step set out to remove, how much of the Newton
+        // step the line search took, which equation led and which unknown moved most. A failed solve
+        // is diagnosed here -- where the residual stopped falling, whether α was halving against a
+        // wall -- and the final norm alone said none of it.
+        report.AppendLine();
+        report.AppendLine("--- iterations");
+        report.AppendLine("      # residual before   step  leading equation                          moved most                    by");
+
+        foreach (var record in solve.History)
+        {
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {record.Iteration,3} {record.ResidualNorm,15:G4} {record.StepLength,6:0.###}  "
+                + $"{Clip(record.WorstEquation, 40),-40}  {Clip(record.LargestMove, 28),-28}  {record.LargestMoveScaled:G3}");
+        }
+
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"    end {solve.ResidualNorm,15:G4}         {solve.Termination}");
+    }
+
+    private static string Clip(string text, int width) =>
+        text.Length <= width ? text : text[..(width - 1)] + "…";
+
+    private static void State(
+        StringBuilder report,
+        CircuitGraph graph,
+        SystemLayout layout,
+        StateVector seed,
+        SolveResult? solve)
+    {
+        // Every node in °C and kPa and every branch in kg/s against its written direction (`S-71`). The
+        // unknowns table is the solver's view -- enthalpies and pascals -- and an engineer cannot argue
+        // with an enthalpy.
+        report.AppendLine();
+        report.AppendLine("--- state, in engineering units");
+
+        var at = solve?.Solution ?? seed;
+        var label = solve is null ? "seed" : "solved";
+
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"    nodes ({label})      t °C      p kPa");
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            var pressure = layout.NodePressure(node);
+            var enthalpy = layout.NodeEnthalpy(node);
+
+            if (pressure >= at.Values.Length || enthalpy >= at.Values.Length)
+            {
+                continue;
+            }
+
+            var state = graph.Substance.FromPressureEnthalpy(
+                Units.Quantity.FromSi(at.Values[pressure], Units.Dimension.Pressure),
+                Units.Quantity.FromSi(at.Values[enthalpy], Units.Dimension.Enthalpy));
+            var temperature = state.IsSuccess
+                ? (state.Value.Temperature.SiValue - 273.15).ToString("0.00", CultureInfo.InvariantCulture)
+                : "(out of range)";
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {graph.Nodes[node].Name,-18} {temperature,9} {at.Values[pressure] / 1000,10:0.00}");
+        }
+
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"    branches ({label})   kg/s      against the written order");
+
+        foreach (var branch in graph.Branches)
+        {
+            var column = layout.BranchFlow(branch.Index);
+
+            if (column >= at.Values.Length)
+            {
+                continue;
+            }
+
+            var flow = at.Values[column];
+            var direction = Math.Abs(flow) <= Tolerances.FlowZero
+                ? "still"
+                : flow > 0 ? "forward" : "reversed";
+            var path = branch.Path.Length == 0
+                ? "(direct)"
+                : string.Join(" - ", branch.Path.Select(static element => element.Name));
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    {branch.From.Label} -> {branch.To.Label,-14} {Math.Abs(flow),9:0.0000}  {direction,-9} {path}");
+        }
+    }
+
+    private static void HeatBalance(
+        StringBuilder report,
+        CircuitGraph graph,
+        WellPosednessResult posedness,
+        SystemLayout layout,
+        SolveResult? solve)
+    {
+        // The first line an engineer checks (`S-71`): what goes in, what comes out, per hydraulic. The
+        // duties are the lowered ones -- stated, or what the closure chose -- and a boundary stream
+        // carries the enthalpy of the node it crosses at, so an open circuit's sum is its net enthalpy
+        // flux. `FS2203` checks this and says nothing about the numbers.
+        report.AppendLine();
+        report.AppendLine("--- heat balance");
+
+        var at = solve?.Solution;
+
+        foreach (var hydraulic in posedness.Hydraulics)
+        {
+            var sources = new List<string>();
+            var loads = new List<string>();
+            var sourceTotal = 0.0;
+            var loadTotal = 0.0;
+
+            foreach (var element in hydraulic.Elements)
+            {
+                if (element is not HeatExchanger exchanger || exchanger.Power == 0)
+                {
+                    continue;
+                }
+
+                // `Power` is side 1's gain. A coupled exchanger sits in two hydraulics and gives the one
+                // holding its side 2 the same duty with the opposite sign; which side is here is read
+                // off the branch that carries it.
+                var side = hydraulic.Branches
+                    .Where(branch => branch.Path.Contains(exchanger))
+                    .Select(branch => BranchFlows.Side(graph, branch, exchanger))
+                    .DefaultIfEmpty(1)
+                    .First();
+                var duty = side == 2 ? -exchanger.Power : exchanger.Power;
+                var entry = $"{exchanger.Name} {duty / 1000:+0.###;-0.###}";
+
+                if (duty > 0)
+                {
+                    sources.Add(entry);
+                    sourceTotal += duty;
+                }
+                else
+                {
+                    loads.Add(entry);
+                    loadTotal += duty;
+                }
+            }
+
+            var crossing = 0.0;
+            var streams = new List<string>();
+
+            if (at is not null)
+            {
+                for (var flux = 0; flux < layout.FluxNodes.Length; flux++)
+                {
+                    var node = layout.FluxNodes[flux];
+
+                    if (!hydraulic.Nodes.Contains(node))
+                    {
+                        continue;
+                    }
+
+                    var index = graph.Nodes.IndexOf(node);
+                    var column = layout.ExternalFluxOffset + flux;
+
+                    if (index < 0 || column >= at.Values.Length)
+                    {
+                        continue;
+                    }
+
+                    var mass = at.Values[column];
+                    var energy = mass * at.Values[layout.NodeEnthalpy(index)];
+                    crossing += energy;
+                    streams.Add($"{node.Name} {mass:+0.####;-0.####} kg/s, {energy / 1000:+0.###;-0.###} kW");
+                }
+            }
+
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    [{hydraulic.Index}] sources {sourceTotal / 1000:+0.###;-0.###} kW"
+                + $"{(sources.Count > 0 ? $" ({string.Join(", ", sources)})" : string.Empty)}, "
+                + $"loads {loadTotal / 1000:+0.###;-0.###} kW"
+                + $"{(loads.Count > 0 ? $" ({string.Join(", ", loads)})" : string.Empty)}, "
+                + $"boundary streams {crossing / 1000:+0.###;-0.###} kW"
+                + $"{(streams.Count > 0 ? $" ({string.Join(", ", streams)})" : string.Empty)}"
+                + $" — net {(sourceTotal + loadTotal + crossing) / 1000:+0.###;-0.###} kW");
+        }
+    }
+
+    private static void OperatingPoints(
+        StringBuilder report,
+        CircuitGraph graph,
+        SystemLayout layout,
+        SolveResult? solve)
+    {
+        if (solve is null)
+        {
+            return;
+        }
+
+        // Where each pump sits on its curve and what each valve is doing (`S-71`): the ratings section
+        // covers exchangers, and pumps and valves appeared only as promoted unknowns and sizing lines.
+        // A promoted parameter's solved value is read off the solution; a sized or stated one is the
+        // component's own.
+        var ports = PortMap.Build(graph);
+        var promoted = Promoted(graph, layout, solve);
+        var values = solve.Solution.Values;
+        var written = false;
+
+        for (var index = 0; index < graph.Components.Length; index++)
+        {
+            var component = graph.Components[index];
+
+            if (component is Pump pump)
+            {
+                var inlet = ports[index, 0];
+                var outlet = ports[index, 1];
+
+                if (!inlet.CarriesFlow)
+                {
+                    continue;
+                }
+
+                var flow = inlet.Sign * values[layout.BranchFlow(inlet.Branch)];
+                var head = promoted.TryGetValue((pump.Name, "head"), out var solvedHead)
+                    ? solvedHead
+                    : pump.Head(flow);
+                var rise = outlet.Node >= 0 && inlet.Node >= 0
+                    ? values[layout.NodePressure(outlet.Node)] - values[layout.NodePressure(inlet.Node)]
+                    : double.NaN;
+
+                var origin = promoted.ContainsKey((pump.Name, "head"))
+                    ? "(solved for)"
+                    : string.Create(CultureInfo.InvariantCulture, $"(on its curve, shut-off {pump.ShutOffHead:0.00} m)");
+
+                Header(report, ref written);
+                report.AppendLine(CultureInfo.InvariantCulture,
+                    $"    {pump.Name,-12} pump   {flow,9:0.0000} kg/s  head {head,7:0.00} m  rise {rise / 1000,8:0.00} kPa  {origin}");
+            }
+            else if (component is Valve valve)
+            {
+                var inlet = ports[index, 0];
+                var outlet = ports[index, 1];
+
+                if (!inlet.CarriesFlow)
+                {
+                    continue;
+                }
+
+                var flow = inlet.Sign * values[layout.BranchFlow(inlet.Branch)];
+                var drop = outlet.Node >= 0 && inlet.Node >= 0
+                    ? values[layout.NodePressure(inlet.Node)] - values[layout.NodePressure(outlet.Node)]
+                    : double.NaN;
+
+                Header(report, ref written);
+                report.AppendLine(CultureInfo.InvariantCulture,
+                    $"    {valve.Name,-12} valve  {flow,9:0.0000} kg/s  Kv {Parameter(promoted, valve.Name, "kv", valve.Kv),7:0.##}"
+                    + $"  position {Parameter(promoted, valve.Name, "position", valve.Position),5:0.###}  drop {drop / 1000,8:0.00} kPa");
+            }
+            else if (component is ThreeWayValve three)
+            {
+                var common = ports[index, 0];
+
+                if (!common.CarriesFlow)
+                {
+                    continue;
+                }
+
+                var legs = new List<string>();
+
+                for (var port = 0; port < three.Ports.Length; port++)
+                {
+                    var binding = ports[index, port];
+
+                    if (!binding.CarriesFlow)
+                    {
+                        continue;
+                    }
+
+                    var into = binding.Sign * values[layout.BranchFlow(binding.Branch)];
+                    var pressure = binding.Node >= 0 && common.Node >= 0
+                        ? values[layout.NodePressure(binding.Node)] - values[layout.NodePressure(common.Node)]
+                        : double.NaN;
+                    var drop = port == 0 ? string.Empty : $", {pressure / 1000:0.00} kPa to {three.Ports[0].Name}";
+
+                    var signed = (into < 0 ? "-" : "+") + Math.Abs(into).ToString("0.0000", CultureInfo.InvariantCulture);
+
+                    legs.Add(string.Create(CultureInfo.InvariantCulture, $"{three.Ports[port].Name} {signed}{drop}"));
+                }
+
+                Header(report, ref written);
+                report.AppendLine(CultureInfo.InvariantCulture,
+                    $"    {three.Name,-12} 3-way  Kv {Parameter(promoted, three.Name, "kv", three.Kv):0.##}"
+                    + $"  position {Parameter(promoted, three.Name, "position", three.Position):0.###}  "
+                    + $"kg/s into it: {string.Join("; ", legs)}");
+            }
+        }
+
+        static void Header(StringBuilder report, ref bool written)
+        {
+            if (!written)
+            {
+                report.AppendLine();
+                report.AppendLine("--- operating points");
+                written = true;
+            }
+        }
+
+        static double Parameter(Dictionary<(string, string), double> promoted, string owner, string name, double own) =>
+            promoted.TryGetValue((owner, name), out var solved) ? solved : own;
+    }
+
+    /// <summary>Every promoted parameter's solved value, by owner and name.</summary>
+    private static Dictionary<(string Owner, string Parameter), double> Promoted(
+        CircuitGraph graph, SystemLayout layout, SolveResult solve)
+    {
+        var promoted = new Dictionary<(string, string), double>();
+        var promotions = WellPosedness.Check(graph).Counting.Promotions;
+
+        for (var index = 0; index < promotions.Length; index++)
+        {
+            var column = layout.PromotionOffset + index;
+
+            if (column < solve.Solution.Values.Length)
+            {
+                promoted[(promotions[index].Component, promotions[index].Parameter)] = solve.Solution.Values[column];
+            }
+        }
+
+        return promoted;
     }
 
     private static void Equations(

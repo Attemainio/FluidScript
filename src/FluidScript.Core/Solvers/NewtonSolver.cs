@@ -112,6 +112,7 @@ public sealed class NewtonSolver : ISolver
         // walks up to 0.77 -- reporting `FS3008` for that walk claimed the circuit asked for more than
         // the valve could give, of a valve that was three quarters open at the solution (`S-61`).
         var pinned = new Dictionary<int, double>();
+        var history = ImmutableArray.CreateBuilder<IterationRecord>();
 
         for (var iteration = 1; iteration <= _settings.MaxIterations; iteration++)
         {
@@ -120,12 +121,12 @@ public sealed class NewtonSolver : ISolver
                 diagnostics.Add(Diagnostic.Create(
                     SolverDiagnostics.Cancelled, null, Count("steps", iteration - 1)));
 
-                return Stop(system, x, iteration - 1, previous, SolveTermination.Cancelled, diagnostics, pinned);
+                return Stop(system, x, iteration - 1, previous, SolveTermination.Cancelled, diagnostics, pinned, history);
             }
 
             if (!system.TryEvaluateScaled(x, residuals))
             {
-                return OutOfDomain(system, x, iteration - 1, previous, diagnostics, pinned);
+                return OutOfDomain(system, x, iteration - 1, previous, diagnostics, pinned, history);
             }
 
             var nonFinite = Array.FindIndex(residuals, static value => !double.IsFinite(value));
@@ -139,14 +140,14 @@ public sealed class NewtonSolver : ISolver
                     new DiagnosticArgument("equation", system.Equations.Rows[nonFinite].Name),
                     Count("steps", iteration - 1)));
 
-                return Stop(system, x, iteration - 1, double.NaN, SolveTermination.NonFinite, diagnostics, pinned);
+                return Stop(system, x, iteration - 1, double.NaN, SolveTermination.NonFinite, diagnostics, pinned, history);
             }
 
             var norm = Norm(residuals);
 
             if (norm < _settings.ResidualTolerance)
             {
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Converged, diagnostics, pinned);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Converged, diagnostics, pinned, history);
             }
 
             if (norm > previous * _settings.DivergenceFactor)
@@ -158,12 +159,12 @@ public sealed class NewtonSolver : ISolver
                     Count("steps", iteration - 1),
                     Number("previous", previous)));
 
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Diverging, diagnostics, pinned);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Diverging, diagnostics, pinned, history);
             }
 
             if (!Jacobian(system, x, residuals, trial, perturbed, jacobian))
             {
-                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned);
+                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned, history);
             }
 
             var factored = DenseLu.Factor(jacobian, columns);
@@ -200,7 +201,7 @@ public sealed class NewtonSolver : ISolver
                         new DiagnosticArgument("combination", implied)));
                 }
 
-                return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics, pinned);
+                return Stop(system, x, iteration - 1, norm, SolveTermination.Singular, diagnostics, pinned, history);
             }
 
             for (var row = 0; row < rows; row++)
@@ -214,7 +215,7 @@ public sealed class NewtonSolver : ISolver
 
             if (alpha < 0)
             {
-                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned);
+                return OutOfDomain(system, x, iteration - 1, norm, diagnostics, pinned, history);
             }
 
             if (alpha <= _settings.MinLineSearchStep)
@@ -227,12 +228,30 @@ public sealed class NewtonSolver : ISolver
             }
 
             var scaledStep = 0.0;
+            var moved = 0;
 
             for (var column = 0; column < columns; column++)
             {
+                if (Math.Abs(alpha * step[column]) > scaledStep)
+                {
+                    moved = column;
+                }
+
                 scaledStep = Math.Max(scaledStep, Math.Abs(alpha * step[column]));
                 x[column] += alpha * step[column] * system.UnknownScales[column];
             }
+
+            // The trajectory, for the report (`S-71`): what this step set out to remove, how much of it
+            // the line search took, which row led and which column moved.
+            var leading = system.Equations.Rows[Worst(residuals)];
+
+            history.Add(new IterationRecord(
+                iteration,
+                norm,
+                alpha,
+                $"{leading.OwnerComponentId}: {leading.Name}",
+                system.Unknowns.Unknowns[moved].Name,
+                scaledStep));
 
             // `S-26b`. A promoted `position` is a fraction and a `head` is not negative; Newton knows
             // neither, and left alone the cooling loop's split walks to about 5.5. Projecting after the
@@ -260,7 +279,7 @@ public sealed class NewtonSolver : ISolver
 
                     if (norm < _settings.ResidualTolerance)
                     {
-                        return Stop(system, x, iteration, norm, SolveTermination.Converged, diagnostics, pinned);
+                        return Stop(system, x, iteration, norm, SolveTermination.Converged, diagnostics, pinned, history);
                     }
                 }
 
@@ -273,7 +292,7 @@ public sealed class NewtonSolver : ISolver
                     new DiagnosticArgument("component", worst.OwnerComponentId),
                     new DiagnosticArgument("equation", worst.Name)));
 
-                return Stop(system, x, iteration, norm, SolveTermination.Stalled, diagnostics, pinned);
+                return Stop(system, x, iteration, norm, SolveTermination.Stalled, diagnostics, pinned, history);
             }
 
             previous = norm;
@@ -293,7 +312,7 @@ public sealed class NewtonSolver : ISolver
                 "amount",
                 Amount(residuals[furthest] * system.ResidualScales[furthest], declaration.ResidualSiUnit))));
 
-        return Stop(system, x, _settings.MaxIterations, final, SolveTermination.IterationCap, diagnostics, pinned);
+        return Stop(system, x, _settings.MaxIterations, final, SolveTermination.IterationCap, diagnostics, pinned, history);
     }
 
     /// <summary>Names the combination of unknowns a singular Jacobian left undetermined.</summary>
@@ -589,6 +608,7 @@ public sealed class NewtonSolver : ISolver
     /// <param name="norm">The last known norm.</param>
     /// <param name="diagnostics">Everything reported so far.</param>
     /// <param name="pinned">Each column a projection ever held, with the bound it was held at.</param>
+    /// <param name="history">The iterations taken so far.</param>
     /// <returns>The result.</returns>
     private static SolveResult OutOfDomain(
         EquationSystem system,
@@ -596,7 +616,8 @@ public sealed class NewtonSolver : ISolver
         int iterations,
         double norm,
         ImmutableArray<Diagnostic>.Builder diagnostics,
-        IReadOnlyDictionary<int, double> pinned)
+        IReadOnlyDictionary<int, double> pinned,
+        ImmutableArray<IterationRecord>.Builder history)
     {
         diagnostics.Add(Diagnostic.Create(
             SolverDiagnostics.NonFinite,
@@ -605,7 +626,7 @@ public sealed class NewtonSolver : ISolver
             new DiagnosticArgument("equation", "its fluid state"),
             Count("steps", iterations)));
 
-        return Stop(system, x, iterations, norm, SolveTermination.NonFinite, diagnostics, pinned);
+        return Stop(system, x, iterations, norm, SolveTermination.NonFinite, diagnostics, pinned, history);
     }
 
     /// <summary>Packages the last iterate and the worst rows into a result.</summary>
@@ -616,6 +637,7 @@ public sealed class NewtonSolver : ISolver
     /// <param name="termination">Why it stopped.</param>
     /// <param name="diagnostics">Everything reported.</param>
     /// <param name="pinned">Each column a projection ever held, with the bound it was held at.</param>
+    /// <param name="history">The iterations taken so far.</param>
     /// <returns>The result.</returns>
     /// <remarks>
     /// The last iterate is returned whatever happened. A circuit that got most of the way to a balance
@@ -629,7 +651,8 @@ public sealed class NewtonSolver : ISolver
         double norm,
         SolveTermination termination,
         ImmutableArray<Diagnostic>.Builder diagnostics,
-        IReadOnlyDictionary<int, double> pinned)
+        IReadOnlyDictionary<int, double> pinned,
+        ImmutableArray<IterationRecord>.Builder history)
     {
         // `FS3008` is a statement about the answer, so it is made here, about the last iterate: a bound
         // the solution still sits on is one the circuit is pressing against; one it passed through on the
@@ -693,6 +716,7 @@ public sealed class NewtonSolver : ISolver
             Termination = termination,
             WorstResiduals = worst,
             Diagnostics = diagnostics.ToImmutable(),
+            History = history.ToImmutable(),
         };
     }
 }
