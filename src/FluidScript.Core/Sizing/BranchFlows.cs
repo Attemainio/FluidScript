@@ -97,6 +97,9 @@ public static class BranchFlows
                     HydraulicPartition.Stated(part, HydraulicPartition.Flow),
                     FlowBasis.Stated,
                     part.Name);
+                // A volume flow seeds at the density of the side's stated inlet temperature, else 20 °C;
+                // the solve then holds it at the density it finds (P5.13b).
+                Offer(ref estimates[branch.Index], VolumeFlow(graph, branch, part), FlowBasis.Stated, part.Name);
             }
 
             // A terminal states the flux crossing the model boundary, and a terminal has one branch, so
@@ -118,6 +121,28 @@ public static class BranchFlows
         Propagate(graph, estimates);
 
         return [.. estimates];
+    }
+
+    /// <summary>A stated volume flow on a path element, as a mass flow at its inlet's stated temperature or 20 °C.</summary>
+    /// <param name="graph">The lowered circuit, for the substance.</param>
+    /// <param name="branch">The branch, which says which side of an exchanger the element runs in.</param>
+    /// <param name="part">The element.</param>
+    /// <returns>kg/s, or <see langword="null"/> when no volume flow is stated on this side.</returns>
+    private static double? VolumeFlow(CircuitGraph graph, Branch branch, IFlowComponent part)
+    {
+        var side = part is HeatExchanger exchanger ? Side(graph, branch, exchanger) : 1;
+        var suffix = side == 2 ? "2" : string.Empty;
+
+        if (HydraulicPartition.Stated(part, "vflow" + suffix) is not { } volume)
+        {
+            return null;
+        }
+
+        var inlet = HydraulicPartition.Stated(part, "in" + suffix) ?? 293.15;
+        var state = graph.Substance.FromPressureTemperature(
+            Quantity.FromSi(0, Dimension.Pressure), Quantity.FromSi(inlet, Dimension.Temperature));
+
+        return state.IsSuccess ? volume * state.Value.Density.SiValue : null;
     }
 
     /// <summary>Takes a candidate estimate when it outranks the one already held.</summary>

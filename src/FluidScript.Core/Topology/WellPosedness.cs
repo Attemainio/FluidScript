@@ -506,6 +506,44 @@ public static class WellPosedness
             }
         }
 
+        // A stated flow is a constraint -- `flow` on an exchanger's side or on a pump pins that branch
+        // at the number, and `vflow` pins it at that volume flow times the density at the side's inlet,
+        // which only the solve knows (`D-120`, P5.13b; `S-72`). Until this, `HE1 flow=0.3` set the flow
+        // its 20 kPa was measured at and `PU1 flow=0.3` its curve's duty point, and the circuit solved
+        // to whatever the loop drop gave: 0.086 kg/s on the simple loop, then out of the fluid's range.
+        // A pump whose head is stated too is describing its curve, not pinning the circuit (the head
+        // and the duty flow give the curve through that point), and adds no row. A node's `flow` is a
+        // boundary flux, not this (`D-64`).
+        foreach (var element in graph.Components)
+        {
+            var hydraulic = Owner(hydraulics, element);
+
+            foreach (var parameter in StatedFlows)
+            {
+                if (HydraulicPartition.Stated(element, parameter) is null)
+                {
+                    continue;
+                }
+
+                var pins = element switch
+                {
+                    HeatExchanger => true,
+                    Pump pump => HydraulicPartition.Stated(pump, "head") is null,
+                    _ => false,
+                };
+
+                // Side 2 runs in its own hydraulic when the exchanger couples two.
+                var side = parameter.EndsWith('2') && element is HeatExchanger
+                    ? SideHydraulic(graph, hydraulics, element, 2)
+                    : hydraulic;
+
+                if (pins && side is { } owned)
+                {
+                    constraints.Add(new ComponentConstraint(element.Name, parameter, ConstraintKind.FixedFlow, owned));
+                }
+            }
+        }
+
         // `D-97`. A coupled exchanger's design point is what sizes UA, and it also says what each side
         // runs at: `power` with `in2`/`out2` is a flow on the side-2 branch as surely as `LOAD.dt` is one
         // on the secondary. It pins a side only where nothing else already does -- the substation's
@@ -546,6 +584,14 @@ public static class WellPosedness
 
         return constraints.ToImmutable();
     }
+
+    /// <summary>The flow statements that pin a branch outright: a mass flow or a volume flow, per side (P5.13b).</summary>
+    public static readonly ImmutableArray<string> StatedFlows = ["flow", "vflow", "flow2", "vflow2"];
+
+    /// <summary>Whether a constraint's parameter is one of <see cref="StatedFlows"/>.</summary>
+    /// <param name="parameter">The parameter.</param>
+    /// <returns><see langword="true"/> for a stated flow.</returns>
+    public static bool IsStatedFlow(string parameter) => StatedFlows.Contains(parameter);
 
     /// <summary>A coupled exchanger's two sides: the terminals that pin each, and the port that finds its hydraulic.</summary>
     private static readonly (string Inlet, string Outlet, string Change, int Port)[] CoupledSides =
@@ -879,8 +925,9 @@ public static class WellPosedness
             element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
 
         // A duty with no stated power determines the power: the constraint promotes the exchanger's own
-        // parameter before it reaches for anything else's.
-        if (owner is not null && IsFree(graph, owner, "power"))
+        // parameter before it reaches for anything else's. A stated *flow* does not -- the power does not
+        // appear in a flow residual, and promoting it would pair a column with a row it never enters.
+        if (owner is not null && !IsStatedFlow(constraint.Parameter) && IsFree(graph, owner, "power"))
         {
             yield return (owner.Name, "power");
         }

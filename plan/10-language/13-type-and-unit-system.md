@@ -55,7 +55,7 @@ Three columns, and they are three different things — conflating any two is how
 | `Power` | W | **kW** — *exception* | kW | `power=30` is the brief's own example and `R-04` states it. |
 | `Energy` | J | J | kWh | |
 | `MassFlow` | kg/s | kg/s | kg/s | |
-| `VolumeFlow` | m³/s | m³/s | l/s | Litres per second is the working *display* unit in hydronics; no parameter takes a bare volume flow, so the canonical unit is rarely exercised. |
+| `VolumeFlow` | m³/s | m³/s | l/s | Litres per second is the working *display* unit in hydronics. `vflow` (P5.13b) is the one parameter that takes a volume flow, and a bare `vflow=0.3` is 300 l/s: the pages tell the user to write the unit, and whether this row should join the exceptions is an open question (`L-57`). |
 | `Mass` | kg | kg | kg | |
 | `Time` | s | s | s | |
 | `Velocity` | m/s | m/s | m/s | |
@@ -277,7 +277,10 @@ The registry's parameter and property rows are spelled with the symbol (`in[2].t
 it looks a name up, so one row serves every spelling. The table is case-sensitive, as the language is.
 `flow` is both symbol and name: the pump's, the sensor's and the boundary's parameter is `flow` in
 every sample, and `D-120` kept it so (`mflow` is an alias, not the canonical). `vflow` is readable
-and showable; as a *constraint* it needs a density, which is P5.13b's question (`D-120`, open).
+and showable, and since P5.13b a *constraint* on an exchanger's side or a pump: the row is
+`ṁ − ρ(p, h)·V̇ = 0` at the side's inlet node as solved, the identity written where it holds rather
+than converted once at bind time (`D-120`'s open question, answered in
+[`23`](../20-core-domain/23-topology-and-graph.md)).
 
 ## Dimensional algebra
 

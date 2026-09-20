@@ -639,6 +639,20 @@ chosen -- and keeps a pressure as the last resort. The earlier wording scanned t
 stated temperature, found the matched ones, and told the header to add a pressure to a hydraulic
 half that was already square; taking that advice made the count square and the Jacobian singular.
 
+**A stated flow is a constraint, and until P5.13b it was not** (`S-72`, 2026-09-20). `HE1 flow=0.3`
+set the flow its 20 kPa was measured at and `PU1 flow=0.3` its curve's duty point, and the simple
+loop solved to 0.086 kg/s and then out of the fluid's range -- against the invariant that a stated
+parameter is always a constraint (`D-02`, `D-32`). Now `flow` on an exchanger's side (`flow`,
+`in[2].flow`) or on a pump whose `head` is unstated is a `FixedFlow` row pinning that branch at the
+number, answered by the rows above -- a pump's head, a parallel branch's `kv` -- but never by the
+exchanger's own `power`, which does not appear in a flow residual. `vflow` is the same row through
+the density of the side's inlet node *as solved*: `ṁ − ρ(p, h)·V̇ = 0`, the identity `V̇ = ṁ/ρ` written
+where it holds; 0.3 l/s of 60 °C water pins 0.2950 kg/s, of 20 °C water 0.2995, and a conversion at
+bind time with one density gets one of them wrong by 1.5 %. A pump with both `head` and a flow
+stated is describing its curve (the point it passes through) and pins nothing. A node's `flow` stays
+a boundary flux (`D-64`). The seed takes a stated volume flow at the density of the side's stated
+inlet temperature, else 20 °C, and the solve corrects it.
+
 **A consumer switched off asks nothing of its split and pins its branch at zero** (`S-56`,
 2026-09-20). `power=0` is an operating state, not a missing size. With it, a stated `in` is
 documentation of the coil's design point and not a demand: there is no flow to deliver 50 °C to, and a

@@ -436,6 +436,30 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         return sized.ToImmutable();
     }
 
+    /// <summary>A pump's duty point stated as a volume flow, as the mass flow a curve is published for.</summary>
+    /// <param name="symbol">The pump.</param>
+    /// <param name="kind">Its kind.</param>
+    /// <returns>kg/s at 20 °C, or <see langword="null"/> when no <c>vflow</c> is stated.</returns>
+    /// <remarks>
+    /// A pump curve is published against volume flow of cold water (Grundfos and Wilo datasheets state
+    /// their curves for water at 20 °C), so the duty point's density is the datasheet's, not the
+    /// circuit's; the operating point the circuit reaches is the solve's business (P5.13b).
+    /// </remarks>
+    private double? DutyVolume(ComponentSymbol symbol, ComponentKindInfo kind)
+    {
+        if (Value(symbol, kind, "vflow") is not { } volume)
+        {
+            return null;
+        }
+
+        var density = substance?.FromPressureTemperature(
+            Quantity.FromSi(0, Dimension.Pressure), Quantity.FromSi(293.15, Dimension.Temperature)) is { IsSuccess: true } state
+            ? state.Value.Density.SiValue
+            : 998.2;
+
+        return volume * density;
+    }
+
     /// <summary>Every parameter the script stated, in SI.</summary>
     /// <param name="symbol">The bound component.</param>
     /// <returns>Canonical parameter name to value; empty when the script stated none.</returns>
@@ -621,7 +645,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         ImmutableDictionary<string, Quantity> defaults)
     {
         var head = Value(symbol, kind, "head");
-        var flow = Value(symbol, kind, "flow");
+        var flow = Value(symbol, kind, "flow") ?? DutyVolume(symbol, kind);
         var efficiency = Value(symbol, kind, "efficiency") ?? 0.7;
 
         // A duty point gives the default quadratic its curvature; a head with no flow beside it is a

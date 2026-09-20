@@ -417,7 +417,8 @@ that says `hot_in=40` when the solve makes it the cold side is worse than one th
 | `in[2].t`, `out[2].t` | Temperature | °C | −50 … 300 | Side-2 inlet / outlet temperature |
 | `dt`, `in[2].dt` | TemperatureDelta | dK | 0.1 … 200 | Temperature change across that side. Always positive; the sign follows `power` |
 | `dp`, `in[2].dp` | PressureDelta | kPa | 0 … 1000 | Pressure drop at design flow, per side |
-| `flow`, `in[2].flow` | MassFlow | kg/s | 0 … 1000 | Flow constraint, per side |
+| `flow`, `in[2].flow` | MassFlow | kg/s | 0 … 1000 | Flow constraint, per side: a `FixedFlow` row on that side's branch (P5.13b, `S-72`) |
+| `vflow`, `in[2].vflow` | VolumeFlow | m³/s | 0 … 1 | The same constraint as a volume flow, held at the density of the side's inlet node as solved (`ṁ − ρ(p,h)·V̇ = 0`); one of `flow`/`vflow` per side |
 | `ua` | — (W/K) | W/K | 1 … 1e7 | Overall conductance. The thermal size, independent of how it is achieved |
 | `area` | Area | m² | 1e-3 … 1e4 | Heat transfer area |
 | `u` | — (W/(m²·K)) | W/(m²·K) | 10 … 20000 | Overall heat transfer coefficient |
@@ -658,7 +659,8 @@ like a solver bug.
 |---|---|---|---|---|
 | `head` | Head | m | 0.1 … 500 | Head at duty point |
 | `dp` | PressureDelta | kPa | 1 … 5000 | Pressure rise, an alternative to `head` |
-| `flow` | MassFlow | kg/s | 0 … 1000 | Duty flow |
+| `flow` | MassFlow | kg/s | 0 … 1000 | Duty flow. With `head`, the curve's duty point; without, a `FixedFlow` row the pump's own head answers (P5.13b) |
+| `vflow` | VolumeFlow | m³/s | 0 … 1 | `flow` as a volume flow: without `head`, held at the inlet node's solved density; with `head`, the duty point at 20 °C water, the density curves are published for (Grundfos, Wilo datasheets) |
 | `speed` | Dimensionless | — | 0 … 1.2 | Relative speed, for variable-speed control |
 | `efficiency` | Dimensionless | — | 0.1 … 0.95 | Hydraulic efficiency; default 0.7 |
 | `margin` | Dimensionless | — | 1 … 2 | Explicit head multiplier used only when auto-sizing; default 1.0 |

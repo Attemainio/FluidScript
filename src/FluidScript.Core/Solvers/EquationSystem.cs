@@ -96,6 +96,8 @@ public sealed class EquationSystem
     /// <param name="FlowBranch">The fixed-flow branch, or −1 for a temperature residual.</param>
     /// <param name="FlowTarget">kg/s in the component's inlet-to-outlet direction.</param>
     /// <param name="FlowScale">K per (kg/s), preserving this constraint row's temperature scaling.</param>
+    /// <param name="VolumeNode">For a stated volume flow, the node whose solved density converts it; −1 otherwise.</param>
+    /// <param name="VolumeTarget">m³/s, the stated volume flow, in the component's inlet-to-outlet direction.</param>
     private readonly record struct Constraint(
         int Row,
         int Node,
@@ -104,7 +106,9 @@ public sealed class EquationSystem
         double Sign,
         int FlowBranch = -1,
         double FlowTarget = 0,
-        double FlowScale = 1);
+        double FlowScale = 1,
+        int VolumeNode = -1,
+        double VolumeTarget = 0);
     private readonly PortState[] _portScratch;
     private readonly double[] _flowScratch;
     private readonly double[] _ownScratch;
@@ -438,7 +442,7 @@ public sealed class EquationSystem
             }
         }
 
-        var constraints = Constraints(graph, posedness, equations, ports, byComponent);
+        var constraints = Constraints(graph, posedness, equations, ports, byComponent, unknowns, seed);
 
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
@@ -452,6 +456,8 @@ public sealed class EquationSystem
     /// <param name="equations">The row layout, for the offset the constraint block starts at.</param>
     /// <param name="ports">Which node and branch each component port attaches to.</param>
     /// <param name="byComponent">Each node component's index among the graph's nodes.</param>
+    /// <param name="unknowns">The unknown layout, for a volume-flow row's node columns.</param>
+    /// <param name="seed">The starting iterate, whose density at the node scales a volume-flow row.</param>
     /// <returns>One entry per constraint, in row order.</returns>
     /// <remarks>
     /// A fixed-flow outlet with known duty and inlet is evaluated in its derived flow form (<c>D-92</c>).
@@ -468,7 +474,9 @@ public sealed class EquationSystem
         WellPosednessResult posedness,
         EquationLayout equations,
         PortMap ports,
-        Dictionary<object, int> byComponent)
+        Dictionary<object, int> byComponent,
+        SystemLayout unknowns,
+        StateVector seed)
     {
         var resolved = new Constraint[posedness.Counting.Constraints.Length];
 
@@ -491,12 +499,49 @@ public sealed class EquationSystem
 
             target = stated;
 
+            // A stated flow pins its branch outright (P5.13b, `S-72`): `flow` at the number, `vflow` at
+            // the number times the density of the side's inlet node *as solved* -- `ṁ − ρ(p, h)·V̇ = 0`,
+            // the identity V̇ = ṁ/ρ written where it holds rather than converted once at bind time with
+            // a density the solve then contradicts (water is 2.5 % lighter at 80 °C than at 20 °C). The
+            // row keeps the constraint block's kelvin scale: a 100 % flow error reads as the
+            // temperature scale, so convergence on the row is convergence on the flow.
+            if (constraint.Kind is ConstraintKind.FixedFlow
+                && WellPosedness.IsStatedFlow(constraint.Parameter)
+                && graph.Components[element] is HeatExchanger or Pump)
+            {
+                var side = ports[element, constraint.Parameter.EndsWith('2') ? 2 : 0];
+
+                if (!side.CarriesFlow || stated <= 0)
+                {
+                    continue;
+                }
+
+                if (constraint.Parameter.StartsWith("vflow", StringComparison.Ordinal))
+                {
+                    var density = side.Node >= 0 ? SeedDensity(graph, unknowns, seed, side.Node) : double.NaN;
+
+                    if (side.Node < 0 || !double.IsFinite(density) || density <= 0)
+                    {
+                        continue;
+                    }
+
+                    resolved[index] = new Constraint(
+                        row, -1, -1, 0, side.Sign, side.Branch, 0, Tolerances.TemperatureScale / (density * stated), side.Node, stated);
+                    continue;
+                }
+
+                resolved[index] = new Constraint(
+                    row, -1, -1, 0, side.Sign, side.Branch, stated, Tolerances.TemperatureScale / stated);
+                continue;
+            }
+
             // A switched-off coil's flow pin is a pin at zero: `power=0` with its terminals stated is
             // m = 0/(h_out - h_in), and the temperature form it used to fall back to -- the outlet node
             // *at* 30 °C -- is a statement about a node nothing flows through, which the header may or
             // may not happen to satisfy (`S-56`). The residual keeps the row's kelvin scale through the
             // nominal seed flow: 0.1 kg/s of leakage reads as the coil's whole design span.
             if (constraint.Kind is ConstraintKind.FixedFlow
+                && !WellPosedness.IsStatedFlow(constraint.Parameter)
                 && graph.Components[element] is HeatExchanger stopped
                 && WellPosedness.ZeroDuty(stopped))
             {
@@ -570,6 +615,29 @@ public sealed class EquationSystem
         return resolved;
     }
 
+    /// <summary>A node's density at the seed, for scaling a volume-flow row.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="unknowns">The unknown layout.</param>
+    /// <param name="seed">The starting iterate.</param>
+    /// <param name="node">The node.</param>
+    /// <returns>kg/m³, or NaN when the seed state cannot be read.</returns>
+    private static double SeedDensity(CircuitGraph graph, SystemLayout unknowns, StateVector seed, int node)
+    {
+        var pressure = unknowns.NodePressure(node);
+        var enthalpy = unknowns.NodeEnthalpy(node);
+
+        if (pressure >= seed.Values.Length || enthalpy >= seed.Values.Length)
+        {
+            return double.NaN;
+        }
+
+        var state = graph.Substance.FromPressureEnthalpy(
+            Units.Quantity.FromSi(seed.Values[pressure], Units.Dimension.Pressure),
+            Units.Quantity.FromSi(seed.Values[enthalpy], Units.Dimension.Enthalpy));
+
+        return state.IsSuccess ? state.Value.Density.SiValue : double.NaN;
+    }
+
     /// <summary>The temperature span a flow pin was written with: <c>out</c> less <c>in</c>, or <c>dt</c> itself.</summary>
     /// <param name="exchanger">The exchanger.</param>
     /// <param name="parameter">The pinning parameter: <c>out</c>, <c>out2</c>, <c>dt</c> or <c>dt2</c>.</param>
@@ -629,7 +697,9 @@ public sealed class EquationSystem
 
         foreach (var constraint in constraints)
         {
-            if (constraint.FlowBranch < 0 || constraint.FlowTarget != 0)
+            // A pin at zero, and only that: a volume-flow row carries its target on the volume side and
+            // a mass target of zero, which is not a stopped branch.
+            if (constraint.FlowBranch < 0 || constraint.VolumeNode >= 0 || constraint.FlowTarget != 0)
             {
                 continue;
             }
@@ -1034,9 +1104,14 @@ public sealed class EquationSystem
             {
                 if (constraint.FlowBranch >= 0)
                 {
+                    // A volume flow's mass target is the stated volume at the inlet node's density as it
+                    // stands this iterate; a mass flow's is the number itself.
+                    var target = constraint.VolumeNode >= 0
+                        ? _nodeStates[constraint.VolumeNode].Density * constraint.VolumeTarget
+                        : constraint.FlowTarget;
+
                     residuals[constraint.Row] =
-                        ((constraint.Sign * x[Unknowns.BranchFlow(constraint.FlowBranch)])
-                            - constraint.FlowTarget)
+                        ((constraint.Sign * x[Unknowns.BranchFlow(constraint.FlowBranch)]) - target)
                         * constraint.FlowScale;
                     continue;
                 }

@@ -74,7 +74,8 @@ pump and the log links to it.
 |---|---|---|---|
 | `head` | m | Head at the duty point | Sized from the circuit |
 | `dp` | kPa | Pressure rise, an alternative to `head` | Sized |
-| `flow` | kg/s | Duty flow | Sized |
+| `flow` | kg/s | Duty flow. With `head` stated too, the two are the point the curve passes through and the circuit decides where on it the pump runs; **without `head`, the pump holds the circuit at this flow** and its head is solved for | Sized |
+| `vflow` | m³/s — **write the unit**: `vflow=1.1 m3/h` | `flow` as a volume flow. Without `head` it holds the circuit at that volume flow at the pump inlet's solved density; with `head` it is the duty point, taken at 20 °C water as pump curves are published | Sized |
 | `speed` | — | Relative speed, for variable-speed control | Sized, or driven by a controller |
 | `efficiency` | — | Hydraulic efficiency | 0.7, a typical wet-rotor circulator |
 | `margin` | — | Head multiplier applied only when auto-sizing | 1.0 — size to the computed duty, with no spare |

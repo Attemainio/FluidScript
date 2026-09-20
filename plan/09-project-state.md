@@ -294,6 +294,11 @@ would be filled with nothing.
 > **`C-107` filed and closed** (the same day): the layout report carries a `PLACEMENT` trace --
 > each fragment's head and why, every form tried with its decline reason, every placement with its
 > rule, and every slide, alignment and nudge -- in the order the engine decided. 60 open.
+> **P5.13b, item 2 -- `vflow`** (the same day, taken first as the physics item): measuring it found
+> that a stated `flow` was not a constraint at all (`S-72`, filed and closed): `HE1 flow=0.3` and
+> `PU1 flow=0.3` set a design flow and a duty point and the loop solved to 0.086 kg/s. Both pin the
+> branch now; `vflow` pins it through the inlet node's solved density. `L-57` opened on the bare
+> unit (`vflow=0.3` is 300 l/s). Items 1 (`in.p` on a component) and 3 (`L-56`) remain. 61 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through

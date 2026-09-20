@@ -451,10 +451,15 @@ public sealed class ComponentRegistry : IComponentRegistry
         // Three relations, counted rather than solved. Q = m . cp . (out - in) makes any three of
         // power/in/out/flow fix the fourth, side 2 has the same relation with its own terminals and
         // flow (S-32), and UA = U . A makes any two of ua/area/u fix the third. Groups name keys.
+        // A side's flow is stated once, as a mass flow or as a volume flow at the side's inlet state
+        // (`D-120`, P5.13b): `vflow` is `flow` divided by a density the solve knows and the binder does
+        // not, so the two are one freedom.
         ParameterGroups =
         [
-            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in", "out", "flow"),
-            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in2", "out2", "flow2"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in", "out", "flow", "vflow"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 3, "power", "in2", "out2", "flow2", "vflow2"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 1, "flow", "vflow"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 1, "flow2", "vflow2"),
             Group(BinderDiagnostics.OverDetermined, freedoms: 2, "ua", "area", "u"),
         ],
 
@@ -490,6 +495,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Keyed(Sized("in[2].dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1), "dt2"),
             Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3) with { Aliases = ["in.flow"] },
             Keyed(Sized("in[2].flow", Dimension.MassFlow, 0, 1000, precision: 3), "flow2"),
+            Sized("vflow", Dimension.VolumeFlow, 0, 1, precision: 4) with { Aliases = ["in.vflow"] },
+            Keyed(Sized("in[2].vflow", Dimension.VolumeFlow, 0, 1, precision: 4), "vflow2"),
             Sized("ua", ConductancePerKelvin, 1, 1e7, precision: 1),
             Sized("area", Dimension.Area, 1e-3, 1e4, precision: 3),
             Sized("u", HeatTransferCoefficient, 10, 20000, precision: 1),
@@ -576,10 +583,13 @@ public sealed class ComponentRegistry : IComponentRegistry
         DrivesFlow = true,
         TagCode = "PU",
         ActuatedParameter = "speed",
+        // One flow statement: a mass flow, or a volume flow at the pump's inlet state (P5.13b).
+        ParameterGroups = [Group(BinderDiagnostics.OverDetermined, freedoms: 1, "flow", "vflow")],
         Parameters = Parameters(
             Sized("head", Dimension.Head, 0.1, 500, precision: 2),
             Sized("dp", Dimension.PressureDelta, 1, 5000, precision: 1),
             Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3),
+            Sized("vflow", Dimension.VolumeFlow, 0, 1, precision: 4),
             Sized("speed", Dimension.Dimensionless, 0, 1.2, precision: 2),
             Defaulted("efficiency", Dimension.Dimensionless, 0.1, 0.95, "0.7", "a typical wet-rotor circulator", precision: 2)
                 with { Validity = Bounded(BinderDiagnostics.EfficiencyOutsideRange, 0, 1) },
