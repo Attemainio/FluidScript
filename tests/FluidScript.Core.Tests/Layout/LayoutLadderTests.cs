@@ -62,6 +62,30 @@ public sealed class LayoutLadderTests
         Assert.True(hard.Count == 0, step + ":\n" + string.Join("\n", hard));
     }
 
+    [Fact]
+    public void EveryDecisionIsTracedInTheOrderItWasMade()
+    {
+        // C-107: the cooling loop is the picture that took the engine's source to explain twice in one day.
+        // The trace says which form drew it, why each form before it declined, which rule placed each
+        // member and where each unit landed after its slide -- so a question about a picture is answered
+        // by reading the report, not the engine.
+        var scene = Solve("step-06c-cooling-load", out var input);
+        var text = SceneText.Render(scene, input.Graph, input.Model);
+
+        Assert.Contains(scene.Provenance, n => n.Rule == "head" && n.Subject == "N1" && n.Reason.Contains("inlet boundary", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "form" && n.Reason.StartsWith("C2 sourced loop: declined", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "form" && n.Reason == "C18 unsourced ring: drawn");
+        Assert.Contains(scene.Provenance, n => n.Rule == "C9" && n.Subject == "3WV" && n.Reason.Contains("bottom-left corner", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "C11" && n.Subject == "HE1" && n.Reason.StartsWith("slid in", StringComparison.Ordinal));
+        Assert.Contains("PLACEMENT (in the order decided; rule -- subject: reason)", text, StringComparison.Ordinal);
+        Assert.Contains(" form -- fragment 1: C18 unsourced ring: drawn", text, StringComparison.Ordinal);
+
+        // A trace is a sequence: the form's verdict comes after the placements it made.
+        var drawn = scene.Provenance.ToList().FindIndex(n => n.Reason == "C18 unsourced ring: drawn");
+        var corner = scene.Provenance.ToList().FindIndex(n => n.Rule == "C18");
+        Assert.True(corner < drawn);
+    }
+
     /// <summary>
     /// A ladder script is a circuit before it is a picture: it must bind, size and converge (the experiment protocol in
     /// <c>CLAUDE.md</c>), and its solve report is written beside its picture so a step's physics can be read, not assumed.

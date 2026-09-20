@@ -228,6 +228,18 @@ public sealed record Route(string ConnectionId, string Kind, string Layer, Immut
 /// <param name="Bounds">The union of the members' inner boxes and the group's own routes.</param>
 public sealed record LayoutGroup(string Id, string Kind, string Orientation, ImmutableArray<string> Members, Box Bounds);
 
+/// <summary>One decision the layout made, for the layout report (<c>C-107</c>).</summary>
+/// <param name="Subject">What was decided about: a component's name, or <c>fragment N</c> for a form.</param>
+/// <param name="Rule">The rule of <c>28</c> that decided it -- <c>C2</c>, <c>C9</c>, <c>C18</c> -- or <c>form</c>, <c>head</c>, <c>fallback</c>.</param>
+/// <param name="Reason">Why, in a sentence: what the rule saw, or why a form declined.</param>
+/// <remarks>
+/// The report listed boxes, ports, routes and the audit -- the result -- and nothing said which form
+/// drew a fragment, why the others declined, or which rule put a member where it is. Every such
+/// question was answered by reading the engine (<c>C-105</c> twice in one day). The trace answers it in
+/// the order the engine decided.
+/// </remarks>
+public sealed record PlacementNote(string Subject, string Rule, string Reason);
+
 /// <summary>The whole drawing: what the renderer draws and the exporter writes (<c>D-103</c>).</summary>
 public sealed record Scene
 {
@@ -245,5 +257,8 @@ public sealed record Scene
 
     /// <summary>The groups the solver laid out as objects, outermost first; empty for a scene with none.</summary>
     public ImmutableArray<LayoutGroup> Groups { get; init; } = [];
+
+    /// <summary>Every decision the layout made, in the order it made them (<c>C-107</c>).</summary>
+    public ImmutableArray<PlacementNote> Provenance { get; init; } = [];
 }
 

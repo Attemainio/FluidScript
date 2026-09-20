@@ -104,6 +104,7 @@ internal sealed class LayoutEngine
     private readonly Dictionary<(int Component, int Port), Direction> _side = [];
     private readonly ImmutableArray<Point>?[] _routeOf;
     private readonly List<(int Link, Route Route)> _routes = [];
+    private readonly List<PlacementNote> _trace = [];
     private readonly List<Placement> _instruments = [];
     /// <summary>Every instrument's inner box in placement order; the box at index k is owned by <c>_n + k</c> for the signal router (C-94).</summary>
     private readonly List<Box> _instrumentBoxes = [];
@@ -149,17 +150,31 @@ internal sealed class LayoutEngine
         var left = double.NaN;
         var floor = double.NaN;
 
+        var ordinal = 0;
+
         foreach (var fragment in Fragments())
         {
             var declared = Ordered(fragment).Where(i => !_hints.Inferred.Contains(_graph.Components[i].Name)).ToList();
             var before = (bool[])_placed.Clone();
             var routed = _routeOf.Select(static r => r is not null).ToArray();
+            var subject = $"fragment {++ordinal}";
             Array.Clear(_placed);
+            Note(subject, "members", string.Join(", ", declared.Select(i => _graph.Components[i].Name)));
 
-            if (Head(declared) is { } head && !Loop(head) && !Ring(head, fragment) && !Open(head, fragment) && !Closed(fragment))
+            // Each form in turn, the first that applies drawing the fragment; the trace says which, and why the ones before it declined.
+            if (Head(declared) is { } head)
             {
-                // C1 (ladder step 1, corrected by D-108): the first component -- the heat source, else the head of the chain -- sits at the origin in its drawn default.
-                Place(head, Transform.Identity, new Point(0, 0));
+                var drawn = Tried(subject, "C2 sourced loop", () => Loop(head))
+                    || Tried(subject, "C20 ring of one", () => Ring(head, fragment))
+                    || Tried(subject, "C19 open supply-to-return", () => Open(head, fragment))
+                    || Tried(subject, "C18 unsourced ring", () => Closed(fragment));
+
+                if (!drawn)
+                {
+                    // C1 (ladder step 1, corrected by D-108): the first component -- the heat source, else the head of the chain -- sits at the origin in its drawn default.
+                    Note(subject, "form", "chain (C1): every form declined");
+                    Place(head, Transform.Identity, new Point(0, 0), "C1", "the fragment's head at the origin, no ring, loop or open form having applied");
+                }
             }
 
             Sequential();
@@ -207,6 +222,24 @@ internal sealed class LayoutEngine
         PlaceInstruments();
         ComputeHops();
         return ToScene();
+    }
+
+    private string? _declined;
+
+    /// <summary>Runs one form and records whether it drew the fragment, with the reason it declined when it did not.</summary>
+    private bool Tried(string subject, string form, Func<bool> attempt)
+    {
+        _declined = null;
+        var drawn = attempt();
+        Note(subject, "form", drawn ? $"{form}: drawn" : $"{form}: declined -- {_declined ?? "not built for this fragment"}");
+        return drawn;
+    }
+
+    /// <summary>Records why a form is about to decline, then declines.</summary>
+    private bool Decline(string reason)
+    {
+        _declined = reason;
+        return false;
     }
 
     /// <summary>The graph's connected fragments (C17), the fragments in the order the script declares their first components and each fragment's members in the engine's order; a component with no connection is a fragment of one.</summary>
@@ -307,6 +340,7 @@ internal sealed class LayoutEngine
 
         if (sources.Count > 0)
         {
+            Note(_graph.Components[sources[0]].Name, "head", $"the largest positive duty ({((HeatExchanger)_graph.Components[sources[0]]).Power / 1000:0.##} kW) among {sources.Count} source(s) (C1, D-108)");
             return sources[0];
         }
 
@@ -314,6 +348,7 @@ internal sealed class LayoutEngine
         {
             if (_graph.Components[i] is CircuitNode { Boundary: BoundaryRole.Inlet })
             {
+                Note(_graph.Components[i].Name, "head", "no positive duty; the first inlet boundary (C1)");
                 return i;
             }
         }
@@ -322,10 +357,12 @@ internal sealed class LayoutEngine
         {
             if (!Upstream(i).Any(j => !_hints.Inferred.Contains(_graph.Components[j].Name)))
             {
+                Note(_graph.Components[i].Name, "head", "no positive duty and no inlet; the first member with nothing declared upstream of it (C1, A3)");
                 return i;
             }
         }
 
+        Note(_graph.Components[declared[0]].Name, "head", "no positive duty, no inlet, nothing without an upstream; the first declared member (C1)");
         return declared[0];
     }
 
@@ -517,7 +554,7 @@ internal sealed class LayoutEngine
     private void Cut(int n, int near, int far, ImmutableArray<Point> first, ImmutableArray<Point> second)
     {
         _inline[n] = true;
-        Place(n, Transform.Identity, first[^1]);
+        Place(n, Transform.Identity, first[^1], "A5", "an inline node cut into its run");
         var back = first[^2].Offset(-first[^1].X, -first[^1].Y);
         var on = second[1].Offset(-second[0].X, -second[0].Y);
         _side[(n, near)] = Direction.Of(back) ?? Direction.Left;
@@ -594,6 +631,7 @@ internal sealed class LayoutEngine
                 }
 
                 _centre[near.Node] = target;
+                Note(_graph.Components[near.Node].Name, "C7", $"an open end aligned to ({target.X:0.##}, {target.Y:0.##}) with its counterpart");
                 var host = Walk(near.Walk.Far, near.Walk.FarPort);
                 var points = new List<Point>();
 
@@ -679,9 +717,14 @@ internal sealed class LayoutEngine
 
     private bool Loop(int source)
     {
-        if (!IsSource(source) || Cycle(source) is not { } cycle)
+        if (!IsSource(source))
         {
-            return false;
+            return Decline("the head is not a source (a positive duty)");
+        }
+
+        if (Cycle(source) is not { } cycle)
+        {
+            return Decline("no cycle of boxed members returns to the source");
         }
 
         var s = cycle[0];
@@ -689,7 +732,7 @@ internal sealed class LayoutEngine
 
         if (ts.Count == 0)
         {
-            return false;
+            return Decline("the source has no default arrangement with its outlet up and its inlet down");
         }
 
         _loopCentre = new Point(0, 0);
@@ -753,7 +796,7 @@ internal sealed class LayoutEngine
         if (unit is null)
         {
             _groups.RemoveRange(mark, _groups.Count - mark);
-            return false;
+            return Decline("no consumer unit was found on the cycle");
         }
 
         // Every unit stands at a provisional place until it is slid in; none is an obstacle before that.
@@ -765,7 +808,7 @@ internal sealed class LayoutEngine
             }
         }
 
-        Place(s.Component, ts[0], new Point(0, 0));
+        Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
         var sOut = AnchorOf(s.Component, s.OutPort);
         var sIn = AnchorOf(s.Component, s.InPort);
         var yTop = sOut.Along(_margin).Y;
@@ -777,7 +820,7 @@ internal sealed class LayoutEngine
         if (Top(Anchor(topStart[^1], Direction.Right, Direction.Right), topStart, s, items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
         {
             _groups.RemoveRange(mark, _groups.Count - mark);
-            return false;
+            return Decline("the top rail could not be laid");
         }
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
@@ -786,7 +829,7 @@ internal sealed class LayoutEngine
 
         // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
         var slack = sIn.Along(_margin).Y - yBottom;
-        Place(s.Component, ts[0], new Point(0, -slack / 2));
+        Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
         sOut = AnchorOf(s.Component, s.OutPort);
         sIn = AnchorOf(s.Component, s.InPort);
         topStart[0] = sOut.At;
@@ -794,7 +837,7 @@ internal sealed class LayoutEngine
         if (!Close(top, unit, drop, yBottom, bottomMembers, [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)], null, rightJunction, hangers, runs))
         {
             _groups.RemoveRange(mark, _groups.Count - mark);
-            return false;
+            return Decline("the ring could not be closed along the bottom rail");
         }
 
         // The ring is a group (A8), listed before the blocks it holds.
@@ -886,9 +929,14 @@ internal sealed class LayoutEngine
             consumer = fragment.Where(i => _graph.Components[i] is HeatExchanger).Order().FirstOrDefault(-1);
         }
 
-        if (consumer < 0 || Cycle(consumer) is not { } cycle)
+        if (consumer < 0)
         {
-            return false;
+            return Decline("no exchanger to take the consumer's seat");
+        }
+
+        if (Cycle(consumer) is not { } cycle)
+        {
+            return Decline("no cycle of boxed members returns to the consumer");
         }
 
         var cornerAt = -1;
@@ -918,7 +966,7 @@ internal sealed class LayoutEngine
         // The unit search must not find the ring itself: it avoids the corner, or with a bare bend the first member on the top rail.
         HashSet<int> avoid = corner is { } c1 ? [c1.Component] : [cycle[split].Component];
 
-        bool Fail()
+        bool Fail(string reason)
         {
             _groups.RemoveRange(mark, _groups.Count - mark);
 
@@ -927,7 +975,7 @@ internal sealed class LayoutEngine
                 _inline[c2.Component] = wasInline;
             }
 
-            return false;
+            return Decline(reason);
         }
 
         if (corner is { } c3)
@@ -940,7 +988,7 @@ internal sealed class LayoutEngine
 
         if (unit is null || innerEnd >= end)
         {
-            return Fail();
+            return Fail(unit is null ? "no unit was found past the consumer" : "the unit reaches the corner and leaves nothing for the rails");
         }
 
         foreach (var i in unit.Members)
@@ -981,7 +1029,7 @@ internal sealed class LayoutEngine
 
         if (corner is { } c4)
         {
-            Place(c4.Component, Transform.Identity, new Point(0, 0));
+            Place(c4.Component, Transform.Identity, new Point(0, 0), "C18", "the unsourced ring's corner node at the origin");
             _side[(c4.Component, c4.InPort)] = Direction.Down;
             _side[(c4.Component, c4.OutPort)] = Direction.Right;
             cOut = AnchorOf(c4.Component, c4.OutPort);
@@ -1002,7 +1050,7 @@ internal sealed class LayoutEngine
 
         if (Top(cOut, [cOut.At], previous, items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
         {
-            return Fail();
+            return Fail("the top rail could not be laid");
         }
 
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, cIn.Along(_margin).Y, right?.Component ?? -1);
@@ -1018,7 +1066,7 @@ internal sealed class LayoutEngine
 
         if (!Close(top, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], null, right, hangers, runs, leftTurner))
         {
-            return Fail();
+            return Fail("the ring could not be closed along the bottom rail");
         }
 
         // C8 reads a junction's free side against the loop's centre. This ring is built from its corner at the
@@ -1066,7 +1114,7 @@ internal sealed class LayoutEngine
     {
         if (fragment.Any(i => i != head && !Inline(i)))
         {
-            return false;
+            return Decline("the fragment has a boxed member besides the head");
         }
 
         var ports = _graph.Components[head].Ports;
@@ -1085,7 +1133,7 @@ internal sealed class LayoutEngine
                 continue;
             }
 
-            Place(head, Transform.Identity, new Point(0, 0));
+            Place(head, Transform.Identity, new Point(0, 0), "C20", "a ring of one: the head at the origin, the walk returning to it");
             var outlet = AnchorOf(head, p);
             var inlet = AnchorOf(head, walk.FarPort);
             var (width, height) = SizeOf(head);
@@ -1110,7 +1158,7 @@ internal sealed class LayoutEngine
             return true;
         }
 
-        return false;
+        return Decline("no walk from the head's outlet returns to another of its ports");
     }
 
     /// <summary>The clockwise walk along the edge of the box <c>[-x, x] × [-y, y]</c> about the origin from <paramref name="from"/> to <paramref name="to"/>, both on that edge, through the corners between.</summary>
@@ -1170,7 +1218,7 @@ internal sealed class LayoutEngine
     {
         if (_graph.Components[supply] is not CircuitNode { Boundary: BoundaryRole.Inlet } || !Wildcard(supply))
         {
-            return false;
+            return Decline("the head is not a supply boundary");
         }
 
         // D-115: a boundary has one connection, so the rail's left end is the junction after the inlet and the inlet hangs off that junction's left side. An inlet wired to several paths (FS2205) is still drawn, as the junction itself.
@@ -1185,7 +1233,7 @@ internal sealed class LayoutEngine
 
             if (junction < 0 || !Wildcard(junction) || _inline[junction] || _graph.Components[junction] is not CircuitNode { Boundary: BoundaryRole.Interior })
             {
-                return false;
+                return Decline("the supply does not feed an interior junction node");
             }
 
             inlet = supply;
@@ -1240,7 +1288,7 @@ internal sealed class LayoutEngine
 
         if (paths is null)
         {
-            return false;
+            return Decline("the junction's paths do not both reach one return boundary");
         }
 
         HashSet<int> avoid = [supply];
@@ -1263,7 +1311,7 @@ internal sealed class LayoutEngine
         var sides = new Dictionary<(int Component, int Port), Direction>(_side);
         var mark = _groups.Count;
 
-        bool Fail()
+        bool Fail(string reason)
         {
             _groups.RemoveRange(mark, _groups.Count - mark);
             placed.CopyTo(_placed, 0);
@@ -1274,7 +1322,7 @@ internal sealed class LayoutEngine
                 _side[key] = value;
             }
 
-            return false;
+            return Decline(reason);
         }
 
         // The ring path's unit and top-rail items, as a ring's (C11).
@@ -1328,7 +1376,7 @@ internal sealed class LayoutEngine
 
         if (unit is null && !chainOnly)
         {
-            return Fail();
+            return Fail("no unit was found on the ring path");
         }
 
         foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Concat(unit is null ? [] : [unit]))
@@ -1340,7 +1388,7 @@ internal sealed class LayoutEngine
         }
 
         _loopCentre = new Point(0, 0);
-        Place(supply, Transform.Identity, new Point(0, 0));
+        Place(supply, Transform.Identity, new Point(0, 0), "C19", "the supply boundary at the left end of the top rail");
         _side[(supply, cycle[0].OutPort)] = Direction.Right;
         var half = Transform.Identity.Size(_symbol[ret]).Height / 2;
         var natural = InnerOf(supply).Y - (2 * _margin) - half;
@@ -1360,7 +1408,7 @@ internal sealed class LayoutEngine
             {
                 if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
                 {
-                    return Fail();
+                    return Fail("a chain member could not be laid on the rail");
                 }
 
                 pending.AddRange(points.Skip(1));
@@ -1372,7 +1420,7 @@ internal sealed class LayoutEngine
 
             if (cursor.Outward != Direction.Down || Math.Abs(cursor.At.X) > Eps)
             {
-                return Fail();
+                return Fail("the chain does not end pointing down on the supply's axis");
             }
 
             chainEnd = previous;
@@ -1383,7 +1431,7 @@ internal sealed class LayoutEngine
         if (chainOnly)
         {
             // No ring path: the outlet stands at the chain's foot, directly under the junction.
-            Place(ret, Transform.Identity, new Point(0, natural));
+            Place(ret, Transform.Identity, new Point(0, natural), "C19", "no ring path: the return at the chain's foot, directly under the junction");
             _side[(ret, chain![0].InPort)] = Direction.Up;
             runs.Add((chainEnd, [chainCursor.At, AnchorOf(ret, chain[0].InPort).At]));
             Finish();
@@ -1392,7 +1440,7 @@ internal sealed class LayoutEngine
 
         if (unit is null)
         {
-            return Fail();
+            return Fail("no unit was found on the ring path");
         }
 
         // C12 for the open form: a block standing on both rails whose outlet sits above the chain's level would put a step in the return, so the block is rebuilt deeper and its outlet meets the rail.
@@ -1408,7 +1456,7 @@ internal sealed class LayoutEngine
 
                 if (unit is null)
                 {
-                    return Fail();
+                    return Fail("the ring's block could not be laid as a unit");
                 }
 
                 var created = _groups.GetRange(at, _groups.Count - at);
@@ -1428,7 +1476,7 @@ internal sealed class LayoutEngine
 
         if (Top(sOut, [sOut.At], cycle[0], items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
         {
-            return Fail();
+            return Fail("the top rail could not be laid");
         }
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
@@ -1436,7 +1484,7 @@ internal sealed class LayoutEngine
         yBottom = Math.Min(yBottom, Under(hangers));
 
         // The return stands directly under the supply at the bottom rail's level, fed by the chain from above and by the rail from the right.
-        Place(ret, Transform.Identity, new Point(0, yBottom));
+        Place(ret, Transform.Identity, new Point(0, yBottom), "C19", "the return directly under the supply at the bottom rail's level");
         _side[(ret, paths[ringAt][0].InPort)] = Direction.Right;
 
         if (chain is not null)
@@ -1449,7 +1497,7 @@ internal sealed class LayoutEngine
 
         if (!Close(top, unit, drop, yBottom, bottomMembers, [rIn.At, rIn.Along(_margin)], null, rightJunction, hangers, runs))
         {
-            return Fail();
+            return Fail("the ring could not be closed along the bottom rail");
         }
 
         foreach (var m in cycle)
@@ -1557,7 +1605,7 @@ internal sealed class LayoutEngine
 
         var (_, h) = candidates[0].Size(_symbol[m.Component]);
         var inOffset = Wildcard(m.Component) ? new Point(0, h / 2) : AnchorOffset(m.Component, m.InPort, candidates[0])!.Value.Offset;
-        Place(m.Component, candidates[0], new Point(-inOffset.X, -inOffset.Y));
+        Place(m.Component, candidates[0], new Point(-inOffset.X, -inOffset.Y), "C11", "a single member as the unit, its inlet at the origin, turned to face the top rail (A9)");
 
         if (Wildcard(m.Component))
         {
@@ -1634,7 +1682,7 @@ internal sealed class LayoutEngine
 
         var bottomMembers = path.GetRange(innerEnd + 1, cornerAt - innerEnd - 1);
         var items = path.GetRange(cornerAt + 1, path.Count - cornerAt - 1).Select(static m => new Item(m, null)).ToList();
-        Place(corner.Component, tc, new Point(0, 0));
+        Place(corner.Component, tc, new Point(0, 0), "C9", "the corner member at the origin, in the arrangement that turns the pipe");
         var cOut = AnchorOf(corner.Component, corner.OutPort);
         var cIn = AnchorOf(corner.Component, corner.InPort);
         var (left, right) = Corners(bottomMembers, unit, leftFirst: outlet == Direction.Left);
@@ -1769,6 +1817,7 @@ internal sealed class LayoutEngine
         {
             _centre[i] = _centre[i].Offset(dx, dy);
             _placed[i] = true;
+            Note(_graph.Components[i].Name, "C11", $"slid in as a unit member by ({dx:0.##}, {dy:0.##}) to ({_centre[i].X:0.##}, {_centre[i].Y:0.##}), a margin right of its origin and past every obstacle (H2)");
         }
 
         foreach (var (walkFrom, points) in unit.Runs)
@@ -1955,6 +2004,7 @@ internal sealed class LayoutEngine
                 if (jx > _centre[j.Component].X)
                 {
                     _centre[j.Component] = new Point(jx, _centre[j.Component].Y);
+                    Note(_graph.Components[j.Component].Name, "C14", $"the junction moved right to ({jx:0.##}, {_centre[j.Component].Y:0.##}) so its hanger's inlet clears it by a margin");
                     runs[feed].Points[^1] = AnchorOf(j.Component, j.InPort).At;
                 }
 
@@ -2013,7 +2063,7 @@ internal sealed class LayoutEngine
         if (leftJunction is { } lj)
         {
             // The junction nearest the left side takes the bottom-left corner: in from the rail, out up the left side; its free port is the block's outlet, facing out beside the inlet.
-            Place(lj.Component, Transform.Identity, bottomStart[^1]);
+            Place(lj.Component, Transform.Identity, bottomStart[^1], "C14", "the junction nearest the left side takes the bottom-left corner");
             _side[(lj.Component, lj.OutPort)] = Direction.Up;
             _side[(lj.Component, lj.InPort)] = Direction.Right;
             pending.RemoveAt(pending.Count - 1);
@@ -2031,7 +2081,7 @@ internal sealed class LayoutEngine
             var dIn = AnchorOffset(lt.Member.Component, lt.Member.InPort, lt.Transform)!.Value.Offset;
             var dOut = AnchorOffset(lt.Member.Component, lt.Member.OutPort, lt.Transform)!.Value.Offset;
             var at = bottomStart[^1];
-            Place(lt.Member.Component, lt.Transform, new Point(at.X - dOut.X, at.Y - dIn.Y));
+            Place(lt.Member.Component, lt.Transform, new Point(at.X - dOut.X, at.Y - dIn.Y), "C9", "the left turner takes the bottom-left corner, mirrored (C-105)");
             pending.RemoveAt(pending.Count - 1);
             pending.Add(AnchorOf(lt.Member.Component, lt.Member.OutPort).At);
             bottomRuns.Add((lt.Member, pending));
@@ -2108,6 +2158,7 @@ internal sealed class LayoutEngine
             }
 
             _centre[j.Component] = new Point(jx, jy);
+            Note(_graph.Components[j.Component].Name, "C14", $"the hanger's bottom junction slid right along its rail to ({jx:0.##}, {jy:0.##}), under the unit's outlet stub and clear of it");
             _side[(j.Component, j.InPort)] = Direction.Up;
             var reaching = bottomRuns.FindIndex(r => r.From.Component == j.Component);
             bottomRuns[reaching].Points[^1] = AnchorOf(j.Component, j.OutPort).At;
@@ -2371,7 +2422,7 @@ internal sealed class LayoutEngine
         var half = d.Horizontal ? w / 2 : h / 2;
         var delta = new Point(d.X * half, d.Y * half);
         var at = Clear(j, Transform.Identity, anchor.At, d, delta);
-        Place(j, Transform.Identity, at.Offset(delta.X, delta.Y));
+        Place(j, Transform.Identity, at.Offset(delta.X, delta.Y), "C4", $"a node one clearance out on the placed port's axis, {Name(d)}");
         _side[(j, q)] = d.Opposite;
         return [anchor.At, at];
     }
@@ -2401,7 +2452,7 @@ internal sealed class LayoutEngine
                 var turn = AnchorOffset(j, q, turned[0])!.Value.Offset;
                 var corner = anchor.At.Towards(d, _margin);
                 var inner = Clear(j, turned[0], corner, along, new Point(-turn.X, -turn.Y));
-                Place(j, turned[0], inner.Offset(-turn.X, -turn.Y));
+                Place(j, turned[0], inner.Offset(-turn.X, -turn.Y), "C3", $"the pipe turns {Name(along)} into a member that cannot face it");
                 return [anchor.At, corner, inner];
             }
 
@@ -2415,7 +2466,7 @@ internal sealed class LayoutEngine
 
         var offset = AnchorOffset(j, q, facing[0])!.Value.Offset;
         var end = Clear(j, facing[0], anchor.At, d, new Point(-offset.X, -offset.Y));
-        Place(j, facing[0], end.Offset(-offset.X, -offset.Y));
+        Place(j, facing[0], end.Offset(-offset.X, -offset.Y), "C5", $"facing the pipe arriving {Name(d)}, straight along the axis, the arrangement sending its outlet on to the right first (H10)");
         return [anchor.At, end];
     }
 
@@ -2525,7 +2576,7 @@ internal sealed class LayoutEngine
             }
 
             var (_, h) = Transform.Identity.Size(_symbol[i]);
-            Place(i, Transform.Identity, new Point(0, bottom - _margin - (h / 2)));
+            Place(i, Transform.Identity, new Point(0, bottom - _margin - (h / 2)), "fallback", "placed by no rule; stacked under the drawing");
             _fallback[i] = true;
             bottom = InnerOf(i).Y;
         }
@@ -2651,12 +2702,22 @@ internal sealed class LayoutEngine
 
     private static PlacedAnchor Anchor(Point at, Direction outward, Direction flow) => new(at, outward.AsPoint, flow);
 
-    private void Place(int i, Transform t, Point centre)
+    private void Place(int i, Transform t, Point centre, string rule, string reason)
     {
         _transform[i] = t;
         _centre[i] = centre;
         _placed[i] = true;
+        Note(_graph.Components[i].Name, rule, $"{reason}; centre ({centre.X:0.##}, {centre.Y:0.##}), {Describe(t)}");
     }
+
+    /// <summary>Records one decision for the layout report (<c>C-107</c>).</summary>
+    private void Note(string subject, string rule, string reason) => _trace.Add(new PlacementNote(subject, rule, reason));
+
+    private static string Name(Direction d) =>
+        d == Direction.Right ? "rightwards" : d == Direction.Left ? "leftwards" : d == Direction.Up ? "upwards" : d == Direction.Down ? "downwards" : d.ToString();
+
+    private static string Describe(Transform t) =>
+        $"{t.Arrangement} rot {t.Rotation}{(t.Mirrored ? " mirrored" : string.Empty)}";
 
     private IEnumerable<int> Ordered(IEnumerable<int> components)
     {
@@ -3164,6 +3225,7 @@ internal sealed class LayoutEngine
         }
 
         _centre[node] = to;
+        Note(_graph.Components[node].Name, "C15", $"an inline node nudged along its level run by {dx:0.##} to ({to.X:0.##}, {to.Y:0.##})");
         return true;
     }
 
@@ -3529,6 +3591,7 @@ internal sealed class LayoutEngine
             Extent = Rounded(extent ?? new Box(0, 0, 0, 0)),
             Margin = _margin,
             Groups = [.. groups],
+            Provenance = [.. _trace],
         };
     }
 

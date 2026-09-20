@@ -170,7 +170,19 @@ two -- and for every scene it lists:
   count, totals of bends and length, and the metrics `62` trends rather than gates: the pipes'
   length over their ends' Manhattan distance, the symbol area over the extent's, the extent's
   aspect;
-- every finding, one per line.
+- every finding, one per line;
+- **the placement trace** *(shipped 2026-09-20, `C-107`)*: every decision the engine made, in the
+  order it made them -- each fragment's declared members; which member is its head and by which of
+  C1's fallbacks (the largest positive duty, else the first inlet, else the first member with
+  nothing upstream, else the first declared); each form tried in order (C2 sourced loop, C20 ring
+  of one, C19 open supply-to-return, C18 unsourced ring, then the C1 chain) as *drawn* or *declined*
+  with the reason it declined; and every placement as `rule -- member: reason; centre, transform`
+  (C2 the source, C9 the corner, C11 a unit and its slide, C14 a hanger's junction, C3/C4/C5 the
+  sequential rules, C7 an aligned open end, C15 a nudge, A5 an inline cut, `fallback`). The
+  sections before it are the result; this is the reasoning. The cooling loop's up/down picture
+  (`C-105`) took the engine's source to explain twice in one day; the trace answers it in five lines:
+  head `N1` by the inlet fallback, C2 declined (no source), C20 declined (a boxed member besides the
+  head), C19 declined (no unit on the ring path), C18 drawn with `3WV` as the left turner.
 
 The text is `SceneText` in Core since 2026-09-18 (`C-89` closed; it was in Core.Tests before). The
 ladder and the sample gates write it to `diagnostics/`; nothing on the wire carries it yet.
@@ -585,6 +597,6 @@ for it.
 |---|---|
 | A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
 | A5, A6, C | `Layout/LayoutEngine.cs`; the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
-| A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core.Tests today and belongs in Core (`C-89`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
+| A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core (`C-89`), its `PLACEMENT` trace from `Scene.Provenance` (`C-107`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
 | D (router) | `Layout/OrthogonalRouter.cs` |
 | the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |

@@ -291,6 +291,9 @@ would be filled with nothing.
 > **`S-71` filed and closed** (the same day): the solve report carries the Newton trajectory, every
 > node in °C/kPa and every branch against its written order, the heat balance per hydraulic, the
 > seed basis beside each branch flow, and pump/valve operating points. 60 open.
+> **`C-107` filed and closed** (the same day): the layout report carries a `PLACEMENT` trace --
+> each fragment's head and why, every form tried with its decline reason, every placement with its
+> rule, and every slide, alignment and nudge -- in the order the engine decided. 60 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -989,8 +992,8 @@ unassessed, not clean.
    check valve is what an off pump would need), a source-side mixing valve (`S-55`) — are the open entries it points at.
 3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b); next
    is **P5.13b** (`L-56`), then the valve-sizing observation under `S-58`. Two report packages the
-   user asked for on 2026-09-20 sit ahead of P5.13b: layout provenance (`C-107`) and the solver
-   report's iteration history, engineering-unit state, heat balance and seed bases (`S-71`, done).
+   user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
+   history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
    Core-side and closed by golden files before a pixel exists. `D-100` (2026-09-15) triaged a
    proposed layout standard before P5.1 started: hard constraints as a named class, an explicit

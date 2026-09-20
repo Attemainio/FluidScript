@@ -124,6 +124,21 @@ public static class SceneText
             text.Append(" bounds ").Append(Text(g.Bounds)).Append(" width ").Append(N(g.Bounds.Width)).Append(" height ").Append(N(g.Bounds.Height)).Append('\n');
         }
 
+        // C-107: which form drew each fragment, why the others declined, and which rule put each member
+        // where it is -- in the order the engine decided. The sections above are the result; this is the
+        // reasoning, and it is what a session read the engine for before it existed.
+        text.Append("\nPLACEMENT (in the order decided; rule -- subject: reason)\n");
+
+        if (scene.Provenance.Length == 0)
+        {
+            text.Append(" none recorded\n");
+        }
+
+        foreach (var note in scene.Provenance)
+        {
+            text.Append(' ').Append(note.Rule).Append(" -- ").Append(note.Subject).Append(": ").Append(note.Reason).Append('\n');
+        }
+
         text.Append("\nRASTER (").Append(CellsPerUnit).Append(" cells per unit; . outer box, # inner box, o node, - | pipe, : signal, * bend, + crossing, < > ^ v flow at a port)\n");
         Raster(text, scene, graph);
 
