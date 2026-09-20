@@ -141,6 +141,7 @@ Both sit above the tiers because both are about the whole project. `08` moved he
 | [62-testing-strategy](60-docs-and-devex/62-testing-strategy.md) | test layout, validation, isolation, worker, file, and accessibility tests | draft |
 | [63-ci-and-repo-hygiene](60-docs-and-devex/63-ci-and-repo-hygiene.md) | CI, public-repo requirements, contribution flow | reviewed |
 | [64-claude-md-plan](60-docs-and-devex/64-claude-md-plan.md) | the planned contents of `CLAUDE.md` | reviewed |
+| [65-working-the-plan](60-docs-and-devex/65-working-the-plan.md) | the session runbook: reads, commands, filing / reopening / closing, package and phase close | draft |
 
 ### 70 · Future
 

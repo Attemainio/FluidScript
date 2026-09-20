@@ -459,6 +459,9 @@ record, and the honest expectation is that they are read by grep for an id, not 
 
 ### Before filing, reopening or closing
 
+The step-by-step form of this — the grep lines, the order of edits, the commands — is
+[`65-working-the-plan`](60-docs-and-devex/65-working-the-plan.md); this section is the rule.
+
 - **Before filing**, grep the tier's register and the decision log for the subject. A closed row
   that already describes it is reopened (its id kept, its row moved back to Open with the new
   measurement), not refiled. A `D-` that settles it is the answer, unless the measurement disagrees —

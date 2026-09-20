@@ -354,7 +354,7 @@ that test rather than quietly improving.
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
-| P5 | M3 | 11 | Not started | — |
+| P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b in progress as the spelling M4 will be specified in | 2026-09-19 |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
@@ -938,7 +938,9 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > reopening / measure-before-closing rule; `check.py` verifies all of it — and turned out to have
 > been crashing since `08` and `09` moved to the plan root, which is `F-27` with the 38-citation
 > backlog it had hidden. `C-64` was found stale under `D-122` and marked so rather than reopened.
-> Nothing in the code changed except one comment.
+> Nothing in the code changed except one comment. The procedure itself — reads, commands, the
+> filing / reopening / closing steps, package and phase close — is now `65-working-the-plan`, which
+> `CLAUDE.md` points at; the same runbook went into `agent-planner` as a template.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 

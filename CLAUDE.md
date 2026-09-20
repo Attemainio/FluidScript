@@ -34,6 +34,7 @@ Read the relevant document before working in that area; update it when you learn
 | Documentation structure and the docs gate | `plan/60-docs-and-devex/61-documentation-plan.md` |
 | Test tiers, validation cases, tolerances | `plan/60-docs-and-devex/62-testing-strategy.md` |
 | CI, public-repo requirements, releases | `plan/60-docs-and-devex/63-ci-and-repo-hygiene.md` |
+| **The runbook** — session start, filing / reopening / closing a row, package close, phase close, with the commands | `plan/60-docs-and-devex/65-working-the-plan.md` |
 
 **Plan review:** `/plan-review` audits `plan/`; `/loop /plan-review` sweeps it across sessions.
 `.claude/skills/plan-review/SKILL.md` owns the protocol.
@@ -41,7 +42,9 @@ Read the relevant document before working in that area; update it when you learn
 ## Working a plan
 
 Nothing a session learns survives it unless it is written into `plan/` or `docs/`. This is the loop
-that makes that happen. It is not optional and it is not only for large changes.
+that makes that happen. It is not optional and it is not only for large changes. **The step-by-step
+procedure with the commands is `plan/60-docs-and-devex/65-working-the-plan.md`** — hard rules; this
+section is the summary.
 
 ### Before starting
 
