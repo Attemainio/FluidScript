@@ -109,7 +109,9 @@ HX1.out[2] - PP - N2 - HX1.in[2]
 ```
 
 The quantities are the ones [`show`](show.md) and [Properties](properties.md) use: `t`, `p`, `flow`,
-`vflow`, `h`, `rho`, `dp`, and their long names — `in[2].temperature` is `in[2].t`. Which of them a
+`vflow`, `h`, `rho`, `cp`, and the changes `dp`, `dt`, `dh`, with their long names — `in[2].temperature`
+is `in[2].t`. A `d` in front of a quantity is always its change across the component (`dp` a drop,
+`dt` and `dh` a rise); `dn` is a pipe size, not a change. Which of them a
 port takes is the component's business: an exchanger's inlet takes `t`, and its second inlet also
 `flow`, `dp` and `dt` for the whole side; a tank's takes `level`. A node has one state and no ports,
 so `t=` and `p=` are written bare on it; `N1 node in.t=50` is [`FS1537`](diagnostics.md).

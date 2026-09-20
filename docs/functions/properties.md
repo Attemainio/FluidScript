@@ -11,6 +11,12 @@ probably meant.
 typing the circuit, and a reference to one from somewhere that is needed earlier — a sizing input, for
 instance — is reported rather than silently zero.
 
+**A `d` in front of a quantity is its change across the component.** `HE1.dt` is the outlet
+temperature less the inlet (negative on a cooler), `HE1.dh` the enthalpy change — the duty per
+kilogram — and `PU1.dp` the pressure drop, inlet less outlet, so it is negative across a pump. The
+declared `dt=20` on an exchanger is still a magnitude whose direction the role word supplies; read
+back as `.dt` it is signed. `dn` is a pipe size, not "delta n".
+
 **A port's state is a property of the port.** `HX1.in[2].t` is the temperature entering the
 exchanger's second side, `T1.out.t` the temperature at a tank's first outlet, `T1.layer[3].t` its
 third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long — `HX1.in[2].temperature`

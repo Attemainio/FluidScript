@@ -299,6 +299,10 @@ would be filled with nothing.
 > `PU1 flow=0.3` set a design flow and a duty point and the loop solved to 0.086 kg/s. Both pin the
 > branch now; `vflow` pins it through the inlet node's solved density. `L-57` opened on the bare
 > unit (`vflow=0.3` is 300 l/s). Items 1 (`in.p` on a component) and 3 (`L-56`) remain. 61 open.
+> **`D-123`** (the same day, the user's observation): a `d` prefix on a state quantity is its
+> change across the component, with a direction word per row (`dp` a drop, `dt`/`dh` a rise), and
+> the property table is the reserved quantity list, linked from `02`. Rows `cp`, `dt`, `dh` added;
+> `show dt`/`show dh` draw; `L-58` holds the six symbols reserved ahead of their dimensions. 62 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through

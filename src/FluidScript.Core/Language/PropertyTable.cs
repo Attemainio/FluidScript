@@ -30,8 +30,22 @@ public static class PropertyTable
         new("vflow", "volume_flow", "Volume flow", Dimension.VolumeFlow, Diverging: false, ["q"]),
         new("h", "enthalpy", "Enthalpy", Dimension.Enthalpy, Diverging: false, []),
         new("rho", "density", "Density", Dimension.Density, Diverging: false, []),
-        new("dp", "pressure_drop", "Pressure drop", Dimension.PressureDelta, Diverging: true, []),
+        new("cp", "specific_heat", "Specific heat", Dimension.SpecificHeat, Diverging: false, []),
+
+        // `D-123`: a `d` prefix on a state symbol is that quantity's change across the component it is
+        // read on. Each delta names its base and its direction word -- a pressure *drops* (in − out,
+        // positive across a resistance, the datasheet's number), a temperature or an enthalpy *rises*
+        // (out − in, positive across a heater) -- because no single sign rule says both.
+        new("dp", "pressure_drop", "Pressure drop", Dimension.PressureDelta, Diverging: true, [], Of: "p", Drop: true),
+        new("dt", "temperature_change", "Temperature change", Dimension.TemperatureDelta, Diverging: true, [], Of: "t", Drop: false),
+        new("dh", "enthalpy_change", "Enthalpy change", Dimension.Enthalpy, Diverging: true, [], Of: "h", Drop: false),
     ];
+
+    /// <summary>The state quantities: everything that is not a change of something else.</summary>
+    public static IEnumerable<PropertyEntry> States => All.Where(static entry => entry.Of is null);
+
+    /// <summary>The changes: every <c>d</c>-prefixed row, with the quantity it is a change of.</summary>
+    public static IEnumerable<PropertyEntry> Deltas => All.Where(static entry => entry.Of is not null);
 
     private static readonly ImmutableDictionary<string, PropertyEntry> BySpelling = Index();
 
@@ -105,10 +119,14 @@ public static class PropertyTable
 /// <param name="Dimension">The dimension of the value.</param>
 /// <param name="Diverging">Whether a scale of it is centred on zero, which a drop is and a temperature is not (<c>57</c>).</param>
 /// <param name="Aliases">Further accepted spellings, never printed: <c>mdot</c> for <c>flow</c>.</param>
+/// <param name="Of">For a change (<c>dp</c>, <c>dt</c>, <c>dh</c>), the symbol of the quantity it is a change of; <see langword="null"/> for a state quantity (<c>D-123</c>).</param>
+/// <param name="Drop">For a change, whether it is read inlet minus outlet (a drop) rather than outlet minus inlet (a rise).</param>
 public sealed record PropertyEntry(
     string Symbol,
     string Name,
     string Display,
     Dimension Dimension,
     bool Diverging,
-    ImmutableArray<string> Aliases);
+    ImmutableArray<string> Aliases,
+    string? Of = null,
+    bool Drop = false);

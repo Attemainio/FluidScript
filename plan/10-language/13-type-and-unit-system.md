@@ -260,15 +260,32 @@ named the same quantities since `57`. Both read one table, `PropertyTable` in Co
 which is the registry of quantities a fluid state has and every spelling the language accepts for
 each:
 
-| Symbol | Name | Also | Dimension | Scale |
-|---|---|---|---|---|
-| `t` | `temperature` | `temp` | Temperature | sequential |
-| `p` | `pressure` | | Pressure | sequential |
-| `flow` | `flow` | `mdot`, `mflow`, `mass_flow` | MassFlow | sequential |
-| `vflow` | `volume_flow` | `q` | VolumeFlow | sequential |
-| `h` | `enthalpy` | | Enthalpy | sequential |
-| `rho` | `density` | | Density | sequential |
-| `dp` | `pressure_drop` | | PressureDelta | diverging, centred on zero |
+| Symbol | Name | Also | Dimension | Scale | Kind (`D-123`) |
+|---|---|---|---|---|---|
+| `t` | `temperature` | `temp` | Temperature | sequential | state |
+| `p` | `pressure` | | Pressure | sequential | state |
+| `flow` | `flow` | `mdot`, `mflow`, `mass_flow` | MassFlow | sequential | state (no change row: rule 4) |
+| `vflow` | `volume_flow` | `q` | VolumeFlow | sequential | state (no change row) |
+| `h` | `enthalpy` | | Enthalpy | sequential | state |
+| `rho` | `density` | | Density | sequential | state |
+| `cp` | `specific_heat` | | SpecificHeat | sequential | state |
+| `dp` | `pressure_drop` | | PressureDelta | diverging, centred on zero | change of `p`, a **drop** (in − out) |
+| `dt` | `temperature_change` | | TemperatureDelta | diverging | change of `t`, a **rise** (out − in) |
+| `dh` | `enthalpy_change` | | Enthalpy | diverging | change of `h`, a rise |
+
+**Reserved, not yet rows** (`D-123` rule 6, `L-58`): `s`/`entropy` and `ds`; `mu`/`viscosity` with
+`eta` as alias (ISO 80000-4's η is dynamic viscosity, so `eta` is *not* efficiency); `nu`
+(kinematic viscosity); `k`/`conductivity`; `v`/`velocity`; `re`/`reynolds`. Each waits on its
+dimension (entropy and specific heat share a vector and need a named dimension apiece; viscosity has
+none). Nothing else may use these spellings for a property.
+
+**A `d` prefix is a change** (`D-123`). Every change row names the state it is a change of and its
+direction word, because the two conventions in use -- a pressure *drops*, a temperature *rises* --
+cannot be one sign rule without breaking every `dp=20`. As a property or a scale a change is signed
+(`HE1.dh` on a cooler is negative); as a declared parameter `dt=20` keeps `22`'s magnitude reading,
+the role word carrying the sign. There is no change of a flow: across a two-port it is zero by
+conservation. The prefix is reserved after a dot and in a property name, never as a keyword; `dn` is
+not "delta n"; and the transient's time step may not be called `dt`.
 
 The **symbol** is the canonical spelling in a port's state, because the language trades on density;
 the **name** is what the wire and a colour scale carry, because a reader of JSON does not know `rho`.

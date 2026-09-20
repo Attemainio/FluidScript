@@ -359,6 +359,35 @@ public sealed class ModelContractBuilderTests
     }
 
     [Fact]
+    public async Task AChangeIsShownAsItsBaseQuantityAcrossTheComponentWithItsDirectionWord()
+    {
+        // D-123: `d` on a state symbol is that quantity's change across the component. A pressure
+        // drops (inlet less outlet: positive across the coil, negative across the pump); a temperature
+        // and an enthalpy rise (outlet less inlet: negative across a cooling coil). A node has no change.
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid")
+            .Replace("show temperature", "show dt dh dp specific_heat", StringComparison.Ordinal);
+        var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(source));
+        var visualization = contract.Visualization;
+
+        Assert.Equal("temperature_change", visualization.Active);
+        Assert.Equal("dK", visualization.Scales["temperature_change"].Unit);
+        Assert.Equal("J/kg", visualization.Scales["enthalpy_change"].Unit);
+        Assert.Equal("J/(kg*K)", visualization.Scales["specific_heat"].Unit);
+
+        var heater = contract.Layout.Placements.Single(static p => p.ComponentId == "HE1");
+        var pump = contract.Layout.Placements.Single(static p => p.ComponentId == "PU1");
+        var node = contract.Layout.Placements.Single(static p => p.ComponentId == "N1");
+
+        Assert.True(heater.Scales["temperature_change"].At > 0.5, "the 20 → 50 °C heater's change is a rise: above the diverging scale's middle");
+        Assert.True(heater.Scales["enthalpy_change"].At > 0.5);
+        Assert.True(heater.Scales["pressure_drop"].At > 0.5, "the heater drops pressure");
+        Assert.True(pump.Scales["pressure_drop"].At < 0.5, "a pump's drop is negative");
+        Assert.True(pump.Scales["temperature_change"].At is > 0.45 and < 0.55, "a pump changes no temperature");
+        Assert.Null(node.Scales["temperature_change"].At);
+        Assert.NotNull(node.Scales["specific_heat"].At);
+    }
+
+    [Fact]
     public async Task EveryAvailableScaleIsOnTheWireWithEveryElementsPlaceOnIt()
     {
         // D-117: switching the shown property is a re-preparation on the client, never a request, so

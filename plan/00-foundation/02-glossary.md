@@ -103,7 +103,7 @@ names.
 |---|---|---|
 | **Substance** | `ISubstance` | The thing flowing: a pure fluid, a mixture, or humid air. The abstraction over SharpProp. |
 | **State** | `FluidState` | A fully determined thermodynamic point — two independent properties plus composition — from which every other property follows. |
-| **Property** | — | A scalar derivable from a state: temperature, pressure, enthalpy, density, viscosity, specific heat. |
+| **Property** | `PropertyTable` | A scalar derivable from a state: temperature, pressure, enthalpy, density, viscosity, specific heat. **The reserved quantity list, with every symbol, name and alias, is the property table in [`13`](../10-language/13-type-and-unit-system.md#the-property-table-one-name-for-each-quantity-of-a-state)** (`D-120`, `D-123`); a symbol there means that quantity everywhere in the language, and a `d` prefix on one is its change across a component. |
 | **Quantity** | `Quantity` | A number with a dimension. Never a bare `double` across a public boundary. |
 | **Dimension** | `Dimension` | What kind of quantity: power, temperature, pressure, mass flow, length. |
 | **Psychrometrics** | — | The humid-air property set: dry-bulb, wet-bulb, humidity ratio, relative humidity, dew point, enthalpy. |

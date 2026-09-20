@@ -70,13 +70,15 @@ table makes canonical; `show` accepts every spelling in it and the wire carries 
 | `enthalpy` | `h` | Enthalpy | Per kg fluid; per kg **dry air** for humid air |
 | `density` | `rho` | Density | |
 | `viscosity` | `mu` | — | **Dynamic** viscosity by default; `kinematic_viscosity` / `nu` for the other. Not in the table yet |
-| `specific_heat` | `cp` | SpecificHeat | Not in the table yet |
+| `specific_heat` | `cp` | SpecificHeat | In the table since `D-123` |
 | `conductivity` | `k` | — | Thermal conductivity. Not in the table yet |
 | `flow` | `flow` | MassFlow | On connections; a node shows its net. `mdot`, `mflow`, `mass_flow` also; `flow` is canonical because it is the pump's and the boundary's parameter (`D-120`) |
 | `volume_flow` | `vflow` | VolumeFlow | `q` also; at the solved density of the connection |
 | `velocity` | `v` | Velocity | Connections only — a node has no velocity. Not in the table yet |
 | `reynolds` | `re` | Dimensionless | Connections only. Not in the table yet |
-| `pressure_drop` | `dp` | PressureDelta | Connections and components only; a diverging scale centred on zero |
+| `pressure_drop` | `dp` | PressureDelta | Connections and components only; a diverging scale centred on zero. A change of `p`, a **drop**: inlet less outlet (`D-123`) |
+| `temperature_change` | `dt` | TemperatureDelta | Components only; diverging. A change of `t`, a **rise**: outlet less inlet, negative across a cooler (`D-123`) |
+| `enthalpy_change` | `dh` | Enthalpy | Components only; diverging. A change of `h`, a rise: the duty per kilogram (`D-123`) |
 
 Humid air adds, when the substance is `air`:
 

@@ -22,9 +22,16 @@ The first `show` line is used. Each property can be written long or short — th
 | `pressure` | `p` | | Every node, gauge |
 | `flow` | `flow` | `mdot`, `mflow`, `mass_flow` | Every connection |
 | `volume_flow` | `vflow` | `q` | Every connection, at the solved density |
-| `pressure_drop` | `dp` | | Components, with zero at the scale's middle |
 | `enthalpy` | `h` | | Every node |
 | `density` | `rho` | | Every node |
+| `specific_heat` | `cp` | | Every node |
+| `pressure_drop` | `dp` | | Components: inlet less outlet, zero at the scale's middle; negative across a pump |
+| `temperature_change` | `dt` | | Components: outlet less inlet, zero at the middle; negative across a cooler |
+| `enthalpy_change` | `dh` | | Components: outlet less inlet, the duty per kilogram |
+
+**A `d` in front of a quantity is its change across the component.** `dp` is a drop (in − out, the
+datasheet's number), `dt` and `dh` are rises (out − in). A node has no change and is left off those
+scales.
 
 With no `show` at all the diagram follows `temperature`. The scale's range is the solved minimum and
 maximum, rounded outward to legend ticks; a stated `min..max` is used as written and fixes the first

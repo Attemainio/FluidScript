@@ -5545,3 +5545,61 @@ equal-percentage). Flows and the vision's `01` figures do not move. Every ladder
 [`22-component-model`](../20-core-domain/22-component-model.md) three-way valve; `ComponentRegistry`
 `three_way_valve`; `ValveSizer.MixingBand`; `ValveLaw.LegOpening`; `SolutionSeed.Integrate`;
 `docs/functions/three-way-valve.md`, `docs/functions/valve.md`.
+
+## D-123 · A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list
+
+**Accepted · 2026-09-20** (the user's observation, decided with the user) · extends `D-120`'s property
+table; amends `13` *The property table*, `57`'s scale list, `docs/functions/show.md`,
+`properties.md`, `syntax.md`; `02` links the table
+
+`dp` and `dt` already existed as two unrelated parameters with two unrelated sign conventions -- a
+pressure *drop* (inlet less outlet, positive across a resistance, negative across a pump) and a
+temperature change stated as a magnitude whose sign the role word supplies. The user saw the pattern
+and named it: everything starting with `d` is a change in the variable that follows. Making that a
+rule of the table instead of two coincidences means `dh` can never mean anything but an enthalpy
+change, `drho` a density change, and a reader who knows `t` knows `dt`.
+
+**The rule.**
+
+1. **Every row of the property table is either a state quantity or a change.** A change row names the
+   state symbol it is a change of (`Of`) and its **direction word**: a pressure *drops* (`dp` = in −
+   out), a temperature, an enthalpy or an entropy *rises* (`dt`, `dh` = out − in). The prefix
+   guarantees the meaning; the row supplies the sign, because no single sign rule says both -- every
+   datasheet's "pressure drop 20 kPa" is positive across a coil and every engineer's "temperature rise"
+   positive across a heater, and a generic out − in would make `dp=20` a rise and break every sample.
+2. **The dimension of a change** is the delta dimension where the base is affine (`t` →
+   TemperatureDelta, `p` → PressureDelta) and the base's own dimension otherwise (`dh` is J/kg).
+3. **A change is read as a property and shown as a scale** -- `HE1.dt`, `show dh` -- as its base at
+   the outlet less the inlet (or the reverse for a drop), diverging about zero; a node has no change.
+   As a **declared parameter** `dt=20` keeps `22`'s magnitude-plus-role reading (the role word carries
+   the sign), so `load dt=20` and `.dt` = −20 on that load are both right and the page says so.
+4. **No change of a flow.** `dflow`/`dvflow` across a two-port is identically zero by conservation and
+   at a junction the split has names (`a`, `b`, `ab`); a row that is always zero or never defined is a
+   diagnostic waiting to happen.
+5. **The prefix is reserved inside a quantity name only** -- after a dot (`in.dh`) or as a property
+   (`HX1.dh`) -- never as a keyword, so `12`'s reserved-word rule is untouched. `dn` is a parameter,
+   not a quantity, and is not "delta n". **`dt` is a temperature change; the transient's time step
+   (`33`) must not be called `dt`.**
+6. **The table is the reserved list of quantity symbols.** A registry row may not spell a property
+   with a table symbol for anything but that quantity. Symbols the table will take when their
+   dimensions exist, reserved now so nothing else takes them: `s`/`entropy` and `ds`, `mu`/`viscosity`
+   (`eta` as alias, per ISO 80000-4's η for dynamic viscosity -- which is why η is *not* an alias of
+   efficiency), `nu` (kinematic), `k`/`conductivity`, `v`/`velocity`, `re`/`reynolds` (`L-58`).
+
+**Rows added now.** `cp`/`specific_heat` (state, J/(kg·K)); `dt`/`temperature_change` (change of
+`t`, rise, dK); `dh`/`enthalpy_change` (change of `h`, rise, J/kg). `dp` gains `Of: p, Drop: true`.
+
+**Alternatives.**
+- *One sign rule for every change (out − in).* Consistent, and wrong to every reader: `dp=20` on a coil
+  would be a rise. Rejected.
+- *Magnitudes everywhere, as `dt=` is today.* Loses the sign a property reader wants (`HE1.dh` on a
+  cooler is negative) and makes `show dh` a one-sided scale. Rejected for properties; kept for the
+  declared `dt` because the role word already carries the sign there.
+- *Generate every `d` row from every state row.* `dflow` is the counter-example (rule 4); the rows are
+  listed, not generated, and the list is short.
+
+**Constrains.** `PropertyTable` (`Of`, `Drop`, `States`, `Deltas`); `ModelContractBuilder.Values`
+(one change rule, `pressure_drop` no longer special); [`13`](../10-language/13-type-and-unit-system.md);
+[`02`](02-glossary.md) *Property*; [`57`](../50-frontend/57-state-visualization.md);
+`docs/functions/show.md`, `properties.md`, `syntax.md`; [`33`](../30-solver/33-transient-time-domain.md)
+may not name its step `dt`.

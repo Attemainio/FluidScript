@@ -836,9 +836,15 @@ public static class ModelContractBuilder
                 {
                     at = Read(property, solved[0]);
                 }
-                else if (property == "pressure_drop")
+                else if (PropertyTable.Find(property) is { Of: { } of } change)
                 {
-                    at = inlet is { } pIn && outlet is { } pOut ? pIn.Pressure - pOut.Pressure : null;
+                    // A change across the component (`D-123`): its base quantity at the outlet less the
+                    // inlet, or the reverse for a drop. A node has no change and read its state above.
+                    var baseName = PropertyTable.Find(of)!.Name;
+                    var entering = inlet is { } pIn ? Read(baseName, pIn) : null;
+                    var leaving = outlet is { } pOut ? Read(baseName, pOut) : null;
+
+                    at = entering is { } a && leaving is { } b ? (change.Drop ? a - b : b - a) : null;
                 }
                 else
                 {
@@ -864,6 +870,7 @@ public static class ModelContractBuilder
             "pressure" => port.Pressure,
             "enthalpy" => port.Enthalpy,
             "density" => port.Density,
+            "specific_heat" => port.SpecificHeat,
             _ => null,
         };
 
