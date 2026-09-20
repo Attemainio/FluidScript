@@ -461,9 +461,16 @@ public static class WellPosedness
                 continue;
             }
 
+            // A stated inlet is a demand on the mix feeding the coil -- but only while the coil takes
+            // something. At zero duty there is nothing to deliver 50 °C to: no flow crosses the coil, the
+            // node the split feeds is whatever the header leaves there, and a row asking the split to
+            // hold it is 0/0 (`S-56`). `in=` on a coil that is off is documentation of its design point,
+            // not a constraint, and adds neither a row nor the promotion that would answer it.
+            var off = ZeroDuty(element);
+
             foreach (var parameter in Inlets)
             {
-                if (HydraulicPartition.Stated(element, parameter) is not null)
+                if (!off && HydraulicPartition.Stated(element, parameter) is not null)
                 {
                     constraints.Add(new ComponentConstraint(
                         element.Name, parameter, ConstraintKind.MixedInlet, hydraulic));
@@ -640,6 +647,26 @@ public static class WellPosedness
     private static bool Rates(ImmutableArray<HydraulicComponent> hydraulics, IFlowComponent element) =>
         IsCoupled(hydraulics, element) || element is HeatExchanger { Rating.CanRate: true };
 
+    /// <summary>Whether an exchanger states a duty of exactly nothing: a consumer switched off.</summary>
+    /// <param name="element">The component.</param>
+    /// <returns><see langword="true"/> when <c>power</c> is stated and zero.</returns>
+    /// <remarks>
+    /// <para>
+    /// <c>power=0</c> is an operating state, not a missing size (<c>S-56</c>): the coil is there, its
+    /// design terminals are written, and today it takes nothing. Its <c>out</c> with <c>in</c> then
+    /// pins the branch at zero flow -- a pump holding a stopped branch -- and its <c>in</c> asks nothing
+    /// of the split that feeds it. An unstated <c>power</c> is a size to find and is not this.
+    /// </para>
+    /// </remarks>
+    public static bool ZeroDuty(IFlowComponent element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+
+        return element is HeatExchanger
+            && HydraulicPartition.Stated(element, "power") is { } power
+            && Math.Abs(power) <= Solvers.Tolerances.PowerZero;
+    }
+
     /// <summary>Whether a component's energy block leaves its own temperature level free.</summary>
     /// <param name="graph">The graph, which is what says whether time is being integrated.</param>
     /// <param name="hydraulics">The hydraulic partition.</param>
@@ -740,14 +767,35 @@ public static class WellPosedness
 
         if (constraint.Kind is ConstraintKind.MixedInlet)
         {
-            // Only the mixing split can move a mixed inlet temperature.
-            foreach (var element in hydraulic.Elements)
+            // Only the mixing split can move a mixed inlet temperature -- and the split that feeds the
+            // coil before any other. The hydraulic's order was enough while every coil took its own
+            // valve in turn; the moment one coil is off and asks for none (`S-56`), the next coil's
+            // inlet was handed the *off* coil's valve, the first free one in the list, which reaches its
+            // node through nothing. The valve at either end of the coil's own branch comes first.
+            var coil = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
+            var feeding = new HashSet<IFlowComponent>();
+
+            if (coil is not null)
             {
-                if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(graph, element, "position"))
+                foreach (var branch in graph.Branches)
                 {
-                    yield return (element.Name, "position");
+                    if (branch.Path.Contains(coil))
+                    {
+                        feeding.Add(branch.From.Element);
+                        feeding.Add(branch.To.Element);
+                    }
                 }
+            }
+
+            var splits = hydraulic.Elements
+                .Where(element => string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
+                    && IsFree(graph, element, "position"))
+                .ToArray();
+
+            foreach (var element in splits.Where(feeding.Contains).Concat(splits.Where(split => !feeding.Contains(split))))
+            {
+                yield return (element.Name, "position");
             }
 
             yield break;

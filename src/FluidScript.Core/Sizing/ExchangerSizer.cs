@@ -62,15 +62,31 @@ public sealed class ExchangerSizer : ISizer
         var flow = Math.Abs(context.MassFlow);
         var density = context.State.Density.SiValue;
 
-        if (!double.IsFinite(flow) || flow <= 0)
+        var off = Topology.WellPosedness.ZeroDuty(exchanger);
+
+        if (off || !double.IsFinite(flow) || flow <= Solvers.Tolerances.FlowZero)
         {
             // No flow yet, so no design point. The exchanger stays ideal for this pass and the next one
             // sizes it -- reporting nothing rather than pinning a design flow of zero, which would make
-            // its resistance infinite the moment anything did flow.
+            // its resistance infinite the moment anything did flow. A coil that is *off* stays here for
+            // the life of the run whatever flow it is handed -- the seed's nominal estimate on the first
+            // pass, 1.8e-27 kg/s on a later one, which once passed the `<= 0` test and became the flow
+            // its 20 kPa was measured at, a resistance of 1e44 -- and says so (`S-56`).
+            var notes = ImmutableArray.CreateBuilder<string>();
+
+            if (off)
+            {
+                var kilopascals = Drop(exchanger) / 1000;
+
+                notes.Add(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{exchanger.Name} is off (power=0): its {kilopascals:0.#} kPa has no design flow to be measured at, so it resists nothing this run."));
+            }
+
             return Result.Success(new SizingResult
             {
                 Values = ImmutableDictionary<string, SizedValue>.Empty,
-                Notes = [],
+                Notes = notes.ToImmutable(),
             });
         }
 

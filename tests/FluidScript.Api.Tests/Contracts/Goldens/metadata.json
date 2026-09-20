@@ -4559,6 +4559,28 @@
       ]
     },
     {
+      "code": "FS3014",
+      "severity": "warning",
+      "area": "Solver",
+      "message": "{parameter} solved to {head} m: the header pushes forward through {component}'s stopped branch and a pump cannot resist that. Close the branch -- an isolation valve, or the mixing valve at its stop -- or the plant runs through it.",
+      "arguments": [
+        "parameter",
+        "head",
+        "component"
+      ]
+    },
+    {
+      "code": "FS3015",
+      "severity": "info",
+      "area": "Solver",
+      "message": "{parameter} runs dead-headed at {head} m: it holds {component}'s stopped branch still against the header pushing backwards through it. If that pump is off, nothing here stops the flow: add a check valve to the branch, or state the flow you expect through it.",
+      "arguments": [
+        "parameter",
+        "head",
+        "component"
+      ]
+    },
+    {
       "code": "FS4008",
       "severity": "error",
       "area": "DesignWarning",

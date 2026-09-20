@@ -220,6 +220,35 @@ appears in and its column is identically zero (`S-23`). That is the physics: sta
 steady temperature. It needs a modelling decision — refuse the graph, or close the node against its
 neighbour — and not a different starting point.
 
+**A branch pinned at zero flow takes the second of those** (`S-56`, 2026-09-20). A consumer written
+`power=0` with its terminals stated is switched off: its `out` with `in` is a flow pin at exactly zero
+(`m = 0/(h_out − h_in)`), the pump on the branch is promoted to hold it, and every node inside the
+branch is the dead leg above — the rad-off header reported rank 36 of 38, naming the coil's outlet
+enthalpy and the pump head as the pair nothing separates. The rule: *the water in a stopped branch sits
+at the temperature of the header node it hangs from* — the branch's `To` end when that is a node, else
+its `From` end — and each inside node's energy balance is replaced by `ṁ_nominal·(h − h_anchor) = 0`,
+written in watts through the nominal seed flow so the row keeps the scale its balance had. It is a
+modelling choice and a mild one: in a plant the stopped coil cools to the room and nothing steady says
+what it holds; what the rule buys is a row with a slope and a reported temperature on the stopped
+branch that is the header's rather than an artefact of the seed. A branch whose ends are both junction
+elements has no anchor and keeps its rows, and the singularity is reported as before. This is this
+project's reasoning, not a published convention; no reference treats a stagnant branch in a
+steady-state network solve at all, which is why the choice is the least-assuming one available.
+
+The same pin lifts one bound. A pump's promoted `head` has minimum zero (`D-30`), and a head that
+holds a stopped branch still is asked for whatever the header's push across the branch amounts to:
+positive when the running consumers push *backwards* through it — the pump dead-heads, and the plant
+is exactly as the script wrote it — and negative when a main pump pushes *forwards*, which is a
+resistance no pump is. For that one column the bound is lifted, because a pump pinned at zero and a
+branch that cannot be held would leave the whole plant unsolved for a question that has a physical
+answer. Both signs are reported at the answer: `FS3015` for the dead-headed pump, with the reminder
+that a pump that is *off* is an open path and a check valve is what closes it; `FS3014` for the
+negative head, naming what would close the branch. Measured on the entry's header: AHU off, `PU_AHU`
+dead-heads at 2.05 m, the radiators keep their 0.3589 kg/s, and the only flow on the stopped side is
+the mixing valve's 2 % leakage — 6 g/s of 30 °C return crossing the valve body into the supply, a path
+the script wrote; with `PU_MAIN head=8` on the return the same coil's pump solves to −6.0 m and the
+leakage runs supply to return.
+
 **Every difference a residual reads has to be non-zero, and that is the general form of the rule.**
 `S-21` is the flow case. Two more turned up the moment promoted parameters became real columns, and
 neither is about flow at all:
@@ -294,6 +323,8 @@ Inherited from [`31-solver-architecture`](31-solver-architecture.md): `FS3001` c
 | `FS3011` | Line search hit `αmin` without improvement | Info | `Taking a reduced step near {component}; the solution is hard to reach here.` |
 | `FS3012` | Retried from the sizing seed after a warm-start failure (raised by `31`'s outer loop, which holds both seeds; `S-20`) | Info | `Restarted from the initial estimate.` |
 | `FS3013` | A pump or exchanger carries flow against its written direction at a converged solve | Warning | `{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.` |
+| `FS3014` | A head holding a stopped branch (`S-56`) solved negative: the header pushes forward through it | Warning | `{parameter} solved to {head} m: the header pushes forward through {component}'s stopped branch and a pump cannot resist that. Close the branch -- an isolation valve, or the mixing valve at its stop -- or the plant runs through it.` |
+| `FS3015` | A head holding a stopped branch solved positive: the pump dead-heads against a backward push | Info | `{parameter} runs dead-headed at {head} m: it holds {component}'s stopped branch still against the header pushing backwards through it. If that pump is off, nothing here stops the flow: add a check valve to the branch, or state the flow you expect through it.` |
 
 Both are info: they describe recovery, not failure, and a user does not need them — but a support
 conversation does, and the console log ([`56-console-log`](../50-frontend/56-console-log.md)) can show

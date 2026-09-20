@@ -115,6 +115,24 @@ public sealed class ValveSizer(
                 ("state", "the branch's resistance and a target authority between 0 and 1")));
         }
 
+        // A valve nothing flows through has no design point (`S-56`): the band rule would take the
+        // smallest row for a common-port flow of 1e-27 and the control-valve rule a Kv of nothing at
+        // all. A mixing valve's design flow is its common port's -- the legs still pass the leakage
+        // cross-flow of a stopped consumer. It keeps the Kv it has, and the note says why.
+        if (Math.Abs(context.CommonFlow ?? context.MassFlow) <= Solvers.Tolerances.FlowZero)
+        {
+            return Result.Success(new SizingResult
+            {
+                Values = ImmutableDictionary<string, SizedValue>.Empty,
+                Notes =
+                [
+                    $"{valve.Name} carries no flow at this operating point, so there is no design flow to "
+                    + "size it on; it keeps the Kv it has. A consumer that is off (power=0) has no design "
+                    + "point this run.",
+                ],
+            });
+        }
+
         // `D-122`. A three-way valve with its bypass connected is a mixing valve and is sized on its
         // common-port flow to a drop band -- unless the script states an authority, which asks for the
         // control-valve rule by name.

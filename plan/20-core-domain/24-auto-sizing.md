@@ -559,6 +559,22 @@ side 2, while Rated mode reports no hydraulic result for its external profile. *
 left `dp` and `dp2` as the duty-mode defaults in every mode, because the channel-geometry drop needs
 the same plate catalogue `u` does.
 
+**A coil that is off has no design point, and is not sized at all** (`S-56`, 2026-09-20). The
+design flow above is the flow the circuit runs at; with `power=0` that is zero by construction, and
+a zero design flow makes the quadratic law's resistance infinite — 1.8e-27 kg/s passed the sizer's
+`<= 0` test once and became a resistance of 1e44. The rule for a zero duty is *no rule*: the exchanger
+keeps no `flow`, resists nothing, and the report says `HE_AHU is off (power=0): its 20 kPa has no
+design flow to be measured at`. The off coil never inherits its sibling's flow either — the seed used
+to fill it from the active branch, and the rule sized it at the other coil's 30 kW (the finding the
+entry was filed on). What an off coil's resistance *would* be at its design flow is not knowable from
+a script that states no design duty, and pretending otherwise is the trap above.
+
+**A valve nothing flows through keeps the Kv it has** — the same rule, same entry. The band rule for
+a mixing valve reads the common port, and a stopped consumer's common port carries nothing while its
+legs still pass the stop's 2 % leakage cross-flow; sized on 1e-27 kg/s it chose the smallest row, and
+the report then noted that Kv 0.1 was "still larger than this flow wants". Below `flow.zero_tol` on the
+common port (or on the branch, for a two-way valve) the sizer returns no value and a note.
+
 ### Heat exchanger — extended modes: `ua`, `area`, `plates`
 
 `D-17` establishes the rated exchanger; `D-19` refines its Rated/Coupled sizing trigger. This is the first rule here that answers a genuinely thermal

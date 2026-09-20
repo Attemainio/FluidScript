@@ -278,6 +278,16 @@ would be filled with nothing.
 > up, `D-89`). The pump-free mixing header solves 45/45 in one iteration, `TV_MAIN` sizes to Kv 6.3
 > instead of the bootstrap 630, heads 5.05/5.51 m; the tripwire test written with the entry runs and
 > passes. No corpus value moved. One closed; 61 open.
+> **`S-56` closed** (the same day, the user choosing option b): `power=0` is an operating state. A
+> stated `in` on an off coil adds no row and promotes nothing; `out` with `in` pins the branch at
+> exactly zero; the pump promoted to hold it may solve negative (the bound lifted for that column)
+> and is reported either way -- `FS3015` dead-headed, `FS3014` cannot hold. The measurement found
+> three more: the stopped branch's nodes were `S-23`'s dead leg (rank 36/38) and now close against
+> the header node the branch hangs from; the exchanger sizer took 1.8e-27 kg/s as a design flow
+> (resistance 1e44) and an off coil is now not sized; and a mixed inlet's candidate order handed the
+> radiator's inlet the AHU's free valve, so the coil's own split comes first. `HeaderSeedTests` pins
+> AHU-off, RAD-off and the main-pumped forward-push case. `S-23` narrowed to the dead leg proper.
+> One closed; 60 open.
 > Committed 2026-09-17 with the Api goldens regenerated to the ladder engine's sample layouts.
 > `C-88` and `C-90` closed the same day: the audit measures all ten hard constraints and the
 > transform class is on the wire. Step 6, the cooling loop, is drawn (the loop walk through
@@ -951,8 +961,8 @@ its own unread documents.
 **Nothing open blocks the three demo scripts any more.** The header's remaining entries were each
 measured on a *variant* and stay open on their own merits: `S-53` (the seed doubles a three-way
 valve's inlet legs when the source outlet is omitted), `S-55` (driver analysis misses distribution
-pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow),
-`S-52` (`FS2211` sends the user to the balanced half) and `S-45`'s residue, which `FS2218` now
+pumps once a source valve is added), `S-56` (a zero-duty consumer inherits its sibling's flow) --
+all three closed 2026-09-20 -- `S-52` (`FS2211` sends the user to the balanced half) and `S-45`'s residue, which `FS2218` now
 makes visible without deciding. `L-47` (closed) records the sign discussion of 2026-09-14: `power`
 never carries flow direction, terminals stay port-bound, and `FS3013`/`FS1308` say so. Nothing stands between here and M2a's exit any more; it exited 2026-09-14 with `C-76` closed. P3.8 closed `C-51` with `D-94` on 2026-09-14; the M2a
 sweep of 2026-09-14 filed `C-74` (no `FS23xx` code is registered; sizing speaks in notes) and `C-75`,
@@ -972,12 +982,12 @@ unassessed, not clean.
    spec edit and the user's call; until then the sample is the reference and `01` the intent.
 2. **Whether the fourth plant becomes a fourth reference circuit.** It converges on hand figures as
    a test fixture; promoting it to `samples/` and `01` is a spec addition (`D-11`) and the user's
-   call. Its natural next variants — one source off (`S-56`, and there is no check valve to stop
-   reverse flow through it), a source-side mixing valve (`S-55`) — are the open entries it points at.
-3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` (a source with
-   `power=0` and both terminals stated goes non-finite; the user picks between refusing it, dropping
-   the mixed-inlet promotion at zero duty, and a check valve). Then **P5.13b** (`L-56`), then
-   the valve-sizing observation under `S-58`.
+   call. Its natural next variants — one source off (`S-56`, closed: the pump dead-heads and `FS3015` says a
+   check valve is what an off pump would need), a source-side mixing valve (`S-55`) — are the open entries it points at.
+3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b); next
+   is **P5.13b** (`L-56`), then the valve-sizing observation under `S-58`. Two report packages the
+   user asked for on 2026-09-20 sit ahead of P5.13b: layout provenance (`C-107`) and the solver
+   report's iteration history, engineering-unit state, heat balance and seed bases (`S-71`).
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
    Core-side and closed by golden files before a pixel exists. `D-100` (2026-09-15) triaged a
    proposed layout standard before P5.1 started: hard constraints as a named class, an explicit

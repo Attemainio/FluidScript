@@ -201,6 +201,87 @@ public sealed class HeaderSeedTests
         Assert.StartsWith("This circuit is under-specified by 1. Add one of: a temperature on", refused.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("HE_AHU", "PU_AHU", "TV_AHU", "HE_RAD", 0.3589)]
+    [InlineData("HE_RAD", "PU_RAD", "TV_RAD", "HE_AHU", 0.2871)]
+    public async Task ASwitchedOffConsumerIsHeldStillByItsPumpAndSizesNothingFromItsSibling(
+        string off, string pump, string valve, string on, double onFlow)
+    {
+        // S-56's acceptance on the entry's own script: `power=0` on one consumer. Its `in=50` asks
+        // nothing of its split, its `out=30` pins the branch at zero flow, and the pump promoted to hold
+        // it dead-heads at the head the other consumer's push amounts to (FS3015). The off coil is not
+        // sized from anything -- least of all its sibling's 30 kW flow, which it used to inherit -- the
+        // running coil keeps its own design flow, and the only flow on the stopped side is the mixing
+        // valve's 2 % leakage crossing from the return header to the supply through the valve body,
+        // which is a path the script wrote. The stopped branch's nodes sit at the return header's
+        // temperature (the anchor rule), not at an artefact of the seed.
+        // The source's duty is left to the balance, as the entry's script has it: with one coil off the
+        // plant carries the other's load and nothing else.
+        var script = NoBypassHeader
+            .Replace("HS1     heat_exchanger power=54 kW out.t=80", "HS1     heat_exchanger out.t=60", StringComparison.Ordinal)
+            .Replace($"{off}  load in.t=50 out.t=30 power=", $"{off}  load in.t=50 out.t=30 power=0 kW #", StringComparison.Ordinal);
+        var check = WellPosedness.Check(GraphFixture.Lower(script).Graph);
+
+        Assert.Equal(0, check.Counting.Excess);
+        Assert.DoesNotContain(check.Counting.Constraints, c => c.Component == off && c.Kind == ConstraintKind.MixedInlet);
+        Assert.Contains(check.Counting.Promotions, p => p.Component == pump && p.Parameter == "head" && p.Constraint.Component == off);
+        Assert.DoesNotContain(check.Counting.Promotions, p => p.Component == valve);
+
+        var result = await Loop().RunAsync(GraphFixture.Bind(script), Water.Instance, "s56", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s56");
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.True(run.Settled, report);
+        Assert.Contains(run.Solve.Diagnostics, d => d.Code == "FS3015" && d.Message.Contains(pump, StringComparison.Ordinal));
+        Assert.Null(run.Sizes.For(off, "flow"));
+        Assert.Equal(onFlow, run.Sizes.For(on, "flow")!.Value, 3);
+
+        var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0, Through(run.Graph, layout, solved, off), 6);
+        Assert.InRange(solved[Promotion(layout, pump, "head")], 1.5, 3.0);
+
+        var leak = Leg(run.Graph, layout, solved, valve, "a");
+
+        Assert.Equal(leak, Leg(run.Graph, layout, solved, valve, "b"), 6);
+        Assert.InRange(leak, 0.001, 0.02);
+    }
+
+    [Fact]
+    public async Task AMainPumpPushesForwardThroughTheStoppedCoilAndTheReportSaysWhatWouldCloseIt()
+    {
+        // The other sign of S-56: a main pump on the return puts the supply header above the return at
+        // the stopped branch's ends, so holding it still takes a *negative* head -- a resistance no pump
+        // is. The bound is lifted for that one column so the plant solves (−6.0 m measured), and FS3014
+        // names the fix: close the branch. The leakage now crosses supply to return.
+        var script = NoBypassHeader
+            .Replace("HS1     heat_exchanger power=54 kW out.t=80", "HS1     heat_exchanger out.t=60\nPU_MAIN pump head=8", StringComparison.Ordinal)
+            .Replace("HE_AHU  load in.t=50 out.t=30 power=", "HE_AHU  load in.t=50 out.t=30 power=0 kW #", StringComparison.Ordinal)
+            .Replace("N5 - N1", "N5 - PU_MAIN - N1", StringComparison.Ordinal);
+
+        var result = await Loop().RunAsync(GraphFixture.Bind(script), Water.Instance, "s56-main", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s56-main");
+
+        Assert.True(run.Solve.Converged, report);
+        Assert.Contains(run.Solve.Diagnostics, static d => d.Code == "FS3014" && d.Message.Contains("PU_AHU.head", StringComparison.Ordinal));
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS3008");
+
+        var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0, Through(run.Graph, layout, solved, "HE_AHU"), 6);
+        Assert.InRange(solved[Promotion(layout, "PU_AHU", "head")], -8.0, -4.0);
+    }
+
     private static OuterLoop Loop()
     {
         var resolved = PipeCatalogs.Resolve(pin: null);

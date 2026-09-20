@@ -202,6 +202,51 @@ public static class SolverDiagnostics
         "FS3013",
         DiagnosticSeverity.Warning,
         "{component} carries {flow} kg/s from '{outlet}' to '{inlet}', against its written direction{note}.");
+    /// <summary>A pump cannot hold a switched-off branch: the header pushes forward through it.</summary>
+    /// <value><c>FS3014</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>A consumer with <c>power=0</c> and its terminals stated pins its branch at zero flow, and
+    /// the pump promoted to hold it is asked for whatever head keeps the branch still</strong>
+    /// (<c>S-56</c>). When the header pushes <em>backwards</em> through the stopped branch the answer is a
+    /// positive head -- the pump dead-heads, <see cref="DeadHeaded"/>. When the header pushes
+    /// <em>forwards</em> the answer is negative: a resistance, not a pump, and nothing a pump can be. The
+    /// solve is allowed to find it -- the bound (<c>D-30</c>) is lifted for exactly this column --
+    /// because a pump pinned at zero and a branch that cannot be held would leave the whole plant
+    /// unsolved for a question that has a physical answer: the branch runs unless something shuts it.
+    /// </para>
+    /// <para>
+    /// A warning, not an error: the rest of the plant is solved and right. The number is what the
+    /// missing valve must hold.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor HeldShut { get; } = new(
+        "FS3014",
+        DiagnosticSeverity.Warning,
+        "{parameter} solved to {head} m: the header pushes forward through {component}'s stopped branch "
+        + "and a pump cannot resist that. Close the branch -- an isolation valve, or the mixing valve at "
+        + "its stop -- or the plant runs through it.");
+
+    /// <summary>A pump holds a switched-off branch still at its shut-off head.</summary>
+    /// <value><c>FS3015</c>, informational.</value>
+    /// <remarks>
+    /// <para>
+    /// The positive case of <see cref="HeldShut"/> (<c>S-56</c>): the running consumers' pumps push the
+    /// header backwards through the stopped branch, and the pump on it holds zero flow by running against
+    /// that -- dead-headed, at exactly the head the reverse push amounts to. That is a real operating
+    /// state and the answer the script asked for. What the script did not say is whether the pump is
+    /// on: a pump that is <em>off</em> is an open path, and the same push then drives the branch
+    /// backwards through the coil, which is the cross-flow the entry was filed about. The note says so
+    /// and names the fix a plant would have.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor DeadHeaded { get; } = new(
+        "FS3015",
+        DiagnosticSeverity.Info,
+        "{parameter} runs dead-headed at {head} m: it holds {component}'s stopped branch still against "
+        + "the header pushing backwards through it. If that pump is off, nothing here stops the flow: "
+        + "add a check valve to the branch, or state the flow you expect through it.");
+
     /// <summary>A warm start did not converge and the pass was rerun from the sizing seed.</summary>
     /// <value><c>FS3012</c>, an info.</value>
     /// <remarks>
@@ -231,5 +276,7 @@ public static class SolverDiagnostics
         ReducedStep,
         RestartedFromSeed,
         ReversedFlow,
+        HeldShut,
+        DeadHeaded,
     ];
 }

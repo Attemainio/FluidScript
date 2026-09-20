@@ -639,6 +639,18 @@ chosen -- and keeps a pressure as the last resort. The earlier wording scanned t
 stated temperature, found the matched ones, and told the header to add a pressure to a hydraulic
 half that was already square; taking that advice made the count square and the Jacobian singular.
 
+**A consumer switched off asks nothing of its split and pins its branch at zero** (`S-56`,
+2026-09-20). `power=0` is an operating state, not a missing size. With it, a stated `in` is
+documentation of the coil's design point and not a demand: there is no flow to deliver 50 °C to, and a
+`MixedInlet` row asking the split to hold it is 0/0 — so the row and the `position` it would promote
+disappear together, and the count stays square. The `out` with `in` still pins the flow, at exactly
+zero, and the pump's `head` still answers it; [`32`](../30-solver/32-steady-state-newton.md) says what
+that head means and how the stopped branch's nodes are closed. The same change fixed the candidate
+order for a mixed inlet, which took the first free split in the hydraulic: with one coil off and its
+valve free, the *next* coil's inlet was handed the off coil's valve, which reaches its node through
+nothing. The split at either end of the coil's own branch now comes first, as `S-45` already had it
+for a node temperature.
+
 **A promoted parameter may not also be stated.** `3WV position=0.78` on a circuit that also states
 `HE1 in=20` is two things setting one unknown: `FS2210`, naming both, with the fix being to remove
 either. This is the trap `D-02` creates and it is worth naming explicitly, because both lines look

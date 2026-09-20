@@ -646,6 +646,19 @@ public sealed class NewtonSolver : ISolver
             }
         }
 
+        // `FS3014` / `FS3015` likewise: a head that holds a stopped branch is read at the answer. Its sign
+        // says which way the header pushes -- positive is a pump dead-heading against a backward push,
+        // negative a forward push no pump can resist (`S-56`).
+        foreach (var (column, holds) in system.Closing)
+        {
+            diagnostics.Add(Diagnostic.Create(
+                x[column] < 0 ? SolverDiagnostics.HeldShut : SolverDiagnostics.DeadHeaded,
+                null,
+                new DiagnosticArgument("parameter", system.Unknowns.Unknowns[column].Name),
+                Number("head", x[column]),
+                new DiagnosticArgument("component", holds)));
+        }
+
         var raw = new double[system.Rows];
         var scaled = new double[system.Rows];
 

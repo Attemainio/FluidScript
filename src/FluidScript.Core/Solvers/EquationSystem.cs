@@ -80,8 +80,9 @@ public sealed class EquationSystem
     private readonly (int Offset, int Count)[] _owned;
     private readonly (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] _fluxes;
     private readonly double[][] _parameters;
-    private readonly (int Element, int Slot, int Column)[] _promoted;
+    private readonly (int Element, int Slot, int Column, string? Holds)[] _promoted;
     private readonly Constraint[] _constraints;
+    private readonly (int Node, int Anchor)[] _stagnant;
 
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
@@ -126,8 +127,9 @@ public sealed class EquationSystem
         (int Offset, int Count)[] owned,
         (int Node, int MassRow, int Column, double Magnitude, double Enthalpy, bool Known)[] fluxes,
         double[][] parameters,
-        (int Element, int Slot, int Column)[] promoted,
-        Constraint[] constraints)
+        (int Element, int Slot, int Column, string? Holds)[] promoted,
+        Constraint[] constraints,
+        (int Node, int Anchor)[] stagnant)
     {
         _graph = graph;
         _ports = ports;
@@ -142,6 +144,7 @@ public sealed class EquationSystem
         _parameters = parameters;
         _promoted = promoted;
         _constraints = constraints;
+        _stagnant = stagnant;
 
         Unknowns = unknowns;
         Equations = equations;
@@ -397,7 +400,7 @@ public sealed class EquationSystem
             }
         }
 
-        var promoted = new List<(int Element, int Slot, int Column)>(posedness.Counting.Promotions.Length);
+        var promoted = new List<(int Element, int Slot, int Column, string? Holds)>(posedness.Counting.Promotions.Length);
 
         for (var index = 0; index < posedness.Counting.Promotions.Length; index++)
         {
@@ -411,23 +414,36 @@ public sealed class EquationSystem
                 continue;
             }
 
+            // A head promoted to hold a switched-off coil's branch at zero flow is the shut check valve
+            // the plant does not have, and a check valve's drop has no lower bound (`S-56`).
+            var holds = promotion.Constraint.Kind is ConstraintKind.FixedFlow
+                && string.Equals(promotion.Parameter, "head", StringComparison.Ordinal)
+                && graph.Components.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, promotion.Constraint.Component, StringComparison.Ordinal))
+                    is { } pinned
+                && WellPosedness.ZeroDuty(pinned)
+                    ? pinned.Name
+                    : null;
+
             var resolvable = graph.Components[element].Resolvable;
 
             for (var slot = 0; slot < resolvable.Length; slot++)
             {
                 if (string.Equals(resolvable[slot].Name, promotion.Parameter, StringComparison.Ordinal))
                 {
-                    promoted.Add((element, slot, unknowns.PromotionOffset + index));
+                    promoted.Add((element, slot, unknowns.PromotionOffset + index, holds));
 
                     break;
                 }
             }
         }
 
+        var constraints = Constraints(graph, posedness, equations, ports, byComponent);
+
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
             nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, [.. fluxes],
-            parameters, [.. promoted], Constraints(graph, posedness, equations, ports, byComponent));
+            parameters, [.. promoted], constraints, Stagnant(graph, ports, byComponent, constraints));
     }
 
     /// <summary>Resolves each stated constraint to the state its residual reads.</summary>
@@ -474,6 +490,26 @@ public sealed class EquationSystem
             }
 
             target = stated;
+
+            // A switched-off coil's flow pin is a pin at zero: `power=0` with its terminals stated is
+            // m = 0/(h_out - h_in), and the temperature form it used to fall back to -- the outlet node
+            // *at* 30 °C -- is a statement about a node nothing flows through, which the header may or
+            // may not happen to satisfy (`S-56`). The residual keeps the row's kelvin scale through the
+            // nominal seed flow: 0.1 kg/s of leakage reads as the coil's whole design span.
+            if (constraint.Kind is ConstraintKind.FixedFlow
+                && graph.Components[element] is HeatExchanger stopped
+                && WellPosedness.ZeroDuty(stopped))
+            {
+                var side = ports[element, constraint.Parameter.EndsWith('2') ? 2 : 0];
+                var span = SideSpan(stopped, constraint.Parameter);
+
+                if (side.CarriesFlow && span > 0)
+                {
+                    resolved[index] = new Constraint(
+                        row, -1, -1, 0, side.Sign, side.Branch, 0, span / Sizing.BranchFlows.Nominal);
+                    continue;
+                }
+            }
 
             // Either side: `out` with `in` pins side 1's branch through port 0, `out2` with `in2` pins side
             // 2's through port 2 (`D-97`).
@@ -532,6 +568,108 @@ public sealed class EquationSystem
         }
 
         return resolved;
+    }
+
+    /// <summary>The temperature span a flow pin was written with: <c>out</c> less <c>in</c>, or <c>dt</c> itself.</summary>
+    /// <param name="exchanger">The exchanger.</param>
+    /// <param name="parameter">The pinning parameter: <c>out</c>, <c>out2</c>, <c>dt</c> or <c>dt2</c>.</param>
+    /// <returns>K, a magnitude; zero when the pair is not both stated.</returns>
+    private static double SideSpan(HeatExchanger exchanger, string parameter)
+    {
+        if (parameter is "dt" or "dt2")
+        {
+            return Math.Abs(HydraulicPartition.Stated(exchanger, parameter) ?? 0);
+        }
+
+        var suffix = parameter.EndsWith('2') ? "2" : string.Empty;
+
+        return HydraulicPartition.Stated(exchanger, "in" + suffix) is { } inlet
+            && HydraulicPartition.Stated(exchanger, "out" + suffix) is { } outlet
+                ? Math.Abs(outlet - inlet)
+                : 0;
+    }
+
+    /// <summary>The nodes inside every branch pinned at zero flow, each with the node it takes its temperature from.</summary>
+    /// <param name="graph">The lowered graph.</param>
+    /// <param name="ports">Which node each component port attaches to.</param>
+    /// <param name="byComponent">Each node component's index among the nodes.</param>
+    /// <param name="constraints">The resolved constraints; the flow pins at zero name the branches.</param>
+    /// <returns>Node and anchor pairs, both indices among the graph's nodes.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>Stagnant water has no steady-state temperature</strong> (<c>S-56</c>). A node's energy
+    /// balance is Σ ṁ·h over its ports, and on a branch held at exactly zero flow every term is zero
+    /// whatever the enthalpy: the row is satisfied by anything, its column is empty, and the Jacobian
+    /// is singular by one for each node inside the stopped branch -- which is what the rad-off header
+    /// reported, naming the pump head and the coil's outlet enthalpy as the pair nothing separates.
+    /// </para>
+    /// <para>
+    /// The rule that replaces those rows: <em>the water in a stopped branch sits at the temperature of
+    /// the header node it hangs from</em> -- the branch's <c>To</c> end when that is a node, else its
+    /// <c>From</c> end. It is a modelling choice and a mild one: in a plant the stopped coil cools to the
+    /// room, and nothing steady says what it holds. What the rule buys is a row with a slope, and a
+    /// reported temperature on the stopped branch that is the header's rather than an artefact of the
+    /// seed. A branch whose ends are both junction elements has no anchor and keeps its rows; the
+    /// singularity is then reported as before.
+    /// </para>
+    /// </remarks>
+    private static (int Node, int Anchor)[] Stagnant(
+        CircuitGraph graph,
+        PortMap ports,
+        Dictionary<object, int> byComponent,
+        Constraint[] constraints)
+    {
+        var stagnant = new List<(int Node, int Anchor)>();
+        var index = new Dictionary<IFlowComponent, int>(ReferenceEqualityComparer.Instance);
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            index[graph.Components[element]] = element;
+        }
+
+        foreach (var constraint in constraints)
+        {
+            if (constraint.FlowBranch < 0 || constraint.FlowTarget != 0)
+            {
+                continue;
+            }
+
+            var branch = graph.Branches[constraint.FlowBranch];
+            var ends = new[] { branch.To.Element, branch.From.Element }
+                .Where(end => end is CircuitNode)
+                .Select(end => byComponent[end])
+                .ToArray();
+
+            if (ends.Length == 0)
+            {
+                continue;
+            }
+
+            var anchor = ends[0];
+            var inside = new SortedSet<int>();
+
+            foreach (var component in branch.Path)
+            {
+                var element = index[component];
+
+                for (var port = 0; port < component.Ports.Length; port++)
+                {
+                    var binding = ports[element, port];
+
+                    if (binding.Branch == branch.Index && binding.Node >= 0 && !ends.Contains(binding.Node))
+                    {
+                        inside.Add(binding.Node);
+                    }
+                }
+            }
+
+            foreach (var node in inside)
+            {
+                stagnant.Add((node, anchor));
+            }
+        }
+
+        return [.. stagnant];
     }
 
     /// <summary>The node a named port of one component attaches to.</summary>
@@ -628,7 +766,7 @@ public sealed class EquationSystem
             }
         }
 
-        foreach (var (owner, slot, column) in _promoted)
+        foreach (var (owner, slot, column, _) in _promoted)
         {
             _parameters[owner][slot] = x[column];
         }
@@ -731,11 +869,11 @@ public sealed class EquationSystem
     {
         pinned = -1;
 
-        foreach (var (element, slot, column) in _promoted)
+        foreach (var (element, slot, column, holds) in _promoted)
         {
             var parameter = _graph.Components[element].Resolvable[slot];
 
-            if (parameter.Minimum is { } low && x[column] < low)
+            if (holds is null && parameter.Minimum is { } low && x[column] < low)
             {
                 x[column] = low;
                 pinned = column;
@@ -748,6 +886,22 @@ public sealed class EquationSystem
         }
 
         return pinned >= 0;
+    }
+
+    /// <summary>The promoted columns that hold a switched-off branch shut, with the component each holds (<c>S-56</c>).</summary>
+    /// <value>Column and the stopped exchanger's name. Such a column is exempt from its parameter's lower bound: a negative head is the check valve's drop.</value>
+    public IEnumerable<(int Column, string Holds)> Closing
+    {
+        get
+        {
+            foreach (var (_, _, column, holds) in _promoted)
+            {
+                if (holds is not null)
+                {
+                    yield return (column, holds);
+                }
+            }
+        }
     }
 
     /// <summary>Which node's fluid state one unknown decides, or <c>-1</c> when it decides none.</summary>
@@ -782,7 +936,7 @@ public sealed class EquationSystem
 
         // Promoted parameters, before anything reads one. A component's residual cannot tell a value
         // the solver is varying from one its constructor chose, which is the point (`D-76`).
-        foreach (var (element, slot, column) in _promoted)
+        foreach (var (element, slot, column, _) in _promoted)
         {
             _parameters[element][slot] = x[column];
         }
@@ -859,6 +1013,18 @@ public sealed class EquationSystem
             if (_energyRow[node] >= 0)
             {
                 residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
+            }
+        }
+
+        // A node inside a branch held at zero flow takes the temperature of the node its branch hangs
+        // from; its own balance is 0 = 0 there (`S-56`). Written in watts through the nominal flow so
+        // the row keeps the scale its balance had.
+        foreach (var (node, anchor) in _stagnant)
+        {
+            if (_energyRow[node] >= 0)
+            {
+                residuals[_energyRow[node]] = Sizing.BranchFlows.Nominal
+                    * (x[Unknowns.NodeEnthalpy(node)] - x[Unknowns.NodeEnthalpy(anchor)]);
             }
         }
 

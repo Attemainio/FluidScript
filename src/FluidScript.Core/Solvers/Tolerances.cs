@@ -140,6 +140,14 @@ public static class Tolerances
     /// </value>
     public const double FlowZero = 1e-6;
 
+    /// <summary>The duty magnitude below which an exchanger is switched off.</summary>
+    /// <value>
+    /// <c>power.zero_tol</c>, W, compared as a magnitude. One milliwatt: <c>power=0</c> writes exactly
+    /// zero, and the band exists only so that a unit conversion's rounding cannot turn it into a duty.
+    /// A consumer under this takes no flow and asks nothing of the split that feeds it (<c>S-56</c>).
+    /// </value>
+    public const double PowerZero = 1e-3;
+
     /// <summary>The relative tolerance two quantities are compared with.</summary>
     /// <value>
     /// <c>quantity.compare_rel_tol</c>, dimensionless and relative. Comparison, not convergence: it

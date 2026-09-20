@@ -803,3 +803,13 @@ and `RegistryMatchesTheComponentModelTests` reads them against the registry rows
 which is the point of the split; the counting table's labels (`HX1.out2`) and the sizes are the
 visible remainder, `L-56`. The four messages that quoted the old spelling in prose (`FS2109`,
 `FS2110`, `FS2112`, `FS2113`) were rewritten and `22`'s error table with them.
+
+**`power=0` is an operating state, and `23` and `24` now say what it does** (`S-56`, 2026-09-20).
+`23`'s promotion section: an off coil's `in` adds no `MixedInlet` row and promotes nothing; its `out`
+with `in` pins the branch at zero; the split on the coil's own branch is the first candidate for a
+mixed inlet, not the first free valve in the hydraulic. `24`: an off coil is not sized (a zero design
+flow is an infinite resistance, and 1.8e-27 kg/s once passed for one), and a valve nothing flows
+through keeps its Kv. The solver side -- the stopped branch's closure row, the lifted head bound,
+`FS3014`/`FS3015` -- is `32`'s. What `24` still does not say is what an off coil's resistance *would*
+be at its design flow: a script that states `power=0` states no design duty, and the entry left that
+as unknowable rather than default it.

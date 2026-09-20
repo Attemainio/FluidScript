@@ -132,6 +132,17 @@ backwards it still does its duty on the node it actually discharges into, and `F
 because `in.t=50` stays bound to the port you called `in`, exactly as a temperature sensor stays
 mounted where the installer put it.
 
+**`power=0` means the consumer is off, and its pump holds the branch still.** `HE_AHU load in.t=50
+out.t=30 power=0` keeps the coil's design temperatures as documentation and asks nothing of the mixing
+valve that feeds it; `out.t` with `in.t` pins the branch at zero flow, and the pump on it is solved
+for whatever head holds that — positive when the running consumers push the header backwards through
+the stopped branch (the pump dead-heads, [`FS3015`](diagnostics.md), which also reminds you that a
+pump that is *off* is an open path and a check valve is what closes it), negative when a main pump
+pushes forwards, which no pump can resist ([`FS3014`](diagnostics.md): close the branch). The
+stopped branch's nodes report the temperature of the header node they hang from, the coil is not
+sized (an off coil has no design flow), and the only flow on that side is the mixing valve's stop
+leakage crossing its body — which the solve shows, because you wrote the path.
+
 **`dt` is never negative.** It says how far the temperature moves, not which way. The component word
 supplies the direction when you use a role: `RAD1 load power=70 dt=20` removes 70 kW and leaves the
 outlet 20 K below the inlet; `BLR1 heater power=70 dt=20` adds 70 kW and raises it by 20 K. With the

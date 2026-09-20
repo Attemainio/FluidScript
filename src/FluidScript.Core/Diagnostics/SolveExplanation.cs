@@ -98,7 +98,6 @@ public static class SolveExplanation
         var system = Assemble(graph, posedness, seed);
 
         Unknowns(report, layout, seed, solve);
-        Unknowns(report, layout, seed, solve);
         Equations(report, system, seed, solve);
         Sized(report, bases, notes);
         Ratings(report, graph, layout, solve);
