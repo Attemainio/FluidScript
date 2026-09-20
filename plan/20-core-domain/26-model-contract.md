@@ -193,7 +193,7 @@ converting there costs one pass and removes a whole class of consumer bug.
   "bindings": [                          // evaluated `let` values, contract 1.0
     { "name": "dT", "value": 30, "unit": "dK", "dimension": "TemperatureDelta", "siUnit": null },
     { "name": "ratio", "value": 1.5, "unit": null, "dimension": null, "siUnit": "kg/(s³·K)" },
-    { "name": "x", "value": null, "unit": null, "dimension": null, "siUnit": null }  // deferred, F-5
+    { "name": "x", "value": null, "unit": null, "dimension": null, "siUnit": null }  // deferred, U-5
   ],
 
   "diagnostics": [
@@ -584,7 +584,7 @@ Realtime uses validated delta frames (`43`), and evaluated `bindings` ship in co
 agents and hover can explain derived values; P5.5 (2026-09-18) added `dimension`, the dimension's
 name, so the editor's value completion can filter a `let` by it without re-deriving the dimension
 from a unit symbol, and `siUnit`, the SI spelling a binding of an unnamed dimension carries so
-completion can show it dimmed (`52`). A deferred binding has neither, which is `F-5`. One from P5.1b: `parameters[].unit` is `null` for a
+completion can show it dimmed (`52`). A deferred binding has neither, which is `U-5`. One from P5.1b: `parameters[].unit` is `null` for a
 value whose registry dimension is dimensionless, and that includes `u` (`W/(m²·K)`), because the
 registry declares it so. The wire is honest about what the registry says; the registry is what
 should say more (`C-78`'s neighbour).

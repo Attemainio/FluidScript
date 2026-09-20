@@ -58,7 +58,7 @@ was the frontend's; since `D-103` the geometry is Core's and what the frontend c
 is a few hundred transform strings, which is not work worth a message boundary. `prepareScene` is
 pure so it can move to a worker when frame deltas (`43`, M4) give one something to do, and the
 budget criterion below stays unticked until it is measured in a browser, which P5.5's benchmark
-environment could not launch (`F-4`).
+environment could not launch (`U-4`).
 
 ## Rendering technology
 
@@ -400,7 +400,7 @@ the labels.
 
 - [x] The prepared scene passes the shared renderer/export golden test in [`59-static-export`](59-static-export.md). (P5.6: one SVG per Api sample under `canvas/goldens`, rendered by the same component the pane uses; `59` reads the same markup.)
 - [x] An unknown component kind renders a labelled rectangle rather than breaking the canvas. (P5.6)
-- [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning. (Unmeasured: no browser launches in the build environment, `F-4`, and no 200-component golden exists on the frontend side. What Node measures, P5.11's `baseline.test.tsx`: 4.8 ms to prepare and render the 24-placement header to static markup, which extrapolates to ~40 ms at 200 -- over the 8 ms commit budget before the DOM is touched, so the budget is not met by extrapolation and a browser measurement is the next step, `F-10`.)
+- [ ] A 200-component model meets `07-quality-attributes`' frame and UI-thread budgets while panning. (Unmeasured: no browser launches in the build environment, `U-4`, and no 200-component golden exists on the frontend side. What Node measures, P5.11's `baseline.test.tsx`: 4.8 ms to prepare and render the 24-placement header to static markup, which extrapolates to ~40 ms at 200 -- over the 8 ms commit budget before the DOM is touched, so the budget is not met by extrapolation and a browser measurement is the next step, `U-10`.)
 - [x] Inferred components are visually distinguishable from declared ones without hovering. (P5.6: `--canvas-symbol-inferred` and an italic label.)
 - [x] Symbols carry their tag as a label, and a test asserts no DOM key, selection key, or export id
       contains a tag. (P5.6)
@@ -411,9 +411,9 @@ the labels.
 - [ ] A modulating valve shows a 0–1 indicator whose accessible name states the numeric value. (P5.10, with the state readouts.)
 - [ ] Layout/routing/render preparation is verified to run in the Web Worker; the UI thread performs
       only the bounded SVG commit. (Deferred to M4, see *As built*.)
-- [x] Keyboard and screen-reader users can reach the same component state and diagnostic information. (P5.6: every symbol is focusable in layout order with a title. P5.11: `SceneTable`, the diagram as two tables built from the same cards as hover; focus shows the card; arrows pan, `+`/`-` zoom, Enter selects, `Ctrl+E` exports; axe passes over the mounted app under jsdom. A screen reader's reading and 200 % zoom are `F-10`.)
+- [x] Keyboard and screen-reader users can reach the same component state and diagnostic information. (P5.6: every symbol is focusable in layout order with a title. P5.11: `SceneTable`, the diagram as two tables built from the same cards as hover; focus shows the card; arrows pan, `+`/`-` zoom, Enter selects, `Ctrl+E` exports; axe passes over the mounted app under jsdom. A screen reader's reading and 200 % zoom are `U-10`.)
 - [ ] Groups over 10 members and scenes over 500 elements apply the specified initial-collapse rule
-      and still meet `07`'s budgets. (No collapse exists on either side yet; `F-7`.)
+      and still meet `07`'s budgets. (No collapse exists on either side yet; `U-7`.)
 - [ ] A tank renders exactly its resolved layer count and only its materialized port anchors, placing
       30% on layer 2 and 90% on layer 5 for the five-layer reference. (The anchors are the layout's and drawn; the layer bands are P5.10's.)
 - [x] A solved/transient flow reversal changes connection arrows and nothing else on the drawing. (P5.6: asserted on the markup with the arrows stripped.)

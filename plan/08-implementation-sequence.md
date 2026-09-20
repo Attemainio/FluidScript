@@ -425,6 +425,51 @@ as though it was always right. Entries that are neither defects nor fixes go und
 a constant chosen with no specification behind it, a deliberate omission, a trap the next
 implementation will otherwise re-derive.
 
+### The register's shape
+
+Four sections, in this order: **Open**, **Traps**, **Closed**, **Observations**. A line above them
+states the **next id** — `**Next id: \`C-108\`.**` — and filing an entry means taking that id and
+bumping the line. Ids were allocated by reading the last row until 2026-09-20, when two registers
+turned out to share a prefix and one held the same id twice; `check.py` now refuses both.
+
+**Open** rows carry `| # | Effort | Risk | Basis | Document | What | Why it is still open |`.
+**Closed** rows carry `| # | Effort | Document | What was wrong | What changed |`, the effort being
+what closing it actually took, filled at closing time; rows closed before the column existed say `—`.
+
+- **Effort** is *tiny* (one edit, no test), *small* (an hour inside one tier, a test), *medium* (a
+  package: code, tests, docs, this register), *big* (several tiers, or it needs a `D-`), *large*
+  (milestone-sized, or it needs a source that has not been found).
+- **Risk** is *low* / *med* / *high* — the same scale the option tables use: how likely the fix breaks
+  something it did not set out to touch, or turns out to be the wrong fix.
+- **Basis** is *measured* (reproduced on a script, the mechanism located in code, the numbers in the
+  row are from a run) or *hunch* (read, reasoned, not yet reproduced). A `hunch` row's effort is a
+  guess about a guess; the first hour of work on it is measuring, and the row's basis changes before
+  its code does.
+
+The columns exist to answer two questions without reading the register: *what can be fixed now*
+(`tiny`/`small`, `measured`) and *what are the three largest things wrong* (`big`/`large`, sorted by
+risk). They are estimates by whoever filed the row and are expected to be wrong; the closed table's
+actual effort beside the open table's estimate is how the estimates get calibrated.
+
+**Traps** is the short list a session reads before working in the tier: the things that were got
+wrong once and will be got wrong again — a rule with a non-obvious guard, a sizer that must not run, an
+ordering that matters. An entry is *promoted* here from Observations or from a closed row when a
+session hits it a second time, and is never written here first. Observations below it remain the
+record, and the honest expectation is that they are read by grep for an id, not front to back.
+
+### Before filing, reopening or closing
+
+- **Before filing**, grep the tier's register and the decision log for the subject. A closed row
+  that already describes it is reopened (its id kept, its row moved back to Open with the new
+  measurement), not refiled. A `D-` that settles it is the answer, unless the measurement disagrees —
+  in which case the row cites the `D-` and says what disagrees.
+- **Before reopening**, re-read the plan document the row cites. Rules change under open rows (`C-64`
+  was measured against a sizing rule `D-122` later replaced); a row whose numbers predate the rule it
+  argues with is stale, says so, and drops to `hunch` until re-measured.
+- **Before closing**, run the entry's own script and read the whole report. A closed row states what
+  was measured, not what was changed; a change that was not measured on the case that opened the row
+  is an edit, not a closure.
+
 ## Invariants
 
 1. A work package is one branch, one pull request, one squash merge, and `main` is green after it.
@@ -439,6 +484,8 @@ implementation will otherwise re-derive.
 7. A package that implements against a tier's documents updates that tier's `defects.md` in the same
    commit, or states in the commit that it found nothing. A package that writes *against* a tier's
    contracts without implementing them is covered by this, and creating the file is part of it.
+8. `python3 .claude/plan-review/check.py` is run before a plan commit and its register and index
+   checks pass; the residual it reports is filed (`F-27`), not ignored.
 
 ## Error cases
 

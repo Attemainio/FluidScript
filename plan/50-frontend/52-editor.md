@@ -396,13 +396,13 @@ item and it is right. The cost is a dimension lookup the editor already has from
       than by a fixed list — an alias the binder accepts and completion hides is a trap.
 - [x] `pmp` offers `pump`, matching what the binder does with it (`FS1512`). Completion and the
       compiler accept the same set of strings.
-- [ ] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `F-6`.)
+- [ ] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `U-6`.)
 - [x] After `out=`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
       After `dt=`, the reverse. This is the single highest-value completion test, because it is the
       distinction `FS1302` exists to catch.
 - [x] After `power=`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
       unit, or the explicit-unit escape hatch disappears.
-- [ ] A `let` whose value is deferred is offered with its dimension and no value. (Offered with no value: yes. With its dimension: `F-5`, the binder does not type a deferred expression.)
+- [ ] A `let` whose value is deferred is offered with its dimension and no value. (Offered with no value: yes. With its dimension: `U-5`, the binder does not type a deferred expression.)
 - [x] A parameter on an unresolved kind offers everything rather than nothing.
 - [x] `container` and `v` find canonical `tank` and `volume`; `T1.in2` completion materializes `in2`,
       and no completion offers `in17` or a `tN` above the tank's resolved layer count.

@@ -337,7 +337,7 @@ same transaction a key does. It appends an unknown parameter to the first declar
 error squiggle whose text starts with that parameter, and writes ten samples per script as median,
 p95 and max to `diagnostics/keystroke-latency.md` with the debounce and the host's compile time
 alongside. **Not yet run:** the environment the package was built in has no browser that can
-launch (`F-4`), so the numbers are not recorded and the debounce is still `51`'s provisional
+launch (`U-4`), so the numbers are not recorded and the debounce is still `51`'s provisional
 300 ms.
 
 **The layout engine is unit-testable and must be**: given hints, assert placements. It is the most

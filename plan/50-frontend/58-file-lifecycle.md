@@ -158,7 +158,7 @@ never colour alone. Dialog focus is trapped and restored; every action works wit
   is a copy, and the document says so in its notice.
 - **Not verified here:** the File System Access path ran only against the fake backend and the
   contract it implements; the pickers, the writable stream and permission across a reload need a
-  Chromium session with a human clicking (`F-8`). The re-permission gesture's wording is the
+  Chromium session with a human clicking (`U-8`). The re-permission gesture's wording is the
   frontend's own; `58` did not specify it.
 
 ## Invariants

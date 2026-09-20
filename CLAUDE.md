@@ -50,24 +50,33 @@ that makes that happen. It is not optional and it is not only for large changes.
 2. **`plan/09-project-state.md`** — the position on that map: what has shipped, what the current phase
    is, what is next. Read second, always.
 3. **The plan documents of the phase you are in**, and the **`defects.md` of every tier they belong
-   to**. The defect file is where the traps are; the contract document alone will mislead you.
+   to** — its Open table and its **Traps** list, always; the rest by id. The contract document alone
+   will mislead you.
 
 ### While working
 
 - **A defect gets its entry the moment it is understood, not when it is fixed.** File it as an open
-  question in the owning tier's `defects.md` immediately.
+  row in the owning tier's `defects.md` immediately, with its Effort / Risk / Basis, under the id the
+  register's `Next id` line gives — and bump the line.
 - **Except when it can be fixed now.** Something resolvable in the same change is an edit, not a
   finding, and filing it produces a register that only grows. Fix it and say so in the commit.
+- **Grep before filing; re-read before reopening; measure before closing.** A closed row or a `D-` may
+  already hold the answer; a rule may have changed under an open row; a closure states what was
+  measured on the row's own script. The full rule is in `08` under *Every package writes down what it
+  found*.
 
 ### When a package or phase completes
 
-1. **Update the tier's `defects.md`** — move what closed, add what opened, keep observations worth
-   keeping. Every tier whose documents the work touched, not just the one the code lives in.
+1. **Update the tier's `defects.md`** — move what closed (with the effort it actually took), add what
+   opened, promote to Traps what was hit a second time. Every tier whose documents the work touched,
+   not just the one the code lives in.
 2. **Write the entry from the beginning, not from the conclusion** (see Response style). The existing
    entries are the standard: what the code meant to do, what it did instead, why that is wrong
    physically, what was measured, and what is still open.
 3. **Update `plan/09-project-state.md`** — the package's row, the ids it closed, any open id that
    changes what the next session should do, and the baselines if they moved.
+4. **Run `python3 .claude/plan-review/check.py`** — registers, links, counts and the decision index;
+   `--write-index` regenerates the index after a new `D-`.
 
 `09` references defect ids and never restates them. A description in two places is a description that
 disagrees with itself.
@@ -113,17 +122,13 @@ dotnet test --filter-trait Category=Unit  # under 2 s — run it constantly
 cd frontend && npm run dev                # Vite dev server, proxies /api and /ws
 ```
 
-### FluidScript experiment protocol
-
-For every FluidScript experiment: execute the actual script; read the complete `SolveExplanation`
-report; trace its counting, constraints, seeds, solved values, residuals, sizing decisions, warnings,
-and conditioning together; change only what that full evidence supports; then rerun and repeat. A
-passing diagnostic harness means only that it wrote the report — convergence is stated inside it.
+**Experiments:** run the actual script, read the *whole* `SolveExplanation` (or `SceneText`) report,
+change only what that evidence supports, rerun. A passing harness only means the report was written;
+convergence is stated inside it. → `plan/60-docs-and-devex/62-testing-strategy.md`
 
 ## Interaction protocol
 
-- **Get to 95 % certainty before non-trivial work.** Ask focused clarifying questions until you are
-  sure what is being asked. Do not guess intent where there are multiple reasonable approaches.
+- **Get to 95 % certainty before non-trivial work** — ask, do not guess between reasonable readings.
 - **Plan first, execute after approval.** Explain the approach before writing code.
 - **This is collaborative.** The user does not blindly trust outputs — discuss, challenge, iterate.
 
@@ -171,20 +176,17 @@ Each of these is a mistake a session makes first, with the consequence that foll
 
 ## Keeping this current
 
-- New subsystem document → a row in the reference index.
-- New coding convention → the plugin's standards or `04-engineering-standards.md`, **never here**.
-- New always-applicable rule or invariant a session would break → here.
-- Everything else → the document that owns it, with at most a pointer here.
-
-**Anything operational that lives only in this file is a finding**, not a convenience: it means the
-document that should own it does not.
+New subsystem document → a row in the reference index. New coding convention → the plugin's standards
+or `04-engineering-standards.md`, **never here**. New always-applicable rule or invariant a session
+would break → here. Everything else → the document that owns it, with at most a pointer here.
+**Anything operational that lives only in this file is a finding**: the document that should own it
+does not.
 
 ## Context budget
 
-This file is always loaded, and `AGENTS.md` points at it so that an agent which does not read
-`CLAUDE.md` by convention still lands here. Keep it a declaration of *when* and *where*, under ~190
-lines. An overage is fixed by moving guidance behind a pointer, not by deleting it. Do not add a second unfrontmattered
-file to `.claude/rules/` — it would be always-loaded for every session and every subagent.
+Always loaded (`AGENTS.md` points here). Keep it a declaration of *when* and *where*, under ~190
+lines; fix an overage by moving guidance behind a pointer, never by deleting it. Do not add a second
+unfrontmattered file to `.claude/rules/` — it would load for every session and every subagent.
 
 # Compact instructions
 

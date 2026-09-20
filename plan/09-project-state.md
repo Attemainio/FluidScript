@@ -93,26 +93,26 @@ would be filled with nothing.
 > `u`, `ua` and `fouling` were dimensionless); `A-1`–`A-3`, `L-53` and `L-54` opened. Committed
 > as `d1a1c08`. **P5.3, the design system, shipped the same day:** the tokens, the two themes as
 > JSON with the cascade generated from them, custom theme files, eight primitives, and the first
-> frontend tests -- contrast, palette, the literal scan -- on Vitest; `F-1`, `F-2` opened, `F-3`
+> frontend tests -- contrast, palette, the literal scan -- on Vitest; `U-1`, `U-2` opened, `U-3`
 > closed, in the new `50-frontend/defects.md`. Committed as `8439e2f`. **P5.4, the app shell,
 > shipped the same day:** `51`'s shell around a text area and a component list, the four stores,
 > the typed client with the wire types generated from the Api's schemas (now titled and documented,
 > `D-46` step 4), and the debounce pipeline with its validate phase, all of `51`'s request-stream
-> criteria asserted on a hand-driven clock; `F-4` (the debounce is unmeasured until P5.5) and
+> criteria asserted on a hand-driven clock; `U-4` (the debounce is unmeasured until P5.5) and
 > `A-4` (the warm start's saving is invisible in `solve.iterations`) opened. Committed as `4b45c20`.
 > **P5.5, the editor, shipped the same day:** CodeMirror around a stream tokenizer that mirrors
 > the lexer and is fed from the host's committed lexicon, diagnostics as squiggles with one-step
 > quick fixes, `52`'s completion table from the committed metadata golden, the formatter in Core
 > behind a new `format` endpoint, and the `D-48` benchmark harness, built but not run because no
 > browser can launch on this machine; `A-5` closed (the metadata's order was process-dependent),
-> `F-5` and `F-6` opened, `F-4` open with the benchmark waiting on a browser. The first screenshot
+> `U-5` and `U-6` opened, `U-4` open with the benchmark waiting on a browser. The first screenshot
 > of the product was taken the same day (headless Edge on the Windows side, since nothing launches
 > in WSL) and judged: technical, and intimidating to a non-programmer. Decided with the user:
 > P5.6 first, then a new look-and-feel package (`08`), tuned on screenshots with the diagram in
 > place. **P5.6, the canvas, shipped the same day:** the prepared scene as a pure function of the
 > wire, one SVG component drawing symbols, routes with hops and fillets, arrows, tags, badges and
 > the sized mark, `57`'s flat fill pulled forward, the CAD viewport with axes, grid and level of
-> detail, four SVG goldens from the Api samples, `docs/advanced/the-canvas.md`; `F-7` (nobody folds)
+> detail, four SVG goldens from the Api samples, `docs/advanced/the-canvas.md`; `U-7` (nobody folds)
 > opened; the worker deferred to M4 in `53`. The four samples were drawn and looked at through the
 > Edge route. The user then moved the look-and-feel package to the end of the phase as **P5.12**:
 > P5 is built to a working prototype first and the interface adjusted once against the whole. The
@@ -137,7 +137,7 @@ would be filled with nothing.
 > chain rule and breaches -- reported now, not yet drawn right. **P5.9 shipped the same day:** the
 > file lifecycle as `58` specifies it, both browser paths behind one interface with every scenario
 > run against both, `D-116` for the two things `58`'s one-document draft did not say (Open into a
-> new tab; dirty by hashes), `F-8` and `F-9` opened for what only a Chromium session with a human
+> new tab; dirty by hashes), `U-8` and `U-9` opened for what only a Chromium session with a human
 > can show. **P5.10 shipped the same day.** Building it found `57` in conflict with `D-103`: the
 > wire carried the active property's positions only, so the switcher would have needed a request or
 > a second mapper; `D-117` puts every available scale on the wire. Two Core gaps the package fixed
@@ -151,7 +151,7 @@ would be filled with nothing.
 > resolved to literal colours (`D-118`: no font is embedded, the stack ends in a generic family);
 > the accessibility pass over `53` -- the diagram as a table built from the hover's cards, every
 > control on the keyboard, axe clean under jsdom, two real findings fixed; and the M3 render
-> baseline measured where Node can measure it. `F-10` holds what only a browser can verify. **The
+> baseline measured where Node can measure it. `U-10` holds what only a browser can verify. **The
 > user closed P5 there (2026-09-19: "no need for P5.12; the first phase of the frontend is
 > complete")**; look and feel waits for the product to be tested, as the layout does. What follows
 > is not a package: a **defect sweep** across every tier's register, quick fixes first, the solver's
@@ -164,7 +164,7 @@ would be filled with nothing.
 > valve" when nothing on the branch can throttle), `C-97` (an implicit pipe carries its connection
 > line as `sourceSpan`), `A-1` (`RunAsync` from a `PreparedModel`; the pipeline prepares once),
 > `A-4` (`solve.iterations` is the total over passes), `C-39` (`CatalogBoreLookup` takes a resolved
-> catalogue only), `F-1` (the literal scan reads TSX sizes; the axes, grid and export type sizes
+> catalogue only), `U-1` (the literal scan reads TSX sizes; the axes, grid and export type sizes
 > moved to tokens). Found on the way: `C-103`'s `tOut` wording had been written into the generated
 > page rather than the wire record's XML doc, so the docs gate would have failed on its next run;
 > moved. Ten closed, none opened; 67 open.
@@ -814,7 +814,7 @@ name). `docs/advanced/using-the-api.md` is the page. Core 1805/0/4, Api 55/0.
 
 **P5.3 is `frontend/src/design` and the first frontend tests** (2026-09-18). `tokens.ts` names
 every colour token in `55`'s order (with `--syn-function`, `--editor-bg` and `--editor-fg`, which
-the list had left out, `F-3`), the theme-independent scales, the durations, the syntax opacities,
+the list had left out, `U-3`), the theme-independent scales, the durations, the syntax opacities,
 `D-73`'s advance widths and the contrast pairs. The two built-in themes are `themes/light.json` and
 `themes/dark.json` in the public custom-theme format, and `themeCss.ts` renders `55`'s cascade from
 them -- `:root` light, `[data-theme='dark']`, the same under `prefers-color-scheme` when nothing
@@ -855,7 +855,7 @@ document's work; `LatencyTracker` switches the 100 ms `validate` phase on above 
 off after fifty compiles under 75 ms, and its diagnostics yield to the compile's for the same
 revision. Every one of `51`'s request-stream criteria is a test on a hand-driven clock; the shell
 test types into the text area, watches the status line, switches tabs and reloads the split. The
-debounce is 300 ms and unmeasured until P5.5's benchmark (`F-4`). Smoke-tested against the live
+debounce is 300 ms and unmeasured until P5.5's benchmark (`U-4`). Smoke-tested against the live
 host: the cooling loop cold 906 ms / warm 24 ms over HTTP, 413 with its problem details, metadata
 13 kinds and 133 codes -- and the warm run's `iterations` was 3 against the cold run's 2, filed as
 `A-4`. `docs/advanced/working-in-tabs.md` is the page. Frontend 45/0, Api 55/0 with the schemas
@@ -878,7 +878,7 @@ with `dimension · unit · typically a…b`, values filtered by the parameter's 
 template, all twenty-two of `52`'s cases against `Api.Tests/Contracts/Goldens/metadata.json`. For
 that the wire's `bindings` gained `dimension` and `siUnit` (`26`), the metadata orders by name and
 converts ranges to the canonical unit (`A-5`), and `sensr` is a real ambiguous pair (`p_sensor`,
-`t_sensor`; both listed, first preselected, `F-6`). The formatter is `Formatter` in Core (`17`
+`t_sensor`; both listed, first preselected, `U-6`). The formatter is `Formatter` in Core (`17`
 records the layout as this project's reasoning: no indentation, zero-or-one spacing kept, `=` tight
 for a parameter and spaced for a `let`, trailing comments and `let` names aligned within a run,
 blank lines, full-line comments and curve rows untouched), idempotent and token-preserving over the
@@ -887,7 +887,7 @@ transaction. Go to definition is `Ctrl+Click` on the model's `sourceSpan`; `Ctrl
 `Ctrl+Shift+Enter` flushes the pipeline as a solve. `D-48`'s benchmark is `frontend/e2e/latency.bench.ts`
 on Playwright, driving a dev-only `window.fluidscript` hook and writing `diagnostics/keystroke-latency.md`;
 Chromium's headless shell needs `libnspr4`/`libnss3` that this machine cannot install without
-root, so it has not run and the debounce stays provisional (`F-4`). `docs/advanced/the-editor.md`
+root, so it has not run and the debounce stays provisional (`U-4`). `docs/advanced/the-editor.md`
 is the page. Frontend 88/0, Api 58/0, Core 1820/0/4 (the model-contract page regenerated for the
 two binding fields).
 
@@ -906,7 +906,7 @@ pictures read as a plant. The four samples were drawn through the Edge route and
 loops, rails, mirrored exchangers and inferred nodes come through as the ladder's pictures; the
 one thing seen and filed as an observation is the exchanger label sitting on its top edge, which
 is the catalogue's anchor, not the renderer's. Not done: the worker (`53` says why, M4), collapse
-(`F-7`), the frame budget (no browser). Frontend 115/0, Core and Api unchanged.
+(`U-7`), the frame budget (no browser). Frontend 115/0, Core and Api unchanged.
 
 **P5.8 is `56` and the reading half of `54`** (2026-09-18). The log is `features/log`: `logModel.ts`
 is pure -- entries keyed by code and component, grouped at three of one code and severity with the
@@ -928,6 +928,17 @@ component to the declared component whose span holds it, because only six produc
 (`L-55`); the badge, the card and the log's column all read it. `docs/advanced/the-log.md` is the
 page; the canvas and editor pages gained hover and selection. Frontend 134/0, Core 1822/0/4, Api
 58/0.
+
+> **2026-09-20 — the planning process itself.** After a segment that closed `S-53`/`S-55`/`S-56`,
+> built the solver's replay (`S-71`) and the layout's provenance (`C-107`), the user asked what in
+> the planning system works and what does not. Answered by measuring it: the registers gained
+> Effort / Risk / Basis on open rows and actual Effort on closed ones, a `Next id` line, and a
+> `Traps` section between Open and Closed for what a session gets wrong twice; the decision log
+> gained a generated index; `08` owns the columns and the grep-before-filing / re-read-before-
+> reopening / measure-before-closing rule; `check.py` verifies all of it — and turned out to have
+> been crashing since `08` and `09` moved to the plan root, which is `F-27` with the 38-citation
+> backlog it had hidden. `C-64` was found stale under `D-122` and marked so rather than reopened.
+> Nothing in the code changed except one comment.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -959,14 +970,23 @@ Counts only. Every description lives in the file named.
 
 | Tier | Open | File |
 |---|---|---|
-| 00 · Foundation | 1 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
+| 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
+| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 16 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **62** | |
+| | **64** | |
+
+Counted from the files on 2026-09-20, when every open row received its Effort / Risk / Basis (`08`,
+*The register's shape*) and the frontend's ids became `U-` (they had shared `F-` with the
+foundation's, and `F-3`…`F-10` meant two things). Of the 64: **42 measured, 22 hunch**; 4 tiny,
+20 small, 27 medium, 9 big, 4 large. **Fixable now** (tiny or small, measured): `L-57`, `L-35`,
+`C-102`, `C-91`, `C-96`, `C-87`, `C-86`, `C-54`, `C-47`, `C-38`, `C-36`, `S-70`, `S-42`, `S-23`,
+`S-66`, `A-2`, `U-6` — seventeen, most of them an afternoon together. **Largest** (big or large,
+high risk): `F-19`, `C-73`, `C-68` (large); `C-98`, `C-72`, `S-37`, `S-27` (big). The estimates are
+the filer's and are meant to be checked against the Closed tables' actual efforts as rows close.
 
 Counted from the files on 2026-09-19 after sweep tier 4's `C-104` (one closed; 63 after `S-68`, 63 after `S-63`, 62 after `S-29`, 62 after tier 3, 67 after tier 2, 77 before it); the table had not been recounted since P3 and read
 48. Tier 70 has no defect record because nothing has implemented against it yet. Its absence means
@@ -1045,7 +1065,7 @@ a judgement.
 | Core test suite | **1831 total, 0 failed, 4 skipped** (four unrelated; the layout timing test is live since step 8), ~65 s with the `Diagnostic` classes, ~15 s without | `FluidScript.Core.Tests` |
 | API test suite | **58 passed, 0 failed**, ~5 s | `FluidScript.Api.Tests` |
 | Frontend tests | **219 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
-| Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `F-4`) | `frontend/src/features/pipeline/debounce.ts` |
+| Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Render baseline (M3, `D-45`) | **4.8 ms** to prepare and render the 24-placement header to static markup in Node; the browser numbers (`07`: 50 fps p95 panning 200 components, 8 ms per commit) are unmeasured, `F-10` | `frontend/src/features/canvas/baseline.test.tsx` |
 | Build | **0 warnings** (`TreatWarningsAsErrors`) | `dotnet build` |

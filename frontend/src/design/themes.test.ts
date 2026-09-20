@@ -149,7 +149,7 @@ describe('the source tree', () => {
     const offenders: string[] = [];
     const colour = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|color-mix)\(/i;
     const cssMeasure = /(?<![\w-])\d+(?:\.\d+)?(?:px|ms|rem|em)\b/;
-    // A size written on a JSX element (F-1): a presentational attribute or an inline style given a
+    // A size written on a JSX element (U-1): a presentational attribute or an inline style given a
     // number rather than a token or a scene value. Geometry -- x, y, r, a viewBox -- is Core's
     // number mapped to pixels (D-103) and is not a token, so it is not scanned; what is scanned is
     // what the stylesheet could have said instead.

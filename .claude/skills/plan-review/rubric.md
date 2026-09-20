@@ -208,6 +208,10 @@ Review both directions: unnecessary scope and missing prerequisites.
    deployment/platform, determinism, security boundary, accessibility, and independent validation.
 10. **Challenge scope explicitly.** State what should be kept, simplified, deferred, or deleted and
     what user outcome or dependency justifies that recommendation.
+11. **Read the tier's register against its documents.** An open row whose cited document has since
+    changed its rule is stale and should say so (`08`, *Before reopening*); a closed row whose "what
+    changed" is not in the document is a fix the document never absorbed; a `hunch` row older than
+    two packages is a measurement nobody made.
 
 Check 5 catches a specific and common failure: two documents each saying "resolved in the other".
 

@@ -95,7 +95,7 @@ for no reason", and it is the reason tags may be exported at all. It does not em
   starts back out of the file and compares them to the prepared scene.
 - **Not verified here:** the PNG pixel criterion and the four-viewer opening test need a browser
   and Inkscape, which this environment lacks; the SVG was rasterized by cairo and, once by hand, by
-  Edge through both `<img>` and `drawImage`, identically. `F-10`.
+  Edge through both `<img>` and `drawImage`, identically. `U-10`.
 
 ## Invariants
 
@@ -140,14 +140,14 @@ the same SVG rasterized at 300 dpi produces the PNG.
 
 ## Acceptance criteria
 
-- [ ] SVG opens identically in current Chrome/Edge/Firefox and Inkscape with networking disabled. (Edge and cairo by hand, 2026-09-19; the rest `F-10`.)
-- [ ] PNG pixels match rasterization of the golden SVG at 96/150/300 dpi within image tolerance. (The PNG *is* the SVG rasterized, one path; the pixel comparison needs a browser, `F-10`.)
+- [ ] SVG opens identically in current Chrome/Edge/Firefox and Inkscape with networking disabled. (Edge and cairo by hand, 2026-09-19; the rest `U-10`.)
+- [ ] PNG pixels match rasterization of the golden SVG at 96/150/300 dpi within image tolerance. (The PNG *is* the SVG rasterized, one path; the pixel comparison needs a browser, `U-10`.)
 - [x] Light export is legible on white regardless of current app theme; dark export is explicit. (P5.11)
 - [x] Every component id, label, state unit, warning cue, gradient, and legend survives as configured. (P5.11: `export.test.ts`.)
 - [x] Labels carry tags where the kind has a tag code, while element ids carry identifiers; an export
       of the distribution header contains `PU_AHU`/`PU_RAD` as element ids and `101PU01`/`102PU01` as
       drawn labels. (P5.11)
-- [x] `<title>`/`<desc>` pass screen-reader inspection and carry all required provenance. (P5.11: `role="img"` labelled by both; every line asserted. A screen reader's own reading is `F-10`.)
+- [x] `<title>`/`<desc>` pass screen-reader inspection and carry all required provenance. (P5.11: `role="img"` labelled by both; every line asserted. A screen reader's own reading is `U-10`.)
 - [x] The canvas and exporter consume one symbol-definition golden set; no TypeScript kind-specific
       drawing implementation exists. (P5.11: one `SceneView`.)
 - [x] Every symbol origin, port anchor, route point and label box parsed back out of an exported SVG

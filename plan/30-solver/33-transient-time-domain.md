@@ -311,6 +311,9 @@ public sealed record TransientSettings
 9. `RunSnapshot` is immutable and includes equation system, initial state, fixed sizes, schedule,
    language/catalog/property/contract versions, settings, limits, and source hash. No draft object is
    reachable from it (`D-22`).
+10. The integration step and the frame interval are never spelled `dt` anywhere a script or the wire
+    can see them: `dt` is the temperature change across a component (`D-123`). `step` and
+    `interval` are the words.
 10. A non-finite state, shape/version change, conservation failure threshold, worker fault, or failed
     cancellation terminates the run; a partial corrupt state is never emitted.
 11. A tank's layer count, reference masses, port-to-layer map, and total volume are immutable within a

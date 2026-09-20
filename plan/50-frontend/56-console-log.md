@@ -40,7 +40,7 @@ the wire made necessary: nearly every diagnostic reached the wire with `componen
 producers set it, so the model contract now attributes a diagnostic raised on a declaration's span to
 that component (`44`, `L-55`); the log's column, the canvas badge and the hover card all key on it.
 Not built: the virtualised list (no script produces hundreds yet), the transient intervals (M4), the
-500-diagnostic frame measurement (no browser in the build environment, `F-4`).
+500-diagnostic frame measurement (no browser in the build environment, `U-4`).
 
 ## Shape
 

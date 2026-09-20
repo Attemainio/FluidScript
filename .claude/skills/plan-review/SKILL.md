@@ -48,7 +48,15 @@ row count and targets against the documents on disk · every `depends_on` resolv
 pointing up-tier** · no concept `owns`-ed by two documents · declared `open_questions` matching the
 entries · every internal link resolving (code fences excluded) · every template section present ·
 requirement traceability in **both** directions — no unclaimed `R-` id, no empty `traces_to` · no
-reference to an undeclared `R-` id · no closed question retained in the active question count.
+reference to an undeclared `R-` id · no closed question retained in the active question count ·
+every `defects.md` in the shape `08` prescribes — Open/Traps/Closed/Observations, the Effort/Risk/Basis
+and Effort columns with their vocabularies, a `Next id` line one above the highest row, no duplicate
+id, one prefix per register · the decision log's index matching its entries (`--write-index`
+regenerates it).
+
+**A crash is not a pass.** The script threw on every run from the day `08` and `09` were added at
+the plan root until 2026-09-20 (`F-27`), and no review noticed because both outcomes print nothing
+the session reads. If it exits non-zero without a problem list, that is the first finding.
 
 Report its failures directly. They need no agent's opinion, and several of them — an up-tier
 dependency, a doubly-owned concept, an unclaimed requirement — are blocking findings in their own

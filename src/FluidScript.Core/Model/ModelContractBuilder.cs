@@ -909,7 +909,7 @@ public static class ModelContractBuilder
         if (binding.Value is not { } quantity)
         {
             // Deferred: the binder does not type an expression it cannot evaluate, so the dimension is
-            // unknown here as well (50-frontend/defects.md, F-5).
+            // unknown here as well (50-frontend/defects.md, U-5).
             return new BindingWire(binding.Name, null, null, null, null);
         }
 

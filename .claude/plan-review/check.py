@@ -46,7 +46,9 @@ def parse_list(value):
     return []
 
 
-docs = sorted(p for p in PLAN.rglob('*.md') if p.name not in ('README.md', '_template.md'))
+docs = sorted(p for p in PLAN.rglob('*.md')
+              if p.name not in ('README.md', '_template.md', 'defects.md'))
+registers = sorted(PLAN.glob('*/defects.md'))
 meta = {}
 
 for path in docs:
@@ -81,7 +83,8 @@ for path in docs:
 
 # dependencies resolve and never point up-tier
 ids = {fm['id']: p for p, (fm, _) in meta.items() if 'id' in fm}
-tier_of = lambda p: int(p.parent.name.split('-')[0])
+# root-level documents (08, 09) sit above every tier and may depend on any of them
+tier_of = lambda p: int(p.parent.name.split('-')[0]) if p.parent != PLAN else 99
 for path, (fm, _) in meta.items():
     for dep in parse_list(fm.get('depends_on')):
         if dep not in ids:
@@ -102,7 +105,7 @@ for concept, holders in owners.items():
 # declared open-question count matches the entries
 for path, (fm, text) in meta.items():
     declared = int(fm.get('open_questions', '0') or 0)
-    section = re.search(r'^## Open questions\s*\n(.*)$', text, re.M | re.S)
+    section = re.search(r'^## Open questions\s*\n(.*?)(?=^## |\Z)', text, re.M | re.S)
     actual = len(re.findall(r'^\d+\. \*\*', section.group(1), re.M)) if section else 0
     if declared != actual:
         problems.append(f'open_questions mismatch: {path.stem} declares {declared}, has {actual}')
@@ -163,6 +166,76 @@ for index in range(1, len(decision_parts), 2):
                 f'decision target does not cite {decision_id}: {target.relative_to(ROOT)}'
             )
 
+# defect registers: the columns, their vocabularies, the next id, and the section order
+EFFORT = {'tiny', 'small', 'medium', 'big', 'large'}
+RISK = {'low', 'med', 'high'}
+BASIS = {'measured', 'hunch'}
+OPEN_HEADER = '| # | Effort | Risk | Basis | Document | What | Why it is still open |'
+CLOSED_HEADER = '| # | Effort | Document | What was wrong | What changed |'
+for path in registers:
+    text = path.read_text(encoding='utf-8')
+    rel = path.relative_to(ROOT)
+    headings = re.findall(r'^## (.+)$', text, re.M)
+    if headings != ['Open', 'Traps', 'Closed', 'Observations']:
+        problems.append(f'register sections are not Open/Traps/Closed/Observations: {rel} has {headings}')
+    sections = dict(zip(re.findall(r'^## (.+)$', text, re.M),
+                        re.split(r'^## .+$', text, flags=re.M)[1:]))
+    ids = []
+    for name, header in (('Open', OPEN_HEADER), ('Closed', CLOSED_HEADER)):
+        body = sections.get(name, '')
+        if header not in body:
+            problems.append(f'register {name} table lacks the columns {header!r}: {rel}')
+        for row in re.findall(r'^\| ((?!#)[^|]+)\|(.*)$', body, re.M):
+            cells = [c.strip() for c in row[1].split('|')]
+            ident = row[0].strip()
+            if not re.fullmatch(r'[A-Z]-\d+', ident):
+                continue
+            ids.append(ident)
+            if name == 'Open':
+                if len(cells) < 3 or cells[0] not in EFFORT or cells[1] not in RISK or cells[2] not in BASIS:
+                    problems.append(f'open row {ident} needs Effort/Risk/Basis from the vocabularies: {rel}')
+            elif not cells or cells[0] not in EFFORT | {'—'}:
+                problems.append(f'closed row {ident} needs an Effort (or — for a legacy row): {rel}')
+    counted = collections.Counter(ids)
+    for ident, n in counted.items():
+        if n > 1:
+            problems.append(f'id {ident} appears in {n} rows: {rel}')
+    prefixes = {i.split('-')[0] for i in ids}
+    if len(prefixes) > 1:
+        problems.append(f'register mixes id prefixes {sorted(prefixes)}: {rel}')
+    declared = re.search(r'\*\*Next id: `([A-Z])-(\d+)`\.\*\*', text)
+    if not declared:
+        problems.append(f'register has no "Next id" line: {rel}')
+    elif ids:
+        highest = max(int(i.split('-')[1]) for i in ids)
+        if int(declared.group(2)) != highest + 1 or declared.group(1) not in prefixes:
+            problems.append(f'Next id says {declared.group(1)}-{declared.group(2)}, '
+                            f'highest row is {highest}: {rel}')
+
+# ids are unique across every register (a prefix belongs to one tier)
+prefix_owner = {}
+for path in registers:
+    text = path.read_text(encoding='utf-8')
+    for prefix in {i for i in re.findall(r'^\| ([A-Z])-\d+ ', text, re.M)}:
+        if prefix in prefix_owner and prefix_owner[prefix] != path.parent.name:
+            problems.append(f'id prefix {prefix}- used by two registers: '
+                            f'{prefix_owner[prefix]} and {path.parent.name}')
+        prefix_owner.setdefault(prefix, path.parent.name)
+
+# the decision log's index lists every entry, in order, with the status the entry declares
+def decision_entries():
+    for eid, title, status in re.findall(
+            r'^## (D-\d+) · (.+)$\n\n\*\*(.+?)\*\*', decision_text, re.M):
+        parts = [s.strip() for s in status.split('·')]
+        date = next((s for s in parts if re.fullmatch(r'\d{4}-\d{2}-\d{2}', s)), '')
+        yield eid, parts[0].replace('*', ''), date, title
+
+
+index_rows = re.findall(r'^\| `(D-\d+)` \| ([^|]+) \| ([^|]+) \| (.+?) \|$', decision_text, re.M)
+expected = [(e, s, d, t) for e, s, d, t in decision_entries()]
+if [(r[0], r[1].strip(), r[2].strip(), r[3]) for r in index_rows] != expected:
+    problems.append('decision index drift: run check.py --write-index')
+
 # closed questions belong in the decision log/history, not the active question count
 for path, (_, text) in meta.items():
     section = re.search(r'^## Open questions\s*\n(.*)$', text, re.M | re.S)
@@ -171,6 +244,20 @@ for path, (_, text) in meta.items():
     for match in re.finditer(r'^(\d+)\.\s+~~\*\*(.*?)\*\*~~\s+\*\*Closed',
                              section.group(1), re.M):
         problems.append(f'closed question retained as active: {path.stem} question {match.group(1)}')
+
+def write_decision_index():
+    rows = ['| # | Status | Date | Decision |', '|---|---|---|---|']
+    for eid, state, date, title in decision_entries():
+        rows.append(f'| `{eid}` | {state} | {date} | {title} |')
+    block = '<!-- index:start -->\n' + '\n'.join(rows) + '\n<!-- index:end -->'
+    new = re.sub(r'<!-- index:start -->.*?<!-- index:end -->', lambda _: block, decision_text, flags=re.S)
+    decision_path.write_text(new, encoding='utf-8')
+    print(f'decision index: {len(rows) - 2} entries')
+
+
+if '--write-index' in sys.argv:
+    write_decision_index()
+    sys.exit(0)
 
 print(f'documents {len(docs)} · index rows {len(rows)} · '
       f'requirements {len(requirements)} ({len(claimed & requirements)} claimed) · '
