@@ -200,6 +200,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3014` | Warning | Solver | {parameter} solved to {head} m: the header pushes forward through {component}'s stopped branch and a pump cannot resist that. Close the branch -- an isolation valve, or the mixing valve at its stop -- or the plant runs through it. |
 | `FS3015` | Info | Solver | {parameter} runs dead-headed at {head} m: it holds {component}'s stopped branch still against the header pushing backwards through it. If that pump is off, nothing here stops the flow: add a check valve to the branch, or state the flow you expect through it. |
 | `FS4008` | Error | Design warning | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}. |
+| `FS4011` | Warning | Design warning | '{name}' throttles its {leg} leg by {drop} kPa at position {position}: that path is {imbalance} kPa easier than the {other} path, more than the {band} kPa the valve drops fully open. A balancing valve between {where} and {name}.{leg} dropping {imbalance} kPa at {flow} kg/s (Kv {kv}) would level the legs and leave the valve its travel. |
 | `FS4601` | Error | Request | The script has {count} {what}; the limit is {max}, so it is not solved. |
 | `FS5002` | Warning | Rendering | The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there. |
 <!-- END GENERATED: diagnostic-codes -->

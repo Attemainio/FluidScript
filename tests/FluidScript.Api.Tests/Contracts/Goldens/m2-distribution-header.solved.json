@@ -5460,6 +5460,24 @@
   "bindings": [],
   "diagnostics": [
     {
+      "code": "FS4011",
+      "severity": "warning",
+      "message": "'TV_AHU' throttles its b leg by 25.6 kPa at position 0.85: that path is 21.5 kPa easier than the a path, more than the 6.8 kPa the valve drops fully open. A balancing valve between NM_AHU and TV_AHU.b dropping 21.5 kPa at 0.096 kg/s (Kv 0.75) would level the legs and leave the valve its travel.",
+      "range": null,
+      "component": "TV_AHU",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS4011",
+      "severity": "warning",
+      "message": "'TV_RAD' throttles its b leg by 30.2 kPa at position 0.82: that path is 23.3 kPa easier than the a path, more than the 10.6 kPa the valve drops fully open. A balancing valve between NM_RAD and TV_RAD.b dropping 23.3 kPa at 0.12 kg/s (Kv 0.9) would level the legs and leave the valve its travel.",
+      "range": null,
+      "component": "TV_RAD",
+      "suggestion": null,
+      "related": []
+    },
+    {
       "code": "FS1510",
       "severity": "info",
       "message": "Added node 'N3' (I1).",

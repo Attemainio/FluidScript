@@ -140,6 +140,29 @@ short circuit: the supply-to-return differential falls and other consumers on th
 starved. Nothing here sizes that valve for you — give it an explicit `kv` — and one coefficient could
 not do the job anyway, because the two legs carry different flows.
 
+**The solve tells you when it is missing.** A three-way valve's two legs share one `position`, so
+the position its mixing ratio implies — half and half is 0.5 — is only reached when both legs see
+the same pressure at their far ends. When one path is easier than the other, the valve has to
+throttle that leg to make the flows come out, and it leaves its mixing position to do it. After the
+solve, [`FS4011`](diagnostics.md) is raised on any three-way valve whose legs differ by more than
+the valve's own full-open drop at the flow it carries (never less than 3 kPa), and it names the
+balancing valve that would level them:
+
+```
+FS4011  'TV_RAD' throttles its b leg by 35.0 kPa at position 0.78: that path is 32.0 kPa easier
+        than the a path, more than the 7.6 kPa the valve drops fully open. A balancing valve
+        between NM_RAD and TV_RAD.b dropping 32.0 kPa at 0.239 kg/s (Kv 1.53) would level the
+        legs and leave the valve its travel.
+```
+
+That is a series header whose primary ring has no pump of its own: the radiators' pump drives the
+ring, pays its 32 kPa on the way to `a`, and the bare bypass returns to the mixing node 32 kPa
+higher. Two things the warning does not say, because they are easy to misread. The solved state is
+right — the valve really would sit there — and a balancing valve does **not** lower the pump head:
+it dissipates the same 32 kPa the three-way valve was dissipating, and the pump head stays what the
+ring costs. What it buys is the valve's travel: at its mixing position with its whole stroke
+available for control, instead of near one end where a small movement is a large change in flow.
+
 ### A consumer that is off still passes a trickle
 
 A consumer at `power=0` does not shut its valve. Both header legs stay open at the position the solve

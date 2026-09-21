@@ -5178,6 +5178,24 @@
       ]
     },
     {
+      "code": "FS4011",
+      "severity": "warning",
+      "area": "DesignWarning",
+      "message": "'{name}' throttles its {leg} leg by {drop} kPa at position {position}: that path is {imbalance} kPa easier than the {other} path, more than the {band} kPa the valve drops fully open. A balancing valve between {where} and {name}.{leg} dropping {imbalance} kPa at {flow} kg/s (Kv {kv}) would level the legs and leave the valve its travel.",
+      "arguments": [
+        "name",
+        "leg",
+        "drop",
+        "position",
+        "imbalance",
+        "other",
+        "band",
+        "where",
+        "flow",
+        "kv"
+      ]
+    },
+    {
       "code": "FS4601",
       "severity": "error",
       "area": "Request",

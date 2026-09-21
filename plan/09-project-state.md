@@ -1072,6 +1072,14 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > from the stated temperatures (residual 1.52 to 0.185 at the seed); its solve still fails in the sizing
 > passes, which `S-69` now names as what is left. Corpus byte-identical. 52 open.
 
+> **`C-111`, first part** (2026-09-21): `FS4011` after every converged solve, on a three-way valve
+> whose two legs sit further apart than its own full-open drop, naming the balancing valve practice
+> puts on the easy leg with its drop and Kv at the solved flow. Measured on the series header: 32.0 kPa
+> against 7.6 on `TV_RAD`, Kv 1.53 between `NM_RAD` and `TV_RAD.b`; the AHU's valve silent. The row's
+> guess that the pump would fall to 3 m was wrong and is corrected there: the balancing valve buys
+> travel, not head. The line is project reasoning, marked in `24`. Fires on every bare bypass in the
+> corpus. Open for the user's decision whether the language sizes that valve.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1175,7 +1183,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch. Next: `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. Next: `C-111`'s second part is the user's decision (whether the language sizes the bypass balancing valve), then `S-69`'s sizing passes, `C-84` labels as a planned package, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.

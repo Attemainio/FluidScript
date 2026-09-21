@@ -196,6 +196,31 @@ public static class ValveLaw
         return sign * blended;
     }
 
+    /// <summary>The pressure drop an effective Kv takes to pass a flow.</summary>
+    /// <param name="effectiveKv">Kv · φ(position), in m³/h at 1 bar.</param>
+    /// <param name="massFlow">kg/s. Its magnitude is used; a drop has no direction here.</param>
+    /// <param name="density">kg/m³.</param>
+    /// <returns>Pa, non-negative. NaN when the Kv or the density is not a usable positive number.</returns>
+    /// <remarks>
+    /// The √ branch of <see cref="MassFlow"/> inverted for Δp, for a report that asks what a valve
+    /// drops fully open at the flow it carries. It ignores the regularised band below
+    /// <see cref="RegularizationDrop"/> for the reason <see cref="RequiredKv"/> gives: no valve is
+    /// sized to sit there, and a report that lands there is reporting a few pascals either way.
+    /// </remarks>
+    public static double PressureDrop(double effectiveKv, double massFlow, double density)
+    {
+        if (!double.IsFinite(effectiveKv) || effectiveKv <= 0
+            || !double.IsFinite(density) || density <= 0 || !double.IsFinite(massFlow))
+        {
+            return double.NaN;
+        }
+
+        var relativeDensity = density / WaterDensity;
+        var root = Math.Abs(massFlow) * 3600 * Math.Sqrt(relativeDensity * 1e5) / (density * effectiveKv);
+
+        return root * root;
+    }
+
     /// <summary>The effective Kv that would pass a flow at a pressure drop.</summary>
     /// <param name="massFlow">kg/s. Its magnitude is used; a Kv has no direction.</param>
     /// <param name="pressureDrop">Pa. Its magnitude is used, and it must be positive.</param>

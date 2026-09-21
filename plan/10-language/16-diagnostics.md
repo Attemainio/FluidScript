@@ -128,6 +128,7 @@ but they are *about the design*, not about the script, and they are the ones the
 | `FS4008` | An extended heat exchanger's temperature approach is below the configured minimum | Error | **Live in M2b** for Rated and Coupled modes (`D-19`). Duty mode has no approach. |
 | `FS4009` | Reverse flow where the design assumed forward | Info |
 | `FS4010` | A branch carries no flow — a dead leg | Warning |
+| `FS4011` | A three-way valve's two legs sit at pressures further apart than its own full-open drop, so it throttles the easier leg instead of mixing | Warning | **Live since 2026-09-21** (`C-111`); raised after the solve, names the balancing valve for the easy leg. `24`. |
 
 Thresholds (5 K, 0.25 authority, the velocity limits) are engineering conventions, not physics. They
 belong in one configurable table, not scattered through the components that check them, and the table

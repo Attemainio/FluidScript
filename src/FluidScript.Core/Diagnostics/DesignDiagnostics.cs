@@ -13,7 +13,8 @@ namespace FluidScript.Core.Diagnostics;
 /// </para>
 /// <para>
 /// <c>FS4004</c>-<c>FS4006</c> are today sizing <em>notes</em> rather than diagnostics, which is
-/// <c>C-74</c>'s subject and not repeated here.
+/// <c>C-74</c>'s subject and not repeated here. <c>FS4011</c> is the first code past <c>16</c>'s
+/// original ten, raised for <c>C-111</c>.
 /// </para>
 /// </remarks>
 public static class DesignDiagnostics
@@ -32,9 +33,23 @@ public static class DesignDiagnostics
         DiagnosticSeverity.Error,
         "'{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}.");
 
+    /// <summary>A three-way valve whose two switched legs sit at pressures further apart than its own full-open drop, so it throttles the easier leg instead of mixing.</summary>
+    /// <value><c>FS4011</c>, a warning.</value>
+    /// <remarks>
+    /// Raised after the solve by <c>BypassBalance</c>, which is where the leg pressures exist. It names
+    /// the balancing valve practice puts on the easy leg -- its drop and Kv at the solved flow -- and
+    /// is advice, not a refusal: the solved state is right, and the pump head does not fall when the
+    /// balancing valve is added (<c>C-111</c>, <c>24</c>).
+    /// </remarks>
+    public static DiagnosticDescriptor LegsUnbalanced { get; } = new(
+        "FS4011",
+        DiagnosticSeverity.Warning,
+        "'{name}' throttles its {leg} leg by {drop} kPa at position {position}: that path is {imbalance} kPa easier than the {other} path, more than the {band} kPa the valve drops fully open. A balancing valve between {where} and {name}.{leg} dropping {imbalance} kPa at {flow} kg/s (Kv {kv}) would level the legs and leave the valve its travel.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ApproachBelowMinimum,
+        LegsUnbalanced,
     ];
 }

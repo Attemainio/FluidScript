@@ -421,6 +421,19 @@ public sealed class OuterLoopTests
         Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_AHU", "PU_AHU.head")], 2, 3.5);
         Assert.Contains("Kv 6.3", run.Bases["TV_RAD.kv"], StringComparison.Ordinal);
         Assert.Contains("Kv 6.3", run.Bases["TV_AHU.kv"], StringComparison.Ordinal);
+
+        // `C-111`. The radiators' bypass returns to NM_RAD 32 kPa above the primary supply at TV_RAD.a,
+        // because PU_RAD drives the primary ring and pays its 32 kPa on the a leg's path; the valve
+        // absorbs the difference by throttling b, 35 kPa at 0.784, where its own full-open drop is
+        // 7.6. FS4011 names the balancing valve on that leg: 32 kPa at the leg's 0.239 kg/s is
+        // Kv 1.5. The AHU's legs differ by 6.5 kPa against a 7.5 kPa full-open drop and stay silent.
+        var unbalanced = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS4011");
+
+        Assert.Equal("TV_RAD", unbalanced.ComponentName);
+        Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Warning, unbalanced.Severity);
+        Assert.Contains("throttles its b leg by 35.0 kPa at position 0.78", unbalanced.Message, StringComparison.Ordinal);
+        Assert.Contains("32.0 kPa easier than the a path, more than the 7.6 kPa", unbalanced.Message, StringComparison.Ordinal);
+        Assert.Contains("between NM_RAD and TV_RAD.b dropping 32.0 kPa at 0.239 kg/s (Kv 1.53)", unbalanced.Message, StringComparison.Ordinal);
     }
 
     [Fact]

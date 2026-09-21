@@ -613,7 +613,7 @@ public sealed class OuterLoop(
         {
             Graph = graph,
             Solve = solve.Converged
-                ? solve with { Diagnostics = solve.Diagnostics.AddRange(Reversals(graph, solve.Solution)).AddRange(UnderVacuum(graph, solve.Solution)) }
+                ? solve with { Diagnostics = solve.Diagnostics.AddRange(AfterSolve(graph, solve.Solution)) }
                 : solve,
             Sizes = sizes,
             Bases = bases,
@@ -625,17 +625,19 @@ public sealed class OuterLoop(
             TopologyHash = topologyHash,
         };
 
-    /// <summary><c>FS2221</c> on the lowest node of each hydraulic part the converged field puts below atmospheric (<c>S-29</c>, <c>D-121</c>).</summary>
-    /// <remarks>
-    /// After the solve rather than before it, because where a loop's pressures fall relative to its
-    /// datum is what the solve finds out: a second pump on a ring puts its own suction its head below
-    /// the datum at the first pump's suction, and no height check can see that.
-    /// </remarks>
-    private static ImmutableArray<Diagnostics.Diagnostic> UnderVacuum(CircuitGraph graph, StateVector solution)
+    /// <summary>What a converged field can be read for that no earlier stage could see: reversed flow, a part under vacuum, a three-way valve balancing instead of mixing.</summary>
+    /// <remarks>The posedness check and the layout are built once here and shared, where each report used to rebuild them.</remarks>
+    private static ImmutableArray<Diagnostics.Diagnostic> AfterSolve(CircuitGraph graph, StateVector solution)
     {
         var posedness = WellPosedness.Check(graph);
+        var layout = SystemLayout.Build(graph, posedness.Counting);
 
-        return FillPressure.ReportSolved(graph, posedness.Hydraulics, SystemLayout.Build(graph, posedness.Counting), solution);
+        return
+        [
+            .. Reversals(graph, layout, solution),
+            .. FillPressure.ReportSolved(graph, posedness.Hydraulics, layout, solution),
+            .. BypassBalance.ReportSolved(graph, layout, solution),
+        ];
     }
 
     /// <summary><c>FS2301</c>: the pass cap was reached with sizes still moving, naming what moved between the last two passes.</summary>
@@ -720,6 +722,7 @@ public sealed class OuterLoop(
 
     /// <summary>Names every pump and exchanger a converged solution runs backwards.</summary>
     /// <param name="graph">The solved graph.</param>
+    /// <param name="layout">The state vector's layout.</param>
     /// <param name="solution">The converged iterate.</param>
     /// <returns>One <c>FS3013</c> per reversed component, in graph order.</returns>
     /// <remarks>
@@ -729,9 +732,8 @@ public sealed class OuterLoop(
     /// port, and a negative inflow at <c>in</c> is the reversal whatever the walk did (<c>S-10</c>).
     /// Only a converged iterate is read; the directions of one that is not are not answers.
     /// </remarks>
-    private static ImmutableArray<Diagnostics.Diagnostic> Reversals(CircuitGraph graph, StateVector solution)
+    private static ImmutableArray<Diagnostics.Diagnostic> Reversals(CircuitGraph graph, SystemLayout layout, StateVector solution)
     {
-        var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);
         var ports = PortMap.Build(graph);
         var reversed = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
 

@@ -2796,6 +2796,15 @@
   "bindings": [],
   "diagnostics": [
     {
+      "code": "FS4011",
+      "severity": "warning",
+      "message": "'3WV' throttles its b leg by 23.2 kPa at position 0.52: that path is 18.9 kPa easier than the a path, more than the 12.0 kPa the valve drops fully open. A balancing valve between N3 and 3WV.b dropping 18.9 kPa at 0.163 kg/s (Kv 1.36) would level the legs and leave the valve its travel.",
+      "range": null,
+      "component": "3WV",
+      "suggestion": null,
+      "related": []
+    },
+    {
       "code": "FS1510",
       "severity": "info",
       "message": "Added node 'N2' (I1).",

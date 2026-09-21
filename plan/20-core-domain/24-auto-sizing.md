@@ -511,6 +511,52 @@ component rather than the sizer missing a rule.
 [^balance]: Eng-Tips, *Three way control valve balancing*.
     https://www.eng-tips.com/threads/three-way-control-valve-balancing.320544/
 
+#### What the solve reports when the balancing valve is missing — `FS4011`
+
+**The two legs share one `position`, so the position the mixing ratio implies is reached only when
+both legs see the same pressure at their far ends.** Half and half is 0.5 with linear legs; 60/40 to
+50 sits there by construction. When one path is easier than the other -- a bare bypass returning to
+the mixing node against a primary loop the secondary pump has to drive -- the valve throttles the
+easy leg to make the flows come out, and it leaves its mixing position to do it. That is the
+balancing valve's job being done by the control valve, and the solve can see it: the pressure at
+each switched port and at the common port are unknowns of the field.
+
+**`BypassBalance.ReportSolved` reads every three-way valve after a converged solve** (`C-111`,
+2026-09-21). For a valve whose two switched legs both enter (mixing) or both leave (diverting), the
+imbalance is the difference between the two legs' drops to the common port -- equivalently the
+pressure difference between the two far ports. It raises `FS4011` when that imbalance exceeds the
+valve's **own full-open drop at the flow its common port carries**, floored at `three_way.dp_min`
+(3 kPa) so a valve stated far too large for its flow does not report a few hundred pascals. The
+message names the throttled leg, its drop and the solved position, the imbalance against the line,
+and the balancing valve that would level the legs: on the easy leg's connection, dropping the
+imbalance at that leg's solved flow, with the Kv the law gives for it.
+
+**The line is this project's reasoning, not a published figure.** The guidance says the bypass
+should drop what the path it bypasses drops[^bypass][^balance]; it does not say how far off is too
+far. An imbalance the valve absorbs inside the drop it was sized for is the working margin every
+mixing valve carries; one beyond it means the valve spends more travel balancing than mixing. The
+floor is the band rule's own lower edge. Both are the part of this rule most worth testing against
+a commissioning engineer's judgement.
+
+**Measured on the ladder's series header** (`step-08b-header-series`, both valves Kv 6.3): the
+radiators' valve sits at 0.784 with 3.05 kPa across `a` and 35.0 kPa across `b`, an imbalance of
+32.0 kPa against a 7.6 kPa full-open drop, and the message names a balancing valve between `NM_RAD`
+and `TV_RAD.b` dropping 32.0 kPa at 0.239 kg/s, Kv 1.53. The AHU's valve at 0.393 has 11.4 across
+`a` and 5.0 across `b`, 6.5 kPa against 7.5, and is silent. Where the 32 kPa comes from matters for
+what the warning must not promise: the primary ring has no pump, so `PU_RAD` drives the ring's
+0.239 kg/s and pays the ring's 32 kPa on the `a` leg's path -- boiler, pipes, the AHU's `a` leg,
+less the AHU pump's help. A balancing valve in the bypass dissipates that same 32 kPa on the `b`
+side instead of the three-way valve doing it, and the pump head does not fall: 20 kPa of coil plus
+32 of ring plus the valve's 7.6 at mid-travel is 59.5 kPa against the 55 solved, not the 3 m the
+row first guessed. What the balancing valve buys is the valve's travel and a secondary flow that
+holds as the valve moves, which is what VM-12 calls the design requirement.[^vm12] The message says
+"would level the legs and leave the valve its travel" and nothing about the pump.
+
+**On the corpus the warning fires on every bare bypass** -- `m2-cooling-loop`'s `3WV` (18.9 kPa
+against 12.0), both header valves on every ladder header, `TV_MAIN` on the mixed header -- because
+none of those scripts has a balancing valve. That is the finding, not noise: the scripts are the
+minimal forms the ladder needs, and a user who copies one now reads what practice would add.
+
 **Out of scope here.** Sequenced parallel valves are a control-topology question, not a sizing one, and
 they need a control element that is a *set* rather than a component — the same shape as the parallel
 set above. Recorded so it is not mistaken for an oversight.
@@ -912,6 +958,9 @@ three of those numbers are engineering, and one is a guess.
       as a whole: a pumped secondary beside a genuinely bounded primary must not read as pump-driven.
 - [ ] A three-way valve's design flow is its **controlled path's**, not its common port's: asserted on
       `m2-cooling-loop`, where the two differ by the recirculation (0.163 against 0.239 kg/s).
+- [x] A three-way valve whose legs differ by more than its full-open drop raises `FS4011` naming the
+      balancing valve's leg, drop and Kv; one inside the line is silent: asserted on the ladder's series
+      header, `TV_RAD` at 32.0 kPa against 7.6 (Kv 1.53) and `TV_AHU` at 6.5 against 7.5 (`C-111`).
 - [ ] No sizable parameter survives the loop still holding its bootstrap provisional without saying so
       — the basis names it as provisional and a note explains that no rule chose it (`C-60`).
 - [ ] Every sized value in every sample carries a non-empty basis.

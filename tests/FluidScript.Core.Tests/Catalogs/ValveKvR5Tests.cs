@@ -133,6 +133,7 @@ public sealed class ValveKvR5Tests
                 var recovered = Core.Components.ValveLaw.RequiredKv(flow, drop, 998.2);
 
                 Assert.Equal(kv, recovered, 9);
+                Assert.Equal(drop, Core.Components.ValveLaw.PressureDrop(kv, flow, 998.2), 6);
             }
         }
     }
