@@ -320,7 +320,7 @@ A circuit picks catalogues from the `fluid`/`style` context or from defaults:
 
 | Catalogue | Default | Why |
 |---|---|---|
-| Pipes | `steel_en10255` | The common European hydronic default. `copper_en1057` ships verified on the Finnish type-approved range (`D-129`, 2026-09-21). A pipe names another shipped catalogue with `material=` (`D-128`): `dn` is then read in that series. `steel_en10220` is named in the tree above and **not shipped**: it is a different pipe from EN 10255 at DN150 (168.3 against 165.1 mm, `D-67`), and it joins the `material` list when its rows have two sources (`C-110`) |
+| Pipes | `steel_en10255` | The common European hydronic default. `copper_en1057` ships verified on the Finnish type-approved range (`D-129`, 2026-09-21). A pipe names another shipped catalogue with `material=` (`D-128`): `dn` is then read in that series. `steel_en10220` ships verified (2026-09-21, `C-110`): EN 10220's Series 1 diameters DN15–DN300 at the EN 10217-1 walls two Finnish wholesalers stock for heating mains, a different pipe from EN 10255 at DN150 (168.3 against 165.1 mm, `D-67`) and the only shipped steel above it |
 | Valves | `valves-kv` | Generic, manufacturer-neutral |
 | Pumps | `pumps-generic` | The quadratic default curve ([`22`](22-component-model.md)) |
 
@@ -445,9 +445,9 @@ Note DN25's ID is 27.3 mm, not 25 mm. DN is a designation, not a dimension, and 
 
 ## Open questions
 
-None. v1 ships one verified pipe series (`steel_en10255`, DN15–DN150 — the range EN 10255 covers;
-DN200 and above are a second series with their own sources, `C-42`) and one generic discrete Kv
-series. `catalog steel_en10255@2026.1` pins exactly one version; `catalog steel_en10255` selects the
+None. v1 ships three verified pipe series (`steel_en10255`, DN15–DN150 — the range EN 10255 covers;
+`steel_en10220`, DN15–DN300 on the Series 1 diameters, which is where DN200 and above live, `C-42`,
+`C-110`; and `copper_en1057`) and one generic discrete Kv series. `catalog steel_en10255@2026.1` pins exactly one version; `catalog steel_en10255` selects the
 shipped version of that named catalogue; absence selects the shipped default. Every resolution records
 the exact id and version. M2a cannot exit until two public manufacturer sources support every row and an independent
 review checks the generated table. Pump curves remain user-supplied or the documented generic

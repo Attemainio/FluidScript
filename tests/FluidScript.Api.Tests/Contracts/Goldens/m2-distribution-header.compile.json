@@ -106,7 +106,7 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.430532,
+          "value": 0.43066,
           "unit": "kg/s",
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -216,7 +216,7 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.287095,
+          "value": 0.287153,
           "unit": "kg/s",
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -281,7 +281,7 @@
       "tag": "101TV01",
       "parameters": {
         "authority": {
-          "value": 0.803323,
+          "value": 0.803332,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -499,7 +499,7 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.358869,
+          "value": 0.358941,
           "unit": "kg/s",
           "source": "sized",
           "basis": "chosen by a sizing rule"
@@ -564,7 +564,7 @@
       "tag": "102TV01",
       "parameters": {
         "authority": {
-          "value": 0.739352,
+          "value": 0.739362,
           "unit": null,
           "source": "sized",
           "basis": "chosen by a sizing rule"

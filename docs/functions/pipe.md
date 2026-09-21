@@ -41,7 +41,7 @@ its far end is not a connection at all -- the tour's `PA3`, whose outlet an `out
 |---|---|---|---|
 | `length` | m | Length along the run | Sized for a declared pipe; **0** for one written on the connection line |
 | `dn` | — | Nominal-diameter **designation**, not a diameter. DN25 steel pipe has a 27.3 mm bore | Sized from velocity |
-| `material` | — | The catalogue `dn` is read in: `steel_en10255` or `copper_en1057` ([`catalog`](catalog.md)) | The script's `catalog` line, or the shipped default |
+| `material` | — | The catalogue `dn` is read in: `steel_en10255`, `steel_en10220` or `copper_en1057` ([`catalog`](catalog.md)) | The script's `catalog` line, or the shipped default |
 | `roughness` | m | Absolute wall roughness. Usually written `roughness=0.045 mm` | 0.045 mm, commercial steel |
 | `nodes` | — | Internal discretization count. Transport storage is opt-in: set it to 1 or more to resolve travel time along the pipe | 0 — no internal nodes |
 | `minor_loss` | — | Sum of fitting loss coefficients K | 0, no fittings stated |

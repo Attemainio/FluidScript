@@ -139,6 +139,36 @@ condition is the large one, which is why it is a field rather than a comment.
 
 A script that wants aged pipe writes `roughness=0.3 mm`. v1 does not pretend to know that number.
 
+## `steel_en10220` — **verified 2026-09-21** (`C-110`)
+
+**Status: verified on the walls the Finnish market stocks.** Welded tube to EN 10217-1 in P235TR1 on
+EN 10220's Series 1 diameters, DN15–DN300. EN 10220 lists a dozen walls per diameter and chooses none,
+so the wall is chosen the way `D-129` chose copper's: the item an installer buys. Two wholesalers'
+category listings carry every row below as a stocked, painted heating tube, and two dimension tables
+carry the DN designation each diameter is sold under.
+
+| # | Publisher | URL | Retrieved | What it supports |
+|---|---|---|---|---|
+| 1 | Dahl Suomi Oy | <https://www.dahl.fi/tuoteryhma/hitsatut-putket-lv/> | 2026-09-21 | Every diameter and wall, as stocked items (`Teräsputki hitsattu EN 10217-1 … P235TR1 suojamaalattu`) |
+| 2 | Onninen Oy | <https://www.onninen.fi/lampo-ja-vesi-seka-prosessiputkistot/hitsatut-hiiliterasputket/c/7> | 2026-09-21 | The same items, independently (four listing pages) |
+| 3 | Eastern Steel Manufacturing Co., Ltd | <https://www.eastern-steels.com/newsdetail/din-en10220-seamless-steel-pipes.html> | 2026-09-21 | DN15–DN300 against the Series 1 diameter each carries |
+| 4 | Pipe Flow Calculations | <https://www.pipeflowcalculations.com/tables/en10220-DN15.xhtml> | 2026-09-21 | The same mapping, independently |
+
+### What the sources settled
+
+- **The rows.** 21.3 × 2.0, 26.9 × 2.3, 33.7 × 2.6, 42.4 × 2.6, 48.3 × 2.6, 60.3 × 2.9, 76.1 × 2.9,
+  88.9 × 3.2, 114.3 × 3.6, 139.7 × 4.0, 168.3 × 4.5, 219.1 × 4.5, 273.0 × 5.0, 323.9 × 5.6 — DN15 to
+  DN300. Sources 1 and 2 both list every one.
+- **Where both stock two walls, the row takes the painted heating item.** Both carry 168.3 × 4.0 and
+  × 4.5, and 219.1 × 4.5 and × 6.3; 4.5 is the wall both sell painted for heating at DN150, and at DN200
+  the 6.3 is the process-pipe wall. This is this project's choice, not a standard's.
+- **DN250 is 273.0, not 273.1.** Source 4 prints 273.1 for DN250; sources 1, 2 and 3 and the EN 10220
+  Series 1 chart already cited for `steel_en10255` (Botop) all print 273.0. Three against one, and the
+  wholesalers sell the tube as 273,0. Recorded because a fourth source that disagrees by a tenth of a
+  millimetre is exactly the kind of thing a later reader should not have to rediscover.
+- **Roughness** is the steel figure and its condition, provenanced under `steel_en10255` above; `C-37`
+  still owns the ageing question.
+
 ## `copper_en1057` — **verified 2026-09-21** (`D-129`)
 
 **Status: verified on the Finnish type-approved range.** Two independent public listings per row,

@@ -23,6 +23,7 @@ catalog steel_en10255@2026.1
 | Id | What | State |
 |---|---|---|
 | `steel_en10255` | Medium-series steel tube, DN15–DN150. The default | Verified |
+| `steel_en10220` | Welded steel tube on EN 10220's Series 1 diameters, DN15–DN300, at the walls Finnish wholesalers stock for heating mains (EN 10217-1 P235TR1). Its DN150 is 168.3 mm where `steel_en10255`'s is 165.1 | Verified |
 | `copper_en1057` | Copper tube, the Finnish type-approved range: 12–54 mm at 1.0–1.5 mm wall, 88.9 and 108 mm | Verified |
 
 ## `dn` does not mean the same thing in both

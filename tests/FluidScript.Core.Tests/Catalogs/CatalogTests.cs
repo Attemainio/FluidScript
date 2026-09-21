@@ -112,14 +112,17 @@ public sealed class CatalogTests
     [Trait("Category", "Unit")]
     public void APipesMaterialSelectsItsOwnCatalogue()
     {
-        // C-36: `dn=15` is a 16.1 mm bore in the script's steel, a 13.0 mm bore in copper, and
-        // nothing when the material is not a shipped catalogue.
+        // C-36: `dn=15` is a 16.1 mm bore in the script's steel, a 13.0 mm bore in copper, a 17.3 mm
+        // bore in EN 10220's welded tube (21.3 at a 2.0 wall, C-110), and nothing when the material is
+        // not a shipped catalogue.
         var lookup = new CatalogBoreLookup(Steel, PipeCatalogs.All);
 
         Assert.Equal(0.0161, lookup.BoreFor(15)!.Value, 4);
         Assert.Equal(0.0161, lookup.BoreFor(15, "steel_en10255")!.Value, 4);
         Assert.Equal(0.013, lookup.BoreFor(15, "copper_en1057")!.Value, 4);
-        Assert.Null(lookup.BoreFor(15, "steel_en10220"));
+        Assert.Equal(0.0173, lookup.BoreFor(15, "steel_en10220")!.Value, 4);
+        Assert.Equal(0.1593, lookup.BoreFor(150, "steel_en10220")!.Value, 4);
+        Assert.Null(lookup.BoreFor(15, "steel_en10219"));
         Assert.Null(new CatalogBoreLookup(Steel).BoreFor(15, "copper_en1057"));
 
         Assert.Equal(

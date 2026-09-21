@@ -498,7 +498,7 @@ public sealed class ComponentRegistry : IComponentRegistry
                 Name = "material",
                 ValueKind = ParameterValueKind.Symbol,
                 Dimension = Dimension.Dimensionless,
-                AcceptedSymbols = ["steel_en10255", "copper_en1057"],
+                AcceptedSymbols = ["steel_en10255", "steel_en10220", "copper_en1057"],
                 OmissionBehavior = ParameterOmissionBehavior.Default,
                 DefaultLiteral = "steel_en10255",
                 DefaultBasis = "the script's `catalog` line when one is written; otherwise the shipped default, which this is",

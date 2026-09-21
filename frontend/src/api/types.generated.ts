@@ -862,7 +862,7 @@ export interface Scale {
    */
   domain: Domain | null;
   /**
-   * Whether every element has the same value.
+   * Whether every element has the same value at the legend's precision; a plant on its pressure datum is degenerate at 0 (C-112).
    */
   degenerate: boolean;
 }
@@ -877,7 +877,7 @@ export interface Domain {
    */
   max: number;
   /**
-   * Whether the ends were rounded outward to legend ticks.
+   * Whether the ends were settled to six significant digits and rounded outward to legend ticks (C-112).
    */
   nice: boolean;
 }

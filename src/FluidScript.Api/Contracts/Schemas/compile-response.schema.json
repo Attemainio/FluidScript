@@ -1755,7 +1755,7 @@
                       "type": "number"
                     },
                     "nice": {
-                      "description": "Whether the ends were rounded outward to legend ticks.",
+                      "description": "Whether the ends were settled to six significant digits and rounded outward to legend ticks (C-112).",
                       "type": "boolean"
                     }
                   },
@@ -1766,7 +1766,7 @@
                   ]
                 },
                 "degenerate": {
-                  "description": "Whether every element has the same value.",
+                  "description": "Whether every element has the same value at the legend\u0027s precision; a plant on its pressure datum is degenerate at 0 (C-112).",
                   "type": "boolean"
                 }
               },
@@ -1808,7 +1808,7 @@
                     "$ref": "#/properties/model/properties/visualization/properties/scale/properties/domain"
                   },
                   "degenerate": {
-                    "description": "Whether every element has the same value.",
+                    "description": "Whether every element has the same value at the legend\u0027s precision; a plant on its pressure datum is degenerate at 0 (C-112).",
                     "type": "boolean"
                   }
                 },
