@@ -95,4 +95,8 @@ public enum DimensionId
     /// <summary>A thermal resistance per unit area. SI square metre kelvin per watt (<c>D-119</c>).</summary>
     /// <remarks>The exchanger's <c>fouling</c>, the reciprocal of a heat transfer coefficient.</remarks>
     ThermalResistance,
+
+    /// <summary>An acceleration. SI metre per second squared (<c>D-126</c>).</summary>
+    /// <remarks>Exists for the constant <c>g</c>, so that <c>dp / (rho * g)</c> is a length and can be written into a head.</remarks>
+    Acceleration,
 }

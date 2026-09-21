@@ -43,6 +43,7 @@ export const unitSymbols: readonly string[] = [
   'kg/h',
   'kg/s',
   'km/h',
+  'm/s2',
   'm3/h',
   'm3/s',
   'mH2O',

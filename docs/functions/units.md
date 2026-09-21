@@ -43,6 +43,7 @@ number you have not seen before still reads the way you would guess.
 | Pixels | `px` | `px` | `px` |
 | Heat transfer coefficient | `W/(m2*K)` | `W/(m2*K)` | `W/(m2*K)` |
 | Thermal resistance | `m2*K/W` | `m2*K/W` | `m2*K/W` |
+| Acceleration | `m/s2` | `m/s2` | `m/s2` |
 <!-- END GENERATED: unit-dimensions -->
 
 ## Writing the unit out
@@ -78,6 +79,7 @@ accepted in any case.
 | Pixels | `px` |
 | Heat transfer coefficient | `W/(m2*K)`, `kW/(m2*K)` |
 | Thermal resistance | `m2*K/W` |
+| Acceleration | `m/s2` |
 <!-- END GENERATED: unit-symbols -->
 
 ## Temperatures and temperature differences are not the same thing

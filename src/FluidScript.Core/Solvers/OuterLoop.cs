@@ -91,6 +91,14 @@ public sealed record PreparedModel(
 
     /// <summary>Gets what evaluating against the seed had to say: a dimension a deferred value could not have.</summary>
     public ImmutableArray<Diagnostics.Diagnostic> Said { get; init; } = [];
+
+    /// <summary>Gets what the seed evaluated, so the first pass compares against it rather than counting every value as moved.</summary>
+    /// <remarks>
+    /// Without this a value stated from the seed was "moved" on pass 1 by having no history, which
+    /// forced a pass 2 whose overlay carried the valve the head had promoted as a size -- and a stated
+    /// head beside a sized valve is over-specified. The seed's value is pass 0's, and it counts.
+    /// </remarks>
+    public ImmutableArray<DeferredEvaluation.Evaluated> Seeded { get; init; } = [];
 }
 
 /// <summary>The single fixed-point loop that reconciles sizing with the solve (<c>31</c>).</summary>
@@ -216,6 +224,7 @@ public sealed class OuterLoop(
         // rated exchanger's second side, wait for the first solve.
         var seedSaid = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
         var seedNotes = ImmutableArray.CreateBuilder<string>();
+        var seededValues = ImmutableArray<DeferredEvaluation.Evaluated>.Empty;
 
         if (!model.Deferred.IsDefaultOrEmpty)
         {
@@ -229,6 +238,8 @@ public sealed class OuterLoop(
                 overlay = Bootstrap(model);
                 bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
             }
+
+            seededValues = seeded;
         }
 
         var closure = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
@@ -257,6 +268,7 @@ public sealed class OuterLoop(
         {
             Model = model.Deferred.IsDefaultOrEmpty ? null : model,
             Said = seedSaid.ToImmutable(),
+            Seeded = seededValues,
         };
     }
 
@@ -355,6 +367,11 @@ public sealed class OuterLoop(
         // been so far is kept for FS1405, which shows the last three values when one never settles.
         var current = prepared.Model ?? model;
         var histories = new Dictionary<ValueId, List<DeferredEvaluation.Evaluated>>();
+
+        foreach (var seeded in prepared.Seeded)
+        {
+            histories[seeded.Target] = [seeded];
+        }
         ImmutableArray<Diagnostics.Diagnostic> evaluationSaid = prepared.Said;
         var deferredMoved = false;
 

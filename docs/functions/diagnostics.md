@@ -90,6 +90,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1408` | Error | Expressions | No function '{name}'. Available: {available}. |
 | `FS1409` | Error | Expressions | '{function}' takes {expected} arguments. |
 | `FS1410` | Warning | Expressions | '{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly. |
+| `FS1411` | Error | Expressions | '{name}' is reserved for {what}, {value}. Choose another name. |
 | `FS1501` | Error | Binder | '{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits. |
 | `FS1502` | Error | Binder | There is no '{kind}'. |
 | `FS1503` | Error | Binder | A {kind} has no '{parameter}'. It accepts: {available}. |

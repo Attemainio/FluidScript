@@ -104,7 +104,7 @@ public sealed class DeferredEvaluationTests
         var run = await Solve(source, "head-from-dp");
         var mismatch = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS1304");
 
-        Assert.Contains("'PU1.head' is a head", mismatch.Message, StringComparison.Ordinal);
+        Assert.Contains("'PU1.head' is a head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length", mismatch.Message, StringComparison.Ordinal);
         Assert.Contains("'1.2*HE1.dp' is a pressuredelta", mismatch.Message, StringComparison.Ordinal);
         Assert.True(run.Settled);
         Assert.False(run.Graph.Components.Single(static c => c.Name == "PU1").StatedParameters.ContainsKey("head"));
@@ -153,6 +153,25 @@ public sealed class DeferredEvaluationTests
         Assert.Contains("'HE1.in2 = HE2.out[2].t + 28 dK' was never evaluated: HE2.t_out2 is not published by any pass", never[0], StringComparison.Ordinal);
         Assert.Contains("'HE2.in2 = HE1.out[2].t' was never evaluated: HE1.t_out2 is not published by any pass", never[1], StringComparison.Ordinal);
         Assert.False(run.Graph.Components.Single(static c => c.Name == "HE2").StatedParameters.ContainsKey("in2"));
+    }
+
+    [Fact]
+    public async Task AHeadWrittenAsALengthFromTheDesignDropIsStatedFromTheSeed()
+    {
+        // 14's worked example, as the language can write it since D-126: dp / (rho * g) is a length,
+        // and a head parameter reads a length as metres of the pumped fluid. HE1.dp is the stated
+        // design drop, so the seed can evaluate it and the head is stated before sizing decides.
+        var source = Chained
+            .Replace("HE2  heat_exchanger power=20 in[2].t=HE1.out[2].t in[2].flow=0.4\n", string.Empty, StringComparison.Ordinal)
+            .Replace("LOAD heat_exchanger power=-50 dp=0", "LOAD heat_exchanger power=-30 dp=0", StringComparison.Ordinal)
+            .Replace("PU1  pump", "PU1  pump head=1.2*HE1.dp/(998 kg/m3*g)", StringComparison.Ordinal)
+            .Replace("N2 - HE1 - N6 - HE2 - N3", "N2 - HE1 - N3", StringComparison.Ordinal);
+        var run = await Solve(source, "head-formula", requireSettled: false);
+        var pump = run.Graph.Components.Single(static c => c.Name == "PU1");
+
+        Assert.Equal(1.2 * 20000 / (998 * 9.80665), pump.StatedParameters["head"].SiValue, 4);
+        Assert.Contains("from `1.2*HE1.dp/(998 kg/m3*g)` at pass 0", run.Bases["PU1.head"], StringComparison.Ordinal);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code is "FS1304" or "FS1405" or "FS1410");
     }
 
     private static async Task<OuterLoopResult> Solve(string script, string name, bool requireSettled = true)

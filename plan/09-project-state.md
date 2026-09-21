@@ -985,6 +985,12 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > script yet (`L-62`), that a connection-line node is not a name to an expression (`L-63`), and that
 > a valve's stated `dp` is read by nothing (`C-109`). `S-58`'s valve observation went to the docs as
 > a paragraph, no row. One closed, five opened; 61 open. Core 1955/0/3, Api 59/0, frontend 223/0.
+> **`L-60` closed by `D-126`** (the same day, the user's call over the stated risk): a `head`
+> parameter accepts a length, `pi` and `g` are reserved constants (`FS1411`), `Acceleration` and
+> `m/s2` exist, and `FS1304` on a head spells `dp / (rho * g)`. `14`'s worked example finally runs:
+> 2.4522 m from the seed, the valve promoted to Kv 7.01, one pass. The seed now supplies a kind's
+> decided default too. `C-109` widened to the pump's `dp` (stated, written in from an expression,
+> and read by nothing). 60 open. Core 1963/0/3, Api 59/0, frontend 223/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -1071,9 +1077,9 @@ unassessed, not clean.
    (2026-09-20) closed the seven rows the columns called fixable; P5.13b shipped 2026-09-21 (`D-124`,
    `L-56` closed, `L-59` opened -- a deferred read of a solved value is never evaluated, which is what
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
-   the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened). Next: the user's decisions on
-   `L-60` (how a head is written from a pressure) and the queued rows `C-84`, `D-108`, `C-54`,
-   `C-38`/`C-36`, `C-108`, `C-91`. Two report packages the
+   the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
+   (a head accepts a length; `pi`, `g`). Next: `C-109` (a pump's or valve's stated `dp` as a
+   constraint), then the queued rows `C-84`, `D-108`, `C-54`, `C-38`/`C-36`, `C-108`, `C-91`. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
@@ -1115,7 +1121,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1955 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1963 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

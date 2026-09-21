@@ -187,6 +187,9 @@ public readonly record struct Dimension
     /// <summary>Gets the thermal-resistance-per-area dimension, m²·K/W (<c>D-119</c>).</summary>
     public static Dimension ThermalResistance => Named(DimensionId.ThermalResistance);
 
+    /// <summary>Gets the acceleration dimension, metres per second squared (<c>D-126</c>).</summary>
+    public static Dimension Acceleration => Named(DimensionId.Acceleration);
+
     /// <summary>Gets the dimension for a named identity.</summary>
     /// <param name="id">The identity to look up.</param>
     /// <returns>The dimension. <see cref="DimensionId.Unnamed"/> yields a dimensionless unnamed dimension.</returns>
@@ -272,5 +275,6 @@ public readonly record struct Dimension
         new(default, DimensionCategory.Linear, "px", "px", "px", false),                                     // Pixels
         new(new DimensionVector(1, 0, -3, -1), DimensionCategory.Linear, "W/(m2*K)", "W/(m2*K)", "W/(m2*K)"), // HeatTransferCoefficient
         new(new DimensionVector(-1, 0, 3, 1), DimensionCategory.Linear, "m2*K/W", "m2*K/W", "m2*K/W"),      // ThermalResistance
+        new(new DimensionVector(0, 1, -2, 0), DimensionCategory.Linear, "m/s2", "m/s2", "m/s2"),            // Acceleration (D-126)
     ];
 }

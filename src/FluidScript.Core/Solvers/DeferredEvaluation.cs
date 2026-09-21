@@ -116,13 +116,15 @@ public static class DeferredEvaluation
                         // The binder checks a parameter's dimension when it stores the value, which it
                         // never reached for a deferred one: `head=1.2*HE1.dp` is a pressure written into
                         // metres, and the first pass that can evaluate it is the first that can say so.
-                        if (expected is { } dimension && value.Quantity.Dimension != dimension)
+                        var assigned = value.Quantity;
+
+                        if (expected is { } dimension && !Quantity.TryAssign(value.Quantity, dimension, out assigned))
                         {
                             diagnostics.Add(Diagnostic.Create(
                                 BinderDiagnostics.ParameterDimensionMismatch,
                                 deferred.Expression.Span,
                                 new DiagnosticArgument("parameter", spelled),
-                                new DiagnosticArgument("expected", dimension.Name.ToLowerInvariant()),
+                                new DiagnosticArgument("expected", BinderDiagnostics.Expected(dimension)),
                                 new DiagnosticArgument("value", text),
                                 new DiagnosticArgument("actual", value.Quantity.Dimension.Name.ToLowerInvariant())));
                             pending.Remove(deferred);
@@ -130,8 +132,8 @@ public static class DeferredEvaluation
                             break;
                         }
 
-                        results.Add(new Evaluated(deferred.Target, value.Quantity, text));
-                        scope.Supply(deferred.Target, value.Quantity);
+                        results.Add(new Evaluated(deferred.Target, assigned, text));
+                        scope.Supply(deferred.Target, assigned);
                         pending.Remove(deferred);
                         progressed = true;
                         break;
@@ -446,10 +448,12 @@ public static class DeferredEvaluation
             // The seed is a guess at everything the script did not state: a node it knows nothing
             // about sits at the bootstrap's placeholder temperature. Written in as a stated value, that
             // guess became the truth the first solve was held to -- a 38 °C primary on a 150 kW
-            // exchanger, which no solve survives. The seed supplies only what the script anchored.
+            // exchanger, which no solve survives. The seed supplies only what the script anchored,
+            // which includes a kind's decided default (`D-32`): an exchanger's 20 kPa design drop is
+            // the script's number whether or not the line spells it.
             if (_seeding)
             {
-                return null;
+                return element.DefaultParameters.TryGetValue(key, out var decided) ? decided.SiValue : null;
             }
 
             if (SolvedStates.Parameter(_layout, _solution, name, key) is { } promoted)

@@ -168,6 +168,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-125` | Accepted | 2026-09-21 | A bare volume flow is litres per second |
 | `D-124` | Accepted | 2026-09-21 | A port's pressure is the touching node's pressure, stated on the component and copied onto the node |
 | `D-123` | Accepted | 2026-09-20 | A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list |
+| `D-126` | Accepted | 2026-09-21 | A head parameter accepts a length, and `pi` and `g` are reserved constants |
 <!-- index:end -->
 
 ---
@@ -5845,3 +5846,54 @@ change, `drho` a density change, and a reader who knows `t` knows `dt`.
 [`02`](02-glossary.md) *Property*; [`57`](../50-frontend/57-state-visualization.md);
 `docs/functions/show.md`, `properties.md`, `syntax.md`; [`33`](../30-solver/33-transient-time-domain.md)
 may not name its step `dt`.
+
+## D-126 · A head parameter accepts a length, and `pi` and `g` are reserved constants
+
+**Accepted · 2026-09-21** (the user's call, over the risk stated) · *amends `D-50`*: `Head` still
+has no unit symbol, but a value whose dimension is `Length` is accepted by a `head` parameter as
+metres of the pumped fluid; closes `L-60`
+
+`14`'s flagship line `PU1 pump head=1.2*HE1.dp` never typed: a head is metres of the pumped fluid, a
+drop is a pressure, and `D-50` refused every symbol that would let one be spelled as the other. The
+definition the user gave is the physics: `h = Δp / (ρ · g)`, with ρ at the pump inlet. Written out,
+that expression has a length's dimension vector, and refusing it left the feature `14` was written
+for -- a head stated from a drop the solve produced -- unwritable. Constants did not exist either:
+`let g = 9.81` was a bare number, and `9.81 m/s2` had no dimension to be.
+
+**Decided.**
+- **A `head` parameter accepts a `Length`**, literal or expression, and holds it as `Head`. The
+  conversion is at the parameter boundary only (`Quantity.TryAssign`); arithmetic never produces a
+  head (`FromVector` still names the length), no other pair converts, and `Head` still accepts no
+  symbol. `head=12 m` is 12 m of the pumped fluid; so is `head=P1.length`, and that is the cost the
+  user accepted for the flexibility: any length is a head if the script says so.
+- **`pi` and `g` are reserved constants**, recognised wherever an expression is read, never bound:
+  `g` is the standard acceleration of gravity, 9.80665 m/s² exactly (ISO 80000-3:2019, the 3rd CGPM
+  of 1901), and `pi` is π. A `let` of either name is `FS1411`, which says what the name is reserved
+  for. They are identifiers, so `2 g` is two grams and `2 * g` is twice gravity; the docs say so.
+- **`Acceleration` is a dimension**, SI and canonical `m/s2`, so that `g` has one and
+  `dp / (rho * g)` is a length. It is the twenty-fourth row of `13`'s table and no parameter takes it.
+- **`FS1304` on a head target spells the definition**: *'PU1.head' is a head, metres of the pumped
+  fluid: dp / (rho * g) at the inlet, which is a length; '1.2\*HE1.dp' is a pressuredelta.*
+
+**Measured.** `14`'s worked example as the language can now write it,
+`PU1 pump head=1.2*HE1.dp/(998 kg/m3*g)`: the head is 2.4522 m from the seed (`HE1.dp` is the kind's
+decided 20 kPa, which the seed supplies as the script's own number), the valve is promoted to Kv 7.01
+and the pump rises 24.01 kPa at 0.2392 kg/s in one pass and three Newton iterations. The plan had said
+the stated head would fall short and `FS2303` would report it; it does not, because the loop had a
+free valve to open. `ConstantsTests`, `DeferredEvaluationTests`.
+
+**Rejected.**
+- *Refuse and reword only, with `dp=` as the pump's expression target.* My recommendation, and the
+  user's answer was flexibility; it also depends on `C-109` (a pump's stated `dp` is read by
+  nothing), which stays open.
+- *A `head(dp)` function.* A second spelling of what the division already says, and it would need ρ,
+  so it would be deferred anyway.
+- *`c`, Planck, Boltzmann, the gas constant.* Nothing in the domain reads them, and every constant is
+  a short name a script can no longer bind.
+
+**Constrains.** `Quantity.TryAssign`, `Constants`, `Dimension.Acceleration`, `UnitTable` (`m/s2`),
+`ExpressionEvaluator.Reference`, `Binder.DeclareBinding`, `BinderDiagnostics.Expected`;
+[`13`](../10-language/13-type-and-unit-system.md) tables and invariant 3;
+[`14`](../10-language/14-expressions-and-references.md) constants, `FS1411`, the worked example;
+`docs/functions/{let,pump,units,diagnostics}.md`; `language.json` and the editor's lexicon.
+

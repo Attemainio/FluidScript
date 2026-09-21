@@ -186,6 +186,13 @@ public sealed class ExpressionEvaluator
 
     private EvaluationResult Reference(ReferenceSyntax reference)
     {
+        // A constant is not a dependency: nothing evaluates it and it never moves (`D-126`). Bare
+        // only -- `g.x` is a component named g, or nothing.
+        if (reference.Parts.IsEmpty && Constants.TryGet(reference.Head.Token.Text, out var constant))
+        {
+            return new EvaluationResult.Value(constant, IsBare: false);
+        }
+
         switch (_scope.Lookup(reference))
         {
             case ScopeLookup.Value value:

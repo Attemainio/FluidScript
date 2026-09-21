@@ -90,6 +90,20 @@ dimensional bookkeeping is done once and tested, not in user scripts. It is a na
 the general algebra in [`13-type-and-unit-system`](13-type-and-unit-system.md) needs, and deliberately
 so: `*` and `/` keep exponents integral, and these two would not.
 
+### Constants
+
+Two reserved names, readable wherever an expression is read and never bound (`D-126`):
+
+| Name | Value | Dimension | Source |
+|---|---|---|---|
+| `pi` | 3.14159… | dimensionless | |
+| `g` | 9.80665 m/s² exactly | `Acceleration` | ISO 80000-3:2019; the 3rd CGPM (1901) |
+
+A constant is an identifier, so it takes an operator: `2 * g` is twice gravity, while `2 g` is two
+grams, because `g` is also the mass unit and a unit symbol is what follows a number. `let g = …` is
+`FS1411`, naming what the name is reserved for. The set is closed and small on purpose: nothing in
+the domain reads the speed of light, and every constant is a short name a script can no longer bind.
+
 ## `let` bindings
 
 ```fluidscript
@@ -181,8 +195,9 @@ last three values at the cap; `FS1410` names a line no pass could evaluate -- tw
 reading the other's leaving temperature, neither rated until the other is -- because a silently
 absent parameter was the whole of `L-59`. Three things the measuring found. The flagship
 `head=1.2*HE1.dp` does not type: `Head` accepts no symbol and nothing converts a pressure to it
-([`13`](13-type-and-unit-system.md)), so the worked example below is written in a conversion the
-language does not have and the run answers `FS1304` (`L-60`). A target the seed cannot supply is
+([`13`](13-type-and-unit-system.md)), so the run answers `FS1304` with the definition in the message
+(`L-60`, closed by `D-126` the same day: the example is written as `head=1.2*HE1.dp/(998 kg/m3*g)`
+below, a length a head parameter accepts). A target the seed cannot supply is
 absent from pass 1, so a script whose well-posedness hangs on it -- an inlet's only temperature, the
 profile a flow constraint reads -- fails on pass 1 rather than walking to `FS1405`, and the walk is
 pinned on the builder alone (`L-62`). A node declared only on a connection line is not a name an
@@ -275,6 +290,7 @@ hangs.
 | `FS1408` | Unknown function | Error | `No function '{name}'. Available: {list}.` |
 | `FS1409` | Wrong argument count | Error | `'{fn}' takes {n} arguments.` |
 | `FS1410` | A deferred expression no pass could evaluate | Warning | `'{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly.` |
+| `FS1411` | A `let` of a reserved constant's name | Error | `'{name}' is reserved for {what}, {value}. Choose another name.` |
 
 `FS1406` listing the available properties is the difference between a diagnostic and a scavenger hunt,
 and it costs one string join.
@@ -294,8 +310,13 @@ let cp   = 4.18 kJ/(kg*K)
 let mdot = Q / (cp * dT)
 
 HE1 heat_exchanger power=Q in.t=20 out.t=20C+dT
-PU1 pump head=1.2*HE1.dp
+PU1 pump head=1.2*HE1.dp/(998 kg/m3*g)
 ```
+
+The division is what makes the line type (`D-126`): a drop over a density and `g` is a length, and a
+head parameter reads a length as metres of the pumped fluid. The density is stated because the
+pump's inlet density is a solved value the seed cannot supply, and a head stated only from pass 2
+changes the circuit's shape under sizing's memory (`L-62`).
 
 **Dependency graph.**
 
@@ -306,7 +327,7 @@ Q ───┤
 cp ──┘
 Q ────────► HE1.power
 dT ───────► HE1.out
-HE1.dp ───► PU1.head        (deferred — dp is solved, not declared)
+HE1.dp ───► PU1.head        (deferred — dp is a property; here the kind's decided 20 kPa, which the seed supplies)
 ```
 
 **Phase A**, in topological order:
@@ -320,7 +341,7 @@ HE1.dp ───► PU1.head        (deferred — dp is solved, not declared)
 | `HE1.power` | `Q` | 30 000 W |
 | `HE1.in` | `20` | 293.15 K |
 | `HE1.out` | `20C + dT` | 323.15 K |
-| `PU1.head` | `1.2 * HE1.dp` | **deferred** |
+| `PU1.head` | `1.2*HE1.dp/(998 kg/m3*g)` | **deferred** |
 
 **Phase B.** The circuit is the **simple loop**
 ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)), where `HE1` states `power`, `in`
@@ -328,23 +349,25 @@ and `out` — so the flow is pinned by the energy balance at 0.2392 kg/s and doe
 pump head. `HE1.dp` therefore depends on the head only through the small effect of pressure on density,
 which is what makes this reference converge rather than collapse.
 
-| Iteration | Pump head used | Solved `HE1.dp` | `1.2 × dp` as head | Change |
+| Pass | Pump head used | `HE1.dp` read | `1.2·dp / (998·g)` as head | Change |
 |---|---|---|---|---|
-| 1 | auto-sized: 5.28 m | 20.00 kPa | 2.451 m | — |
-| 2 | 2.451 m | 20.00 kPa | 2.451 m | < tol → **converged** |
+| 0 (seed) | — | 20.00 kPa, the kind's decided default | 2.4522 m, written in as stated | — |
+| 1 | 2.4522 m | 20.00 kPa | 2.4522 m | none → **settled** |
 
-Two passes, and the second only confirms. `∂dp/∂H ≈ 0` here because nothing the head does changes the
-flow, so the map is effectively constant — the strongest possible contraction.
+One pass, three Newton iterations (measured 2026-09-21, `DeferredEvaluationTests`). `∂dp/∂H = 0`
+here because nothing the head does changes the flow, and `HE1.dp` is the design drop the script
+carries, so the seed already has the answer and pass 1 only confirms it.
 
-The head-to-pressure conversion uses ρ ≈ 998.2 kg/m³ and g = 9.81: 1.2 × 20 000 Pa = 24 000 Pa, ÷
-(998.2 × 9.81) = **2.451 m**. That conversion is `Head` ↔ `Pressure`, and it is exactly why the
-glossary insists they are different things.
+The conversion is `1.2 × 20 000 Pa ÷ (998 kg/m³ × 9.80665 m/s²)` = **2.4522 m**. It is done by the
+script, with a density the script states, and that is why `13` insists head and pressure are
+different things: the language will not do it for you.
 
-**The result is a worse pump, and the tool must not hide that.** 2.451 m does not deliver the loop's
-51.7 kPa, so the circuit cannot run at the stated duty on that head, and `FS2303`
-([`24-auto-sizing`](../20-core-domain/24-auto-sizing.md)) reports the shortfall. A converging
-fixed point is not the same as a sensible design; the expression did what it was asked, and the sizing
-diagnostic is what says the answer is unusable.
+**The result is a different valve, not a worse pump, and the report says which.** The loop's own
+resistance at 0.2392 kg/s is 51.7 kPa with the valve at its authority-rule Kv 1.6; a pump held at
+24.0 kPa cannot drive that, so the flow constraint on `HE1.out.t` is answered by the valve instead --
+`FixedFlow on HE1.out.t -> solved for as CV1.kv`, Kv **7.01**, 1.51 kPa across it. An earlier draft
+of this example expected `FS2303`, a shortfall; the loop had a free valve to open, and the counting
+is what decides which. State the valve's `kv` too and the shortfall is what remains, reported.
 
 **The contrasting case, worth writing a test for.** Change `HE1` to state only `power` and the flow is
 free, set by the pump against the system curve. Now `dp` moves with `H` almost proportionally, the map
@@ -360,19 +383,22 @@ directly.
       0.2392 kg/s that [`22-component-model`](../20-core-domain/22-component-model.md) computes for the
       same duty: the script states `cp = 4.18 kJ/(kg*K)` and the property backend gives 4178 J/(kg·K).
       An expression uses the number the user wrote.
-- [ ] The fixed-point loop converges on the worked example in ≤ 3 iterations. *The example does not
-      type (`L-60`); the loop converges in 2 passes on `HE2 in[2].t=HE1.out[2].t`, written in at pass 1
-      and confirmed at pass 2 (`DeferredEvaluationTests`, P5.13c).*
+- [x] The fixed-point loop converges on the worked example in ≤ 3 iterations: one pass from the seed
+      since `D-126` let it be written (`DeferredEvaluationTests.AHeadWrittenAsALengthFromTheDesignDropIsStatedFromTheSeed`);
+      `HE2 in[2].t=HE1.out[2].t` in 2 passes (P5.13c).
 - [x] A chain through a deferred `let` (`let tprim = HE1.out[2].t`, `in[2].t=tprim - 2 dK`) is
       evaluated in the same pass as its link (P5.13c).
 - [x] A deferred value of the wrong dimension is `FS1304` on the first pass that has it, and the
       parameter is sized as if absent (P5.13c).
 - [x] Two references each waiting on the other are `FS1410`, one per line (P5.13c).
-- [ ] `head=1.2*HE1.dp` on a loop whose flow the pump sets produces `FS1405`, not a converged answer —
-      the degenerate case has a test of its own. *Blocked by `L-60`; the builder is pinned (`L-62`).*
+- [ ] `head=1.2*HE1.dp/(998 kg/m3*g)` on a loop whose flow the pump sets produces `FS1405`, not a
+      converged answer — the degenerate case has a test of its own. *The builder is pinned; the script
+      waits on `L-62`.*
 - [ ] A deliberately divergent script produces `FS1405` with three values and no partial result.
       *No well-posed script reached it (`L-62`).*
 - [ ] Every function in the table has a test for correct use and for a dimension violation.
+- [x] `let g = 9.81 m/s2` is `FS1411` naming standard gravity, and `2 g` is two grams while `2 * g`
+      is twice gravity (`ConstantsTests`, `D-126`).
 - [ ] `HE1.nonsense` produces `FS1406` listing the real properties.
 - [ ] A solved-value reference in a quantity component parameter becomes deferred, while the same
       reference used as a catalogue id or schedule time produces `FS1407` naming that pre-solve target.

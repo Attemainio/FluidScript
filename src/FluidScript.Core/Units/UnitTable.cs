@@ -298,6 +298,8 @@ public static class UnitTable
         yield return new UnitSymbol("m/s", Dimension.Velocity, 1);
         yield return new UnitSymbol("km/h", Dimension.Velocity, 1000.0 / 3600);
 
+        yield return new UnitSymbol("m/s2", Dimension.Acceleration, 1);
+
         yield return new UnitSymbol("kg", Dimension.Mass, 1);
         yield return new UnitSymbol("g", Dimension.Mass, 0.001);
         yield return new UnitSymbol("t", Dimension.Mass, 1000);

@@ -444,6 +444,17 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     {
         var name = let.Name.Text;
 
+        if (Constants.TryGet(name, out _))
+        {
+            Report(
+                BinderDiagnostics.BuiltInConstantRedefined,
+                let.Span,
+                ("name", name),
+                ("what", Constants.Describe(name)),
+                ("value", Constants.Spell(name)));
+            return;
+        }
+
         if (_bindingsByName.TryGetValue(name, out var existing))
         {
             Report(
@@ -970,13 +981,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             {
                 quantity = Quantity.FromBareNumber(quantity.SiValue, target.Info.Dimension);
             }
-            else if (quantity.Dimension != target.Info.Dimension)
+            else if (!Quantity.TryAssign(quantity, target.Info.Dimension, out quantity))
             {
                 Report(
                     BinderDiagnostics.ParameterDimensionMismatch,
                     pending.Span,
                     ("parameter", target.Info.Name),
-                    ("expected", target.Info.Dimension.Name.ToLowerInvariant()),
+                    ("expected", BinderDiagnostics.Expected(target.Info.Dimension)),
                     ("value", parse.Source.ToString(pending.Expression.Span).Trim()),
                     ("actual", quantity.Dimension.Name.ToLowerInvariant()));
                 return;

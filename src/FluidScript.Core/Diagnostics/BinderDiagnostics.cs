@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Units;
+
 namespace FluidScript.Core.Diagnostics;
 
 /// <summary>Everything the binder and the expression evaluator can report.</summary>
@@ -87,6 +89,14 @@ public static class BinderDiagnostics
         "FS1401",
         DiagnosticSeverity.Error,
         "'{name}' is already defined at line {line}.");
+
+    /// <summary>A <c>let</c> of a name the language reserves for a constant.</summary>
+    /// <value><c>FS1411</c>, an error.</value>
+    /// <remarks><c>pi</c> and <c>g</c> (<c>D-126</c>) are reserved throughout the script, not bound; shadowing one would make <c>g</c> mean two things in two scripts.</remarks>
+    public static DiagnosticDescriptor BuiltInConstantRedefined { get; } = new(
+        "FS1411",
+        DiagnosticSeverity.Error,
+        "'{name}' is reserved for {what}, {value}. Choose another name.");
 
     /// <summary>A value that depends on itself without passing through a solve.</summary>
     /// <value><c>FS1402</c>, an error.</value>
@@ -765,13 +775,24 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{written}' states the pressure of '{node}', which '{other}' already states. State it once.");
 
+    /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
+    /// <param name="dimension">The parameter's dimension.</param>
+    /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
+    public static string Expected(Dimension dimension)
+    {
+        return dimension == Dimension.Head
+            ? "head, metres of the pumped fluid: dp / (rho * g) at the inlet, which is a length"
+            : dimension.Name.ToLowerInvariant();
+    }
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty-nine descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Seventy descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,
+        BuiltInConstantRedefined,
         PortStateOnNode,
         UnknownPortQuantity,
         PortPressureStatedTwice,

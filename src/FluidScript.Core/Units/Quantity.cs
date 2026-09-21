@@ -173,6 +173,36 @@ public readonly record struct Quantity
         return Fail(QuantityError.DimensionMismatch, out result, out error);
     }
 
+    /// <summary>Reads a value into a parameter of the given dimension, where the language allows it.</summary>
+    /// <param name="value">The evaluated value.</param>
+    /// <param name="target">The parameter's dimension.</param>
+    /// <param name="assigned">The value as the parameter holds it: unchanged when the dimensions agree, a head when a length is written into one.</param>
+    /// <returns><see langword="true"/> when the value may be assigned; otherwise the caller reports <c>FS1304</c>.</returns>
+    /// <remarks>
+    /// The one conversion is <c>D-126</c>'s: a <see cref="Dimension.Length"/> is accepted by a
+    /// <see cref="Dimension.Head"/> parameter as metres of the pumped fluid, so that
+    /// <c>head = dp / (rho * g)</c>, whose vector is a length, can be written. It is a conversion at
+    /// the parameter boundary only; a head is never produced by arithmetic (<c>FromVector</c> names
+    /// the length), and no other pair converts.
+    /// </remarks>
+    public static bool TryAssign(Quantity value, Dimension target, out Quantity assigned)
+    {
+        if (value.Dimension == target)
+        {
+            assigned = value;
+            return true;
+        }
+
+        if (target == Dimension.Head && value.Dimension == Dimension.Length)
+        {
+            assigned = FromSi(value.SiValue, Dimension.Head);
+            return true;
+        }
+
+        assigned = value;
+        return false;
+    }
+
     /// <summary>Multiplies two quantities.</summary>
     /// <param name="left">The left operand.</param>
     /// <param name="right">The right operand.</param>

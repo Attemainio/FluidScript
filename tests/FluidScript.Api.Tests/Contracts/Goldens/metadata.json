@@ -2842,6 +2842,14 @@
       "units": [
         "m2*K/W"
       ]
+    },
+    {
+      "name": "Acceleration",
+      "siUnit": "m/s2",
+      "canonicalUnit": "m/s2",
+      "units": [
+        "m/s2"
+      ]
     }
   ],
   "symbols": [
@@ -4010,6 +4018,17 @@
         "target",
         "expr",
         "waited"
+      ]
+    },
+    {
+      "code": "FS1411",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "'{name}' is reserved for {what}, {value}. Choose another name.",
+      "arguments": [
+        "name",
+        "what",
+        "value"
       ]
     },
     {

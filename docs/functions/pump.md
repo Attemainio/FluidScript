@@ -10,6 +10,11 @@ PU2 pump head=15
 A pump with no parameters is sized: its head comes out equal to the loop's total pressure drop, which
 is the number you would otherwise have computed by hand to choose one.
 
+A stated head is metres of the pumped fluid, and the parameter accepts any value in metres: a bare
+number, `12 m`, or an expression such as `head=1.2*HE1.dp/(998 kg/m3*g)`, which is how a head is
+written from a pressure drop ([`let`](let.md#constants)). A pressure on its own is refused, because
+head is `dp / (rho * g)` and the density is yours to state.
+
 ## How the head is chosen
 
 The head is the resistance of the circuit the pump drives, at the flow the circuit's **duty** fixes —

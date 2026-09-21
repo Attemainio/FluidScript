@@ -59,13 +59,14 @@ Three columns, and they are three different things — conflating any two is how
 | `Mass` | kg | kg | kg | |
 | `Time` | s | s | s | |
 | `Velocity` | m/s | m/s | m/s | |
+| `Acceleration` | m/s² | m/s² | m/s² | Exists for `g` (`D-126`); no parameter takes one. |
 | `Density` | kg/m³ | kg/m³ | kg/m³ | |
 | `SpecificHeat` | J/(kg·K) | J/(kg·K) | kJ/(kg·K) | |
 | `Enthalpy` | J/kg | J/kg | kJ/kg | |
 | `Area` | m² | m² | m² | |
 | `Volume` | m³ | **dm³** — *exception* | l | `volume=300` is 300 litres for hydronic storage (`D-32`). |
 | `Kv` | m³/h @ 1 bar | — | — | A defined coefficient, not a derived unit. Its own dimension so it cannot be added to a volume flow. |
-| `Head` | m | m | m | Metres **of the pumped fluid**. Not interchangeable with pressure without ρ and g. |
+| `Head` | m | m | m | Metres **of the pumped fluid**. Not interchangeable with pressure without ρ and g; a `head` parameter accepts a `Length` value as that (`D-126`). |
 | `NominalDiameter` | — | — | DN | A dimensionless **designation**, not a length ([`02-glossary`](../00-foundation/02-glossary.md)). Its own dimension so it cannot be assigned to or from a `Length`. |
 | `Pixels` | px | px | px | Presentation only. Never crosses into physics. |
 | `HeatTransferCoefficient` | W/(m²·K) | W/(m²·K) | W/(m²·K) | The exchanger's `u` (`D-119`). Reached by arithmetic as well as by statement: `FromVector` names it. |
@@ -146,6 +147,7 @@ Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for mult
 | VolumeFlow | `m3/s`, `m3/h`, `l/s`, `l/min`, `l/h` |
 | Time | `s`, `min`, `h`, `d`, `ms` |
 | Velocity | `m/s`, `km/h` |
+| Acceleration | `m/s2` |
 | Mass | `kg`, `g`, `t` |
 | Density | `kg/m3` |
 | SpecificHeat | `J/(kg*K)`, `kJ/(kg*K)` |
@@ -171,6 +173,12 @@ number in a `head=` parameter means metres of the pumped fluid, from the paramet
 the *pumped fluid* while `mH2O` is metres of *water column*, a pressure of 9806.65 Pa per metre. The
 two coincide only for water, so `head=15 mH2O` in a glycol circuit is wrong by the density ratio and
 entirely plausible on the diagram. `Head` is therefore bare-only, as `Kv` is.
+
+**A `head` parameter accepts a `Length` value** (`D-126`, amending the paragraph above at the
+parameter boundary only). `head = dp / (rho * g)` has a length's vector, and it is the one expression
+`14` exists for; `head=12 m` is 12 m of the pumped fluid by the same rule. Arithmetic never produces a
+`Head` (`FromVector` names the length), `Head` still has no symbol, and no other pair converts. The
+cost, accepted by the user: any length is a head if the script assigns it.
 
 **`Dimensionless` keeps `%` and does not accept `-`** (`D-50`), and `%` is a unit symbol only —
 the language has no modulo operator (`D-51`). A bare number is already
@@ -410,7 +418,7 @@ A format that depends on the reader's locale means one file means two things on 
 3. A unit symbol maps to one dimension, except pressure spellings shared by `Pressure` and
    `PressureDelta`, whose target parameter supplies that affine distinction. Temperature has no such
    exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head, and `Head` accepts no
-   symbol at all (`D-50`).
+   symbol at all (`D-50`); a `head` *parameter* accepts a Length value at assignment (`D-126`).
 4. Converting a value to a unit and back yields the original within 1e-12 relative.
 5. No `double` representing a dimensioned value appears on a public Core signature.
 6. The unit symbol table is append-only across releases: removing or repurposing a symbol changes the
