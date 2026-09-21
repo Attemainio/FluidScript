@@ -5214,6 +5214,18 @@
       ]
     },
     {
+      "code": "FS4012",
+      "severity": "warning",
+      "area": "DesignWarning",
+      "message": "'{name}' is written as a {declared} valve and the solve runs it {actual}: {detail}. A body built for one service must not be used for the other. Write it as three_way_valve if the arrangement is open, or wire the ports for {declared}.",
+      "arguments": [
+        "name",
+        "declared",
+        "actual",
+        "detail"
+      ]
+    },
+    {
       "code": "FS4601",
       "severity": "error",
       "area": "Request",

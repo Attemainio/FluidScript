@@ -637,7 +637,61 @@ public sealed class OuterLoop(
             .. Reversals(graph, layout, solution),
             .. FillPressure.ReportSolved(graph, posedness.Hydraulics, layout, solution),
             .. BypassBalance.ReportSolved(graph, layout, solution),
+            .. Arrangements(graph, layout, solution),
         ];
+    }
+
+    /// <summary><c>FS4012</c> on every three-way valve whose spelling claims one service and whose solved flows run the other (<c>C-65</c>, <c>D-136</c>).</summary>
+    /// <param name="graph">The solved graph.</param>
+    /// <param name="layout">The state vector's layout.</param>
+    /// <param name="solution">The converged iterate.</param>
+    /// <returns>At most one diagnostic per valve, on the valve.</returns>
+    private static ImmutableArray<Diagnostics.Diagnostic> Arrangements(CircuitGraph graph, SystemLayout layout, StateVector solution)
+    {
+        PortMap? ports = null;
+        var said = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        for (var index = 0; index < graph.Components.Length; index++)
+        {
+            if (graph.Components[index] is not ThreeWayValve { BypassConnected: true, Arrangement: not ValveArrangement.Unspecified } three)
+            {
+                continue;
+            }
+
+            ports ??= PortMap.Build(graph);
+
+            if (BypassBalance.Read(graph, ports, layout, solution.Values.AsSpan(), index) is not { } legs)
+            {
+                continue;
+            }
+
+            var runs = legs.Mixing ? ValveArrangement.Mixing : ValveArrangement.Diverting;
+
+            if (runs == three.Arrangement)
+            {
+                continue;
+            }
+
+            var detail = legs.Mixing
+                ? string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{legs.FlowA:0.###} kg/s enters at {three.Ports[1].Name} and {legs.FlowB:0.###} kg/s at {three.Ports[2].Name}, leaving together at {three.Ports[0].Name}")
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{legs.FlowA + legs.FlowB:0.###} kg/s enters at {three.Ports[0].Name} and leaves {legs.FlowA:0.###} kg/s by {three.Ports[1].Name} and {legs.FlowB:0.###} kg/s by {three.Ports[2].Name}");
+
+            said.Add(Diagnostics.Diagnostic.Create(
+                Diagnostics.DesignDiagnostics.ArrangementContradictsKind,
+                span: null,
+                new Diagnostics.DiagnosticArgument("name", three.Name),
+                new Diagnostics.DiagnosticArgument("declared", three.Arrangement == ValveArrangement.Mixing ? "mixing" : "diverting"),
+                new Diagnostics.DiagnosticArgument("actual", legs.Mixing ? "mixing" : "diverting"),
+                new Diagnostics.DiagnosticArgument("detail", detail))
+                with
+            { ComponentName = three.Name });
+        }
+
+        return said.ToImmutable();
     }
 
     /// <summary><c>FS2301</c>: the pass cap was reached with sizes still moving, naming what moved between the last two passes.</summary>

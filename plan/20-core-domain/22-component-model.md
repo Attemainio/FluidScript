@@ -638,7 +638,19 @@ three-way valve's linear leg keeps its body's `leakage` at its stop — 2 % by d
 Belimo's B–AB leakage class I and also the equal-percentage law's own φ(0) — and continues linearly
 through it, so the position column has a slope on the stop (`ValveLaw.LegOpening`, `D-135`); a
 stated leakage is floored at FCI 70-2 class IV, 0.01 %, because a stopped branch with no trickle has
-no temperature (`C-71`). The two-way linear law is `S-26`'s, shut at 0. Mass balance across the valve —
+no temperature (`C-71`). The two-way linear law is `S-26`'s, shut at 0.
+
+**Which service the body is built for is a fact about the equipment, and the spelling carries it**
+(`D-136`, closing `C-65`). The arrangement a valve *runs* in comes from the solved flow directions:
+both switched legs entering is mixing, both leaving is diverting, and the ports stay bidirectional
+so either can be written. `mixing_valve` and `diverting_valve` are no longer inert aliases: the
+factory reads the kind as written into `ThreeWayValve.Arrangement`, and after the solve `FS4012`
+names a valve whose spelling claims one service and whose flows run the other, because a seat body
+is built for one (Siemens VXG44: "to be used only as a mixing valve"; ESBE's rotary bodies serve
+both and are written bare). A bare `three_way_valve` claims nothing and is never reported, so no
+existing script acquires a claim it did not make. The reverted attempt that typed every three-way
+valve inlet/outlet/outlet is not this: the role follows the declared kind, and the topology is
+never constrained by it. Mass balance across the valve —
 `ṁ_a = ṁ_b + ṁ_c` — is the valve's own equation, not a node's, because the valve is the only element
 in the graph where a flow divides without a node
 ([`23-topology-and-graph`](23-topology-and-graph.md)).

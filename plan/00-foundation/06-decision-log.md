@@ -178,6 +178,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-133` | Accepted | 2026-09-21 | A promotion is first come, then augmented; a candidate list holds only what can move the quantity |
 | `D-134` | Accepted | 2026-09-21 | A register row carries the date it was filed and the date it closed, and no modified date |
 | `D-135` | Accepted | 2026-09-21 | A three-way valve's leg passes its body's rated leakage at the stop; 2 % by default, never under class IV |
+| `D-136` | Accepted | 2026-09-21 | `mixing_valve` and `diverting_valve` declare the body's service; a bare `three_way_valve` claims nothing |
 <!-- index:end -->
 
 ---
@@ -6200,4 +6201,35 @@ what the datasheets give and one number is what the script should write.
 
 **Constrains.** `ValveLaw.LegOpening`, `ThreeWayValve.Leakage`, the registry's `three_way_valve`
 parameter table, `docs/functions/three-way-valve.md`.
+
+## D-136 · `mixing_valve` and `diverting_valve` declare the body's service; a bare `three_way_valve` claims nothing
+
+**Accepted · 2026-09-21** (the user's programme on the three-way rows, `C-65`) · amends `22` §4 and `15`'s alias table
+
+The ports of a three-way valve are bidirectional and the arrangement it runs in is read from the
+solved flows, which is right for the solve: `ṁ_ab = ṁ_a + ṁ_b` with signed flows covers both, and a
+negative solved flow is a legal answer. It was wrong about the specification. Manufacturer guidance
+is explicit that a seat body is built for one service -- Siemens' VXG44 is "to be used only as a
+mixing valve" -- so the arrangement is a purchase decision the script was making silently, and a
+user who wrote a mixing arrangement and bought a diverting body got a correct model of a plant they
+could not build. The spellings `mixing_valve` and `diverting_valve` existed and resolved to the
+same component with no effect.
+
+**Decided.** The kind as written reaches the component as `ThreeWayValve.Arrangement`:
+`mixing_valve` claims mixing, `diverting_valve` claims diverting, and every other spelling
+(`three_way_valve`, `3_way_valve`, `3wv`) claims nothing. After a converged solve, `FS4012` (warning)
+names a valve whose claim and whose solved flows disagree, with the flows by port, and says to write
+it bare if the arrangement is open or to wire the ports for the declared service. The topology is
+never constrained by the claim and the ports stay bidirectional, which is what separates this from
+the reverted attempt that typed every three-way valve inlet/outlet/outlet and broke mixing circuits.
+Rotary mixing valves (ESBE VRG) serve both functions and are written bare.
+
+**Rejected.** Defaulting a bare `three_way_valve` to mixing, the commoner hydronic case: every
+existing script would acquire a claim it did not make, and the corpus's cooling loop diverts. An
+error rather than a warning: the solve is right and the plant is buildable with the other body.
+Using the claim to seed the flow directions: worth doing when the seed next needs it, and not part
+of this decision.
+
+**Constrains.** `ComponentFactory.Arrangement`, `ThreeWayValve.Arrangement`, `OuterLoop.Arrangements`,
+`DesignDiagnostics.ArrangementContradictsKind`, `docs/functions/three-way-valve.md`.
 

@@ -362,6 +362,14 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 DefaultParameters = defaults,
             };
 
+    /// <summary>The service a three-way valve's spelling declares it for (<c>D-136</c>).</summary>
+    /// <param name="writtenKind">The kind exactly as the script wrote it.</param>
+    /// <returns><see cref="ValveArrangement.Mixing"/> for <c>mixing_valve</c>, <see cref="ValveArrangement.Diverting"/> for <c>diverting_valve</c>, otherwise no claim.</returns>
+    private static ValveArrangement Arrangement(string writtenKind) =>
+        string.Equals(writtenKind, "mixing_valve", StringComparison.OrdinalIgnoreCase) ? ValveArrangement.Mixing
+        : string.Equals(writtenKind, "diverting_valve", StringComparison.OrdinalIgnoreCase) ? ValveArrangement.Diverting
+        : ValveArrangement.Unspecified;
+
     /// <summary>A three-way valve, or <see langword="null"/> when nothing has chosen its <c>kv</c>.</summary>
     /// <param name="symbol">The bound declaration.</param>
     /// <param name="kind">Its registry entry.</param>
@@ -392,7 +400,8 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 // than it used to, and it is the one place where getting that backwards would silently
                 // turn every three-way valve in the corpus into a two-way.
                 bypassConnected: wiring.Connections > 2 || wiring.Names("b"),
-                leakage: Value(symbol, kind, "leakage") ?? ValveLaw.LegLeakage)
+                leakage: Value(symbol, kind, "leakage") ?? ValveLaw.LegLeakage,
+                arrangement: Arrangement(symbol.WrittenKind))
             {
                 StatedParameters = stated,
                 SizedParameters = sized,

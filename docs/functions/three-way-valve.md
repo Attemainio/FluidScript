@@ -224,6 +224,22 @@ two pressures, so which pair drives this valve is open. In both cases the valve 
 
 `3_way_valve`, `mixing_valve`, `diverting_valve`, `3wv`.
 
+**Two of those spellings say something.** A seat body is built for one service — Siemens' VXG44 is
+"to be used only as a mixing valve" — and which one a plant needs is decided by how the ports are
+wired, not by the valve. `mixing_valve` and `diverting_valve` name the body you intend to buy; the
+solve finds which way the water actually runs (two streams in at `a` and `b` is mixing, one in at
+`ab` is diverting), and when the two disagree [`FS4012`](diagnostics.md) says so:
+
+```
+FS4012  '3WV' is written as a mixing valve and the solve runs it diverting: 0.239 kg/s enters at
+        ab and leaves 0.076 kg/s by a and 0.163 kg/s by b. A body built for one service must
+        not be used for the other. Write it as three_way_valve if the arrangement is open, or
+        wire the ports for mixing.
+```
+
+A bare `three_way_valve`, `3_way_valve` or `3wv` claims nothing and is never reported. Rotary
+mixing valves such as ESBE's VRG series serve both functions, and are written bare.
+
 Write `3_way_valve`, not `3-way-valve`: a hyphen subtracts.
 
 ## Tag

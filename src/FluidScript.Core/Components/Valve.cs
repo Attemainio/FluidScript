@@ -164,13 +164,15 @@ public sealed class ThreeWayValve : IFlowComponent
     /// ports, one flow group, one Kv law, and no mass balance of its own.
     /// </param>
     /// <param name="leakage">The fraction of <paramref name="kv"/> a leg passes at its stop, 0 to 1. The registry's default is 2 %, Belimo's B–AB leakage class I (<c>D-135</c>).</param>
+    /// <param name="arrangement">The service the script declares the body for, from its spelling; <see cref="ValveArrangement.Unspecified"/> for a bare <c>three_way_valve</c> (<c>D-136</c>).</param>
     public ThreeWayValve(
         string name,
         double kv,
         double position = 1,
         ValveCharacteristic characteristic = ValveCharacteristic.Linear,
         bool bypassConnected = true,
-        double leakage = ValveLaw.LegLeakage)
+        double leakage = ValveLaw.LegLeakage,
+        ValveArrangement arrangement = ValveArrangement.Unspecified)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kv);
@@ -183,6 +185,7 @@ public sealed class ThreeWayValve : IFlowComponent
         Characteristic = characteristic;
         BypassConnected = bypassConnected;
         Leakage = leakage;
+        Arrangement = arrangement;
 
         // `ab` is the common port and `a`/`b` are the two switched ones, which is how valve bodies are
         // labelled: a mixing valve is A + B -> AB and a diverting valve is AB -> A + B. The names used
@@ -269,6 +272,10 @@ public sealed class ThreeWayValve : IFlowComponent
     /// <summary>Gets the fraction of <see cref="Kv"/> a switched leg passes at its stop.</summary>
     /// <value>Dimensionless, 0 to 1. The body's rated leakage, not the characteristic's: <c>D-135</c>.</value>
     public double Leakage { get; }
+
+    /// <summary>Gets the service the script declared this body for, or <see cref="ValveArrangement.Unspecified"/>.</summary>
+    /// <value>From the kind as written: <c>mixing_valve</c>, <c>diverting_valve</c>, or neither. The arrangement it runs in is the solve's to find; <c>FS4012</c> compares the two (<c>C-65</c>, <c>D-136</c>).</value>
+    public ValveArrangement Arrangement { get; }
 
     /// <inheritdoc/>
     public ImmutableArray<Port> Ports { get; }

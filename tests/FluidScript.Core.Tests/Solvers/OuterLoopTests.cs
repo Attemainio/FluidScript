@@ -507,6 +507,36 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task AValveWrittenForOneServiceAndRunInTheOtherIsNamed()
+    {
+        // `C-65`, closed by `D-136`. The cooling loop's `3WV` diverts: the secondary's flow enters at
+        // `ab` and leaves by `a` (recirculation) and `b` (primary return). Written as a mixing valve the
+        // script names a body built for the other service, and FS4012 says which way it actually runs;
+        // written as a diverting valve, or as a bare three_way_valve, nothing is claimed and nothing
+        // is said. The spelling reaches the component as its arrangement.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"), TestContext.Current.CancellationToken);
+
+        var mixing = await Solve(source.Replace("3WV three_way_valve", "3WV mixing_valve", StringComparison.Ordinal), "mixing");
+        var contradiction = Assert.Single(mixing.Solve.Diagnostics, static d => d.Code == "FS4012");
+
+        Assert.Equal("3WV", contradiction.ComponentName);
+        Assert.Contains("written as a mixing valve and the solve runs it diverting", contradiction.Message, StringComparison.Ordinal);
+        Assert.Contains("leaves 0.076 kg/s by a and 0.163 kg/s by b", contradiction.Message, StringComparison.Ordinal);
+        Assert.Equal(ValveArrangement.Mixing, Assert.IsType<ThreeWayValve>(mixing.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+
+        var diverting = await Solve(source.Replace("3WV three_way_valve", "3WV diverting_valve", StringComparison.Ordinal), "diverting");
+
+        Assert.DoesNotContain(diverting.Solve.Diagnostics, static d => d.Code == "FS4012");
+        Assert.Equal(ValveArrangement.Diverting, Assert.IsType<ThreeWayValve>(diverting.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+
+        var bare = await Solve(source, "bare");
+
+        Assert.DoesNotContain(bare.Solve.Diagnostics, static d => d.Code == "FS4012");
+        Assert.Equal(ValveArrangement.Unspecified, Assert.IsType<ThreeWayValve>(bare.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+    }
+
+    [Fact]
     public async Task AValveOnTheHarderLegIsLeftOpenAndToldWhereItBelongs()
     {
         // `C-111`. The same ring with the valve on the primary supply leg, which is the harder path:

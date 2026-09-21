@@ -46,10 +46,24 @@ public static class DesignDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' throttles its {leg} leg by {drop} kPa at position {position}: that path is {imbalance} kPa easier than the {other} path, more than the {band} kPa the valve drops fully open. A balancing valve between {where} and {name}.{leg} dropping {imbalance} kPa at {flow} kg/s (Kv {kv}) would level the legs and leave the valve its travel.");
 
+    /// <summary>A three-way valve written as a mixing or a diverting valve that the solve runs the other way.</summary>
+    /// <value><c>FS4012</c>, a warning.</value>
+    /// <remarks>
+    /// Raised after the solve, where the flow directions are known: both switched legs entering is
+    /// mixing, both leaving is diverting. A seat body is built for one service and the script named
+    /// which by its spelling; a bare <c>three_way_valve</c> claims nothing and is never reported
+    /// (<c>C-65</c>, <c>D-136</c>).
+    /// </remarks>
+    public static DiagnosticDescriptor ArrangementContradictsKind { get; } = new(
+        "FS4012",
+        DiagnosticSeverity.Warning,
+        "'{name}' is written as a {declared} valve and the solve runs it {actual}: {detail}. A body built for one service must not be used for the other. Write it as three_way_valve if the arrangement is open, or wire the ports for {declared}.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ApproachBelowMinimum,
         LegsUnbalanced,
+        ArrangementContradictsKind,
     ];
 }
