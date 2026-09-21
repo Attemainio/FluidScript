@@ -231,10 +231,9 @@ public static class TopologyDiagnostics
     /// </remarks>
     public static DiagnosticDescriptor ConstraintReachesAcross { get; } = new(
         "FS2218",
-        DiagnosticSeverity.Warning,
-        "'{constraint}' is held by '{pump}', which is not on its branch. "
-        + "Every pump on that branch is stated or already claimed; if one was meant to hold this flow, "
-        + "free it.");
+        DiagnosticSeverity.Info,
+        "'{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the "
+        + "pressure the two branches share. If a pump on its own branch was meant to hold it, free that one.");
 
     /// <summary>Two stated heights joined by nothing that could span them.</summary>
     /// <value><c>FS2219</c>, an error.</value>

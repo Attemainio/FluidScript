@@ -1025,6 +1025,18 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `FS1410`'s "not published by any pass", which was false with no pass completed. The refusal exit
 > carries it too; it had carried nothing. One closed; 52 open.
 
+> **`S-45` closed by `D-133`** (the same day, the user's call: options B and D): a promotion's
+> candidate lists now hold only what can move the quantity -- a split for the temperatures on the
+> stream it mixes, walked along nominal flow to the next exchanger; a pump for the flows on a cycle
+> through it; a leg split for its leg's flow -- and `D-130`'s greedy pass is followed by an augmenting
+> matching (Kuhn) that reassigns only to rescue a constraint the pass left, reporting what stays
+> unmatched as its Hall group. The injection header with `HS1 in.t=40 out.t=80` now names the four
+> statements that share three actuators instead of blaming the radiator that came last; a parallel
+> pair with one valve on the first-declared branch counts square instead of asking for a valve on the
+> index branch. Corpus and ladder otherwise unchanged (`m1-syntax-tour` over by 4, not 3: the
+> promotion it lost was the reach). `FS2218` is information. Opened `S-73`: that square parallel pair
+> does not solve from the bootstrap seed. 52 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1128,7 +1140,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. Next: `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch. Next: `C-84` labels as a planned package, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
@@ -1171,7 +1183,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1975 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1986 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

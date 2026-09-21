@@ -175,6 +175,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-130` | Accepted | 2026-09-21 | A constraint is absorbed by the first free actuator in kind order, nearest first within a kind, claimed once |
 | `D-131` | Accepted | 2026-09-21 | Core's shared seams are where their questions are answered, and nothing re-derives them |
 | `D-132` | Accepted | 2026-09-21 | Two circuits joined by nothing are two systems, each solved on its own; `FS2213` is information |
+| `D-133` | Accepted | 2026-09-21 | A promotion is first come, then augmented; a candidate list holds only what can move the quantity |
 <!-- index:end -->
 
 ---
@@ -6078,3 +6079,62 @@ Nothing else in the corpus or the ladder moved.
 **Constrains.** `TopologyDiagnostics.IsolatedSubgraph`, `WellPosedness.ReportIsolation`, `23`'s
 table and invariant, `29` step 11a, `docs/advanced/why-a-circuit-has-one-answer.md`,
 `docs/functions/diagnostics.md`.
+
+## D-133 · A promotion is first come, then augmented; a candidate list holds only what can move the quantity
+
+**Accepted · 2026-09-21** (the user's call: "I accept your B and D for S-45") · amends `D-130` · closes `S-45`
+
+`D-130` fixed the *order* a constraint's candidates are tried in and left two things unsaid. Which
+actuators are candidates at all was "every free one in the hydraulic", so a header setpoint could be
+handed a consumer's valve that draws from the header and cannot hold it at any position, and a
+source's flow a sibling loop's pump; and first come meant that a constraint whose only viable
+actuator an earlier constraint had taken -- when that earlier one had another -- stayed unmatched, and
+the plant reported over-specified by one naming whichever statement came last (`S-45`, measured
+2026-09-21 on the injection header with `HS1 in.t=40 out.t=80`: `N3.t` fell to `TV_AHU`, `HE_RAD`
+was blamed, and the circuit was non-finite at iteration zero).
+
+**Decided, the lists.** What an actuator can move is a physical question, answered once in `Reach`
+and nowhere else:
+
+- A mixing split's `position` sets the temperature of the *stream it mixes*: the branch leaving its
+  common port, walked along nominal flow (`I4`, read from the two-port components' `in`/`out` and
+  from the boundaries, since `Path` order is canonical, not directional), through interior nodes and
+  through another split's legs, ending where the stream is next heated or cooled -- the exchanger is
+  reached, its inlet being that temperature, and not passed. A diverting valve (its common port fed
+  by an oriented neighbour) sets the temperature where its legs recombine, so both legs are walked;
+  a valve with no oriented neighbour is taken to mix. A mixed inlet or a node temperature lists the
+  splits whose stream reaches it, nearest first, and no other.
+- A pump's `head` moves the flow of every branch on a cycle through the pump, and of no other: the
+  candidate pumps for a pinned flow are those whose branch shares a block of the branch graph
+  (boundaries grounded, so an open path is a cycle through the ground) with the owner's, the one on
+  the owner's own branch first. Two rings joined at one node share no cycle.
+- A three-way valve's `position` is also the ratio of its two legs' flows, so a flow pinned on a
+  branch ending at a leg lists that split, after the pump and the branch's own `kv`. On a pumpless
+  header it is the only thing that moves the source's flow.
+
+**Decided, the matching.** The greedy pass is `D-130` verbatim and stays. After it, each constraint
+it left unmatched, in the same order, searches an augmenting path over the bipartite graph of
+constraints and candidates (Kuhn) and applies it when one exists. Nothing is reassigned unless that
+rescues a constraint, so a circuit the greedy pass squares keeps every greedy claim; and when it
+ends no augmenting path exists, so the matching is maximum (Berge). What stays unmatched is reported
+as its group: the constraints reachable from it by alternating paths and the actuators they share
+are a Hall violator, and `FS2210` names them all and what they share, rather than the one the walk
+ended on. `FS2218` becomes information: a pinned flow held by a pump on another branch of its loop is
+now a statement the lists admit on purpose, and the message says how the flow is set.
+
+**Measured.** The mixed header: 45 unknowns, 46 equations, over-specified by 1 (unchanged); the
+report reads `Remove one of: HS1.in.t, HS1.out.t, N3.t, HE_AHU.out.t, HE_RAD.out.t … HS1.out.t,
+N3.t, HE_AHU.out.t, HE_RAD.out.t share PU_RAD.head, PU_AHU.head, TV_MAIN.position`, with `N3.t`
+held by `TV_MAIN`, each coil's inlet by its own valve, and `HS1.in.t` -- the return, which no split's
+stream reaches -- paying the plant's level. Two parallel loads below one pump with a valve on one
+branch, declared first: square at 15/15 with the bare branch on the pump and the valved one on its
+`kv`, where before it refused with "add a valve" on the branch meant to have none (the solve of that
+square circuit is `S-73`). Across the corpus and the ladder every promotion and every `FS22xx` line
+is unchanged except `m1-syntax-tour`, whose `TV2` mixes `SB1` with water tapped *from* `NJ1` and
+never held `HE2`'s inlet: the sample counts over by 4 instead of 3, and its rank deficiency falls
+from 4 to 3 with the promotion that was not one.
+
+**Constrains.** `Reach.Stream/Loops/Local/LegSplits`, `HydraulicBlocks.Share`, `Assignment.Match`,
+`WellPosedness.Promote/Candidates/Splits/FlowActuators/ReportBalance`, `23`'s promotion section,
+`docs/advanced/why-a-circuit-has-one-answer.md`, `docs/functions/diagnostics.md`,
+`PromotionLocalityTests`.

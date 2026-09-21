@@ -600,9 +600,9 @@ together, so the system stays square.
 
 | Stated constraint | Promotes | Because |
 |---|---|---|
-| A heat exchanger's `in` (mixed inlet temperature) on a circuit with a mixing valve | that valve's `position` | Only the mixing split can move the inlet temperature |
-| A heat exchanger's `power` + `out` (fixing the flow) on a loop whose flow the pump sets | that pump's `head` | Only the head can move the loop flow |
-| A node `t` downstream of a controlled branch | the controlling element's setting | Same argument, one component further away |
+| A heat exchanger's `in` (mixed inlet temperature) on a circuit with a mixing valve | the `position` of the split whose *stream* reaches the inlet (`D-133`) | Only the mixing split can move the inlet temperature, and only on the stream it mixes |
+| A heat exchanger's `power` + `out` (fixing the flow) on a loop whose flow the pump sets | that pump's `head`, or any pump on a cycle through the branch (`D-133`) | Only the head can move the loop flow; a pump sharing no cycle with the branch moves nothing on it |
+| A node `t` downstream of a controlled branch | the controlling element's setting, the split whose stream reaches the node | Same argument, one component further away; a consumer's valve drawing *from* the node cannot hold it (`D-133`) |
 | **A duty that fixes the flow of a branch in a parallel set** | **that branch's `kv`**, on the first unsized valve along it | Parallel branches share their endpoint pressure difference, so a branch's flow can only be moved by changing its own resistance |
 | **An extended-mode exchanger's design point, on a side nothing else pins** (`D-97`) | whatever the rows above would promote for a `FixedFlow` there — the substation's primary has stated boundary pressures, so its balancing valve's `kv` | The design point says what the side runs at; where a load's `dt` or a stated `flow` already says so, the exchanger's is design information only |
 
@@ -677,6 +677,30 @@ later one is balanced by its own valve. Which circuit is the index is declaratio
 `D-130` leaves open. The code is `Reach` (what "own branch" means per kind) and `WellPosedness`'s
 `Splits` and `FlowActuators`; nothing else orders candidates.
 
+**A list holds only what can move the quantity, and the walk is followed by a matching** (`D-133`,
+2026-09-21, `S-45` closed). Three definitions, each written once in `Reach`. A mixing split's
+`position` sets the temperature of the stream it mixes: the branch leaving its common port, walked
+along nominal flow -- read from the two-port components' `in`/`out` and the boundaries, since `Path`
+order is canonical and not directional (`C-25`) -- through interior nodes and through another split's
+legs, and ending where the stream is next heated or cooled: the exchanger is reached, its inlet being
+that temperature, and not passed. A valve whose common port an oriented neighbour feeds diverts, and
+sets the temperature where its legs recombine, so both legs are walked; one with no oriented
+neighbour is taken to mix. A pump's `head` moves the flow of every branch on a cycle through it and of
+no other, which is the block of the branch graph with the boundaries grounded (`HydraulicBlocks`, the
+same partition `FS2214` asks); two rings joined at one node share no cycle. A three-way valve's
+`position` is also the ratio of its legs' flows, so a flow pinned on a branch ending at a leg lists
+the split last -- on a pumpless header, the only thing that moves the source's flow. Then the
+matching: `D-130`'s greedy pass stays, and each constraint it left unmatched searches an augmenting
+path (Kuhn) and takes it when one exists, so nothing is reassigned unless that rescues a constraint
+and the result is maximum (Berge). Two parallel loads below one pump with a valve on one branch,
+declared first, used to refuse with "add a valve" on the branch meant to have none; now the bare
+branch is the index branch and gets the pump whichever is declared first. What stays unmatched is
+reported as its group -- the constraints reachable by alternating paths and the actuators they share,
+a Hall violator -- so `FS2210` names them all and what they share, not the one the walk ended on. On
+the injection header with `HS1 in.t=40 out.t=80` that reads `HS1.out.t, N3.t, HE_AHU.out.t,
+HE_RAD.out.t share PU_RAD.head, PU_AHU.head, TV_MAIN.position`, where before it blamed `HE_RAD`
+alone and handed the header setpoint to `TV_AHU`, downstream of it.
+
 **A promoted parameter may not also be stated.** `3WV position=0.78` on a circuit that also states
 `HE1 in=20` is two things setting one unknown: `FS2210`, naming both, with the fix being to remove
 either. This is the trap `D-02` creates and it is worth naming explicitly, because both lines look
@@ -717,7 +741,7 @@ individually reasonable and the interaction is invisible.
 | `FS2202` | Open port terminated | Warning | `'{component}' port '{port}' is not connected; treating it as closed.` |
 | `FS2203` | A closed circuit whose stated duties do not sum to zero, solved as a steady state | Error | `'{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary.` |
 | `FS2204` | A hydraulic component with an `inlet` and no `outlet`, or the reverse | Error | `'{circuit}' has an {present} and no {missing}. Fluid must both enter and leave, or neither.` |
-| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, and empty otherwise (`C-28`); with no unmatched constraint `{list}` is every stated pressure, boundary or datum, and a stated pressure on a one-connection `node` adds `, or write '{node} outlet' (or inlet) if fluid crosses there: a node's p= holds the pressure level and passes no mass` (`C-106`) |
+| `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, `, or add a mixing valve: no mixing valve's stream reaches {labels}` when an unmatched temperature is on no split's stream, and `; {constraints} share {actuators}` for each unmatched group of more than one (`D-133`); the levels' own statements are left out of the advice (`C-28`); with no unmatched constraint `{list}` is every stated pressure, boundary or datum, and a stated pressure on a one-connection `node` adds `, or write '{node} outlet' (or inlet) if fluid crosses there: a node's p= holds the pressure level and passes no mass` (`C-106`) |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
 | `FS2213` | Isolated subgraph | Error | `'{list}' are not connected to the rest of the circuit.` |
@@ -725,7 +749,7 @@ individually reasonable and the interaction is invisible.
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
 | `FS2217` | A subcircuit's attachment endpoint resolves to its own circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
-| `FS2218` | A flow constraint answered by a pump on none of its owner's branches | Warning | `'{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it.` |
+| `FS2218` | A flow constraint answered by a pump on another branch of its loop | Info | `'{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the pressure the two branches share. If a pump on its own branch was meant to hold it, free that one.` |
 
 | `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |
 
@@ -761,13 +785,15 @@ spans two heights (`D-70`); a valve that says 0 m wired straight to a load that 
 the riser out, and picking either height would put up to 313 kPa into the loop that nothing wrote.
 Reported by the binder on the later declaration's `elevation`, naming both, so either fix is one edit.
 
-**`FS2218` reports a reach and does not stop it.** Promotion reaches across the plant on purpose: two
-parallel branches below one shared pump are both served by it, the first taking its head and the
-second falling to its own balancing valve (`S-45`). What the reach cannot tell apart is a shared
-upstream pump from a sibling consumer's, and the case it was written for was silent — a source whose
-own pump had been sized before its constraint was matched took a consumer's pump, that consumer took
-the next, and the plant reported over-specified by one three promotions later with nothing naming
-the first wrong claim (`S-59`). A warning, because the count is still right and the solve may be.
+**`FS2218` reports a reach the lists admit on purpose.** A pump moves the flow of every branch on a
+cycle through it (`D-133`), so a pinned flow whose own branch has no free pump lists the others on its
+loop, nearest first, and the header source's flow on a pumpless header is held by a consumer's pump:
+that is how the plant works, and the message says how the flow is set. Information since `D-133`; it
+was a warning while the lists reached across the whole hydraulic, when the case it was written for
+was silent -- a source whose own pump had been sized before its constraint was matched took a
+consumer's pump, that consumer took the next, and the plant reported over-specified by one three
+promotions later with nothing naming the first wrong claim (`S-59`). A pump sharing no cycle with the
+branch is no longer offered at all, so the case this warned about cannot arise.
 
 **`FS2214` asks the loop's block, not the loop** (`S-55`, 2026-09-20). The graph's loops are a
 fundamental cycle basis, and a cycle with no pump on it still carries flow when a pump on another cycle

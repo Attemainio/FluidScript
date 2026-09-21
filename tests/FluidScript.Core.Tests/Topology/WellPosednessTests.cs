@@ -961,7 +961,9 @@ public sealed class WellPosednessTests
                 // diameter, so the graph is complete for the first time and what is left is the tour
                 // being a tour -- productions' worth of components that no circuit closes. Three since
                 // D-115 wired its expressions circuit through junctions.
-                ["m1-syntax-tour.fluid"] = "3",
+                // 4 since D-133: `TV2` mixes `SB1` with water tapped *from* `NJ1`, so its stream is `RB1` and
+                // it never held `HE2`'s inlet; the promotion that made it 3 was the reach S-45 was filed for.
+                ["m1-syntax-tour.fluid"] = "4",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",

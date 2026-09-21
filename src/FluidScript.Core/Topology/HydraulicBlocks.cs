@@ -216,4 +216,17 @@ public sealed class HydraulicBlocks
         var block = _blockOfBranch[branch.Index];
         return block >= 0 && _drivenBlock[block];
     }
+
+    /// <summary>Whether two branches lie on a common cycle.</summary>
+    /// <param name="first">One branch.</param>
+    /// <param name="second">The other.</param>
+    /// <returns><see langword="true"/> when both are in one block, which for a graph built with the boundaries grounded is exactly when some loop, possibly through the ground, holds both.</returns>
+    public bool Share(Branch first, Branch second)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+
+        var block = _blockOfBranch[first.Index];
+        return block >= 0 && block == _blockOfBranch[second.Index];
+    }
 }

@@ -81,8 +81,8 @@ That trade has rules, because not everything can move everything:
 
 | What you state | What moves to meet it | Why |
 |---|---|---|
-| An exchanger's `in` — a mixed inlet temperature | A three-way valve's `position` | Only the mixing split can change what arrives |
-| An exchanger's `power` with `out` — which together fix a flow | The pump's `head` | Only the pump can change how much goes round the loop |
+| An exchanger's `in` — a mixed inlet temperature | The `position` of the three-way valve whose mixed stream reaches it | Only the mixing split can change what arrives, and only downstream of the mix: a valve drawing *from* a header cannot hold the header's temperature |
+| An exchanger's `power` with `out` — which together fix a flow | The `head` of a pump on a loop through that branch, its own branch's first | Only a pump on a cycle through the branch can change how much goes round it. When it is on another branch of the loop, `FS2218` says so |
 | The same, on one of several parallel branches | That branch's own valve `kv` | Parallel branches share their end-to-end pressure difference, so a branch's flow can only be changed by changing its own resistance. This is what a balancing valve is for |
 
 **A demand with nothing to absorb it is the over-specification.** You have asked for something no
@@ -94,7 +94,11 @@ FS2210  This circuit is over-specified by 1. Remove one of: HE1.in.
 
 Three exchangers each demanding a mixed inlet temperature, with only two mixing valves to meet them,
 is the usual shape of it. The message names every demand that found nothing to move, because the fix
-is to delete one of them or to add the freedom it was asking for.
+is to delete one of them or to add the freedom it was asking for. When several demands compete for
+the same freedoms, it names them together with what they share -- `HE1.out.t, HE2.out.t share
+PU1.head` -- because any one of them is the one too many, not the one that happened to come last.
+Whichever demand takes which freedom is worked out over all of them at once: a demand is never left
+without one because an earlier demand took the only freedom it could use while having another.
 
 ## The temperature level, which nothing can pick for you
 
@@ -194,6 +198,7 @@ FS2213  'HE_RAD, TV_RAD, PU_RAD' are connected to nothing else and are solved as
 | `FS2215` | A stated temperature or pressure the fluid cannot be at | Correct the value, or change the fluid |
 | `FS2216` | A two-sided component was tagged into a circuit arbitrarily | Nothing, unless the grouping on the diagram matters to you |
 | `FS2217` | A subcircuit attached to itself | Point `inlet` and `outlet` at the circuit it feeds from |
+| `FS2218` | A pinned flow is held by a pump on another branch of its loop | Nothing, if that pump is meant to drive it. Free a pump on the flow's own branch if one was |
 
 `FS2214` is a warning rather than information on purpose. A loop nothing drives simply carries no
 flow, every temperature downstream of it is then wrong, and the result still looks like a solved

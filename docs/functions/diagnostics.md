@@ -165,7 +165,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2215` | Error | Topology | {substance} cannot be at {state}. |
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
 | `FS2217` | Error | Topology | '{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit. |
-| `FS2218` | Warning | Topology | '{constraint}' is held by '{pump}', which is not on its branch. Every pump on that branch is stated or already claimed; if one was meant to hold this flow, free it. |
+| `FS2218` | Info | Topology | '{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the pressure the two branches share. If a pump on its own branch was meant to hold it, free that one. |
 | `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2220` | Error | Topology | '{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa. |
 | `FS2221` | Warning | Topology | '{node}' is {short} kPa below atmospheric pressure. State a pressure on '{datum}' of at least {needed} kPa. |
