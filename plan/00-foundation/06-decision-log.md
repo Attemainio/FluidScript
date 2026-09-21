@@ -172,6 +172,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-127` | Accepted | 2026-09-21 | A pressure difference has its own spellings, `dPa`, `dkPa` and `dbar` |
 | `D-128` | Accepted | 2026-09-21 | A pipe names its catalogue with `material=`; the `catalog` line stays the script's default |
 | `D-129` | Accepted | 2026-09-21 | The copper catalogue is the Finnish type-approved range |
+| `D-130` | Accepted | 2026-09-21 | A constraint is absorbed by the first free actuator in kind order, nearest first within a kind, claimed once |
 <!-- index:end -->
 
 ---
@@ -5963,3 +5964,47 @@ standard and in the German range but in no Finnish listing found, and one source
 roughness section appended 146 times, committed in `892fd70`), `CatalogTests`;
 `docs/functions/catalog.md`; `27`.
 
+
+
+## D-130 · A constraint is absorbed by the first free actuator in kind order, nearest first within a kind, claimed once
+
+**Accepted · 2026-09-21** (the session's call under the user's delegation of the refactoring plan, [`70`](../70-core-refactoring.md) open question 1) · constrains `23`'s promotion, `WellPosedness.Candidates`, `Promote`
+
+`WellPosedness.Candidates` grew one branch per defect -- `S-45` (a local pump before a distant one),
+`S-48` (a node temperature held by a split), `S-56` (the split at the coil's own branch first),
+`S-72` (a stated flow never promotes the owner's power), `C-91` (one header pump serving two rings),
+`C-109` (a pump with a stated rise has no head to give) -- and [`23`](../20-core-domain/23-topology-and-graph.md)'s
+promotion table stated the pairings but never the order those defects converged on. A rewrite that
+reproduces the branches reproduces the history; this states the rule the branches implement, so the
+rewritten walk and its tests are written against a sentence and not against six register rows.
+
+**Decided.** A stated constraint is absorbed by **the first free actuator in kind order, and within a
+kind the nearest first**:
+
+- A pinned flow (`FixedFlow`) asks, in this order: the owner's own duty (`power`, unless the constraint
+  is itself a stated flow, which the power does not enter); a pump's `head`, the pump on the owner's
+  own branch before any other pump in the hydraulic, and never a pump with a stated rise; a valve's
+  `kv`, on the owner's own branch only. Pump before valve because the pump is the plant's driver: the
+  first circuit that pins a flow sets the pump, and every later one is balanced by its own valve --
+  the index-circuit rule of hydronic balancing, which this project's reasoning reproduces and has
+  not looked up in a published commissioning code.
+- A mixed inlet (`MixedInlet`) and a node temperature (`NodeTemperature`) ask only a mixing split's
+  `position`: the split at the owner's own branch before any other in the hydraulic. Nothing else can
+  move a temperature in a steady circuit; an unmatched one is the honest over-specification.
+- An actuator is claimed once, in constraint order, first come. Constraint order is terminal rows in
+  component order, then stated flows, then coupled design points (`D-97`), so a duty's own row is
+  answered before a flow written on a pump is.
+- "Own branch" is a branch the owner lies on; for a node, also a branch ending at it. "Free" is
+  `ParameterState.Free` or `SizedProvisional` (`D-96`).
+
+**Not decided.** Which of two parallel circuits is the index circuit: declaration order decides today,
+not the larger resistance. That is a sizing question for [`24`](../20-core-domain/24-auto-sizing.md)
+and a future `D-`, not this one.
+
+**Measured.** The rewritten walk (`Actuators`, `Reach`, `Splits`, `FlowActuators`) reproduces every
+promotion of the corpus, the reference circuits and the ladder: Core 1975 unchanged plus the new
+tests, no counting line moved. `TheFirstPinnedFlowTakesThePumpAndTheSecondFallsToItsOwnValve` asserts
+first-come by swapping two declarations.
+
+**Constrains.** `WellPosedness.Candidates`, `Promote`, `Reach`, `Ownership`; `23`'s promotion section;
+`70` R3. Any future actuator kind (M4's controllers) is placed in this order, not appended to a list.

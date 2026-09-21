@@ -52,6 +52,30 @@ public sealed class PipeSizerTests
     }
 
     [Fact]
+    public void TheRuleTakesAPipeAndNothingElse()
+    {
+        // The sizer is reached through `ISizer.CanSize` alone; this pins the dispatch directly.
+        var graph = Topology.GraphFixture.Lower(
+            """
+            fluidscript 1
+            circuit loop
+            fluid water
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
+            LOAD heat_exchanger power=-30 dp=0
+            PU1  pump
+            P1   pipe length=10
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
+            """).Graph;
+
+        var sizer = new PipeSizer(Steel);
+
+        Assert.True(sizer.CanSize(graph.Components.Single(static c => c.Name == "P1")));
+        Assert.False(sizer.CanSize(graph.Components.Single(static c => c.Name == "PU1")));
+        Assert.False(sizer.CanSize(graph.Components.Single(static c => c.Name == "HE1")));
+    }
+
+    [Fact]
     public void TheSimpleLoopsPipeSizesToTheDiameterTheWorkedExampleGives()
     {
         var sized = Size(0.2392, 35);

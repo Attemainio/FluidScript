@@ -6,7 +6,7 @@ status: draft
 owns: [which sections of FluidScript.Core are rewritten wholesale and in what order, the parameter-ownership model, the solved-view seam between solver and reporting, the rollback discipline of the layout ring forms, what a refactoring package may and may not change]
 depends_on: [08-implementation-sequence, 06-decision-log, 15-semantic-model, 22-component-model, 23-topology-and-graph, 24-auto-sizing, 26-model-contract, 28-layout-solver, 29-layout-ladder, 32-steady-state-newton, 36-numerics-and-convergence, 62-testing-strategy]
 traces_to: [R-11, R-17]
-open_questions: 3
+open_questions: 2
 last_review_pass: 0
 ---
 
@@ -120,32 +120,30 @@ Two findings are live today and are not size debt:
   (`:167-170`), so what it placed before declining is still marked placed when C20, C19 and C18 run.
   Whether any ladder golden depends on this is **not measured** (open question 2).
 
-## The principle to decide before the rewrite
+## The principle the rewrite is made against
 
 A rule table for `Candidates` only helps if the order in it is a rule. Today it is a history. The
-five defects that shaped it agree on one sentence, and the rewrite should be made against that
-sentence rather than against the branches:
+five defects that shaped it agree on one rule, and the rewrite is made against that rule rather than
+against the branches. It is `D-130`:
 
-> **A stated constraint is absorbed by the nearest free actuator on the constraint's own path, in the
-> order own component, own branch, own hydraulic; an actuator is claimed at most once, first come;
-> and a branch whose flow is pinned and whose path holds no free actuator is over-specified and says
-> which valve would fix it.**
+> **A stated constraint is absorbed by the first free actuator in kind order and, within a kind, the
+> nearest first. A pinned flow asks the owner's own duty, then a pump's head (own branch before the
+> rest of the hydraulic), then a valve's `kv` on its own branch; a mixed inlet or node temperature asks
+> only a mixing split, the one at its own branch first. An actuator is claimed once, first come in
+> constraint order.**
 
-"Nearest" is graph distance along the flow path, not declaration order, which is what `S-45`
-measured: with `PU_AHU.head` stated, `HE_AHU`'s flow constraint took `PU_RAD.head` because
-`hydraulic.Elements` is graph order, and the circuit counted square at 44/44 while ranking 43. "Own
-component" before "own branch" is `C-61`'s duty case: a stated duty determines the exchanger's own
-`power` before it reaches for a pump. "First come" is what lets one header pump serve two rings, the
-first ring taking its head and the second falling to its own balancing valve (`C-91`).
+The first draft of this document put "nearest" above "kind": a valve on the owner's own branch before
+a pump elsewhere in the hydraulic. That is not what the code does and not what `C-91` decided. With
+one header pump serving two rings, the first ring's constraint takes the pump's head and the second
+falls to its own valve; nearest-first would give both rings their valves and leave the pump to the
+sizing rule. Both are square, and the second is a different plant. The order is by actuator kind
+first, because the pump is the plant's driver and the index-circuit rule sets it from the first pinned
+circuit, then by nearness within a kind (`S-45`, `S-56`). Which circuit is the index is declaration
+order today, which `D-130` records as not decided.
 
-This principle is a decision, not a refactoring. It needs its own `D-` entry in
-[`06`](00-foundation/06-decision-log.md) and a paragraph in
-[`23`](20-core-domain/23-topology-and-graph.md)'s promotion section before package R3 starts, because
-the rewrite's tests will assert the principle and not the branches. It also answers `C-111`'s second
-half: a balancing valve on a leg in series with a mixing valve is on the constraint's own path and is
-the next free actuator after the mixing valve's `kv` is claimed, so it is that constraint's to size
-and no longer "nobody's". If the user disagrees with the sentence, the disagreement is the finding
-and the rewrite waits (open question 1).
+`C-111`'s second half is not answered by this: the balancing valve practice puts in a mixing valve's
+bypass is not in the script, so no ownership rule can size it. It stays open on the user's language
+decision.
 
 ## The target shapes
 
@@ -304,7 +302,7 @@ re-baseline: none, or the pump-head digits only, listed.
 
 The wound. In order, each green before the next:
 
-1. The `D-` for the actuator principle and its paragraph in `23` (open question 1).
+1. The `D-` for the actuator principle and its paragraph in `23` (`D-130`).
 2. Direct tests for `ComponentFactory.Value`, `.Defaults`, `.Sized` and `PipeSizer.CanSize`, which
    today are reached only transitively; they pin the current precedence before anything moves.
 3. `Ownership.Of` and `ParameterState`; every site in the diagnosis table calls it; the string key
@@ -432,19 +430,14 @@ test for R3 step 7 asserts it by name.
    `UnitTable.StandardGravity` is referenced from `Hydrostatic` and the unit table only.
 5. After R5, every ring form declines through `RingScope` and a test declines `Loop` after `Place`
    and asserts `_placed` and `_side` are as before.
-6. The actuator principle is a `D-` and a paragraph in `23` before R3 step 3 is merged.
+6. The actuator principle is a `D-` (`D-130`) and a paragraph in `23` before R3 step 3 is merged.
 7. `plan/20-core-domain/defects.md`, `plan/30-solver/defects.md` and this document's `09` rows
    record what each package found, in the register's form.
 
 ## Open questions
 
-1. **Is the actuator principle the right sentence?** "Nearest free actuator on the constraint's own
-   path, own component then own branch then own hydraulic, claimed once, first come." It is
-   reconstructed from `S-45`, `S-56`, `C-61`, `C-91` and `C-109`, not looked up; a published source
-   for how a balancing scheme assigns which valve holds which flow would settle "nearest" better than
-   this project's reasoning does. The user decides the wording; R3 waits on it.
-2. **Does the `Loop` rollback gap change a picture?** Verified as a code difference, not measured
+1. **Does the `Loop` rollback gap change a picture?** Verified as a code difference, not measured
    as a drawing difference. R5's first step measures it on the ladder; if a step moves, it is filed
    under `28`/`29` before anything is re-baselined.
-3. **Where does the refactoring sit in `08`?** Proposed after P5.13a and before P5.13b, for the
+2. **Where does the refactoring sit in `08`?** Proposed after P5.13a and before P5.13b, for the
    reason given above; `08` owns the answer and this document only argues for one.

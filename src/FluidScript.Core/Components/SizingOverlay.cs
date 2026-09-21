@@ -69,7 +69,7 @@ public sealed record SizingOverlay
     /// <param name="parameter">The canonical parameter name.</param>
     /// <returns><see langword="true"/> when the value exists only so the component can be built.</returns>
     public bool IsProvisional(string component, string parameter) =>
-        Provisional.Contains($"{component}.{parameter}");
+        Provisional.Contains(Ownership.Key(component, parameter));
 
     /// <summary>Adds or replaces one value.</summary>
     /// <param name="component">The component's name.</param>
@@ -82,8 +82,8 @@ public sealed record SizingOverlay
         {
             Values = Values.SetItem(component, For(component).SetItem(parameter, value)),
             Provisional = provisional
-                ? Provisional.Add($"{component}.{parameter}")
-                : Provisional.Remove($"{component}.{parameter}"),
+                ? Provisional.Add(Ownership.Key(component, parameter))
+                : Provisional.Remove(Ownership.Key(component, parameter)),
         };
     /// <summary>Tells whether every value here matches another overlay's within a relative tolerance.</summary>
     /// <param name="other">The overlay to compare against.</param>

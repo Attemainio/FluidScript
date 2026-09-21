@@ -665,6 +665,17 @@ valve free, the *next* coil's inlet was handed the off coil's valve, which reach
 nothing. The split at either end of the coil's own branch now comes first, as `S-45` already had it
 for a node temperature.
 
+**The order the table is walked in is a rule, not a history** (`D-130`, 2026-09-21). A constraint is
+absorbed by the first free actuator in kind order and, within a kind, the nearest first: a pinned flow
+asks the owner's own `power` (never for a stated flow), then a pump's `head` -- the pump on the owner's
+own branch before any other in the hydraulic, never one with a stated rise -- then a `kv` on the
+owner's own branch; a mixed inlet or a node temperature asks only a mixing split's `position`, the
+split at the owner's own branch first. An actuator is claimed once, first come in constraint order.
+Pump before valve is the index-circuit rule: the first circuit to pin a flow sets the pump and every
+later one is balanced by its own valve. Which circuit is the index is declaration order today, which
+`D-130` leaves open. The code is `Reach` (what "own branch" means per kind) and `WellPosedness`'s
+`Splits` and `FlowActuators`; nothing else orders candidates.
+
 **A promoted parameter may not also be stated.** `3WV position=0.78` on a circuit that also states
 `HE1 in=20` is two things setting one unknown: `FS2210`, naming both, with the fix being to remove
 either. This is the trap `D-02` creates and it is worth naming explicitly, because both lines look

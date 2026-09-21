@@ -135,6 +135,41 @@ public sealed class PromotionLocalityTests
                 && string.Equals(constraint.Component, "HE1", StringComparison.Ordinal));
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheFirstPinnedFlowTakesThePumpAndTheSecondFallsToItsOwnValve()
+    {
+        // `D-130`: an actuator is claimed once, first come in constraint order, and a pump's head comes
+        // before a valve's Kv. Two duties on one pumped loop each pin the loop's flow; whichever is
+        // declared first takes the pump, the other its branch's valve, and swapping the declarations
+        // swaps the claims.
+        static string Loop(string first, string second) => $"""
+            fluidscript 1
+            circuit loop
+            fluid water
+
+            {first}
+            {second}
+            CV1  valve
+            PU1  pump
+            P1   pipe length=25 dn=25
+
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+            """;
+
+        const string source = "HE1  heat_exchanger power=30 out.t=50 dt=30";
+        const string load = "LOAD heat_exchanger power=-30 dt=30";
+
+        var counting = WellPosedness.Check(GraphFixture.Lower(Loop(source, load)).Graph).Counting;
+        Assert.Equal(("PU1", "head"), Claimed(counting, "HE1"));
+        Assert.Equal(("CV1", "kv"), Claimed(counting, "LOAD"));
+
+        var swapped = WellPosedness.Check(GraphFixture.Lower(Loop(load, source)).Graph).Counting;
+        Assert.Equal(("PU1", "head"), Claimed(swapped, "LOAD"));
+        Assert.Equal(("CV1", "kv"), Claimed(swapped, "HE1"));
+    }
+
     private static (string, string)? Claimed(
         CountingTable counting, string component, ConstraintKind kind = ConstraintKind.FixedFlow) =>
         counting.Promotions

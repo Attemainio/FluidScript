@@ -430,6 +430,19 @@ public static class WellPosedness
     {
         var constraints = ImmutableArray.CreateBuilder<ComponentConstraint>();
 
+        // In this order, because `Promote` is first come: a terminal's rows before any stated flow's, and a
+        // coupled design point last, where it pins only what nothing above already did.
+        TerminalConstraints(graph, hydraulics, constraints);
+        StatedFlowConstraints(graph, hydraulics, constraints);
+        DesignPointConstraints(graph, hydraulics, constraints);
+
+        return constraints.ToImmutable();
+    }
+
+    /// <summary>A node's stated temperature, and an exchanger's stated inlet, outlet or change: a setpoint, a demand on its split, a flow pin or the circuit's enthalpy level.</summary>
+    private static void TerminalConstraints(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, ImmutableArray<ComponentConstraint>.Builder constraints)
+    {
         // Which components have already had their dropped enthalpy level paid for (`D-90`). A level pays
         // for exactly one statement, so the first lone terminal in each takes it and the rest are flow
         // pins as before.
@@ -456,8 +469,7 @@ public static class WellPosedness
                 continue;
             }
 
-            if (!string.Equals(element.Kind, "heat_exchanger", StringComparison.Ordinal)
-                || Rates(hydraulics, element))
+            if (element is not HeatExchanger || Rates(hydraulics, element))
             {
                 continue;
             }
@@ -508,14 +520,21 @@ public static class WellPosedness
             }
         }
 
-        // A stated flow is a constraint -- `flow` on an exchanger's side or on a pump pins that branch
-        // at the number, and `vflow` pins it at that volume flow times the density at the side's inlet,
-        // which only the solve knows (`D-120`, P5.13b; `S-72`). Until this, `HE1 flow=0.3` set the flow
-        // its 20 kPa was measured at and `PU1 flow=0.3` its curve's duty point, and the circuit solved
-        // to whatever the loop drop gave: 0.086 kg/s on the simple loop, then out of the fluid's range.
-        // A pump whose head is stated too is describing its curve, not pinning the circuit (the head
-        // and the duty flow give the curve through that point), and adds no row. A node's `flow` is a
-        // boundary flux, not this (`D-64`).
+    }
+
+    /// <summary>A stated flow is a constraint (<c>D-120</c>, <c>S-72</c>).</summary>
+    /// <remarks>
+    /// <c>flow</c> on an exchanger's side or on a pump pins that branch at the number, and <c>vflow</c> pins
+    /// it at that volume flow times the density at the side's inlet, which only the solve knows. Until
+    /// P5.13b, <c>HE1 flow=0.3</c> set the flow its 20 kPa was measured at and <c>PU1 flow=0.3</c> its
+    /// curve's duty point, and the circuit solved to whatever the loop drop gave: 0.086 kg/s on the simple
+    /// loop, then out of the fluid's range. A pump whose head is stated too is describing its curve, not
+    /// pinning the circuit (the head and the duty flow give the curve through that point), and adds no
+    /// row. A node's <c>flow</c> is a boundary flux, not this (<c>D-64</c>).
+    /// </remarks>
+    private static void StatedFlowConstraints(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, ImmutableArray<ComponentConstraint>.Builder constraints)
+    {
         foreach (var element in graph.Components)
         {
             var hydraulic = Owner(hydraulics, element);
@@ -546,13 +565,21 @@ public static class WellPosedness
             }
         }
 
-        // `D-97`. A coupled exchanger's design point is what sizes UA, and it also says what each side
-        // runs at: `power` with `in2`/`out2` is a flow on the side-2 branch as surely as `LOAD.dt` is one
-        // on the secondary. It pins a side only where nothing else already does -- the substation's
-        // secondary is pinned by `LOAD.dt`, its primary by `HX1`'s 85/45 -- because two pins on one
-        // hydraulic are one constraint too many, and the exchanger's is the one a designer would drop.
-        // A rated exchanger has the same design point and one wired side, so side 2 finds no hydraulic
-        // and side 1 is pinned by the same rule.
+    }
+
+    /// <summary>A coupled or rated exchanger's design point pins a side nothing else pins (<c>D-97</c>).</summary>
+    /// <remarks>
+    /// The design point is what sizes UA, and it also says what each side runs at: <c>power</c> with
+    /// <c>in2</c>/<c>out2</c> is a flow on the side-2 branch as surely as <c>LOAD.dt</c> is one on the
+    /// secondary. It pins a side only where nothing else already does -- the substation's secondary is
+    /// pinned by <c>LOAD.dt</c>, its primary by <c>HX1</c>'s 85/45 -- because two pins on one hydraulic
+    /// are one constraint too many, and the exchanger's is the one a designer would drop. A rated
+    /// exchanger has the same design point and one wired side, so side 2 finds no hydraulic and side 1
+    /// is pinned by the same rule.
+    /// </remarks>
+    private static void DesignPointConstraints(
+        CircuitGraph graph, ImmutableArray<HydraulicComponent> hydraulics, ImmutableArray<ComponentConstraint>.Builder constraints)
+    {
         foreach (var element in graph.Components)
         {
             if (element is not HeatExchanger || !Rates(hydraulics, element))
@@ -583,8 +610,6 @@ public static class WellPosedness
                 }
             }
         }
-
-        return constraints.ToImmutable();
     }
 
     /// <summary>A parameter key as the script spells it on this element's kind: <c>out2</c> as <c>out[2].t</c> (<c>D-120</c>, <c>L-56</c>).</summary>
@@ -794,7 +819,7 @@ public static class WellPosedness
         {
             foreach (var (component, parameter) in Candidates(graph, hydraulics, constraint))
             {
-                if (!taken.Add($"{component}.{parameter}"))
+                if (!taken.Add(Ownership.Key(component, parameter)))
                 {
                     continue;
                 }
@@ -807,193 +832,91 @@ public static class WellPosedness
         return promotions.ToImmutable();
     }
 
-    /// <summary>The sized parameters that could absorb one constraint, best first.</summary>
+    /// <summary>The sized parameters that could absorb one constraint, best first (<c>D-130</c>).</summary>
+    /// <remarks>
+    /// <para>
+    /// One order, written once: the owner's own duty, then a pump's head, then a valve's <c>kv</c>, and within
+    /// a kind the actuator on the owner's own branch before any other in the hydraulic. A mixed inlet or a
+    /// node temperature takes only a mixing split's <c>position</c>, the split at the owner's own branch first.
+    /// </para>
+    /// <para>
+    /// <strong>Reaching across the plant is deliberate and stays.</strong> <see cref="Promote"/>'s first-come
+    /// rule exists so that two parallel branches downstream of one pump share it, the first taking its head
+    /// and the second falling to its own balancing valve. What was missing before <c>S-45</c> was an order:
+    /// <c>hydraulic.Elements</c> is graph order, arbitrary with respect to the constraint, and with
+    /// <c>PU_AHU.head</c> stated <c>HE_AHU</c>'s flow constraint took <c>PU_RAD.head</c>, the other
+    /// consumer's pump, counting square at 44/44 while ranking 43. Likewise a mixed inlet took the first
+    /// free split in the list, which with one coil off (<c>S-56</c>) was the off coil's, reaching its node
+    /// through nothing. A node temperature is a setpoint held by the split feeding it (<c>S-48</c>,
+    /// <c>34</c>: the circuit is <em>solved</em> into position; a controller does the same job dynamically).
+    /// </para>
+    /// <para>
+    /// A stated <em>flow</em> never promotes the owner's <c>power</c>: the power does not appear in a flow
+    /// residual, and promoting it would pair a column with a row it never enters (<c>S-72</c>). A pump with
+    /// a stated rise has no head to give (<c>C-109</c>). A valve counts only on the constraint's own
+    /// hydraulic: a coupled exchanger sits on a branch of each, and a valve on the other circuit cannot
+    /// move this one's flow.
+    /// </para>
+    /// </remarks>
     private static IEnumerable<(string Component, string Parameter)> Candidates(
         CircuitGraph graph,
         ImmutableArray<HydraulicComponent> hydraulics,
         ComponentConstraint constraint)
     {
         var hydraulic = hydraulics.FirstOrDefault(candidate => candidate.Index == constraint.Hydraulic);
-
-        if (hydraulic is null)
-        {
-            yield break;
-        }
-
-        if (constraint.Kind is ConstraintKind.MixedInlet)
-        {
-            // Only the mixing split can move a mixed inlet temperature -- and the split that feeds the
-            // coil before any other. The hydraulic's order was enough while every coil took its own
-            // valve in turn; the moment one coil is off and asks for none (`S-56`), the next coil's
-            // inlet was handed the *off* coil's valve, the first free one in the list, which reaches its
-            // node through nothing. The valve at either end of the coil's own branch comes first.
-            var coil = graph.Components.FirstOrDefault(
-                element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
-            var feeding = new HashSet<IFlowComponent>();
-
-            if (coil is not null)
-            {
-                foreach (var branch in graph.Branches)
-                {
-                    if (branch.Path.Contains(coil))
-                    {
-                        feeding.Add(branch.From.Element);
-                        feeding.Add(branch.To.Element);
-                    }
-                }
-            }
-
-            var splits = hydraulic.Elements
-                .Where(element => string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(graph, element, "position"))
-                .ToArray();
-
-            foreach (var element in splits.Where(feeding.Contains).Concat(splits.Where(split => !feeding.Contains(split))))
-            {
-                yield return (element.Name, "position");
-            }
-
-            yield break;
-        }
-
-        if (constraint.Kind is ConstraintKind.NodeTemperature)
-        {
-            // A temperature stated on an interior node is a **setpoint**, and in a steady circuit the thing
-            // that holds it is the mixing split feeding that node -- exactly as a stated inlet is held by the
-            // split feeding an exchanger. [`34-controllers`](../../plan/30-solver/34-controllers.md) states
-            // the pairing outright: in the steady circuit the stated value "promotes the valve position into
-            // a solver unknown -- the circuit is *solved* into position", and "a controller does the same job
-            // dynamically". A controller is therefore the transient counterpart of this promotion, not a
-            // prerequisite for it, which is what the previous reading of this branch assumed.
-            //
-            // Until this arrived, a stated node temperature added a row and promoted nothing, so the circuit
-            // reported over-specified by exactly one --- breaking `23`'s rule that a constraint and its
-            // promotion appear and disappear together, which is that document's own check that the counting
-            // scheme is the right one (`S-48`).
-            var measured = graph.Components.FirstOrDefault(
-                element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
-
-            // The splits that reach the node: either end of a branch the node lies on, and either end of a
-            // branch that ends at it. Ordering matters for the same reason it does below (`S-45`) --- taking a
-            // distant valve while an adjacent one is free is what makes a circuit rank-deficient and square at
-            // once --- so the reaching ones are offered first and the rest only after.
-            var reaching = new HashSet<IFlowComponent>();
-
-            if (measured is not null)
-            {
-                foreach (var branch in graph.Branches)
-                {
-                    if (!branch.Path.Contains(measured)
-                        && !ReferenceEquals(branch.From.Element, measured)
-                        && !ReferenceEquals(branch.To.Element, measured))
-                    {
-                        continue;
-                    }
-
-                    reaching.Add(branch.From.Element);
-                    reaching.Add(branch.To.Element);
-
-                    foreach (var element in branch.Path)
-                    {
-                        reaching.Add(element);
-                    }
-                }
-            }
-
-            foreach (var element in hydraulic.Elements)
-            {
-                if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(graph, element, "position")
-                    && reaching.Contains(element))
-                {
-                    yield return (element.Name, "position");
-                }
-            }
-
-            foreach (var element in hydraulic.Elements)
-            {
-                if (string.Equals(element.Kind, "three_way_valve", StringComparison.Ordinal)
-                    && IsFree(graph, element, "position")
-                    && !reaching.Contains(element))
-                {
-                    yield return (element.Name, "position");
-                }
-            }
-
-            yield break;
-        }
-
-        if (constraint.Kind is not ConstraintKind.FixedFlow)
-        {
-            // Every kind the enum carries is handled above, so this is the guard for one added later: a
-            // constraint nothing can absorb reports as over-specified rather than being quietly dropped.
-            yield break;
-        }
-
         var owner = graph.Components.FirstOrDefault(
             element => string.Equals(element.Name, constraint.Component, StringComparison.Ordinal));
 
-        // A duty with no stated power determines the power: the constraint promotes the exchanger's own
-        // parameter before it reaches for anything else's. A stated *flow* does not -- the power does not
-        // appear in a flow residual, and promoting it would pair a column with a row it never enters.
+        if (hydraulic is null)
+        {
+            return [];
+        }
+
+        return constraint.Kind switch
+        {
+            ConstraintKind.MixedInlet => Splits(graph, hydraulic, Reach.Feeding(graph, owner)),
+            ConstraintKind.NodeTemperature => Splits(graph, hydraulic, Reach.Reaching(graph, owner)),
+            ConstraintKind.FixedFlow => FlowActuators(graph, hydraulic, constraint, owner),
+            // Every kind the enum carries is handled above, so this is the guard for one added later: a
+            // constraint nothing can absorb reports as over-specified rather than being quietly dropped.
+            _ => [],
+        };
+    }
+
+    /// <summary>The mixing splits that could hold a temperature: those at the owner's own branch first, then the rest of the hydraulic.</summary>
+    private static IEnumerable<(string Component, string Parameter)> Splits(
+        CircuitGraph graph, HydraulicComponent hydraulic, HashSet<IFlowComponent> near)
+    {
+        var splits = hydraulic.Elements
+            .Where(element => element is ThreeWayValve && IsFree(graph, element, "position"))
+            .ToArray();
+
+        return NearFirst(splits, near).Select(static split => (split.Name, "position"));
+    }
+
+    /// <summary>The actuators that could move a pinned flow, in <c>D-130</c>'s order.</summary>
+    private static IEnumerable<(string Component, string Parameter)> FlowActuators(
+        CircuitGraph graph, HydraulicComponent hydraulic, ComponentConstraint constraint, IFlowComponent? owner)
+    {
+        // The owner's own duty, unless the constraint is itself a stated flow.
         if (owner is not null && !IsStatedFlow(constraint.Parameter) && IsFree(graph, owner, "power"))
         {
             yield return (owner.Name, "power");
         }
 
-        // Every element on a branch the constraint's owner sits on. A pump there drives the very flow the
-        // constraint pins, so it is the candidate an engineer would name.
-        var local = new HashSet<IFlowComponent>();
+        // A pump, the one on the owner's own branch before any other.
+        var local = Reach.Local(graph, owner);
+        var pumps = hydraulic.Elements
+            .Where(element => element is Pump { StatedRise: null } && IsFree(graph, element, "head"))
+            .ToArray();
 
-        if (owner is not null)
+        foreach (var pump in NearFirst(pumps, local))
         {
-            foreach (var branch in graph.Branches)
-            {
-                if (!branch.Path.Contains(owner))
-                {
-                    continue;
-                }
-
-                foreach (var element in branch.Path)
-                {
-                    local.Add(element);
-                }
-            }
+            yield return (pump.Name, "head");
         }
 
-        // Own branch first, then the rest. **Reaching across the plant is deliberate and stays** ---
-        // `Promote`'s first-come rule exists so that two parallel branches downstream of one pump share it,
-        // the first taking its head and the second falling to its own balancing valve. What was missing is
-        // an order: `hydraulic.Elements` is graph order, which is arbitrary with respect to the constraint,
-        // and a hydraulic component is the whole connected plant rather than one circuit.
-        //
-        // Measured (`S-45`): with `PU_AHU.head` stated, `HE_AHU`'s flow constraint took `PU_RAD.head` ---
-        // the other consumer's pump --- and that variant counts square at 44/44 while ranking 43,
-        // deficient and over-specified at once. A promotion that crosses the plant is not wrong in itself;
-        // taking a distant pump while a local one is free is.
-        foreach (var element in hydraulic.Elements)
-        {
-            if (element is Pump { StatedRise: null }
-                && IsFree(graph, element, "head")
-                && local.Contains(element))
-            {
-                yield return (element.Name, "head");
-            }
-        }
-
-        foreach (var element in hydraulic.Elements)
-        {
-            if (element is Pump { StatedRise: null }
-                && IsFree(graph, element, "head")
-                && !local.Contains(element))
-            {
-                yield return (element.Name, "head");
-            }
-        }
-
-        // The parallel case: branches sharing their endpoints share a pressure difference, so a branch's
-        // flow can only be moved by changing its own resistance. The first unsized valve along it is
-        // what a balancing valve is.
+        // A valve on the owner's own branch: the parallel case, where branches sharing their endpoints share
+        // a pressure difference and only the branch's own resistance can move its flow.
         if (owner is null)
         {
             yield break;
@@ -1006,11 +929,9 @@ public static class WellPosedness
                 continue;
             }
 
-            // On the constraint's own hydraulic: a coupled exchanger sits on a branch of each, and a valve on
-            // the other circuit cannot move this one's flow.
             foreach (var element in branch.Path)
             {
-                if (element.Kind is "valve" or "three_way_valve"
+                if (element is Valve or ThreeWayValve
                     && IsFree(graph, element, "kv")
                     && hydraulic.Elements.Contains(element))
                 {
@@ -1019,6 +940,10 @@ public static class WellPosedness
             }
         }
     }
+
+    /// <summary>The candidates in the near set first, in their given order, then the rest in theirs.</summary>
+    private static IEnumerable<IFlowComponent> NearFirst(IFlowComponent[] candidates, HashSet<IFlowComponent> near) =>
+        candidates.Where(near.Contains).Concat(candidates.Where(candidate => !near.Contains(candidate)));
 
     /// <summary>Whether a parameter is available to be promoted.</summary>
     /// <param name="graph">The graph, for which sized values are provisionals.</param>
@@ -1050,10 +975,7 @@ public static class WellPosedness
     /// </para>
     /// </remarks>
     private static bool IsFree(CircuitGraph graph, IFlowComponent component, string parameter) =>
-        !component.StatedParameters.ContainsKey(parameter)
-        && !component.DefaultParameters.ContainsKey(parameter)
-        && (!component.SizedParameters.ContainsKey(parameter)
-            || graph.ProvisionalParameters.Contains($"{component.Name}.{parameter}"));
+        Ownership.IsFree(Ownership.Of(component, parameter, graph.ProvisionalParameters));
 
     /// <summary>Which hydraulic component an element belongs to.</summary>
     /// <returns>Its index, or zero when nothing claims it.</returns>

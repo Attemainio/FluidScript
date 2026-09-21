@@ -622,7 +622,7 @@ public sealed class OuterLoop(
 
                 if (before is null || Math.Abs(before.Value - value.SiValue) > 1e-6 * Math.Max(1, Math.Abs(value.SiValue)))
                 {
-                    moving.Add($"{component}.{parameter}");
+                    moving.Add(Ownership.Key(component, parameter));
                 }
             }
         }
@@ -677,7 +677,7 @@ public sealed class OuterLoop(
             {
                 if (value.Basis is { } basis)
                 {
-                    merged[$"{component.Name}.{parameter}"] = basis;
+                    merged[Ownership.Key(component.Name, parameter)] = basis;
                 }
             }
         }
@@ -731,7 +731,7 @@ public sealed class OuterLoop(
 
             var terminals = SideOneTerminals
                 .Where(parameter => component.StatedParameters.ContainsKey(parameter))
-                .Select(parameter => $"{component.Name}.{parameter}")
+                .Select(parameter => Ownership.Key(component.Name, parameter))
                 .ToArray();
             var note = terminals.Length == 0
                 ? string.Empty
@@ -844,7 +844,7 @@ public sealed class OuterLoop(
             {
                 if (!sizer.CanSize(component)
                     || sizer.Parameters.All(parameter => Claimed(component, parameter, promoted))
-                    || sizer.Parameters.Any(parameter => promoted.Contains($"{component.Name}.{parameter}")))
+                    || sizer.Parameters.Any(parameter => promoted.Contains(Ownership.Key(component.Name, parameter))))
                 {
                     continue;
                 }
@@ -872,7 +872,7 @@ public sealed class OuterLoop(
                         component.Name,
                         parameter,
                         value.Value);
-                    bases[$"{component.Name}.{parameter}"] = value.Basis;
+                    bases[Ownership.Key(component.Name, parameter)] = value.Basis;
                 }
 
                 notes.AddRange(sized.Value.Notes);
@@ -1026,7 +1026,7 @@ public sealed class OuterLoop(
                 }
 
                 overlay = overlay.With(valve.Name, parameter, value.Value);
-                bases[$"{valve.Name}.{parameter}"] = value.Basis;
+                bases[Ownership.Key(valve.Name, parameter)] = value.Basis;
             }
 
             notes.AddRange(sized.Value.Notes);
@@ -1057,7 +1057,7 @@ public sealed class OuterLoop(
     {
         foreach (var (parameter, value) in overlay.For(valve.Name))
         {
-            var key = $"{valve.Name}.{parameter}";
+            var key = Ownership.Key(valve.Name, parameter);
 
             if (!bases.ContainsKey(key))
             {
@@ -1130,7 +1130,7 @@ public sealed class OuterLoop(
         {
             foreach (var (parameter, value) in overlay.For(component.Name))
             {
-                var key = $"{component.Name}.{parameter}";
+                var key = Ownership.Key(component.Name, parameter);
 
                 if (bases.ContainsKey(key)
                     || sizers.Any(sizer =>
@@ -1210,9 +1210,7 @@ public sealed class OuterLoop(
     }
 
     private static bool Claimed(IFlowComponent component, string parameter, HashSet<string> promoted) =>
-        component.StatedParameters.ContainsKey(parameter)
-        || component.DefaultParameters.ContainsKey(parameter)
-        || promoted.Contains($"{component.Name}.{parameter}");
+        Ownership.Of(component, parameter, promoted: promoted) is ParameterState.Stated or ParameterState.Defaulted or ParameterState.Promoted;
 
     /// <summary>Whether a free pump on a circuit through a component absorbs whatever it drops.</summary>
     /// <param name="graph">The graph.</param>
