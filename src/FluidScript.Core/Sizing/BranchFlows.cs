@@ -468,10 +468,7 @@ public static class BranchFlows
     /// </remarks>
     private static double? Duty(CircuitGraph graph, Branch branch, IFlowComponent component)
     {
-        if (component is not HeatExchanger exchanger
-            || (!component.StatedParameters.ContainsKey("power")
-                && !component.SizedParameters.ContainsKey("power")
-                && !component.DefaultParameters.ContainsKey("power")))
+        if (component is not HeatExchanger exchanger || Ownership.Of(component, "power") is ParameterState.Free)
         {
             return null;
         }

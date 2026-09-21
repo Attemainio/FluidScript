@@ -14,6 +14,10 @@ last_review_pass: 0
 
 ## Purpose
 
+**Status (2026-09-21).** R0–R5 shipped in nine commits (`d8c43d5` … `23acf17`); `D-130` states the
+actuator order and `D-131` names the seams as binding. R6 is deferred until a feature opens its files.
+The rows in [`09`](09-project-state.md) carry what each package measured and what it left undone.
+
 `FluidScript.Core` shipped as a preliminary version and has since closed roughly two hundred register
 rows, one at a time, each inside the structure it found. The fixes are individually right and each is
 cited at its site. What they left behind is structure that a design made with today's knowledge would
@@ -423,9 +427,11 @@ test for R3 step 7 asserts it by name.
 
 1. R0 through R5 each land as one package with a row in `09`, and each package's measured set is
    byte-identical or its re-baseline is listed and explained in the commit.
-2. After R3, `Ownership.Of` is the only reader of `StatedParameters`, `DefaultParameters`,
-   `SizedParameters` and `ProvisionalParameters` outside the components' own property declarations
-   and the contract builder's serialisation, verified by reference search.
+2. After R3, the ownership question -- which of the three maps holds a parameter -- is asked only
+   through `Ownership`; what may still read a map is a value read of a named stated parameter,
+   `HydraulicPartition.Stated`, the components and the factory that build the maps, the contract
+   builder's serialisation and `DeferredEvaluation.SolvedScope`, as `D-131` lists. Verified by
+   text search on 2026-09-21.
 3. After R3, the string `"three_way_valve"` appears in `WellPosedness.cs` only in diagnostics text.
 4. After R2, one method computes a pump's head for the report and the contract, and
    `UnitTable.StandardGravity` is referenced from `Hydrostatic` and the unit table only.

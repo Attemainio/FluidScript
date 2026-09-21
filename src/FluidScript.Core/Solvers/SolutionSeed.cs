@@ -952,7 +952,7 @@ public static partial class SolutionSeed
                 }
 
                 if (part is HeatExchanger exchanger && capacity > 0
-                    && (exchanger.StatedParameters.ContainsKey("power") || exchanger.SizedParameters.ContainsKey("power")))
+                    && Ownership.Of(exchanger, "power") is ParameterState.Stated or ParameterState.SizedFinal)
                 {
                     var sign = Sizing.BranchFlows.Side(graph, branch, exchanger) == 2 ? -1 : 1;
 

@@ -122,8 +122,5 @@ public sealed class ExchangerSizer : ISizer
     /// <c>ComponentFactory</c> from the same three maps, so this cannot disagree with it without the
     /// maps disagreeing first.
     /// </remarks>
-    private static double Drop(HeatExchanger exchanger) =>
-        exchanger.StatedParameters.TryGetValue("dp", out var stated) ? stated.SiValue
-        : exchanger.DefaultParameters.TryGetValue("dp", out var defaulted) ? defaulted.SiValue
-        : 0;
+    private static double Drop(HeatExchanger exchanger) => Ownership.Decided(exchanger, "dp") ?? 0;
 }

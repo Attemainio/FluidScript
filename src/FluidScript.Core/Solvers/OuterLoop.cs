@@ -1214,9 +1214,7 @@ public sealed class OuterLoop(
             }
 
             var omitted = duties
-                .Where(static exchanger =>
-                    !exchanger.StatedParameters.ContainsKey("power")
-                    && !exchanger.DefaultParameters.ContainsKey("power"))
+                .Where(static exchanger => Ownership.Of(exchanger, "power") is ParameterState.Free or ParameterState.SizedFinal)
                 .ToArray();
 
             if (omitted.Length != 1 || !completed.Add(omitted[0].Name))

@@ -173,6 +173,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-128` | Accepted | 2026-09-21 | A pipe names its catalogue with `material=`; the `catalog` line stays the script's default |
 | `D-129` | Accepted | 2026-09-21 | The copper catalogue is the Finnish type-approved range |
 | `D-130` | Accepted | 2026-09-21 | A constraint is absorbed by the first free actuator in kind order, nearest first within a kind, claimed once |
+| `D-131` | Accepted | 2026-09-21 | Core's shared seams are where their questions are answered, and nothing re-derives them |
 <!-- index:end -->
 
 ---
@@ -6008,3 +6009,45 @@ first-come by swapping two declarations.
 
 **Constrains.** `WellPosedness.Candidates`, `Promote`, `Reach`, `Ownership`; `23`'s promotion section;
 `70` R3. Any future actuator kind (M4's controllers) is placed in this order, not appended to a list.
+
+## D-131 · Core's shared seams are where their questions are answered, and nothing re-derives them
+
+**Accepted · 2026-09-21** (the user's call to execute [`70`](../70-core-refactoring.md) as the session decided it) · closes `70` R0–R5
+
+The review of 2026-09-21 found `FluidScript.Core` answering one question at eleven sites, deriving
+one number three ways and writing one pipeline three times, each copy patched by a different defect.
+`70` records the diagnosis and the packages; R0–R5 shipped the same day, each measured byte-identical
+on the corpus, the ladder and the goldens except R2's listed pump-head digits.
+
+**Decided.** These are the one place for their question, and new code calls them rather than reading
+the maps, the constant or the geometry again:
+
+| Question | Home |
+|---|---|
+| Who owns a parameter: stated, defaulted, promoted, sized, provisional, free; the `Name.parameter` label; a decided value | `Ownership.Of`, `Ownership.Key`, `Ownership.Decided` (`Components/ParameterOwnership.cs`) |
+| Which free actuator absorbs a constraint, in what order | `WellPosedness.Splits` and `FlowActuators` over `Reach` (`D-130`) |
+| What is on or at the ends of the branches through a component | `Reach.Feeding`, `Reach.Reaching`, `Reach.Local` |
+| A pump's head, flow and rise at the solution; a parameter's solved-or-own value | `SolvedStates.Pump`, `SolvedStates.Resolved` |
+| `ρ g h` and its inverse | `Hydrostatic`; `UnitTable.StandardGravity` is read nowhere else |
+| A sizer's volume flow and litres per second | `SizingContext.VolumeFlow`, `LitresPerSecond` |
+| A layout form's rollback | `LayoutEngine.Attempt`; every form declines through it |
+| Where orthogonal segments cross or overlap | `Segments`, with the caller's tolerance |
+| The promoted columns of a layout | `SolutionSeed.PromotedColumns` |
+| The outer loop's refusal and its closing diagnostics | `OuterLoop.Refused`, `Annotated` |
+
+**What still reads the maps directly, and why it may.** `HydraulicPartition.Stated` (a stated value,
+29 callers, the primitive `Ownership` is built on); the components' own declarations and
+`ComponentFactory`, which build the maps; `ModelContractBuilder.Parameters`, which serialises every
+map with its source; `DeferredEvaluation.SolvedScope`, a scope lookup whose seeding pass reads a
+default before a promotion by `L-59`'s rule; and value reads of a named stated parameter
+(`StatedParameters.TryGetValue("in")`), which ask for a number, not for ownership.
+
+**Not done, by decision.** A wholesale `AssembleRing` (the three ring forms differ in what feeds
+`Top` and `Close`); `Integrate` as a class (its local functions are already the named phases);
+`NewtonSolver.Solve` (nine exits already through two helpers); the factory's six initializer blocks
+(an object initializer cannot be filled from a record); R6 -- the binder's phase records,
+`ComponentKindInfo`'s three resolvers, `EquationSystem`'s builder -- until a feature next opens those
+files.
+
+**Constrains.** Every file named above; a review finding that one of these questions is answered
+elsewhere is a defect row, not a style note.

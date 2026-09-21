@@ -1004,7 +1004,17 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `material=` to read its `dn` in another shipped series. `C-110` filed for the unsourced
 > `steel_en10220`. Four closed, one opened; 54 open.
 
-### R — Core refactoring ([`70`](70-core-refactoring.md)) · in progress
+> **`70`, the Core refactoring, R0–R5 shipped** (the same day, the user's call to execute the plan
+> as the session decided it; `D-130`, `D-131`): the architecture review found one question --
+> who owns a parameter -- answered at eleven sites, a pump's head derived three ways, the ring forms'
+> rollback written three ways and each restoring a different subset, and `ρ g h` at twelve sites.
+> `70` records the diagnosis; the packages landed in nine commits, each byte-identical on the corpus,
+> the ladder and the goldens except R2's four pump-head digits, which closed a disagreement the
+> cooling-loop golden already carried (2.48434 sized against 2.48435 solved). Restoring the register
+> on the way found five closed rows the day's earlier closures had dropped. `C-111` stays open on the
+> language decision; R6 waits for a feature to open the binder. Nothing closed, nothing opened; 54 open.
+
+### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
 

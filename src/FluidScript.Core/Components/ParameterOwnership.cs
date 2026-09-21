@@ -73,6 +73,19 @@ public static class Ownership
         return ParameterState.Free;
     }
 
+    /// <summary>The value the script or the registry decided for a parameter, SI, or nothing when neither did.</summary>
+    /// <param name="component">The component.</param>
+    /// <param name="parameter">The canonical parameter name.</param>
+    /// <returns>The stated value, else the visible default, else <see langword="null"/>: what a rule may read as given and must never size.</returns>
+    public static double? Decided(IComponent component, string parameter)
+    {
+        ArgumentNullException.ThrowIfNull(component);
+
+        return component.StatedParameters.TryGetValue(parameter, out var stated) ? stated.SiValue
+            : component.DefaultParameters.TryGetValue(parameter, out var defaulted) ? defaulted.SiValue
+            : null;
+    }
+
     /// <summary>Whether a state leaves the parameter for a constraint to promote.</summary>
     /// <param name="state">The state.</param>
     /// <returns><see langword="true"/> for <see cref="ParameterState.Free"/> and <see cref="ParameterState.SizedProvisional"/>.</returns>

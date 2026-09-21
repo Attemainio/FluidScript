@@ -283,7 +283,7 @@ public static class ModelContractBuilder
                 Value = value,
                 Unit = unit,
                 Source = "sized",
-                Basis = run?.Bases.GetValueOrDefault($"{component.Name}.{name}") ?? "chosen by a sizing rule",
+                Basis = run?.Bases.GetValueOrDefault(Ownership.Key(component.Name, name)) ?? "chosen by a sizing rule",
             };
         }
 
@@ -300,7 +300,7 @@ public static class ModelContractBuilder
                     Value = canonical,
                     Unit = unit,
                     Source = "sized",
-                    Basis = run.Bases.GetValueOrDefault($"{component.Name}.{name}") ?? "found by the solver, to hold the stated constraints",
+                    Basis = run.Bases.GetValueOrDefault(Ownership.Key(component.Name, name)) ?? "found by the solver, to hold the stated constraints",
                 };
             }
         }
@@ -315,7 +315,7 @@ public static class ModelContractBuilder
                 Value = value,
                 Unit = unit,
                 Source = "stated",
-                Basis = run?.Bases.GetValueOrDefault($"{component.Name}.{name}"),
+                Basis = run?.Bases.GetValueOrDefault(Ownership.Key(component.Name, name)),
             };
         }
 

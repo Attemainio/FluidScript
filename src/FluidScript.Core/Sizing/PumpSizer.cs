@@ -149,8 +149,5 @@ public sealed class PumpSizer : ISizer
     /// Read from the component rather than from the default catalogue, so a stated <c>margin=1.1</c>
     /// reaches the head and a reader can see in the basis string that it did.
     /// </remarks>
-    private static double Margin(IFlowComponent component) =>
-        component.StatedParameters.TryGetValue("margin", out var stated) ? stated.SiValue
-        : component.DefaultParameters.TryGetValue("margin", out var defaulted) ? defaulted.SiValue
-        : 1.0;
+    private static double Margin(IFlowComponent component) => Ownership.Decided(component, "margin") ?? 1.0;
 }
