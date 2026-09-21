@@ -146,6 +146,7 @@ public sealed class ExpressionEvaluator
         NumberLiteralSyntax number => Number(number),
         QuantityLiteralSyntax quantity => Literal(quantity),
         ReferenceSyntax reference => Reference(reference),
+        QuantityReferenceSyntax quantity => QuantityReference(quantity),
         ParenthesizedExpressionSyntax parenthesized => Visit(parenthesized.Inner),
         UnaryExpressionSyntax unary => Unary(unary),
         BinaryExpressionSyntax binary => Binary(binary),
@@ -229,6 +230,46 @@ public sealed class ExpressionEvaluator
                     reference.Span,
                     new DiagnosticArgument("name", Text(reference)));
         }
+    }
+
+    /// <summary>Reads a reference with a unit written after it (<c>L-35</c>): a bare value takes the unit, a dimensioned one may only agree with it.</summary>
+    /// <param name="quantity">The reference and its unit.</param>
+    private EvaluationResult QuantityReference(QuantityReferenceSyntax quantity)
+    {
+        var inner = Reference(quantity.Reference);
+
+        if (inner is not EvaluationResult.Value value)
+        {
+            // Failed, or deferred: a deferred curve is read again in the solved scope, where this
+            // same visit applies the unit to the value it has by then.
+            return inner;
+        }
+
+        // The parser took the token only because the table holds it, so the spelling resolves; the
+        // expected dimension picks between the shared pressure spellings, as it does for a literal.
+        if (UnitTable.Resolve(quantity.Unit, _expected) is not { } unit)
+        {
+            return value;
+        }
+
+        if (value.IsBare)
+        {
+            return new EvaluationResult.Value(Quantity.FromUnit(value.Quantity.SiValue, unit), IsBare: false);
+        }
+
+        // `HE1.dp kPa` says nothing the value did not already carry; `HE1.dp kW` contradicts it.
+        if (value.Quantity.Dimension == unit.Dimension)
+        {
+            return value;
+        }
+
+        return Fail(
+            BinderDiagnostics.ParameterDimensionMismatch,
+            quantity.Span,
+            new DiagnosticArgument("parameter", Text(quantity.Reference)),
+            new DiagnosticArgument("expected", value.Quantity.Dimension.Name.ToLowerInvariant()),
+            new DiagnosticArgument("value", quantity.Unit),
+            new DiagnosticArgument("actual", unit.Dimension.Name.ToLowerInvariant()));
     }
 
     private EvaluationResult Unary(UnaryExpressionSyntax unary)

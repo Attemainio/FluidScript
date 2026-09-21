@@ -1365,6 +1365,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 yield return reference;
                 break;
 
+            case QuantityReferenceSyntax quantity:
+                yield return quantity.Reference;
+                break;
+
             case BinaryExpressionSyntax binary:
                 foreach (var inner in References(binary.Left).Concat(References(binary.Right)))
                 {

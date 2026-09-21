@@ -73,6 +73,18 @@ TV1 valve position=opening             # 0.3 becomes 0.3, a fraction
 
 That is why one curve can drive a power, a percentage or a temperature.
 
+When the table is not in the parameter's own unit, write the unit after the reference, the way you
+would after a number:
+
+```fluidscript
+HX1 heat_exchanger power=heating W     # 50 becomes 50 W
+AHU load flow=demand kg/s              # the table is a mass flow
+```
+
+The unit is read exactly as it would be on a literal, so `power=heating kPa` is refused as a
+pressure handed to a power (`FS1304`). A unit after a value that already has one, such as
+`dp=HE1.dp kW`, is refused the same way; `dp=HE1.dp kPa` merely agrees and changes nothing.
+
 ## Curves of time
 
 Give `time` as the driver and the rows are timestamps:

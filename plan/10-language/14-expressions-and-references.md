@@ -35,7 +35,8 @@ expression   = additive ;
 additive     = multiplicative , { ("+" | "-") , multiplicative } ;
 multiplicative = unary , { ("*" | "/") , unary } ;
 unary        = [ "-" ] , primary ;
-primary      = quantity | number | reference | "(" , expression , ")" | call ;
+primary      = quantity | number | reference , [ unit-symbol ] | "(" , expression , ")" | call ;
+                                       (* heating kW; demand kg/s -- a unit after a reference, L-35, shipped 2026-09-22 *)
 reference    = identifier , { "." , indexed-name } ;   (* HE1.dp; HX1.in[2].t; T1.layer[3].t -- `12`, D-120 *)
 call         = identifier , "(" , [ expression , { "," , expression } ] , ")" ;
 ```
@@ -43,6 +44,17 @@ call         = identifier , "(" , [ expression , { "," , expression } ] , ")" ;
 Precedence, tightest first: unary minus, then `* /`, then `+ -`. Left-associative. Parentheses group.
 No exponentiation operator — `pow(x, 2)` is a call, because `^` and `**` both have a constituency and
 picking one violates P6 for no gain.
+
+**A reference may carry a unit, as a number may** (`L-35`, the half of `D-57` that was deferred):
+`power=heating W` reads the curve's bare 50 as fifty watts where `power=heating` reads it in the
+parameter's canonical unit (`D-14`). The parser takes the unit under the lexer's own rule 5 for a
+number -- a spelling the unit table holds, not followed by `=`, `[` or a dotted name, so
+`power=heating dp=20` still ends the expression at `heating` -- and a slashed spelling only when
+its three tokens touch (`kg/s`; `kg / s` is a division). The evaluator applies it to a bare value
+and to nothing else: a unit after a value that already has a dimension may agree with it
+(`HE1.dp kPa`) or is `FS1304` (`HE1.dp kW`). Symbols the lexer cannot read as a word, `°C` and
+`%`, have no reference form; a curve of temperatures or fractions is bare, which `D-14` already
+reads correctly.
 
 **No boolean operators, no comparisons, no ternary.** There is nothing to branch on (`D-01`).
 

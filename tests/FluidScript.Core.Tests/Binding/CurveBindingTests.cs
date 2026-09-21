@@ -234,6 +234,38 @@ public sealed class CurveBindingTests
         Assert.Equal(50_000, Power(Model(HeatingCurve), "HX1"), 6);
     }
 
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ACurveReferenceMayCarryTheUnitItsNumbersAreIn()
+    {
+        // `L-35`, the half of `D-57` that was deferred: the table's 50 is bare, `power=heating` reads it
+        // through the parameter's canonical unit as 50 kW, and `power=heating W` says the table is in
+        // watts, so the same row is 50 W. A slashed spelling is one unit too.
+        var watts = Model(HeatingCurve.Replace("power=heating", "power=heating W", StringComparison.Ordinal));
+        Assert.Equal(50, Power(watts, "HX1"), 6);
+
+        var kilowatts = Model(HeatingCurve.Replace("power=heating", "power=heating kW", StringComparison.Ordinal));
+        Assert.Equal(50_000, Power(kilowatts, "HX1"), 6);
+
+        var flow = Model(
+            "fluidscript 1\ndesign tout=-26\ncurve demand tout\n-26 0.5\n20 0.1\n"
+            + "circuit ahu 300\nfluid static water\nHX1 load in.t=50 out.t=30 flow=demand kg/s\n");
+        Assert.Equal(0.5, Assert.Single(flow.Components, c => c.Name == "HX1").Parameters["flow"].Value!.Value.SiValue, 9);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AUnitThatContradictsTheParameterOrTheValueIsFS1304()
+    {
+        // `power=heating kPa` reads the table in kilopascals and hands a pressure to a power: the
+        // ordinary mismatch. A unit after a value that already has a dimension may only agree with it.
+        Assert.Contains("FS1304", Codes(HeatingCurve.Replace("power=heating", "power=heating kPa", StringComparison.Ordinal)));
+
+        const string Referenced = "fluidscript 1\ncircuit demo\nfluid water\nHE1 heat_exchanger dp=20\nPU1 pump dp=HE1.dp kW\n";
+        Assert.Contains("FS1304", Codes(Referenced));
+        Assert.DoesNotContain("FS1304", Codes(Referenced.Replace(" kW", " kPa", StringComparison.Ordinal)));
+    }
+
     [Theory]
     [Trait("Category", "Unit")]
     [InlineData("design tout=-26")]

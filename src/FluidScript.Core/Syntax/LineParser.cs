@@ -3,6 +3,7 @@ using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Syntax;
 
@@ -1099,13 +1100,55 @@ internal sealed class LineParser(
             case TokenKind.Identifier:
             {
                 var name = new IdentifierSyntax(Advance());
-                return Current is { Kind: TokenKind.OpenParenthesis } ? ParseCall(name) : ParseReference(name);
+                if (Current is { Kind: TokenKind.OpenParenthesis })
+                {
+                    return ParseCall(name);
+                }
+
+                return ParseReference(name) is { } reference ? WithUnit(reference) : null;
             }
 
             default:
                 return null;
         }
     }
+
+    /// <summary>Takes a unit symbol written after a reference, where one follows (<c>L-35</c>): <c>heating kW</c>, <c>demand kg/s</c>.</summary>
+    /// <param name="reference">The reference just parsed.</param>
+    /// <returns>The reference with its unit, or the reference alone.</returns>
+    /// <remarks>
+    /// The lexer's rule 5 for a unit after a number, applied to a reference: the identifier is a spelling
+    /// the unit table holds and is not the start of the next parameter (<c>=</c>, <c>[</c>, or a <c>.</c>
+    /// before a word follows it). A slashed unit is three tokens written together, <c>kg/s</c>, and is
+    /// taken only when the three touch and the joined text is a spelling.
+    /// </remarks>
+    private ExpressionSyntax WithUnit(ReferenceSyntax reference)
+    {
+        if (Current is not { Kind: TokenKind.Identifier } first || StartsNextParameter(_index + 1))
+        {
+            return reference;
+        }
+
+        if (tokens.ElementAtOrDefault(_index + 1) is { Kind: TokenKind.Slash } slash
+            && tokens.ElementAtOrDefault(_index + 2) is { Kind: TokenKind.Identifier } second
+            && slash.Span.Start == first.Span.End
+            && second.Span.Start == slash.Span.End
+            && !StartsNextParameter(_index + 3)
+            && UnitTable.IsSymbol(first.Text + slash.Text + second.Text))
+        {
+            return new QuantityReferenceSyntax(reference, [Advance(), Advance(), Advance()]);
+        }
+
+        return UnitTable.IsSymbol(first.Text)
+            ? new QuantityReferenceSyntax(reference, [Advance()])
+            : reference;
+    }
+
+    /// <summary>Whether the token at an index begins a parameter rather than continuing an expression: <c>=</c>, <c>[</c>, or <c>.</c> before a word.</summary>
+    private bool StartsNextParameter(int index) =>
+        tokens.ElementAtOrDefault(index) is { } next
+        && (next.Kind is TokenKind.Equals or TokenKind.OpenBracket
+            || (next.Kind == TokenKind.Dot && tokens.ElementAtOrDefault(index + 1) is { Kind: TokenKind.Identifier }));
 
     private CallSyntax? ParseCall(IdentifierSyntax name)
     {

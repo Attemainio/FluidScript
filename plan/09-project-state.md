@@ -1145,6 +1145,9 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > at 15 and is rank 14; `FS3009` and `FS3010` fire from the script with the heads and the two flow
 > statements named, and `NullDirectionTests` holds both messages. The probe also measured `S-37`'s
 > valley on the smallest ring there is: one head promoted and one sized never settles. 43 open.
+>
+> **`L-35` closed 2026-09-22:** a reference may carry a unit -- `power=heating W`, `flow=demand kg/s`
+> -- taken under the lexer's own rule for a number and applied to a bare value only. 42 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 

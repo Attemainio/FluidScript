@@ -641,6 +641,37 @@ public sealed class ParserTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void AReferenceTakesAUnitWrittenAfterItAndLeavesTheNextParameterAlone()
+    {
+        // `L-35`: `heating kW` is one expression, `heating dp=20` is a reference and the next parameter,
+        // and a slashed unit is three tokens that touch. `power=heating kW dp=20` prints back as written.
+        var single = Single<ComponentDeclarationSyntax>("HX1 load power=heating kW dp=20");
+        var quantity = Assert.IsType<QuantityReferenceSyntax>(single.Parameters[0].Value);
+        Assert.Equal("heating", quantity.Reference.Head.Text);
+        Assert.Equal("kW", quantity.Unit);
+        Assert.Equal("dp", single.Parameters[1].Name.Text);
+
+        var bare = Single<ComponentDeclarationSyntax>("HX1 load power=heating dp=20");
+        Assert.IsType<ReferenceSyntax>(bare.Parameters[0].Value);
+
+        var slashed = Single<ComponentDeclarationSyntax>("HX1 load flow=demand kg/s");
+        Assert.Equal("kg/s", Assert.IsType<QuantityReferenceSyntax>(slashed.Parameters[0].Value).Unit);
+
+        // Spaced apart, `kg / s` is a division: the unit form needs the three to touch.
+        var spaced = Single<ComponentDeclarationSyntax>("HX1 load flow=demand kg / s");
+        Assert.IsType<BinaryExpressionSyntax>(spaced.Parameters[0].Value);
+
+        // A name that happens to spell a unit is still a parameter when `=` follows it.
+        var inch = Single<ComponentDeclarationSyntax>("T1 tank volume=stored in=20");
+        Assert.IsType<ReferenceSyntax>(inch.Parameters[0].Value);
+        Assert.Equal("in", inch.Parameters[1].Name.Text);
+
+        const string Written = "HX1 load power=heating kW   dp=20  # kilowatts\n";
+        Assert.Equal(Written, SyntaxPrinter.Print(Parse(Written)));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void SixtyNestedParenthesesStillParse()
     {
         // The bound is far beyond any expression a script states; this pins that it is not near one.
