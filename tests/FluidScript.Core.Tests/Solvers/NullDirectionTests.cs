@@ -187,9 +187,8 @@ public sealed class NullDirectionTests
         // reason it used not to -- the deficiency is gone, not hidden. What the header does instead is
         // recorded in `CorpusStatusTests`.
         //
-        // **This leaves `FS3009` and `FS3010` with no end-to-end subject in the corpus.** The matrix-level
-        // tests above still pin their content. A fixture that is square and singular on purpose is wanted,
-        // and is recorded as such.
+        // This left `FS3009` and `FS3010` with no end-to-end subject in the corpus (`S-42`); the fixture
+        // below, two pumps in series both holding the ring's one flow, is that subject now.
         var resolved = PipeCatalogs.Resolve(pin: null);
         var loop = new OuterLoop(
             new NewtonSolver(),
@@ -205,5 +204,61 @@ public sealed class NullDirectionTests
         Assert.True(run.IsSuccess, run.Error?.Message);
         Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3009");
         Assert.DoesNotContain(run.Value.Solve.Diagnostics, static d => d.Code == "FS3010");
+    }
+
+    /// <summary>
+    /// The one square-and-singular circuit the corpus owns on purpose (<c>S-42</c>, built from <c>S-37</c>'s shape): two pumps
+    /// in series on a ring whose flow is fixed twice, once by the exchanger's duty pair and once by the second pump's own
+    /// <c>flow=</c>. Each statement promotes a head, so the count is square at 15; only the heads' sum enters the ring's
+    /// pressure equation, so the rank is 14. Nobody would write it as a sample, which is why it lives here.
+    /// </summary>
+    private const string TwoPumpsInSeriesHoldingOneFlowTwice = """
+        fluidscript 1
+        circuit probe
+        fluid water
+
+        HE1  heat_exchanger power=30 in.t=20 out.t=50
+        LOAD heat_exchanger power=-30 dp=0
+        CV1  valve
+        PU1  pump
+        PU2  pump flow=0.239
+
+        connections
+        N1 - PU1 - N1b - PU2 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+        N5 - N1 length=25
+        """;
+
+    [Fact]
+    public async Task TwoPumpsInSeriesHoldingOneFlowTwiceAreReadAsOneFreeDirectionAndOneRedundantStatement()
+    {
+        // End to end, from the script to the two messages a user reads (`S-42`). Counting passes the circuit
+        // -- 15 unknowns against 15 equations, the two promotions paying for the two flow statements -- and
+        // the solver finds it singular at the seed. `FS3009` names what moves together: the two heads and the
+        // pressure between them, because raising one head and lowering the other by the same amount changes
+        // nothing the ring can see. `FS3010` names the redundancy: the pump's flow and the exchanger's outlet
+        // fix the same flow, so one of them has to change. Measured 2026-09-22 through the circuit harness on
+        // the same script: rank 14 of 15 at the seed and at the last iterate, smallest pivot 0.
+        var resolved = PipeCatalogs.Resolve(pin: null);
+        var loop = new OuterLoop(
+            new NewtonSolver(),
+            new CatalogBoreLookup(resolved.Value),
+            OuterLoop.Rules(resolved.Value.Catalog),
+            10);
+
+        var run = await loop.RunAsync(
+            GraphFixture.Bind(TwoPumpsInSeriesHoldingOneFlowTwice), Water.Instance, "probe", TestContext.Current.CancellationToken);
+
+        Assert.True(run.IsSuccess, run.Error?.Message);
+        var diagnostics = run.Value.Solve.Diagnostics;
+
+        Assert.Contains(diagnostics, static d => d.Code == "FS3002");
+
+        var free = Assert.Single(diagnostics, static d => d.Code == "FS3009");
+        Assert.Contains("PU1.head", free.Message, StringComparison.Ordinal);
+        Assert.Contains("PU2.head", free.Message, StringComparison.Ordinal);
+
+        var redundant = Assert.Single(diagnostics, static d => d.Code == "FS3010");
+        Assert.Contains("PU2.flow", redundant.Message, StringComparison.Ordinal);
+        Assert.Contains("HE1.out.t", redundant.Message, StringComparison.Ordinal);
     }
 }
