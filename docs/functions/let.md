@@ -49,6 +49,10 @@ lists what was written in and on which pass: `HE2.in[2].t 67.146 °C from \`HE1.
 - **A line no pass can evaluate is reported, not ignored** ([`FS1410`](diagnostics.md)). Two
   exchangers each reading the other's leaving temperature is the usual case: neither has a design
   point until the other is rated, so neither ever is. The parameter is then chosen by its sizing rule.
+  When the run fails at a pass the line was absent from, the report says that instead
+  ([`FS1412`](diagnostics.md)): the line was still waiting when the pass failed, and its absence is
+  often why. A value the seed can supply -- one read from a stated anchor -- is never in that
+  position; it is stated before the first pass.
 - **A value that keeps moving is reported with its last three values** ([`FS1405`](diagnostics.md))
   at the pass cap, and the last value stands. That happens when the value is anchored by nothing but
   the parameter it sets.

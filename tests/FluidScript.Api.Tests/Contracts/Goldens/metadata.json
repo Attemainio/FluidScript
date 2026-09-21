@@ -4053,6 +4053,18 @@
       ]
     },
     {
+      "code": "FS1412",
+      "severity": "warning",
+      "area": "Expressions",
+      "message": "'{target} = {expr}' was still waiting on {waited} when pass {pass} failed, so the circuit was solved without it. State it directly, or from a value the seed can supply.",
+      "arguments": [
+        "target",
+        "expr",
+        "waited",
+        "pass"
+      ]
+    },
+    {
       "code": "FS1501",
       "severity": "error",
       "area": "Binder",

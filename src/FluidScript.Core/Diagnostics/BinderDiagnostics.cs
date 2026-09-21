@@ -98,6 +98,19 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}' is reserved for {what}, {value}. Choose another name.");
 
+    /// <summary>A deferred expression still waiting on a solved value when the pass that would have published it failed.</summary>
+    /// <value><c>FS1412</c>, a warning.</value>
+    /// <remarks>
+    /// <c>FS1410</c>'s "not published by any pass" is false when no pass completed: the line was absent
+    /// from the pass that failed, and its absence is often why -- an inlet's only temperature, the
+    /// profile a flow constraint reads (<c>L-62</c>). A target the seed can supply (one read from a
+    /// stated anchor) is never here; it is stated at pass 0.
+    /// </remarks>
+    public static DiagnosticDescriptor DeferredStillWaiting { get; } = new(
+        "FS1412",
+        DiagnosticSeverity.Warning,
+        "'{target} = {expr}' was still waiting on {waited} when pass {pass} failed, so the circuit was solved without it. State it directly, or from a value the seed can supply.");
+
     /// <summary>A value that depends on itself without passing through a solve.</summary>
     /// <value><c>FS1402</c>, an error.</value>
     /// <remarks>
@@ -786,12 +799,13 @@ public static class BinderDiagnostics
     }
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Seventy descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Seventy-one descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,
+        DeferredStillWaiting,
         BuiltInConstantRedefined,
         PortStateOnNode,
         UnknownPortQuantity,

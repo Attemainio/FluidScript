@@ -390,7 +390,11 @@ public sealed class OuterLoop(
             // error's text is the summary for a caller that reports one line.
             if (!posedness.CanSolve)
             {
-                return Refused("a solution", name, Unsolvable(posedness), posedness.Diagnostics);
+                return Refused(
+                    "a solution",
+                    name,
+                    Unsolvable(posedness),
+                    posedness.Diagnostics.AddRange(DeferredEvaluation.NeverEvaluated(current, histories, passes)));
             }
 
             var layout = SystemLayout.Build(lowered.Graph, posedness.Counting);
@@ -420,7 +424,7 @@ public sealed class OuterLoop(
                     CultureInfo.InvariantCulture,
                     $"counting predicted {posedness.Counting.Equations} for {posedness.Counting.Unknowns}");
 
-                return Refused("a solution", name, $"{assembled}, though {predicted}");
+                return Refused("a solution", name, $"{assembled}, though {predicted}", DeferredEvaluation.NeverEvaluated(current, histories, passes));
             }
 
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
@@ -483,7 +487,7 @@ public sealed class OuterLoop(
                 return Result.Success(
                     Report(
                         lowered.Graph,
-                        Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, unsettled: [], closing: []),
+                        Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, failedPass: null, unsettled: [], closing: []),
                         next,
                         WithStated(current, bases),
                         notes,
@@ -511,6 +515,7 @@ public sealed class OuterLoop(
                         evaluationSaid,
                         current,
                         histories,
+                        failedPass: solve.Converged ? null : passes,
                         unsettled: deferredMoved ? DeferredEvaluation.Unsettled(histories) : [],
                         closing: [NotSettled(previous, overlay)]),
                     overlay,
@@ -548,6 +553,7 @@ public sealed class OuterLoop(
     /// <param name="evaluationSaid">What the deferred evaluation said on the last pass.</param>
     /// <param name="current">The model the last pass lowered, for what was never evaluated.</param>
     /// <param name="histories">Every deferred target's values so far.</param>
+    /// <param name="failedPass">The pass that did not converge, or <see langword="null"/> when the last one did (<c>L-62</c>).</param>
     /// <param name="unsettled">The deferred values still moving at the cap, or empty.</param>
     /// <param name="closing">What closes the list: the not-settled warning, or nothing.</param>
     /// <returns>The solve, annotated.</returns>
@@ -558,6 +564,7 @@ public sealed class OuterLoop(
         ImmutableArray<Diagnostics.Diagnostic> evaluationSaid,
         SemanticModel current,
         Dictionary<ValueId, List<DeferredEvaluation.Evaluated>> histories,
+        int? failedPass,
         ImmutableArray<Diagnostics.Diagnostic> unsettled,
         ImmutableArray<Diagnostics.Diagnostic> closing) =>
         solve with
@@ -567,7 +574,7 @@ public sealed class OuterLoop(
                 .AddRange(loopSaid)
                 .AddRange(evaluationSaid)
                 .AddRange(unsettled)
-                .AddRange(DeferredEvaluation.NeverEvaluated(current, histories))
+                .AddRange(DeferredEvaluation.NeverEvaluated(current, histories, failedPass))
                 .AddRange(closing),
         };
 

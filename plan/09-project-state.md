@@ -1020,6 +1020,11 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > hydraulic, so the error was the only barrier. `FS2213` is information now; step 11a solves and its
 > marker is gone. One closed; 53 open.
 
+> **`L-62` closed** (the same day): a deferred line the seed cannot supply is absent from pass 1, and
+> when that pass fails the report now says so -- `FS1412`, the line and the pass -- instead of
+> `FS1410`'s "not published by any pass", which was false with no pass completed. The refusal exit
+> carries it too; it had carried nothing. One closed; 52 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.

@@ -287,9 +287,10 @@ public static class DeferredEvaluation
         return result.ToImmutable();
     }
 
-    /// <summary>One <c>FS1410</c> per deferred expression no pass could evaluate, naming what it waited for.</summary>
+    /// <summary>One <c>FS1410</c> per deferred expression no pass could evaluate, naming what it waited for -- or <c>FS1412</c> when the run failed at a pass the line was absent from.</summary>
     /// <param name="model">The model the run ended on.</param>
     /// <param name="histories">Every target's values, pass by pass; a target absent here was never evaluated.</param>
+    /// <param name="failedPass">The pass that was refused or did not converge, or <see langword="null"/> when the run stood (<c>L-62</c>).</param>
     /// <returns>The diagnostics, in target order.</returns>
     /// <remarks>
     /// A line the run could not use is otherwise silent -- the parameter is absent to lowering and a
@@ -297,7 +298,7 @@ public static class DeferredEvaluation
     /// each reading the other's leaving temperature is the usual way here: neither has a design point
     /// until the other is rated, so neither ever is.
     /// </remarks>
-    public static ImmutableArray<Diagnostic> NeverEvaluated(SemanticModel model, IReadOnlyDictionary<ValueId, List<Evaluated>> histories)
+    public static ImmutableArray<Diagnostic> NeverEvaluated(SemanticModel model, IReadOnlyDictionary<ValueId, List<Evaluated>> histories, int? failedPass = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(histories);
@@ -318,12 +319,23 @@ public static class DeferredEvaluation
 
             var waited = string.Join(", ", deferred.Dependencies.Select(static id => id.ToString()).Order(StringComparer.Ordinal));
 
-            result.Add(Diagnostic.Create(
-                BinderDiagnostics.DeferredNeverEvaluated,
-                deferred.Expression.Span,
-                new DiagnosticArgument("target", deferred.Target.ToString()),
-                new DiagnosticArgument("expr", deferred.Source.ToString(deferred.Expression.Span).Trim()),
-                new DiagnosticArgument("waited", waited)));
+            var target = new DiagnosticArgument("target", deferred.Target.ToString());
+            var expression = new DiagnosticArgument("expr", deferred.Source.ToString(deferred.Expression.Span).Trim());
+
+            result.Add(failedPass is { } pass
+                ? Diagnostic.Create(
+                    BinderDiagnostics.DeferredStillWaiting,
+                    deferred.Expression.Span,
+                    target,
+                    expression,
+                    new DiagnosticArgument("waited", waited),
+                    new DiagnosticArgument("pass", pass.ToString(System.Globalization.CultureInfo.InvariantCulture)))
+                : Diagnostic.Create(
+                    BinderDiagnostics.DeferredNeverEvaluated,
+                    deferred.Expression.Span,
+                    target,
+                    expression,
+                    new DiagnosticArgument("waited", waited)));
         }
 
         return result.ToImmutable();

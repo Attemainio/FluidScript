@@ -156,6 +156,29 @@ public sealed class DeferredEvaluationTests
     }
 
     [Fact]
+    public async Task ALineStillWaitingWhenTheFirstPassFailsIsNamedWithThePass()
+    {
+        // `L-62`. The primary's only temperature reads a solved value, so pass 1 is lowered without it
+        // and is singular; FS1410's "not published by any pass" would be false here -- no pass
+        // completed -- and FS1412 says what happened instead: the line was still waiting when pass 1
+        // failed. A warning, attached to the failed solve.
+        var source = Substation.Replace("NPS inlet t=85 p=600", "NPS inlet t=NPR.t + 40 dK p=600", StringComparison.Ordinal);
+        var resolved = PipeCatalogs.Resolve(pin: null);
+        Assert.True(resolved.IsSuccess, resolved.Error?.Message);
+        var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
+        var result = await loop.RunAsync(GraphFixture.Bind(source), Water.Instance, "waiting", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        var run = result.Value;
+        var waiting = run.Solve.Diagnostics.Where(static d => d.Code == "FS1412").Select(static d => d.Message).ToArray();
+
+        Assert.False(run.Solve.Converged);
+        Assert.Single(waiting);
+        Assert.Contains("'NPS.t = NPR.t + 40 dK' was still waiting on NPR.t when pass 1 failed", waiting[0], StringComparison.Ordinal);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS1410");
+    }
+
+    [Fact]
     public async Task AHeadWrittenAsALengthFromTheDesignDropIsStatedFromTheSeed()
     {
         // 14's worked example, as the language can write it since D-126: dp / (rho * g) is a length,
