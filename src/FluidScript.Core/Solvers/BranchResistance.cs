@@ -406,7 +406,7 @@ public static class BranchResistance
     /// <summary>The hydrostatic drop across a bare node-to-node link, zero for anything else.</summary>
     private static double Link(FluidState state, IFlowComponent from, IFlowComponent to) =>
         from is CircuitNode lower && to is CircuitNode upper
-            ? state.Density.SiValue * UnitTable.StandardGravity * (upper.Elevation - lower.Elevation)
+            ? Hydrostatic.Pressure(state.Density.SiValue, upper.Elevation - lower.Elevation)
             : 0;
 
     /// <summary>A port state carrying real properties at zero gauge pressure.</summary>

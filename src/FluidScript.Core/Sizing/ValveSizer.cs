@@ -206,7 +206,7 @@ public sealed class ValveSizer(
 
         Report(valve, chosen, kvs, achieved, achievedDrop, rest, required, notes);
 
-        var litresPerSecond = Math.Abs(context.MassFlow) / density * 1000;
+        var litresPerSecond = context.LitresPerSecond(density);
             // Which of the two shapes chose the drop is not recoverable from the Kv alone -- the same
             // catalogue row means different things on a bounded and a pump-driven circuit -- and the rule
             // is the only thing that knows. It used to be `OuterLoop.ThreeWay`'s to say, which meant a
@@ -312,7 +312,7 @@ public sealed class ValveSizer(
                 Notes =
                 [
                     $"{valve.Name} could not be sized at its stated {statedDrop / 1000:0.##} kPa: no Kv takes "
-                    + $"{flow / density * 1000:0.###} l/s at that drop. State a `kv`, or a drop above zero.",
+                    + $"{SizingContext.LitresPerSecond(flow, density):0.###} l/s at that drop. State a `kv`, or a drop above zero.",
                 ],
             });
         }
@@ -322,7 +322,7 @@ public sealed class ValveSizer(
         var achievedDrop = Drop(flow, kvs, density);
         var rest = Math.Max(0, context.BranchDrop);
         var achieved = achievedDrop / (rest + achievedDrop);
-        var litresPerSecond = flow / density * 1000;
+        var litresPerSecond = SizingContext.LitresPerSecond(flow, density);
 
         var kvBasis = string.Create(
             CultureInfo.InvariantCulture,
@@ -389,7 +389,7 @@ public sealed class ValveSizer(
         var rest = Math.Max(0, context.BranchDrop);
         var legDrop = Drop(context.MassFlow, kvs, density);
         var achieved = legDrop / (rest + legDrop);
-        var litresPerSecond = common / density * 1000;
+        var litresPerSecond = SizingContext.LitresPerSecond(common, density);
         var notes = ImmutableArray.CreateBuilder<string>();
 
         if (chosen.Fit == CatalogFit.ClampedToLargest)

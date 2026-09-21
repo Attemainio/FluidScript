@@ -453,7 +453,7 @@ public static class ModelContractBuilder
             case Pump:
                 state = state with
                 {
-                    Head = Q((outlet.Pressure - inlet.Pressure) / (inlet.Density * UnitTable.StandardGravity), Dimension.Head, "head"),
+                    Head = Q(Hydrostatic.Head(outlet.Pressure - inlet.Pressure, inlet.Density), Dimension.Head, "head"),
                 };
                 break;
         }

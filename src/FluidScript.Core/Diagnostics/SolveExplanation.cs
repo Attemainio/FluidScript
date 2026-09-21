@@ -661,7 +661,7 @@ public static class SolveExplanation
                 var head = promoted.TryGetValue((pump.Name, "head"), out var solvedHead)
                     ? solvedHead
                     : pump.StatedRise is { } && solvedPorts.Value[index][0] is { } at
-                        ? rise / (at.Density * UnitTable.StandardGravity)
+                        ? Hydrostatic.Head(rise, at.Density)
                         : pump.Head(flow);
 
                 var origin = promoted.ContainsKey((pump.Name, "head"))

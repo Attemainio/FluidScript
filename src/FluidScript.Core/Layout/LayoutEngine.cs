@@ -115,6 +115,12 @@ internal sealed partial class LayoutEngine
     // The groups laid out as one object (A8): every ring and every block, outer before inner, as (kind, members, whether it is the ring that holds the heat source).
     private readonly List<(string Kind, List<int> Members, bool Top)> _groups = [];
 
+    /// <summary>A ring's group entry: its members, and whether it is a top-rail ring or a hanging one.</summary>
+    /// <param name="members">The ring's components.</param>
+    /// <param name="top">Whether the ring stands on the top rail.</param>
+    /// <returns>The group.</returns>
+    private static (string Kind, List<int> Members, bool Top) LoopGroup(List<int> members, bool top) => ("loop", members, top);
+
     public LayoutEngine(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin)
     {
         _graph = graph;

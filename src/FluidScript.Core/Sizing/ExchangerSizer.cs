@@ -96,7 +96,7 @@ public sealed class ExchangerSizer : ISizer
         // Built separately rather than concatenated inside `string.Create`: a ternary in that position
         // breaks the interpolated-string handler and the error names the wrong argument (`CS1620`).
         var volume = double.IsFinite(density) && density > 0
-            ? string.Create(CultureInfo.InvariantCulture, $", {flow / density * 1000:0.###} l/s")
+            ? string.Create(CultureInfo.InvariantCulture, $", {SizingContext.LitresPerSecond(flow, density):0.###} l/s")
             : string.Empty;
 
         var measured = string.Create(

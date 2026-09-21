@@ -192,7 +192,7 @@ internal sealed partial class LayoutEngine
         }
 
         // The block is a group (A8), listed before the blocks it holds.
-        _groups.Insert(mark, ("loop", members, false));
+        _groups.Insert(mark, LoopGroup(members, false));
         Restore();
 
         return new Unit(members, entering, leaving, new Member(exit.Component, -1, exit.OutPort), members.Min(i => InnerOf(i).Y), runs);

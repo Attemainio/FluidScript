@@ -1011,6 +1011,7 @@ Behaviour-preserving packages in `70`'s order; each row states what was measured
 | # | Package | Commit(s) | State |
 |---|---|---|---|
 | R0 | Seams and dead code: `LayoutEngine` into seven partials along its own section markers (`Solve`, `Rings`, `Blocks`, `Anchors`, `Connections`, `Instruments`, `Scene`; the file's order gave seven seams, not `70`'s four), `SolutionSeed.Field` to a partial file, `SceneAudit.Inside` deleted, `ThermalStages` as eight phase methods over a `StageGraph`, the two `Tank` casts merged | *(this commit)* | Shipped 2026-09-21. Measured: Core 1975/0/3, Api 59/0, no golden under `diagnostics/` or `tests/` moved |
+| R1 | Small shared helpers: `Hydrostatic.Pressure/Head/Lift/Power` at the twelve `StandardGravity` sites (now referenced from `Units/` only), `SizingContext.VolumeFlow`/`LitresPerSecond` at the six sizer sites, `BindingRun.Register` at the three symbol-table registrations, `LoopGroup` at the four `("loop", …)` tuples. Not done: the factory's six parameter-map initializer blocks -- a C# object initializer cannot be splatted from a record, so a helper would not remove them | *(this commit)* | Shipped 2026-09-21. Measured: Core 1975/0/3, Api 59/0, circuit harness report unchanged, no golden moved |
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 

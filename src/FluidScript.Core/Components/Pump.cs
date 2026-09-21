@@ -21,7 +21,6 @@ namespace FluidScript.Core.Components;
 public sealed class Pump : IFlowComponent
 {
     /// <summary>Standard gravity, m/s².</summary>
-    private const double Gravity = UnitTable.StandardGravity;
 
     /// <summary>The shut-off head of the default curve, as a multiple of the duty head.</summary>
     /// <value>1.2, typical for a centrifugal pump.</value>
@@ -247,6 +246,6 @@ public sealed class Pump : IFlowComponent
         var density = (context.Ports[0].Density + context.Ports[1].Density) / 2;
 
         residuals[0] = drop
-            + (density * Gravity * Head(context.Flows[0], context.Parameter(HeadIndex, ShutOffHead)));
+            + Hydrostatic.Pressure(density, Head(context.Flows[0], context.Parameter(HeadIndex, ShutOffHead)));
     }
 }

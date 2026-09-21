@@ -651,7 +651,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         // worth at 20 °C water, for the seed's walk and the curve's shape. The equation holds the
         // rise, not this number. Both stated is FS2101's, and the head wins for the build.
         var rise = head is null && stated.TryGetValue("dp", out var pascals) ? pascals.SiValue : (double?)null;
-        head ??= rise is { } stated2 ? stated2 / (ReferenceDensity() * UnitTable.StandardGravity) : null;
+        head ??= rise is { } stated2 ? Hydrostatic.Head(stated2, ReferenceDensity()) : null;
 
         // A duty point gives the default quadratic its curvature; a head with no flow beside it is a
         // shut-off head and nothing more, which is the flat curve a pump with one stated number has.

@@ -1194,7 +1194,7 @@ public sealed class EquationSystem
             var density = (_nodeStates[from].Density + _nodeStates[to].Density) / 2;
 
             residuals[assembly++] = x[Unknowns.NodePressure(from)] - x[Unknowns.NodePressure(to)]
-                - (density * UnitTable.StandardGravity * rise);
+                - Hydrostatic.Pressure(density, rise);
         }
 
         foreach (var (node, value) in _stated)
@@ -1443,7 +1443,7 @@ public sealed class EquationSystem
             // A node wired straight to a node: the ideal link, which carries gravity's share of the
             // enthalpy itself because there is no component between them to inject it (D-70).
             var lift = graph.Components[element] is CircuitNode here && attached is CircuitNode there
-                ? UnitTable.StandardGravity * (here.Elevation - there.Elevation)
+                ? Hydrostatic.Lift(here.Elevation - there.Elevation)
                 : 0;
 
             return [new ArrivingSource(direct, peer.Component, peer.Port, lift)];

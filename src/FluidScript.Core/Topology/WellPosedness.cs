@@ -1404,7 +1404,7 @@ public static class WellPosedness
                 continue;
             }
 
-            var head = density * UnitTable.StandardGravity * rise;
+            var head = Hydrostatic.Pressure(density, rise);
             var absolute = gauge + UnitTable.StandardAtmosphere - head;
 
             if (absolute >= floor)

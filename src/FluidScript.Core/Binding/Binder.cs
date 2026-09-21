@@ -409,8 +409,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     Ports = [.. (kind?.Ports ?? []).Select(static port => port.Key)],
                 };
 
-                _components.Add(pipe);
-                _componentsByName[name] = new ComponentSlot(_components.Count - 1, null);
+                Register(pipe, null);
                 Report(BinderDiagnostics.ComponentInferred, connection.Span, ("kind", "pipe"), ("name", name), ("rule", "I7"));
             }
         }
@@ -547,8 +546,19 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Style = StyleOf(declaration),
         };
 
+        Register(symbol, declaration);
+    }
+
+    /// <summary>Adds a component to the symbol table: its slot is its index in the component list, and the name map claims it in the same step, so the two can never disagree.</summary>
+    /// <param name="symbol">The component.</param>
+    /// <param name="declaration">Its declaration, or <see langword="null"/> when a rule inferred it.</param>
+    /// <returns>The slot.</returns>
+    private ComponentSlot Register(ComponentSymbol symbol, ComponentDeclarationSyntax? declaration)
+    {
         _components.Add(symbol);
-        _componentsByName[name] = new ComponentSlot(_components.Count - 1, declaration);
+        var slot = new ComponentSlot(_components.Count - 1, declaration);
+        _componentsByName[symbol.Name] = slot;
+        return slot;
     }
 
     private ComponentKindInfo? ResolveKind(ComponentDeclarationSyntax declaration)

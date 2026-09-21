@@ -81,8 +81,8 @@ public sealed class PumpSizer : ISizer
         }
 
         var margin = Margin(component);
-        var head = Math.Max(0, drop ?? 0) / (density * UnitTable.StandardGravity) * margin;
-        var litresPerSecond = Math.Abs(context.MassFlow) / density * 1000;
+        var head = Hydrostatic.Head(Math.Max(0, drop ?? 0), density) * margin;
+        var litresPerSecond = context.LitresPerSecond(density);
         var notes = ImmutableArray.CreateBuilder<string>();
         var raised = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
 

@@ -26,7 +26,6 @@ namespace FluidScript.Core.Components;
 public sealed class Pipe : IFlowComponent
 {
     /// <summary>Standard gravity, m/s².</summary>
-    private const double Gravity = UnitTable.StandardGravity;
 
     /// <summary>Below this Reynolds number the flow is laminar.</summary>
     private const double LaminarLimit = 2300;
@@ -189,7 +188,7 @@ public sealed class Pipe : IFlowComponent
 
         residuals[0] = inlet.Pressure - outlet.Pressure
             - PressureDrop(velocity, density, viscosity)
-            - (density * Gravity * Rise);
+            - Hydrostatic.Pressure(density, Rise);
     }
 
     /// <inheritdoc/>
@@ -228,7 +227,7 @@ public sealed class Pipe : IFlowComponent
     public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
     {
         var flow = context.Flows[0];
-        var carried = -flow * Gravity * Rise;
+        var carried = -Hydrostatic.Power(flow, Rise);
         var forward = Smoothing.ForwardShare(flow);
 
         injection[0] = carried * (1 - forward);

@@ -127,6 +127,22 @@ public readonly record struct SizingContext
     /// is still reported against.
     /// </value>
     public double? CommonFlow { get; init; }
+
+    /// <summary>The volume flow through the component, at a density.</summary>
+    /// <param name="density">kg/m³, the fluid's at <see cref="State"/> or wherever the rule reads it.</param>
+    /// <returns>m³/s, unsigned.</returns>
+    public double VolumeFlow(double density) => Math.Abs(MassFlow) / density;
+
+    /// <summary>The volume flow through the component in litres per second, the unit every Kv and pump table is read in.</summary>
+    /// <param name="density">kg/m³.</param>
+    /// <returns>l/s, unsigned.</returns>
+    public double LitresPerSecond(double density) => LitresPerSecond(Math.Abs(MassFlow), density);
+
+    /// <summary>A mass flow as litres per second at a density.</summary>
+    /// <param name="massFlow">kg/s, the sign kept.</param>
+    /// <param name="density">kg/m³.</param>
+    /// <returns>l/s, with the sign of <paramref name="massFlow"/>.</returns>
+    public static double LitresPerSecond(double massFlow, double density) => massFlow / density * 1000;
 }
 
 /// <summary>Fills the parameters a user left out (<c>D-02</c>).</summary>

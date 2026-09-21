@@ -87,7 +87,7 @@ public sealed class PipeSizer(
                 ("state", "no flow is determined in this branch")));
         }
 
-        var volumeFlow = Math.Abs(context.MassFlow) / density;
+        var volumeFlow = context.VolumeFlow(density);
 
         // A pipe's own `material` selects its series (C-36); the factory refused to build one whose
         // catalogue fails provenance, so a pipe that reaches here names a usable one or none.

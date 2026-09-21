@@ -159,7 +159,7 @@ internal sealed partial class LayoutEngine
         }
 
         // The ring is a group (A8), listed before the blocks it holds.
-        _groups.Insert(mark, ("loop", cycle.Select(static m => m.Component).ToList(), true));
+        _groups.Insert(mark, LoopGroup(cycle.Select(static m => m.Component).ToList(), true));
 
         foreach (var (from, points) in runs)
         {
@@ -416,7 +416,7 @@ internal sealed partial class LayoutEngine
             }
         }
 
-        _groups.Insert(mark, ("loop", cycle.Select(static m => m.Component).ToList(), true));
+        _groups.Insert(mark, LoopGroup(cycle.Select(static m => m.Component).ToList(), true));
 
         foreach (var (from, points) in runs)
         {
@@ -480,7 +480,7 @@ internal sealed partial class LayoutEngine
                 _loop[i] = true;
             }
 
-            _groups.Add(("loop", members, true));
+            _groups.Add(LoopGroup(members, true));
             Assign(walk, Normalise(points));
             return true;
         }

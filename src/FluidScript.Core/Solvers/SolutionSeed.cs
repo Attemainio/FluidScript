@@ -489,7 +489,7 @@ public static partial class SolutionSeed
                             continue;
                         }
                         var drop = part is Pump { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
-                            ? -state.Density.SiValue * UnitTable.StandardGravity * NominalPumpHead
+                            ? -Hydrostatic.Pressure(state.Density.SiValue, NominalPumpHead)
                             : BranchResistance.Of(graph, state, part, flow, Parameters(graph, layout, values, part));
 
                         running += forward ? -drop : drop;
@@ -667,7 +667,7 @@ public static partial class SolutionSeed
 
                 if (element is Pump && HydraulicPartition.Stated(element, "head") is { } head)
                 {
-                    offered = ReferenceDensity * UnitTable.StandardGravity * head;
+                    offered = Hydrostatic.Pressure(ReferenceDensity, head);
                     break;
                 }
             }

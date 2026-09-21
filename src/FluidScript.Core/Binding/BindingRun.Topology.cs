@@ -435,9 +435,7 @@ internal sealed partial class BindingRun
             Ports = [],
         };
 
-        _components.Add(node);
-        var slot = new ComponentSlot(_components.Count - 1, null);
-        _componentsByName[name] = slot;
+        var slot = Register(node, null);
 
         // Info, and off by default in the log: on a large script these would drown everything else.
         // They must exist all the same, or the inference is invisible magic.
