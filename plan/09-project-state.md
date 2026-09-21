@@ -1104,7 +1104,12 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > **`C-65` closed by `D-136`** (2026-09-21): `mixing_valve` and `diverting_valve` now declare the
 > body's service, `FS4012` names a valve the solve runs the other way (the cooling loop written as a
 > mixing valve: "runs it diverting: 0.239 kg/s enters at ab and leaves 0.076 by a and 0.163 by b"),
-> and a bare `three_way_valve` claims nothing. The programme continues: `C-64`, `S-47`. 49 open.
+> and a bare `three_way_valve` claims nothing. 49 open.
+
+> **`C-64` closed by re-measurement** (2026-09-21): under the band rule the cooling loop's valve is
+> sized for 12 kPa and drops 4.3 / 23.2 kPa across its legs bare, 11.5 / 11.5 with `C-111`'s valve on
+> the return leg -- the 28x was the authority rule's, the 2x is the bare bypass and `FS4011` reports
+> it beside the design drop. The programme continues: `S-47`. 48 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1209,7 +1214,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass, closed the same day (the Jacobian's pressure step was inside the flash's noise). `C-71` closed by `D-135` and `C-69` as superseded the same day. `C-65` closed by `D-136`. Next: the rest of the user's three-way programme in order -- `C-64`, `S-47` -- then `S-69`'s sizing passes, `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass, closed the same day (the Jacobian's pressure step was inside the flash's noise). `C-71` closed by `D-135` and `C-69` as superseded the same day. `C-65` closed by `D-136`, `C-64` by re-measurement. Next: `S-47`, the last of the user's three-way programme, then `S-69`'s sizing passes, `C-84` labels as a planned package, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
