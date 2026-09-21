@@ -75,6 +75,33 @@ public static class Tolerances
     /// </value>
     public const double NewtonFiniteDifferenceStep = 1.4901161193847656e-8;
 
+    /// <summary>The relative perturbation a Jacobian column uses for a node pressure, on every row but a √Δp law.</summary>
+    /// <value>
+    /// <c>newton.fd_step_state</c>, dimensionless and relative: 1e-5, a few pascals. √ε assumes the
+    /// function is exact to round-off, and a property flash is not: measured on water at 280 kPa and
+    /// 50 °C, a 4 mPa pressure step -- √ε of the pressure scale -- reads a temperature derivative of
+    /// -7.2e-7 K/Pa where the flash settles at -2.06e-7 for any step of 1 Pa or more, and a density
+    /// derivative 44 % high; at 0.1 mPa the temperature derivative is a hundred times too large. The
+    /// (p,h) flash's own iteration noise is larger than the change a milli-pascal step produces, so
+    /// every entry of those columns on a row that reads a temperature -- a stated temperature, an
+    /// exchanger's rating -- was noise, and on a circuit whose two blocks are coupled through a
+    /// pumpless ring the direction was poor enough to creep for forty iterations (<c>S-74</c>).
+    /// The enthalpy columns need no such step: the same survey found the temperature and density
+    /// derivatives in enthalpy exact to three digits at √ε over seven states from 10 to 72 °C.
+    /// A row a valve marks <see cref="Components.EquationDeclaration.SteepInPressure"/> keeps √ε on
+    /// these columns, because its Δp may be under a pascal and a step of pascals is then a secant
+    /// across the whole operating range; the Jacobian evaluates a pressure column twice for that.
+    /// </value>
+    public const double NewtonFiniteDifferenceStateStep = 1e-5;
+
+    /// <summary>The relative perturbation a Jacobian column uses for an unknown of a given kind, on a row that is not <see cref="Components.EquationDeclaration.SteepInPressure"/>.</summary>
+    /// <param name="kind">The column's unknown kind.</param>
+    /// <returns><see cref="NewtonFiniteDifferenceStateStep"/> for a node pressure, <see cref="NewtonFiniteDifferenceStep"/> otherwise.</returns>
+    public static double FiniteDifferenceStep(Components.UnknownKind kind) =>
+        kind is Components.UnknownKind.NodePressure
+            ? NewtonFiniteDifferenceStateStep
+            : NewtonFiniteDifferenceStep;
+
     /// <summary>The pivot magnitude, relative to the matrix norm, below which the Jacobian is singular.</summary>
     /// <value>
     /// <c>jacobian.singular_tol</c>, dimensionless: <c>pivot / ‖J‖∞</c>. Twelve orders below the

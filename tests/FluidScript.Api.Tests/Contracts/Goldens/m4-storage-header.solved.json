@@ -1223,7 +1223,7 @@
           0.25
         ],
         "source": "computed",
-        "scale": 0.8,
+        "scale": 0.75,
         "scales": {
           "flow": {
             "at": 1,
@@ -1236,7 +1236,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.8,
+            "at": 0.75,
             "from": null,
             "to": null
           }
@@ -1307,7 +1307,7 @@
           0.31
         ],
         "source": "computed",
-        "scale": 0.5601,
+        "scale": 0.4501,
         "scales": {
           "flow": {
             "at": 1,
@@ -1320,9 +1320,9 @@
             "to": 0.5
           },
           "temperature": {
-            "at": 0.5601,
-            "from": 0.8,
-            "to": 0.5601
+            "at": 0.4501,
+            "from": 0.75,
+            "to": 0.4501
           }
         }
       },
@@ -1361,7 +1361,7 @@
           -0.71
         ],
         "source": "computed",
-        "scale": 0.2,
+        "scale": 0,
         "scales": {
           "flow": {
             "at": 0,
@@ -1374,7 +1374,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.2,
+            "at": 0,
             "from": null,
             "to": null
           }
@@ -1415,7 +1415,7 @@
           0.25
         ],
         "source": "computed",
-        "scale": 0.5601,
+        "scale": 0.4501,
         "scales": {
           "flow": {
             "at": 1,
@@ -1428,7 +1428,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.5601,
+            "at": 0.4501,
             "from": null,
             "to": null
           }
@@ -1469,7 +1469,7 @@
           -0.71
         ],
         "source": "computed",
-        "scale": 0.5601,
+        "scale": 0.4501,
         "scales": {
           "flow": {
             "at": 0,
@@ -1482,7 +1482,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.5601,
+            "at": 0.4501,
             "from": null,
             "to": null
           }
@@ -1501,8 +1501,8 @@
           0
         ],
         "hops": [],
-        "scaleFrom": 0.8,
-        "scaleTo": 0.8,
+        "scaleFrom": 0.75,
+        "scaleTo": 0.75,
         "scales": {
           "flow": {
             "at": null,
@@ -1516,8 +1516,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.8,
-            "to": 0.8
+            "from": 0.75,
+            "to": 0.75
           }
         }
       },
@@ -1532,8 +1532,8 @@
           -0.96
         ],
         "hops": [],
-        "scaleFrom": 0.2,
-        "scaleTo": 0.8,
+        "scaleFrom": 0,
+        "scaleTo": 0.75,
         "scales": {
           "flow": {
             "at": null,
@@ -1547,8 +1547,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.2,
-            "to": 0.8
+            "from": 0,
+            "to": 0.75
           }
         }
       },
@@ -1563,8 +1563,8 @@
           0
         ],
         "hops": [],
-        "scaleFrom": 0.5601,
-        "scaleTo": 0.5601,
+        "scaleFrom": 0.4501,
+        "scaleTo": 0.4501,
         "scales": {
           "flow": {
             "at": null,
@@ -1578,8 +1578,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.5601,
-            "to": 0.5601
+            "from": 0.4501,
+            "to": 0.4501
           }
         }
       },
@@ -1594,8 +1594,8 @@
           -0.96
         ],
         "hops": [],
-        "scaleFrom": 0.5601,
-        "scaleTo": 0.5601,
+        "scaleFrom": 0.4501,
+        "scaleTo": 0.4501,
         "scales": {
           "flow": {
             "at": null,
@@ -1609,8 +1609,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.5601,
-            "to": 0.5601
+            "from": 0.4501,
+            "to": 0.4501
           }
         }
       }
@@ -1629,7 +1629,7 @@
       "unit": "°C",
       "kind": "sequential",
       "domain": {
-        "min": 40,
+        "min": 45,
         "max": 65,
         "nice": true
       },
@@ -1654,8 +1654,8 @@
         "unit": "kPa",
         "kind": "sequential",
         "domain": {
-          "min": 0,
-          "max": 0,
+          "min": 6.55127E-10,
+          "max": 6.55127E-10,
           "nice": true
         },
         "degenerate": true
@@ -1666,7 +1666,7 @@
         "unit": "°C",
         "kind": "sequential",
         "domain": {
-          "min": 40,
+          "min": 45,
           "max": 65,
           "nice": true
         },

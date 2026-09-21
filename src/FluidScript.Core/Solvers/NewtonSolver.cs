@@ -450,7 +450,8 @@ public sealed class NewtonSolver : ISolver
         for (var column = 0; column < columns; column++)
         {
             var scale = system.UnknownScales[column];
-            var delta = Tolerances.NewtonFiniteDifferenceStep * Math.Max(Math.Abs(x[column]), scale);
+            var kind = system.Unknowns.Unknowns[column].Kind;
+            var delta = Tolerances.FiniteDifferenceStep(kind) * Math.Max(Math.Abs(x[column]), scale);
 
             trial[column] = x[column] + delta;
 
@@ -467,6 +468,31 @@ public sealed class NewtonSolver : ISolver
             for (var row = 0; row < rows; row++)
             {
                 jacobian[(row * columns) + column] = (perturbed[row] - residuals[row]) / scaledDelta;
+            }
+
+            // A pressure column is read twice: once at the step that clears the flash's noise, for every
+            // row, and once at √ε for the rows a valve marks steep, whose √Δp law may sit at a drop
+            // smaller than the first step (`S-74`). Nothing else a pressure column feeds is steep.
+            if (kind == Components.UnknownKind.NodePressure)
+            {
+                var fine = Tolerances.NewtonFiniteDifferenceStep * Math.Max(Math.Abs(x[column]), scale);
+
+                trial[column] = x[column] + fine;
+
+                if (!system.TryEvaluateScaledAt(trial, column, perturbed))
+                {
+                    return false;
+                }
+
+                var scaledFine = fine / scale;
+
+                for (var row = 0; row < rows; row++)
+                {
+                    if (system.Equations.Rows[row].SteepInPressure)
+                    {
+                        jacobian[(row * columns) + column] = (perturbed[row] - residuals[row]) / scaledFine;
+                    }
+                }
             }
 
             trial[column] = x[column];

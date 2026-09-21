@@ -589,13 +589,13 @@ replaces it.
 valve belongs on and `FS4011` still naming the bypass: there is nothing on the harder path to
 absorb, and a rule that closed the valve anyway would be raising the pump head to no purpose.
 
-**What it does not do.** The series header (`step-08b`) with a valve on the radiators' bypass does
-not converge in its first pass from the cold seed, at the 3 kPa opening or at the seed's guess, and
-the fault is the solver's, not the rule's: with the Kv *stated* the same first pass takes 5 iterations
-at Kv 2.95, 6 at 2.96, 11 at 1.53 and 5 at 20, but 34 at 2.9, 46 at 2.94 and 44 at 2.9467 -- a cold
-Newton on that ring is erratic in the bypass leg's resistance, creeping under reduced steps with
-`TV_AHU`'s Kv law leading and `PU_RAD.head` moving. `S-74` holds the sweep. The rule is right
-wherever the first pass converges.
+**The series header, which first failed here, was the solver's.** `step-08b` with a valve on the
+radiators' bypass crept to its iteration cap from the cold seed at the 3 kPa opening and at the seed's
+guess alike, while the same first pass with the Kv *stated* took 5 iterations at Kv 2.95 and 46 at
+2.94. `S-74` found the Jacobian's pressure columns perturbed inside the property flash's noise and
+closed the same day; with that fixed the rule settles on this ring too, in three passes: `BV_RAD`
+Kv 1.53 dropping 32.0 kPa, `TV_RAD` at 0.501 with 7.27 kPa across each leg, `PU_RAD` at 59.2 kPa,
+which is the 59.5 the row predicted.
 
 [^stad]: IMI Hydronic Engineering, *STAD balancing valve* technical guide: "Kvs = m³/h at a pressure
     drop of 1 bar with fully open valve"; the presetting example takes DN 25 at 1.6 m³/h and 10 kPa

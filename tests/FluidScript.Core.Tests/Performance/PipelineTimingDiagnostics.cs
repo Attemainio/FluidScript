@@ -200,7 +200,7 @@ public sealed class PipelineTimingDiagnostics
                 for (var column = 0; column < system.Columns; column++)
                 {
                     var scale = system.UnknownScales[column];
-                    var delta = Tolerances.NewtonFiniteDifferenceStep * Math.Max(Math.Abs(x[column]), scale);
+                    var delta = Tolerances.FiniteDifferenceStep(system.Unknowns.Unknowns[column].Kind) * Math.Max(Math.Abs(x[column]), scale);
                     trial[column] = x[column] + delta;
                     Assert.True(system.TryEvaluateScaledAt(trial, column, perturbed));
                     trial[column] = x[column];

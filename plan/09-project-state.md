@@ -1085,6 +1085,15 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > The series header's cold first pass creeps to its cap with the valve in place, and the stated-Kv
 > sweep (5 iterations at 2.95, 46 at 2.94) puts that on the solver: `S-74`. 52 open.
 
+> **`S-74` closed** (2026-09-21): the Jacobian's pressure columns were perturbed by 4 mPa, inside the
+> (p,h) flash's iteration noise, so every temperature row's pressure entry was noise ten times its
+> value; `FlashNoiseDiagnostics` measured it and `newton.fd_step_state` (1e-5) clears it, with the Kv
+> laws kept at √ε because their √Δp may sit under a pascal. The series header's sweep converges in 5-6
+> everywhere, the balancing valve settles on it (Kv 1.53, `TV_RAD` 0.501), nothing regressed and the
+> substation lost an iteration. Changing the last digits of every solved value flipped the colour
+> scales' nice bounds on two goldens (a -200 kPa pressure floor from a -7e-10 kPa value): `C-112`,
+> filed, goldens regenerated. The three-way programme continues: `C-71`, `C-69`, `C-65`, `C-64`, `S-47`. 52 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1188,7 +1197,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass. Next: `S-69`'s sizing passes and `S-74` together (both are the cold seed on a ring), `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass, closed the same day (the Jacobian's pressure step was inside the flash's noise). Next: the user's three-way programme in order -- `C-71`, `C-69`, `C-65`, `C-64`, `S-47` -- then `S-69`'s sizing passes, `C-84` labels as a planned package, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.

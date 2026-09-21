@@ -101,7 +101,8 @@ derivative's magnitude at a join is a property of the regularisation, not a cons
 | `newton.max_iterations` | 50 | | 10× a normal solve. Reaching it means something is wrong, not slow |
 | `newton.divergence_factor` | 10 | ‖F_k‖ / ‖F_{k−1}‖ | A tenfold increase is divergence, not a line-search excursion |
 | `newton.line_search_min` | 1/64 | α | Six halvings; beyond that the step is not the problem |
-| `newton.fd_step` | √ε ≈ 1.49e-8 | Relative | Standard forward-difference optimum: balances truncation against round-off |
+| `newton.fd_step` | √ε ≈ 1.49e-8 | Relative, flow and parameter columns | Standard forward-difference optimum for a function exact to round-off: balances truncation against round-off |
+| `newton.fd_step_state` | 1e-5 | Relative, node pressure columns, every row but a valve's Kv law | A property flash is not exact to round-off: at √ε of the pressure scale (4 mPa) water's (p,h) flash returns a temperature derivative 3.5× and a density derivative 1.4× the value it settles at from 1 Pa up; the enthalpy columns are exact at √ε (`S-74`). A Kv law keeps √ε, because its Δp may be under a pascal and a step of pascals is a secant across its whole operating range: the dead-leg script's bootstrap valve at 0.19 Pa |
 | `jacobian.singular_tol` | 1e-12 | pivot / ‖J‖∞ | Twelve orders below the matrix norm is numerically zero |
 | `outer.max_passes` | 10 | Sizing + deferred-expression loop | Typical convergence is 3 |
 | `outer.relative_tol` | 5e-3 | Change in any sized or deferred value | 0.5 % — below the accuracy of the correlations themselves; tightening it buys nothing real |
@@ -125,6 +126,32 @@ derivative's magnitude at a join is a property of the regularisation, not a cons
 | `scale.enthalpy` | 1e5 | J/kg, every node enthalpy | A typical liquid-water enthalpy over the working range |
 | `scale.flow_floor` | 1e-3 | kg/s, the floor under a per-branch flow scale | Stops a zero-flow branch dividing by zero, and is where `flow.zero_tol` sits three orders below |
 | `scale.temperature` | 1e1 | K, where a temperature is solved directly | A typical ΔT |
+
+**The Jacobian's pressure columns are read twice, and why** (`S-74`, 2026-09-21). A forward
+difference of `√ε · scale` is the textbook optimum for a function that is exact to round-off. The
+residuals are not: every row that reads a node's temperature or density reads it off a (p,h) flash
+that iterates to its own tolerance, and `FlashNoiseDiagnostics` measured what that costs. At a 4 mPa
+pressure step water's temperature derivative reads −7.2e-7 K/Pa against the −2.06e-7 it settles at
+from 1 Pa up, and at 0.1 mPa it is a hundred times too large; the density derivative is 44 % high.
+Scaled, the true entry is 2e-3 and the noise 2e-2 to 1e-1, so on every stated-temperature row and
+every rated exchanger the pressure entries were noise ten times their value. Most circuits never
+noticed, because those entries are small beside the pressure relations; the series header, whose two
+blocks are coupled through a pumpless ring at a pivot ratio of 3e-5, did: with a valve on the
+radiators' bypass the first pass took 5 iterations at Kv 2.95, 46 at 2.94 and the cap at 4.99, and
+the trajectory crept under reduced steps for forty iterations with a Jacobian whose temperature rows
+disagreed with a central difference by 260 %. The enthalpy columns are exact at `√ε` -- the same
+survey found dT/dh and dρ/dh to three digits at seven states from 10 to 72 °C -- because the
+derivatives there are large enough that the same noise is invisible. The fix cannot be one step for
+the column: a valve's Kv law is `C/(2√Δp)` in pressure and its Δp is whatever the circuit leaves it,
+0.19 Pa across a bootstrap Kv 630, and a step of pascals measures a secant across ten times that
+valve's whole operating range -- measured on the dead-leg script, whose first full step's residual
+rose from 1.6 to 87 and never recovered. So a pressure column is evaluated at `newton.fd_step_state`
+for every row and again at `√ε` for the rows a valve declares `SteepInPressure`. Measured after: the
+whole Kv sweep on the series header converges in 5–6 iterations, the stopped-branch scripts (`s23`,
+`s56-*`) are unchanged, and the substation and the hot-side exchanger each lose an iteration per pass.
+The noise is the flash's, and a backend whose (p,h) is a closed-form backward equation (IF97's
+region-1 `T(p,h)`) would not have it; that is `C-68`'s option and `F-19`'s, and this fix stands
+whichever backend is under it.
 
 **Two residual scales are derived from those rows rather than tabulated beside them, and deliberately.**
 A keyed row is a number somebody chose; these are consequences of numbers already chosen, and giving

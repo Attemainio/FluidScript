@@ -121,6 +121,19 @@ public sealed class ValveKvR5Tests
     }
 
     [Fact]
+    public void AKvLawIsDeclaredSteepInPressureAndNothingElseIs()
+    {
+        // `S-74`. The Jacobian reads a pressure column twice: at a step that clears the flash's noise for
+        // every row, and at sqrt(eps) for the rows a valve marks steep, whose sqrt(dp) law may sit at a
+        // sub-pascal drop. Both valve kinds mark their Kv laws and nothing else; a pipe marks nothing.
+        Assert.All(new Core.Components.Valve("CV", 4).DeclareEquations(), static row => Assert.True(row.SteepInPressure));
+        Assert.All(
+            new Core.Components.ThreeWayValve("TV", 6.3).DeclareEquations(),
+            static row => Assert.Equal(row.Name.Contains("Kv law", StringComparison.Ordinal), row.SteepInPressure));
+        Assert.All(new Core.Components.Pipe("P1", 10, 0.0273).DeclareEquations(), static row => Assert.False(row.SteepInPressure));
+    }
+
+    [Fact]
     public void TheLawAndItsInverseAgree()
     {
         // `ValveLaw.RequiredKv` exists so the sizing rule never writes the sqrt(1e5) out again. If the

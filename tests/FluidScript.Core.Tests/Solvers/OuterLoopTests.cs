@@ -476,6 +476,37 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task TheSeriesHeaderWithABypassValveConvergesFromTheColdSeedAndLevels()
+    {
+        // `S-74`, closed. With a valve on the radiators' bypass this ring's first pass crept to its cap
+        // from the cold seed, and a stated-Kv sweep put the blame on the solver: 5 iterations at Kv 2.95,
+        // 46 at 2.94. The Jacobian's pressure columns were perturbed by 4 mPa, inside the (p,h) flash's
+        // noise, so every temperature row's pressure entry was noise; read at a few pascals instead
+        // (with the Kv laws kept at sqrt(eps)) every Kv in the sweep takes 5 or 6 iterations. The
+        // balancing rule then does on this ring what it does on the others: Kv 1.53 dropping 32 kPa,
+        // TV_RAD at its half-and-half, both legs 7.3 kPa, and the pump at the ring's 59 kPa.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08b-header-series.fluid"),
+            TestContext.Current.CancellationToken);
+        source = source
+            .Replace("PU_RAD  pump\n", "PU_RAD  pump\nBV_RAD  valve\n", StringComparison.Ordinal)
+            .Replace("NM_RAD - TV_RAD.b\n", "NM_RAD - BV_RAD - TV_RAD.b\n", StringComparison.Ordinal);
+
+        var run = await Solve(source, "series-levelled");
+
+        Assert.True(run.Settled, $"not settled after {run.Passes} passes");
+        Assert.True(run.Iterations <= 20, $"{run.Iterations} iterations over {run.Passes} passes");
+        Assert.Equal(1.53, run.Sizes.For("BV_RAD", "kv")!.Value, 0.03);
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        Assert.Equal(0.50, solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.01);
+        Assert.Equal(6.1, solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 0.1);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
+    }
+
+    [Fact]
     public async Task AValveOnTheHarderLegIsLeftOpenAndToldWhereItBelongs()
     {
         // `C-111`. The same ring with the valve on the primary supply leg, which is the harder path:

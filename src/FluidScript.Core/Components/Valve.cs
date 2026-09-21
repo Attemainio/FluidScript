@@ -34,7 +34,7 @@ public sealed class Valve : IFlowComponent
         Position = position;
         Characteristic = characteristic;
 
-        _equations = [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law", "kg/s")];
+        _equations = [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law", "kg/s") { SteepInPressure = true }];
     }
 
     /// <inheritdoc/>
@@ -206,10 +206,10 @@ public sealed class ThreeWayValve : IFlowComponent
             ?
             [
                 new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
-                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s"),
-                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-b", "kg/s"),
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s") { SteepInPressure = true },
+                new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-b", "kg/s") { SteepInPressure = true },
             ]
-            : [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s")];
+            : [new EquationDeclaration(0, EquationKind.ComponentConstraint, name, $"{name} Kv law, ab-a", "kg/s") { SteepInPressure = true }];
     }
 
     /// <inheritdoc/>
