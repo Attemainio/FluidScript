@@ -176,6 +176,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-131` | Accepted | 2026-09-21 | Core's shared seams are where their questions are answered, and nothing re-derives them |
 | `D-132` | Accepted | 2026-09-21 | Two circuits joined by nothing are two systems, each solved on its own; `FS2213` is information |
 | `D-133` | Accepted | 2026-09-21 | A promotion is first come, then augmented; a candidate list holds only what can move the quantity |
+| `D-134` | Accepted | 2026-09-21 | A register row carries the date it was filed and the date it closed, and no modified date |
 <!-- index:end -->
 
 ---
@@ -6138,3 +6139,29 @@ from 4 to 3 with the promotion that was not one.
 `WellPosedness.Promote/Candidates/Splits/FlowActuators/ReportBalance`, `23`'s promotion section,
 `docs/advanced/why-a-circuit-has-one-answer.md`, `docs/functions/diagnostics.md`,
 `PromotionLocalityTests`.
+
+## D-134 · A register row carries the date it was filed and the date it closed, and no modified date
+
+**Accepted · 2026-09-21** (the user's call, option A of three) · amends `08` *The register's shape*
+
+Ids order a register's rows and say nothing about when. Two questions a reader asks of a register --
+how long has this been open, and which rows predate a given decision -- had no column, and about two
+rows in five carried a date in their prose in four different phrasings, so neither could be grepped.
+
+**Decided.** Open rows carry `Filed`, closed rows `Filed` and `Closed`, ISO dates, each written once
+at the moment it names and never edited; a reopened row keeps its Filed date and takes a new Closed
+date when it closes again. `check.py` verifies the form and that a row does not close before it was
+filed. **No modified date.** A field every edit must remember to touch is wrong the first time one
+forgets, and a wrong date is worse than none; git holds the exact change history of a row, and what
+a reader wants of a change is not only when but what, which the existing dated clause inside the row
+(`Re-measured <date> after D-n:`, `Stale since D-n:`) already gives. Dates, not date-times: rows
+change in commits and the commit carries the time.
+
+**Backfilled.** All 284 rows across the seven registers took their dates from the registers' own
+history in 191 commits: Filed is the first commit that carried the id anywhere under `plan/`, Closed
+the last commit that moved the id into a Closed table. Every id resolved; the Closed tables have
+existed since the registers' first commit (2026-09-02), so no closing date is an artefact of the
+table appearing later.
+
+**Constrains.** `08` *The register's shape*, `65`'s filing, reopening and closing steps and its two
+grep lines, `check.py`, and the agent-planner templates this convention was drawn from.

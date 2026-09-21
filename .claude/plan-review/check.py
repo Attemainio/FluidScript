@@ -170,8 +170,9 @@ for index in range(1, len(decision_parts), 2):
 EFFORT = {'tiny', 'small', 'medium', 'big', 'large'}
 RISK = {'low', 'med', 'high'}
 BASIS = {'measured', 'hunch'}
-OPEN_HEADER = '| # | Effort | Risk | Basis | Document | What | Why it is still open |'
-CLOSED_HEADER = '| # | Effort | Document | What was wrong | What changed |'
+DATE = re.compile(r'20\d\d-\d\d-\d\d')
+OPEN_HEADER = '| # | Filed | Effort | Risk | Basis | Document | What | Why it is still open |'
+CLOSED_HEADER = '| # | Filed | Closed | Effort | Document | What was wrong | What changed |'
 for path in registers:
     text = path.read_text(encoding='utf-8')
     rel = path.relative_to(ROOT)
@@ -191,6 +192,14 @@ for path in registers:
             if not re.fullmatch(r'[A-Z]-\d+', ident):
                 continue
             ids.append(ident)
+            # D-134: the first cell after the id is the filing date and, on a closed row, the second the
+            # closing date -- ISO dates, written once at filing and at closing, never edited.
+            dates = cells[:1] if name == 'Open' else cells[:2]
+            if len(dates) < (1 if name == 'Open' else 2) or not all(DATE.fullmatch(d) for d in dates):
+                problems.append(f'{name.lower()} row {ident} needs ISO Filed{"" if name == "Open" else "/Closed"} dates: {rel}')
+            elif name == 'Closed' and dates[1] < dates[0]:
+                problems.append(f'closed row {ident} closes before it was filed: {rel}')
+            cells = cells[len(dates):]
             if name == 'Open':
                 if len(cells) < 3 or cells[0] not in EFFORT or cells[1] not in RISK or cells[2] not in BASIS:
                     problems.append(f'open row {ident} needs Effort/Risk/Basis from the vocabularies: {rel}')

@@ -1037,6 +1037,15 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > promotion it lost was the reach). `FS2218` is information. Opened `S-73`: that square parallel pair
 > does not solve from the bootstrap seed. 52 open.
 
+> **`D-134`, dates on the registers** (the same day, the user's question: when did each defect
+> emerge?): every open row carries `Filed`, every closed row `Filed` and `Closed`, ISO dates written
+> once and never edited; no *modified* column, because a field every edit must touch drifts and git
+> holds the row's change history exactly. All 284 rows across the seven registers were backfilled
+> from the registers' 191 commits (first commit carrying the id; last commit moving it to Closed).
+> `08`, `65` and `check.py` carry the rule; the agent-planner templates the convention came from were
+> changed to match in their own repository. The solver register's three rows that sat between the
+> Closed table's header and its separator were moved below it while there.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.

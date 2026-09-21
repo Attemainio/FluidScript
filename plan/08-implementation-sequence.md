@@ -433,9 +433,22 @@ states the **next id** — `**Next id: \`C-108\`.**` — and filing an entry mea
 bumping the line. Ids were allocated by reading the last row until 2026-09-20, when two registers
 turned out to share a prefix and one held the same id twice; `check.py` now refuses both.
 
-**Open** rows carry `| # | Effort | Risk | Basis | Document | What | Why it is still open |`.
-**Closed** rows carry `| # | Effort | Document | What was wrong | What changed |`, the effort being
-what closing it actually took, filled at closing time; rows closed before the column existed say `—`.
+**Open** rows carry `| # | Filed | Effort | Risk | Basis | Document | What | Why it is still open |`.
+**Closed** rows carry `| # | Filed | Closed | Effort | Document | What was wrong | What changed |`, the
+effort being what closing it actually took, filled at closing time; rows closed before the column
+existed say `—`.
+
+- **Filed** and **Closed** are ISO dates (`2026-09-21`), each written once -- at filing and at
+  closing -- and never edited (`D-134`). An id orders rows within a tier and says nothing about
+  when; the dates answer *how long has this been open* and *which rows predate that decision*
+  without reading the prose. A reopened row keeps its Filed date and, when it closes again, takes the
+  new closing date. There is deliberately no *modified* column: a field that every edit must remember
+  to touch is wrong the first time one forgets, and `git log -S "| C-108 |" -- plan/*/defects.md` is
+  the exact change history. A change to a row -- a re-measurement, a rule that moved under it -- is a
+  dated clause *in the row* (`Re-measured 2026-09-21 after D-130:`, `Stale since D-nnn:`), which
+  says what changed as well as when. The dates on rows filed before 2026-09-21 were recovered from
+  the registers' git history: Filed is the first commit that carried the id, Closed the last commit
+  that moved it into the Closed table.
 
 - **Effort** is *tiny* (one edit, no test), *small* (an hour inside one tier, a test), *medium* (a
   package: code, tests, docs, this register), *big* (several tiers, or it needs a `D-`), *large*

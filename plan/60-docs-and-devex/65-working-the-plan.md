@@ -82,7 +82,8 @@ grep -n -i "<subject words>" plan/00-foundation/06-decision-log.md | cut -c1-160
 
 2. **Take the id** from the register's `**Next id:**` line and bump the line. Never read the last row.
 3. **Write the row** in the Open table, top of the table, with every column:
-   `| id | effort | risk | basis | documents | **one-sentence what** | why it is still open |` — the
+   `| id | filed | effort | risk | basis | documents | **one-sentence what** | why it is still open |` —
+   `filed` is today as an ISO date and is never edited afterwards (`D-134`); the
    vocabularies are in `08` *The register's shape*. Basis is `measured` only if the numbers in the row
    come from a run and the mechanism is located in code; otherwise `hunch`.
 4. **Cite the id** where the problem shows: a test's XML doc, a code comment at the workaround, the
@@ -94,9 +95,10 @@ grep -n -i "<subject words>" plan/00-foundation/06-decision-log.md | cut -c1-160
 
 1. **Re-read the document the row cites**, at the clause it argues with. If the rule changed after the
    row closed, the reopening says so and cites the `D-` that changed it.
-2. **Move the row** from Closed back to Open, id kept. Keep the closed prose as the first sentence of
-   *Why it is still open* (`Closed <date> by …; reopened <date>:`), then the new measurement. Fill
-   Effort / Risk / Basis afresh — the old Effort was the first fix's cost, not this one's.
+2. **Move the row** from Closed back to Open, id and Filed date kept, the Closed date dropped. Keep the
+   closed prose as the first sentence of *Why it is still open* (`Closed <date> by …; reopened
+   <date>:`), then the new measurement. Fill Effort / Risk / Basis afresh — the old Effort was the
+   first fix's cost, not this one's.
 3. If the row is reopening because the previous fix did not hold, that is the second hit: **promote a
    one-line trap** to the register's Traps list naming what the fix missed.
 4. `09` *What is next* if it changes the order of work; `check.py`; commit.
@@ -121,9 +123,10 @@ DOTNET_GCHeapHardLimit=0x100000000 timeout 900 \
 ... -filter "/*/FluidScript.Core.Tests.Performance/LayoutDiagnostics/*"
 ```
 
-2. **Move the row** to the top of the Closed table: `| id | effort-actual | documents | **what was
-   wrong** | what changed, what was measured, which package |`. Effort is what it took, not what was
-   estimated; the gap between the two is the calibration and is worth a clause.
+2. **Move the row** to the top of the Closed table: `| id | filed | closed | effort-actual | documents |
+   **what was wrong** | what changed, what was measured, which package |`. `filed` is carried over,
+   `closed` is today (`D-134`). Effort is what it took, not what was estimated; the gap between the
+   two is the calibration and is worth a clause.
 3. **Fix the document** the row was about, if the fix amended it, and say so in the row — the document
    now reads as though it was always right.
 4. **Promote to Traps** if closing it revealed a guard, an ordering or a sizer rule a session will get
@@ -185,9 +188,9 @@ Between packages, on request: the registers' columns answer the two questions di
 
 ```bash
 # fixable now: tiny or small, measured
-grep -hE "^\| [A-Z]-[0-9]+ \| (tiny|small) \| [a-z]+ \| measured \|" plan/*/defects.md | cut -c1-120
+grep -hE "^\| [A-Z]-[0-9]+ \| [0-9-]+ \| (tiny|small) \| [a-z]+ \| measured \|" plan/*/defects.md | cut -c1-120
 # largest: big or large, by risk
-grep -hE "^\| [A-Z]-[0-9]+ \| (big|large) \| high \|" plan/*/defects.md | cut -c1-120
+grep -hE "^\| [A-Z]-[0-9]+ \| [0-9-]+ \| (big|large) \| high \|" plan/*/defects.md | cut -c1-120
 ```
 
 A sweep is run tier by tier, each tier's closures reported and approved before the next, quick fixes
