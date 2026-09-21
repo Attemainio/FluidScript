@@ -106,7 +106,7 @@ public sealed class WellPosednessTests
         var table = Check(Documented).Counting;
 
         Assert.Equal(
-            ["3WV.position<-HE1.in", "PU1.head<-HE1.out"],
+            ["3WV.position<-HE1.in.t", "PU1.head<-HE1.out.t"],
             table.Promotions.Select(static p => $"{p.Label}<-{p.Constraint.Label}").ToArray());
     }
 
@@ -271,7 +271,9 @@ public sealed class WellPosednessTests
         // (`out2`), not the script spelling; the report's spelling is P5.13b's (L-56).
         var table = Check(Substation).Counting;
 
-        Assert.Equal(["LOAD.dt", "HX1.out2"], table.Constraints.Select(static c => c.Label).ToArray());
+        // The label is the script's spelling, the record's `Parameter` the key `out2` (`L-56`).
+        Assert.Equal(["LOAD.dt", "HX1.out[2].t"], table.Constraints.Select(static c => c.Label).ToArray());
+        Assert.Equal(["dt", "out2"], table.Constraints.Select(static c => c.Parameter).ToArray());
         Assert.Equal(0, table.Excess);
     }
 

@@ -712,12 +712,41 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.");
 
+    /// <summary>A port's quantity the kind does not take: <c>PU1 pump in.h=5</c>, <c>HX1 heat_exchanger in.rho=</c> (<c>D-120</c>).</summary>
+    /// <value><c>FS1538</c>, an error naming the quantities the port does take.</value>
+    /// <remarks>
+    /// Never a near miss. <c>in.p</c> scores 0.75 against <c>in.t</c> -- one edit in four -- and the
+    /// similarity rule that reads <c>pmp</c> as <c>pump</c> read a stated pressure as a temperature of
+    /// 300 °C with an information notice (found by P5.13b). A quantity the property table names is
+    /// exactly what was meant, so the answer is which quantities this port has, not which one it is
+    /// one keystroke from.
+    /// </remarks>
+    public static DiagnosticDescriptor UnknownPortQuantity { get; } = new(
+        "FS1538",
+        DiagnosticSeverity.Error,
+        "A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.");
+
+    /// <summary>A node's pressure stated twice: once on the node, once as a port pressure of a component touching it (<c>D-124</c>).</summary>
+    /// <value><c>FS1539</c>, an error naming both statements.</value>
+    /// <remarks>
+    /// <c>V1 valve out.p=100</c> <em>is</em> <c>N1 node p=100</c> on the node <c>V1.out</c> touches,
+    /// so writing both -- or two components' ports on one node -- states one pressure twice. Even when
+    /// the numbers agree: a second copy is a line that will disagree after the next edit. Raised here,
+    /// on the line, rather than left to the counting's <c>FS2210</c>, which has no line to point at.
+    /// </remarks>
+    public static DiagnosticDescriptor PortPressureStatedTwice { get; } = new(
+        "FS1539",
+        DiagnosticSeverity.Error,
+        "'{written}' states the pressure of '{node}', which '{other}' already states. State it once.");
+
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty-five descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty-seven descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         LegacySpelling,
         PortStateOnNode,
+        UnknownPortQuantity,
+        PortPressureStatedTwice,
         ScheduleWithoutTime,
         CannotAddAbsolutes,
         ParameterDimensionMismatch,

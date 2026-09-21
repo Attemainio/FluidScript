@@ -300,17 +300,92 @@ public sealed class ComponentRegistry : IComponentRegistry
         Node(),
         Inlet(),
         Outlet(),
-        Pipe(),
-        HeatExchanger(),
-        Valve(),
-        ThreeWayValve(),
-        Pump(),
-        Tank(),
+        WithPortPressures(Pipe()),
+        WithPortPressures(HeatExchanger()),
+        WithPortPressures(Valve()),
+        WithPortPressures(ThreeWayValve()),
+        WithPortPressures(Pump()),
+        WithPortPressures(Tank()),
         Controller(),
         Sensor("t_sensor", ["temperature_sensor", "te"], "TE", "t", Dimension.Temperature),
         Sensor("p_sensor", ["pressure_sensor", "pe"], "PE", "p", Dimension.Pressure),
         Sensor("flow_sensor", ["flow_meter", "fe"], "FE", "flow", Dimension.MassFlow),
     ];
+
+    /// <summary>Gives every port of a kind a pressure, stated as <c>port.p</c> and read as <c>Name.port.p</c> (<c>D-124</c>).</summary>
+    /// <param name="kind">A kind with named ports.</param>
+    /// <returns>The kind with one parameter and one property per port, and one family per port family.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>A port's pressure is the pressure of the node the port touches, and stating it states
+    /// that node.</strong> <c>V1 valve out.p=100</c> is <c>N1 node p=100</c> on whatever node
+    /// <c>V1.out</c> is wired to -- named, or the one I2 inserted -- and nothing else; the binder
+    /// copies it there (<c>D-120</c> rule 3, decided as <c>D-124</c>). A pressure is never a
+    /// component's own: a component has a drop, and its two ports' pressures are two nodes'.
+    /// </para>
+    /// <para>
+    /// Generated rather than listed per kind because the rule has no per-kind content: every port
+    /// has one, the key is <c>p_</c> and the port's key (<c>p_in</c>, <c>p_out2</c>, <c>p_ab</c>,
+    /// <c>p_in3</c>), and <c>22</c> documents it once rather than in every table. Omission is
+    /// <see cref="ParameterOmissionBehavior.Size"/> for the reason a node's own <c>p</c> is: the solve
+    /// finds it. The property is the same node's solved pressure, which the wire already carries as
+    /// <c>pIn</c>/<c>pOut</c>.
+    /// </para>
+    /// </remarks>
+    private static ComponentKindInfo WithPortPressures(ComponentKindInfo kind)
+    {
+        var parameters = kind.Parameters.ToBuilder();
+        var properties = kind.Properties.ToBuilder();
+
+        foreach (var port in kind.Ports)
+        {
+            var row = Sized(port.Name + ".p", Dimension.Pressure, 0, 2500, precision: 1) with { Key = "p_" + port.Key };
+            parameters[row.Key] = row;
+            properties[row.Name] = Solved(port.Name + ".p", Dimension.Pressure) with { Key = "p_" + port.Key };
+        }
+
+        var parameterFamilies = kind.IndexedParameterFamilies.ToBuilder();
+        var propertyFamilies = kind.IndexedPropertyFamilies.ToBuilder();
+
+        foreach (var family in kind.PortFamilies)
+        {
+            parameterFamilies.Add(new IndexedParameterFamilyInfo
+            {
+                Pattern = family.Prefix + "[{index}].p",
+                KeyPattern = "p_" + family.Prefix + "{index}",
+                MinIndex = family.MinIndex,
+                MaxIndex = family.MaxIndex,
+                Element = Sized("p", Dimension.Pressure, 0, 2500, precision: 1),
+            });
+            propertyFamilies.Add(new IndexedPropertyFamilyInfo
+            {
+                Pattern = family.Prefix + "[{index}].p",
+                KeyPattern = "p_" + family.Prefix + "{index}",
+                MinIndex = family.MinIndex,
+                MaxIndex = family.MaxIndex,
+                Element = Solved("p", Dimension.Pressure),
+            });
+        }
+
+        return kind with
+        {
+            Parameters = parameters.ToImmutable(),
+            Properties = properties.ToImmutable(),
+            IndexedParameterFamilies = parameterFamilies.ToImmutable(),
+            IndexedPropertyFamilies = propertyFamilies.ToImmutable(),
+        };
+    }
+
+    /// <summary>Whether a parameter key is a port's pressure: <c>p_in</c>, <c>p_out2</c>, <c>p_in3</c> (<c>D-124</c>).</summary>
+    /// <param name="key">The parameter key.</param>
+    /// <param name="port">The port's key when it is, else <see langword="null"/>.</param>
+    /// <returns><see langword="true"/> for a port pressure.</returns>
+    public static bool IsPortPressure(string key, out string? port)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        port = key.StartsWith("p_", StringComparison.Ordinal) && key.Length > 2 ? key[2..] : null;
+        return port is not null;
+    }
 
     private static ComponentKindInfo Node() => new()
     {

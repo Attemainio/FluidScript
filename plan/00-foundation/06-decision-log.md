@@ -165,6 +165,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-120` | Accepted | 2026-09-19 | A port's state is written `port[n].quantity`; every port family is indexed in brackets; a node has one state |
 | `D-121` | Accepted | 2026-09-19 | Water's validated floor is its triple point, and whether a plant runs sub-atmospheric is a diagnostic's question, not the property table's |
 | `D-122` | Accepted | 2026-09-19 | A three-way valve is a constant-flow mixing device: linear legs by default, sized on its common-port flow to a drop band |
+| `D-124` | Accepted | 2026-09-21 | A port's pressure is the touching node's pressure, stated on the component and copied onto the node |
 | `D-123` | Accepted | 2026-09-20 | A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list |
 <!-- index:end -->
 
@@ -5681,6 +5682,80 @@ equal-percentage). Flows and the vision's `01` figures do not move. Every ladder
 [`22-component-model`](../20-core-domain/22-component-model.md) three-way valve; `ComponentRegistry`
 `three_way_valve`; `ValveSizer.MixingBand`; `ValveLaw.LegOpening`; `SolutionSeed.Integrate`;
 `docs/functions/three-way-valve.md`, `docs/functions/valve.md`.
+
+## D-124 · A port's pressure is the touching node's pressure, stated on the component and copied onto the node
+
+**Accepted · 2026-09-21** (the user's rule, decided with the user) · settles `D-120`'s second open
+question (rule 3); amends `15` binding step 8c, `22` *Every port has a pressure*, `23`'s boundary
+table, `docs/functions/syntax.md`; closes `L-56` alongside
+
+`D-120` wrote "`in.p` on a component binds to the `p` of the node its inlet touches" and left open
+whether a component-side `in.p` should exist at all, since rule 3 makes it a node pressure in
+disguise. P5.13b measured what a stated pressure on an interior node does today before deciding: one
+in a closed loop is the loop's datum (square); two in one loop are over-specified by one, and
+`FS2210` named `HE1.in.t` -- the inlet the dropped enthalpy level had already paid for -- rather than
+either pressure; one on an open primary whose boundaries both state `p` is over-specified with the
+valve already promoted for `HX1.out[2].t`, and nothing else on the branch free. And `HX1 in.p=300`
+bound as `in.t=300` under an information notice, because `in.p` is one edit from `in.t` and the
+similarity rule that reads `pmp` as `pump` does not know a quantity from a typo.
+
+**The user's rule.** A component is a state-modifying element; stating a quantity at its `in` or
+`out` port constrains the system at a fixed point, exactly as stating it on the node there would.
+`V1 valve dp=15` constrains only the difference across the valve and pins neither node;
+`V1 valve out.p=100` pins the outlet and is, to the letter,
+
+```
+V1 valve
+N1 node p=100
+V1 - N1
+```
+
+**Decided.**
+
+1. **Every port of every kind with named ports takes `p`**, written `port.p` and read `Name.port.p`,
+   families included (`in[3].p` on a tank, `ab.p` on a three-way valve). The registry generates the
+   rows from the port list -- key `p_` plus the port's key -- rather than listing them per kind, and
+   `22` documents the rule once; the registry-versus-`22` test exempts `.p` rows for that reason.
+2. **The binder copies a stated port pressure onto the touching node's `p`** after inference (`15`
+   step 8c), so the node the script named or the one I2 inserted carries it, and the counting, the
+   datum pick and `FS2210` see a stated node pressure like any other. The copied value keeps the
+   component's span and is spelled `PU1 out.p`, which is what a diagnostic naming it says
+   (`CircuitNode.PressureStatedAs`); the component keeps its own `p_out` value, which nothing reads.
+3. **Stating one node's pressure twice is `FS1539`** on the later line -- node plus port, or two ports
+   meeting at one node -- agreeing or not. `D-120` said `FS2210` would name both lines; `FS2210` has
+   no line, and the binder does.
+4. **A port quantity the kind does not take is `FS1538`**, listing what the port takes, and is never
+   a similarity match when the written quantity is a property-table symbol.
+5. **`FS2210`'s candidates for a closed loop stating two pressures are those pressures**, then any
+   unmatched constraint beyond what the dropped levels pay for; the old list put the level-paid inlet
+   first.
+6. **Not a constraint kind.** A pressure setpoint absorbed by a valve or a pump on the branch -- "360
+   kPa at the coil inlet, size the valve" -- is the differential-pressure-controller case and a
+   feature of its own, not a spelling; a stated port pressure that the loop cannot satisfy is refused
+   as `FS2210` names it.
+
+**Measured.** `CV1 valve out.p=250` on a balanced four-element loop: the valve's outlet node is the
+stated datum, 250 kPa exactly, two Newton iterations. The same loop with `N2 node p=250` written on
+the node solves to the identical pressure field to 1e-9 Pa (`PortPressureTests`). `PU1 pump in.p=100
+out.p=250`: over-specified by 1, *Remove one of: PU1 in.p, PU1 out.p* (was `HE1.in.t`). `HE1
+heat_exchanger in.p=300`: a 300 kPa pressure on the exchanger's inlet node, no `FS1512`. The
+corpus, the ladder and every golden are unchanged; the editor's metadata document gains the rows and
+its completion offers `p` after every port.
+
+**Rejected.**
+- *No component-side `in.p`; `Name.port.p` as a read only.* Cheapest and physically the same model.
+  Cost: every port would have every quantity but one, and the user's rule -- a port statement is a
+  fixed point -- is the regularity `D-120` was written for.
+- *A `FixedPressure` constraint with promotion.* The engineering case, and a package (decision 6).
+- *Leaving the near miss.* `in.p` → `in.t` at 0.75 is exactly the silent wrong circuit `D-15`'s
+  ambiguity margin exists to prevent, one table row later.
+
+**Constrains.** `ComponentRegistry.WithPortPressures`, `IsPortPressure`;
+`BindingRun.PropagatePortPressures`; `BinderDiagnostics.UnknownPortQuantity` (`FS1538`),
+`PortPressureStatedTwice` (`FS1539`); `CircuitNode.PressureStatedAs`; `WellPosedness.ReportBalance`;
+[`15`](../10-language/15-semantic-model.md) step 8c; [`22`](../20-core-domain/22-component-model.md)
+*Every port has a pressure*; [`23`](../20-core-domain/23-topology-and-graph.md) boundary table;
+`docs/functions/syntax.md`, `heat-exchanger.md`.
 
 ## D-123 · A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list
 

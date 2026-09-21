@@ -314,11 +314,12 @@ public sealed class ComponentRegistryTests
 
         // Written as D-120 spells them; keyed as the model and the wire still do, which is also the
         // pre-D-120 spelling every family accepts with FS1536.
+        // The port families' pressures are generated rows (`D-124`), keyed `p_` and the port's key.
         Assert.Equal(
-            ["in[{index}].level", "layer[{index}].t", "out[{index}].level"],
+            ["in[{index}].level", "in[{index}].p", "layer[{index}].t", "out[{index}].level", "out[{index}].p"],
             tank.IndexedParameterFamilies.Select(static family => family.Pattern).Order(StringComparer.Ordinal));
         Assert.Equal(
-            ["in{index}_level", "out{index}_level", "t{index}"],
+            ["in{index}_level", "out{index}_level", "p_in{index}", "p_out{index}", "t{index}"],
             tank.IndexedParameterFamilies.Select(static family => family.KeyPattern).Order(StringComparer.Ordinal));
 
         // The layer count is a parameter, so the family's maximum is not a constant.

@@ -64,9 +64,9 @@ public sealed class SolveExplanationTests
         var report = await Explain("m2-distribution-header.fluid");
 
         Assert.Contains(
-            "FixedFlow    on HE_AHU.out   -> solved for as PU_AHU.head", report, StringComparison.Ordinal);
+            "FixedFlow    on HE_AHU.out.t -> solved for as PU_AHU.head", report, StringComparison.Ordinal);
         Assert.Contains(
-            "MixedInlet   on HE_AHU.in    -> solved for as TV_AHU.position", report, StringComparison.Ordinal);
+            "MixedInlet   on HE_AHU.in.t  -> solved for as TV_AHU.position", report, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class SolveExplanationTests
         // adds. Calling that over-specification would have been the report confidently misleading.
         var report = await Explain("m2-simple-loop.fluid");
 
-        Assert.Contains("MixedInlet   on HE1.in       -> no promotion", report, StringComparison.Ordinal);
+        Assert.Contains("MixedInlet   on HE1.in.t     -> no promotion", report, StringComparison.Ordinal);
         Assert.Contains(
             "1 with no promotion, against 1 enthalpy level(s) dropped",
             report,
@@ -218,8 +218,8 @@ public sealed class SolveExplanationTests
 
         Assert.Contains("FS2203       'first' is closed", report, StringComparison.Ordinal);
         Assert.Contains("FS2203       'second' is closed", report, StringComparison.Ordinal);
-        Assert.Contains("FixedFlow    on HX1.out      -> solved for as PU1.head", report, StringComparison.Ordinal);
-        Assert.Contains("FixedFlow    on HX1.out2     -> solved for as PU2.head", report, StringComparison.Ordinal);
+        Assert.Contains("FixedFlow    on HX1.out.t    -> solved for as PU1.head", report, StringComparison.Ordinal);
+        Assert.Contains("FixedFlow    on HX1.out[2].t -> solved for as PU2.head", report, StringComparison.Ordinal);
         Assert.Matches(@"N1 -> N1 +0\.4780  forward", report);
         Assert.Matches(@"N3 -> N3 +0\.4780  forward", report);
     }

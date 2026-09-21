@@ -116,23 +116,27 @@ this line exists to make visible.
 
 ```
 --- constraints, and what answers each
-    MixedInlet   on HE1        -> no promotion
-    FixedFlow    on HE1        -> solved for as PU1.head
+    MixedInlet   on HE1.in.t     -> no promotion
+    FixedFlow    on HE1.out.t    -> solved for as PU1.head
     1 with no promotion, against 1 enthalpy level(s) dropped. A level pays for one; anything
     beyond that is over-specification.
 ```
 
-Every constraint your script created, and the unknown that pays for it. `FixedFlow on HE1` — the duty
-and both temperatures fix the flow through `HE1` — is paid for by promoting `PU1.head`: the pump's
-head becomes a number the solver finds, because *something* has to be free for the flow to come out
-where the duty demands.
+Every constraint your script created, named by the parameter that created it as you wrote it, and
+the unknown that pays for it. `FixedFlow on HE1.out.t` — the duty and both temperatures fix the flow
+through `HE1`, and `out.t` is the statement that closed the triangle — is paid for by promoting
+`PU1.head`: the pump's head becomes a number the solver finds, because *something* has to be free
+for the flow to come out where the duty demands. A second side reads `HX1.out[2].t` or
+`HX1.in[2].flow`, the spelling of [the syntax page](../functions/syntax.md#a-ports-state); the
+`solved` and `sizes` maps of the [model contract](../functions/model-contract.md) keep the model's
+keys (`out2`, `flow2`), and only the report and the diagnostics spell.
 
 **When the pump's head is stated, the same line names a valve instead.** `PU1 pump head=15` takes
 the head off the table, and the constraint falls to the first valve on the branch whose `kv` you
 did not state:
 
 ```
-    FixedFlow    on HE1        -> solved for as CV1.kv
+    FixedFlow    on HE1.out.t    -> solved for as CV1.kv
 ```
 
 That valve is then a solved value, not a sized one: it appears in the unknowns table, seeded at the
@@ -263,7 +267,8 @@ open, and the count will be one short in a way no line of your script explains.
     P1.dn                DN25 (steel, EN 10255 medium) — 99.8 Pa/m, 0.41 m/s
 ```
 
-Everything the tool chose because you did not state it, with the basis it chose on. These are not
+Everything the tool chose because you did not state it, with the basis it chose on, each line naming
+the parameter as your script would state it (`HX1.in[2].flow`, not the wire's `flow2`). These are not
 solver unknowns — they are constants as far as the solve is concerned, recomputed between passes.
 
 What a rule had to say on the way is in the notes below this table, in order, and the findings

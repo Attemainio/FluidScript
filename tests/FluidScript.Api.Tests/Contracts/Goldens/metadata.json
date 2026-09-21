@@ -417,6 +417,24 @@
           "displayPrecision": 0
         },
         {
+          "name": "in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "length",
           "aliases": [],
           "valueKind": "quantity",
@@ -471,6 +489,24 @@
           "displayPrecision": 0
         },
         {
+          "name": "out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "roughness",
           "aliases": [],
           "valueKind": "quantity",
@@ -513,6 +549,18 @@
           "name": "flow",
           "dimension": "MassFlow",
           "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
           "availability": "solved"
         },
         {
@@ -730,6 +778,24 @@
           "displayPrecision": 6
         },
         {
+          "name": "in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "in.t",
           "aliases": [],
           "valueKind": "quantity",
@@ -802,6 +868,24 @@
           "displayPrecision": 3
         },
         {
+          "name": "in[2].p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "in[2].t",
           "aliases": [],
           "valueKind": "quantity",
@@ -856,6 +940,24 @@
           "displayPrecision": 4
         },
         {
+          "name": "out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "out.t",
           "aliases": [],
           "valueKind": "quantity",
@@ -868,6 +970,24 @@
           "usualRange": {
             "min": -50,
             "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "out[2].p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
           },
           "validRange": null,
           "wholeNumber": false,
@@ -1041,6 +1161,12 @@
           "availability": "solved"
         },
         {
+          "name": "in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
           "name": "in.t",
           "dimension": "Temperature",
           "unit": "°C",
@@ -1065,6 +1191,12 @@
           "availability": "solved"
         },
         {
+          "name": "in[2].p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
           "name": "in[2].t",
           "dimension": "Temperature",
           "unit": "°C",
@@ -1083,9 +1215,21 @@
           "availability": "sized"
         },
         {
+          "name": "out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
           "name": "out.t",
           "dimension": "Temperature",
           "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "out[2].p",
+          "dimension": "Pressure",
+          "unit": "kPa",
           "availability": "solved"
         },
         {
@@ -1223,6 +1367,24 @@
           "displayPrecision": 2
         },
         {
+          "name": "in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "kv",
           "aliases": [],
           "valueKind": "quantity",
@@ -1239,6 +1401,24 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 2
+        },
+        {
+          "name": "out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
         },
         {
           "name": "position",
@@ -1283,10 +1463,22 @@
           "availability": "solved"
         },
         {
+          "name": "in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
           "name": "kv",
           "dimension": "Kv",
           "unit": "m3/h",
           "availability": "sized"
+        },
+        {
+          "name": "out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
         },
         {
           "name": "position",
@@ -1331,6 +1523,42 @@
       "portFamilies": [],
       "parameters": [
         {
+          "name": "a.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "ab.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "authority",
           "aliases": [],
           "valueKind": "quantity",
@@ -1347,6 +1575,24 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 2
+        },
+        {
+          "name": "b.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
         },
         {
           "name": "characteristic",
@@ -1446,10 +1692,28 @@
       "indexedParameters": [],
       "properties": [
         {
+          "name": "a.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "ab.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
           "name": "authority",
           "dimension": "Dimensionless",
           "unit": "",
           "availability": "sized"
+        },
+        {
+          "name": "b.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
         },
         {
           "name": "dp",
@@ -1597,6 +1861,24 @@
           "displayPrecision": 2
         },
         {
+          "name": "in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "margin",
           "aliases": [],
           "valueKind": "quantity",
@@ -1613,6 +1895,24 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 2
+        },
+        {
+          "name": "out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
         },
         {
           "name": "speed",
@@ -1676,6 +1976,18 @@
           "dimension": "Head",
           "unit": "m",
           "availability": "sized"
+        },
+        {
+          "name": "in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
         },
         {
           "name": "power",
@@ -1774,6 +2086,24 @@
           "displayPrecision": 2
         },
         {
+          "name": "in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "layers",
           "aliases": [],
           "valueKind": "quantity",
@@ -1814,6 +2144,24 @@
           },
           "wholeNumber": false,
           "displayPrecision": 2
+        },
+        {
+          "name": "out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
         },
         {
           "name": "t",
@@ -1932,9 +2280,63 @@
             "wholeNumber": false,
             "displayPrecision": 2
           }
+        },
+        {
+          "pattern": "in[{index}].p",
+          "minIndex": 2,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "p",
+            "aliases": [],
+            "valueKind": "quantity",
+            "dimension": "Pressure",
+            "unit": "kPa",
+            "acceptedSymbols": [],
+            "omission": "size",
+            "default": null,
+            "defaultBasis": null,
+            "usualRange": {
+              "min": 0,
+              "max": 2500
+            },
+            "validRange": null,
+            "wholeNumber": false,
+            "displayPrecision": 1
+          }
+        },
+        {
+          "pattern": "out[{index}].p",
+          "minIndex": 2,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "p",
+            "aliases": [],
+            "valueKind": "quantity",
+            "dimension": "Pressure",
+            "unit": "kPa",
+            "acceptedSymbols": [],
+            "omission": "size",
+            "default": null,
+            "defaultBasis": null,
+            "usualRange": {
+              "min": 0,
+              "max": 2500
+            },
+            "validRange": null,
+            "wholeNumber": false,
+            "displayPrecision": 1
+          }
         }
       ],
       "properties": [
+        {
+          "name": "in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
         {
           "name": "in.t",
           "dimension": "Temperature",
@@ -1946,6 +2348,12 @@
           "dimension": "Dimensionless",
           "unit": "",
           "availability": "declared"
+        },
+        {
+          "name": "out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
         },
         {
           "name": "out.t",
@@ -2000,6 +2408,30 @@
             "name": "out[{index}].t",
             "dimension": "Temperature",
             "unit": "°C",
+            "availability": "solved"
+          }
+        },
+        {
+          "pattern": "in[{index}].p",
+          "minIndex": 2,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "p",
+            "dimension": "Pressure",
+            "unit": "kPa",
+            "availability": "solved"
+          }
+        },
+        {
+          "pattern": "out[{index}].p",
+          "minIndex": 2,
+          "maxIndex": 16,
+          "maxIndexParameter": null,
+          "element": {
+            "name": "p",
+            "dimension": "Pressure",
+            "unit": "kPa",
             "availability": "solved"
           }
         }
@@ -3922,6 +4354,29 @@
         "kind",
         "quantity",
         "written"
+      ]
+    },
+    {
+      "code": "FS1538",
+      "severity": "error",
+      "area": "Binder",
+      "message": "A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.",
+      "arguments": [
+        "kind",
+        "port",
+        "quantity",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1539",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{written}' states the pressure of '{node}', which '{other}' already states. State it once.",
+      "arguments": [
+        "written",
+        "node",
+        "other"
       ]
     },
     {

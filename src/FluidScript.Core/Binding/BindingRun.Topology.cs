@@ -52,6 +52,10 @@ internal sealed partial class BindingRun
         // After inference, so the node I2 puts between two components at different heights is the
         // one FS2219 describes; before observers, which sit on nodes and carry no height (D-70).
         AssignHeights();
+
+        // After inference for the same reason: the node a port pressure is written onto may be the
+        // one I2 put there.
+        PropagatePortPressures();
         BindObservers();
         BindControlBindings(blocks);
         BindSchedule(blocks);
@@ -798,6 +802,76 @@ internal sealed partial class BindingRun
     /// anybody declared it. Whether the clause belongs on the kind at all was settled at declaration
     /// time; all that is left here is whether the node exists.
     /// </remarks>
+    /// <summary>Copies every stated port pressure onto the node the port touches (<c>D-124</c>).</summary>
+    /// <remarks>
+    /// <para>
+    /// <c>V1 valve out.p=100</c> is <c>N1 node p=100</c> on the node <c>V1.out</c> is wired to. The
+    /// node is the only thing that has a pressure -- one per node is what makes the balances rows --
+    /// so the statement is moved there and the counting, the datum pick and <c>FS2210</c> see a
+    /// stated node pressure like any other. The copied value keeps the component's span, so a
+    /// diagnostic about the node's pressure, and a write-back to it, land on the line that stated it.
+    /// </para>
+    /// <para>
+    /// A pressure the node already carries -- its own <c>p=</c>, or another component's port on the
+    /// same node -- is <c>FS1539</c> on the later statement, agreeing or not. A port wired to nothing
+    /// has no node to state, and the dangling port is already <c>FS1507</c>'s.
+    /// </para>
+    /// </remarks>
+    private void PropagatePortPressures()
+    {
+        var index = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        for (var i = 0; i < _components.Count; i++)
+        {
+            index[_components[i].Name] = i;
+        }
+
+        // Declaration order, so a second statement of one node is the one reported.
+        for (var i = 0; i < _components.Count; i++)
+        {
+            var component = _components[i];
+
+            if (component.Kind is not { } kind || kind.HasUnlimitedPorts || kind.IsObserver)
+            {
+                continue;
+            }
+
+            foreach (var (key, value) in component.Parameters.OrderBy(static pair => pair.Value.Span.Start))
+            {
+                if (!ComponentRegistry.IsPortPressure(key, out var port) || value.Value is null)
+                {
+                    continue;
+                }
+
+                var peer = Peers(component.Name, port).FirstOrDefault(IsNode);
+
+                if (peer is null || !index.TryGetValue(peer, out var slot))
+                {
+                    continue;
+                }
+
+                var node = _components[slot];
+                var written = $"{component.Name} {value.WrittenName}";
+
+                if (node.Parameters.TryGetValue("p", out var existing))
+                {
+                    Report(
+                        BinderDiagnostics.PortPressureStatedTwice,
+                        value.Span,
+                        ("written", written),
+                        ("node", node.Name),
+                        ("other", existing.WrittenName.Contains(' ', StringComparison.Ordinal) ? existing.WrittenName : $"{node.Name} {existing.WrittenName}"));
+                    continue;
+                }
+
+                _components[slot] = node with
+                {
+                    Parameters = node.Parameters.Add("p", value with { WrittenName = written }),
+                };
+            }
+        }
+    }
+
     private void BindObservers()
     {
         foreach (var component in _components)

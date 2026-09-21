@@ -189,6 +189,11 @@ public static partial class Lowering
                         new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1)
                         {
                             StatedParameters = ComponentFactory.Stated(symbol),
+                            // A pressure the binder copied from a port keeps the port's spelling (D-124).
+                            PressureStatedAs = symbol.Parameters.TryGetValue("p", out var stated)
+                                && stated.WrittenName.Contains(' ', StringComparison.Ordinal)
+                                    ? stated.WrittenName
+                                    : null,
                             Boundary = Role(kind),
                             Elevation = model.Heights.Of(symbol.Name),
                         },

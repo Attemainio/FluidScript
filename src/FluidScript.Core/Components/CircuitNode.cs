@@ -84,6 +84,13 @@ public sealed class CircuitNode : IFlowComponent
     public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
         = ImmutableDictionary<string, Quantity>.Empty;
 
+    /// <summary>Gets how the script spelled this node's stated pressure when it wrote it on a port: <c>PU1 out.p</c> (<c>D-124</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> when the node states its own <c>p=</c> or none. A message that names
+    /// the pressure to remove names the line the user wrote, not the node I2 inserted behind it.
+    /// </value>
+    public string? PressureStatedAs { get; init; }
+
     /// <inheritdoc/>
     public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
         = ImmutableDictionary<string, Quantity>.Empty;

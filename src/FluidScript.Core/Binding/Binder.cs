@@ -709,6 +709,33 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             return null;
         }
 
+        // A port state whose quantity the table names is never a near miss: `in.p` is one edit from
+        // `in.t` and was read as it, so a stated pressure became a temperature of 300 °C under an
+        // information notice (FS1512). The answer is what this port takes.
+        if (parameter.Name.Parts.Length > 0
+            && written.LastIndexOf('.') is var dot and > 0
+            && PropertyTable.Find(written[(dot + 1)..]) is { } quantity)
+        {
+            var port = written[..dot];
+            var takes = kind.Parameters.Values
+                .SelectMany(static info => info.Aliases.Prepend(info.Name))
+                .Concat(kind.IndexedParameterFamilies.Select(static family => family.Pattern))
+                .Where(name => name.StartsWith(port + ".", StringComparison.Ordinal))
+                .Select(name => name[(port.Length + 1)..])
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+
+            Report(
+                takes.Length == 0 ? BinderDiagnostics.UnknownParameter : BinderDiagnostics.UnknownPortQuantity,
+                parameter.Name.Span,
+                ("kind", kind.Keyword),
+                ("parameter", written),
+                ("port", port),
+                ("quantity", quantity.Symbol),
+                ("available", string.Join(", ", takes.Length == 0 ? kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal) : takes)));
+            return null;
+        }
+
         var index2 = kind.Parameters.Values.ToImmutableDictionary(
             static info => NameResolution.Normalize(info.Name),
             static info => info,

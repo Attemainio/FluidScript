@@ -45,6 +45,8 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `pipe` | `dn` | — | after sizing |
 | `pipe` | `dp` | `kPa` | after the solve |
 | `pipe` | `flow` | `kg/s` | after the solve |
+| `pipe` | `in.p` | `kPa` | after the solve |
+| `pipe` | `out.p` | `kPa` | after the solve |
 | `pipe` | `re` | — | after the solve |
 | `pipe` | `velocity` | `m/s` | after the solve |
 | `pipe` | `volume` | `dm3` | after sizing |
@@ -54,14 +56,18 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `heat_exchanger` | `dt` | `dK` | after the solve |
 | `heat_exchanger` | `effectiveness` | — | after the solve |
 | `heat_exchanger` | `flow` | `kg/s` | after the solve |
+| `heat_exchanger` | `in.p` | `kPa` | after the solve |
 | `heat_exchanger` | `in.t` | `°C` | after the solve |
 | `heat_exchanger` | `in[2].dp` | `kPa` | after the solve |
 | `heat_exchanger` | `in[2].dt` | `dK` | after the solve |
 | `heat_exchanger` | `in[2].flow` | `kg/s` | after the solve |
+| `heat_exchanger` | `in[2].p` | `kPa` | after the solve |
 | `heat_exchanger` | `in[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `lmtd` | `dK` | after the solve |
 | `heat_exchanger` | `ntu` | — | after sizing |
+| `heat_exchanger` | `out.p` | `kPa` | after the solve |
 | `heat_exchanger` | `out.t` | `°C` | after the solve |
+| `heat_exchanger` | `out[2].p` | `kPa` | after the solve |
 | `heat_exchanger` | `out[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `plates` | — | after sizing |
 | `heat_exchanger` | `power` | `kW` | after sizing |
@@ -70,9 +76,14 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `valve` | `authority` | — | after sizing |
 | `valve` | `dp` | `kPa` | after the solve |
 | `valve` | `flow` | `kg/s` | after the solve |
+| `valve` | `in.p` | `kPa` | after the solve |
 | `valve` | `kv` | `m3/h` | after sizing |
+| `valve` | `out.p` | `kPa` | after the solve |
 | `valve` | `position` | — | as written |
+| `three_way_valve` | `a.p` | `kPa` | after the solve |
+| `three_way_valve` | `ab.p` | `kPa` | after the solve |
 | `three_way_valve` | `authority` | — | after sizing |
+| `three_way_valve` | `b.p` | `kPa` | after the solve |
 | `three_way_valve` | `dp` | `kPa` | after the solve |
 | `three_way_valve` | `flow` | `kg/s` | after the solve |
 | `three_way_valve` | `kv` | `m3/h` | after sizing |
@@ -81,15 +92,21 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `pump` | `efficiency` | — | after sizing |
 | `pump` | `flow` | `kg/s` | after the solve |
 | `pump` | `head` | `m` | after sizing |
+| `pump` | `in.p` | `kPa` | after the solve |
+| `pump` | `out.p` | `kPa` | after the solve |
 | `pump` | `power` | `kW` | after the solve |
 | `pump` | `speed` | — | after the solve |
+| `tank` | `in.p` | `kPa` | after the solve |
 | `tank` | `in.t` | `°C` | after the solve |
 | `tank` | `layers` | — | as written |
+| `tank` | `out.p` | `kPa` | after the solve |
 | `tank` | `out.t` | `°C` | after the solve |
 | `tank` | `stored_energy` | `J` | after the solve |
 | `tank` | `volume` | `dm3` | as written |
+| `tank` | `in[{index}].p`, 2 to 16 | `kPa` | after the solve |
 | `tank` | `in[{index}].t`, 2 to 16 | `°C` | after the solve |
 | `tank` | `layer[{index}].t`, 1 to `layers` | `°C` | after the solve |
+| `tank` | `out[{index}].p`, 2 to 16 | `kPa` | after the solve |
 | `tank` | `out[{index}].t`, 2 to 16 | `°C` | after the solve |
 | `t_sensor` | `t` | `°C` | after the solve |
 | `p_sensor` | `p` | `kPa` | after the solve |

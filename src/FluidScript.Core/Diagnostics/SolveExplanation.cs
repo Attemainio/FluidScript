@@ -4,6 +4,7 @@ using System.Text;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
+using FluidScript.Core.Language;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Topology;
@@ -104,7 +105,7 @@ public static class SolveExplanation
         HeatBalance(report, graph, posedness, layout, solve);
         OperatingPoints(report, graph, layout, solve);
         Equations(report, system, seed, solve);
-        Sized(report, bases, notes);
+        Sized(report, graph, bases, notes);
         Ratings(report, graph, layout, solve);
         Conditioning(report, system, seed, solve);
 
@@ -405,7 +406,7 @@ public static class SolveExplanation
 
             if (binding.Branch == branch.Index && binding.Sign != 0)
             {
-                return binding.Sign * flow > 0 ? $"into {end.Label}" : $"out of {end.Label}";
+                return binding.Sign * flow > 0 ? $"into {Spelled(end)}" : $"out of {Spelled(end)}";
             }
         }
 
@@ -516,7 +517,7 @@ public static class SolveExplanation
                 : string.Join(" - ", branch.Path.Select(static element => element.Name));
 
             report.AppendLine(CultureInfo.InvariantCulture,
-                $"    {branch.From.Label} -> {branch.To.Label,-14} {Math.Abs(flow),9:0.0000}  {direction,-9} {path}");
+                $"    {Spelled(branch.From)} -> {Spelled(branch.To),-14} {Math.Abs(flow),9:0.0000}  {direction,-9} {path}");
         }
     }
 
@@ -839,8 +840,32 @@ public static class SolveExplanation
         }
     }
 
+    /// <summary>A branch end as the script spells its port: <c>T1.in[2]</c> for the port keyed <c>in2</c> (<c>L-56</c>).</summary>
+    /// <remarks>The graph may not name the registry (<c>23</c> invariant 7), so the spelling is the report's, not <see cref="BranchEnd.Label"/>'s.</remarks>
+    private static string Spelled(BranchEnd end) =>
+        end.PortName is null
+            ? end.Element.Name
+            : $"{end.Element.Name}.{ComponentRegistry.Default.ByKeyword(end.Element.Kind)?.PortName(end.PortName) ?? end.PortName}";
+
+    /// <summary>A sizing key <c>HX1.flow2</c> spelled as the script writes it, <c>HX1.in[2].flow</c> (<c>L-56</c>).</summary>
+    private static string Spelled(CircuitGraph graph, string key)
+    {
+        var dot = key.IndexOf('.', StringComparison.Ordinal);
+
+        if (dot < 0)
+        {
+            return key;
+        }
+
+        var owner = graph.Components.FirstOrDefault(element => string.Equals(element.Name, key[..dot], StringComparison.Ordinal));
+        var kind = owner is null ? null : ComponentRegistry.Default.ByKeyword(owner.Kind);
+
+        return kind is null ? key : key[..(dot + 1)] + kind.ParameterName(key[(dot + 1)..]);
+    }
+
     private static void Sized(
         StringBuilder report,
+        CircuitGraph graph,
         ImmutableDictionary<string, string>? bases,
         ImmutableArray<string> notes)
     {
@@ -853,9 +878,11 @@ public static class SolveExplanation
         }
         else
         {
+            // The bases are keyed `HX1.flow2` because the wire's `sizes` map is (`D-120`); the report is
+            // read beside the script, so the line says `HX1.in[2].flow` (`L-56`).
             foreach (var (key, basis) in bases.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
             {
-                report.AppendLine(CultureInfo.InvariantCulture, $"    {key,-20} {basis}");
+                report.AppendLine(CultureInfo.InvariantCulture, $"    {Spelled(graph, key),-20} {basis}");
             }
         }
 

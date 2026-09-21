@@ -296,7 +296,7 @@ loop, which is the common case — gets an auto-picked datum instead.
 | Kind | Set by | Fixes |
 |---|---|---|
 | **Pressure datum** | the first stated `p`, or auto-picked | The pressure zero |
-| **Pressure boundary** | `p` on a node | That node's pressure, plus an unknown external flux |
+| **Pressure boundary** | `p` on a node, or `port.p` on a component touching it (`D-124`: the binder copies it onto the node) | That node's pressure, plus an unknown external flux |
 | **Temperature boundary** | `t` on a node, or a heat exchanger's `in`/`out` | The energy datum |
 | **Flow boundary** | `flow` on a node | A known injection or extraction |
 

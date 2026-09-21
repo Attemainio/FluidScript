@@ -113,8 +113,27 @@ The quantities are the ones [`show`](show.md) and [Properties](properties.md) us
 is `in[2].t`. A `d` in front of a quantity is always its change across the component (`dp` a drop,
 `dt` and `dh` a rise); `dn` is a pipe size, not a change. Which of them a
 port takes is the component's business: an exchanger's inlet takes `t`, and its second inlet also
-`flow`, `dp` and `dt` for the whole side; a tank's takes `level`. A node has one state and no ports,
-so `t=` and `p=` are written bare on it; `N1 node in.t=50` is [`FS1537`](diagnostics.md).
+`flow`, `dp` and `dt` for the whole side; a tank's takes `level`. A quantity the port does not take
+is [`FS1538`](diagnostics.md), listing the ones it does — never a guess at the nearest one. A node
+has one state and no ports, so `t=` and `p=` are written bare on it; `N1 node in.t=50` is
+[`FS1537`](diagnostics.md).
+
+**Every port has a pressure, and it is the node's.** A component changes the state between its
+ports; it does not own a pressure of its own. `V1 valve out.p=100` is the pressure at the node
+`V1.out` is wired to — named, or the one inserted between two components — and means exactly
+
+```fluidscript
+V1 valve
+N1 node p=100
+V1 - N1
+```
+
+So `PU1 pump in.p=100` pins the suction node the way `N1 node p=100` would, and stating a node's
+pressure twice — on the node and on a port, or on two ports that meet there — is
+[`FS1539`](diagnostics.md), whichever line came second. `dp=15` on the same valve constrains only the
+difference across it and pins neither node; `out.p` pins one. A pressure pinned inside a closed loop
+is that loop's datum; two pinned inside one loop are one more than the loop can satisfy, and
+[`FS2210`](diagnostics.md) names both. `HX1.in[2].p` reads the same node's solved pressure back.
 
 Scripts written before this form used `in=`, `in2=`, `flow2=`, `t3=` and `T1.in2`. They still bind,
 to exactly the same thing, and each is pointed at the spelling above once, where it stands

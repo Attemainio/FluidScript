@@ -688,7 +688,10 @@ expects `AirHandlingUnit` to find `ahu`.
    `in[2].level`…`out[16].level`) are matched against their declared pattern before similarity,
    and an index outside the family is `FS1516` rather than a near miss. A pre-`D-120` spelling
    (`in=`, `in2=`, `t3=`) binds to the same key and reports `FS1536` with the current spelling as
-   the suggestion; a port state on a kind with unlimited unnamed ports is `FS1537`. The bound
+   the suggestion; a port state on a kind with unlimited unnamed ports is `FS1537`. A dotted name
+   whose quantity the property table names but the port does not take is `FS1538`, listing what
+   the port takes, and never a similarity match: `in.p` scores 0.75 against `in.t`, and a stated
+   pressure was read as a temperature of 300 °C under `FS1512` until `D-124` (P5.13b). The bound
    symbol stores the row's `Key`, never the written text.
    Unknown → `FS1503` listing the accepted names/patterns. The value binds
    according to `ParameterInfo.ValueKind`: a quantity is evaluated, a symbol is matched against
@@ -738,6 +741,15 @@ expects `AirHandlingUnit` to find `ahu`.
    `SemanticModel.Heights`, keyed by component name and by `pipe.port`, from which lowering reads a
    node's height and a pipe's rise. The map is derived, never a parameter: nothing here changes what
    the script states, and a script with no height in it reads 0 everywhere and means what it did.
+8c. **Propagate port pressures** (`D-124`), after inference for the same reason. Every stated
+   `port.p` (key `p_<port>`) is copied onto the `p` of the node that port is wired to — the node the
+   script named, or the one I2 inserted — as a `ParameterValue` keeping the component's span and a
+   `WrittenName` of the form `PU1 out.p`, so a diagnostic about the node's pressure and a write-back
+   to it land on the line that stated it, and `FS2210` names `PU1 out.p` rather than `HE1__PU1.p`.
+   A node whose `p` is already present — its own, or an earlier port's — is `FS1539` on the later
+   statement, agreeing or not. The component keeps its `p_<port>` value too; nothing downstream reads
+   it, and the wire's `parameters` shows the line as written. Unlike heights this *is* a statement:
+   the node's pressure is exactly as constrained as if the node had written it.
 8. **Bind attachments, control bindings, and the schedule.** Each `inlet`/`outlet` endpoint resolves against the
    the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
    the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
@@ -993,6 +1005,8 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
 | `FS1536` | A parameter, port or property written in its pre-`D-120` spelling: `in=`, `in2=`, `T1.in2`, `HX1.t_in2`. Bound as the current spelling would be; the suggestion replaces the name | Info | `'{written}' is now written '{current}'.` |
 | `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.` |
+| `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
+| `FS1539` | A node's pressure stated twice: on the node and as a port pressure of a component touching it, or by two ports on one node (`D-124`) | Error | `'{written}' states the pressure of '{node}', which '{other}' already states. State it once.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`

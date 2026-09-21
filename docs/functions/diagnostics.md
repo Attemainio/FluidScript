@@ -124,6 +124,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
 | `FS1536` | Info | Binder | '{written}' is now written '{current}'. |
 | `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='. |
+| `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
+| `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |

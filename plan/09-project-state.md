@@ -354,7 +354,7 @@ that test rather than quietly improving.
 | P2 | M1 | 10 | **Complete** | 2026-09-02 |
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
-| P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b in progress as the spelling M4 will be specified in | 2026-09-19 |
+| P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
 | P6 | M4 | 7 | Not started | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
@@ -519,6 +519,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | `19c7584` | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 | P5.10 | State visualization ([`57`](50-frontend/57-state-visualization.md), `D-117`): every available scale on the wire with every element's place on each (`ColourScales`), enthalpy and density mapped, `FS1210`/`FS1213`/`FS1214` raised; pipe gradients between the outlet left and the inlet entered, the exchanger gradient across its body, the legend with unit, 1-2-5 ticks, the switcher (no request), the band hover, degenerate and unavailable notes, stale desaturation, `Home` resetting the switch; `docs/advanced/the-canvas.md` and `show.md` | `f43774d` | Shipped 2026-09-18; `C-103` found and closed (a port read its node; an outlet now reads its own stream, `22`); not built: tank layer bands, the run-wide transient domain (M4), `57`'s wider property table |
 | P5.11 | Static export and the accessibility pass ([`59`](50-frontend/59-static-export.md), `D-118`, `D-45`): `renderExportSvg`/`exportSvg`/`exportPng` from the canvas's `SceneView` with `scene.css` resolved to the theme's literal colours (Oklab for the mixes), strokes in world units, the legend band, the value under each symbol, the provenance `<desc>`; the Export dialog and `Ctrl+E`; export goldens per sample; `SceneTable`, keyboard pan/zoom/select/card, axe-core under jsdom, the status line's landmark and the editor's accessible name fixed; `baseline.test.tsx`; `docs/advanced/exporting.md`, the canvas page's keyboard table | `d3b7323` | Shipped 2026-09-19; `F-10` opened (the browser-only checks: PNG pixels, four viewers, axe with layout, zoom, screen reader, the panning budget); the render budget is not met by extrapolation (`53`) |
+| P5.13b | The rest of `D-120`: `vflow` and `flow` as constraints (`S-72`), keyed spellings in the report (`L-56`), and a port's pressure as the touching node's (`D-124`: generated `port.p` rows, `PropagatePortPressures`, `FS1538`, `FS1539`, `FS2210` naming the pressures, `PressureStatedAs`); `docs/functions/{syntax,heat-exchanger}.md`, `reading-the-solve-report.md` | *(this commit)* | Shipped 2026-09-21. `L-56` closed; `L-59` opened (a deferred reference to a solved value is never evaluated); `in.p`→`in.t` near miss and `FS2210`'s level-paid candidate fixed with it |
 | P5.13a | Port-indexed state syntax (`D-120`): `in[n].quantity` on declarations, references, endpoints and schedule targets; `FS1119`, `FS1536`, `FS1537`; `PropertyTable`; registry rows keyed by model key with a script name; the corpus, `22` and `docs/functions/{syntax,heat-exchanger,tank,show,properties}.md` respelled; frontend tokenizer and completion | *(uncommitted, 2026-09-20)* | Shipped 2026-09-20. `L-56` opened for P5.13b (`in.p` on a component, `vflow` as a constraint, keyed spellings in the report and on the wire) |
 | Sweep 1–3 | The defect sweep after P5 (tiers 1–3, 2026-09-19): 15 entries closed across five registers -- `L-1`, `L-3`, `L-21`, `S-65`, `L-53`, `L-54`, `A-3`, `C-28`, `C-97`, `A-1`, `A-4`, `C-39`, `F-1`, `S-20`, `L-40`, `L-55`, `C-74`, `S-52` -- with `D-119` (named exchanger dimensions), `D-120` (port-indexed state syntax, P5.13 to implement), `SizingDiagnostics`, `FS1534`/`FS1535`/`FS3012`, and the dotnet-toolkit observations report | `20fccb9` | Recorded above under P5.11 |
 
@@ -962,6 +963,17 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `N1 - N2 - N1`). Six rows re-triaged rather than fixed: `C-91`, `C-54`, `C-38`, `C-36` are the
 > user's decisions, `C-47` waits on `D-82`, `S-42` got harder by its own account. Core 1936/0/3,
 > Api 59/0. Next: **P5.13b** items 1 and 3.
+> **P5.13b items 1 and 3 shipped 2026-09-21.** `L-56`: `ComponentConstraint` carries the key and
+> the spelling, the report spells its constraints, equations, sizes and branch ends, the wire keeps
+> its keys. Item 1 measured first what a stated interior `p` does (datum when alone in a closed loop;
+> `FS2210` naming the wrong row when two; over-specified on an open primary with the valve already
+> promoted) and found `HX1 in.p=300` bound as `in.t=300` under `FS1512`; then the user's rule became
+> `D-124`: a port's `p` is the touching node's, `V1 valve out.p=100` *is* `N1 node p=100`, generated
+> for every port, copied onto the node by the binder, `FS1539` when stated twice, `FS1538` for a
+> quantity the port lacks and never a near miss, `FS2210` naming `PU1 in.p, PU1 out.p`. Probing
+> `D-120`'s example read found `L-59`: `SemanticModel.Deferred` has no consumer, so
+> `head=1.2*HE1.dp` sizes the head as if absent and says nothing. One closed, one opened; 58 open.
+> Core 1948/0/3, Api 59/0, frontend 223/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -1045,8 +1057,10 @@ unassessed, not clean.
    call. Its natural next variants — one source off (`S-56`, closed: the pump dead-heads and `FS3015` says a
    check valve is what an off pump would need), a source-side mixing valve (`S-55`) — are the open entries it points at.
 3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b) and tier 4b
-   (2026-09-20) closed the seven rows the columns called fixable; next is **P5.13b** (`L-56`), then the
-   valve-sizing observation under `S-58`. Two report packages the
+   (2026-09-20) closed the seven rows the columns called fixable; P5.13b shipped 2026-09-21 (`D-124`,
+   `L-56` closed, `L-59` opened -- a deferred read of a solved value is never evaluated, which is what
+   makes every `Name.port.quantity` read inert until `31`'s step exists); next is the valve-sizing
+   observation under `S-58`, then `L-59`. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is

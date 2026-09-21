@@ -449,7 +449,8 @@ public static class WellPosedness
                         element.Name,
                         HydraulicPartition.Temperature,
                         ConstraintKind.NodeTemperature,
-                        hydraulic));
+                        hydraulic,
+                        Spelled(element, HydraulicPartition.Temperature)));
                 }
 
                 continue;
@@ -473,7 +474,7 @@ public static class WellPosedness
                 if (!off && HydraulicPartition.Stated(element, parameter) is not null)
                 {
                     constraints.Add(new ComponentConstraint(
-                        element.Name, parameter, ConstraintKind.MixedInlet, hydraulic));
+                        element.Name, parameter, ConstraintKind.MixedInlet, hydraulic, Spelled(element, parameter)));
                 }
             }
 
@@ -502,7 +503,8 @@ public static class WellPosedness
                     element.Name,
                     parameter,
                     pays ? ConstraintKind.EnthalpyLevel : ConstraintKind.FixedFlow,
-                    hydraulic));
+                    hydraulic,
+                    Spelled(element, parameter)));
             }
         }
 
@@ -539,7 +541,7 @@ public static class WellPosedness
 
                 if (pins && side is { } owned)
                 {
-                    constraints.Add(new ComponentConstraint(element.Name, parameter, ConstraintKind.FixedFlow, owned));
+                    constraints.Add(new ComponentConstraint(element.Name, parameter, ConstraintKind.FixedFlow, owned, Spelled(element, parameter)));
                 }
             }
         }
@@ -577,13 +579,20 @@ public static class WellPosedness
 
                 if (!pinned)
                 {
-                    constraints.Add(new ComponentConstraint(element.Name, pin, ConstraintKind.FixedFlow, side));
+                    constraints.Add(new ComponentConstraint(element.Name, pin, ConstraintKind.FixedFlow, side, Spelled(element, pin)));
                 }
             }
         }
 
         return constraints.ToImmutable();
     }
+
+    /// <summary>A parameter key as the script spells it on this element's kind: <c>out2</c> as <c>out[2].t</c> (<c>D-120</c>, <c>L-56</c>).</summary>
+    /// <param name="element">The element that states it.</param>
+    /// <param name="key">The model key.</param>
+    /// <returns>The script spelling, or the key when the kind is not in the registry or spells it the same.</returns>
+    private static string Spelled(IComponent element, string key) =>
+        ComponentRegistry.Default.ByKeyword(element.Kind)?.ParameterName(key) ?? key;
 
     /// <summary>The flow statements that pin a branch outright: a mass flow or a volume flow, per side (P5.13b).</summary>
     public static readonly ImmutableArray<string> StatedFlows = ["flow", "vflow", "flow2", "vflow2"];
@@ -1721,9 +1730,22 @@ public static class WellPosedness
         {
             var unmatched = counting.Constraints.Where(constraint => !absorbed.Contains(constraint)).ToArray();
 
-            var candidates = unmatched.Length > 0
-                ? unmatched.Select(static constraint => constraint.Label)
-                : Overstated(graph);
+            // A closed hydraulic stating two pressures has a level stated twice, and the row the rank
+            // analysis finds redundant is one of those two -- not the inlet the dropped enthalpy level
+            // paid for, which is what this named first (`PU1 pump in.p=100 out.p=250`, P5.13b). The
+            // levels pay for that many unmatched constraints; only the rest are candidates.
+            var doubled = hydraulics
+                .Where(static block => block.Boundaries.IsEmpty && block.StatedPressures.Length > 1)
+                .SelectMany(static block => block.StatedPressures)
+                .Select(static node => PressureLabel(node))
+                .ToArray();
+            var beyondLevels = unmatched.Skip(counting.EnthalpyLevels).Select(static constraint => constraint.Label).ToArray();
+
+            var candidates = doubled.Length > 0
+                ? doubled.Concat(beyondLevels)
+                : unmatched.Length > 0
+                    ? unmatched.Select(static constraint => constraint.Label)
+                    : Overstated(graph);
 
             // A flow nothing on its branch can change is not a statement to remove but a valve to add
             // (23's promotion rules, C-28): the second sentence names the branch by its component.
@@ -1780,7 +1802,11 @@ public static class WellPosedness
         // once a boundary carried one (D-115), so FS2210 read "remove one of: ." on a dead-end datum.
         graph.Nodes
             .Where(static node => HydraulicPartition.Stated(node.Component, HydraulicPartition.Pressure) is not null)
-            .Select(static node => $"{node.Name}.p");
+            .Select(static node => PressureLabel(node));
+
+    /// <summary>A stated node pressure as the script wrote it: <c>N2.p</c>, or <c>PU1 out.p</c> when a port stated it (<c>D-124</c>).</summary>
+    private static string PressureLabel(GraphNode node) =>
+        node.Component.PressureStatedAs ?? $"{node.Name}.p";
 
     /// <summary>What could be added to square an under-specified circuit.</summary>
     /// <param name="graph">The graph.</param>

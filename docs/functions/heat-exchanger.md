@@ -30,8 +30,9 @@ pair you must connect the other — one open is [`FS2112`](diagnostics.md), nami
 A port's state is written on the port: `in.t=40` is the temperature entering side 1, `in[2].t=85`
 the temperature entering side 2, and `HX1.in[2].t` reads it back. A side's flow, pressure drop and
 temperature change are written on its inlet — `in[2].flow`, `in[2].dp`, `in[2].dt` — since a side
-has one of each; side 1's are the bare `flow`, `dp` and `dt`. `in[1]` is `in`. The
-[syntax page](syntax.md#a-ports-state) has the rule; the old `in2=`/`flow2=` spellings still bind
+has one of each; side 1's are the bare `flow`, `dp` and `dt`. `in[1]` is `in`. Every port also
+takes `p`, which is the pressure of the node it touches (`in[2].p=360` pins the primary's inlet node
+the way `N5 node p=360` would). The [syntax page](syntax.md#a-ports-state) has the rule; the old `in2=`/`flow2=` spellings still bind
 and are pointed at the new one ([`FS1536`](diagnostics.md)).
 
 **Side 1 is the side the unindexed parameters describe.** The sides are numbered rather than named

@@ -174,7 +174,8 @@ describe("a port's state (D-120)", () => {
     const folded = at('HE1 heat_exchanger in[1].');
     expect(labels(folded.items)).toContain('t');
 
-    expect(labels(at('T1 tank in[3].').items)).toEqual(['level']);
+    // Every port has a pressure (D-124), the tank's family members included.
+    expect(labels(at('T1 tank in[3].').items).sort()).toEqual(['level', 'p']);
   });
 
   it('after in[2].t= filters values by temperature, as in.t= does', () => {

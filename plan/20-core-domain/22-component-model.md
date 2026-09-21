@@ -384,7 +384,7 @@ secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 
 **Ports:** `in`, `out` (side 1) and optional `in[2]`, `out[2]` (side 2). A port's state is written on
 the port (`in.t=60`, `in[2].flow=0.9`) and read back the same way (`HX1.in[2].t`); `in[1]` is `in`
-(`D-120`). The model keys the second side `in2`/`out2`, which is also the wire's port id and the
+(`D-120`); every port takes `p`, the touching node's pressure (*Every port has a pressure*, below). The model keys the second side `in2`/`out2`, which is also the wire's port id and the
 spelling scripts before P5.13 wrote, accepted with `FS1536`. Lowering computes exactly one mode;
 there is no script `mode=` parameter:
 
@@ -806,6 +806,16 @@ Every table above is data, read by the binder ([`15-semantic-model`](../10-langu
 write-back formatting ([`17-formatting-and-round-trip`](../10-language/17-formatting-and-round-trip.md)).
 It lives in one place per component — `ComponentKindInfo` built by each component's static
 registration — not duplicated into the binder.
+
+**Every port has a pressure, and it is not in the tables.** `D-124`: a port's `p` is the pressure of
+the node the port touches, stated as `port.p` on the component and read as `Name.port.p`, on every
+kind with named ports and every member of a port family (`in.p`, `out[2].p`, `ab.p`, a tank's
+`in[3].p`). The registry generates the row from the port list — key `p_` and the port's key (`p_in`,
+`p_out2`, `p_ab`, `p_in3`), omission `Size` as a node's own `p` is, property keyed the same — and the
+binder copies a stated value onto the touching node's `p` after inference, so the counting, the datum
+pick and `FS2210` see a stated node pressure like any other (`15` step 8c). The registry test exempts
+`.p` rows from the per-kind tables for that reason: one rule, stated here once. A component never
+carries a pressure of its own; its `dp` is a difference and pins no node.
 
 A test asserts the registry's parameter set matches this document's tables. Without it, the two
 diverge on the first component change and the divergence is invisible until a user writes a parameter

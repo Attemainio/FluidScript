@@ -83,8 +83,15 @@ public sealed partial class RegistryMatchesTheComponentModelTests
             }
 
             // The dictionary is keyed by the model's identifier (`in2`); 22 writes the script spelling (`in[2].t`).
+            // A port's pressure is one rule for every port (`D-124`), documented once in 22's port-state
+            // section rather than as a row in every table.
             foreach (var parameter in kind.Parameters.Values.Select(static info => info.Name))
             {
+                if (parameter.EndsWith(".p", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 if (!section.Parameters.Contains(parameter))
                 {
                     undocumented.Add($"{kind.Keyword}.{parameter}");
