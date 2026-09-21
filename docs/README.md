@@ -1,5 +1,8 @@
 # FluidScript documentation
 
+New to the project? [How FluidScript works, from text to picture](advanced/how-fluidscript-works.md)
+walks every stage between a script and a solved diagram and names the folder and class behind each.
+
 Three categories, and every user-visible feature has a page in exactly one of them:
 
 | Category | Holds |
