@@ -365,6 +365,12 @@
           "source": "sized",
           "basis": "Kv 4 (R5 preferred numbers) — 6.8 kPa at 0.291 l/s through the common port, inside the 3–15 kPa a mixing valve is sized to; authority 0.81 against the variable circuit"
         },
+        "leakage": {
+          "value": 0.02,
+          "unit": null,
+          "source": "default",
+          "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
+        },
         "position": {
           "value": 0.846176,
           "unit": null,
@@ -798,6 +804,12 @@
           "unit": "m3/h",
           "source": "sized",
           "basis": "Kv 4 (R5 preferred numbers) — 10.6 kPa at 0.363 l/s through the common port, inside the 3–15 kPa a mixing valve is sized to; authority 0.74 against the variable circuit"
+        },
+        "leakage": {
+          "value": 0.02,
+          "unit": null,
+          "source": "default",
+          "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         },
         "position": {
           "value": 0.819867,

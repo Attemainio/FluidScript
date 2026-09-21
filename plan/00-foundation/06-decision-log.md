@@ -177,6 +177,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-132` | Accepted | 2026-09-21 | Two circuits joined by nothing are two systems, each solved on its own; `FS2213` is information |
 | `D-133` | Accepted | 2026-09-21 | A promotion is first come, then augmented; a candidate list holds only what can move the quantity |
 | `D-134` | Accepted | 2026-09-21 | A register row carries the date it was filed and the date it closed, and no modified date |
+| `D-135` | Accepted | 2026-09-21 | A three-way valve's leg passes its body's rated leakage at the stop; 2 % by default, never under class IV |
 <!-- index:end -->
 
 ---
@@ -6165,3 +6166,38 @@ table appearing later.
 
 **Constrains.** `08` *The register's shape*, `65`'s filing, reopening and closing steps and its two
 grep lines, `check.py`, and the agent-planner templates this convention was drawn from.
+
+## D-135 · A three-way valve's leg passes its body's rated leakage at the stop; 2 % by default, never under class IV
+
+**Accepted · 2026-09-21** (the user's programme on the three-way rows, `C-71`) · amends `22` §4 and `D-122`
+
+`D-122` gave a three-way valve's linear legs 2 % of Kv at the stop so the position column would keep
+a slope there, and called the figure this project's regularisation with a physical reading. `C-71`
+found the shipped answer depending on it: a stopped consumer passes its trickle through that 2 %,
+and whether the plant it describes works was decided by a number the model did not own.
+
+**Decided.** The stop's fraction is a parameter of the body, `leakage`, on `three_way_valve` only,
+dimensionless and stated as a fraction or a percentage. **Its default is 2 %**: Belimo's
+characterised three-way bodies rate the bypass B–AB at leakage class I, 1–2 % of Kvs (EN 1349 / IEC
+60534-4), with A–AB bubble-tight, and the default takes the leakier published body because the leak
+is what keeps a shut leg's column alive and a tighter body is the one a script states. ESBE's VRG130
+rotary mixing valves are under 0.05 % mixing and 0.02 % diverting, and a script modelling one writes
+`leakage=0.05%`. **The floor is 0.01 %**, ANSI/FCI 70-2 and IEC 60534-4 class IV, whatever the script
+states: at `leakage=0` a stopped branch carries no flow and nothing determines its temperatures,
+measured on the stopped AHU as singular at iteration 2 with `FS3009` naming its three enthalpies. A
+real shut valve on a stopped branch still lets the water find a temperature, and the trickle is how
+the model finds which. An equal-percentage leg keeps its characteristic's own floor, 1/R, which is
+the characteristic's definition and not a seat (`C-18`); `leakage` is the linear leg's number.
+
+**Measured.** A stopped consumer at the default passes 0.0062 kg/s through its valve and at 0.05 %
+passes 0.0002, both converging, the second in fewer passes (3 against 5); the cooling loop moves
+from 0.520 to 0.513 at 0.05 %.
+
+**Rejected.** Making the two-way `valve` take `leakage` too: its shut position is the
+characteristic's, and the equal-percentage floor is what `C-18` decided. A floor at zero: it is the
+singular case above. A body type (`rotary`, `characterised`) carrying the leakage: one number is
+what the datasheets give and one number is what the script should write.
+
+**Constrains.** `ValveLaw.LegOpening`, `ThreeWayValve.Leakage`, the registry's `three_way_valve`
+parameter table, `docs/functions/three-way-valve.md`.
+

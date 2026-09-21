@@ -163,21 +163,26 @@ public sealed class ThreeWayValve : IFlowComponent
     /// Whether a connection reaches <c>c</c>. <see langword="false"/> makes this a two-way valve: two
     /// ports, one flow group, one Kv law, and no mass balance of its own.
     /// </param>
+    /// <param name="leakage">The fraction of <paramref name="kv"/> a leg passes at its stop, 0 to 1. The registry's default is 2 %, Belimo's B–AB leakage class I (<c>D-135</c>).</param>
     public ThreeWayValve(
         string name,
         double kv,
         double position = 1,
         ValveCharacteristic characteristic = ValveCharacteristic.Linear,
-        bool bypassConnected = true)
+        bool bypassConnected = true,
+        double leakage = ValveLaw.LegLeakage)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kv);
+        ArgumentOutOfRangeException.ThrowIfNegative(leakage);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(leakage, 1);
 
         Name = name;
         Kv = kv;
         Position = position;
         Characteristic = characteristic;
         BypassConnected = bypassConnected;
+        Leakage = leakage;
 
         // `ab` is the common port and `a`/`b` are the two switched ones, which is how valve bodies are
         // labelled: a mixing valve is A + B -> AB and a diverting valve is AB -> A + B. The names used
@@ -261,6 +266,10 @@ public sealed class ThreeWayValve : IFlowComponent
     /// </value>
     public bool BypassConnected { get; }
 
+    /// <summary>Gets the fraction of <see cref="Kv"/> a switched leg passes at its stop.</summary>
+    /// <value>Dimensionless, 0 to 1. The body's rated leakage, not the characteristic's: <c>D-135</c>.</value>
+    public double Leakage { get; }
+
     /// <inheritdoc/>
     public ImmutableArray<Port> Ports { get; }
 
@@ -317,10 +326,10 @@ public sealed class ThreeWayValve : IFlowComponent
         var kv = context.Parameter(KvIndex, Kv);
         var position = context.Parameter(PositionIndex, Position);
 
-        // `LegOpening`, not `Opening`: a linear leg keeps its 2 % at the stop so the position column
-        // survives the other leg opening fully (`D-122`).
+        // `LegOpening`, not `Opening`: a leg keeps the body's leakage at the stop so the position column
+        // survives the other leg opening fully (`D-122`, `D-135`).
         var controlledPath = -context.Flows[1] - ValveLaw.MassFlow(
-            kv * ValveLaw.LegOpening(position, Characteristic),
+            kv * ValveLaw.LegOpening(position, Characteristic, Leakage),
             common.Pressure - controlled.Pressure,
             (common.Density + controlled.Density) / 2);
 
@@ -336,7 +345,7 @@ public sealed class ThreeWayValve : IFlowComponent
         residuals[1] = controlledPath;
 
         residuals[2] = -context.Flows[2] - ValveLaw.MassFlow(
-            kv * ValveLaw.LegOpening(1 - position, Characteristic),
+            kv * ValveLaw.LegOpening(1 - position, Characteristic, Leakage),
             common.Pressure - bypass.Pressure,
             (common.Density + bypass.Density) / 2);
     }

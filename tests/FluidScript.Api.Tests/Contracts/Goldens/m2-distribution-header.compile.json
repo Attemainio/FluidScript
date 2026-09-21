@@ -297,6 +297,12 @@
           "unit": "m3/h",
           "source": "sized",
           "basis": "chosen by a sizing rule"
+        },
+        "leakage": {
+          "value": 0.02,
+          "unit": null,
+          "source": "default",
+          "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         }
       },
       "state": null,
@@ -574,6 +580,12 @@
           "unit": "m3/h",
           "source": "sized",
           "basis": "chosen by a sizing rule"
+        },
+        "leakage": {
+          "value": 0.02,
+          "unit": null,
+          "source": "default",
+          "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         }
       },
       "state": null,

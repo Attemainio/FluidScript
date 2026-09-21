@@ -165,6 +165,29 @@ public sealed class ValveAndPumpTests
     }
 
     [Fact]
+    [Trait("Category", "Unit")]
+    public void AStatedLeakageIsWhatALinearLegPassesAtItsStopDownToClassFour()
+    {
+        // `D-135`, closing `C-71`. The stop's 2 % is Belimo's B-AB leakage class I and the default; a
+        // rotary body's 0.05 % is stated and is what the leg then passes; below FCI 70-2 class IV
+        // (0.01 %) the floor holds, because a stopped branch with no trickle has no temperature. An
+        // equal-percentage leg is its own characteristic whatever the body is rated.
+        Assert.Equal(0.0005, ValveLaw.LegOpening(0, ValveCharacteristic.Linear, 0.0005), tolerance: 1e-12);
+        Assert.Equal(1, ValveLaw.LegOpening(1, ValveCharacteristic.Linear, 0.0005), tolerance: 1e-12);
+        Assert.Equal(ValveLaw.MinimumLegLeakage, ValveLaw.LegOpening(0, ValveCharacteristic.Linear, 0), tolerance: 1e-12);
+        Assert.Equal(ValveLaw.LegLeakage, ValveLaw.LegOpening(0, ValveCharacteristic.Linear, ValveLaw.LegLeakage), tolerance: 1e-12);
+        Assert.Equal(
+            ValveLaw.Opening(0, ValveCharacteristic.EqualPercentage),
+            ValveLaw.LegOpening(0, ValveCharacteristic.EqualPercentage, 0.0005),
+            tolerance: 1e-12);
+
+        var rotary = new ThreeWayValve("TV1", kv: 6.3, position: 1, leakage: 0.0005);
+
+        Assert.Equal(0.0005, rotary.Leakage);
+        Assert.Equal(ValveLaw.LegLeakage, new ThreeWayValve("TV2", kv: 6.3).Leakage);
+    }
+
+    [Fact]
     public void AThreeWayValveBalancesMassWhicheverWayItIsWired()
     {
         // Mixing: two inflows at b and c, one outflow at a. The arrangement is read from the topology,

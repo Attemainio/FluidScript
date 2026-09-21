@@ -192,6 +192,12 @@
           "source": "sized",
           "basis": "Kv 2.5 (R5 preferred numbers) — 12 kPa at 0.242 l/s through the common port, inside the 3–15 kPa a mixing valve is sized to; authority 0.83 against the variable circuit"
         },
+        "leakage": {
+          "value": 0.02,
+          "unit": null,
+          "source": "default",
+          "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
+        },
         "position": {
           "value": 0.520375,
           "unit": null,

@@ -605,6 +605,7 @@ moves through them.
 | `authority` | Dimensionless | — | 0 … 1 | Target authority for sizing |
 | `dp` | PressureDelta | kPa | 0 … 2500 | Design pressure drop, an alternative to `kv` |
 | `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Every port, `ab` included, sits at it. |
+| `leakage` | Dimensionless | fraction | 0 … 0.05 | `three_way_valve` only. What a leg passes at its stop, as a fraction of `kv`; default 2 %, Belimo's B–AB leakage class I, and never below 0.01 %, FCI 70-2 class IV (`D-135`). |
 
 **Properties:** `kv`, `dp`, `position`, `authority`, `flow`.
 
@@ -633,9 +634,11 @@ A three-way valve splits: port `a`'s flow divides between `b` and `c` per positi
 effective Kv following the complementary characteristic. **Its default characteristic is linear, not
 equal-percentage** (`D-122`): a linear pair holds Σφ = 1 over the stroke, which is what makes a mixing
 valve a constant-flow device, where an equal-percentage pair passes 28 % of the total at mid-travel. A
-three-way valve's linear leg keeps 1/R = 2 % of its Kv at its stop — the equal-percentage law's own
-φ(0) — and continues linearly through it, so the position column has a slope on the stop
-(`ValveLaw.LegOpening`); the two-way linear law is `S-26`'s, shut at 0. Mass balance across the valve —
+three-way valve's linear leg keeps its body's `leakage` at its stop — 2 % by default, which is
+Belimo's B–AB leakage class I and also the equal-percentage law's own φ(0) — and continues linearly
+through it, so the position column has a slope on the stop (`ValveLaw.LegOpening`, `D-135`); a
+stated leakage is floored at FCI 70-2 class IV, 0.01 %, because a stopped branch with no trickle has
+no temperature (`C-71`). The two-way linear law is `S-26`'s, shut at 0. Mass balance across the valve —
 `ṁ_a = ṁ_b + ṁ_c` — is the valve's own equation, not a node's, because the valve is the only element
 in the graph where a flow divides without a node
 ([`23-topology-and-graph`](23-topology-and-graph.md)).

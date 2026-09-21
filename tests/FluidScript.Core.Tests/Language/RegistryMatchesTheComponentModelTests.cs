@@ -21,15 +21,18 @@ public sealed partial class RegistryMatchesTheComponentModelTests
     /// Parameters <c>22</c> documents that the registry deliberately does not accept, with the reason.
     /// </summary>
     /// <remarks>
-    /// Both are placeholders in <c>22</c>'s tables, with no dimension and no range, for work that is
-    /// out of scope in v1. Registering them would make <c>FS1503</c> accept a name nothing reads, and
-    /// the user would get silence where they expect an effect.
+    /// The first two are placeholders in <c>22</c>'s tables, with no dimension and no range, for work
+    /// that is out of scope in v1. Registering them would make <c>FS1503</c> accept a name nothing
+    /// reads, and the user would get silence where they expect an effect. The third is a row of the
+    /// table the two valve kinds share that belongs to one of them: <c>D-135</c> rejected `leakage` on
+    /// the two-way valve, whose shut position is its characteristic's.
     /// </remarks>
     private static readonly ImmutableDictionary<string, string> DeliberatelyUnregistered =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["pipe.insulation"] = "reserved; heat loss is post-v1",
             ["pump.curve"] = "named curves arrive with the catalogue in P3.5",
+            ["valve.leakage"] = "three_way_valve only; a two-way valve's shut position is its characteristic's (D-135)",
         }.ToImmutableDictionary(StringComparer.Ordinal);
 
     [Fact]

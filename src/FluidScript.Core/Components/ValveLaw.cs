@@ -145,13 +145,53 @@ public static class ValveLaw
     /// </para>
     /// </remarks>
     public static double LegOpening(double position, ValveCharacteristic characteristic) =>
-        characteristic is ValveCharacteristic.Linear
-            ? Math.Max(0, LegLeakage + ((1 - LegLeakage) * position))
-            : Opening(position, characteristic);
+        LegOpening(position, characteristic, LegLeakage);
 
-    /// <summary>The fraction of its Kv a three-way valve's linear leg passes at its stop.</summary>
-    /// <value>Dimensionless. 1/<see cref="Rangeability"/> = 0.02, the equal-percentage law's own φ(0).</value>
+    /// <summary>What fraction of a three-way valve's Kv one of its switched legs passes at an opening, with the body's own leakage at the stop.</summary>
+    /// <param name="position">The leg's own opening, 0 shut to 1 fully open; the bypass leg reads <c>1 − position</c>.</param>
+    /// <param name="characteristic">Which characteristic the valve follows.</param>
+    /// <param name="leakage">The fraction of Kv the leg passes at its stop, dimensionless: the body's rated leakage (<c>D-135</c>).</param>
+    /// <returns>φ, dimensionless, never below zero, and never below <paramref name="leakage"/> -- or <see cref="MinimumLegLeakage"/>, whichever is larger -- inside the travel of a linear leg.</returns>
+    /// <remarks>
+    /// A linear leg is <c>leakage + (1 − leakage) · position</c>, floored at zero past the stop so the
+    /// column stays alive one difference step beyond it (<c>D-122</c>). An equal-percentage or
+    /// quick-open leg is its characteristic unchanged: equal percentage carries its own floor,
+    /// <c>1/R</c> at the stop, which is the characteristic's definition and not a seat (<c>C-18</c>),
+    /// and a stated leakage does not alter it. The leakage is the linear leg's, which is what a
+    /// three-way valve's legs are unless the script says otherwise.
+    /// </remarks>
+    public static double LegOpening(double position, ValveCharacteristic characteristic, double leakage)
+    {
+        var floor = Math.Clamp(leakage, MinimumLegLeakage, 1);
+
+        return characteristic is ValveCharacteristic.Linear
+            ? Math.Max(0, floor + ((1 - floor) * position))
+            : Opening(position, characteristic);
+    }
+
+    /// <summary>The fraction of its Kv a three-way valve's leg passes at its stop when the script states no <c>leakage</c>.</summary>
+    /// <value>
+    /// Dimensionless. 0.02: Belimo's characterised three-way bodies rate the bypass B–AB at leakage
+    /// class I, 1–2 % of Kvs (EN 1349 / EN 60534-4), with the control path A–AB bubble-tight; ESBE's
+    /// VRG130 rotary bodies are under 0.05 % mixing and 0.02 % diverting. The default is the leakier
+    /// published body, because the leak is what keeps a shut leg's column alive and a script that
+    /// models a tighter body states it (<c>D-135</c>, <c>C-71</c>). It is also 1/<see cref="Rangeability"/>,
+    /// the equal-percentage law's own φ(0), so a closed leg passes the same 2 % whichever
+    /// characteristic the script chose.
+    /// </value>
     public const double LegLeakage = 1 / Rangeability;
+
+    /// <summary>The least a three-way valve's leg passes at its stop, whatever <c>leakage</c> the script states.</summary>
+    /// <value>
+    /// Dimensionless. 1e-4: ANSI/FCI 70-2 and IEC 60534-4 class IV, 0.01 % of rated capacity, the
+    /// tightest class a metal-seated control valve is ordinarily built to. Below it the model has no
+    /// answer to give: a stopped consumer's branch carries only its valve's leakage, and at
+    /// <c>leakage=0</c> nothing determines that branch's temperatures -- measured on the stopped AHU,
+    /// singular at iteration 2 with `FS3009` naming its three enthalpies. A real shut valve on a
+    /// stopped branch still lets the water find a temperature; the model needs the trickle to say
+    /// which (<c>D-135</c>).
+    /// </value>
+    public const double MinimumLegLeakage = 1e-4;
 
     /// <summary>The mass flow the Kv relation gives at a pressure drop.</summary>
     /// <param name="effectiveKv">Kv · φ(position), in m³/h at 1 bar.</param>

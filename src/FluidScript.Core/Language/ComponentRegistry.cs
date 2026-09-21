@@ -657,7 +657,8 @@ public sealed class ComponentRegistry : IComponentRegistry
         ParameterGroups = ValveGroups(),
         Parameters = ValveParameters(
             characteristic: "linear",
-            characteristicBasis: "a mixing valve's legs open complementarily, so the total flow holds"),
+            characteristicBasis: "a mixing valve's legs open complementarily, so the total flow holds",
+            leakage: true),
         Properties = ValveProperties(),
     };
 
@@ -869,18 +870,40 @@ public sealed class ComponentRegistry : IComponentRegistry
     // equal-percentage as an actuator option. `characteristic=equal_percentage` still states the other.
     private static ImmutableDictionary<string, ParameterInfo> ValveParameters(
         string characteristic = "equal_percentage",
-        string characteristicBasis = "the usual choice for a control valve") => Parameters(
-        Sized("kv", Dimension.Kv, 0.01, 10000, precision: 2),
-        Sized("position", Dimension.Dimensionless, 0, 1, precision: 3)
-            with { Validity = Bounded(BinderDiagnostics.PositionOutsideRange, 0, 1) },
-        Symbol(
-            "characteristic",
-            ["linear", "equal_percentage", "quick_open"],
-            characteristic,
-            characteristicBasis),
-        Sized("authority", Dimension.Dimensionless, 0, 1, precision: 2),
-        Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1),
-        Elevation());
+        string characteristicBasis = "the usual choice for a control valve",
+        bool leakage = false) => Parameters(
+        [
+            Sized("kv", Dimension.Kv, 0.01, 10000, precision: 2),
+            Sized("position", Dimension.Dimensionless, 0, 1, precision: 3)
+                with { Validity = Bounded(BinderDiagnostics.PositionOutsideRange, 0, 1) },
+            Symbol(
+                "characteristic",
+                ["linear", "equal_percentage", "quick_open"],
+                characteristic,
+                characteristicBasis),
+            Sized("authority", Dimension.Dimensionless, 0, 1, precision: 2),
+            Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1),
+            Elevation(),
+
+            // A three-way body's legs are never quite shut: what a leg passes at its stop is the body's
+            // rated leakage, a catalogue figure and not the characteristic's floor (`D-135`, `C-71`).
+            // Belimo's characterised three-way bodies rate B-AB at leakage class I, 1-2 % of Kvs, with
+            // A-AB bubble-tight; ESBE's VRG130 rotary bodies are under 0.05 %. The default is the
+            // leakier published body; a script modelling a rotary body states `leakage=0.05%`.
+            .. leakage
+                ? new[]
+                {
+                    Defaulted(
+                        "leakage",
+                        Dimension.Dimensionless,
+                        0,
+                        0.05,
+                        "2 %",
+                        "Belimo's bypass at leakage class I; a rotary body is under 0.05 %",
+                        precision: 4),
+                }
+                : [],
+        ]);
 
     private static ImmutableDictionary<string, PropertyInfo> ValveProperties() => Properties(
         Sized("kv", Dimension.Kv),

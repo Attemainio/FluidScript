@@ -49,14 +49,33 @@ TV1.b - N3
 ## Parameters
 
 The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`, and
-`elevation` — one height for all three ports; see [`node`](node.md#height).
+`elevation` — one height for all three ports; see [`node`](node.md#height) — plus one of its own,
+`leakage`: the fraction of `kv` a leg still passes at its stop.
 
 One default differs. A three-way valve's `characteristic` is **`linear`** where a two-way valve's is
 `equal_percentage`: its two legs open complementarily, so a linear pair keeps the total flow through
 the valve constant over the stroke — which is what a mixing valve is for — while an equal-percentage
 pair passes only 28 % of it at mid-travel. Write `characteristic=equal_percentage` for a valve built
-that way. A linear leg keeps 2 % of the coefficient at its stop, the same as an equal-percentage leg
-does, so a "closed" leg is never quite shut on either.
+that way.
+
+### A shut leg still leaks, and how much is the body's
+
+No three-port body shuts a leg completely, and what it passes at the stop is a catalogue figure:
+Belimo's characterised three-way valves rate the bypass B–AB at leakage class I, 1–2 % of Kvs (EN
+1349 / IEC 60534-4), with the control path bubble-tight; ESBE's VRG130 rotary mixing valves are
+under 0.05 % mixing and 0.02 % diverting. `leakage` is that figure, as a fraction of `kv`, and both
+legs pass it at their stops. **The default is 2 %**, the leakier published body; a rotary valve is
+written `leakage=0.05%`. It is a small number with a visible effect only where a leg is shut: a
+consumer that is off passes its trickle through the valve, 0.0062 kg/s at the default and 0.0002 at a
+rotary body's rating, and the position the solve reports at the stop does not change.
+
+Below 0.01 % — FCI 70-2 class IV, the tightest a metal seat is ordinarily built to — the model
+holds the trickle at 0.01 % whatever you state, `leakage=0` included. A stopped branch has no flow
+but its water still has a temperature, and the trickle is how the model finds it: at zero the
+solve is singular with nothing determining that branch's temperatures.
+
+An `equal_percentage` leg is its own characteristic at the stop, 2 %, whatever the body is rated;
+`leakage` is the linear leg's number.
 
 `position` means the same in both: **1 is fully open between `ab` and `a`**, whichever way the fluid
 happens to run.

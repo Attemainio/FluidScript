@@ -391,7 +391,8 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
                 // `c` before the A/B/AB rename shifted every letter -- so this names a different port
                 // than it used to, and it is the one place where getting that backwards would silently
                 // turn every three-way valve in the corpus into a two-way.
-                bypassConnected: wiring.Connections > 2 || wiring.Names("b"))
+                bypassConnected: wiring.Connections > 2 || wiring.Names("b"),
+                leakage: Value(symbol, kind, "leakage") ?? ValveLaw.LegLeakage)
             {
                 StatedParameters = stated,
                 SizedParameters = sized,

@@ -1686,6 +1686,24 @@
           "displayPrecision": 2
         },
         {
+          "name": "leakage",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "2 %",
+          "defaultBasis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %",
+          "usualRange": {
+            "min": 0,
+            "max": 0.05
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 4
+        },
+        {
           "name": "position",
           "aliases": [],
           "valueKind": "quantity",
