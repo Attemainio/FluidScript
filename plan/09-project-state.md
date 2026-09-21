@@ -1014,6 +1014,12 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > on the way found five closed rows the day's earlier closures had dropped. `C-111` stays open on the
 > language decision; R6 waits for a feature to open the binder. Nothing closed, nothing opened; 54 open.
 
+> **`C-93` closed by `D-132`** (the same day, advancing on the session's recommendation): two
+> circuits joined by nothing are two systems. Measured before deciding: with `FS2213` silenced the
+> ladder's two-loops script counted 30/30 and converged in 4 iterations with a datum and a level per
+> hydraulic, so the error was the only barrier. `FS2213` is information now; step 11a solves and its
+> marker is gone. One closed; 53 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.

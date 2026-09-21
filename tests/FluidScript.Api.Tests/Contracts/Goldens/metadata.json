@@ -4754,9 +4754,9 @@
     },
     {
       "code": "FS2213",
-      "severity": "error",
+      "severity": "info",
       "area": "Topology",
-      "message": "'{list}' are not connected to the rest of the circuit.",
+      "message": "'{list}' are connected to nothing else and are solved as a system of their own.",
       "arguments": [
         "list"
       ]

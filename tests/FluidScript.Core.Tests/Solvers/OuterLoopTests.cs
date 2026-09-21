@@ -224,18 +224,20 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
-    public async Task AScriptWhoseComponentsAreNotConnectedIsToldSoRatherThanThrowing()
+    public async Task AScriptThatCannotBeSolvedIsToldSoRatherThanThrowing()
     {
         // `S-28`. `m1-syntax-reference` is 18 unknowns for 19 equations, and says in its own header that
         // it is not a solvable circuit. The counting table's verdict was never consulted before the
         // system was assembled, so `DenseLu.Factor` threw `ArgumentException` on a Jacobian that was not
         // square -- a pipeline stage throwing on user input, which the contract forbids outright.
+        // Until `D-132` the refusal's first clause was the isolated-subgraph error; that is information
+        // now, and the refusal names the over-specification instead. What is pinned is the refusal.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m1-syntax-reference.fluid"));
         var result = await Loop().RunAsync(
             GraphFixture.Bind(source), Water.Instance, "reference", TestContext.Current.CancellationToken);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains("not connected", result.Error!.Message, StringComparison.Ordinal);
+        Assert.Contains("Could not evaluate a solution", result.Error!.Message, StringComparison.Ordinal);
     }
 
     [Fact]

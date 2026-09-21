@@ -171,10 +171,11 @@ than one hydraulically connected part**, and that is correct rather than an erro
 datum and its own mass balance, while the *energy* equations span both, because that is exactly what
 the exchanger couples.
 
-So two circuits sharing only an exchanger are not reported. Two circuits sharing nothing at all are:
+So two circuits sharing only an exchanger are not reported. Two circuits sharing nothing at all are
+each a system of their own, solved on their own with their own datum, and the report says so:
 
 ```
-FS2213  'HE_RAD, TV_RAD, PU_RAD' are not connected to the rest of the circuit.
+FS2213  'HE_RAD, TV_RAD, PU_RAD' are connected to nothing else and are solved as a system of their own.
 ```
 
 ## The rest of what it says
@@ -188,7 +189,7 @@ FS2213  'HE_RAD, TV_RAD, PU_RAD' are not connected to the rest of the circuit.
 | `FS2210` | More demands than freedoms | Remove one of the named statements, or add what could absorb it |
 | `FS2211` | Fewer demands than freedoms | Add one of the named boundary conditions. On a closed circuit it is usually a temperature |
 | `FS2212` | Two pressures forced equal, set differently | Remove one, or put something between them |
-| `FS2213` | A part connected to nothing | Connect it, or move it to its own file |
+| `FS2213` | A part connected to nothing else, solved as its own system | Nothing, if you meant two systems in one file. Connect it if you did not |
 | `FS2214` | A loop with no pump | Check whether a pump is on the wrong leg. The loop will carry no flow |
 | `FS2215` | A stated temperature or pressure the fluid cannot be at | Correct the value, or change the fluid |
 | `FS2216` | A two-sided component was tagged into a circuit arbitrarily | Nothing, unless the grouping on the diagram matters to you |

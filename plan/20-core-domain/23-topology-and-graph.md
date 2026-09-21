@@ -318,7 +318,8 @@ hydraulic parts.
 
 So the existing rules carry over unchanged and need no per-circuit variants: one pressure datum per
 *hydraulic connected component* (not per circuit), mass balance per hydraulic component, one energy
-system over every node in the model, `FS2213` only for a subgraph coupled by nothing at all.
+system over every node in the model, `FS2213` -- information, since `D-132` -- only for a subgraph
+coupled by nothing at all, which is then a system of its own.
 
 Because identifiers are unique across the model (`D-41`), an attachment endpoint is an ordinary
 symbol-table lookup with no qualification: `inlet N3` finds the one `N3` there is. Had names been
@@ -398,7 +399,7 @@ substation reference circuit). The rules follow from taking "connected" to mean 
 | Pressure datum | **One per hydraulic component.** The substation's primary gets its datum from `NPS p=600`; its secondary states no pressure and gets an auto-picked one with `FS2201`. |
 | Mass balance | Per hydraulic component, with its own redundancy rule — a closed one drops a balance, an open one does not. Both mechanisms can apply in the same solve, to different components. |
 | Energy balance | **Spans them.** One energy system over every node in the model, because that is exactly what the exchanger couples. |
-| `FS2213` (isolated subgraph) | Fires only when a hydraulic component is coupled to the rest by **nothing** — no shared node *and* no shared component. A subgraph reachable through a two-sided exchanger is not isolated. |
+| `FS2213` (isolated subgraph) | Information (`D-132`, `C-93`): fires only when a hydraulic component is coupled to the rest by **nothing** — no shared node *and* no shared component — and says that the part is solved as a system of its own, with its own datum and level. A subgraph reachable through a two-sided exchanger is not isolated. Two `circuit` blocks joined by nothing are the ordinary case, not an error. |
 | `FS2214` (loop with no driver) | Per hydraulic component, unchanged. |
 
 **The energy block spanning what the pressure block does not is the whole structural content of
@@ -480,7 +481,7 @@ than in the linear algebra.
 | Fluid that enters a circuit can leave it | A boundary with no counterpart | `FS2204` |
 | `FS2205` | A boundary node with more than one connection | Error | `'{node}' is an {kind} with {count} connections. A boundary has one; split or merge the flow at a node after it.` |
 | Two stated pressures in one loop with no through-flow path between them | A second, contradictory datum | `FS2212` |
-| Every branch is reachable from the pressure datum | Isolated subgraph | `FS2213` |
+| Every branch is reachable from its own hydraulic's pressure datum | A fragment with no datum | `FS2201` picks one; `FS2213` (information) names a fragment coupled to nothing |
 | No node has exactly one connection without being an `inlet` or `outlet` | Dead end | `FS2107` |
 | Every loop lies in a block with a flow-driving component or a boundary pair | A passive block can only have zero flow | `FS2214` (**warning**) |
 | Substance is resolvable and every state is inside its valid range at the initial guess | | `FS2215` |

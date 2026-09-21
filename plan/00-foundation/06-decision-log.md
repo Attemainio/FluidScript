@@ -174,6 +174,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-129` | Accepted | 2026-09-21 | The copper catalogue is the Finnish type-approved range |
 | `D-130` | Accepted | 2026-09-21 | A constraint is absorbed by the first free actuator in kind order, nearest first within a kind, claimed once |
 | `D-131` | Accepted | 2026-09-21 | Core's shared seams are where their questions are answered, and nothing re-derives them |
+| `D-132` | Accepted | 2026-09-21 | Two circuits joined by nothing are two systems, each solved on its own; `FS2213` is information |
 <!-- index:end -->
 
 ---
@@ -6051,3 +6052,29 @@ files.
 
 **Constrains.** Every file named above; a review finding that one of these questions is answered
 elsewhere is a defect row, not a style note.
+
+## D-132 · Two circuits joined by nothing are two systems, each solved on its own; `FS2213` is information
+
+**Accepted · 2026-09-21** (the session's call under the user's delegation) · closes `C-93`
+
+The language has separate `circuit` blocks and groups of them (`D-33`) so that a project may hold
+several systems, and the ladder's step 11a puts two of them in one file. `FS2213` refused it as
+"two unrelated models in one file". `23` already counts a datum, a mass balance and a dropped level
+per *hydraulic component*, and `D-17` allowed more than one for the substation; the only thing that
+kept two unjoined fragments from solving was the error.
+
+**Decided.** A hydraulic component coupled to the rest of the model by nothing is a system of its
+own and is counted, seeded and solved as one, with its own datum (stated or picked with `FS2201`)
+and its own dropped level. `FS2213` stays, as information: it names the fragment so a reader who
+meant one system sees that the file holds two. The check keys on the fragment, not on the `circuit`
+block: a block whose components fall into two fragments is two systems, and two blocks joined by a
+shared node are one.
+
+**Measured.** `step-11a-two-loops.fluid`: 30 unknowns, 30 equations, converged in 4 iterations to
+7.2e-10; `[0]` open, datum `N1` stated, two boundaries; `[1]` closed, datum `CV_H__PU_H` picked,
+one level dropped; `PU_H.head` 4.28 m, `PU_C.head` 2.48 m; each hydraulic's heat balance net zero.
+Nothing else in the corpus or the ladder moved.
+
+**Constrains.** `TopologyDiagnostics.IsolatedSubgraph`, `WellPosedness.ReportIsolation`, `23`'s
+table and invariant, `29` step 11a, `docs/advanced/why-a-circuit-has-one-answer.md`,
+`docs/functions/diagnostics.md`.

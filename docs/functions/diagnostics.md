@@ -159,7 +159,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}{advice}. |
 | `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
 | `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |
-| `FS2213` | Error | Topology | '{list}' are not connected to the rest of the circuit. |
+| `FS2213` | Info | Topology | '{list}' are connected to nothing else and are solved as a system of their own. |
 | `FS2214` | Warning | Topology | Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg? |
 | `FS2215` | Error | Topology | {substance} cannot be at {state}. |
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |

@@ -1,3 +1,4 @@
+using FluidScript.Fixtures;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Fluids;
@@ -231,10 +232,24 @@ public sealed class WellPosednessTests
     }
 
     [Fact]
+    public void TwoIndependentCircuitsInOneProjectEachSolveOnTheirOwn()
+    {
+        // `C-93`, `D-132`. Two `circuit` blocks joined by nothing are two systems: each counts with its
+        // own datum (one stated, one picked) and its own dropped level, and FS2213 only says so.
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Root, "tests", "FluidScript.Core.Tests", "Layout", "Ladder", "step-11a-two-loops.fluid"));
+        var result = Check(source);
+
+        Assert.True(result.CanSolve, string.Join("; ", Codes(result)));
+        Assert.Equal(2, result.Hydraulics.Length);
+        Assert.Contains("FS2213", Codes(result));
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Severity == DiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void RemovingTheExchangerLeavesTwoGenuinelyIsolatedSubgraphs()
     {
         // The other half of the same check: without the shared component nothing couples the sides, and
-        // FS2213 must still catch what it was written for.
+        // FS2213 still names them -- as information now (`D-132`), since each side is a system of its own.
         var split = Substation
             .Replace("NPS - PCV - PP - HX1.in[2]", "NPS - PCV - PP - NPX", StringComparison.Ordinal)
             .Replace("HX1.out[2] - NPR", "NPX - NPR", StringComparison.Ordinal)

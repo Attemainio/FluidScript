@@ -143,19 +143,20 @@ public static class TopologyDiagnostics
         "'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for "
         + "flow to take. Remove one, or connect them.");
 
-    /// <summary>A subgraph coupled to the rest of the model by nothing at all.</summary>
-    /// <value><c>FS2213</c>, an error.</value>
+    /// <summary>A subgraph coupled to the rest of the model by nothing at all: a system of its own, solved on its own.</summary>
+    /// <value><c>FS2213</c>, information.</value>
     /// <remarks>
     /// <strong>More than one hydraulic connected component is legal</strong> (<c>D-17</c>): a rated
     /// exchanger joins two streams that never mix, and the substation's primary and secondary share no
-    /// node. This fires only when a subgraph shares no node <em>and</em> no component with the rest,
-    /// which is the difference between two circuits coupled by heat and two circuits that are two
-    /// unrelated models in one file.
+    /// node. This fires only when a subgraph shares no node <em>and</em> no component with the rest.
+    /// Until <c>D-132</c> that was an error, "two unrelated models in one file"; a project may hold
+    /// several independent systems (<c>D-33</c>), and each fragment already counts, seeds and solves
+    /// with its own datum and its own dropped level (<c>C-93</c>), so this now only says so.
     /// </remarks>
     public static DiagnosticDescriptor IsolatedSubgraph { get; } = new(
         "FS2213",
-        DiagnosticSeverity.Error,
-        "'{list}' are not connected to the rest of the circuit.");
+        DiagnosticSeverity.Info,
+        "'{list}' are connected to nothing else and are solved as a system of their own.");
 
     /// <summary>A loop with no component that can drive flow around it.</summary>
     /// <value><c>FS2214</c>, a warning.</value>

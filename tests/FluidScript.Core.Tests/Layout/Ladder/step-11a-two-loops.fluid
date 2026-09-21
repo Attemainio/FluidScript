@@ -1,4 +1,3 @@
-# does not bind: C-93 -- two independent circuits in one project are refused as one disconnected circuit; the solve gate expects the refusal until the defect closes.
 # Layout ladder, step 11a (plan/20-core-domain/29-layout-ladder.md): two independent circuits in
 # one script -- step 4's heating loop and step 6's cooling loop, renamed apart. Nothing connects
 # them; the question is how the drawing arranges one against the other.

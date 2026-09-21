@@ -762,6 +762,13 @@ to be approached small, two closed loops first, the rest added gradually.
 `step-11a-two-loops.fluid`: step 4's heating loop and step 6's cooling loop as two `circuit`
 blocks, renamed apart, nothing joining them.
 
+**Solved (2026-09-21, `C-93` closed by `D-132`):** the script had carried `# does not bind` because
+`FS2213` refused a fragment joined to nothing. With the refusal made information the script counts
+square at 30/30 and converges in 4 iterations: two hydraulics, the cooling loop open with `N1`'s
+stated datum and the heating loop closed with `CV_H__PU_H` picked, each dropping its own level;
+`PU_H` solved to 4.28 m and `PU_C` to 2.48 m, the heat account balanced in each. Nothing in the
+counting or the seed had to change; the machinery was already per fragment.
+
 **Drawn (2026-09-17):** C17. `Fragments` finds the graph's connected fragments and orders them by
 the script position of their first declared component (the engine's own order walks from the
 pressure datum, which put the cooling loop first on the first try); each fragment is laid out by
