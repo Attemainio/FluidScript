@@ -552,6 +552,61 @@ row first guessed. What the balancing valve buys is the valve's travel and a sec
 holds as the valve moves, which is what VM-12 calls the design requirement.[^vm12] The message says
 "would level the legs and leave the valve its travel" and nothing about the pump.
 
+#### A `valve` on a switched leg is set to level the legs
+
+**The language sizes the balancing valve, and it does so as a setting rather than a selection**
+(`C-111`, second part, 2026-09-21). A `valve` with no stated `kv` whose branch ends at a three-way
+valve's `a` or `b` port is a bypass balancing valve, and `OuterLoop.BypassValves` sets it each pass:
+the drop it must take is what it drops now plus the imbalance `BypassBalance.Read` measures at the
+three-way valve's ports, signed toward its own leg, and its Kv is `ValveLaw.RequiredKv` of that drop
+at the leg's solved flow. Nothing rounds it. A balancing valve is set to a measured drop at
+commissioning, read off the maker's Kv-per-turn curve -- IMI TA's STAD is set by turns of its
+handwheel, and its sizing example picks the setting from the Kv the flow and drop give[^stad] -- so a
+catalogue step would be a fiction. The `ValveSizer` does not touch it, because authority is a
+control-valve criterion (`C-49`), and it reports no authority for it.
+
+**The fixed point is the setting at which the legs are level.** Each pass re-reads the imbalance
+with the previous setting in place, so the setting converges as the passes do: measured on the
+one-branch ring, `BV_AHU` goes 4.99 (the bootstrap) to 0.75 to 0.75, three passes, 7 + 5 + 2
+iterations, and `TV_AHU` from 0.79 to **0.674**, which is the primary draw's share of the coil flow
+(0.1914 of 0.2871) -- the position a linear pair takes when both legs see the same pressure. Both
+legs read 6.50 kPa. On the parallel header both valves settle the same way (Kv 0.75 and 0.89), and
+on the cooling loop, whose `3WV` diverts, the valve on the return leg is set to Kv 1.4 dropping
+17.8 kPa and the three-way valve sits at 0.311, its recirculation share, with 11.52 kPa across
+each leg: the reading is the same arithmetic with the sign turned. `FS4011` is silent on all three.
+
+**The bootstrap does not set it from the seed.** The seed's pressure walk caps each component
+(`S-47`) and so understates a ring's cost -- on the series header it reads 8.6 kPa where the solve
+finds 32 -- and a balancing valve set to the seed's guess is a guess the first solve is then held to.
+Nor can it be left fully open: the provisional Kv is the catalogue's largest, 630, which at
+0.239 kg/s drops 0.19 Pa, inside the Kv law's regularised band, and the first solve creeps on that row
+to its cap. The bootstrap therefore sets it to **3 kPa at the seed's leg flow**, `balancing.dp_min`:
+the least drop a balancing valve is ever set to, because below it the differential cannot be
+measured accurately[^stad-min]. It is written provisional (`D-96`), and the first solved pass
+replaces it.
+
+**A valve on the harder leg is left at that opening**, with a basis saying which leg the balancing
+valve belongs on and `FS4011` still naming the bypass: there is nothing on the harder path to
+absorb, and a rule that closed the valve anyway would be raising the pump head to no purpose.
+
+**What it does not do.** The series header (`step-08b`) with a valve on the radiators' bypass does
+not converge in its first pass from the cold seed, at the 3 kPa opening or at the seed's guess, and
+the fault is the solver's, not the rule's: with the Kv *stated* the same first pass takes 5 iterations
+at Kv 2.95, 6 at 2.96, 11 at 1.53 and 5 at 20, but 34 at 2.9, 46 at 2.94 and 44 at 2.9467 -- a cold
+Newton on that ring is erratic in the bypass leg's resistance, creeping under reduced steps with
+`TV_AHU`'s Kv law leading and `PU_RAD.head` moving. `S-74` holds the sweep. The rule is right
+wherever the first pass converges.
+
+[^stad]: IMI Hydronic Engineering, *STAD balancing valve* technical guide: "Kvs = m³/h at a pressure
+    drop of 1 bar with fully open valve"; the presetting example takes DN 25 at 1.6 m³/h and 10 kPa
+    to Kv 5 and reads 2.35 turns off the curve; four turns is fully open.
+    https://digitalassets.reecegroup.com.au/m/f9c60cad5113c3a8/original/Technical-Guide-TA-Balancing-Valve-STAD.pdf
+
+[^stad-min]: The same guide, and TA's *Balancing valves* series 786-789 data: a minimum of 3 kPa
+    across the valve, because "differential pressure-type balancing valves become more subject to
+    inaccuracies due to limitations of typical manometers when operated at differential pressures
+    below 3 kPa". https://www.southernpipe.com/ASSETS/DOCUMENTS/CMS/EN/VTL786D_1.pdf
+
 **On the corpus the warning fires on every bare bypass** -- `m2-cooling-loop`'s `3WV` (18.9 kPa
 against 12.0), both header valves on every ladder header, `TV_MAIN` on the mixed header -- because
 none of those scripts has a balancing valve. That is the finding, not noise: the scripts are the
@@ -961,6 +1016,11 @@ three of those numbers are engineering, and one is a guess.
 - [x] A three-way valve whose legs differ by more than its full-open drop raises `FS4011` naming the
       balancing valve's leg, drop and Kv; one inside the line is silent: asserted on the ladder's series
       header, `TV_RAD` at 32.0 kPa against 7.6 (Kv 1.53) and `TV_AHU` at 6.5 against 7.5 (`C-111`).
+- [x] A `valve` with no `kv` on a three-way valve's switched leg is set, pass by pass, to the drop that
+      levels the legs, unrounded, and the three-way valve settles at its ratio: the one-branch ring's
+      `BV_AHU` at Kv 0.75 with `TV_AHU` at 0.674 and both legs at 6.5 kPa; the cooling loop's diverting
+      `3WV` at 0.31 with `BV1` at Kv 1.4; a valve on the harder leg kept at its 3 kPa opening and told
+      where it belongs; `FS4011` silent once level (`C-111`).
 - [ ] No sizable parameter survives the loop still holding its bootstrap provisional without saying so
       — the basis names it as provisional and a note explains that no rule chose it (`C-60`).
 - [ ] Every sized value in every sample carries a non-empty basis.

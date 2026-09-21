@@ -50,45 +50,16 @@ public static class BypassBalance
         ArgumentNullException.ThrowIfNull(solution);
 
         var ports = PortMap.Build(graph);
-        var values = solution.Values;
         ImmutableArray<ImmutableArray<SolvedPort?>>? solved = null;
         var said = ImmutableArray.CreateBuilder<Diagnostic>();
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
-            if (graph.Components[index] is not ThreeWayValve { BypassConnected: true } three)
+            if (graph.Components[index] is not ThreeWayValve three
+                || Read(graph, ports, layout, solution.Values.AsSpan(), index) is not { } legs)
             {
                 continue;
             }
-
-            var common = ports[index, 0];
-            var legA = ports[index, 1];
-            var legB = ports[index, 2];
-
-            if (!common.CarriesFlow || !legA.CarriesFlow || !legB.CarriesFlow
-                || common.Node < 0 || legA.Node < 0 || legB.Node < 0)
-            {
-                continue;
-            }
-
-            var intoA = legA.Sign * values[layout.BranchFlow(legA.Branch)];
-            var intoB = legB.Sign * values[layout.BranchFlow(legB.Branch)];
-
-            // Mixing when both switched legs enter, diverting when both leave. A leg carrying nothing,
-            // or the two legs disagreeing, is a valve doing something else and is not this report's.
-            var mixing = intoA > Tolerances.FlowZero && intoB > Tolerances.FlowZero;
-            var diverting = intoA < -Tolerances.FlowZero && intoB < -Tolerances.FlowZero;
-
-            if (!mixing && !diverting)
-            {
-                continue;
-            }
-
-            var atCommon = values[layout.NodePressure(common.Node)];
-            var direction = mixing ? 1 : -1;
-            var dropA = direction * (values[layout.NodePressure(legA.Node)] - atCommon);
-            var dropB = direction * (values[layout.NodePressure(legB.Node)] - atCommon);
-            var imbalance = dropB - dropA;
 
             solved ??= SolvedStates.Ports(graph, layout, solution);
 
@@ -98,23 +69,21 @@ public static class BypassBalance
             }
 
             var kv = SolvedStates.Resolved(layout, solution, three.Name, "kv", three.Kv);
-            var fullOpen = ValveLaw.PressureDrop(kv, state.Flow, state.Density);
-            var line = Math.Max(fullOpen, SizingDefaults.ThreeWayDropMinimum);
+            var line = Line(kv, state.Flow, state.Density);
 
-            if (!double.IsFinite(line) || Math.Abs(imbalance) <= line)
+            if (!double.IsFinite(line) || Math.Abs(legs.Imbalance) <= line)
             {
                 continue;
             }
 
             // The easy leg is the one the valve throttles: the one with the larger drop across it.
-            var easy = imbalance > 0 ? 2 : 1;
-            var easyDrop = imbalance > 0 ? dropB : dropA;
-            var easyFlow = Math.Abs(imbalance > 0 ? intoB : intoA);
-            var easyBinding = imbalance > 0 ? legB : legA;
-            var branch = graph.Branches[easyBinding.Branch];
+            var easy = legs.Imbalance > 0 ? 2 : 1;
+            var easyDrop = legs.Imbalance > 0 ? legs.DropB : legs.DropA;
+            var easyFlow = legs.Imbalance > 0 ? legs.FlowB : legs.FlowA;
+            var branch = graph.Branches[ports[index, easy].Branch];
             var far = ReferenceEquals(branch.From.Element, three) ? branch.To : branch.From;
             var position = SolvedStates.Resolved(layout, solution, three.Name, "position", three.Position);
-            var balancing = ValveLaw.RequiredKv(easyFlow, Math.Abs(imbalance), state.Density);
+            var balancing = ValveLaw.RequiredKv(easyFlow, Math.Abs(legs.Imbalance), state.Density);
 
             said.Add(Diagnostic.Create(
                 DesignDiagnostics.LegsUnbalanced,
@@ -124,7 +93,7 @@ public static class BypassBalance
                 new DiagnosticArgument("other", three.Ports[easy == 2 ? 1 : 2].Name),
                 new DiagnosticArgument("drop", Kilopascals(easyDrop)),
                 new DiagnosticArgument("position", position.ToString("0.00", CultureInfo.InvariantCulture)),
-                new DiagnosticArgument("imbalance", Kilopascals(Math.Abs(imbalance))),
+                new DiagnosticArgument("imbalance", Kilopascals(Math.Abs(legs.Imbalance))),
                 new DiagnosticArgument("band", Kilopascals(line)),
                 new DiagnosticArgument("where", far.Label),
                 new DiagnosticArgument("flow", easyFlow.ToString("0.###", CultureInfo.InvariantCulture)),
@@ -136,5 +105,79 @@ public static class BypassBalance
         return said.ToImmutable();
     }
 
+    /// <summary>The imbalance a three-way valve is allowed before it is reported: its full-open drop at the common flow, never under <see cref="SizingDefaults.ThreeWayDropMinimum"/>.</summary>
+    /// <param name="kv">The valve's rated Kv, m³/h at 1 bar.</param>
+    /// <param name="commonFlow">kg/s through the common port; its magnitude is used.</param>
+    /// <param name="density">kg/m³.</param>
+    /// <returns>Pa.</returns>
+    public static double Line(double kv, double commonFlow, double density) =>
+        Math.Max(ValveLaw.PressureDrop(kv, commonFlow, density), SizingDefaults.ThreeWayDropMinimum);
+
+    /// <summary>Reads a three-way valve's two switched legs off an iterate: the drop across each to the common port, and the flow each carries.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="ports">Its port map.</param>
+    /// <param name="layout">The state vector's layout.</param>
+    /// <param name="values">The iterate.</param>
+    /// <param name="index">The valve's index in <see cref="CircuitGraph.Components"/>.</param>
+    /// <returns>
+    /// The reading, or <see langword="null"/> when the component is not a three-way valve with its
+    /// bypass connected and all three legs reached, or when its switched legs are not both entering
+    /// (mixing) or both leaving (diverting): a leg carrying nothing, or the two disagreeing, is a
+    /// valve doing something else and has no leg balance to speak of.
+    /// </returns>
+    public static LegReading? Read(CircuitGraph graph, PortMap ports, SystemLayout layout, ReadOnlySpan<double> values, int index)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(ports);
+        ArgumentNullException.ThrowIfNull(layout);
+
+        if (graph.Components[index] is not ThreeWayValve { BypassConnected: true })
+        {
+            return null;
+        }
+
+        var common = ports[index, 0];
+        var legA = ports[index, 1];
+        var legB = ports[index, 2];
+
+        if (!common.CarriesFlow || !legA.CarriesFlow || !legB.CarriesFlow
+            || common.Node < 0 || legA.Node < 0 || legB.Node < 0)
+        {
+            return null;
+        }
+
+        var intoA = legA.Sign * values[layout.BranchFlow(legA.Branch)];
+        var intoB = legB.Sign * values[layout.BranchFlow(legB.Branch)];
+        var mixing = intoA > Tolerances.FlowZero && intoB > Tolerances.FlowZero;
+        var diverting = intoA < -Tolerances.FlowZero && intoB < -Tolerances.FlowZero;
+
+        if (!mixing && !diverting)
+        {
+            return null;
+        }
+
+        var atCommon = values[layout.NodePressure(common.Node)];
+        var direction = mixing ? 1 : -1;
+
+        return new LegReading(
+            mixing,
+            direction * (values[layout.NodePressure(legA.Node)] - atCommon),
+            direction * (values[layout.NodePressure(legB.Node)] - atCommon),
+            Math.Abs(intoA),
+            Math.Abs(intoB));
+    }
+
     private static string Kilopascals(double pascals) => (pascals / 1000).ToString("0.0", CultureInfo.InvariantCulture);
+}
+
+/// <summary>A three-way valve's two switched legs as an iterate has them.</summary>
+/// <param name="Mixing"><see langword="true"/> when both legs enter the valve, <see langword="false"/> when both leave it.</param>
+/// <param name="DropA">Pa across the <c>a</c> leg in the flow's direction: its far port less the common port when mixing, the reverse when diverting. Positive for a leg the valve dissipates on.</param>
+/// <param name="DropB">Pa across the <c>b</c> leg, the same convention.</param>
+/// <param name="FlowA">kg/s through the <c>a</c> leg, magnitude.</param>
+/// <param name="FlowB">kg/s through the <c>b</c> leg, magnitude.</param>
+public readonly record struct LegReading(bool Mixing, double DropA, double DropB, double FlowA, double FlowB)
+{
+    /// <summary>Gets how much easier the <c>b</c> path is than the <c>a</c> path, Pa: positive when the valve throttles <c>b</c> to make up the difference, negative when it throttles <c>a</c>.</summary>
+    public double Imbalance => DropB - DropA;
 }

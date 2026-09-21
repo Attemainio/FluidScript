@@ -137,8 +137,17 @@ step is 1.6× in Kv and 2.56× in drop.
 Standard practice for this arrangement is a balancing valve in the bypass leg, set so that with the
 valve in the bypass position the drop is similar to the path it bypasses. Without one the bypass is a
 short circuit: the supply-to-return differential falls and other consumers on the same pair can be
-starved. Nothing here sizes that valve for you — give it an explicit `kv` — and one coefficient could
-not do the job anyway, because the two legs carry different flows.
+starved. The three-way valve's own `kv` cannot do that job — one coefficient serves two legs that
+carry different flows — but a [`valve`](valve.md) on the bypass connection can, and one with no `kv`
+is set for you: each pass sets it to the drop that brings the bypass level with the primary path,
+and the three-way valve then sits at the position its ratio implies. Write it as any other component
+on the connection:
+
+```
+BV_RAD  valve
+connections
+NM_RAD - BV_RAD - TV_RAD.b
+```
 
 **The solve tells you when it is missing.** A three-way valve's two legs share one `position`, so
 the position its mixing ratio implies — half and half is 0.5 — is only reached when both legs see
@@ -162,6 +171,12 @@ right — the valve really would sit there — and a balancing valve does **not*
 it dissipates the same 32 kPa the three-way valve was dissipating, and the pump head stays what the
 ring costs. What it buys is the valve's travel: at its mixing position with its whole stroke
 available for control, instead of near one end where a small movement is a large change in flow.
+
+Add the balancing valve and the warning goes: on the one-branch ring, `TV_AHU` moves from 0.79 to
+0.674, the two thirds of its flow the primary supplies, with 6.5 kPa across each leg, and `BV_AHU`
+is set to Kv 0.75 dropping 21.5 kPa. A diverting valve reads the same way with the signs turned: the
+cooling loop's `3WV` with a valve on its return leg sits at 0.31, its recirculation share, with
+11.5 kPa across each leg.
 
 ### A consumer that is off still passes a trickle
 

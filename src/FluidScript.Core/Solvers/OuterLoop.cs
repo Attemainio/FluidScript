@@ -259,9 +259,9 @@ public sealed class OuterLoop(
         // Twice, because the bootstrap's exchangers are ideal: the first application gives each one its
         // design point, and only the second lets the rules that read resistances -- a pump's head, a
         // valve's Kv -- read the drops those design points create. See the remarks.
-        var (first, _, _, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay);
+        var (first, _, _, _) = Apply(bootstrap.Graph, Seed(bootstrap.Graph), overlay, solved: false);
         var resistive = Lowering.Lower(model, substance, new ComponentFactory(bores, first, substance), name);
-        var (sized, bases, notes, _) = Apply(resistive.Graph, Seed(resistive.Graph), first);
+        var (sized, bases, notes, _) = Apply(resistive.Graph, Seed(resistive.Graph), first, solved: false);
 
         return new PreparedModel(
             Lowering.Lower(model, substance, new ComponentFactory(bores, sized, substance), name),
@@ -843,6 +843,7 @@ public sealed class OuterLoop(
     /// <param name="previous">Last pass's overlay, kept for anything no rule spoke about.</param>
     /// <param name="posedness">Which parameters the solver claimed, or <see langword="null"/> before the first check.</param>
     /// <param name="layout">Where the iterate keeps each unknown, or <see langword="null"/> to derive it.</param>
+    /// <param name="solved">Whether <paramref name="iterate"/> is a converged solution rather than the seed; a rule that reads pressures off a solved field only waits when it is not.</param>
     /// <returns>The new overlay, the bases, and the notes.</returns>
     /// <remarks>
     /// <strong>A promoted parameter is skipped, and that is the whole of the division of labour.</strong>
@@ -858,7 +859,8 @@ public sealed class OuterLoop(
         StateVector iterate,
         SizingOverlay previous,
         WellPosednessResult? posedness = null,
-        SystemLayout? layout = null)
+        SystemLayout? layout = null,
+        bool solved = true)
     {
         var posed = posedness ?? WellPosedness.Check(graph);
         var places = layout ?? SystemLayout.Build(graph, posed.Counting);
@@ -873,6 +875,13 @@ public sealed class OuterLoop(
 
         foreach (var component in graph.Components)
         {
+            // A two-way valve on a three-way valve's switched leg with nothing deciding its `kv` is a
+            // balancing valve, and the authority rule is the wrong rule for it: `BypassValves` sets it.
+            if (component is Valve balancing && OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted))
+            {
+                continue;
+            }
+
             foreach (var sizer in sizers)
             {
                 if (!sizer.CanSize(component)
@@ -914,6 +923,7 @@ public sealed class OuterLoop(
         }
 
         ThreeWay(graph, places, iterate, ref overlay, bases, notes, promoted);
+        BypassValves(graph, places, iterate, ref overlay, bases, notes, promoted, solved);
         Unsized(graph, overlay, bases, notes);
 
         return (overlay, bases.ToImmutable(), notes.ToImmutable(), raised.ToImmutable());
@@ -1064,6 +1074,200 @@ public sealed class OuterLoop(
 
             notes.AddRange(sized.Value.Notes);
         }
+    }
+
+    /// <summary>Sets every two-way valve that sits on a three-way valve's switched leg so that the two legs see the same pressure (<c>24</c>, <c>C-111</c>).</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current estimate the setting is read off.</param>
+    /// <param name="overlay">The overlay being built, added to in place.</param>
+    /// <param name="bases">Why each value was chosen, keyed <c>component.parameter</c>.</param>
+    /// <param name="notes">Anything the user should be told.</param>
+    /// <param name="promoted">Labels the counting pass has already claimed as solver unknowns.</param>
+    /// <param name="solved">
+    /// Whether <paramref name="iterate"/> is a converged solution. The bootstrap passes read the seed,
+    /// whose pressure walk caps each component and so understates a ring's cost; a balancing valve set
+    /// from it lands the first solve on a Kv it struggles with (measured: Kv 2.9-2.95 stated on the
+    /// series header takes 34-46 iterations from the cold seed, 2.96 takes 6). A balancing valve is set
+    /// from a solved field or not at all, so the bootstrap leaves it open and the first solved pass sets it.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// <strong>A balancing valve is set, not selected.</strong> Its Kv is whatever presetting gives the
+    /// drop the circuit needs at the design flow, read off the maker's Kv-per-turn curve at
+    /// commissioning; there is no catalogue row to round to, so the value written is the law's own
+    /// inverse and nothing rounds it. The drop it needs is what the three-way valve is dissipating on
+    /// this leg beyond the other: the valve's own drop at this pass plus the imbalance
+    /// <see cref="BypassBalance.Read"/> measures, which is the same arithmetic <c>FS4011</c> reports
+    /// when no such valve exists. Each pass re-reads the imbalance with the previous setting in
+    /// place, so the fixed point is the setting at which the legs are level and the three-way valve
+    /// sits at the position its ratio implies.
+    /// </para>
+    /// <para>
+    /// <strong>A valve on the harder leg has nothing to absorb</strong> and is left at its bootstrap
+    /// value with a basis saying which leg the balancing valve belongs on. It is a pass rather than an
+    /// <c>ISizer</c> for <see cref="ThreeWay"/>'s reason: the context is a comparison across the
+    /// three-way valve's sibling legs, which a rule handed one branch cannot make.
+    /// </para>
+    /// </remarks>
+    private static void BypassValves(
+        CircuitGraph graph,
+        SystemLayout layout,
+        StateVector iterate,
+        ref SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases,
+        ImmutableArray<string>.Builder notes,
+        HashSet<string> promoted,
+        bool solved)
+    {
+        PortMap? ports = null;
+
+        foreach (var component in graph.Components)
+        {
+            if (component is not Valve valve
+                || Claimed(valve, "kv", promoted)
+                || OnSwitchedLeg(graph, valve) is not { } leg)
+            {
+                continue;
+            }
+
+            var flow = Math.Abs(iterate.Values[layout.BranchFlow(leg.Branch.Index)]);
+
+            if (!solved)
+            {
+                // The seed's pressures are not worth setting a balancing valve to, but the fully-open
+                // provisional sits in the Kv law's regularised band and the first solve creeps on its
+                // row; the least drop a balancing valve is ever set to keeps it regular until a solved
+                // field says what it must take.
+                if (Inlet(graph, layout, iterate, valve) is { } seeded && flow > Tolerances.FlowZero
+                    && ValveLaw.RequiredKv(flow, SizingDefaults.BalancingDropMinimum, seeded.Density.SiValue) is var opening
+                    && double.IsFinite(opening) && opening > 0)
+                {
+                    // Provisional: a placeholder with a number in it (D-96), which the solved pass replaces
+                    // or, on the harder leg, keeps and says so.
+                    overlay = overlay.With(valve.Name, "kv", Quantity.FromSi(opening, Dimension.Kv), provisional: true);
+                    bases[Ownership.Key(valve.Name, "kv")] = string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Kv {opening:0.##} — the {SizingDefaults.BalancingDropMinimum / 1000:0} kPa a balancing valve is at least set to, at "
+                        + $"{flow:0.###} kg/s; the first solved pass sets it to level {leg.Valve.Name}'s legs");
+                }
+                else
+                {
+                    Kept(valve, overlay, bases, notes, "a balancing valve is set from a solved field, and this pass is the seed");
+                }
+
+                continue;
+            }
+
+            ports ??= PortMap.Build(graph);
+
+            var element = graph.Components.IndexOf(component);
+            var three = graph.Components.IndexOf(leg.Valve);
+            var reading = BypassBalance.Read(graph, ports, layout, iterate.Values.AsSpan(), three);
+            var inlet = ports[element, 0];
+            var outlet = ports[element, 1];
+
+            if (reading is not { } legs || Inlet(graph, layout, iterate, valve) is not { } state
+                || inlet.Node < 0 || outlet.Node < 0)
+            {
+                Kept(valve, overlay, bases, notes, $"{leg.Valve.Name}'s legs could not be read at this pass");
+
+                continue;
+            }
+
+            if (flow <= Tolerances.FlowZero)
+            {
+                Kept(valve, overlay, bases, notes, $"the {leg.Port} leg of {leg.Valve.Name} carries no flow at this operating point");
+
+                continue;
+            }
+
+            // Positive when this leg is the easy one: what the three-way valve dissipates here beyond
+            // the other leg, which is what this valve must take over. The valve's own drop at this pass
+            // is already part of the leg's path, so the setting keeps it and adds the remainder.
+            var own = Math.Abs(iterate.Values[layout.NodePressure(inlet.Node)] - iterate.Values[layout.NodePressure(outlet.Node)]);
+            var toward = leg.Port == "b" ? legs.Imbalance : -legs.Imbalance;
+            var need = own + toward;
+            var other = leg.Port == "b" ? "a" : "b";
+
+            if (need <= ValveLaw.RegularizationDrop)
+            {
+                Kept(
+                    valve,
+                    overlay,
+                    bases,
+                    notes,
+                    $"the {other} path of {leg.Valve.Name} is the easier one by {(-toward) / 1000:0.0} kPa, so there is nothing "
+                    + $"on the {leg.Port} leg to absorb; a balancing valve belongs on the {other} leg");
+
+                continue;
+            }
+
+            var kv = ValveLaw.RequiredKv(flow, need, state.Density.SiValue);
+
+            if (!double.IsFinite(kv) || kv <= 0)
+            {
+                Kept(valve, overlay, bases, notes, "the Kv law has no setting for the drop it would need");
+
+                continue;
+            }
+
+            overlay = overlay.With(valve.Name, "kv", Quantity.FromSi(kv, Dimension.Kv));
+            bases[Ownership.Key(valve.Name, "kv")] = string.Create(
+                CultureInfo.InvariantCulture,
+                $"Kv {kv:0.##} — set to level {leg.Valve.Name}'s legs: drops {need / 1000:0.0} kPa at {flow:0.###} kg/s "
+                + $"so the {leg.Port} path meets the {other} path; a balancing valve is set to its drop, not selected from a series");
+        }
+    }
+
+    /// <summary>The three-way valve whose switched leg a two-way valve sits on, or <see langword="null"/>.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="valve">The two-way valve.</param>
+    /// <returns>The three-way valve, the leg's port name (<c>a</c> or <c>b</c>) and the branch, when the valve's branch ends at a three-way valve's switched port.</returns>
+    private static (ThreeWayValve Valve, string Port, Branch Branch)? OnSwitchedLeg(CircuitGraph graph, Valve valve)
+    {
+        foreach (var branch in graph.Branches)
+        {
+            if (!branch.Path.Contains(valve))
+            {
+                continue;
+            }
+
+            foreach (var end in new[] { branch.From, branch.To })
+            {
+                if (end.Element is ThreeWayValve { BypassConnected: true } three && end.PortName is "a" or "b")
+                {
+                    return (three, end.PortName, branch);
+                }
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    /// <summary>Says a balancing valve kept its bootstrap value, and why.</summary>
+    private static void Kept(
+        Valve valve,
+        SizingOverlay overlay,
+        ImmutableDictionary<string, string>.Builder bases,
+        ImmutableArray<string>.Builder notes,
+        string reason)
+    {
+        foreach (var (parameter, value) in overlay.For(valve.Name))
+        {
+            var key = Ownership.Key(valve.Name, parameter);
+
+            if (!bases.ContainsKey(key))
+            {
+                bases[key] = ProvisionalBasis(value, reason);
+            }
+        }
+
+        notes.Add(
+            $"{valve.Name} is still the bootstrap value no rule replaced, because {reason}. It is read as a "
+            + "balancing valve on a three-way valve's leg — state a `kv`, or read the result knowing this one number is arbitrary.");
     }
 
     /// <summary>Says a three-way valve kept its bootstrap value, and why (<c>C-60</c>).</summary>

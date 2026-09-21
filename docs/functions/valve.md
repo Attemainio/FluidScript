@@ -101,6 +101,24 @@ taken. On the simple loop with `PU1 pump head=15`, that is Kv 0.77 dropping 124 
 unconstrained loop would have chosen Kv 1.6 and 29 kPa. Balancing a whole set of parallel branches
 against one another still needs the branches' own drops stated or an explicit `kv` on each.
 
+**On a three-way valve's leg it is set to level the legs.** A `valve` with no `kv` on either
+switched leg of a [`three_way_valve`](three-way-valve.md) is read as the balancing valve practice
+puts in the bypass. Each pass sets it to the drop that brings its leg level with the other one at
+the solved flow, so the three-way valve sits at the position its mixing ratio implies with its whole
+travel free for control. The Kv is written as the law gives it — a balancing valve is set to a
+measured drop, not selected from a series — and the basis says which legs it levels:
+
+```
+BV_AHU  kv  0.75  sized  Kv 0.75 — set to level TV_AHU's legs: drops 21.5 kPa at 0.096 kg/s so the
+                         b path meets the a path; a balancing valve is set to its drop, not selected
+                         from a series
+```
+
+Put it on the harder leg and there is nothing for it to absorb: it stays at its bootstrap opening,
+3 kPa at the design flow, and the basis says which leg it belongs on. Its first value, before any
+solve, is that same 3 kPa opening — the least a balancing valve is ever set to, so that its drop can
+be measured — and the first solved pass replaces it.
+
 ### A stated drop
 
 `CV1 valve dp=30` asks for a valve that drops 30 kPa at the branch's design flow. The Kv that does so

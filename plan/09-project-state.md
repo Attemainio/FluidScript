@@ -1078,7 +1078,12 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > against 7.6 on `TV_RAD`, Kv 1.53 between `NM_RAD` and `TV_RAD.b`; the AHU's valve silent. The row's
 > guess that the pump would fall to 3 m was wrong and is corrected there: the balancing valve buys
 > travel, not head. The line is project reasoning, marked in `24`. Fires on every bare bypass in the
-> corpus. Open for the user's decision whether the language sizes that valve.
+> corpus. **Closed the same day with the second part**, the user's choice: a `valve` with no `kv`
+> on a three-way valve's switched leg is set each pass to level the legs, unrounded (a balancing
+> valve is set, not selected; TA STAD cited in `24`). One-branch ring: Kv 0.75, `TV_AHU` from 0.79 to
+> 0.674, both legs 6.5 kPa; parallel header both blocks; cooling loop's diverting valve at its split.
+> The series header's cold first pass creeps to its cap with the valve in place, and the stated-Kv
+> sweep (5 iterations at 2.95, 46 at 2.94) puts that on the solver: `S-74`. 52 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1183,7 +1188,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. Next: `C-111`'s second part is the user's decision (whether the language sizes the bypass balancing valve), then `S-69`'s sizing passes, `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass. Next: `S-69`'s sizing passes and `S-74` together (both are the cold seed on a ring), `C-84` labels as a planned package, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
@@ -1226,7 +1231,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1987 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1990 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

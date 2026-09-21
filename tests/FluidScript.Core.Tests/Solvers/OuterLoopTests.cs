@@ -437,6 +437,96 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task AValveOnAMixingValvesBypassIsSetToLevelTheLegs()
+    {
+        // `C-111`, second part. The one-branch ring with a `valve` and no `kv` on the AHU's bypass. The
+        // bare ring's valve throttles its bypass hard because the bypass returns to the mixing node
+        // above the primary supply; the balancing valve is set, pass by pass, to the drop that levels
+        // the legs, and the three-way valve then sits at the position its ratio implies: the primary
+        // draw is two thirds of the coil flow, so 0.667 with linear legs. Nothing rounds the Kv, because
+        // a balancing valve is set to its drop rather than selected from a series; the ValveSizer's
+        // authority rule does not touch it; and FS4011 is silent once the legs are level.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-07-ring-one-branch.fluid"),
+            TestContext.Current.CancellationToken);
+        source = source
+            .Replace("PU_AHU  pump\n", "PU_AHU  pump\nBV_AHU  valve\n", StringComparison.Ordinal)
+            .Replace("NM_AHU - TV_AHU.b\n", "NM_AHU - BV_AHU - TV_AHU.b\n", StringComparison.Ordinal);
+        Assert.Contains("BV_AHU - TV_AHU.b", source, StringComparison.Ordinal);
+
+        var run = await Solve(source, "levelled");
+
+        Assert.True(run.Settled, $"not settled after {run.Passes} passes");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+        var ports = SolvedStates.Ports(run.Graph, layout, run.Solve.Solution);
+        var valve = run.Graph.Components.IndexOf(run.Graph.Components.Single(static c => c.Name == "TV_AHU"));
+        var common = ports[valve][0]!.Value;
+        var legA = ports[valve][1]!.Value;
+        var legB = ports[valve][2]!.Value;
+
+        Assert.Equal(0.75, run.Sizes.For("BV_AHU", "kv")!.Value, 0.03);
+        Assert.False(run.Sizes.IsProvisional("BV_AHU", "kv"));
+        Assert.Contains("set to level TV_AHU's legs", run.Bases["BV_AHU.kv"], StringComparison.Ordinal);
+        Assert.DoesNotContain("BV_AHU.authority", run.Bases.Keys);
+        Assert.Equal(legA.Pressure - common.Pressure, legB.Pressure - common.Pressure, 50.0);
+        Assert.Equal(legA.Flow / (legA.Flow + legB.Flow), solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.01);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
+    }
+
+    [Fact]
+    public async Task AValveOnTheHarderLegIsLeftOpenAndToldWhereItBelongs()
+    {
+        // `C-111`. The same ring with the valve on the primary supply leg, which is the harder path:
+        // there is nothing on it to absorb, so the rule leaves it at its bootstrap opening and the
+        // basis says which leg the balancing valve belongs on. FS4011 still names the bypass.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-07-ring-one-branch.fluid"),
+            TestContext.Current.CancellationToken);
+        source = source
+            .Replace("PU_AHU  pump\n", "PU_AHU  pump\nBV_AHU  valve\n", StringComparison.Ordinal)
+            .Replace("N3 - TV_AHU.a length=12 dn=25\n", "N3 - BV_AHU - TV_AHU.a length=12 dn=25\n", StringComparison.Ordinal);
+        Assert.Contains("BV_AHU - TV_AHU.a", source, StringComparison.Ordinal);
+
+        var run = await Solve(source, "wrong-leg");
+
+        Assert.True(run.Settled, $"not settled after {run.Passes} passes");
+        Assert.True(run.Sizes.IsProvisional("BV_AHU", "kv"));
+        Assert.Contains("a balancing valve belongs on the b leg", run.Bases["BV_AHU.kv"], StringComparison.Ordinal);
+
+        var unbalanced = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS4011");
+
+        Assert.Contains("between NM_AHU and TV_AHU.b", unbalanced.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ADivertingValvesReturnLegIsLevelledTheSameWay()
+    {
+        // `C-111`. The cooling loop's `3WV` diverts: both switched legs leave it, and the primary
+        // return is the easier path. The reading is the same arithmetic with the sign turned, the
+        // valve on that leg is set to 17.8 kPa, and the three-way valve sits at its split: the
+        // recirculation is 0.0763 of 0.2392 kg/s, 0.32.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"), TestContext.Current.CancellationToken);
+        source = source
+            .Replace("PU1 pump\n", "PU1 pump\nBV1 valve\n", StringComparison.Ordinal)
+            .Replace("3WV - N3 length=25 dn=25", "3WV - BV1 - N3 length=25 dn=25", StringComparison.Ordinal);
+        Assert.Contains("3WV - BV1 - N3", source, StringComparison.Ordinal);
+
+        var run = await Solve(source, "diverting");
+
+        Assert.True(run.Settled, $"not settled after {run.Passes} passes");
+        Assert.Equal(1.4, run.Sizes.For("BV1", "kv")!.Value, 0.05);
+        Assert.Contains("set to level 3WV's legs", run.Bases["BV1.kv"], StringComparison.Ordinal);
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+
+        Assert.Equal(0.32, run.Solve.Solution.Values[Index(layout, UnknownKind.Parameter, "3WV", "3WV.position")], 0.02);
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
+    }
+
+    [Fact]
     public async Task AMixedHeaderWithASeriesPairConvergesAndSettles()
     {
         // `S-68`, closed. The ladder's mixed header: the AHU and the DHW in parallel on the outer taps,

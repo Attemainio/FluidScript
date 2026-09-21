@@ -90,6 +90,19 @@ public static class SizingDefaults
     /// <value>Pa. 3 kPa, the bottom of ESBE's band. Below it the smallest catalogue row is still too large for the flow, and the rule says so.</value>
     public const double ThreeWayDropMinimum = 3_000;
 
+    /// <summary>The drop a balancing valve is set to before anything is known about the circuit it balances, Pa.</summary>
+    /// <value>3 kPa.</value>
+    /// <remarks>
+    /// A balancing valve is set to a measured drop, and the makers' balancing guidance puts a floor
+    /// under that drop so the measurement is accurate: IMI TA's STAD guidance sizes to a measurable
+    /// drop and its handbooks give 3 kPa as the least worth measuring (<c>24</c>). It is the bootstrap
+    /// setting only: the first solved pass replaces it with the drop that levels the three-way valve's
+    /// legs. It is also what keeps the valve out of the Kv law's regularised band, where a
+    /// fully-open provisional sits (measured: Kv 630 at 0.239 kg/s drops 0.19 Pa, below
+    /// <see cref="Components.ValveLaw.RegularizationDrop"/>, and the first solve creeps to its cap on that row).
+    /// </remarks>
+    public const double BalancingDropMinimum = 3_000;
+
     /// <summary>The closest approach an extended exchanger is sized to without a stated <c>approach</c>.</summary>
     /// <value>K. <c>24</c>'s <c>hx.approach_min</c>, the threshold for <c>FS4008</c>.</value>
     /// <remarks>
