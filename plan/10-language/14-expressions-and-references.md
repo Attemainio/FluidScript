@@ -200,8 +200,8 @@ absent parameter was the whole of `L-59`. Three things the measuring found. The 
 below, a length a head parameter accepts). A target the seed cannot supply is
 absent from pass 1, so a script whose well-posedness hangs on it -- an inlet's only temperature, the
 profile a flow constraint reads -- fails on pass 1 rather than walking to `FS1405`, and the walk is
-pinned on the builder alone (`L-62`). A node declared only on a connection line is not a name an
-expression can read (`L-63`).
+pinned on the builder alone (`L-62`). A node declared only on a connection line was not a name an
+expression could read (`L-63`, closed the same day: rule I1 runs with the declarations).
 
 **The alternative, rejected:** forbid references to solved values, allowing only declared parameters.
 That removes the whole problem and most of the feature's value — `1.2*HE1.dp` is exactly the expression

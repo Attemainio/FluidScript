@@ -658,7 +658,7 @@ like a solver bug.
 | Parameter | Dimension | Bare number means | Range | Meaning |
 |---|---|---|---|---|
 | `head` | Head | m | 0.1 … 500 | Head at duty point |
-| `dp` | PressureDelta | kPa | 1 … 5000 | Pressure rise, an alternative to `head` |
+| `dp` | PressureDelta | kPa | 1 … 5000 | Pressure rise, an alternative to `head`: held exactly by the pump's equation, the head following at the solved inlet density (`C-109`); with `head`, `FS2101` |
 | `flow` | MassFlow | kg/s | 0 … 1000 | Duty flow. With `head`, the curve's duty point; without, a `FixedFlow` row the pump's own head answers (P5.13b) |
 | `vflow` | VolumeFlow | l/s (`D-125`) | 0 … 1000 | `flow` as a volume flow: without `head`, held at the inlet node's solved density; with `head`, the duty point at 20 °C water, the density curves are published for (Grundfos, Wilo datasheets) |
 | `speed` | Dimensionless | — | 0 … 1.2 | Relative speed, for variable-speed control |

@@ -140,7 +140,7 @@ Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for mult
 | Temperature | `C`, `°C`, `F`, `°F`, `K` |
 | TemperatureDelta | `dK`, `dC` |
 | Pressure | `Pa`, `kPa`, `kPag`, `MPa`, `bar`, `barg`, `mbar`, `psi`, `mH2O`, `mmH2O` (gauge); `Paa`, `kPaa`, `MPaa`, `bara`, `mbara`, `psia` (absolute) |
-| PressureDelta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O` |
+| PressureDelta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`; and its own `dPa`, `dkPa`, `dbar` (`D-127`) |
 | Power | `W`, `kW`, `MW`, `hp` |
 | Energy | `J`, `kJ`, `MJ`, `Wh`, `kWh`, `MWh` |
 | MassFlow | `kg/s`, `kg/h`, `t/h` |
@@ -416,8 +416,9 @@ A format that depends on the reader's locale means one file means two things on 
 2. `Temperature` and `TemperatureDelta` are distinct `Dimension` values and no implicit conversion
    exists between them.
 3. A unit symbol maps to one dimension, except pressure spellings shared by `Pressure` and
-   `PressureDelta`, whose target parameter supplies that affine distinction. Temperature has no such
-   exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head, and `Head` accepts no
+   `PressureDelta`, whose target parameter supplies that affine distinction -- and `dPa`, `dkPa`,
+   `dbar` spell the delta outright where no target does, in an expression (`D-127`). Temperature has
+   no such exception: `K` is absolute and `dK` is a delta. `m` is Length and never Head, and `Head` accepts no
    symbol at all (`D-50`); a `head` *parameter* accepts a Length value at assignment (`D-126`).
 4. Converting a value to a unit and back yields the original within 1e-12 relative.
 5. No `double` representing a dimensioned value appears on a public Core signature.

@@ -55,8 +55,6 @@ lists what was written in and on which pass: `HE2.in[2].t 67.146 °C from \`HE1.
 - **Only what the script states anchors the first pass.** A parameter that reads a solved value is
   absent from the first solve, so the circuit has to be well posed without it. An inlet whose only
   temperature is such a reference has nothing to solve from.
-- **A node read by name is a node you declared.** `N3.t` needs an `N3 node` line; a node that exists
-  only on a connection line is not a name an expression sees.
 
 ## Constants
 

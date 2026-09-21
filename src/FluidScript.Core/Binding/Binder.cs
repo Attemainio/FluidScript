@@ -438,6 +438,32 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 }
             }
         }
+
+        // I1, brought forward (L-63): an endpoint naming nothing declared is a node, and it was one
+        // only once the topology pass ran -- after every expression had been evaluated, so `N3.t` on a
+        // node the script never declared was "nothing named". The node is declared here, with every
+        // `let` and component already known, and the topology pass finds it as it would a declared one.
+        // A name a `let` holds is left for the topology pass to refuse (FS1523), not absorbed.
+        foreach (var block in blocks)
+        {
+            foreach (var statement in block.Statements)
+            {
+                if (statement is not ConnectionSyntax connection)
+                {
+                    continue;
+                }
+
+                foreach (var endpoint in connection.Endpoints)
+                {
+                    var name = endpoint.Component.Token.Text;
+
+                    if (!_componentsByName.ContainsKey(name) && !_bindingsByName.ContainsKey(name))
+                    {
+                        Infer(name, "I1", block.Circuit!.Name, endpoint.Span);
+                    }
+                }
+            }
+        }
     }
 
     private void DeclareBinding(LetBindingSyntax let, string circuitName)

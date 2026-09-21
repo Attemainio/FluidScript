@@ -109,6 +109,17 @@ public sealed class Pump : IFlowComponent
     /// <value>Always <see langword="null"/>: a pump has no modes.</value>
     public string? Mode => null;
 
+    /// <summary>Gets the pressure rise the script stated, Pa, positive from inlet to outlet, or <see langword="null"/> when the pump runs on its curve.</summary>
+    /// <remarks>
+    /// A stated <c>dp</c> is a constraint on the rise itself (<c>C-109</c>): the equation holds
+    /// <c>p_out − p_in = dp · n²</c> with no density in it, and the head is whatever that rise is
+    /// worth at the solved inlet density, <c>dp / (ρ · g)</c>. Converting to a head at a reference
+    /// density instead would have missed by the density ratio -- 2.7 % for water at 80 °C.
+    /// <see cref="ShutOffHead"/> then carries that reference-density head for the seed and the
+    /// curve's shape only.
+    /// </remarks>
+    public double? StatedRise { get; init; }
+
     /// <inheritdoc/>
     public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
         = ImmutableDictionary<string, Quantity>.Empty;
@@ -223,8 +234,17 @@ public sealed class Pump : IFlowComponent
     /// <inheritdoc/>
     public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
-        var density = (context.Ports[0].Density + context.Ports[1].Density) / 2;
         var drop = context.Ports[0].Pressure - context.Ports[1].Pressure;
+
+        if (StatedRise is { } rise)
+        {
+            // The affinity law for a rise: (Q, Δp) at n = 1 maps to (nQ, n²Δp), flat in flow as a
+            // stated head with no duty point is.
+            residuals[0] = drop + (rise * Speed * Speed);
+            return;
+        }
+
+        var density = (context.Ports[0].Density + context.Ports[1].Density) / 2;
 
         residuals[0] = drop
             + (density * Gravity * Head(context.Flows[0], context.Parameter(HeadIndex, ShutOffHead)));

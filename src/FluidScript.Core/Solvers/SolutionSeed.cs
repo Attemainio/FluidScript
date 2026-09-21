@@ -657,6 +657,14 @@ public static class SolutionSeed
         {
             foreach (var element in branch.Path)
             {
+                // A stated rise is the drop the loop has to spend; a stated head is that rise at the
+                // reference density (C-109).
+                if (element is Pump { StatedRise: { } rise })
+                {
+                    offered = rise;
+                    break;
+                }
+
                 if (element is Pump && HydraulicPartition.Stated(element, "head") is { } head)
                 {
                     offered = ReferenceDensity * UnitTable.StandardGravity * head;

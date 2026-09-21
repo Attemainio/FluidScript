@@ -19,7 +19,7 @@ V2 valve authority=0.5 characteristic=equal_percentage
 | `position` | — | Opening, 0 to 1 | Sized, or driven by a controller |
 | `characteristic` | — | `linear`, `equal_percentage` or `quick_open` | `equal_percentage` (a [`three_way_valve`](three-way-valve.md) defaults to `linear`) |
 | `authority` | — | Target authority for sizing | Sized |
-| `dp` | kPa | Design pressure drop, an alternative to `kv` | Sized |
+| `dp` | kPa | Design drop at the design flow: the Kv is the next catalogue row above the one that takes it | Sized |
 | `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 `kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
@@ -100,6 +100,21 @@ solved value with no basis and no authority, because no rule chose it and no cat
 taken. On the simple loop with `PU1 pump head=15`, that is Kv 0.77 dropping 124 kPa where an
 unconstrained loop would have chosen Kv 1.6 and 29 kPa. Balancing a whole set of parallel branches
 against one another still needs the branches' own drops stated or an explicit `kv` on each.
+
+### A stated drop
+
+`CV1 valve dp=30` asks for a valve that drops 30 kPa at the branch's design flow. The Kv that does so
+exactly is computed from the Kv law, and the catalogue row chosen is the **next larger** one, so the
+valve drops no more than you asked at that flow. That is the manufacturers' own rule for a calculated
+Kv between two Kvs values: Belimo's planning notes take a calculated 4.5 m³/h to the 6.3 m³/h row.
+The basis line says both numbers:
+
+```
+CV1.kv   Kv 1.6 (R5 preferred numbers) — the stated 30 kPa at 0.24 l/s asks Kv 1.57; the next larger row drops 29 kPa
+```
+
+Authority is then reported, not targeted. A three-way valve with a stated `dp` is sized the same way,
+on its common-port flow, in place of the drop band.
 
 ### What is checked
 

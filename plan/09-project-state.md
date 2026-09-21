@@ -991,6 +991,11 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > 2.4522 m from the seed, the valve promoted to Kv 7.01, one pass. The seed now supplies a kind's
 > decided default too. `C-109` widened to the pump's `dp` (stated, written in from an expression,
 > and read by nothing). 60 open. Core 1963/0/3, Api 59/0, frontend 223/0.
+> **`C-109`, `L-63`, `L-61` closed** (the same day): a pump's stated `dp` is the rise its equation
+> holds, with the head reported at the solved inlet density and the seed reading the rise; a
+> valve's stated `dp` chooses the next larger Kv row at the design flow (Belimo's rule, cited in
+> `24`); rule I1 runs with the declarations so `N3.t` reads a connection-line node; `dPa`, `dkPa`,
+> `dbar` spell a pressure difference (`D-127`). 57 open. Core 1971/0/3, Api 59/0, frontend 223/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -1078,8 +1083,8 @@ unassessed, not clean.
    `L-56` closed, `L-59` opened -- a deferred read of a solved value is never evaluated, which is what
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
-   (a head accepts a length; `pi`, `g`). Next: `C-109` (a pump's or valve's stated `dp` as a
-   constraint), then the queued rows `C-84`, `D-108`, `C-54`, `C-38`/`C-36`, `C-108`, `C-91`. Two report packages the
+   (a head accepts a length; `pi`, `g`); `C-109`, `L-61` and `L-63` closed after it. Next: the
+   queued rows `C-84`, `D-108`, `C-54`, `C-38`/`C-36`, `C-108`, `C-91`. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
@@ -1121,7 +1126,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1963 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1971 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

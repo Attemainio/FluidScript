@@ -8,6 +8,7 @@ using FluidScript.Core.Language;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Topology;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Diagnostics;
 
@@ -633,6 +634,7 @@ public static class SolveExplanation
         var promoted = Promoted(graph, layout, solve);
         var values = solve.Solution.Values;
         var written = false;
+        ImmutableArray<ImmutableArray<SolvedPort?>>? solvedPorts = null;
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
@@ -649,16 +651,24 @@ public static class SolveExplanation
                 }
 
                 var flow = inlet.Sign * values[layout.BranchFlow(inlet.Branch)];
-                var head = promoted.TryGetValue((pump.Name, "head"), out var solvedHead)
-                    ? solvedHead
-                    : pump.Head(flow);
                 var rise = outlet.Node >= 0 && inlet.Node >= 0
                     ? values[layout.NodePressure(outlet.Node)] - values[layout.NodePressure(inlet.Node)]
                     : double.NaN;
 
+                // A stated rise has no head of its own: it is the rise over the inlet's solved density
+                // and g, which is the number a reader converts by hand (C-109).
+                solvedPorts ??= SolvedStates.Ports(graph, layout, solve.Solution);
+                var head = promoted.TryGetValue((pump.Name, "head"), out var solvedHead)
+                    ? solvedHead
+                    : pump.StatedRise is { } && solvedPorts.Value[index][0] is { } at
+                        ? rise / (at.Density * UnitTable.StandardGravity)
+                        : pump.Head(flow);
+
                 var origin = promoted.ContainsKey((pump.Name, "head"))
                     ? "(solved for)"
-                    : string.Create(CultureInfo.InvariantCulture, $"(on its curve, shut-off {pump.ShutOffHead:0.00} m)");
+                    : pump.StatedRise is { } statedRise
+                        ? string.Create(CultureInfo.InvariantCulture, $"(rise stated, {statedRise / 1000:0.00} kPa at speed {pump.Speed:0.##})")
+                        : string.Create(CultureInfo.InvariantCulture, $"(on its curve, shut-off {pump.ShutOffHead:0.00} m)");
 
                 Header(report, ref written);
                 report.AppendLine(CultureInfo.InvariantCulture,

@@ -185,6 +185,12 @@ number.
 3. Multiply by the pump's explicit `margin`, default 1.0.
 4. Basis: `"{head} m at {flow} l/s — loop drop {dp} kPa"`.
 
+**A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
+`p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved
+inlet density and g, and nothing is sized; `head` and `dp` together are `FS2101`. Converting the
+stated rise to a head at a reference density would miss by the density ratio, 2.7 % for water at
+80 °C, and the rise is what the script asserted.
+
 **No hidden safety margin.** `margin=1.1` is discoverable, recorded in the sizing basis, and multiplies
 only auto-sized head; omitting it means 1.0. This represents deliberate design allowance, not missing
 fittings. Physical local losses are stated separately as a pipe's `minor_loss` (`D-25`).
@@ -205,6 +211,16 @@ fittings. Physical local losses are stated separately as a pipe's `minor_loss` (
 
 Rounding down rather than to nearest is an engineering judgement worth stating: it errs toward
 controllability at the cost of a slightly higher pump head.
+
+**A stated `dp` replaces steps 1–3** (`C-109`, 2026-09-21): the required Kv is the one that takes the
+stated drop at the design flow, and the catalogue row is the **next larger** one, so the valve drops
+no more than stated there -- the manufacturers' rule for a calculated Kv between two Kvs values
+(Belimo, *Selection and dimensioning of control, open/close and changeover valves*, project planning
+notes: a calculated Kv of 4.5 m³/h selects the 6.3 m³/h row). The authority is then reported as
+achieved, not targeted, and the basis names both the asked and the achieved drop. This is the
+opposite rounding from step 5, and deliberately: step 5 protects a target the rule chose, a stated
+drop is a ceiling the user chose. A three-way valve with a stated `dp` takes this rule on its
+common-port flow in place of `D-122`'s band.
 
 ### Parallel branches must be balanced, not sized independently
 

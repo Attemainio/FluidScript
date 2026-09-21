@@ -169,6 +169,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-124` | Accepted | 2026-09-21 | A port's pressure is the touching node's pressure, stated on the component and copied onto the node |
 | `D-123` | Accepted | 2026-09-20 | A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list |
 | `D-126` | Accepted | 2026-09-21 | A head parameter accepts a length, and `pi` and `g` are reserved constants |
+| `D-127` | Accepted | 2026-09-21 | A pressure difference has its own spellings, `dPa`, `dkPa` and `dbar` |
 <!-- index:end -->
 
 ---
@@ -5896,4 +5897,23 @@ free valve to open. `ConstantsTests`, `DeferredEvaluationTests`.
 [`13`](../10-language/13-type-and-unit-system.md) tables and invariant 3;
 [`14`](../10-language/14-expressions-and-references.md) constants, `FS1411`, the worked example;
 `docs/functions/{let,pump,units,diagnostics}.md`; `language.json` and the editor's lexicon.
+
+## D-127 · A pressure difference has its own spellings, `dPa`, `dkPa` and `dbar`
+
+**Accepted · 2026-09-21** (the user's call) · *amends `D-50`'s table*; closes `L-61`
+
+`Pressure` and `PressureDelta` shared every spelling and the target parameter told them apart, which
+works for a stated value and not inside an expression: `NPS.p - 10 kPa` is a reading minus a
+reading, a difference, and cannot set an inlet's pressure; `p * 1.02` is `FS1305`. There was no way
+to write "10 kPa below the header" as a pressure. Temperature had already solved this with `dK`.
+
+**Decided.** `dPa`, `dkPa` and `dbar` are `PressureDelta`-only symbols, case-sensitive like `dK`, so
+`NPS.p - 10 dkPa` is a `Pressure` by `13`'s affine rule and `N1 node p=10 dkPa` is `FS1304`. The
+shared spellings stay as they were. Invariant 6 holds: an append.
+
+**Rejected.** *Reading `Pressure − Pressure` as a pressure when the target is one.* It would make the
+same expression mean two things by where it is written, which `14`'s invariant 1 forbids.
+
+**Constrains.** `UnitTable.GaugePressureSpellings`; `13`'s symbol table and invariant 3;
+`docs/functions/units.md`; `language.json` and the editor's lexicon; `DeltaPressureTests`.
 

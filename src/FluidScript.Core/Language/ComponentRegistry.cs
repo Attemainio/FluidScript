@@ -658,8 +658,13 @@ public sealed class ComponentRegistry : IComponentRegistry
         DrivesFlow = true,
         TagCode = "PU",
         ActuatedParameter = "speed",
-        // One flow statement: a mass flow, or a volume flow at the pump's inlet state (P5.13b).
-        ParameterGroups = [Group(BinderDiagnostics.OverDetermined, freedoms: 1, "flow", "vflow")],
+        // One flow statement: a mass flow, or a volume flow at the pump's inlet state (P5.13b); and
+        // one rise statement, a head or a pressure rise (C-109).
+        ParameterGroups =
+        [
+            Group(BinderDiagnostics.OverDetermined, freedoms: 1, "flow", "vflow"),
+            Group(BinderDiagnostics.OverDetermined, freedoms: 1, "head", "dp"),
+        ],
         Parameters = Parameters(
             Sized("head", Dimension.Head, 0.1, 500, precision: 2),
             Sized("dp", Dimension.PressureDelta, 1, 5000, precision: 1),

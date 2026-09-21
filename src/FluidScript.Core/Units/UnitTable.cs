@@ -344,6 +344,15 @@ public static class UnitTable
         yield return new UnitSymbol("mH2O", dimension, MetreOfWater);
         yield return new UnitSymbol("mmH2O", dimension, MetreOfWater / 1000);
 
+        if (dimension == Dimension.PressureDelta)
+        {
+            // A difference spelled as one (D-127, L-61), as `dK` is: `NPS.p - 10 dkPa` is a pressure,
+            // where `NPS.p - 10 kPa` is the difference of two readings. Case-sensitive, like `dK`.
+            yield return new UnitSymbol("dPa", dimension, 1);
+            yield return new UnitSymbol("dkPa", dimension, 1000);
+            yield return new UnitSymbol("dbar", dimension, 1e5);
+        }
+
         if (dimension == Dimension.Pressure)
         {
             // The explicit gauge spellings exist only for a reading; a difference has no datum to be

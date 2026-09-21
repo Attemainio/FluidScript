@@ -60,7 +60,7 @@ accepted in any case.
 | Temperature | `C`, `°C`, `K`, `F`, `°F` |
 | Temperature delta | `dK`, `dC` |
 | Pressure | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`, `kPag`, `barg`, `Paa`, `kPaa`, `MPaa`, `bara`, `mbara`, `psia` |
-| Pressure delta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O` |
+| Pressure delta | `Pa`, `kPa`, `MPa`, `bar`, `mbar`, `psi`, `mH2O`, `mmH2O`, `dPa`, `dkPa`, `dbar` |
 | Power | `W`, `kW`, `MW`, `hp` |
 | Energy | `J`, `kJ`, `MJ`, `Wh`, `kWh`, `MWh` |
 | Mass flow | `kg/s`, `kg/h`, `t/h` |
@@ -94,6 +94,9 @@ would expect in one direction only:
 |---|---|
 | `70C - 20 dK` | 50 °C — a reading |
 | `70C - 20C` | 50 dK — a difference |
+
+A pressure difference has the same spellings: `dPa`, `dkPa`, `dbar`. `300 kPa - 10 dkPa` is 290 kPa,
+a reading; `300 kPa - 290 kPa` is 10 kPa, a difference, which a `dp` accepts and a node's `p` does not.
 | `20 dK - 70C` | refused |
 
 Pressures behave the same way, because a gauge pressure is also a reading rather than an amount.

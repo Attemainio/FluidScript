@@ -133,6 +133,16 @@ public sealed class ValveSizer(
             });
         }
 
+        // A stated `dp` is the design drop the Kv is chosen at (C-109): the flow coefficient that
+        // takes that drop at the design flow, rounded to the next larger catalogue row so the valve
+        // drops no more than the script asked at that flow -- Belimo's and Siemens' selection rule
+        // for a calculated Kv between two Kvs values. Authority is then reported, not targeted.
+        if (valve.StatedParameters.TryGetValue("dp", out var statedDrop)
+            && !valve.StatedParameters.ContainsKey("kv"))
+        {
+            return AtStatedDrop(valve, context, statedDrop.SiValue, density);
+        }
+
         // `D-122`. A three-way valve with its bypass connected is a mixing valve and is sized on its
         // common-port flow to a drop band -- unless the script states an authority, which asks for the
         // control-valve rule by name.
@@ -281,6 +291,54 @@ public sealed class ValveSizer(
         }
 
         Poor(valve, achieved, notes);
+    }
+
+    /// <summary>The Kv that takes a stated drop at the design flow, from the next larger catalogue row (<c>C-109</c>).</summary>
+    /// <param name="valve">The valve.</param>
+    /// <param name="context">The design flow and the branch it sits on.</param>
+    /// <param name="statedDrop">Pa, the script's <c>dp</c>.</param>
+    /// <param name="density">kg/m³, the design state's.</param>
+    /// <returns>The Kv and the authority it achieves, both with a basis naming the stated drop.</returns>
+    private Result<SizingResult> AtStatedDrop(IFlowComponent valve, in SizingContext context, double statedDrop, double density)
+    {
+        var flow = Math.Abs(context.CommonFlow ?? context.MassFlow);
+        var required = ValveLaw.RequiredKv(flow, statedDrop, density);
+
+        if (!double.IsFinite(required) || required <= 0 || statedDrop <= 0)
+        {
+            return Result.Success(new SizingResult
+            {
+                Values = ImmutableDictionary<string, SizedValue>.Empty,
+                Notes =
+                [
+                    $"{valve.Name} could not be sized at its stated {statedDrop / 1000:0.##} kPa: no Kv takes "
+                    + $"{flow / density * 1000:0.###} l/s at that drop. State a `kv`, or a drop above zero.",
+                ],
+            });
+        }
+
+        var chosen = catalog.SmallestSatisfying(spec => spec.Kvs >= required);
+        var kvs = chosen.Entry.Spec.Kvs;
+        var achievedDrop = Drop(flow, kvs, density);
+        var rest = Math.Max(0, context.BranchDrop);
+        var achieved = achievedDrop / (rest + achievedDrop);
+        var litresPerSecond = flow / density * 1000;
+
+        var kvBasis = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{chosen.Entry.Designation} ({chosen.Entry.Spec.Series}) — the stated {statedDrop / 1000:0.#} kPa at "
+            + $"{litresPerSecond:0.###} l/s asks Kv {required:0.##}; the next larger row drops {achievedDrop / 1000:0.#} kPa");
+
+        var authorityBasis = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{achieved:0.##} achieved at the stated drop — {chosen.Entry.Designation} drops "
+            + $"{achievedDrop / 1000:0.#} kPa of the branch's {(rest + achievedDrop) / 1000:0.#} kPa");
+
+        var values = ImmutableDictionary<string, SizedValue>.Empty
+            .Add("kv", new SizedValue(Quantity.FromSi(kvs, Dimension.Kv), kvBasis, FromDefault: false))
+            .Add("authority", new SizedValue(Quantity.FromSi(achieved, Dimension.Dimensionless), authorityBasis, FromDefault: false));
+
+        return Result.Success(new SizingResult { Values = values, Notes = [] });
     }
 
     /// <summary>The target authority for one valve.</summary>

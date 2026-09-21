@@ -62,6 +62,12 @@ public sealed class PumpSizer : ISizer
                 ("state", "a component that is not a pump")));
         }
 
+        // A stated rise is the pump's head by another name (C-109): nothing to choose.
+        if (pump.StatedRise is not null)
+        {
+            return Result.Success(new SizingResult { Values = ImmutableDictionary<string, SizedValue>.Empty, Notes = [] });
+        }
+
         var density = context.State.Density.SiValue;
         var drop = context.LoopDrop;
 

@@ -204,7 +204,7 @@ public sealed class HydraulicBlocks
     /// <param name="graph">The graph.</param>
     /// <returns>The blocks.</returns>
     public static HydraulicBlocks ForFreePumps(CircuitGraph graph) =>
-        Build(graph, groundBoundaries: false, static part => part is Pump pump && !pump.StatedParameters.ContainsKey("head"));
+        Build(graph, groundBoundaries: false, static part => part is Pump { StatedRise: null } pump && !pump.StatedParameters.ContainsKey("head"));
 
     /// <summary>Whether the block a branch lies in has a driver.</summary>
     /// <param name="branch">The branch.</param>

@@ -530,7 +530,7 @@ public static class WellPosedness
                 var pins = element switch
                 {
                     HeatExchanger => true,
-                    Pump pump => HydraulicPartition.Stated(pump, "head") is null,
+                    Pump pump => HydraulicPartition.Stated(pump, "head") is null && pump.StatedRise is null,
                     _ => false,
                 };
 
@@ -973,7 +973,7 @@ public static class WellPosedness
         // taking a distant pump while a local one is free is.
         foreach (var element in hydraulic.Elements)
         {
-            if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
+            if (element is Pump { StatedRise: null }
                 && IsFree(graph, element, "head")
                 && local.Contains(element))
             {
@@ -983,7 +983,7 @@ public static class WellPosedness
 
         foreach (var element in hydraulic.Elements)
         {
-            if (string.Equals(element.Kind, "pump", StringComparison.Ordinal)
+            if (element is Pump { StatedRise: null }
                 && IsFree(graph, element, "head")
                 && !local.Contains(element))
             {

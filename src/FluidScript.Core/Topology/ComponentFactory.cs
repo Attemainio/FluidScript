@@ -445,20 +445,15 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
     /// their curves for water at 20 °C), so the duty point's density is the datasheet's, not the
     /// circuit's; the operating point the circuit reaches is the solve's business (P5.13b).
     /// </remarks>
-    private double? DutyVolume(ComponentSymbol symbol, ComponentKindInfo kind)
-    {
-        if (Value(symbol, kind, "vflow") is not { } volume)
-        {
-            return null;
-        }
+    private double? DutyVolume(ComponentSymbol symbol, ComponentKindInfo kind) =>
+        Value(symbol, kind, "vflow") is { } volume ? volume * ReferenceDensity() : null;
 
-        var density = substance?.FromPressureTemperature(
+    /// <summary>The fluid's density at 20 °C, kg/m³: the state pump curves are published at.</summary>
+    private double ReferenceDensity() =>
+        substance?.FromPressureTemperature(
             Quantity.FromSi(0, Dimension.Pressure), Quantity.FromSi(293.15, Dimension.Temperature)) is { IsSuccess: true } state
             ? state.Value.Density.SiValue
             : 998.2;
-
-        return volume * density;
-    }
 
     /// <summary>Every parameter the script stated, in SI.</summary>
     /// <param name="symbol">The bound component.</param>
@@ -648,6 +643,12 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         var flow = Value(symbol, kind, "flow") ?? DutyVolume(symbol, kind);
         var efficiency = Value(symbol, kind, "efficiency") ?? 0.7;
 
+        // A stated `dp` with no `head` is the rise itself (C-109); the head here is what that rise is
+        // worth at 20 °C water, for the seed's walk and the curve's shape. The equation holds the
+        // rise, not this number. Both stated is FS2101's, and the head wins for the build.
+        var rise = head is null && stated.TryGetValue("dp", out var pascals) ? pascals.SiValue : (double?)null;
+        head ??= rise is { } stated2 ? stated2 / (ReferenceDensity() * UnitTable.StandardGravity) : null;
+
         // A duty point gives the default quadratic its curvature; a head with no flow beside it is a
         // shut-off head and nothing more, which is the flat curve a pump with one stated number has.
         var (shutOff, curvature) = head is { } metres && flow is { } duty and > 0
@@ -656,6 +657,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
 
         return new Pump(symbol.Name, shutOff, curvature, efficiency: efficiency)
         {
+            StatedRise = rise,
             StatedParameters = stated,
             SizedParameters = sized,
             DefaultParameters = defaults,
