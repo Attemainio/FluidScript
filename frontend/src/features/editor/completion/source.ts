@@ -1,9 +1,10 @@
-import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
+import type { CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 
 import { draftOf, useDraftStore } from '../../../state/draftStore.ts';
 import { useMetadataStore } from '../../../state/metadataStore.ts';
 import { useWorkspaceStore } from '../../../state/workspaceStore.ts';
-import { complete, type Item } from './completion.ts';
+import { complete } from './completion.ts';
+import { toOptions } from './options.ts';
 
 /**
  * CodeMirror's completion source over `complete`: the metadata from its store, the model from the
@@ -38,25 +39,7 @@ export function fluidscriptCompletion(context: CompletionContext): CompletionRes
 
   return {
     from: result.from,
-    options: result.items.map(toCompletion),
+    options: toOptions(result.items, context.state.doc.sliceString(result.from, context.pos)),
     validFor: /^[\w{}.]*$/,
   };
-}
-
-function toCompletion(item: Item): Completion {
-  const completion: Completion = {
-    label: item.label,
-    type: item.type,
-    boost: item.rank / 1000,
-  };
-  if (item.insert !== undefined && item.insert !== item.label) {
-    completion.apply = item.insert;
-  }
-  if (item.detail !== undefined && item.detail.length > 0) {
-    completion.detail = item.detail;
-  }
-  if (item.info !== undefined) {
-    completion.info = item.info;
-  }
-  return completion;
 }

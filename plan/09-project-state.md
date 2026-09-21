@@ -1148,6 +1148,10 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 >
 > **`L-35` closed 2026-09-22:** a reference may carry a unit -- `power=heating W`, `flow=demand kg/s`
 > -- taken under the lexer's own rule for a number and applied to a bare value only. 42 open.
+>
+> **`U-6` and `T-2` closed 2026-09-22:** an ambiguous completion list opens on the typed text
+> itself, which inserts nothing, and the properties page is held to the resolver -- every spelling
+> the registry offers a reference must resolve and have a row. 40 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 

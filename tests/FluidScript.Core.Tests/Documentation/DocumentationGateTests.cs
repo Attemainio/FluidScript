@@ -126,6 +126,66 @@ public sealed class DocumentationGateTests
 
     [Fact]
     [Trait("Category", "Docs")]
+    public void ThePropertiesPageCoversEveryNameAReferenceCanResolve()
+    {
+        // `T-2`: the gate above holds the page to its generator, which is blind to what the generator
+        // leaves out -- a tank's indexed families were missing for a phase while it stayed green. This
+        // one holds the generator to the resolver: every spelling a reference may write -- each fixed
+        // name, its retired spellings, each family at both ends of its range and in its retired pattern,
+        // and each state quantity by its long name and its aliases (`D-120`) -- must resolve through
+        // `ResolveProperty`, and what it resolves to must have a row.
+        var rendered = RegistryPages.RenderProperties();
+
+        foreach (var kind in ComponentRegistry.Default.Kinds)
+        {
+            var probes = new List<(string Written, string Row)>();
+
+            foreach (var property in kind.Properties.Values)
+            {
+                probes.Add((property.Name, property.Name));
+                probes.AddRange(property.LegacySpellings.Select(legacy => (legacy, property.Name)));
+
+                // `in[2].t` may be written `in[2].temperature`; a bare `t` as `temperature`.
+                var dot = property.Name.LastIndexOf('.');
+                var prefix = dot < 0 ? string.Empty : property.Name[..(dot + 1)];
+                var symbol = dot < 0 ? property.Name : property.Name[(dot + 1)..];
+
+                if (PropertyTable.Find(symbol) is { } entry && entry.Symbol == symbol)
+                {
+                    probes.Add((prefix + entry.Name, property.Name));
+                    probes.AddRange(entry.Aliases.Select(alias => (prefix + alias, property.Name)));
+                }
+            }
+
+            foreach (var family in kind.IndexedPropertyFamilies)
+            {
+                probes.Add((IndexedName.Spell(family.Pattern, family.MinIndex), family.Pattern));
+
+                if (family.MaxIndex is { } max)
+                {
+                    probes.Add((IndexedName.Spell(family.Pattern, max), family.Pattern));
+                }
+
+                if (family.LegacyPattern is { } legacy)
+                {
+                    probes.Add((IndexedName.Spell(legacy, family.MinIndex), family.Pattern));
+                }
+            }
+
+            foreach (var (written, row) in probes)
+            {
+                Assert.True(
+                    kind.ResolveProperty(written) is not null,
+                    $"R-28: `{kind.Keyword}.{written}` is a spelling the registry offers and the resolver refuses.");
+                Assert.True(
+                    rendered.Contains($"| `{kind.Keyword}` | `{row}`", StringComparison.Ordinal),
+                    $"R-28: `{kind.Keyword}.{written}` resolves, and the properties page has no row for `{row}`.");
+            }
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Docs")]
     public void TheTagsPageIsGeneratedFromTheRegistry() =>
         AssertGenerated("tags.md", (RegistryPages.TagsRegion, RegistryPages.RenderTags()));
 

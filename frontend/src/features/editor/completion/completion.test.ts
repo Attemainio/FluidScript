@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { Metadata, ModelContract } from '../../../api/types.ts';
 import { lexLine } from '../language/tokenizer.ts';
 import { complete, resolveKind, type Item, type Sources } from './completion.ts';
+import { ambiguityDetail, toOptions } from './options.ts';
 import { normalize, score } from './similarity.ts';
 
 const root = new URL('../../../../../', import.meta.url);
@@ -106,6 +107,19 @@ describe('kind completion', () => {
     expect(items[0]?.ambiguous).toBe(true);
     expect(items[1]?.ambiguous).toBe(true);
     expect(resolveKind(metadata, ambiguous)).toBeNull();
+
+    // U-6: CodeMirror preselects the first option, so the first option is the typed text itself and
+    // inserts nothing; the pair follows it and the reader picks one.
+    const options = toOptions(items, ambiguous);
+    expect(options[0]).toMatchObject({ label: ambiguous, detail: ambiguityDetail, boost: 99 });
+    expect(typeof options[0]?.apply).toBe('function');
+    expect(options.slice(1).map((o) => o.label)).toEqual(items.map((i) => i.label));
+  });
+
+  it('adds no header to a list that is not ambiguous (U-6)', () => {
+    const items = at('P1 pmp').items;
+    expect(items.some((i) => i.ambiguous === true)).toBe(false);
+    expect(toOptions(items, 'pmp').map((o) => o.label)).toEqual(items.map((i) => i.label));
   });
 
   it('offers nothing at the start of a declaration line', () => {

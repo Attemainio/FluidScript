@@ -323,7 +323,7 @@ the cursor, or every canvas interaction moves the user's caret.
 | Script exceeds the size limit | An error decoration on line 1 with the limit |
 | A `let` has not yet evaluated | Offered with its dimension and `—` for the value, not omitted |
 | A `let` has an unnamed dimension | Offered dimmed, with its derived unit shown |
-| Two kinds match within `D-15`'s ambiguity margin | Both listed adjacent; neither preselected |
+| Two kinds match within `D-15`'s ambiguity margin | Both listed adjacent; neither preselected -- the preselected first option is the typed text, which inserts nothing (`U-6`) |
 | The kind failed to resolve | Value completion falls back to unfiltered — a broken script still completes |
 | Recovery storage unavailable | Keep editing; visible persistent warning plus Download action (`58`) |
 
@@ -396,7 +396,7 @@ item and it is right. The cost is a dimension lookup the editor already has from
       than by a fixed list — an alias the binder accepts and completion hides is a trap.
 - [x] `pmp` offers `pump`, matching what the binder does with it (`FS1512`). Completion and the
       compiler accept the same set of strings.
-- [ ] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `U-6`.)
+- [x] An input inside `D-15`'s ambiguity margin lists both candidates with neither preselected. (Both listed adjacent: yes. Neither preselected: `U-6`, closed 2026-09-22 -- the list's first option is the typed text itself and inserts nothing, since CodeMirror's preselection is global.)
 - [x] After `out=`, a `let` of dimension `Temperature` is offered and one of `TemperatureDelta` is not.
       After `dt=`, the reverse. This is the single highest-value completion test, because it is the
       distinction `FS1302` exists to catch.

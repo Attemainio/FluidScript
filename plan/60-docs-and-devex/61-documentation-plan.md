@@ -129,6 +129,14 @@ and diagnostic code must have a page or a generated entry, and the build fails o
 This is the only mechanism that makes `R-28` real. A convention that documentation is required produces
 documentation for the first three features.
 
+**A generated page is held to the resolver, not only to its generator** (`T-2`, closed 2026-09-22).
+Comparing a page with what the code generates catches drift and is blind to omission: the generator
+that left a tank's indexed families off the properties page was green for a phase. So the properties
+gate has a second half: every spelling a reference may write -- each fixed name, its retired
+spellings, each indexed family at both ends of its range and in its retired pattern, and each state
+quantity by its long name and its aliases -- is put through `ResolveProperty`, and what resolves must
+have a row. A generator that forgets a source the resolver reads fails there.
+
 ### The gate covers statements and directives, not only components
 
 `D-33`, `D-37` and `D-40` added five statements — `project`, `spacing`, `supply`/`return` and
