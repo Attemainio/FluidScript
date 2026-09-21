@@ -1223,7 +1223,7 @@
           0.25
         ],
         "source": "computed",
-        "scale": 0.75,
+        "scale": 1,
         "scales": {
           "flow": {
             "at": 1,
@@ -1236,7 +1236,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.75,
+            "at": 1,
             "from": null,
             "to": null
           }
@@ -1307,7 +1307,7 @@
           0.31
         ],
         "source": "computed",
-        "scale": 0.4501,
+        "scale": 0.6001,
         "scales": {
           "flow": {
             "at": 1,
@@ -1320,9 +1320,9 @@
             "to": 0.5
           },
           "temperature": {
-            "at": 0.4501,
-            "from": 0.75,
-            "to": 0.4501
+            "at": 0.6001,
+            "from": 1,
+            "to": 0.6001
           }
         }
       },
@@ -1415,7 +1415,7 @@
           0.25
         ],
         "source": "computed",
-        "scale": 0.4501,
+        "scale": 0.6001,
         "scales": {
           "flow": {
             "at": 1,
@@ -1428,7 +1428,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.4501,
+            "at": 0.6001,
             "from": null,
             "to": null
           }
@@ -1469,7 +1469,7 @@
           -0.71
         ],
         "source": "computed",
-        "scale": 0.4501,
+        "scale": 0.6001,
         "scales": {
           "flow": {
             "at": 0,
@@ -1482,7 +1482,7 @@
             "to": null
           },
           "temperature": {
-            "at": 0.4501,
+            "at": 0.6001,
             "from": null,
             "to": null
           }
@@ -1501,8 +1501,8 @@
           0
         ],
         "hops": [],
-        "scaleFrom": 0.75,
-        "scaleTo": 0.75,
+        "scaleFrom": 1,
+        "scaleTo": 1,
         "scales": {
           "flow": {
             "at": null,
@@ -1516,8 +1516,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.75,
-            "to": 0.75
+            "from": 1,
+            "to": 1
           }
         }
       },
@@ -1533,7 +1533,7 @@
         ],
         "hops": [],
         "scaleFrom": 0,
-        "scaleTo": 0.75,
+        "scaleTo": 1,
         "scales": {
           "flow": {
             "at": null,
@@ -1548,7 +1548,7 @@
           "temperature": {
             "at": null,
             "from": 0,
-            "to": 0.75
+            "to": 1
           }
         }
       },
@@ -1563,8 +1563,8 @@
           0
         ],
         "hops": [],
-        "scaleFrom": 0.4501,
-        "scaleTo": 0.4501,
+        "scaleFrom": 0.6001,
+        "scaleTo": 0.6001,
         "scales": {
           "flow": {
             "at": null,
@@ -1578,8 +1578,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.4501,
-            "to": 0.4501
+            "from": 0.6001,
+            "to": 0.6001
           }
         }
       },
@@ -1594,8 +1594,8 @@
           -0.96
         ],
         "hops": [],
-        "scaleFrom": 0.4501,
-        "scaleTo": 0.4501,
+        "scaleFrom": 0.6001,
+        "scaleTo": 0.6001,
         "scales": {
           "flow": {
             "at": null,
@@ -1609,8 +1609,8 @@
           },
           "temperature": {
             "at": null,
-            "from": 0.4501,
-            "to": 0.4501
+            "from": 0.6001,
+            "to": 0.6001
           }
         }
       }
@@ -1630,7 +1630,7 @@
       "kind": "sequential",
       "domain": {
         "min": 45,
-        "max": 65,
+        "max": 60,
         "nice": true
       },
       "degenerate": false
@@ -1654,8 +1654,8 @@
         "unit": "kPa",
         "kind": "sequential",
         "domain": {
-          "min": 6.55127E-10,
-          "max": 6.55127E-10,
+          "min": 0,
+          "max": 0,
           "nice": true
         },
         "degenerate": true
@@ -1667,7 +1667,7 @@
         "kind": "sequential",
         "domain": {
           "min": 45,
-          "max": 65,
+          "max": 60,
           "nice": true
         },
         "degenerate": false

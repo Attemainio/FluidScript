@@ -498,7 +498,7 @@ A colour scale.
 | `unit` | string | The unit the domain is in. |
 | `kind` | string | `sequential` or `diverging`. |
 | `domain` | [`Domain`](#domain) or `null` | The range mapped to the scale's ends, or `null` before anything is solved. |
-| `degenerate` | boolean | Whether every element has the same value. |
+| `degenerate` | boolean | Whether every element has the same value at the legend's precision; a plant on its pressure datum is degenerate at 0 (`C-112`). |
 
 ### `Range`
 
@@ -567,7 +567,7 @@ A scale domain.
 |---|---|---|
 | `min` | number | The low end, in the scale's unit. |
 | `max` | number | The high end, in the scale's unit. |
-| `nice` | boolean | Whether the ends were rounded outward to legend ticks. |
+| `nice` | boolean | Whether the ends were settled to six significant digits and rounded outward to legend ticks (`C-112`). |
 
 ### `Position`
 

@@ -79,8 +79,9 @@ scale is decoration.
 listed, then `temperature`, `pressure` and `mass flow`, which every diagram offers. A click switches
 at once, with no recompile, and changes nothing in the script; `Home` on the canvas puts the view
 and the property back to what the script says. Every property has its own range, from the lowest
-value in the plant to the highest, rounded outward to round numbers. `show temperature 0..80` fixes
-the range instead.
+value in the plant to the highest, rounded outward to round numbers once the ends are settled to the
+precision the legend prints, so a value a hair past a tick does not open an empty band.
+`show temperature 0..80` fixes the range instead.
 
 **Hover the ramp** between two values and every symbol whose value lies in that band stands out
 while the rest recede: "show me everything above 60 °C" is a movement of the cursor.

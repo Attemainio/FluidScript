@@ -34,8 +34,10 @@ datasheet's number), `dt` and `dh` are rises (out − in). A node has no change 
 scales.
 
 With no `show` at all the diagram follows `temperature`. The scale's range is the solved minimum and
-maximum, rounded outward to legend ticks; a stated `min..max` is used as written and fixes the first
-property's range. Before a solve the range is empty and everything draws in the neutral colour.
+maximum, rounded outward to legend ticks; the ends are first settled to the legend's own precision, so
+an inlet stated at 45 °C that solves a hair under 45 does not open an empty band down to 40, and a plant
+sitting on its pressure datum reads `all 0 kPa`. A stated `min..max` is used as written and fixes the
+first property's range. Before a solve the range is empty and everything draws in the neutral colour.
 
 The properties you list are the ones the legend's switcher offers, after which `temperature`,
 `pressure` and `flow` always follow; every listed property travels with its own range, so switching

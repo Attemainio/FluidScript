@@ -140,7 +140,16 @@ The range mapped to the scale's ends.
 | **Auto** (default) | Min and max of the property across every element in the circuit | Static solve |
 | **Run-wide** | Min and max across every frame of a transient | Transient — see below |
 | **Fixed** | User-specified | `show temperature 0..80` (`D-30`) |
-| **Nice** | Auto, rounded outward to sensible ticks | Always applied on top, for the legend |
+| **Nice** | Auto, settled to the legend's precision and then rounded outward to sensible ticks | Always applied on top, for the legend |
+
+**The ends are settled before they are niced** (`C-112`). Nice rounds outward to a 1-2-5 step, and a
+raw end one ulp past a step boundary opens a whole step of colour with nothing in it: the substation's
+datum node solved at −7e-10 kPa one day and +7e-10 the next, and the floor read −200 kPa or 0 for a
+plant spanning 560; the storage header's inlet stated at 45 °C solved a hair either side of 45 and the
+floor read 40 or 45. So each end is first rounded to six significant digits of the larger end's
+magnitude, the contract's own precision (`26`), and an end under the resolution the solve claims for
+the property (`newton.residual_tol` × the property's scale, 1e-3 Pa for a pressure; none for a
+temperature in °C, which has no physical zero) is zero. `ScaleDomain.Settle` is the rule.
 
 **A transient must use a run-wide domain, not a per-frame one.** A domain recomputed each frame makes
 the colours mean something different in every frame: a loop warming from 20 °C to 68 °C would look
@@ -148,8 +157,10 @@ identical at both ends because each frame re-normalises to itself. Since the run
 range is unknown at t = 0, the domain expands as frames arrive and the legend updates with it — visibly,
 so the user sees why the colours shifted.
 
-**A degenerate domain** — every element at the same value, common before the first solve — collapses the
-scale to its midpoint and the legend says `all 20.0 °C`. Dividing by a zero range is the obvious bug.
+**A degenerate domain** — every element at the same value *at the legend's precision*, common before the
+first solve — collapses the scale to its midpoint and the legend says `all 20.0 °C`. Dividing by a
+zero range is the obvious bug; a pump-free header whose gauge pressures are all within a nanopascal of
+the datum says `all 0 kPa`, not `all 6.55e-10 kPa` (`C-112`).
 
 `null` model-state values are unsolved, not zero. Domain computation excludes them. If at least one
 finite value remains, null elements render neutral under invariant 5 and do not affect min/max. If no

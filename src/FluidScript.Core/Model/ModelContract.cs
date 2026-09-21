@@ -649,14 +649,14 @@ public sealed record ScaleWire
     /// <summary>The range mapped to the scale's ends, or <see langword="null"/> before anything is solved.</summary>
     public required DomainWire? Domain { get; init; }
 
-    /// <summary>Whether every element has the same value.</summary>
+    /// <summary>Whether every element has the same value at the legend's precision; a plant on its pressure datum is degenerate at 0 (<c>C-112</c>).</summary>
     public required bool Degenerate { get; init; }
 }
 
 /// <summary>A scale domain.</summary>
 /// <param name="Min">The low end, in the scale's unit.</param>
 /// <param name="Max">The high end, in the scale's unit.</param>
-/// <param name="Nice">Whether the ends were rounded outward to legend ticks.</param>
+/// <param name="Nice">Whether the ends were settled to six significant digits and rounded outward to legend ticks (<c>C-112</c>).</param>
 public sealed record DomainWire(double Min, double Max, bool Nice);
 
 /// <summary>An evaluated <c>let</c>.</summary>

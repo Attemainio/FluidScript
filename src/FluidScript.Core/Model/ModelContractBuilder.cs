@@ -773,7 +773,9 @@ public static class ModelContractBuilder
 
                 if (min is { } low && max is { } high)
                 {
-                    (min, max) = diverging ? Symmetric(low, high) : Nice(low, high);
+                    // Settled to the legend's precision first, so a value a nanounit past a tick does
+                    // not open an empty band and a plant sitting on its datum is degenerate at zero (C-112).
+                    (min, max) = ScaleDomain.Settle(low, high, Resolution(property, unit), diverging);
                 }
             }
 
@@ -887,29 +889,18 @@ public static class ModelContractBuilder
         private static double? InUnit(double? si, UnitSymbol? unit) =>
             si is { } value && double.IsFinite(value) ? (unit is null ? value : Quantity.FromSi(value, unit.Dimension).ValueIn(unit)) : null;
 
-        /// <summary>Rounded outward to a 1-2-5 step giving about five ticks (<c>57</c>'s "nice").</summary>
-        private static (double Min, double Max) Nice(double min, double max)
+        /// <summary>
+        /// The magnitude below which a property's value is zero on a legend, in the scale's unit: the
+        /// resolution the solve claims for it (<c>newton.residual_tol</c> times its scale), for the
+        /// properties that have a physical zero. A temperature in °C and a reference-relative enthalpy
+        /// have none.
+        /// </summary>
+        private static double Resolution(string property, UnitSymbol? unit) => property switch
         {
-            if (max <= min)
-            {
-                return (min, max);
-            }
-
-            var raw = (max - min) / 5;
-            var power = Math.Pow(10, Math.Floor(Math.Log10(raw)));
-            var fraction = raw / power;
-            var step = (fraction <= 1 ? 1 : fraction <= 2 ? 2 : fraction <= 5 ? 5 : 10) * power;
-
-            return (Math.Floor(min / step) * step, Math.Ceiling(max / step) * step);
-        }
-
-        /// <summary>A diverging domain: niced, then made symmetric about zero so the neutral colour sits at zero (<c>57</c>).</summary>
-        private static (double Min, double Max) Symmetric(double min, double max)
-        {
-            var (low, high) = Nice(Math.Min(min, 0), Math.Max(max, 0));
-            var reach = Math.Max(-low, high);
-            return (-reach, reach);
-        }
+            "pressure" => InUnit(Tolerances.NewtonResidual * Tolerances.PressureScale, unit) ?? 0,
+            "flow" => InUnit(Tolerances.NewtonResidual * Tolerances.FlowScaleFloor, unit) ?? 0,
+            _ => 0,
+        };
     }
 
     // ---- bindings and diagnostics --------------------------------------------------------------------------
