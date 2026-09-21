@@ -53,6 +53,8 @@ public sealed class StateTimingDiagnostics
     private static readonly Quantity Atmospheric = Quantity.FromSi(0, Dimension.Pressure);
 
     private readonly List<Row> _rows = [];
+    private readonly List<string> _agreement = [];
+    private readonly List<string> _unavailable = [];
 
     private sealed record Row(string Substance, string Operation, double Cold, double[] PerCall);
 
@@ -90,6 +92,7 @@ public sealed class StateTimingDiagnostics
             Atmospheric, Celsius(18 + (i % 12)), Fraction(0.008)));
 
         MeasureBackendSplit(waterEnthalpy.SiValue);
+        MeasureBackends(waterEnthalpy.SiValue);
 
         var report = Path.Combine(RepositoryLayout.Diagnostics, "fluid-state-timings.md");
         Directory.CreateDirectory(RepositoryLayout.Diagnostics);
@@ -97,6 +100,7 @@ public sealed class StateTimingDiagnostics
 
         Assert.True(File.Exists(report));
         Assert.All(_rows, row => Assert.All(row.PerCall, sample => Assert.True(sample > 0)));
+        Assert.NotEmpty(_agreement);
     }
 
     /// <summary>Where a water fix's time goes below <c>ISubstance</c>: the backend's flash against the property reads that follow it.</summary>
@@ -179,6 +183,163 @@ public sealed class StateTimingDiagnostics
             _ = fluid.Conductivity?.WattsPerMeterKelvin;
             _ = fluid.Phase;
         });
+    }
+
+    /// <summary>What the other CoolProp backends SharpProp ships charge for the same water state, and how far each sits from HEOS.</summary>
+    /// <remarks>
+    /// <para>
+    /// <c>Water</c> measures through <c>HEOS::Water</c>, the IAPWS-95 Helmholtz equation, whose (p, h)
+    /// flash is an iteration and costs what the split above shows. CoolProp also ships IF97, the
+    /// industrial formulation with explicit backward equations; the incompressible fits; and tabular
+    /// interpolation over HEOS gridded on (p, h), which is the form <c>D-79</c> allows. Each is timed on
+    /// the two pairs a solve uses, and its answer at 60 °C and 300 kPa absolute compared with HEOS, so the
+    /// speed and the price of it are read together. A backend that will not construct, or a table that
+    /// will not build, is listed rather than silently skipped; a table's first use builds it, which is
+    /// the cold call.
+    /// </para>
+    /// <para>
+    /// SharpProp keeps CoolProp's own <c>AbstractState</c> internal, so this reaches it by reflection and
+    /// compiles the calls into delegates once, which keeps the reflection out of the timed loop.
+    /// </para>
+    /// </remarks>
+    private void MeasureBackends(double enthalpy)
+    {
+        const double pressure = 300_000;
+        const double temperature = 273.15 + 60;
+        double[]? reference = null;
+
+        if (CoolPropState.Bind() is not { } bind)
+        {
+            _unavailable.Add("CoolProp's `AbstractState` is not reachable in this SharpProp build; the backend comparison did not run.");
+
+            return;
+        }
+
+        foreach (var backend in new[] { "HEOS", "IF97", "INCOMP", "BICUBIC&HEOS", "TTSE&HEOS" })
+        {
+            CoolPropState state;
+
+            try
+            {
+                state = bind(backend, "Water");
+                state.UpdatePT(pressure, temperature);
+                var probe = state.ReadAll();
+                state.UpdateHP(probe[1], pressure);
+                var back = state.ReadAll();
+                reference ??= probe;
+                _agreement.Add(Agreement(backend, probe, back, reference));
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                var message = (exception.InnerException ?? exception).Message.Split('\n')[0];
+                _unavailable.Add($"`{backend}::Water` — {message}");
+
+                continue;
+            }
+
+            var label = $"CoolProp {backend}::Water";
+
+            Measure(label, "(p, T) update + all seven reads and Phase", i =>
+            {
+                state.UpdatePT(pressure, 273.15 + 40 + (i % 20));
+                state.ReadAll();
+            });
+            Measure(label, "(p, h) update + all seven reads and Phase", i =>
+            {
+                state.UpdateHP(enthalpy + (i % 20), pressure);
+                state.ReadAll();
+            });
+        }
+    }
+
+    private static string Agreement(string backend, double[] probe, double[] back, double[] reference)
+    {
+        static string Relative(double value, double against) =>
+            against == 0 ? "—" : ((value - against) / against).ToString("E1", CultureInfo.InvariantCulture);
+
+        return $"| `{backend}` | {Relative(probe[3], reference[3])} | {Relative(probe[1], reference[1])} | {Relative(probe[5], reference[5])} "
+            + $"| {Relative(probe[4], reference[4])} | {Relative(probe[6], reference[6])} | {(back[0] - probe[0]).ToString("E1", CultureInfo.InvariantCulture)} K |";
+    }
+
+    /// <summary>CoolProp's <c>AbstractState</c> behind SharpProp, bound once by reflection into delegates.</summary>
+    private sealed class CoolPropState
+    {
+        private readonly Action<double, double> _updatePT;
+        private readonly Action<double, double> _updateHP;
+        private readonly Func<double>[] _reads;
+
+        private CoolPropState(Action<double, double> updatePT, Action<double, double> updateHP, Func<double>[] reads)
+        {
+            _updatePT = updatePT;
+            _updateHP = updateHP;
+            _reads = reads;
+        }
+
+        public static Func<string, string, CoolPropState>? Bind()
+        {
+            var assembly = typeof(Fluid).Assembly;
+            var stateType = assembly.GetTypes().FirstOrDefault(static t => t.Name == "AbstractState");
+            var pairsType = assembly.GetTypes().FirstOrDefault(static t => t.Name == "input_pairs");
+            var factory = stateType?.GetMethod("factory", [typeof(string), typeof(string)]);
+            var update = stateType?.GetMethod("update", [pairsType!, typeof(double), typeof(double)]);
+
+            if (stateType is null || pairsType is null || factory is null || update is null)
+            {
+                return null;
+            }
+
+            var pt = Enum.Parse(pairsType, "PT_INPUTS");
+            var hp = Enum.Parse(pairsType, "HmassP_INPUTS");
+            var names = new[] { "T", "hmass", "smass", "rhomass", "viscosity", "cpmass", "conductivity" };
+            var phase = stateType.GetMethod("phase", Type.EmptyTypes);
+
+            return (backend, fluid) =>
+            {
+                var instance = factory.Invoke(null, [backend, fluid])!;
+                var self = System.Linq.Expressions.Expression.Constant(instance);
+                var a = System.Linq.Expressions.Expression.Parameter(typeof(double));
+                var b = System.Linq.Expressions.Expression.Parameter(typeof(double));
+
+                Action<double, double> Update(object pair) =>
+                    System.Linq.Expressions.Expression.Lambda<Action<double, double>>(
+                        System.Linq.Expressions.Expression.Call(self, update, System.Linq.Expressions.Expression.Constant(pair, pairsType), a, b), a, b).Compile();
+
+                Func<double> Read(string name)
+                {
+                    var method = stateType.GetMethod(name, Type.EmptyTypes)
+                        ?? throw new MissingMethodException(stateType.Name, name);
+
+                    return System.Linq.Expressions.Expression.Lambda<Func<double>>(
+                        System.Linq.Expressions.Expression.Call(self, method)).Compile();
+                }
+
+                var reads = names.Select(Read).ToList();
+
+                if (phase is not null)
+                {
+                    reads.Add(System.Linq.Expressions.Expression.Lambda<Func<double>>(
+                        System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(self, phase), typeof(double))).Compile());
+                }
+
+                return new CoolPropState(Update(pt), Update(hp), [.. reads]);
+            };
+        }
+
+        public void UpdatePT(double pressure, double temperature) => _updatePT(pressure, temperature);
+
+        public void UpdateHP(double enthalpy, double pressure) => _updateHP(enthalpy, pressure);
+
+        public double[] ReadAll()
+        {
+            var values = new double[_reads.Length];
+
+            for (var index = 0; index < values.Length; index++)
+            {
+                values[index] = _reads[index]();
+            }
+
+            return values;
+        }
     }
 
     private static Quantity Celsius(double value) =>
@@ -286,6 +447,31 @@ public sealed class StateTimingDiagnostics
                 $"| `{row.Substance}` | {row.Operation} | {row.Cold:F1} | {Median(row.PerCall):F2} "
                 + $"| {row.PerCall.Average():F2} | {StandardDeviation(row.PerCall):F2} "
                 + $"| {row.PerCall.Min():F2} | {row.PerCall.Max():F2} |");
+        }
+
+        text.AppendLine()
+            .AppendLine("## The backends, against HEOS at 60 °C and 300 kPa absolute")
+            .AppendLine()
+            .AppendLine("Relative deviation of each backend's (p, T) answer from `HEOS::Water`, and how far its")
+            .AppendLine("own (p, h) round trip lands from the temperature it started at. `HEOS` is the reference")
+            .AppendLine("and reads zero by construction.")
+            .AppendLine()
+            .AppendLine("| Backend | ρ | h | cp | μ | k | (p, h) round trip |")
+            .AppendLine("|---|---:|---:|---:|---:|---:|---:|");
+
+        foreach (var line in _agreement)
+        {
+            text.AppendLine(line);
+        }
+
+        if (_unavailable.Count > 0)
+        {
+            text.AppendLine().AppendLine("Not measured:").AppendLine();
+
+            foreach (var line in _unavailable)
+            {
+                text.AppendLine(CultureInfo.InvariantCulture, $"- {line}");
+            }
         }
 
         return text.ToString();
