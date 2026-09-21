@@ -6,7 +6,7 @@ status: draft
 owns: [which sections of FluidScript.Core are rewritten wholesale and in what order, the parameter-ownership model, the solved-view seam between solver and reporting, the rollback discipline of the layout ring forms, what a refactoring package may and may not change]
 depends_on: [08-implementation-sequence, 06-decision-log, 15-semantic-model, 22-component-model, 23-topology-and-graph, 24-auto-sizing, 26-model-contract, 28-layout-solver, 29-layout-ladder, 32-steady-state-newton, 36-numerics-and-convergence, 62-testing-strategy]
 traces_to: [R-11, R-17]
-open_questions: 2
+open_questions: 1
 last_review_pass: 0
 ---
 
@@ -118,7 +118,8 @@ Two findings are live today and are not size debt:
   for unit members at `:811` and sets through `Place` at `:815`, nor `_side`. `Solve` clears
   `_placed` once per fragment (`:161`), not per form, and `Loop` is the first form tried
   (`:167-170`), so what it placed before declining is still marked placed when C20, C19 and C18 run.
-  Whether any ladder golden depends on this is **not measured** (open question 2).
+  **Measured in R5:** with every form restoring one snapshot, no ladder step, audit count or
+  golden moved; the gap was real and not load-bearing.
 
 ## The principle the rewrite is made against
 
@@ -436,8 +437,5 @@ test for R3 step 7 asserts it by name.
 
 ## Open questions
 
-1. **Does the `Loop` rollback gap change a picture?** Verified as a code difference, not measured
-   as a drawing difference. R5's first step measures it on the ladder; if a step moves, it is filed
-   under `28`/`29` before anything is re-baselined.
-2. **Where does the refactoring sit in `08`?** Proposed after P5.13a and before P5.13b, for the
+1. **Where does the refactoring sit in `08`?** Proposed after P5.13a and before P5.13b, for the
    reason given above; `08` owns the answer and this document only argues for one.
