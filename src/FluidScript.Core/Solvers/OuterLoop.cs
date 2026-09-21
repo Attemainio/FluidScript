@@ -337,11 +337,7 @@ public sealed class OuterLoop(
 
         if (!prepared.Lowered.Unresolved.IsEmpty)
         {
-            return Result.Failure<OuterLoopResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a component"),
-                ("name", string.Join(", ", prepared.Lowered.Unresolved)),
-                ("state", "nothing chose the geometry it needs")));
+            return Refused("a component", string.Join(", ", prepared.Lowered.Unresolved), "nothing chose the geometry it needs");
         }
 
         var overlay = prepared.Sizes;
@@ -394,11 +390,7 @@ public sealed class OuterLoop(
             // error's text is the summary for a caller that reports one line.
             if (!posedness.CanSolve)
             {
-                return Result.Failure<OuterLoopResult>(ResultError.From(
-                    Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
-                    ("property", "a solution"),
-                    ("name", name),
-                    ("state", Unsolvable(posedness))) with { Diagnostics = posedness.Diagnostics });
+                return Refused("a solution", name, Unsolvable(posedness), posedness.Diagnostics);
             }
 
             var layout = SystemLayout.Build(lowered.Graph, posedness.Counting);
@@ -428,11 +420,7 @@ public sealed class OuterLoop(
                     CultureInfo.InvariantCulture,
                     $"counting predicted {posedness.Counting.Equations} for {posedness.Counting.Unknowns}");
 
-                return Result.Failure<OuterLoopResult>(ResultError.From(
-                    Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
-                    ("property", "a solution"),
-                    ("name", name),
-                    ("state", $"{assembled}, though {predicted}")));
+                return Refused("a solution", name, $"{assembled}, though {predicted}");
             }
 
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
@@ -495,14 +483,7 @@ public sealed class OuterLoop(
                 return Result.Success(
                     Report(
                         lowered.Graph,
-                        solve with
-                        {
-                            Diagnostics = solve.Diagnostics
-                                .AddRange(raised)
-                                .AddRange(loopSaid)
-                                .AddRange(evaluationSaid)
-                                .AddRange(DeferredEvaluation.NeverEvaluated(current, histories)),
-                        },
+                        Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, unsettled: [], closing: []),
                         next,
                         WithStated(current, bases),
                         notes,
@@ -519,24 +500,19 @@ public sealed class OuterLoop(
         }
 
         return solve is null
-            ? Result.Failure<OuterLoopResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a solution"),
-                ("name", name),
-                ("state", "the pass cap is not positive")))
+            ? Refused("a solution", name, "the pass cap is not positive")
             : Result.Success(
                 Report(
                     lowered.Graph,
-                    solve with
-                    {
-                        Diagnostics = solve.Diagnostics
-                            .AddRange(raised)
-                            .AddRange(loopSaid)
-                            .AddRange(evaluationSaid)
-                            .AddRange(deferredMoved ? DeferredEvaluation.Unsettled(histories) : [])
-                            .AddRange(DeferredEvaluation.NeverEvaluated(current, histories))
-                            .Add(NotSettled(previous, overlay)),
-                    },
+                    Annotated(
+                        solve,
+                        raised,
+                        loopSaid,
+                        evaluationSaid,
+                        current,
+                        histories,
+                        unsettled: deferredMoved ? DeferredEvaluation.Unsettled(histories) : [],
+                        closing: [NotSettled(previous, overlay)]),
                     overlay,
                     WithStated(current, bases),
                     notes,
@@ -546,6 +522,54 @@ public sealed class OuterLoop(
                     settled: false,
                     hash));
     }
+
+    /// <summary>A run the loop refuses before or between passes: the one error every refusal is spelled as, with its clause.</summary>
+    /// <param name="property">What could not be produced: <c>a component</c> or <c>a solution</c>.</param>
+    /// <param name="name">Whose.</param>
+    /// <param name="state">Why, in one clause.</param>
+    /// <param name="diagnostics">What the check that refused had to say, travelling with the refusal (<c>S-65</c>).</param>
+    /// <returns>The failure.</returns>
+    private static Result<OuterLoopResult> Refused(
+        string property, string name, string state, ImmutableArray<Diagnostics.Diagnostic>? diagnostics = null)
+    {
+        var error = ResultError.From(
+            Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+            ("property", property),
+            ("name", name),
+            ("state", state));
+
+        return Result.Failure<OuterLoopResult>(diagnostics is { } said ? error with { Diagnostics = said } : error);
+    }
+
+    /// <summary>The last solve with everything the loop has to say attached, in the one order both exits use.</summary>
+    /// <param name="solve">The last solve.</param>
+    /// <param name="raised">What the sizers raised on the last pass.</param>
+    /// <param name="loopSaid">What the loop itself said: a warm start discarded.</param>
+    /// <param name="evaluationSaid">What the deferred evaluation said on the last pass.</param>
+    /// <param name="current">The model the last pass lowered, for what was never evaluated.</param>
+    /// <param name="histories">Every deferred target's values so far.</param>
+    /// <param name="unsettled">The deferred values still moving at the cap, or empty.</param>
+    /// <param name="closing">What closes the list: the not-settled warning, or nothing.</param>
+    /// <returns>The solve, annotated.</returns>
+    private static SolveResult Annotated(
+        SolveResult solve,
+        ImmutableArray<Diagnostics.Diagnostic> raised,
+        ImmutableArray<Diagnostics.Diagnostic>.Builder loopSaid,
+        ImmutableArray<Diagnostics.Diagnostic> evaluationSaid,
+        SemanticModel current,
+        Dictionary<ValueId, List<DeferredEvaluation.Evaluated>> histories,
+        ImmutableArray<Diagnostics.Diagnostic> unsettled,
+        ImmutableArray<Diagnostics.Diagnostic> closing) =>
+        solve with
+        {
+            Diagnostics = solve.Diagnostics
+                .AddRange(raised)
+                .AddRange(loopSaid)
+                .AddRange(evaluationSaid)
+                .AddRange(unsettled)
+                .AddRange(DeferredEvaluation.NeverEvaluated(current, histories))
+                .AddRange(closing),
+        };
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
     /// <param name="posedness">The failing check.</param>
@@ -1061,9 +1085,7 @@ public sealed class OuterLoop(
 
             if (!bases.ContainsKey(key))
             {
-                bases[key] = string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{value.SiValue:0.###} — provisional, not chosen: {reason}");
+                bases[key] = ProvisionalBasis(value, reason);
             }
         }
 
@@ -1072,6 +1094,13 @@ public sealed class OuterLoop(
             + "to disturb the first pass as little as possible, not to suit this circuit — state a `kv`, "
             + "or read the result knowing this one number is arbitrary.");
     }
+
+    /// <summary>The basis line of a bootstrap value no rule replaced: the number, and why it stayed.</summary>
+    /// <param name="value">The provisional.</param>
+    /// <param name="reason">What stopped every rule, as a sentence fragment.</param>
+    /// <returns>The basis.</returns>
+    private static string ProvisionalBasis(Quantity value, string reason) =>
+        string.Create(CultureInfo.InvariantCulture, $"{value.SiValue:0.###} — provisional, not chosen: {reason}");
 
     /// <summary>The driving pressure a circuit with no free pump offers a valve.</summary>
     /// <param name="graph">The lowered circuit.</param>
@@ -1139,10 +1168,7 @@ public sealed class OuterLoop(
                     continue;
                 }
 
-                bases[key] = string.Create(
-                    CultureInfo.InvariantCulture,
-                    $"{value.SiValue:0.###} — provisional, not chosen: no rule sizes a "
-                    + $"{component.Kind}'s `{parameter}`");
+                bases[key] = ProvisionalBasis(value, $"no rule sizes a {component.Kind}'s `{parameter}`");
 
                 notes.Add(
                     $"{component.Name}.{parameter} is still the bootstrap value no rule replaced, because "

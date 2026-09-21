@@ -218,17 +218,8 @@ public static partial class SolutionSeed
     {
         double[]? parameters = null;
 
-        for (var index = layout.PromotionOffset; index < layout.Count; index++)
+        foreach (var (index, _, parameter) in PromotedColumns(layout, element.Name))
         {
-            var declaration = layout.Unknowns[index];
-
-            if (!string.Equals(declaration.OwnerComponentId, element.Name, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var parameter = declaration.Name[(declaration.OwnerComponentId.Length + 1)..];
-
             // Kv and head only. A promoted position is seeded at mid-travel (`S-50`), and letting the
             // walk lay the legs' drops at 0.5 instead of the valve's own 1.0 was measured (2026-09-20):
             // it cost one to two first-pass iterations on every three-way-valve circuit in the corpus
@@ -238,7 +229,6 @@ public static partial class SolutionSeed
             {
                 continue;
             }
-
 
             for (var slot = 0; slot < element.Resolvable.Length; slot++)
             {
@@ -251,6 +241,29 @@ public static partial class SolutionSeed
         }
 
         return parameters;
+    }
+
+    /// <summary>The promoted columns of the layout: each one's index, its owner and the parameter it holds.</summary>
+    /// <param name="layout">The unknown layout.</param>
+    /// <param name="owner">An owner to keep to, or <see langword="null"/> for every column.</param>
+    /// <returns>In column order.</returns>
+    /// <remarks>
+    /// A promoted column's name is the promotion's label, <c>3WV.position</c>, so the parameter is whatever
+    /// follows the owner's name and the dot. Three walks read it that way before <c>70</c>'s R4; this is the one.
+    /// </remarks>
+    private static IEnumerable<(int Index, string Owner, string Parameter)> PromotedColumns(SystemLayout layout, string? owner = null)
+    {
+        for (var index = layout.PromotionOffset; index < layout.Count; index++)
+        {
+            var declaration = layout.Unknowns[index];
+
+            if (owner is not null && !string.Equals(declaration.OwnerComponentId, owner, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            yield return (index, declaration.OwnerComponentId, declaration.Name[(declaration.OwnerComponentId.Length + 1)..]);
+        }
     }
 
     /// <summary>The pressure field the components' own laws imply at the seeded flows.</summary>
@@ -582,20 +595,14 @@ public static partial class SolutionSeed
     /// </remarks>
     private static void Promoted(CircuitGraph graph, SystemLayout layout, double[] values)
     {
-        for (var index = layout.PromotionOffset; index < layout.Count; index++)
+        foreach (var (index, name, parameter) in PromotedColumns(layout))
         {
-            var declaration = layout.Unknowns[index];
-            var owner = graph.Components.FirstOrDefault(element =>
-                string.Equals(element.Name, declaration.OwnerComponentId, StringComparison.Ordinal));
+            var owner = graph.Components.FirstOrDefault(element => string.Equals(element.Name, name, StringComparison.Ordinal));
 
             if (owner is null)
             {
                 continue;
             }
-
-            // The declaration's name is the promotion's label, `"3WV.position"`, so the parameter is
-            // whatever follows the owner's name and the dot.
-            var parameter = declaration.Name[(declaration.OwnerComponentId.Length + 1)..];
 
             foreach (var resolvable in owner.Resolvable)
             {
@@ -615,11 +622,7 @@ public static partial class SolutionSeed
     }
     /// <summary>Whether a bare pump's head is an unknown this solve is expected to choose.</summary>
     private static bool PromotesHead(SystemLayout layout, Pump pump) =>
-        layout.Unknowns
-            .Skip(layout.PromotionOffset)
-            .Any(declaration =>
-                string.Equals(declaration.OwnerComponentId, pump.Name, StringComparison.Ordinal)
-                && string.Equals(declaration.Name, $"{pump.Name}.head", StringComparison.Ordinal));
+        PromotedColumns(layout, pump.Name).Any(static column => column.Parameter is "head");
 
     /// <summary>The Kv a promoted valve is seeded at: the Kv law at the seeded flow, taking half of what the circuit offers.</summary>
     /// <param name="graph">The lowered circuit.</param>
