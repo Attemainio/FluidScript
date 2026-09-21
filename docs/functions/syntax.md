@@ -134,6 +134,9 @@ pressure twice — on the node and on a port, or on two ports that meet there �
 difference across it and pins neither node; `out.p` pins one. A pressure pinned inside a closed loop
 is that loop's datum; two pinned inside one loop are one more than the loop can satisfy, and
 [`FS2210`](diagnostics.md) names both. `HX1.in[2].p` reads the same node's solved pressure back.
+The two spellings name one point only across a bare connection: `N1 - PU1 length=10 m dn=25` puts a
+pipe between them, and `PU1 in.p` is then the node at the pipe's far end — the pump's suction, 10 m
+of friction below `N1` — not `N1` itself.
 
 Scripts written before this form used `in=`, `in2=`, `flow2=`, `t3=` and `T1.in2`. They still bind,
 to exactly the same thing, and each is pointed at the spelling above once, where it stands
