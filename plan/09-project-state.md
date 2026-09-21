@@ -1063,6 +1063,15 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > refrigerants pay 23 to 77 µs per (p, h) on HEOS with no IF97 to move to; the glycol brine 9.7 µs on
 > INCOMP; humid air 423 µs through `HAPropsSI` with no alternative at all.
 
+> **`S-73` closed, `S-69` advanced** (the same day, the user's call to make it work before making it
+> fast): the parallel pair's failure was a `dt` row reading a load's power as written (+20 kW) rather
+> than as carried (-20 kW), so it demanded the load heat its stream -- only the substation's explicit
+> `power=-150` had ever met the row -- and then a promoted balancing Kv with no sibling to seed from.
+> Fixed both; the pair converges in two iterations to Kv 4.1 and 10 kPa. The series ring's seed now
+> partitions each unrated coil from the ring flow the closed field found and seeds the promoted powers
+> from the stated temperatures (residual 1.52 to 0.185 at the seed); its solve still fails in the sizing
+> passes, which `S-69` now names as what is left. Corpus byte-identical. 52 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1209,7 +1218,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1986 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1987 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

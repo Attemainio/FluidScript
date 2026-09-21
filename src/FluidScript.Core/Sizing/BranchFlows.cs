@@ -315,8 +315,79 @@ public static class BranchFlows
             return true;
         }
 
+        // Only the feed is known: a block on a series ring, whose `a` leg carries the ring's flow and
+        // whose coil has no duty to size a flow from (`S-69`). The stated `in` and `out` still say what
+        // share of the coil's stream the feed is, so the coil is the feed divided by that share and the
+        // recirculating leg is the rest. Without the temperatures to read a share from, nothing is said.
+        if (!commonKnown && firstKnown && !secondKnown
+            && MixingFraction(graph, LoadOn(graph, graph.Branches[common]), graph.Branches[first], valve) is { } share)
+        {
+            var coil = estimates[first].Magnitude / share;
+
+            estimates[common] = new BranchFlow(coil, FlowBasis.Propagated, estimates[first].Source);
+            estimates[second] = new BranchFlow(coil - estimates[first].Magnitude, FlowBasis.Propagated, estimates[first].Source);
+            return true;
+        }
+
         return false;
     }
+
+    /// <summary>A second estimate for the mixing valves the first could not partition, from the flows a mass-consistent field found at their feed legs.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="estimates">The estimate the field was solved from.</param>
+    /// <param name="flows">The field's flow per branch, in the branch's orientation.</param>
+    /// <returns>The estimate with each such valve's legs partitioned, or <see langword="null"/> when no valve gained anything.</returns>
+    /// <remarks>
+    /// <see cref="Propagate"/> never hands a three-way valve's leg a node's flow, because a leg's share is
+    /// the valve's to decide; on a series ring that leaves a block whose coil has no duty with nothing
+    /// known at any port, and the field then closes its feed by balance alone (<c>S-69</c>). Told what the
+    /// balance found, the same three-way rule partitions the coil and the recirculating leg from the
+    /// stated temperatures, exactly as it would have from an estimate.
+    /// </remarks>
+    public static ImmutableArray<BranchFlow>? Refine(CircuitGraph graph, ImmutableArray<BranchFlow> estimates, double[] flows)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(flows);
+
+        var refined = estimates.ToArray();
+        var moved = false;
+
+        foreach (var valve in graph.JunctionElements.OfType<ThreeWayValve>())
+        {
+            // A coil switched off asks nothing of its split and its `in` is documentation, not a demand
+            // (`S-56`); partitioning its legs from those temperatures would seed a stopped branch running.
+            var off = graph.Branches.Any(branch =>
+                Meets(branch, valve)
+                && Solvers.ValveLegs.PortName(branch, valve) == "ab"
+                && branch.Path.OfType<HeatExchanger>().Any(Topology.WellPosedness.ZeroDuty));
+
+            if (!valve.BypassConnected || off)
+            {
+                continue;
+            }
+
+            foreach (var branch in graph.Branches)
+            {
+                if (Meets(branch, valve)
+                    && Solvers.ValveLegs.PortName(branch, valve) == "a"
+                    && refined[branch.Index].Basis == FlowBasis.Nominal
+                    && Math.Abs(flows[branch.Index]) > Solvers.Tolerances.FlowZero)
+                {
+                    refined[branch.Index] = new BranchFlow(Math.Abs(flows[branch.Index]), FlowBasis.Propagated, "field");
+                    moved |= PropagateThreeWay(graph, refined, valve);
+                }
+            }
+        }
+
+        return moved ? [.. refined] : null;
+    }
+
+    /// <summary>The name of the exchanger on a branch, for the mixing fraction its temperatures imply.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="branch">The branch, a mixing valve's common leg.</param>
+    /// <returns>The first exchanger's name, or an empty string when the branch holds none.</returns>
+    private static string LoadOn(CircuitGraph graph, Branch branch) =>
+        branch.Path.OfType<HeatExchanger>().FirstOrDefault()?.Name ?? string.Empty;
     /// <summary>Returns the hot-leg fraction implied by a load's design temperatures and the temperature that feeds its valve's <c>a</c> port.</summary>
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="loadName">The exchanger that supplied the common-leg duty estimate.</param>
@@ -415,19 +486,43 @@ public static class BranchFlows
             return stated;
         }
 
-        foreach (var branch in graph.Branches)
-        {
-            if (branch.Index == feed.Index || !Meets(branch, far))
-            {
-                continue;
-            }
+        // The junction the feed leaves from, and every junction reachable from it through branches that
+        // hold no exchanger: on a series header the block's feed node joins the previous block's mixing
+        // node through a bare pipe, and the water arriving is that block's coil outlet, one junction
+        // further than the feed's own (`S-69`). A branch with an exchanger on it ends the walk there,
+        // because the exchanger's stated outlet is the answer.
+        var seen = new HashSet<IFlowComponent> { far };
+        var pending = new Queue<IFlowComponent>();
+        pending.Enqueue(far);
 
-            foreach (var element in branch.Path)
+        while (pending.Count > 0)
+        {
+            var junction = pending.Dequeue();
+
+            foreach (var branch in graph.Branches)
             {
-                if (element is HeatExchanger exchanger
-                    && exchanger.StatedParameters.TryGetValue("out", out var outlet))
+                if (branch.Index == feed.Index || !Meets(branch, junction))
                 {
-                    return outlet;
+                    continue;
+                }
+
+                var exchanger = branch.Path.OfType<HeatExchanger>().FirstOrDefault();
+
+                if (exchanger is not null)
+                {
+                    if (exchanger.StatedParameters.TryGetValue("out", out var outlet))
+                    {
+                        return outlet;
+                    }
+
+                    continue;
+                }
+
+                var beyond = ReferenceEquals(branch.From.Element, junction) ? branch.To.Element : branch.From.Element;
+
+                if (beyond is CircuitNode && seen.Add(beyond))
+                {
+                    pending.Enqueue(beyond);
                 }
             }
         }

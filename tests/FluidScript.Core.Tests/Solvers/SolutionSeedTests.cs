@@ -297,6 +297,10 @@ public sealed class SolutionSeedTests
         // coil fall out of continuity at 0.0197 kg/s against its 0.478 duty, which starved the ring and
         // put `N1` below freezing. Ranked by basis, the rated coil and the ring are the chords and the
         // nominal coils take what continuity leaves.
+        //
+        // Since `S-69`'s seed rules the unrated coils are not left to continuity either: the closed field
+        // hands each block's feed leg the ring's 0.3587, and the stated `in`/`out` -- 38/36 fed at 40,
+        // 34.5/33 fed at 36, 31.5/30 fed at 33, each half way -- partition the coil at twice the ring.
         var source = File.ReadAllText(
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08c-header-series-four.fluid"));
         var graph = GraphFixture.Lower(source).Graph;
@@ -313,7 +317,7 @@ public sealed class SolutionSeedTests
         foreach (var block in new[] { "AHU", "FLR", "DHW" })
         {
             Assert.Equal(0.3587, Flow($"TV_{block}.a", block == "AHU" ? "NM_RAD" : block == "FLR" ? "NM_AHU" : "NM_FLR"), 3);
-            Assert.InRange(Flow($"TV_{block}.ab", $"NM_{block}"), 0.2, 0.5);
+            Assert.Equal(0.7174, Flow($"TV_{block}.ab", $"NM_{block}"), 3);
         }
 
         for (var node = 0; node < graph.Nodes.Length; node++)

@@ -97,9 +97,21 @@ public static partial class SolutionSeed
         ArgumentNullException.ThrowIfNull(layout);
 
         var values = new double[layout.Count];
+        var estimates = BranchFlows.Estimate(graph);
         var field = new Field(graph);
 
-        field.Solve(BranchFlows.Estimate(graph));
+        field.Solve(estimates);
+
+        // A block whose coil has no duty learns its feed only from the field's closure -- the ring's flow
+        // arrives at its `a` leg by mass balance, not by any estimate -- and only then can its stated
+        // temperatures say how much the coil circulates (`S-69`). One more round: the closed field hands
+        // the estimate what the balance found, the three-way rule partitions from it, and the field is
+        // solved again with those legs as its chords.
+        if (BranchFlows.Refine(graph, estimates, field.Flows) is { } refined)
+        {
+            field = new Field(graph);
+            field.Solve(refined);
+        }
 
         for (var branch = 0; branch < graph.Branches.Length; branch++)
         {
@@ -616,6 +628,8 @@ public static partial class SolutionSeed
                             ? NominalPumpHead
                             : owner is Valve && resolvable.Name is "kv" && PromotedKv(graph, layout, values, owner) is { } kv
                             ? kv
+                            : owner is HeatExchanger exchanger && resolvable.Name is "power" && PromotedPower(graph, layout, values, exchanger) is { } power
+                            ? power
                             : Interior(resolvable);
             }
         }
@@ -676,14 +690,101 @@ public static partial class SolutionSeed
             }
         }
 
-        if (offered is not { } drop || !(flow > 0))
+        if (offered is { } drop && flow > 0)
+        {
+            var kv = ValveLaw.RequiredKv(flow, 0.5 * drop, ReferenceDensity);
+
+            return double.IsFinite(kv) && kv > 0 ? kv : null;
+        }
+
+        return flow > 0 ? SiblingKv(graph, layout, values, branch, valve, flow) : null;
+    }
+
+    /// <summary>The Kv a balancing valve on a parallel branch needs: what the sibling branch drops at its seeded flow, less what the valve's own branch drops without it.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where branch flows are stored.</param>
+    /// <param name="values">The seed so far.</param>
+    /// <param name="branch">The valve's branch.</param>
+    /// <param name="valve">The valve.</param>
+    /// <param name="flow">kg/s along the valve's branch, positive.</param>
+    /// <returns>Kv in m³/h, or <see langword="null"/> when no sibling shares the branch's ends or the remainder is not a drop the valve can take.</returns>
+    /// <remarks>
+    /// Two branches between the same two junctions share their pressure difference, and a balancing valve
+    /// on one exists to make its branch's drop match the other's at the design flows (<c>23</c>'s parallel
+    /// row). The remainder is the whole of what the valve takes, not the half a stated head is shared at:
+    /// the sibling has already said what the difference is. Seeded at the catalogue's largest Kv the valve
+    /// dropped a few pascals where it had to drop ten kilopascals, and its column was flat enough that the
+    /// first Newton step ran it to zero (<c>S-73</c>).
+    /// </remarks>
+    private static double? SiblingKv(
+        CircuitGraph graph, SystemLayout layout, double[] values, Branch branch, IFlowComponent valve, double flow)
+    {
+        if (!graph.Substance.FromPressureTemperature(
+                Quantity.FromSi(Tolerances.PressureScale, Dimension.Pressure),
+                Quantity.FromSi(Datum(graph), Dimension.Temperature)).TryGetValue(out var state))
         {
             return null;
         }
 
-        var kv = ValveLaw.RequiredKv(flow, 0.5 * drop, ReferenceDensity);
+        double Drops(Branch candidate, IFlowComponent? except)
+        {
+            var carried = Math.Abs(values[layout.BranchFlow(candidate.Index)]);
 
-        return double.IsFinite(kv) && kv > 0 ? kv : null;
+            return candidate.Path
+                .Where(part => !ReferenceEquals(part, except))
+                .Sum(part => BranchResistance.Of(graph, state, part, carried, Parameters(graph, layout, values, part)));
+        }
+
+        foreach (var sibling in graph.Branches)
+        {
+            var parallel = sibling.Index != branch.Index
+                && ((ReferenceEquals(sibling.From.Element, branch.From.Element) && ReferenceEquals(sibling.To.Element, branch.To.Element))
+                    || (ReferenceEquals(sibling.From.Element, branch.To.Element) && ReferenceEquals(sibling.To.Element, branch.From.Element)));
+
+            if (!parallel)
+            {
+                continue;
+            }
+
+            var remainder = Drops(sibling, except: null) - Drops(branch, valve);
+            var kv = ValveLaw.RequiredKv(flow, remainder, ReferenceDensity);
+
+            if (remainder > 0 && double.IsFinite(kv) && kv > 0)
+            {
+                return kv;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>A promoted duty's seed: the seeded flow times the enthalpy change its stated temperatures span.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="layout">Where branch flows are stored.</param>
+    /// <param name="values">The seed so far, with its flows laid.</param>
+    /// <param name="exchanger">The exchanger whose <c>power</c> is promoted.</param>
+    /// <returns>W, positive into the fluid, or <see langword="null"/> without both side-1 temperatures.</returns>
+    /// <remarks>
+    /// A promoted power's own value is zero, which is not a neutral start: every temperature row around
+    /// the coil already assumes its duty, and a coil seeded at no duty on a stream seeded at its design
+    /// flow puts the whole duty into the first Newton step (<c>S-69</c>). The stated <c>in</c> and
+    /// <c>out</c> with the seeded flow are the duty's own definition.
+    /// </remarks>
+    private static double? PromotedPower(CircuitGraph graph, SystemLayout layout, double[] values, HeatExchanger exchanger)
+    {
+        var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(exchanger));
+
+        if (branch is null
+            || HydraulicPartition.Stated(exchanger, "in") is not { } inlet
+            || HydraulicPartition.Stated(exchanger, "out") is not { } outlet)
+        {
+            return null;
+        }
+
+        var flow = Math.Abs(values[layout.BranchFlow(branch.Index)]);
+        var power = flow * (Enthalpy(graph.Substance, Tolerances.PressureScale, outlet) - Enthalpy(graph.Substance, Tolerances.PressureScale, inlet));
+
+        return double.IsFinite(power) && flow > 0 ? power : null;
     }
 
     /// <summary>Water's density at the reference state, kg/m³, for a seed that needs one before any state is fixed.</summary>

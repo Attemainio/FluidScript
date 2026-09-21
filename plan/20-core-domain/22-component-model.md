@@ -1036,6 +1036,7 @@ that drew the cooling loop's diverting valve at the mixed 20 °C.
 - [ ] A three-way valve wired as a mixer (two inflows at `a` and `b`, outflow at `ab`) solves and
       produces **no** `FS4009`; the same valve with a genuinely reversed branch still does.
 - [ ] `power=-70 dt=20` gives an outlet 20 K below the inlet; `dt=-20` produces `FS1307`.
+- [ ] `load power=70 dt=20` is the same statement: the `dt` row reads the lowered sign, not the written one (`S-73`).
 - [ ] `nodes=2` on a pipe produces four states with a monotonic profile.
 - [ ] `T1 tank` resolves `volume=300 dm3`, `layers=5`, and 0.5 levels as defaults—not sized or
       stated—and the model contract reports the basis for each.

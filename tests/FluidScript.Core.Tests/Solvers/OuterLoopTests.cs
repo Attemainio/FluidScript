@@ -224,6 +224,56 @@ public sealed class OuterLoopTests
     }
 
     [Fact]
+    public async Task ABalancingValveOnAParallelBranchIsSeededFromItsSiblingAndThePairSolves()
+    {
+        // `S-73`. Two loads in parallel below one pump, a balancing valve on the first and the second
+        // bare: `D-133` matches the bare branch to the pump and the valved one to its own Kv, and the
+        // seed then has to start that Kv where the sibling's drop puts it -- 10 kPa across the valve at
+        // 0.359 kg/s, Kv about 4 -- rather than at the catalogue's largest, where its column was flat and
+        // the first step ran it to zero. The same script found the `dt` row reading the load's power as
+        // written (+20 kW) rather than as carried (-20 kW), so the row demanded that the load heat its
+        // stream: the solved return at 50 °C is that fix's pin.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind("""
+                fluidscript 1
+                circuit parallel
+                fluid water
+
+                HS1  heat_exchanger power=50 out.t=70
+                PU1  pump
+                RAD1 load power=30 dt=20 dp=10 kPa
+                RAD2 load power=20 dt=20
+                CV1  valve
+
+                connections
+                N1 - PU1 - N2 - HS1 - N3
+                N3 - RAD1 - CV1 - N4
+                N3 - RAD2 - N4
+                N4 - N1
+                """),
+            Water.Instance,
+            "parallel",
+            TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination} after {run.Solve.Iterations}.");
+
+        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var kv = Enumerable.Range(0, layout.Count).Single(index => layout.Unknowns[index].Name == "CV1.kv");
+        Assert.Equal(4.1, run.Solve.Solution.Values[kv], 0.1);
+
+        var returnNode = Array.FindIndex([.. run.Graph.Nodes], static node => node.Name == "N4");
+        var enthalpy = run.Solve.Solution.Values[layout.NodeEnthalpy(returnNode)];
+        var pressure = run.Solve.Solution.Values[layout.NodePressure(returnNode)];
+        var state = Water.Instance.FromPressureEnthalpy(
+            Quantity.FromSi(pressure, Dimension.Pressure), Quantity.FromSi(enthalpy, Dimension.Enthalpy));
+        Assert.True(state.IsSuccess);
+        Assert.Equal(50.0, state.Value.Temperature.SiValue - 273.15, 0.1);
+    }
+
+    [Fact]
     public async Task AScriptThatCannotBeSolvedIsToldSoRatherThanThrowing()
     {
         // `S-28`. `m1-syntax-reference` is 18 unknowns for 19 equations, and says in its own header that

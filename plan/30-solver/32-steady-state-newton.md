@@ -288,6 +288,23 @@ cost one to two first-pass iterations on every three-way-valve circuit while buy
 needed. The solve report prints the seed's conditioning beside the solution's and the iterations of
 each sizing pass, because both were what this measurement needed and neither existed.
 
+**A promoted parameter is seeded from what the circuit already says about it, and a mixing valve's
+legs are partitioned from what the closed field found at its feed** (`S-73` closed and `S-69` advanced,
+2026-09-21). Three rules, each in `SolutionSeed` or `BranchFlows`: a promoted `kv` on a branch that
+shares both ends with another takes the sibling's drop at its seeded flow less its own branch's other
+drops -- the whole remainder, since the sibling has said what the difference is, not the half a stated
+head is shared at -- and the two-load parallel pair converges in two iterations to Kv 4.1 and 10 kPa
+where it ran the valve to zero from Kv 630; a promoted `power` on an exchanger with both side-1
+temperatures stated seeds at the seeded flow times their enthalpy span, so a coil no longer starts at
+no duty on a stream seeded at its design flow; and a three-way valve whose coil has no duty, which
+`Propagate` never hands a node's flow, gets a second estimate after the field closes -- its feed leg's
+balanced flow, from which the stated `in` and `out` partition the coil and the recirculating leg,
+skipping a switched-off coil (`S-56`). On the four-block series ring the seed's residual fell from
+1.52 to 0.185 and every coil and duty seeded at its answer; the ring still does not solve, and what is
+left is the sizing passes, not the seed (`S-69`). The same script found `EquationSystem` reading a
+`dt` row's sign from the power as written rather than as carried: `load power=20 dt=20` is lowered to
+-20 kW (`22`), and the row demanded that the load heat its stream by 20 K.
+
 ## Contracts
 
 ```csharp

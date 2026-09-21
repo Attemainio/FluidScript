@@ -602,7 +602,11 @@ public sealed class EquationSystem
                 continue;
             }
 
-            var duty = HydraulicPartition.Stated(graph.Components[element], "power") ?? 0;
+            // The kind's sign, not the script's: `load power=20 dt=20` is stated positive and carried
+            // negative (`ComponentFactory`), and reading the statement made the row demand that the load
+            // heat its stream by 20 K. Only `power=-150` on a bare `heat_exchanger` had ever met this row,
+            // which is why it held (`S-73`).
+            var duty = (graph.Components[element] as HeatExchanger)?.Power ?? 0;
 
             resolved[index] = new Constraint(
                 row,
