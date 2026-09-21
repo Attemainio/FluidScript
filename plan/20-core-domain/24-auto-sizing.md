@@ -575,9 +575,10 @@ on the cooling loop, whose `3WV` diverts, the valve on the return leg is set to 
 17.8 kPa and the three-way valve sits at 0.311, its recirculation share, with 11.52 kPa across
 each leg: the reading is the same arithmetic with the sign turned. `FS4011` is silent on all three.
 
-**The bootstrap does not set it from the seed.** The seed's pressure walk caps each component
-(`S-47`) and so understates a ring's cost -- on the series header it reads 8.6 kPa where the solve
-finds 32 -- and a balancing valve set to the seed's guess is a guess the first solve is then held to.
+**The bootstrap does not set it from the seed.** The seed's pressure walk caps each valve at
+`seed.valve_excursion` (`S-47`) and so understates a ring's cost -- on the series header it read
+8.6 kPa where the solve finds 32 -- and a balancing valve set to the seed's guess is a guess the first
+solve is then held to.
 Nor can it be left fully open: the provisional Kv is the catalogue's largest, 630, which at
 0.239 kg/s drops 0.19 Pa, inside the Kv law's regularised band, and the first solve creeps on that row
 to its cap. The bootstrap therefore sets it to **3 kPa at the seed's leg flow**, `balancing.dp_min`:

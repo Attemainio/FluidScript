@@ -46,13 +46,6 @@ public static partial class SolutionSeed
     /// <value>K. 20 °C — room temperature, valid for every substance the catalogue carries.</value>
     public const double ReferenceTemperature = 293.15;
 
-    /// <summary>The pressure step the seed puts between one node and the next along a branch.</summary>
-    /// <value>
-    /// Pa. 10 kPa — a tenth of <c>Tolerances.PressureScale</c>, so a circuit of a dozen nodes stays
-    /// inside a plausible range while no two adjacent nodes agree. The magnitude is not a claim about
-    /// any circuit; being non-zero is the whole of it.
-    /// </value>
-    public const double NominalDrop = 1e4;
     /// <summary>Metres of head used only to keep a promoted bare pump inside a driven seed.</summary>
     private const double NominalPumpHead = 2.2;
 
@@ -421,7 +414,8 @@ public static partial class SolutionSeed
             if (!across.TryGetValue(element, out var offsets))
             {
                 offsets = carried.TryGetValue(element, out var flows)
-                    ? BranchResistance.Across(graph, state, element, flows, Parameters(graph, layout, values, element))
+                    ? BranchResistance.Across(
+                        graph, state, element, flows, Parameters(graph, layout, values, element), Tolerances.SeedValveExcursion)
                     : new double[Math.Max(element.Ports.Length, 1)];
 
                 across[element] = offsets;
@@ -515,7 +509,8 @@ public static partial class SolutionSeed
                         }
                         var drop = part is Pump { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
                             ? -Hydrostatic.Pressure(state.Density.SiValue, NominalPumpHead)
-                            : BranchResistance.Of(graph, state, part, flow, Parameters(graph, layout, values, part));
+                            : BranchResistance.Of(
+                                graph, state, part, flow, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion);
 
                         running += forward ? -drop : drop;
                     }
@@ -732,7 +727,8 @@ public static partial class SolutionSeed
 
             return candidate.Path
                 .Where(part => !ReferenceEquals(part, except))
-                .Sum(part => BranchResistance.Of(graph, state, part, carried, Parameters(graph, layout, values, part)));
+                .Sum(part => BranchResistance.Of(
+                    graph, state, part, carried, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion));
         }
 
         foreach (var sibling in graph.Branches)

@@ -152,6 +152,19 @@ public static class Tolerances
     /// </value>
     public const double ValveRegularizationDrop = 100.0;
 
+    /// <summary>The most a valve's own law is believed to drop when the seed reads it at a flow the seed invented.</summary>
+    /// <value>
+    /// <c>seed.valve_excursion</c>, pascals, applied as a magnitude to each port offset
+    /// <see cref="BranchResistance.Across"/> returns for the seed. 15 kPa is the top of the published
+    /// selection band for a control valve (ESBE's 3–15 kPa, <see cref="Sizing.SizingDefaults.ThreeWayDropMaximum"/>):
+    /// a valve wanting more than it would ever be selected for is a valve whose seeded flow is wrong,
+    /// not a drop the circuit contains. Measured across the corpus (<c>S-47</c>): 10 and 15 kPa are
+    /// green; 40 kPa stalls the pump-free header; 100 kPa breaks the switched-off consumers; the pump's
+    /// own head, the circuit-derived bound, stalls the switched-off consumer behind a main pump. Sizing
+    /// reads the same laws unbounded — a balancing valve set to 18 kPa drops 18 kPa.
+    /// </value>
+    public const double SeedValveExcursion = 1.5e4;
+
     /// <summary>The signed mass flow band over which node enthalpy upwinding blends.</summary>
     /// <value>
     /// <c>upwind.smoothing_band</c>, kg/s, applied to a signed flow: positive into the node. Wider

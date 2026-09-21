@@ -265,9 +265,15 @@ neither is about flow at all:
 
 Both had an argument against them that sounded right and was not. Pressure *does* enter a momentum
 relation linearly, so Newton reaches the pressure field in one step from any level — and that says
-nothing about the columns which multiply `√Δp`. So the seed steps pressure and temperature along each
-branch, wrapped into a band of five steps so that a long branch cannot walk a state out of the fluid's
-validated range while adjacent nodes still differ (`S-25`).
+nothing about the columns which multiply `√Δp`. So the seed steps temperature along each branch,
+wrapped into a band of five steps so that a long branch cannot walk a state out of the fluid's
+validated range while adjacent nodes still differ (`S-25`), and lays its pressures by walking a
+spanning tree of the branch graph and subtracting each component's own drop at the seeded flow
+(`S-46`; `BranchResistance.Across` solves a valve's Kv law for its port offsets, since that law is
+written in kg/s). Each offset a valve's law hands the walk is clamped to `seed.valve_excursion`, 15 kPa,
+the top of the published selection band: a valve nearly shut passes the flow the seed invented only
+at megapascals, and the seed wants the law's direction and ordering, not that number. The bound is
+the seed's alone; sizing reads the same laws at solved flows unbounded (`S-47`).
 
 Flow estimates come from stated duties and stated flows, spread across junctions by magnitude rather
 than by [`24`](../20-core-domain/24-auto-sizing.md)'s exact propagation (`C-44`), and every unstated

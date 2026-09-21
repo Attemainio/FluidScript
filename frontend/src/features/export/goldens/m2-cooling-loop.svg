@@ -9,7 +9,7 @@ source hash: sha256:1066b56cee5d0d06b3b77c2108721150a3930af073c33d6280b50a9f9792
 catalogue: steel_en10255 2026.1
 property backend: sharp-prop 1.0.0.0
 atmosphere: 101.325 kPa absolute
-status: solved in 9 iterations
+status: solved in 8 iterations
 shown: temperature (°C), 0 to 60
 tags: equipment tags are as of the source hash above; an insertion above a component renumbers it (D-34)
 generated: 2026-09-19T00:00:00.000Z</desc>

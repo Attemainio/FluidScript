@@ -51,6 +51,7 @@ public static class BranchResistance
     /// seed has already chosen -- or <see langword="null"/> to evaluate against the component's own
     /// values. Indexed as <c>IFlowComponent.Resolvable</c> declares them (<c>S-66</c>).
     /// </param>
+    /// <param name="bound">Pa. The magnitude the drop is clamped to when the law has to be solved for it; see <see cref="Across"/>.</param>
     /// <returns>Pa, positive against the flow; zero where its own laws determine none.</returns>
     /// <remarks>
     /// <para>
@@ -70,7 +71,12 @@ public static class BranchResistance
     /// </para>
     /// </remarks>
     public static double Of(
-        CircuitGraph graph, FluidState state, IFlowComponent element, double flow, double[]? parameters = null)
+        CircuitGraph graph,
+        FluidState state,
+        IFlowComponent element,
+        double flow,
+        double[]? parameters = null,
+        double bound = double.PositiveInfinity)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(element);
@@ -87,7 +93,7 @@ public static class BranchResistance
             // No row in pascals. A two-port component still has one drop across it, and solving its own
             // law for the port pressures is the only way to learn what that drop is.
             var solved = element.Ports.Length == 2
-                ? Across(graph, state, element, [flow, -flow], parameters)
+                ? Across(graph, state, element, [flow, -flow], parameters, bound)
                 : [0, 0];
 
             return solved[0] - solved[1];
@@ -114,6 +120,11 @@ public static class BranchResistance
     /// <param name="parameters">
     /// The component's resolvable parameters as the caller holds them, or <see langword="null"/> for
     /// its own values; see <see cref="Of"/>.
+    /// </param>
+    /// <param name="bound">
+    /// Pa. The magnitude no port offset exceeds; the seed passes
+    /// <see cref="Tolerances.SeedValveExcursion"/> because the flows it reads the laws at are its own
+    /// guesses, and sizing passes nothing because its flows are solved (<c>S-47</c>).
     /// </param>
     /// <returns>
     /// Pa at each port, relative to port 0, which is zero. All zero where the component's own laws do
@@ -143,7 +154,12 @@ public static class BranchResistance
     /// </para>
     /// </remarks>
     public static double[] Across(
-        CircuitGraph graph, FluidState state, IFlowComponent element, double[] flows, double[]? parameters = null)
+        CircuitGraph graph,
+        FluidState state,
+        IFlowComponent element,
+        double[] flows,
+        double[]? parameters = null,
+        double bound = double.PositiveInfinity)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(element);
@@ -232,26 +248,19 @@ public static class BranchResistance
             }
         }
 
-        // Bounded, and a nearly-shut valve is why. A valve passes the flow it is given at a drop of
-        // (m/(Kv phi))^2/rho, and phi of a bypass at position 1 is a couple of percent, so a flow the
-        // seed invented -- not one the circuit settles at -- is bought at megapascals: measured, the
-        // header's TV_AHU bypass wanted -6.8 MPa and m2-cooling-loop's 3WV -11.8 MPa, which put a node
-        // far outside the range water is defined over and ended the seed in a failed property call
-        // rather than a bad guess. The law gives the direction and the ordering of the ports, which is
-        // what a seed needs from it; the excursion is capped, as `SolutionSeed.Band` caps the
-        // temperature walk.
-        //
-        // Ten kilopascals, chosen by measurement and not monotone in either direction. At a bar, two
-        // valves in series each asked for their own and between them put four times a small circuit's
-        // whole driving head into its seed, which diverged where the same circuit without them
-        // converged; at 40 kPa the same circuit fails again. The header variants of `S-44` move the
-        // other way -- 40 kPa and a bar both carry them further than 10 kPa does -- and none of the
-        // three converges them, which is what says the cap is not what is holding that circuit back.
-        const double excursion = 1e4;
-
+        // Bounded only where the caller asks, and a nearly-shut valve is why the seed asks. A valve
+        // passes the flow it is given at a drop of (m/(Kv phi))^2/rho, and phi of a bypass at position 1
+        // is a couple of percent, so a flow the seed invented -- not one the circuit settles at -- is
+        // bought at megapascals: measured, the header's TV_AHU bypass wanted -6.8 MPa and
+        // m2-cooling-loop's 3WV -11.8 MPa, which put a node far outside the range water is defined
+        // over and ended the seed in a failed property call rather than a bad guess. The law gives the
+        // direction and the ordering of the ports, which is what a seed needs from it; the excursion
+        // is capped, as `SolutionSeed.Band` caps the temperature walk. Only a valve reaches this
+        // clamp: every other component writes a pressure row and is read off it. Sizing reads the
+        // same laws at solved flows and passes no bound (`S-47`).
         for (var port = 1; port < count; port++)
         {
-            pressures[port] = Math.Clamp(pressures[port], -excursion, excursion);
+            pressures[port] = Math.Clamp(pressures[port], -bound, bound);
         }
 
         return pressures;

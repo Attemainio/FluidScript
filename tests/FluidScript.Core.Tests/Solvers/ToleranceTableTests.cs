@@ -44,6 +44,7 @@ public sealed partial class ToleranceTableTests
         ("transient.energy_drift_tol", Tolerances.TransientEnergyDriftWarn),
         ("transient.energy_drift_fail", Tolerances.TransientEnergyDriftFail),
         ("valve.dp_regularization", Tolerances.ValveRegularizationDrop),
+        ("seed.valve_excursion", Tolerances.SeedValveExcursion),
         ("upwind.smoothing_band", Tolerances.UpwindSmoothingBand),
         ("flow.zero_tol", Tolerances.FlowZero),
         ("quantity.compare_rel_tol", Tolerances.QuantityCompareRelative),
