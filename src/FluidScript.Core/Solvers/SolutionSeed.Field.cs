@@ -255,8 +255,8 @@ public static partial class SolutionSeed
                     for (var step = 0; step < candidate.Path.Length; step++)
                     {
                         if (candidate.Path[step] is HeatExchanger exchanger
-                            && (exchanger.StatedParameters.ContainsKey("in")
-                                || exchanger.StatedParameters.ContainsKey("out")))
+                            && (Ownership.Of(exchanger, "in") is ParameterState.Stated
+                                || Ownership.Of(exchanger, "out") is ParameterState.Stated))
                         {
                             var direction = PortDirection(candidate, step, exchanger, sideOneOnly: true);
                             if (direction.HasValue)

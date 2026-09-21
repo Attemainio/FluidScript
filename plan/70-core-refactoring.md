@@ -430,8 +430,10 @@ test for R3 step 7 asserts it by name.
 2. After R3, the ownership question -- which of the three maps holds a parameter -- is asked only
    through `Ownership`; what may still read a map is a value read of a named stated parameter,
    `HydraulicPartition.Stated`, the components and the factory that build the maps, the contract
-   builder's serialisation and `DeferredEvaluation.SolvedScope`, as `D-131` lists. Verified by
-   text search on 2026-09-21.
+   builder's serialisation and `DeferredEvaluation.SolvedScope`, as `D-131` lists. Verified on
+   2026-09-21 by `get_references` on the three `IComponent` map properties and on
+   `UnitTable.StandardGravity` (four readers, all in `Hydrostatic`), after `reload_workspace` --
+   the first walk, before the reload, still showed sites two commits gone.
 3. After R3, the string `"three_way_valve"` appears in `WellPosedness.cs` only in diagnostics text.
 4. After R2, one method computes a pump's head for the report and the contract, and
    `UnitTable.StandardGravity` is referenced from `Hydrostatic` and the unit table only.

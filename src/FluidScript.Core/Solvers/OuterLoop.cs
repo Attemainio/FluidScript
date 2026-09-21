@@ -754,7 +754,7 @@ public sealed class OuterLoop(
             }
 
             var terminals = SideOneTerminals
-                .Where(parameter => component.StatedParameters.ContainsKey(parameter))
+                .Where(parameter => Ownership.Of(component, parameter) is ParameterState.Stated)
                 .Select(parameter => Ownership.Key(component.Name, parameter))
                 .ToArray();
             var note = terminals.Length == 0

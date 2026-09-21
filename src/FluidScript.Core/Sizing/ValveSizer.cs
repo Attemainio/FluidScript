@@ -138,7 +138,7 @@ public sealed class ValveSizer(
         // drops no more than the script asked at that flow -- Belimo's and Siemens' selection rule
         // for a calculated Kv between two Kvs values. Authority is then reported, not targeted.
         if (valve.StatedParameters.TryGetValue("dp", out var statedDrop)
-            && !valve.StatedParameters.ContainsKey("kv"))
+            && Ownership.Of(valve, "kv") is not ParameterState.Stated)
         {
             return AtStatedDrop(valve, context, statedDrop.SiValue, density);
         }
@@ -150,7 +150,7 @@ public sealed class ValveSizer(
             && context.CommonFlow is { } common
             && double.IsFinite(common)
             && common > 0
-            && !valve.StatedParameters.ContainsKey("authority"))
+            && Ownership.Of(valve, "authority") is not ParameterState.Stated)
         {
             return MixingBand(valve, context, common, density);
         }
