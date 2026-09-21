@@ -453,6 +453,24 @@
           "displayPrecision": 2
         },
         {
+          "name": "material",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "steel_en10255",
+            "copper_en1057"
+          ],
+          "omission": "default",
+          "default": "steel_en10255",
+          "defaultBasis": "the script's `catalog` line when one is written; otherwise the shipped default, which this is",
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
           "name": "minor_loss",
           "aliases": [],
           "valueKind": "quantity",

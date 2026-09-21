@@ -142,6 +142,7 @@ public sealed class OuterLoop(
     /// <summary>The rules a v1 solve runs, in the order a component is offered to them.</summary>
     /// <param name="pipes">The pipe series diameters are chosen from.</param>
     /// <param name="valves">The Kv series valves are chosen from. R5 unless a caller says otherwise.</param>
+    /// <param name="available">Every shipped pipe catalogue by id, for a pipe whose own <c>material</c> names one (<c>C-36</c>).</param>
     /// <returns>The rules.</returns>
     /// <remarks>
     /// <para>
@@ -158,9 +159,11 @@ public sealed class OuterLoop(
     /// </para>
     /// </remarks>
     public static ImmutableArray<ISizer> Rules(
-        Catalogs.ICatalog<Catalogs.PipeSpec> pipes, Catalogs.ICatalog<Catalogs.ValveSpec>? valves = null) =>
+        Catalogs.ICatalog<Catalogs.PipeSpec> pipes,
+        Catalogs.ICatalog<Catalogs.ValveSpec>? valves = null,
+        IReadOnlyDictionary<string, Catalogs.ICatalog<Catalogs.PipeSpec>>? available = null) =>
     [
-        new PipeSizer(pipes),
+        new PipeSizer(pipes, available: available),
         new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance),
         new ExchangerSizer(),
         new ThermalSizer(),

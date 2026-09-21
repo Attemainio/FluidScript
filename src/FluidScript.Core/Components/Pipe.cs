@@ -77,6 +77,10 @@ public sealed class Pipe : IFlowComponent
     /// <inheritdoc/>
     public string Name { get; }
 
+    /// <summary>Gets the catalogue the pipe's series comes from, or <see langword="null"/> for the script's catalogue (<c>C-36</c>).</summary>
+    /// <value>A catalogue id such as <c>steel_en10255</c>, as the script's <c>material=</c> wrote it.</value>
+    public string? Material { get; init; }
+
     /// <inheritdoc/>
     public string Kind => "pipe";
 
@@ -133,6 +137,7 @@ public sealed class Pipe : IFlowComponent
     public Pipe WithRise(double rise) =>
         new(Name, Length, InsideDiameter, Roughness, MinorLoss, rise)
         {
+            Material = Material,
             StatedParameters = StatedParameters,
             SizedParameters = SizedParameters,
             DefaultParameters = DefaultParameters,

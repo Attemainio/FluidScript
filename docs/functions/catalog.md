@@ -9,7 +9,9 @@ catalog steel_en10255@2026.1
 
 ## Rules
 
-- One catalogue per script, named before the components that draw on it.
+- One catalogue per script, named before the components that draw on it. A pipe that belongs to
+  another series says so itself: `P2 pipe dn=15 material=copper_en1057` reads its `dn` in copper
+  while the rest of the script stays on the `catalog` line ([`pipe`](pipe.md)).
 - The `@` and the version pin it, so a script sizes to the same pipe next year as it did today. A
   catalogue that changes underneath a saved script would change its answers silently.
 - With no `catalog` line the shipped default applies, and the log says which.
@@ -21,7 +23,7 @@ catalog steel_en10255@2026.1
 | Id | What | State |
 |---|---|---|
 | `steel_en10255` | Medium-series steel tube, DN15–DN150. The default | Verified |
-| `copper_en1057` | Copper tube, table X, 15–108 mm | **Not yet verified — it will refuse to size** |
+| `copper_en1057` | Copper tube, the Finnish type-approved range: 12–54 mm at 1.0–1.5 mm wall, 88.9 and 108 mm | Verified |
 
 ## `dn` does not mean the same thing in both
 
@@ -35,8 +37,9 @@ connections
 N1 - P1 - N2
 ```
 
-That pipe has a **16.1 mm** bore. The same `dn=15` under `catalog copper_en1057` is a **13.6 mm** bore
-— a 24 % difference, and roughly double the pressure drop.
+That pipe has a **16.1 mm** bore. The same `dn=15` under `catalog copper_en1057`, or with
+`material=copper_en1057` on the pipe, is a **13.0 mm** bore — a 19 % difference in bore and roughly
+double the pressure drop. Copper's one non-integer size, 88.9 mm, is `dn=89`, as Finnish listings print it.
 
 Neither is a mistake. Steel is designated by *nominal size*, a label whose bore is larger than the
 number; copper is designated by its *outside diameter*, whose bore is smaller. Nothing about `dn=15`

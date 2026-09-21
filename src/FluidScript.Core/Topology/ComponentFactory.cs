@@ -28,7 +28,8 @@ public interface IBoreLookup
     /// <summary>The inside diameter of a pipe of this nominal size.</summary>
     /// <param name="nominalDiameter">The DN designation, as a bare number.</param>
     /// <returns>m, or <see langword="null"/> when the designation is not in the catalogue.</returns>
-    double? BoreFor(double nominalDiameter);
+    /// <param name="material">A catalogue id the pipe named with <c>material=</c>, or <see langword="null"/> for the script's catalogue (<c>C-36</c>).</param>
+    double? BoreFor(double nominalDiameter, string? material = null);
 }
 
 /// <summary>How the script connected one component.</summary>
@@ -614,7 +615,9 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
         var length = Value(symbol, kind, "length") ?? (defaults.TryGetValue("length", out var decided) ? decided.SiValue : null);
         var nominal = Value(symbol, kind, "dn");
 
-        if (length is not { } metres || nominal is not { } dn || bores.BoreFor(dn) is not { } bore)
+        var material = symbol.Parameters.TryGetValue("material", out var series) ? series.Symbol : null;
+
+        if (length is not { } metres || nominal is not { } dn || bores.BoreFor(dn, material) is not { } bore)
         {
             return null;
         }
@@ -626,6 +629,7 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             Value(symbol, kind, "roughness") ?? 0.045e-3,
             Value(symbol, kind, "minor_loss") ?? 0)
         {
+            Material = material,
             StatedParameters = stated,
             SizedParameters = sized,
             DefaultParameters = defaults,

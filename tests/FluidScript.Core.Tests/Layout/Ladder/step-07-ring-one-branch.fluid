@@ -1,8 +1,8 @@
 # Layout ladder, step 7 (plan/20-core-domain/29-layout-ladder.md): the distribution header's ring
 # with one injection branch -- the source HS1 and the AHU circuit of m2-distribution-header, the
 # second branch and its header taps (N4, N6) left out. HS1 states the one load's 24 kW and `out`.
-# The valve states the header's own Kv: alone on the ring with the only pump, a sized Kv is chosen
-# against the ring's whole head and the solve runs non-finite (C-91).
+# The valve is sized: D-122 chooses its Kv on its common-port flow to a drop band, so the ring's
+# whole head no longer reaches the rule and the run converges (C-91, closed by measurement).
 
 fluidscript 1
 project static plant_01
@@ -21,7 +21,7 @@ N1 node p=250
 circuit AHU 101
 
 HE_AHU  load in.t=50 out.t=30 power=24 kW
-TV_AHU  three_way_valve kv=6.3
+TV_AHU  three_way_valve
 PU_AHU  pump
 
 connections

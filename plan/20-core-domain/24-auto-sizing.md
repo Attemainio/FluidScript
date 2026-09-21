@@ -152,6 +152,14 @@ exception is preferable to an invented "sizing" basis that has no demand-duratio
    this document never restates it.
 3. Check velocity against the limit for that diameter (below DN50: **1.0 m/s**; DN50–DN150:
    **1.5 m/s**; above: **2.0 m/s**). If exceeded, step up one nominal size and re-check.
+   **This is a guard, not a sizing step** (`C-54`, the user's decision 2026-09-21): at the default
+   150 Pa/m a size that meets the gradient is already well under its velocity limit -- the gradient
+   falls as roughly D⁻⁵ and the velocity as D⁻², so DN25 at 0.411 m/s has a factor 2.4 in hand,
+   and a sweep from 0.05 to 12 kg/s never steps up. The guard binds only when a script states a
+   much looser gradient target, or at the top of the series where DN150 meets 150 Pa/m at about
+   1.65 m/s and nothing larger exists (`FS2305` then names both misses). The limits themselves are
+   the noise-driven convention (CIBSE Guide C; manufacturer selection charts) and are not lowered
+   to make the step fire.
 4. Basis: `"DN{n} — {gradient} Pa/m, {velocity} m/s"`.
 
 **The three bounds have an explicit precedence, because two of them can disagree** (`C-48`).

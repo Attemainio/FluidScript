@@ -687,7 +687,10 @@ public static partial class Lowering
                         // The whole stated K on the first sub-pipe: a fitting is somewhere along the
                         // run, not a property per metre.
                         segment == 0 ? pipe.MinorLoss : 0,
-                        pipe.Rise / (cells + 1)),
+                        pipe.Rise / (cells + 1))
+                    {
+                        Material = pipe.Material,
+                    },
                     circuit,
                     origin: null);
                 members.Add(name);

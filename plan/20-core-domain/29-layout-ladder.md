@@ -543,8 +543,9 @@ step runs through the outer loop -- the catalogue, Newton, the bore lookup -- an
 skipped (steps 1 and 2 are not circuits); one beginning `# does not settle: S-nn` is expected to
 stall until that defect closes; every other step must settle. It found two things before a line was
 laid. Step 7's lone valve was sized to Kv 1 against the ring's whole head and the solve ran
-non-finite: `C-91`, and the script states `kv=6.3`, the header's own figure, which converges in one
-iteration. The series script converged in none of the forms tried -- the AHU's duty stated or
+non-finite: `C-91`, and the script stated `kv=6.3`, the header's own figure, until `D-122` sized a
+mixing valve on its common-port flow to a drop band -- measured 2026-09-21, the sized script converges
+at Kv 4, position 0.846 and a 4.71 m pump, and the stated Kv is gone. The series script converged in none of the forms tried -- the AHU's duty stated or
 sized, the AHU first or second: `S-63`, marked, and drawn all the same since the layout does not
 read the solution. **Closed 2026-09-19:** two seed defects only the series shape exposed (the AHU
 valve's feed read as the boiler's 60 °C, the datum on the inline `N1` invisible to the pressure

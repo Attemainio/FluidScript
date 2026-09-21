@@ -1,4 +1,5 @@
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Language;
 using FluidScript.Core.Compatibility;
 using FluidScript.Core.Components;
 
@@ -93,15 +94,37 @@ public sealed class CatalogTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheCopperCatalogueIsNotVerifiedYet()
+    public void TheCopperCatalogueIsTheFinnishRangeAndResolves()
     {
-        // DELETE THIS TEST when Catalogs/SOURCES.md's copper section is filled in. Copper was harder
-        // to source than steel for a structural reason (C-38): EN 1057 permits several walls per
-        // outside diameter, the market ships more than one, and the public tables carrying the whole
-        // series are copies of the standard, which this project does not use.
-        Assert.Single(CopperEn1057.Instance.Validate(), static fault => fault.Code == "FS2605");
+        // D-128 (C-38): the walls a Finnish wholesaler stocks, two public listings per row.
+        Assert.Empty(CopperEn1057.Instance.Validate());
+        Assert.True(PipeCatalogs.Resolve(new CatalogPin(CopperEn1057.Id, null)).IsSuccess);
 
-        Assert.False(PipeCatalogs.Resolve(new CatalogPin(CopperEn1057.Id, null)).IsSuccess);
+        var fifteen = CopperEn1057.Instance.Entries.Single(static e => e.Spec.NominalDiameter == 15).Spec;
+        var twentyEight = CopperEn1057.Instance.Entries.Single(static e => e.Spec.NominalDiameter == 28).Spec;
+
+        Assert.Equal(0.013, fifteen.InsideDiameter, 9);
+        Assert.Equal(0.0256, twentyEight.InsideDiameter, 9);
+        Assert.All(CopperEn1057.Instance.Entries, static e => Assert.True(e.Provenance.Sources.Length >= 2 && e.Provenance.Sources.Select(s => s.Publisher).Distinct().Count() == 2));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APipesMaterialSelectsItsOwnCatalogue()
+    {
+        // C-36: `dn=15` is a 16.1 mm bore in the script's steel, a 13.0 mm bore in copper, and
+        // nothing when the material is not a shipped catalogue.
+        var lookup = new CatalogBoreLookup(Steel, PipeCatalogs.All);
+
+        Assert.Equal(0.0161, lookup.BoreFor(15)!.Value, 4);
+        Assert.Equal(0.0161, lookup.BoreFor(15, "steel_en10255")!.Value, 4);
+        Assert.Equal(0.013, lookup.BoreFor(15, "copper_en1057")!.Value, 4);
+        Assert.Null(lookup.BoreFor(15, "steel_en10220"));
+        Assert.Null(new CatalogBoreLookup(Steel).BoreFor(15, "copper_en1057"));
+
+        Assert.Equal(
+            PipeCatalogs.All.Keys.Order(StringComparer.Ordinal),
+            ComponentRegistry.Default.ByKeyword("pipe")!.Parameters["material"].AcceptedSymbols.Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -115,7 +138,7 @@ public sealed class CatalogTests
         var copper = CopperEn1057.Instance.Entries.Single(static entry => entry.Spec.NominalDiameter == 15).Spec.InsideDiameter;
 
         Assert.Equal(0.0161, steel, 6);
-        Assert.Equal(0.0136, copper, 6);
+        Assert.Equal(0.013, copper, 6);
 
         // 24 % in bore, which is about 55 % in area and roughly a factor of two in gradient.
         Assert.True((steel - copper) / copper > 0.15, $"{steel} vs {copper}");

@@ -308,6 +308,7 @@ A pressure drop between two nodes, optionally discretized (`R-10`).
 | `length` | Length | m | 0.01 … 10000 m | Size; **0 for an implicit pipe** | `length=45` is 45 metres (`D-14`). A pipe a connection line makes (I7, `D-110`) that states no length runs at a decided default of zero, reported as `default` on the wire: `dn=25` on the line marks the drawing and the bore and drops nothing until a length is written. The range is a *stated* value's; the zero is not stated. |
 | `dn` | **`NominalDiameter`** | — | 6 … 2000 | Size | Nominal-diameter **designation**, dimensionless. |
 | `roughness` | Length | m | 1 µm … 5 mm | Default 0.045 mm | Written `roughness=0.045 mm` — a bare number here is metres, like every other `Length` |
+| `material` | Symbol | — | a shipped catalogue id | Default: the script's `catalog` | Which series `dn` is read in (`D-128`, `C-36`): `steel_en10255`, `copper_en1057`; the list is `PipeCatalogs.All`, pinned by a test |
 | `nodes` | Dimensionless | — | 0 … 100 | Size | Internal discretization count (`R-10`): omission sizes to 0 because no transport resolution can be inferred from topology; transient storage is opt-in with explicit `nodes>=1`. |
 | `insulation` | Dimensionless | — | — | Size (unavailable in v1) | Reserved; heat loss is post-v1. |
 | `minor_loss` | Dimensionless | — | 0 … 10000 | Default 0 | Sum of explicit fitting/local-loss coefficients K. |

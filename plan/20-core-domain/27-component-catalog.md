@@ -200,7 +200,7 @@ value is worth about 4.5 % on the gradient; ageing to 0.3 mm is worth about 39 %
 aged pipe writes `roughness=0.3 mm`.
 
 **A `dn` value means different things in different catalogues, and that is stated per series.** Steel's
-`dn=15` is a designation whose bore is 16.1 mm; copper's is a 15 mm tube whose bore is 13.6 mm — 24 %
+`dn=15` is a designation whose bore is 16.1 mm; copper's is a 15 mm tube whose bore is 13.0 mm — 19 %
 apart, from the same script text. `PipeSpec.DesignationBasis` is `NominalSize` or `OutsideDiameter`
 (`C-38`).
 
@@ -320,7 +320,7 @@ A circuit picks catalogues from the `fluid`/`style` context or from defaults:
 
 | Catalogue | Default | Why |
 |---|---|---|
-| Pipes | `steel_en10255` | The common European hydronic default. `copper_en1057` also ships, unverified (`C-38`) |
+| Pipes | `steel_en10255` | The common European hydronic default. `copper_en1057` ships verified on the Finnish type-approved range (`D-129`, 2026-09-21). A pipe names another shipped catalogue with `material=` (`D-128`): `dn` is then read in that series. `steel_en10220` is named in the tree above and **not shipped**: it is a different pipe from EN 10255 at DN150 (168.3 against 165.1 mm, `D-67`), and it joins the `material` list when its rows have two sources (`C-110`) |
 | Valves | `valves-kv` | Generic, manufacturer-neutral |
 | Pumps | `pumps-generic` | The quadratic default curve ([`22`](22-component-model.md)) |
 

@@ -131,7 +131,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
 
         var catalog = Catalog(compatibility.Catalog, diagnostics);
         var substance = Substance(bind.Model, diagnostics);
-        var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog));
+        var loop = new OuterLoop(solvers.Create(), new CatalogBoreLookup(catalog, PipeCatalogs.All), OuterLoop.Rules(catalog.Catalog, available: PipeCatalogs.All));
 
         cancellationToken.ThrowIfCancellationRequested();
 

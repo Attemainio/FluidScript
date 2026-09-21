@@ -491,6 +491,19 @@ public sealed class ComponentRegistry : IComponentRegistry
         Parameters = Parameters(
             Sized("length", Dimension.Length, 0.01, 10000, precision: 2),
             Sized("dn", Dimension.NominalDiameter, 6, 2000, precision: 0),
+            // Which series `dn` is read in (C-36): a catalogue id, defaulting to the script's `catalog`
+            // line. The list is the shipped catalogues, pinned to `PipeCatalogs.All` by a test.
+            new ParameterInfo
+            {
+                Name = "material",
+                ValueKind = ParameterValueKind.Symbol,
+                Dimension = Dimension.Dimensionless,
+                AcceptedSymbols = ["steel_en10255", "copper_en1057"],
+                OmissionBehavior = ParameterOmissionBehavior.Default,
+                DefaultLiteral = "steel_en10255",
+                DefaultBasis = "the script's `catalog` line when one is written; otherwise the shipped default, which this is",
+                DisplayPrecision = 0,
+            },
             Defaulted("roughness", Dimension.Length, 1e-6, 5e-3, "0.045 mm", "commercial steel", precision: 4),
             Sized("nodes", Dimension.Dimensionless, 0, 100, precision: 0),
             // No `elevation` here, deliberately: a pipe is the one kind that spans two heights, so

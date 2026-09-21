@@ -170,6 +170,8 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-123` | Accepted | 2026-09-20 | A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list |
 | `D-126` | Accepted | 2026-09-21 | A head parameter accepts a length, and `pi` and `g` are reserved constants |
 | `D-127` | Accepted | 2026-09-21 | A pressure difference has its own spellings, `dPa`, `dkPa` and `dbar` |
+| `D-128` | Accepted | 2026-09-21 | A pipe names its catalogue with `material=`; the `catalog` line stays the script's default |
+| `D-129` | Accepted | 2026-09-21 | The copper catalogue is the Finnish type-approved range |
 <!-- index:end -->
 
 ---
@@ -5916,4 +5918,48 @@ same expression mean two things by where it is written, which `14`'s invariant 1
 
 **Constrains.** `UnitTable.GaugePressureSpellings`; `13`'s symbol table and invariant 3;
 `docs/functions/units.md`; `language.json` and the editor's lexicon; `DeltaPressureTests`.
+
+## D-128 · A pipe names its catalogue with `material=`; the `catalog` line stays the script's default
+
+**Accepted · 2026-09-21** (the user's call) · closes `C-36`'s open half
+
+EN 10255 and EN 10220 give DN150 different pipes (165.1 against 168.3 mm, `D-67`), `27` named both
+catalogues without saying so, and a script had one `catalog` line for everything -- so a plant with
+threaded steel risers and copper branches could not be written, and nothing said which series a
+`dn` meant except the one line at the top.
+
+**Decided.** A pipe's `material` parameter is a symbol whose values are the shipped catalogue ids
+(`steel_en10255`, `copper_en1057`; `steel_en10220` joins when sourced, `C-110`). Absent, the pipe
+reads its `dn` in the script's `catalog` line or the shipped default, as before. The factory and
+the pipe sizer both select the series per pipe (`CatalogBoreLookup(resolved, PipeCatalogs.All)`,
+`PipeSizer(catalog, available:)`); the basis line already names the series. A material that fails
+its provenance check builds no pipe.
+
+**Rejected.** *A project-level default only.* One line for the plant, and no way to mix a threaded
+run with a welded one, which real plants do.
+
+**Constrains.** `Pipe.Material`, the pipe's registry entry, `IBoreLookup.BoreFor`, `PipeSizer`,
+`OuterLoop.Rules`, `ScriptPipeline`; `22`'s pipe table; `27`'s selection table;
+`docs/functions/{pipe,catalog}.md`; `PipeMaterialTests`, `CatalogTests`.
+
+## D-129 · The copper catalogue is the Finnish type-approved range
+
+**Accepted · 2026-09-21** (the user's call) · closes `C-38`
+
+EN 1057 leaves the wall thickness to national type approval, so "EN 1057 22 mm" is not one tube:
+the UK Table X is 22 × 0.9, the German range 22 × 1.0 and 28 × 1.5, and the Finnish approved range
+22 × 1.0 and 28 × 1.2. The shipped rows were Table X with no source, and the loader refused them.
+
+**Decided.** `copper_en1057` is the range a Finnish wholesaler stocks -- the market's plain tube,
+attested through its stockists since the manufacturer's own datasheet defers to national approval:
+12, 15, 18, 22 at 1.0 mm; 28 at 1.2; 35, 42, 54 at 1.5; 88.9 (`dn=89`) at 2.0; 108 at 2.5. Two
+independent public listings per row, in `SOURCES.md`. 64 and 76.1 are not rows: they are in the
+standard and in the German range but in no Finnish listing found, and one source is one source.
+
+**Measured.** `dn=15` is a 13.0 mm bore (Table X had said 13.6); a 0.2392 kg/s branch sizes to
+28 mm copper at about 130 Pa/m where steel takes DN25 at 94.
+
+**Constrains.** `CopperEn1057`, `SOURCES.md` (rebuilt: the file had grown to 169 404 lines by a
+roughness section appended 146 times, committed in `892fd70`), `CatalogTests`;
+`docs/functions/catalog.md`; `27`.
 

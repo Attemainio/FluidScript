@@ -11,6 +11,7 @@ namespace FluidScript.Core.Sizing;
 /// <summary>Chooses a pipe's nominal diameter from a catalogue (<c>24</c>).</summary>
 /// <param name="catalog">The series to select from.</param>
 /// <param name="gradientTarget">Pa/m the selection aims at. Defaults to <see cref="SizingDefaults.PipeGradientTarget"/>.</param>
+/// <param name="available">Every shipped catalogue by id, for a pipe whose own <c>material</c> names one (<c>C-36</c>); <see langword="null"/> sizes every pipe from <paramref name="catalog"/>.</param>
 /// <remarks>
 /// <para>
 /// <strong>The gradient is computed by the same code the residual uses, never transcribed.</strong>
@@ -33,7 +34,9 @@ namespace FluidScript.Core.Sizing;
 /// </para>
 /// </remarks>
 public sealed class PipeSizer(
-    ICatalog<PipeSpec> catalog, double gradientTarget = SizingDefaults.PipeGradientTarget) : ISizer
+    ICatalog<PipeSpec> catalog,
+    double gradientTarget = SizingDefaults.PipeGradientTarget,
+    IReadOnlyDictionary<string, ICatalog<PipeSpec>>? available = null) : ISizer
 {
     /// <inheritdoc/>
     public ImmutableArray<string> Parameters { get; } = ["dn"];
@@ -85,7 +88,15 @@ public sealed class PipeSizer(
         }
 
         var volumeFlow = Math.Abs(context.MassFlow) / density;
-        var entries = catalog.Entries;
+
+        // A pipe's own `material` selects its series (C-36); the factory refused to build one whose
+        // catalogue fails provenance, so a pipe that reaches here names a usable one or none.
+        var series = pipe.Material is { } material
+            && available is not null
+            && available.TryGetValue(material, out var own)
+                ? own
+                : catalog;
+        var entries = series.Entries;
         var notes = ImmutableArray.CreateBuilder<string>();
         var raised = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
 
@@ -112,7 +123,7 @@ public sealed class PipeSizer(
                 Diagnostics.SizingDiagnostics.OutsideCatalogue,
                 new Diagnostics.DiagnosticArgument("name", pipe.Name),
                 new Diagnostics.DiagnosticArgument("max", entries[index].Spec.NominalDiameter.ToString(CultureInfo.InvariantCulture)),
-                new Diagnostics.DiagnosticArgument("catalog", catalog.Name));
+                new Diagnostics.DiagnosticArgument("catalog", series.Name));
         }
 
         // Step 2: the velocity ceiling, which is hard.
@@ -147,7 +158,7 @@ public sealed class PipeSizer(
             notes.Add(string.Create(
                 CultureInfo.InvariantCulture,
                 $"{pipe.Name} runs at {velocity:0.##} m/s in DN{chosen.Spec.NominalDiameter}, above the "
-                + $"{Ceiling(chosen):0.#} m/s limit, and there is no larger size in {catalog.Name}."));
+                + $"{Ceiling(chosen):0.#} m/s limit, and there is no larger size in {series.Name}."));
         }
 
         return Result.Success(new SizingResult
