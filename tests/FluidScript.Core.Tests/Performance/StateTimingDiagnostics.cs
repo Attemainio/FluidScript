@@ -204,10 +204,6 @@ public sealed class StateTimingDiagnostics
     /// </remarks>
     private void MeasureBackends(double enthalpy)
     {
-        const double pressure = 300_000;
-        const double temperature = 273.15 + 60;
-        double[]? reference = null;
-
         if (CoolPropState.Bind() is not { } bind)
         {
             _unavailable.Add("CoolProp's `AbstractState` is not reachable in this SharpProp build; the backend comparison did not run.");
@@ -215,40 +211,101 @@ public sealed class StateTimingDiagnostics
             return;
         }
 
-        foreach (var backend in new[] { "HEOS", "IF97", "INCOMP", "BICUBIC&HEOS", "TTSE&HEOS" })
+        // One probe state per fluid, chosen where the model meets it: liquid water on a header; the
+        // refrigerants as superheated vapour on the suction side of D-78's cycle, each safely above its
+        // saturation temperature at that pressure and CO2 below its critical pressure; the glycol as a
+        // 30 % ethylene-glycol brine at a chiller's supply temperature. INCOMP fluids have no phase
+        // query and are read without it.
+        var probes = new (string Fluid, string[] Backends, double Pressure, double Temperature)[]
         {
-            CoolPropState state;
+            ("Water", ["HEOS", "IF97", "BICUBIC&HEOS", "TTSE&HEOS"], 300_000, 273.15 + 60),
+            ("Ammonia", ["HEOS", "BICUBIC&HEOS", "TTSE&HEOS"], 400_000, 273.15 + 20),
+            ("Propane", ["HEOS", "BICUBIC&HEOS", "TTSE&HEOS"], 400_000, 273.15 + 20),
+            ("CO2", ["HEOS", "BICUBIC&HEOS", "TTSE&HEOS"], 3_500_000, 273.15 + 20),
+        };
 
-            try
+        MeasureBrine();
+
+        foreach (var (fluid, backends, pressure, temperature) in probes)
+        {
+            double[]? reference = null;
+
+            foreach (var backend in backends)
             {
-                state = bind(backend, "Water");
-                state.UpdatePT(pressure, temperature);
-                var probe = state.ReadAll();
-                state.UpdateHP(probe[1], pressure);
-                var back = state.ReadAll();
-                reference ??= probe;
-                _agreement.Add(Agreement(backend, probe, back, reference));
+                CoolPropState state;
+
+                try
+                {
+                    state = bind(backend, fluid);
+                    state.UpdatePT(pressure, temperature);
+                    var probe = state.ReadAll();
+                    state.UpdateHP(probe[1], pressure);
+                    var back = state.ReadAll();
+                    reference ??= probe;
+                    _agreement.Add(Agreement($"{backend}::{fluid}", probe, back, reference));
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    var message = (exception.InnerException ?? exception).Message.Split('\n')[0];
+                    _unavailable.Add($"`{backend}::{fluid}` — {message}");
+
+                    continue;
+                }
+
+                var label = $"CoolProp {backend}::{fluid}";
+                var h = ReferenceEquals(fluid, "Water") ? enthalpy : reference[1];
+
+                Measure(label, "(p, T) update + all seven reads and Phase", i =>
+                {
+                    state.UpdatePT(pressure, temperature - 10 + (i % 20));
+                    state.ReadAll();
+                });
+                Measure(label, "(p, h) update + all seven reads and Phase", i =>
+                {
+                    state.UpdateHP(h + (i % 20), pressure);
+                    state.ReadAll();
+                });
             }
-            catch (Exception exception) when (exception is not OutOfMemoryException)
+        }
+    }
+
+    /// <summary>A 30 % ethylene-glycol brine through SharpProp's own incompressible path, which takes the concentration the raw factory string does not.</summary>
+    private void MeasureBrine()
+    {
+        try
+        {
+            var brine = new Fluid(FluidsList.MEG, UnitsNet.Ratio.FromPercent(30));
+            var pressure = Input.Pressure(UnitsNet.Pressure.FromPascals(300_000));
+
+            brine.Update(pressure, Input.Temperature(UnitsNet.Temperature.FromDegreesCelsius(7)));
+            var enthalpy = brine.Enthalpy.JoulesPerKilogram;
+
+            Measure("SharpProp INCOMP::MEG 30 %", "(p, T) update + six reads (no phase)", i =>
             {
-                var message = (exception.InnerException ?? exception).Message.Split('\n')[0];
-                _unavailable.Add($"`{backend}::Water` — {message}");
-
-                continue;
-            }
-
-            var label = $"CoolProp {backend}::Water";
-
-            Measure(label, "(p, T) update + all seven reads and Phase", i =>
-            {
-                state.UpdatePT(pressure, 273.15 + 40 + (i % 20));
-                state.ReadAll();
+                brine.Update(pressure, Input.Temperature(UnitsNet.Temperature.FromDegreesCelsius(i % 20)));
+                _ = brine.Temperature.Kelvins;
+                _ = brine.Enthalpy.JoulesPerKilogram;
+                _ = brine.Entropy.JoulesPerKilogramKelvin;
+                _ = brine.Density.KilogramsPerCubicMeter;
+                _ = brine.DynamicViscosity?.PascalSeconds;
+                _ = brine.SpecificHeat.JoulesPerKilogramKelvin;
+                _ = brine.Conductivity?.WattsPerMeterKelvin;
             });
-            Measure(label, "(p, h) update + all seven reads and Phase", i =>
+            Measure("SharpProp INCOMP::MEG 30 %", "(p, h) update + six reads (no phase)", i =>
             {
-                state.UpdateHP(enthalpy + (i % 20), pressure);
-                state.ReadAll();
+                brine.Update(pressure, Input.Enthalpy(UnitsNet.SpecificEnergy.FromJoulesPerKilogram(enthalpy + (i % 20))));
+                _ = brine.Temperature.Kelvins;
+                _ = brine.Enthalpy.JoulesPerKilogram;
+                _ = brine.Entropy.JoulesPerKilogramKelvin;
+                _ = brine.Density.KilogramsPerCubicMeter;
+                _ = brine.DynamicViscosity?.PascalSeconds;
+                _ = brine.SpecificHeat.JoulesPerKilogramKelvin;
+                _ = brine.Conductivity?.WattsPerMeterKelvin;
             });
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            _unavailable.Add($"`INCOMP::MEG` at 30 % — {(exception.InnerException ?? exception).Message.Split('\n')[0]}");
         }
     }
 
@@ -315,7 +372,7 @@ public sealed class StateTimingDiagnostics
 
                 var reads = names.Select(Read).ToList();
 
-                if (phase is not null)
+                if (phase is not null && !backend.StartsWith("INCOMP", StringComparison.Ordinal))
                 {
                     reads.Add(System.Linq.Expressions.Expression.Lambda<Func<double>>(
                         System.Linq.Expressions.Expression.Convert(System.Linq.Expressions.Expression.Call(self, phase), typeof(double))).Compile());
@@ -450,11 +507,12 @@ public sealed class StateTimingDiagnostics
         }
 
         text.AppendLine()
-            .AppendLine("## The backends, against HEOS at 60 °C and 300 kPa absolute")
+            .AppendLine("## The backends, against HEOS for the same fluid")
             .AppendLine()
-            .AppendLine("Relative deviation of each backend's (p, T) answer from `HEOS::Water`, and how far its")
-            .AppendLine("own (p, h) round trip lands from the temperature it started at. `HEOS` is the reference")
-            .AppendLine("and reads zero by construction.")
+            .AppendLine("Relative deviation of each backend's (p, T) answer from the same fluid's first backend")
+            .AppendLine("(HEOS where it has one), and how far its own (p, h) round trip lands from the")
+            .AppendLine("temperature it started at. Water at 60 °C and 300 kPa; the refrigerants as vapour at")
+            .AppendLine("20 °C (ammonia and propane at 400 kPa, CO2 at 3.5 MPa); the brine at 7 °C and 300 kPa.")
             .AppendLine()
             .AppendLine("| Backend | ρ | h | cp | μ | k | (p, h) round trip |")
             .AppendLine("|---|---:|---:|---:|---:|---:|---:|");

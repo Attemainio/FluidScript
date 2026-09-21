@@ -1059,7 +1059,9 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > closed. The same harness then measured the other CoolProp backends behind SharpProp on the
 > pair a solve uses: `IF97::Water` fixes (p, h) in 5.8 µs against HEOS's 142, within 1e-4 of it on
 > enthalpy and 5e-4 on cp; the (p, h)-gridded tables in under a microsecond but 0.8 % off on
-> viscosity. Which backend `Water` measures through is a decision the user has not yet taken.
+> viscosity. Which backend `Water` measures through is a decision the user has not yet taken. The
+> refrigerants pay 23 to 77 µs per (p, h) on HEOS with no IF97 to move to; the glycol brine 9.7 µs on
+> INCOMP; humid air 423 µs through `HAPropsSI` with no alternative at all.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
