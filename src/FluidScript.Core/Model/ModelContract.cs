@@ -490,6 +490,9 @@ public sealed record LayoutWire
     /// <summary>The clearance every component keeps from every other, world units (<c>D-103</c>); the <c>spacing</c> directive or 0.5.</summary>
     public required double Margin { get; init; }
 
+    /// <summary>The metric every label box was reserved from (<c>D-73</c>): the renderer's font must fit inside it, and its own table must agree with it.</summary>
+    public required LabelMetricWire LabelMetric { get; init; }
+
     /// <summary>The bounds of the whole drawing as <c>[x, y, width, height]</c>, world units, outer boxes and routes included.</summary>
     public required ImmutableArray<double> Extent { get; init; }
 
@@ -499,6 +502,11 @@ public sealed record LayoutWire
     /// <summary>Every connection's path, in connection order, then the instruments' signal lines.</summary>
     public required ImmutableArray<RouteWire> Routes { get; init; }
 }
+
+/// <summary>The declared label metric (<c>D-73</c>).</summary>
+/// <param name="Size">The label's height, world units: the canvas label's size at one world unit's pixels.</param>
+/// <param name="Advance">The advance per character, in em; a label's width is <c>Advance × characters × Size</c>.</param>
+public sealed record LabelMetricWire(double Size, double Advance);
 
 /// <summary>One component's place in the drawing (<c>D-103</c>). World units: a pump is 1×1, <c>y</c> grows upward and a box's <c>y</c> is its bottom edge (<c>28</c> A1).</summary>
 public sealed record PlacementWire
@@ -527,8 +535,14 @@ public sealed record PlacementWire
     /// <summary>Every port's anchor in world coordinates with its outward direction; a node's ports are <c>#0</c>, <c>#1</c>, …</summary>
     public required IReadOnlyDictionary<string, AnchorWire> Anchors { get; init; }
 
-    /// <summary>Where the label sits, <c>[x, y]</c>.</summary>
+    /// <summary>Where the label sits, <c>[x, y]</c>: the centre of <see cref="LabelBox"/>.</summary>
     public required ImmutableArray<double> LabelAt { get; init; }
+
+    /// <summary>The box the label reserves, <c>[x, y, width, height]</c>, from the declared metric (<c>D-73</c>): height is the label size, width the advance times the characters. The renderer draws the text centred in it.</summary>
+    public required ImmutableArray<double> LabelBox { get; init; }
+
+    /// <summary>Whether the label sits clear of every symbol, label and line; when <see langword="false"/> the renderer draws a leader from the label to its owner (<c>53</c>).</summary>
+    public required bool LabelClear { get; init; }
 
     /// <summary><c>computed</c>; <c>pinned</c> is reserved for a placement the script states.</summary>
     public required string Source { get; init; }

@@ -18,7 +18,7 @@ public static class SceneAudit
     private const double Eps = 1e-6;
 
     /// <summary>One breach of the clearance rules (<c>28</c> §22).</summary>
-    /// <param name="Kind">Hard (<c>28</c> B H1–H10): <c>inner-in-inner</c>, <c>clearance</c>, <c>pipe-in-inner</c>, <c>ends-off-port</c>, <c>stub-short</c>, <c>pipes-overlap</c>, <c>loop-counter-clockwise</c>, <c>losing-side-right</c>, <c>signal-in-inner</c>. Soft: <c>pipe-in-outer</c>, <c>pipe-beside-pipe</c>, <c>pipes-cross</c>, <c>signal-along-pipe</c>.</param>
+    /// <param name="Kind">Hard (<c>28</c> B H1–H10): <c>inner-in-inner</c>, <c>clearance</c>, <c>pipe-in-inner</c>, <c>ends-off-port</c>, <c>stub-short</c>, <c>pipes-overlap</c>, <c>loop-counter-clockwise</c>, <c>losing-side-right</c>, <c>signal-in-inner</c>. Soft: <c>pipe-in-outer</c>, <c>pipe-beside-pipe</c>, <c>pipes-cross</c>, <c>signal-along-pipe</c>, and the label rules of <c>53</c> invariant 3a (<c>C-84</c>): <c>label-in-inner</c>, <c>label-in-label</c>, <c>line-in-label</c>.</param>
     /// <param name="First">The element that enters: a component id or a connection id.</param>
     /// <param name="Second">The element entered.</param>
     /// <param name="Detail">Where, in world units.</param>
@@ -88,6 +88,43 @@ public static class SceneAudit
                         && !SiblingRun(box, r))
                     {
                         findings.Add(new Finding("pipe-in-outer", pipes[r].ConnectionId, box.ComponentId, $"segment {Text(a)} {Text(b)} enters outer {Text(box.Outer)}"));
+                    }
+                }
+            }
+        }
+
+        // Labels (53 invariant 3a, C-84): a placed label's box holds no other symbol, no other label and
+        // no line. Soft, because the layout places a label it cannot clear at its least-collided spot
+        // with a leader rather than dropping it, and the count is what says how busy a drawing got.
+        var labelled = scene.Placements.Where(static p => !p.IsInline && !p.Inner.ContainsInterior(p.LabelAt)).ToList();
+
+        for (var i = 0; i < labelled.Count; i++)
+        {
+            var label = labelled[i].LabelBox;
+
+            foreach (var box in boxes)
+            {
+                if (box.ComponentId != labelled[i].ComponentId && box.Inner.Intersects(label))
+                {
+                    findings.Add(new Finding("label-in-inner", labelled[i].ComponentId, box.ComponentId, $"label {Text(label)} enters inner {Text(box.Inner)}"));
+                }
+            }
+
+            for (var j = i + 1; j < labelled.Count; j++)
+            {
+                if (labelled[j].LabelBox.Intersects(label))
+                {
+                    findings.Add(new Finding("label-in-label", labelled[i].ComponentId, labelled[j].ComponentId, $"label {Text(label)} intersects label {Text(labelled[j].LabelBox)}"));
+                }
+            }
+
+            foreach (var route in scene.Routes)
+            {
+                for (var k = 1; k < route.Points.Length; k++)
+                {
+                    if (Enters(label, route.Points[k - 1], route.Points[k]))
+                    {
+                        findings.Add(new Finding("line-in-label", route.ConnectionId, labelled[i].ComponentId, $"segment {Text(route.Points[k - 1])} {Text(route.Points[k])} enters label {Text(label)}"));
                     }
                 }
             }

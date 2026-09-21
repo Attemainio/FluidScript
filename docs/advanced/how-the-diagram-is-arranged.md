@@ -187,9 +187,16 @@ another symbol's box or its clearance; no pipe and no signal line passes through
 not serve; a pipe starts and ends on the two ports its connection names and leaves each port
 straight for a whole margin; no inline element sits on a corner; supply and return never share a
 segment; nothing is left undrawn; every flow loop runs clockwise; and heat progresses left to
-right through every exchanger. Four things are counted rather than forbidden, and fewer is better:
-a pipe through a margin, two pipes side by side closer than a margin, two pipes crossing, and a
-signal line running along a pipe.
+right through every exchanger. Seven things are counted rather than forbidden, and fewer is better:
+a pipe through a margin, two pipes side by side closer than a margin, two pipes crossing, a
+signal line running along a pipe, and a label that overlaps a symbol, another label or a line.
+
+Labels are placed last, with everything else already in place. Each tag reserves a box sized from
+its text and starts just outside its symbol, above a pump or beside an exchanger. If a pipe would
+run through that box or another tag already sits there, the label slides along the edge a quarter
+unit at a time, then tries the other sides. When no position is clear the tag stays at the least
+crowded one and a thin dashed leader points at its symbol, because a tag the reader cannot find is
+worse than a busy corner. The sample plants all place every label clear.
 
 The check runs on the placed geometry, never on the picture, and its result is written as a text
 report beside every diagram the test suite draws: each component with its boxes and ports, each

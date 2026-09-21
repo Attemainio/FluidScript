@@ -93,6 +93,8 @@ internal sealed partial class LayoutEngine
                 Arrangement = "default",
                 Anchors = ImmutableSortedDictionary<string, PlacedAnchor>.Empty.Add("*", Anchor(inner.Centre, Direction.Down, Direction.Down)),
                 LabelAt = inner.Centre,
+                LabelBox = LabelLayout.BoxFor(TextOf(element.ComponentId), inner.Centre),
+                LabelClear = true,
                 Source = "computed",
             });
 
@@ -339,7 +341,21 @@ internal sealed partial class LayoutEngine
     private static List<PlacedAnchor> Edges(Box box, bool centre) =>
         [.. Direction.All.Select(d => Anchor(centre ? box.Centre : box.Centre.Towards(d, d.Horizontal ? box.Width / 2 : box.Height / 2), d, d))];
 
-    /// <summary>The label just outside the placed box, on the side the symbol's label anchor names: text does not turn with the symbol.</summary>
+    /// <summary>The text a component's label carries: its tag where the declaration has one, else its id (<c>D-34</c>) — what the canvas draws, and so what the label's box is sized for (<c>C-84</c>).</summary>
+    private string TextOf(string componentId)
+    {
+        foreach (var component in _model.Components)
+        {
+            if (string.Equals(component.Name, componentId, StringComparison.Ordinal))
+            {
+                return component.Tag ?? componentId;
+            }
+        }
+
+        return componentId;
+    }
+
+    /// <summary>The label's first position, just outside the placed box on the side the symbol's label anchor names: text does not turn with the symbol. <see cref="LabelLayout.Place"/> moves it from here when it collides.</summary>
     private Point LabelFor(int component)
     {
         var box = InnerOf(component);

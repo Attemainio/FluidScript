@@ -1391,6 +1391,25 @@
               "description": "The clearance every component keeps from every other, world units (D-103); the spacing directive or 0.5.",
               "type": "number"
             },
+            "labelMetric": {
+              "title": "LabelMetric",
+              "description": "The metric every label box was reserved from (D-73): the renderer\u0027s font must fit inside it, and its own table must agree with it.",
+              "type": "object",
+              "properties": {
+                "size": {
+                  "description": "The label\u0027s height, world units: the canvas label\u0027s size at one world unit\u0027s pixels.",
+                  "type": "number"
+                },
+                "advance": {
+                  "description": "The advance per character, in em; a label\u0027s width is Advance \u00D7 characters \u00D7 Size.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "size",
+                "advance"
+              ]
+            },
             "extent": {
               "description": "The bounds of the whole drawing as [x, y, width, height], world units, outer boxes and routes included.",
               "type": "array",
@@ -1448,11 +1467,22 @@
                     }
                   },
                   "labelAt": {
-                    "description": "Where the label sits, [x, y].",
+                    "description": "Where the label sits, [x, y]: the centre of LabelBox.",
                     "type": "array",
                     "items": {
                       "type": "number"
                     }
+                  },
+                  "labelBox": {
+                    "description": "The box the label reserves, [x, y, width, height], from the declared metric (D-73): height is the label size, width the advance times the characters. The renderer draws the text centred in it.",
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  },
+                  "labelClear": {
+                    "description": "Whether the label sits clear of every symbol, label and line; when false the renderer draws a leader from the label to its owner (53).",
+                    "type": "boolean"
                   },
                   "source": {
                     "description": "computed; pinned is reserved for a placement the script states.",
@@ -1562,6 +1592,8 @@
                   "arrangement",
                   "anchors",
                   "labelAt",
+                  "labelBox",
+                  "labelClear",
                   "source",
                   "scale",
                   "scales"
@@ -1696,6 +1728,7 @@
             "distributionGroups",
             "inferred",
             "margin",
+            "labelMetric",
             "extent",
             "placements",
             "routes"

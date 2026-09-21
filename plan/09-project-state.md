@@ -1132,6 +1132,13 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > a pumpless ring's head), the ring tests pin flows and Kvs and band the rest, and `C-68` and `F-19`
 > carry the new numbers. **`C-110` closed** the same day: `steel_en10220` ships verified, DN15--DN300
 > at the walls Dahl and Onninen stock. 45 open.
+>
+> **`C-84` closed 2026-09-22 (`28` A11):** a label is a box from a declared metric, laid out last
+> against symbols, lines and the labels before it, sliding along its owner's edge and around its
+> sides until clear; when nothing is clear it keeps its place with a leader (`LabelClear`). The wire
+> is `2.1` (`labelBox`, `labelClear`, `layout.labelMetric`), the canvas's font table is held equal
+> to the metric, the audit counts three soft label findings and the ladder and samples are all
+> clear. Estimated big, took medium. 44 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1236,7 +1243,7 @@ unassessed, not clean.
    makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
    the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened), and `L-60` closed by `D-126`
    (a head accepts a length; `pi`, `g`); `C-109`, `L-61`, `L-63`, then `C-91`, `C-54`, `C-38`
-   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass, closed the same day (the Jacobian's pressure step was inside the flash's noise). `C-71` closed by `D-135` and `C-69` as superseded the same day. `C-65` closed by `D-136`, `C-64` by re-measurement. `S-47` closed by measurement the same day, completing the user's three-way programme, and `C-112` (colour-scale ends settled before nicing) after it; `D-137` (water on IF97, 2026-09-22) and `C-110` (the EN 10220 steel catalogue) followed. `S-37` is measured now and needs the user's decision on who drives a pumpless ring. Next: `S-69`'s sizing passes, `C-84` labels as a planned package, then
+   (`D-129`) and `C-36` (`D-128`) closed after it. `S-45` closed by `D-133` (2026-09-21, the reach and the matching), which opened `S-73`, the seed of a promoted `kv` on a parallel branch; `S-73` closed and `C-111`'s warning shipped the same day. `C-111` closed in full (`FS4011`, and a bypass `valve` set to level the legs), opening `S-74`, the series ring's erratic cold first pass, closed the same day (the Jacobian's pressure step was inside the flash's noise). `C-71` closed by `D-135` and `C-69` as superseded the same day. `C-65` closed by `D-136`, `C-64` by re-measurement. `S-47` closed by measurement the same day, completing the user's three-way programme, and `C-112` (colour-scale ends settled before nicing) after it; `D-137` (water on IF97, 2026-09-22) and `C-110` (the EN 10220 steel catalogue) followed. `S-37` is measured now and needs the user's decision on who drives a pumpless ring. `C-84` closed 2026-09-22 (labels laid out as boxes, `28` A11). Next: `S-69`'s sizing passes, `S-42`'s singular fixture, the sweep of open rows whose fix is known, then
    `D-108` and `C-108`, which wait on the product being testable. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.

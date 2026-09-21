@@ -53,7 +53,8 @@ public static class SceneText
                     .Append(" group ").Append(p.Group ?? "-").Append('\n')
                     .Append(" rotation ").Append(p.Rotation).Append(p.Mirrored ? " mirrored" : string.Empty).Append(p.Arrangement == "default" ? string.Empty : " " + p.Arrangement).Append('\n')
                     .Append(" inner ").Append(Text(p.Inner)).Append('\n')
-                    .Append(" outer ").Append(Text(p.Outer)).Append('\n');
+                    .Append(" outer ").Append(Text(p.Outer)).Append('\n')
+                    .Append(" label ").Append(Text(p.LabelBox)).Append(p.LabelClear ? string.Empty : " leader").Append('\n');
             }
 
             foreach (var (name, anchor) in p.Anchors)

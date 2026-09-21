@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.0",
+  "contractVersion": "2.1",
   "provenance": {
     "sourceHash": "sha256:750b39f4e6bb6e6d282b96a89581b0bab383827c4e2b2fad67f11d69be5a8cda",
     "languageMajor": 1,
@@ -1116,10 +1116,14 @@
     "distributionGroups": [],
     "inferred": [],
     "margin": 0.5,
+    "labelMetric": {
+      "size": 0.183333,
+      "advance": 0.62
+    },
     "extent": [
       -0.6,
       -1.94,
-      3.4,
+      3.6752,
       2.6
     ],
     "placements": [
@@ -1157,6 +1161,13 @@
           0,
           0.25
         ],
+        "labelBox": [
+          -0.1137,
+          0.1583,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": null,
         "scales": {
@@ -1241,6 +1252,13 @@
           1.1,
           0.31
         ],
+        "labelBox": [
+          0.759,
+          0.2183,
+          0.682,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": null,
         "scales": {
@@ -1295,6 +1313,13 @@
           0,
           -0.71
         ],
+        "labelBox": [
+          -0.1137,
+          -0.8017,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": null,
         "scales": {
@@ -1346,9 +1371,16 @@
           }
         },
         "labelAt": [
-          2.2,
+          2.45,
           0.25
         ],
+        "labelBox": [
+          1.8248,
+          0.1583,
+          1.2503,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": null,
         "scales": {
@@ -1400,9 +1432,16 @@
           }
         },
         "labelAt": [
-          2.2,
+          2.45,
           -0.71
         ],
+        "labelBox": [
+          1.8248,
+          -0.8017,
+          1.2503,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": null,
         "scales": {

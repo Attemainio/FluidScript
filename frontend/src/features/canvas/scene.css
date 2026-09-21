@@ -102,6 +102,14 @@
   font-style: italic;
 }
 
+/* A label the layout could not place clear (53 label geometry, C-84) points at its owner. */
+.scene__label-leader {
+  stroke: var(--text-muted);
+  stroke-width: 0.012;
+  stroke-dasharray: 0.04 0.04;
+  pointer-events: none;
+}
+
 .scene__symbol--selected,
 .scene__symbol--selected .scene__symbol {
   color: var(--canvas-selection);

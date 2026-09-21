@@ -155,6 +155,13 @@ when that would collide. A label that cannot be placed clear takes a leader line
 than being dropped: a symbol whose tag is invisible is worse than a slightly busier diagram, because
 the tag is what a reader matches against the equipment schedule.
 
+*Shipped 2026-09-22 (`C-84`), and in Core, not here (`D-103`):* the metric is declared once, by
+Core, and travels on the wire as `layout.labelMetric` (size 11/60 world unit, advance 0.62 em); the
+canvas's `typeMetrics.canvasLabel` must equal it, and `scene.test.ts` holds the two together.
+Every placement carries `labelBox` and `labelClear`; the canvas draws the text centred at `labelAt`
+and, when `labelClear` is false, a dashed leader from the label to its owner's centre
+(`.scene__label-leader`). [`28` A11](../20-core-domain/28-layout-solver.md) is the placement rule.
+
 ### The prepared scene
 
 The layout engine's output, and the artefact everything downstream consumes: the canvas draws it, the

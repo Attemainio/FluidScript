@@ -99,15 +99,28 @@ export function SceneView({
           {scene.labels
             .filter((label) => detail === 'all' || !label.inline)
             .map((label) => (
-              <text
-                key={label.ownerId}
-                data-owner={label.ownerId}
-                className={label.inferred ? 'scene__label scene__label--inferred' : 'scene__label'}
-                transform={`translate(${label.at.x} ${label.at.y}) scale(1 -1)`}
-                textAnchor="middle"
-              >
-                {label.text}
-              </text>
+              <g key={label.ownerId}>
+                {label.clear || label.inline ? null : (
+                  // The layout could not place this label clear (53 label geometry, C-84): a leader
+                  // from the label to its owner says which symbol it names.
+                  <line
+                    className="scene__label-leader"
+                    data-owner={label.ownerId}
+                    x1={label.at.x}
+                    y1={label.at.y}
+                    x2={label.owner.x}
+                    y2={label.owner.y}
+                  />
+                )}
+                <text
+                  data-owner={label.ownerId}
+                  className={label.inferred ? 'scene__label scene__label--inferred' : 'scene__label'}
+                  transform={`translate(${label.at.x} ${label.at.y}) scale(1 -1)`}
+                  textAnchor="middle"
+                >
+                  {label.text}
+                </text>
+              </g>
             ))}
         </g>
       ) : null}

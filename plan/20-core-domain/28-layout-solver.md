@@ -192,6 +192,31 @@ failed. The SVG beside it shows the same facts -- margin areas, symbol areas, ev
 port's flow arrow, every pipe -- and is for the user; a session that renders or reads a picture to
 check a layout is doing the wrong thing.
 
+### A11. Labels *(shipped 2026-09-22, `C-84`)*
+
+A label is a box, not a point. Every placement carries `LabelBox`, the rectangle its text reserves,
+and `LabelAt` is that box's centre. The box is `advance × characters × size` from a metric Core
+declares and the wire carries (`LayoutWire.LabelMetric`: size 11/60 world unit, the canvas's 11 px
+at 60 px per unit; advance 0.62 em), never from measuring rendered text (`D-73`, [`53`'s label
+geometry](../50-frontend/53-canvas-renderer.md)). The text is the component's tag where it has one,
+else its id (`D-34`), so the box is sized for what the canvas draws.
+
+Labels are laid out **last**, against everything else in place: symbols, pipes, signals. Each
+label starts just outside its owner's inner box on the side the symbol's label anchor names, and
+when that box collides -- enters another inner box, another label already placed, or is crossed by
+a route segment -- it slides along that edge in quarter-unit steps up to a unit either way, then
+tries the opposite side, then the other two, in the same steps. The first clear position wins; when
+none is clear the least-collided one is taken and `LabelClear` is `false`, which is the renderer's
+cue to draw a leader from the label to its owner rather than drop the tag. Labels are placed in
+scene order, so the result is deterministic (A9) and the earlier label of a pair keeps its first
+position. An inline element's label and an instrument's tag inside its bubble are boxed where they
+stand and not moved. The extent takes every placed label's box in.
+
+Three soft findings measure the result: `label-in-inner`, `label-in-label` and `line-in-label`
+(`53` invariant 3a). Every ladder step and every sample is clear -- no finding and no leader --
+which is what `LabelLayoutTests` holds on the busiest steps; the text (A10) prints each label's box
+and `leader` when one was needed.
+
 ## B. The standard
 
 What every drawing is held to, whatever rules produce it. The notation references are ISO 10628,
@@ -229,7 +254,10 @@ clearance yields to a sibling run of the same symbol -- the tank's second supply
 0.96 port pitch under a margin of 1.0 (`C-96`), a node being a point and its outer box a
 convention, the same allowance the beside test makes for two runs of one symbol; a pipe running beside
 another closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running
-along a pipe (a signal crosses pipes freely: C16 hops it).
+along a pipe (a signal crosses pipes freely: C16 hops it); and, since labels are boxes (A11), a
+label entering another inner box, two labels intersecting, or a line crossing a label -- soft
+because the layout keeps the label with a leader rather than dropping it, and the count says how
+busy the picture got.
 
 **Priorities, in strict order, when a choice remains.**
 
@@ -613,6 +641,7 @@ for it.
 |---|---|
 | A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
 | A5, A6, C | `Layout/LayoutEngine.cs`; the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
+| A11 | `Layout/LabelLayout.cs`, called last from `LayoutEngine.ToScene`; `PlacementWire.LabelBox`/`LabelClear` and `LayoutWire.LabelMetric` on the wire; `LabelLayoutTests` |
 | A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core (`C-89`), its `PLACEMENT` trace from `Scene.Provenance` (`C-107`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
 | D (router) | `Layout/OrthogonalRouter.cs` |
 | the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |

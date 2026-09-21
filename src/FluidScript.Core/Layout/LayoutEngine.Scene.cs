@@ -159,6 +159,8 @@ internal sealed partial class LayoutEngine
                 Arrangement = _transform[i].Arrangement,
                 Anchors = anchors.ToImmutable(),
                 LabelAt = LabelFor(i),
+                LabelBox = LabelLayout.BoxFor(TextOf(flow.Name), LabelFor(i)),
+                LabelClear = true,
                 Source = "computed",
                 Group = _fallback[i] ? "fallback" : GroupOf(i),
             };
@@ -189,9 +191,22 @@ internal sealed partial class LayoutEngine
             }
         }
 
+        // Labels are laid out last, against everything else in place (53 label geometry, C-84): a label
+        // moves along its owner's edge, or to another side, until its box is clear of symbols, lines and
+        // the labels placed before it. The extent takes the boxes in, so a label never hangs off the picture.
+        var labelled = LabelLayout.Place(placements, routes, p => TextOf(p.ComponentId));
+
+        foreach (var placement in labelled)
+        {
+            if (!placement.IsInline)
+            {
+                extent = extent is { } e ? e.Union(placement.LabelBox) : placement.LabelBox;
+            }
+        }
+
         return new Scene
         {
-            Placements = [.. placements.Select(Rounded)],
+            Placements = [.. labelled.Select(Rounded)],
             Routes = [.. routes.Select(static r => r with { Points = [.. r.Points.Select(Rounded)], Hops = [.. r.Hops.Select(Rounded)] })],
             Extent = Rounded(extent ?? new Box(0, 0, 0, 0)),
             Margin = _margin,
@@ -214,6 +229,7 @@ internal sealed partial class LayoutEngine
         Inner = Rounded(p.Inner),
         Outer = Rounded(p.Outer),
         LabelAt = Rounded(p.LabelAt),
+        LabelBox = Rounded(p.LabelBox),
         Anchors = p.Anchors.ToImmutableSortedDictionary(static a => a.Key, static a => Rounded(a.Value), StringComparer.Ordinal),
     };
 

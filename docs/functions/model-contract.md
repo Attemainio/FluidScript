@@ -226,6 +226,7 @@ One adjacency.
 | `distributionGroups` | array of [`DistributionGroup`](#distributiongroup) | Subcircuits sharing one parent, in declaration order. |
 | `inferred` | array of string | Components the language added. |
 | `margin` | number | The clearance every component keeps from every other, world units (`D-103`); the `spacing` directive or 0.5. |
+| `labelMetric` | [`LabelMetric`](#labelmetric) | The metric every label box was reserved from (`D-73`): the renderer's font must fit inside it, and its own table must agree with it. |
 | `extent` | array of number | The bounds of the whole drawing as `[x, y, width, height]`, world units, outer boxes and routes included. |
 | `placements` | array of [`Placement`](#placement) | Where every component sits, in `Order` then the non-flow elements. |
 | `routes` | array of [`Route`](#route) | Every connection's path, in connection order, then the instruments' signal lines. |
@@ -451,6 +452,15 @@ A distribution group.
 | `parentCircuit` | string | The circuit owning the rails. |
 | `members` | array of string | The branches, at least two. |
 
+### `LabelMetric`
+
+The declared label metric (`D-73`).
+
+| Field | Type | Meaning |
+|---|---|---|
+| `size` | number | The label's height, world units: the canvas label's size at one world unit's pixels. |
+| `advance` | number | The advance per character, in em; a label's width is `Advance × characters × Size`. |
+
 ### `Placement`
 
 One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y` grows upward and a box's `y` is its bottom edge (`28` A1).
@@ -465,7 +475,9 @@ One component's place in the drawing (`D-103`). World units: a pump is 1×1, `y`
 | `mirrored` | boolean | Whether the symbol is mirrored left-to-right before the turn. |
 | `arrangement` | string | `default` or one of the symbol's alternative arrangements (`D-102`). |
 | `anchors` | object of [`Anchor`](#anchor) | Every port's anchor in world coordinates with its outward direction; a node's ports are `#0`, `#1`, … |
-| `labelAt` | array of number | Where the label sits, `[x, y]`. |
+| `labelAt` | array of number | Where the label sits, `[x, y]`: the centre of `LabelBox`. |
+| `labelBox` | array of number | The box the label reserves, `[x, y, width, height]`, from the declared metric (`D-73`): height is the label size, width the advance times the characters. The renderer draws the text centred in it. |
+| `labelClear` | boolean | Whether the label sits clear of every symbol, label and line; when `false` the renderer draws a leader from the label to its owner (`53`). |
 | `source` | string | `computed`; `pinned` is reserved for a placement the script states. |
 | `style` | [`ResolvedStyle`](#resolvedstyle) or `null` | The resolved style: the script's named or anonymous style (`D-104`); absent when the theme's defaults apply throughout. Absent when not applicable. |
 | `scale` | number or `null` | Where the component's representative value sits on the active colour scale, 0 to 1; `null` when not computed. The same as `Scales[visualization.active].At`. |

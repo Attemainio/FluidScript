@@ -619,6 +619,10 @@ export interface Layout {
    */
   margin: number;
   /**
+   * The metric every label box was reserved from (D-73): the renderer's font must fit inside it, and its own table must agree with it.
+   */
+  labelMetric: LabelMetric;
+  /**
    * The bounds of the whole drawing as [x, y, width, height], world units, outer boxes and routes included.
    */
   extent: number[];
@@ -692,6 +696,17 @@ export interface DistributionGroup {
   members: string[];
 }
 
+export interface LabelMetric {
+  /**
+   * The label's height, world units: the canvas label's size at one world unit's pixels.
+   */
+  size: number;
+  /**
+   * The advance per character, in em; a label's width is Advance × characters × Size.
+   */
+  advance: number;
+}
+
 export interface Placement {
   /**
    * The component.
@@ -731,9 +746,17 @@ export interface Placement {
     [k: string]: Anchor | undefined;
   };
   /**
-   * Where the label sits, [x, y].
+   * Where the label sits, [x, y]: the centre of LabelBox.
    */
   labelAt: number[];
+  /**
+   * The box the label reserves, [x, y, width, height], from the declared metric (D-73): height is the label size, width the advance times the characters. The renderer draws the text centred in it.
+   */
+  labelBox: number[];
+  /**
+   * Whether the label sits clear of every symbol, label and line; when false the renderer draws a leader from the label to its owner (53).
+   */
+  labelClear: boolean;
   /**
    * computed; pinned is reserved for a placement the script states.
    */

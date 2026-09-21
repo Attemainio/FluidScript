@@ -113,7 +113,14 @@ export interface PreparedLabel {
   readonly ownerId: string;
   /** The tag where the component has one, else its id (`D-34`); display only. */
   readonly text: string;
+  /** The centre of `box`. */
   readonly at: Point;
+  /** The box the layout reserved for the text from the declared metric (`D-73`, `C-84`). */
+  readonly box: Box;
+  /** False when the layout could not place the label clear; the canvas then draws a leader to `owner`. */
+  readonly clear: boolean;
+  /** The owner's box, where a leader points. */
+  readonly owner: Point;
   readonly inferred: boolean;
   /** True for an inline element's label, shown only above `53`'s 3× level of detail. */
   readonly inline: boolean;
@@ -149,6 +156,8 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
     const inferred = component?.origin.startsWith('inferred') ?? true;
     const inner = boxOf(placement.inner);
     const labelAt = pointOf(placement.labelAt);
+    const labelBox = boxOf(placement.labelBox);
+    const labelClear = placement.labelClear;
     const text = component?.tag ?? placement.componentId;
 
     if (isDegenerate(inner)) {
@@ -160,7 +169,16 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
         inferred,
         boundary: kind === 'node' && (connectionsOf.get(placement.componentId) ?? 0) < 2,
       });
-      labels.push({ ownerId: placement.componentId, text, at: labelAt, inferred, inline: true });
+      labels.push({
+        ownerId: placement.componentId,
+        text,
+        at: labelAt,
+        box: labelBox,
+        clear: labelClear,
+        owner: centreOf(inner),
+        inferred,
+        inline: true,
+      });
       continue;
     }
 
@@ -184,7 +202,16 @@ export function prepareScene(model: ModelContract, property?: string): PreparedS
       ports: portsOf(placement),
       style: placement.style ?? null,
     });
-    labels.push({ ownerId: placement.componentId, text, at: labelAt, inferred, inline: false });
+    labels.push({
+      ownerId: placement.componentId,
+      text,
+      at: labelAt,
+      box: labelBox,
+      clear: labelClear,
+      owner: centreOf(inner),
+      inferred,
+      inline: false,
+    });
   }
 
   const corner = cornerOf(model.style.default.corner) ?? 'sharp';

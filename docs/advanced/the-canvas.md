@@ -46,7 +46,10 @@ is a small hollow dot.
 **Labels** are equipment tags where the component has one, `100PU01` rather than `PU1`, so the
 drawing matches an equipment schedule. A component the compiler added for you, a junction it
 inferred or the pipe behind a connection line's properties, is drawn fainter and its name is
-italic.
+italic. Each label has a place of its own, kept clear of pipes, symbols and other labels; in a
+crowded corner where nothing is clear, the label is drawn with a thin dashed leader to its
+symbol rather than left off. [How the diagram is arranged](how-the-diagram-is-arranged.md) says
+how that place is chosen.
 
 **Colour** is the property the diagram follows -- the script's [`show`](../functions/show.md), or
 `temperature` when it says nothing. The fill runs from blue at the cold end of the scale to orange

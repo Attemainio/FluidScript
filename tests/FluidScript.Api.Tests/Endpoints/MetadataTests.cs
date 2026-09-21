@@ -55,7 +55,7 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
         var body = await response.ReadAsync<MetadataWire>();
 
         Assert.Equal(1, body.RestMajor);
-        Assert.Equal("2.0", body.ContractVersion);
+        Assert.Equal("2.1", body.ContractVersion);
         Assert.Equal(1, body.Language.Current);
         Assert.Equal(ComponentRegistry.Default.Kinds.Select(static k => k.Keyword), body.Kinds.Select(static k => k.Keyword));
         Assert.Equal(DiagnosticRegistry.All.Select(static d => d.Code), body.Diagnostics.Select(static d => d.Code));

@@ -34,7 +34,7 @@ namespace FluidScript.Core.Model;
 public static class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "2.0";
+    public const string ContractVersion = "2.1";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", Fluids.PropertyBackend.PackageVersion);
@@ -571,6 +571,7 @@ public static class ModelContractBuilder
     private static LayoutWire Layout(LayoutHints hints, Scene scene, Styles styles, ColourScales scales) => new()
     {
         Margin = scene.Margin,
+        LabelMetric = new LabelMetricWire(Round(LabelLayout.Size), LabelLayout.Advance),
         Extent = Styles.BoxOf(scene.Extent),
         Placements = [.. scene.Placements.Select(p => new PlacementWire
         {
@@ -586,6 +587,8 @@ public static class ModelContractBuilder
                 static a => new AnchorWire { At = [Round(a.Value.At.X), Round(a.Value.At.Y)], Direction = [a.Value.Direction.X, a.Value.Direction.Y] },
                 StringComparer.Ordinal),
             LabelAt = [Round(p.LabelAt.X), Round(p.LabelAt.Y)],
+            LabelBox = Styles.BoxOf(p.LabelBox),
+            LabelClear = p.LabelClear,
             Source = p.Source,
             Style = styles.Of(p.ComponentId),
             Scale = scales.Of(p.ComponentId)[scales.Active].At,

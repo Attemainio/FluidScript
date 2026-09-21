@@ -161,8 +161,14 @@ public sealed record Placement
     /// <summary>Every port's anchor after placement, by port name; a node's ports each get their own entry.</summary>
     public required ImmutableSortedDictionary<string, PlacedAnchor> Anchors { get; init; }
 
-    /// <summary>Where the label sits.</summary>
+    /// <summary>Where the label sits: the centre of <see cref="LabelBox"/>.</summary>
     public required Point LabelAt { get; init; }
+
+    /// <summary>The box the label reserves, from the declared metric (<c>D-73</c>, <see cref="LabelLayout"/>); no other symbol, label or line runs through it when <see cref="LabelClear"/> holds.</summary>
+    public required Box LabelBox { get; init; }
+
+    /// <summary>Whether the label was placed clear of everything; when not, the renderer draws a leader to its owner (<c>53</c>, <c>C-84</c>).</summary>
+    public required bool LabelClear { get; init; }
 
     /// <summary><c>computed</c>; <c>pinned</c> is reserved for a placement the script states (<c>D-103</c>).</summary>
     public required string Source { get; init; }

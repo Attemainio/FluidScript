@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.0",
+  "contractVersion": "2.1",
   "provenance": {
     "sourceHash": "sha256:03df017bcb8c55e84a6363082caab4d3afb926163d9c2e0d2cf9ec7bd7fe246f",
     "languageMajor": 1,
@@ -2887,6 +2887,10 @@
       "TV_RAD__PU_RAD"
     ],
     "margin": 0.5,
+    "labelMetric": {
+      "size": 0.183333,
+      "advance": 0.62
+    },
     "extent": [
       -0.75,
       -3.4,
@@ -2938,6 +2942,13 @@
           0.15,
           -1.95
         ],
+        "labelBox": [
+          0.0363,
+          -2.0417,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3019,9 +3030,16 @@
           }
         },
         "labelAt": [
-          0,
+          -0.25,
           -0.25
         ],
+        "labelBox": [
+          -0.6478,
+          -0.3417,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -3096,6 +3114,13 @@
           0.85,
           1.25
         ],
+        "labelBox": [
+          0.7363,
+          1.1583,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -3160,6 +3185,13 @@
           2.1,
           1.15
         ],
+        "labelBox": [
+          1.9863,
+          1.0583,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -3224,6 +3256,13 @@
           3.25,
           1.15
         ],
+        "labelBox": [
+          2.6817,
+          1.0583,
+          1.1367,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -3288,6 +3327,13 @@
           4.4,
           1.15
         ],
+        "labelBox": [
+          3.5475,
+          1.0583,
+          1.705,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -3362,6 +3408,13 @@
           6.05,
           1.65
         ],
+        "labelBox": [
+          5.6522,
+          1.5583,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5003,
         "scales": {
@@ -3426,6 +3479,13 @@
           6.8,
           1.15
         ],
+        "labelBox": [
+          6.0043,
+          1.0583,
+          1.5913,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5003,
         "scales": {
@@ -3490,6 +3550,13 @@
           7.55,
           1.65
         ],
+        "labelBox": [
+          7.1522,
+          1.5583,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5,
         "scales": {
@@ -3554,6 +3621,13 @@
           8.35,
           1.15
         ],
+        "labelBox": [
+          7.5543,
+          1.0583,
+          1.5913,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5,
         "scales": {
@@ -3635,9 +3709,16 @@
           }
         },
         "labelAt": [
-          8.8,
+          9.05,
           0.65
         ],
+        "labelBox": [
+          8.6522,
+          0.5583,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3709,9 +3790,16 @@
           }
         },
         "labelAt": [
-          6.05,
+          6.55,
           -0.75
         ],
+        "labelBox": [
+          6.209,
+          -0.8417,
+          0.682,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3776,6 +3864,13 @@
           3.95,
           -2.65
         ],
+        "labelBox": [
+          3.3817,
+          -2.7417,
+          1.1367,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3840,6 +3935,13 @@
           2.45,
           -2.65
         ],
+        "labelBox": [
+          2.3363,
+          -2.7417,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3911,9 +4013,16 @@
           }
         },
         "labelAt": [
-          0.85,
+          1.1,
           -2.55
         ],
+        "labelBox": [
+          0.9863,
+          -2.6417,
+          0.2273,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -3978,6 +4087,13 @@
           1.3,
           -1.95
         ],
+        "labelBox": [
+          0.7317,
+          -2.0417,
+          1.1367,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -4049,9 +4165,16 @@
           }
         },
         "labelAt": [
-          1.85,
+          2.35,
           -1.85
         ],
+        "labelBox": [
+          2.009,
+          -1.9417,
+          0.682,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -4126,6 +4249,13 @@
           1.85,
           0.55
         ],
+        "labelBox": [
+          1.4522,
+          0.4583,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5002,
         "scales": {
@@ -4190,6 +4320,13 @@
           2.6,
           0.05
         ],
+        "labelBox": [
+          1.8043,
+          -0.0417,
+          1.5913,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5002,
         "scales": {
@@ -4254,6 +4391,13 @@
           3.35,
           0.55
         ],
+        "labelBox": [
+          2.9522,
+          0.4583,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5,
         "scales": {
@@ -4318,6 +4462,13 @@
           4.15,
           0.05
         ],
+        "labelBox": [
+          3.3543,
+          -0.0417,
+          1.5913,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.5,
         "scales": {
@@ -4399,9 +4550,16 @@
           }
         },
         "labelAt": [
-          4.6,
+          4.85,
           -0.45
         ],
+        "labelBox": [
+          4.4522,
+          -0.5417,
+          0.7957,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0,
         "scales": {
@@ -4466,6 +4624,13 @@
           0.85,
           0.383333
         ],
+        "labelBox": [
+          -0.0025,
+          0.2917,
+          1.705,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
@@ -4530,6 +4695,13 @@
           0.85,
           0.716667
         ],
+        "labelBox": [
+          0.2817,
+          0.625,
+          1.1367,
+          0.1833
+        ],
+        "labelClear": true,
         "source": "computed",
         "scale": 0.75,
         "scales": {
