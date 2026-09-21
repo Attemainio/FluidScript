@@ -147,4 +147,55 @@ internal sealed partial class LayoutEngine
 
     /// <summary>One model connection between two graph components, as the script wrote it.</summary>
     private readonly record struct Link(int Connection, int From, int FromPort, int To, int ToPort);
+
+    /// <summary>A form's attempt on the engine: the placement state as it stood, restored if the form declines (C2, C18, C19, C20).</summary>
+    /// <remarks>
+    /// Before <c>70</c>'s R5 each form rolled back by hand and each differently: <c>Open</c> restored what
+    /// it had placed and the sides it had taken, <c>Closed</c> its corner's inline flag, <c>Loop</c> only
+    /// its groups -- and <c>Loop</c> is tried first, so what it placed before declining was still marked
+    /// placed when the next form ran. One snapshot, one restore: the groups, the placed, loop and inline
+    /// flags, the sides taken and the loop centre. The trace is not restored: a declined attempt's notes
+    /// are the provenance the report shows (<c>C-107</c>).
+    /// </remarks>
+    private sealed class Attempt
+    {
+        private readonly LayoutEngine _engine;
+        private readonly int _groups;
+        private readonly bool[] _placed;
+        private readonly bool[] _loop;
+        private readonly bool[] _inline;
+        private readonly Dictionary<(int Component, int Port), Direction> _side;
+        private readonly Point _loopCentre;
+
+        public Attempt(LayoutEngine engine)
+        {
+            _engine = engine;
+            _groups = engine._groups.Count;
+            _placed = (bool[])engine._placed.Clone();
+            _loop = (bool[])engine._loop.Clone();
+            _inline = (bool[])engine._inline.Clone();
+            _side = new Dictionary<(int Component, int Port), Direction>(engine._side);
+            _loopCentre = engine._loopCentre;
+        }
+
+        /// <summary>Restores the state the attempt started from, then declines with the reason.</summary>
+        /// <param name="reason">Why the form declined.</param>
+        /// <returns><see langword="false"/>, so a form can <c>return</c> it.</returns>
+        public bool Decline(string reason)
+        {
+            _engine._groups.RemoveRange(_groups, _engine._groups.Count - _groups);
+            _placed.CopyTo(_engine._placed, 0);
+            _loop.CopyTo(_engine._loop, 0);
+            _inline.CopyTo(_engine._inline, 0);
+            _engine._side.Clear();
+
+            foreach (var (key, value) in _side)
+            {
+                _engine._side[key] = value;
+            }
+
+            _engine._loopCentre = _loopCentre;
+            return _engine.Decline(reason);
+        }
+    }
 }

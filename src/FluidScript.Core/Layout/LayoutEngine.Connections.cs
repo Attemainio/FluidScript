@@ -254,25 +254,9 @@ internal sealed partial class LayoutEngine
         {
             for (var j = 1; j < b.Length; j++)
             {
-                var p = a[i - 1];
-                var q = a[i];
-                var s = b[j - 1];
-                var t = b[j];
-                var aVertical = Math.Abs(p.X - q.X) < Eps;
-                var bVertical = Math.Abs(s.X - t.X) < Eps;
-
-                if (aVertical == bVertical)
+                if (Segments.Crossing(a[i - 1], a[i], b[j - 1], b[j], Eps) is { } crossing)
                 {
-                    continue;
-                }
-
-                var (v0, v1, h0, h1) = aVertical ? (p, q, s, t) : (s, t, p, q);
-                var x = v0.X;
-                var y = h0.Y;
-
-                if (x > Math.Min(h0.X, h1.X) + Eps && x < Math.Max(h0.X, h1.X) - Eps && y > Math.Min(v0.Y, v1.Y) + Eps && y < Math.Max(v0.Y, v1.Y) - Eps)
-                {
-                    result.Add(new Point(x, y));
+                    result.Add(crossing);
                 }
             }
         }

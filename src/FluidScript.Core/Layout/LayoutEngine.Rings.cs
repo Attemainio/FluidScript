@@ -35,14 +35,15 @@ internal sealed partial class LayoutEngine
 
     private bool Loop(int source)
     {
+        var attempt = new Attempt(this);
         if (!IsSource(source))
         {
-            return Decline("the head is not a source (a positive duty)");
+            return attempt.Decline("the head is not a source (a positive duty)");
         }
 
         if (Cycle(source) is not { } cycle)
         {
-            return Decline("no cycle of boxed members returns to the source");
+            return attempt.Decline("no cycle of boxed members returns to the source");
         }
 
         var s = cycle[0];
@@ -50,7 +51,7 @@ internal sealed partial class LayoutEngine
 
         if (ts.Count == 0)
         {
-            return Decline("the source has no default arrangement with its outlet up and its inlet down");
+            return attempt.Decline("the source has no default arrangement with its outlet up and its inlet down");
         }
 
         _loopCentre = new Point(0, 0);
@@ -65,19 +66,69 @@ internal sealed partial class LayoutEngine
         var mark = _groups.Count;
 
         // C11: every inner loop along the ring is a block. The last in flow order is the ring's right side with its outlet facing back; the others stand on the top rail with their outlets facing on, so a chain steps from block to block. Without any, the consumer stands on the right alone.
-        var ranges = Ranges(cycle, 1, avoid);
+        var (unit, _, unitEnd, items, _, _) = RailItems(cycle, avoid, mark);
 
-        Unit? unit;
-        int unitStart;
-        int unitEnd;
+        if (unit is null)
+        {
+            return attempt.Decline("no consumer unit was found on the cycle");
+        }
+
+        Unplace(items, unit);
+
+        Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
+        var sOut = AnchorOf(s.Component, s.OutPort);
+        var sIn = AnchorOf(s.Component, s.InPort);
+        var yTop = sOut.Along(_margin).Y;
+        var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
+        var runs = new List<(Member From, List<Point> Points)>();
+        var hangers = new List<Hanger>();
+        List<Point> topStart = [sOut.At, new Point(sOut.At.X, yTop)];
+
+        if (Top(Anchor(topStart[^1], Direction.Right, Direction.Right), topStart, s, items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
+        {
+            return attempt.Decline("the top rail could not be laid");
+        }
+
+        var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
+        var (drop, yBottom) = Bottom(unit, top.End.At.Y, sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
+        yBottom = Math.Min(yBottom, Under(hangers));
+
+        // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
+        var slack = sIn.Along(_margin).Y - yBottom;
+        Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
+        sOut = AnchorOf(s.Component, s.OutPort);
+        sIn = AnchorOf(s.Component, s.InPort);
+        topStart[0] = sOut.At;
+
+        if (!Close(top, unit, drop, yBottom, bottomMembers, [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)], null, rightJunction, hangers, runs))
+        {
+            return attempt.Decline("the ring could not be closed along the bottom rail");
+        }
+
+        // The ring is a group (A8), listed before the blocks it holds.
+        _groups.Insert(mark, LoopGroup(cycle.Select(static m => m.Component).ToList(), true));
+
+        AssignRuns(runs);
+
+        return true;
+    }
+
+    /// <summary>The ring path's unit and top-rail items (C11): the last inner loop in flow order is the unit on the ring's right side, every earlier one a block on the top rail, and with none the consumer stands on the right alone.</summary>
+    /// <param name="cycle">The ring, the head first.</param>
+    /// <param name="avoid">What the unit search must not find.</param>
+    /// <param name="mark">Where the form's groups start, to count the unit's own.</param>
+    /// <returns>The unit (<see langword="null"/> when a block could not be laid), where it starts and ends on the cycle, the items before it, its range when it is a block, and how many groups the unit's block created.</returns>
+    private (Unit? Unit, int Start, int End, List<Item> Items, (int Start, int End, List<Member> Inner)? Range, int UnitGroups) RailItems(
+        List<Member> cycle, HashSet<int> avoid, int mark)
+    {
+        var ranges = Ranges(cycle, 1, avoid);
         var items = new List<Item>();
 
         if (ranges.Count > 0)
         {
             var last = ranges[^1];
-            unitStart = last.Start;
-            unitEnd = last.End;
-            unit = Block(last.Inner, cycle[unitStart], cycle[unitEnd], avoid, Direction.Left);
+            var unit = Block(last.Inner, cycle[last.Start], cycle[last.End], avoid, Direction.Left);
+            var unitGroups = _groups.Count - mark;
             var next = 1;
 
             foreach (var (start, end, inner) in ranges.SkipLast(1))
@@ -97,76 +148,45 @@ internal sealed partial class LayoutEngine
 
             if (unit is not null)
             {
-                items.AddRange(cycle.GetRange(next, unitStart - next).Select(static m => new Item(m, null)));
+                items.AddRange(cycle.GetRange(next, last.Start - next).Select(static m => new Item(m, null)));
             }
+
+            return (unit, last.Start, last.End, items, last, unitGroups);
         }
-        else
+
+        var consumerAt = ConsumerOf(cycle, 1);
+        var single = consumerAt < 0 ? null : Single(cycle[consumerAt]);
+
+        if (single is not null)
         {
-            unitStart = unitEnd = ConsumerOf(cycle, 1);
-            unit = unitStart < 0 ? null : Single(cycle[unitStart]);
-
-            if (unit is not null)
-            {
-                items.AddRange(cycle.GetRange(1, unitStart - 1).Select(static m => new Item(m, null)));
-            }
+            items.AddRange(cycle.GetRange(1, consumerAt - 1).Select(static m => new Item(m, null)));
         }
 
-        if (unit is null)
-        {
-            _groups.RemoveRange(mark, _groups.Count - mark);
-            return Decline("no consumer unit was found on the cycle");
-        }
+        return (single, consumerAt, consumerAt, items, null, 0);
+    }
 
-        // Every unit stands at a provisional place until it is slid in; none is an obstacle before that.
-        foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Append(unit))
+    /// <summary>Every unit stands at a provisional place until it is slid in; none is an obstacle before that.</summary>
+    /// <param name="items">The top-rail items, whose blocks are units.</param>
+    /// <param name="unit">The ring's unit, or <see langword="null"/>.</param>
+    private void Unplace(List<Item> items, Unit? unit)
+    {
+        foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Concat(unit is null ? [] : [unit]))
         {
             foreach (var i in u.Members)
             {
                 _placed[i] = false;
             }
         }
+    }
 
-        Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
-        var sOut = AnchorOf(s.Component, s.OutPort);
-        var sIn = AnchorOf(s.Component, s.InPort);
-        var yTop = sOut.Along(_margin).Y;
-        var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
-        var runs = new List<(Member From, List<Point> Points)>();
-        var hangers = new List<Hanger>();
-        List<Point> topStart = [sOut.At, new Point(sOut.At.X, yTop)];
-
-        if (Top(Anchor(topStart[^1], Direction.Right, Direction.Right), topStart, s, items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
-        {
-            _groups.RemoveRange(mark, _groups.Count - mark);
-            return Decline("the top rail could not be laid");
-        }
-
-        var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
-        var (drop, yBottom) = Bottom(unit, top.End.At.Y, sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
-        yBottom = Math.Min(yBottom, Under(hangers));
-
-        // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
-        var slack = sIn.Along(_margin).Y - yBottom;
-        Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
-        sOut = AnchorOf(s.Component, s.OutPort);
-        sIn = AnchorOf(s.Component, s.InPort);
-        topStart[0] = sOut.At;
-
-        if (!Close(top, unit, drop, yBottom, bottomMembers, [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)], null, rightJunction, hangers, runs))
-        {
-            _groups.RemoveRange(mark, _groups.Count - mark);
-            return Decline("the ring could not be closed along the bottom rail");
-        }
-
-        // The ring is a group (A8), listed before the blocks it holds.
-        _groups.Insert(mark, LoopGroup(cycle.Select(static m => m.Component).ToList(), true));
-
+    /// <summary>Assigns every run a form laid to the walk it belongs to.</summary>
+    /// <param name="runs">The runs, each from the member and port it leaves by.</param>
+    private void AssignRuns(List<(Member From, List<Point> Points)> runs)
+    {
         foreach (var (from, points) in runs)
         {
             Assign(Walk(from.Component, from.OutPort), Normalise(points));
         }
-
-        return true;
     }
 
     /// <summary>The member that takes a ring's right side: the standing consumer of the largest duty from <paramref name="from"/> on, else the first member the flow leaves the ring by.</summary>
@@ -240,6 +260,7 @@ internal sealed partial class LayoutEngine
     /// </summary>
     private bool Closed(List<int> fragment, int head)
     {
+        var attempt = new Attempt(this);
         var consumer = fragment.Where(i => Duty(i) is not null).OrderBy(i => Duty(i)).ThenBy(static i => i).FirstOrDefault(-1);
 
         if (consumer < 0)
@@ -258,12 +279,12 @@ internal sealed partial class LayoutEngine
 
         if (consumer < 0)
         {
-            return Decline("no member besides the head to take the consumer's seat");
+            return attempt.Decline("no member besides the head to take the consumer's seat");
         }
 
         if (Cycle(consumer) is not { } cycle)
         {
-            return Decline("no cycle of boxed members returns to the consumer");
+            return attempt.Decline("no cycle of boxed members returns to the consumer");
         }
 
         var cornerAt = -1;
@@ -287,23 +308,10 @@ internal sealed partial class LayoutEngine
         }
 
         var corner = cornerAt >= 0 ? cycle[cornerAt] : (Member?)null;
-        var wasInline = corner is { } c0 && _inline[c0.Component];
         var mark = _groups.Count;
         var ring = cycle.Select(static m => m.Component).ToHashSet();
         // The unit search must not find the ring itself: it avoids the corner, or with a bare bend the first member on the top rail.
         HashSet<int> avoid = corner is { } c1 ? [c1.Component] : [cycle[split].Component];
-
-        bool Fail(string reason)
-        {
-            _groups.RemoveRange(mark, _groups.Count - mark);
-
-            if (corner is { } c2)
-            {
-                _inline[c2.Component] = wasInline;
-            }
-
-            return Decline(reason);
-        }
 
         if (corner is { } c3)
         {
@@ -315,7 +323,7 @@ internal sealed partial class LayoutEngine
 
         if (unit is null || innerEnd >= end)
         {
-            return Fail(unit is null ? "no unit was found past the consumer" : "the unit reaches the corner and leaves nothing for the rails");
+            return attempt.Decline(unit is null ? "no unit was found past the consumer" : "the unit reaches the corner and leaves nothing for the rails");
         }
 
         foreach (var i in unit.Members)
@@ -377,7 +385,7 @@ internal sealed partial class LayoutEngine
 
         if (Top(cOut, [cOut.At], previous, items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
         {
-            return Fail("the top rail could not be laid");
+            return attempt.Decline("the top rail could not be laid");
         }
 
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, cIn.Along(_margin).Y, right?.Component ?? -1);
@@ -393,7 +401,7 @@ internal sealed partial class LayoutEngine
 
         if (!Close(top, unit, drop, yBottom, bottomMembers, [cIn.At, cIn.Along(_margin), new Point(cIn.At.X, yBottom)], null, right, hangers, runs, leftTurner))
         {
-            return Fail("the ring could not be closed along the bottom rail");
+            return attempt.Decline("the ring could not be closed along the bottom rail");
         }
 
         // C8 reads a junction's free side against the loop's centre. This ring is built from its corner at the
@@ -418,10 +426,7 @@ internal sealed partial class LayoutEngine
 
         _groups.Insert(mark, LoopGroup(cycle.Select(static m => m.Component).ToList(), true));
 
-        foreach (var (from, points) in runs)
-        {
-            Assign(Walk(from.Component, from.OutPort), Normalise(points));
-        }
+        AssignRuns(runs);
 
         return true;
     }
@@ -439,9 +444,10 @@ internal sealed partial class LayoutEngine
     /// </summary>
     private bool Ring(int head, List<int> fragment)
     {
+        var attempt = new Attempt(this);
         if (fragment.Any(i => i != head && !Inline(i)))
         {
-            return Decline("the fragment has a boxed member besides the head");
+            return attempt.Decline("the fragment has a boxed member besides the head");
         }
 
         var ports = _graph.Components[head].Ports;
@@ -485,7 +491,7 @@ internal sealed partial class LayoutEngine
             return true;
         }
 
-        return Decline("no walk from the head's outlet returns to another of its ports");
+        return attempt.Decline("no walk from the head's outlet returns to another of its ports");
     }
 
     /// <summary>The clockwise walk along the edge of the box <c>[-x, x] × [-y, y]</c> about the origin from <paramref name="from"/> to <paramref name="to"/>, both on that edge, through the corners between.</summary>
@@ -543,9 +549,10 @@ internal sealed partial class LayoutEngine
     /// <remarks>Not built: more than two paths, a chain path that turns level, a path to a second return (that one is left to the chain rule off the supply's remaining sides, up then left).</remarks>
     private bool Open(int supply, List<int> fragment)
     {
+        var attempt = new Attempt(this);
         if (_graph.Components[supply] is not CircuitNode { Boundary: BoundaryRole.Inlet } || !Wildcard(supply))
         {
-            return Decline("the head is not a supply boundary");
+            return attempt.Decline("the head is not a supply boundary");
         }
 
         // D-115: a boundary has one connection, so the rail's left end is the junction after the inlet and the inlet hangs off that junction's left side. An inlet wired to several paths (FS2205) is still drawn, as the junction itself.
@@ -560,7 +567,7 @@ internal sealed partial class LayoutEngine
 
             if (junction < 0 || !Wildcard(junction) || _inline[junction] || _graph.Components[junction] is not CircuitNode { Boundary: BoundaryRole.Interior })
             {
-                return Decline("the supply does not feed an interior junction node");
+                return attempt.Decline("the supply does not feed an interior junction node");
             }
 
             inlet = supply;
@@ -615,7 +622,7 @@ internal sealed partial class LayoutEngine
 
         if (paths is null)
         {
-            return Decline("the junction's paths do not both reach one return boundary");
+            return attempt.Decline("the junction's paths do not both reach one return boundary");
         }
 
         HashSet<int> avoid = [supply];
@@ -634,85 +641,17 @@ internal sealed partial class LayoutEngine
         var chain = chainAt >= 0 && chainAt != ringAt ? paths[chainAt] : null;
         var cycle = chainOnly ? [new Member(supply, -1, chain![0].OutPort)] : CycleOf(paths[ringAt]);
         var ring = cycle.Select(static m => m.Component).ToHashSet();
-        var placed = (bool[])_placed.Clone();
-        var sides = new Dictionary<(int Component, int Port), Direction>(_side);
         var mark = _groups.Count;
 
-        bool Fail(string reason)
-        {
-            _groups.RemoveRange(mark, _groups.Count - mark);
-            placed.CopyTo(_placed, 0);
-            _side.Clear();
-
-            foreach (var (key, value) in sides)
-            {
-                _side[key] = value;
-            }
-
-            return Decline(reason);
-        }
-
         // The ring path's unit and top-rail items, as a ring's (C11).
-        var ranges = Ranges(cycle, 1, avoid);
-        Unit? unit;
-        int unitEnd;
-        var items = new List<Item>();
-        (int Start, int End, List<Member> Inner)? unitRange = null;
-        var unitGroups = 0;
-
-        if (ranges.Count > 0)
-        {
-            var last = ranges[^1];
-            unitEnd = last.End;
-            unit = Block(last.Inner, cycle[last.Start], cycle[last.End], avoid, Direction.Left);
-            unitRange = last;
-            unitGroups = _groups.Count - mark;
-            var next = 1;
-
-            foreach (var (start, end, inner) in ranges.SkipLast(1))
-            {
-                items.AddRange(cycle.GetRange(next, start - next).Select(static m => new Item(m, null)));
-                var block = Block(inner, cycle[start], cycle[end], avoid, Direction.Right);
-
-                if (block is null)
-                {
-                    unit = null;
-                    break;
-                }
-
-                items.Add(new Item(null, block));
-                next = end + 1;
-            }
-
-            if (unit is not null)
-            {
-                items.AddRange(cycle.GetRange(next, last.Start - next).Select(static m => new Item(m, null)));
-            }
-        }
-        else
-        {
-            var consumerAt = ConsumerOf(cycle, 1);
-            unitEnd = consumerAt;
-            unit = consumerAt < 0 ? null : Single(cycle[consumerAt]);
-
-            if (unit is not null)
-            {
-                items.AddRange(cycle.GetRange(1, consumerAt - 1).Select(static m => new Item(m, null)));
-            }
-        }
+        var (unit, _, unitEnd, items, unitRange, unitGroups) = RailItems(cycle, avoid, mark);
 
         if (unit is null && !chainOnly)
         {
-            return Fail("no unit was found on the ring path");
+            return attempt.Decline("no unit was found on the ring path");
         }
 
-        foreach (var u in items.Where(static i => i.Unit is not null).Select(static i => i.Unit!).Concat(unit is null ? [] : [unit]))
-        {
-            foreach (var i in u.Members)
-            {
-                _placed[i] = false;
-            }
-        }
+        Unplace(items, unit);
 
         _loopCentre = new Point(0, 0);
         Place(supply, Transform.Identity, new Point(0, 0), "C19", "the supply boundary at the left end of the top rail");
@@ -735,7 +674,7 @@ internal sealed partial class LayoutEngine
             {
                 if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
                 {
-                    return Fail("a chain member could not be laid on the rail");
+                    return attempt.Decline("a chain member could not be laid on the rail");
                 }
 
                 pending.AddRange(points.Skip(1));
@@ -747,7 +686,7 @@ internal sealed partial class LayoutEngine
 
             if (cursor.Outward != Direction.Down || Math.Abs(cursor.At.X) > Eps)
             {
-                return Fail("the chain does not end pointing down on the supply's axis");
+                return attempt.Decline("the chain does not end pointing down on the supply's axis");
             }
 
             chainEnd = previous;
@@ -767,7 +706,7 @@ internal sealed partial class LayoutEngine
 
         if (unit is null)
         {
-            return Fail("no unit was found on the ring path");
+            return attempt.Decline("no unit was found on the ring path");
         }
 
         // C12 for the open form: a block standing on both rails whose outlet sits above the chain's level would put a step in the return, so the block is rebuilt deeper and its outlet meets the rail.
@@ -783,7 +722,7 @@ internal sealed partial class LayoutEngine
 
                 if (unit is null)
                 {
-                    return Fail("the ring's block could not be laid as a unit");
+                    return attempt.Decline("the ring's block could not be laid as a unit");
                 }
 
                 var created = _groups.GetRange(at, _groups.Count - at);
@@ -803,7 +742,7 @@ internal sealed partial class LayoutEngine
 
         if (Top(sOut, [sOut.At], cycle[0], items, ring, bottomMembers, avoid, runs, hangers) is not { } top)
         {
-            return Fail("the top rail could not be laid");
+            return attempt.Decline("the top rail could not be laid");
         }
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false);
@@ -824,7 +763,7 @@ internal sealed partial class LayoutEngine
 
         if (!Close(top, unit, drop, yBottom, bottomMembers, [rIn.At, rIn.Along(_margin)], null, rightJunction, hangers, runs))
         {
-            return Fail("the ring could not be closed along the bottom rail");
+            return attempt.Decline("the ring could not be closed along the bottom rail");
         }
 
         foreach (var m in cycle)
@@ -838,6 +777,7 @@ internal sealed partial class LayoutEngine
         void Finish()
         {
             // The inlet and the outlet hang off their junctions' left sides (D-115); the supply's other connections leave by the sides the form leaves free, up first.
+            // Up then left is deliberately narrower than `FreeSide`'s right, up, left, down: the supply stands at the top rail's left end, so right and down are the rails' own.
             if (inlet >= 0)
             {
                 _side[(supply, inletPort)] = Direction.Left;
@@ -864,10 +804,7 @@ internal sealed partial class LayoutEngine
                 }
             }
 
-            foreach (var (from, points) in runs)
-            {
-                Assign(Walk(from.Component, from.OutPort), Normalise(points));
-            }
+            AssignRuns(runs);
         }
     }
 

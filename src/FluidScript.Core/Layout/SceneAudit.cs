@@ -128,7 +128,7 @@ public static class SceneAudit
                         var c = pipes[s].Points[j - 1];
                         var d = pipes[s].Points[j];
 
-                        if (Crosses(a, b, c, d) is { } crossing)
+                        if (Segments.Crossing(a, b, c, d, Eps) is { } crossing)
                         {
                             findings.Add(new Finding("pipes-cross", pipes[s].ConnectionId, pipes[r].ConnectionId, $"segment {Text(c)} {Text(d)} crosses {Text(a)} {Text(b)} at {Text(crossing)}"));
                             continue;
@@ -274,7 +274,7 @@ public static class SceneAudit
                         var c = pipes[s].Points[j - 1];
                         var d = pipes[s].Points[j];
 
-                        if (Shared(a, b, c, d) is { } length)
+                        if (Segments.Shared(a, b, c, d, Eps) is { } length)
                         {
                             findings.Add(new Finding("pipes-overlap", pipes[s].ConnectionId, pipes[r].ConnectionId, $"segment {Text(c)} {Text(d)} shares {N(length)} of {Text(a)} {Text(b)}"));
                         }
@@ -282,29 +282,6 @@ public static class SceneAudit
                 }
             }
         }
-    }
-
-    /// <summary>The length two collinear segments share beyond a point, or nothing.</summary>
-    private static double? Shared(Point a, Point b, Point c, Point d)
-    {
-        var vertical = Math.Abs(a.X - b.X) < Eps;
-
-        if (vertical != Math.Abs(c.X - d.X) < Eps)
-        {
-            return null;
-        }
-
-        var (line, otherLine) = vertical ? (a.X, c.X) : (a.Y, c.Y);
-
-        if (Math.Abs(line - otherLine) > Eps)
-        {
-            return null;
-        }
-
-        var (a0, a1, c0, c1) = vertical ? (a.Y, b.Y, c.Y, d.Y) : (a.X, b.X, c.X, d.X);
-        var low = Math.Max(Math.Min(a0, a1), Math.Min(c0, c1));
-        var high = Math.Min(Math.Max(a0, a1), Math.Max(c0, c1));
-        return high - low > Eps ? high - low : null;
     }
 
     /// <summary>A signal line is held like any other line (<c>C-95</c>): it enters no inner box but the two its ends touch (hard), and it runs along no pipe (soft); it crosses pipes freely, hopping them (C16).</summary>
@@ -342,7 +319,7 @@ public static class SceneAudit
                         var c = pipe.Points[j - 1];
                         var d = pipe.Points[j];
 
-                        if (Shared(a, b, c, d) is { } length)
+                        if (Segments.Shared(a, b, c, d, Eps) is { } length)
                         {
                             findings.Add(new Finding("signal-along-pipe", signal.ConnectionId, pipe.ConnectionId, $"segment {Text(a)} {Text(b)} runs {N(length)} along {Text(c)} {Text(d)}"));
                         }
@@ -466,24 +443,6 @@ public static class SceneAudit
             ? model.Connections[index]
             : null;
 
-    /// <summary>Where two perpendicular segments cross, strictly inside both; <see langword="null"/> otherwise.</summary>
-    private static Point? Crosses(Point a, Point b, Point c, Point d)
-    {
-        var abVertical = Math.Abs(a.X - b.X) < Eps;
-        var cdVertical = Math.Abs(c.X - d.X) < Eps;
-
-        if (abVertical == cdVertical)
-        {
-            return null;
-        }
-
-        var (v0, v1, h0, h1) = abVertical ? (a, b, c, d) : (c, d, a, b);
-        var x = v0.X;
-        var y = h0.Y;
-        var inside = x > Math.Min(h0.X, h1.X) + Eps && x < Math.Max(h0.X, h1.X) - Eps && y > Math.Min(v0.Y, v1.Y) + Eps && y < Math.Max(v0.Y, v1.Y) - Eps;
-        return inside ? new Point(x, y) : null;
-    }
-
     /// <summary>
     /// The closed polygon a pipe's clearance occupies: its centreline offset by <paramref name="margin"/> to both
     /// sides, mitred at the bends and flat at the two ends, which carry no margin. Collinear points are merged first.
@@ -498,7 +457,7 @@ public static class SceneAudit
         {
             if (line.Count == 0 || line[^1].ManhattanTo(p) > Eps)
             {
-                if (line.Count >= 2 && Collinear(line[^2], line[^1], p))
+                if (line.Count >= 2 && Segments.Collinear(line[^2], line[^1], p, Eps))
                 {
                     line[^1] = p;
                 }
@@ -581,9 +540,6 @@ public static class SceneAudit
 
         return own;
     }
-
-    private static bool Collinear(Point a, Point b, Point c) =>
-        (Math.Abs(a.X - b.X) < Eps && Math.Abs(b.X - c.X) < Eps) || (Math.Abs(a.Y - b.Y) < Eps && Math.Abs(b.Y - c.Y) < Eps);
 
     private static bool Enters(Box outer, Point a, Point b)
     {

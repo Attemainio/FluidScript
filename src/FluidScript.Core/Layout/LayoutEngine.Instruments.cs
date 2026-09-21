@@ -303,24 +303,12 @@ internal sealed partial class LayoutEngine
         for (var s = 1; s < points.Count; s++)
         {
             var (a, b) = (points[s - 1], points[s]);
-            var vertical = Math.Abs(a.X - b.X) < Eps;
 
             foreach (var (_, route) in _routes)
             {
                 for (var t = 1; t < route.Points.Length; t++)
                 {
-                    var (c, d) = (route.Points[t - 1], route.Points[t]);
-
-                    if (Math.Abs(c.X - d.X) < Eps != vertical)
-                    {
-                        continue;
-                    }
-
-                    var (line, other) = vertical ? (a.X, c.X) : (a.Y, c.Y);
-                    var (lo, hi) = vertical ? (Math.Min(a.Y, b.Y), Math.Max(a.Y, b.Y)) : (Math.Min(a.X, b.X), Math.Max(a.X, b.X));
-                    var (lo2, hi2) = vertical ? (Math.Min(c.Y, d.Y), Math.Max(c.Y, d.Y)) : (Math.Min(c.X, d.X), Math.Max(c.X, d.X));
-
-                    if (Math.Abs(line - other) < Eps && Math.Min(hi, hi2) - Math.Max(lo, lo2) > Eps)
+                    if (Segments.Shared(a, b, route.Points[t - 1], route.Points[t], Eps) is not null)
                     {
                         return true;
                     }
