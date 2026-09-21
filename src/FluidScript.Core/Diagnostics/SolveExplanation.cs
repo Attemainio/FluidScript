@@ -631,10 +631,10 @@ public static class SolveExplanation
         // A promoted parameter's solved value is read off the solution; a sized or stated one is the
         // component's own.
         var ports = PortMap.Build(graph);
-        var promoted = Promoted(graph, layout, solve);
         var values = solve.Solution.Values;
         var written = false;
         ImmutableArray<ImmutableArray<SolvedPort?>>? solvedPorts = null;
+        double Resolved(string owner, string name, double own) => SolvedStates.Resolved(layout, solve.Solution, owner, name, own);
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
@@ -642,37 +642,28 @@ public static class SolveExplanation
 
             if (component is Pump pump)
             {
-                var inlet = ports[index, 0];
-                var outlet = ports[index, 1];
-
-                if (!inlet.CarriesFlow)
+                if (!ports[index, 0].CarriesFlow)
                 {
                     continue;
                 }
 
-                var flow = inlet.Sign * values[layout.BranchFlow(inlet.Branch)];
-                var rise = outlet.Node >= 0 && inlet.Node >= 0
-                    ? values[layout.NodePressure(outlet.Node)] - values[layout.NodePressure(inlet.Node)]
-                    : double.NaN;
-
-                // A stated rise has no head of its own: it is the rise over the inlet's solved density
-                // and g, which is the number a reader converts by hand (C-109).
                 solvedPorts ??= SolvedStates.Ports(graph, layout, solve.Solution);
-                var head = promoted.TryGetValue((pump.Name, "head"), out var solvedHead)
-                    ? solvedHead
-                    : pump.StatedRise is { } && solvedPorts.Value[index][0] is { } at
-                        ? Hydrostatic.Head(rise, at.Density)
-                        : pump.Head(flow);
 
-                var origin = promoted.ContainsKey((pump.Name, "head"))
-                    ? "(solved for)"
-                    : pump.StatedRise is { } statedRise
-                        ? string.Create(CultureInfo.InvariantCulture, $"(rise stated, {statedRise / 1000:0.00} kPa at speed {pump.Speed:0.##})")
-                        : string.Create(CultureInfo.InvariantCulture, $"(on its curve, shut-off {pump.ShutOffHead:0.00} m)");
+                if (SolvedStates.Pump(layout, solve.Solution, pump, solvedPorts.Value[index]) is not { } at)
+                {
+                    continue;
+                }
+
+                var origin = at.Basis switch
+                {
+                    PumpHeadBasis.Promoted => "(solved for)",
+                    PumpHeadBasis.StatedRise => string.Create(CultureInfo.InvariantCulture, $"(rise stated, {pump.StatedRise!.Value / 1000:0.00} kPa at speed {pump.Speed:0.##})"),
+                    _ => string.Create(CultureInfo.InvariantCulture, $"(on its curve, shut-off {pump.ShutOffHead:0.00} m)"),
+                };
 
                 Header(report, ref written);
                 report.AppendLine(CultureInfo.InvariantCulture,
-                    $"    {pump.Name,-12} pump   {flow,9:0.0000} kg/s  head {head,7:0.00} m  rise {rise / 1000,8:0.00} kPa  {origin}");
+                    $"    {pump.Name,-12} pump   {at.Flow,9:0.0000} kg/s  head {at.Head,7:0.00} m  rise {at.Rise / 1000,8:0.00} kPa  {origin}");
             }
             else if (component is Valve valve)
             {
@@ -691,8 +682,8 @@ public static class SolveExplanation
 
                 Header(report, ref written);
                 report.AppendLine(CultureInfo.InvariantCulture,
-                    $"    {valve.Name,-12} valve  {flow,9:0.0000} kg/s  Kv {Parameter(promoted, valve.Name, "kv", valve.Kv),7:0.##}"
-                    + $"  position {Parameter(promoted, valve.Name, "position", valve.Position),5:0.###}  drop {drop / 1000,8:0.00} kPa");
+                    $"    {valve.Name,-12} valve  {flow,9:0.0000} kg/s  Kv {Resolved(valve.Name, "kv", valve.Kv),7:0.##}"
+                    + $"  position {Resolved(valve.Name, "position", valve.Position),5:0.###}  drop {drop / 1000,8:0.00} kPa");
             }
             else if (component is ThreeWayValve three)
             {
@@ -727,8 +718,8 @@ public static class SolveExplanation
 
                 Header(report, ref written);
                 report.AppendLine(CultureInfo.InvariantCulture,
-                    $"    {three.Name,-12} 3-way  Kv {Parameter(promoted, three.Name, "kv", three.Kv):0.##}"
-                    + $"  position {Parameter(promoted, three.Name, "position", three.Position):0.###}  "
+                    $"    {three.Name,-12} 3-way  Kv {Resolved(three.Name, "kv", three.Kv):0.##}"
+                    + $"  position {Resolved(three.Name, "position", three.Position):0.###}  "
                     + $"kg/s into it: {string.Join("; ", legs)}");
             }
         }
@@ -742,29 +733,6 @@ public static class SolveExplanation
                 written = true;
             }
         }
-
-        static double Parameter(Dictionary<(string, string), double> promoted, string owner, string name, double own) =>
-            promoted.TryGetValue((owner, name), out var solved) ? solved : own;
-    }
-
-    /// <summary>Every promoted parameter's solved value, by owner and name.</summary>
-    private static Dictionary<(string Owner, string Parameter), double> Promoted(
-        CircuitGraph graph, SystemLayout layout, SolveResult solve)
-    {
-        var promoted = new Dictionary<(string, string), double>();
-        var promotions = WellPosedness.Check(graph).Counting.Promotions;
-
-        for (var index = 0; index < promotions.Length; index++)
-        {
-            var column = layout.PromotionOffset + index;
-
-            if (column < solve.Solution.Values.Length)
-            {
-                promoted[(promotions[index].Component, promotions[index].Parameter)] = solve.Solution.Values[column];
-            }
-        }
-
-        return promoted;
     }
 
     private static void Equations(

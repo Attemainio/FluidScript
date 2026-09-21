@@ -195,7 +195,8 @@ number.
 
 **A stated `dp` is the rise itself** (`C-109`, 2026-09-21). The pump's equation holds
 `p_out − p_in = dp · n²` with no density in it, the head is reported as that rise over the solved
-inlet density and g, and nothing is sized; `head` and `dp` together are `FS2101`. Converting the
+density and g -- the mean of the inlet and outlet densities, the convention the pump's residual uses,
+so the report and the contract read one number ([`70`](../70-core-refactoring.md) R2) -- and nothing is sized; `head` and `dp` together are `FS2101`. Converting the
 stated rise to a head at a reference density would miss by the density ratio, 2.7 % for water at
 80 °C, and the rise is what the script asserted.
 

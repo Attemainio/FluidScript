@@ -49,6 +49,30 @@ public sealed record SolvedExchanger(
     double Approach,
     ExchangerRating Rating);
 
+/// <summary>A pump at the solution: what it passes, the rise it makes, and the head that rise is worth.</summary>
+/// <param name="Flow">kg/s through the pump, positive from its inlet port to its outlet port.</param>
+/// <param name="Rise">Pa, the outlet port's pressure minus the inlet port's.</param>
+/// <param name="Head">
+/// m of the pumped fluid: <see cref="Rise"/> over the mean of the inlet and outlet densities and g, which
+/// is the convention <see cref="Components.Pump.EvaluateResiduals"/> solves with, so this is the head
+/// the equations were satisfied at whether a curve, a promotion or a stated rise set it.
+/// </param>
+/// <param name="Basis">What set the head.</param>
+public sealed record SolvedPump(double Flow, double Rise, double Head, PumpHeadBasis Basis);
+
+/// <summary>What determined a pump's head at the solution.</summary>
+public enum PumpHeadBasis
+{
+    /// <summary>The pump's curve at the solved flow, with a stated or sized shut-off head.</summary>
+    Curve,
+
+    /// <summary>The solver found it, to hold a stated constraint (<c>23</c>'s promotion).</summary>
+    Promoted,
+
+    /// <summary>A stated <c>dp</c>, flat in flow (<c>C-109</c>).</summary>
+    StatedRise,
+}
+
 /// <summary>Reads a solved state vector back as per-port conditions and per-component solved parameters.</summary>
 /// <remarks>
 /// <para>
@@ -266,6 +290,48 @@ public static class SolvedStates
         }
 
         return null;
+    }
+
+    /// <summary>A parameter's value at the solution: the solver's where it was promoted, else the component's own.</summary>
+    /// <param name="layout">The unknown layout.</param>
+    /// <param name="solution">The solved vector.</param>
+    /// <param name="component">The owning component.</param>
+    /// <param name="parameter">The parameter name.</param>
+    /// <param name="own">The component's own value: stated, sized or defaulted.</param>
+    /// <returns>SI.</returns>
+    public static double Resolved(SystemLayout layout, StateVector solution, string component, string parameter, double own) =>
+        Parameter(layout, solution, component, parameter) ?? own;
+
+    /// <summary>A pump's operating point at a solution: one reading for the report and the contract, so they cannot disagree.</summary>
+    /// <param name="layout">The unknown layout.</param>
+    /// <param name="solution">The solved vector.</param>
+    /// <param name="pump">The pump.</param>
+    /// <param name="ports">Its solved ports, from <see cref="Ports"/>.</param>
+    /// <returns>The operating point, or <see langword="null"/> when either port's state could not be read.</returns>
+    /// <remarks>
+    /// Before this existed the report derived the head three ways (the curve at the solved flow, the
+    /// promoted unknown, or a stated rise over the inlet density) and the contract a fourth (the solved
+    /// rise over the inlet density), so the two could print different heads for one solve. The one
+    /// definition is the residual's: the rise over the mean density and g.
+    /// </remarks>
+    public static SolvedPump? Pump(SystemLayout layout, StateVector solution, Pump pump, ImmutableArray<SolvedPort?> ports)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(solution);
+        ArgumentNullException.ThrowIfNull(pump);
+
+        if (ports.Length < 2 || ports[0] is not { } inlet || ports[1] is not { } outlet)
+        {
+            return null;
+        }
+
+        var rise = outlet.Pressure - inlet.Pressure;
+        var density = (inlet.Density + outlet.Density) / 2;
+        var basis = Parameter(layout, solution, pump.Name, "head") is not null
+            ? PumpHeadBasis.Promoted
+            : pump.StatedRise is not null ? PumpHeadBasis.StatedRise : PumpHeadBasis.Curve;
+
+        return new SolvedPump(inlet.Flow, rise, Hydrostatic.Head(rise, density), basis);
     }
 
     /// <summary>Every promoted parameter of one component, SI, in unknown order.</summary>

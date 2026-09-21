@@ -15,7 +15,7 @@ number, `12 m`, or an expression such as `head=1.2*HE1.dp/(998 kg/m3*g)`, which 
 written from a pressure drop ([`let`](let.md#constants)). A pressure on its own is refused, because
 head is `dp / (rho * g)` and the density is yours to state. To state the rise itself, write `dp`:
 `PU1 pump dp=30` holds 30 kPa across the pump whatever the fluid or its temperature, and the report
-prints the head that rise is worth at the solved inlet density, marked `(rise stated)`.
+prints the head that rise is worth at the solved density, marked `(rise stated)`.
 
 ## How the head is chosen
 
@@ -80,7 +80,7 @@ pump and the log links to it.
 | Parameter | A bare number means | Meaning | If you omit it |
 |---|---|---|---|
 | `head` | m | Head at the duty point | Sized from the circuit |
-| `dp` | kPa | Pressure rise, an alternative to `head`: held exactly across the pump, the head then being that rise at the solved inlet density. Stating both is [`FS2101`](diagnostics.md) | Sized |
+| `dp` | kPa | Pressure rise, an alternative to `head`: held exactly across the pump, the head then being that rise at the solved density. Stating both is [`FS2101`](diagnostics.md) | Sized |
 | `flow` | kg/s | Duty flow. With `head` stated too, the two are the point the curve passes through and the circuit decides where on it the pump runs; **without `head`, the pump holds the circuit at this flow** and its head is solved for | Sized |
 | `vflow` | l/s — `vflow=0.3` is 0.3 l/s; `vflow=1.1 m3/h` converts | `flow` as a volume flow. Without `head` it holds the circuit at that volume flow at the pump inlet's solved density; with `head` it is the duty point, taken at 20 °C water as pump curves are published | Sized |
 | `speed` | — | Relative speed, for variable-speed control | Sized, or driven by a controller |

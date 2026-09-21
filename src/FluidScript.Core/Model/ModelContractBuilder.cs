@@ -450,11 +450,12 @@ public static class ModelContractBuilder
 
                 break;
 
-            case Pump:
-                state = state with
+            case Pump pump:
+                if (SolvedStates.Pump(layout, solution, pump, ports) is { } at)
                 {
-                    Head = Q(Hydrostatic.Head(outlet.Pressure - inlet.Pressure, inlet.Density), Dimension.Head, "head"),
-                };
+                    state = state with { Head = Q(at.Head, Dimension.Head, "head") };
+                }
+
                 break;
         }
 

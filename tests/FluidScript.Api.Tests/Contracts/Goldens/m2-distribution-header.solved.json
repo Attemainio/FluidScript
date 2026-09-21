@@ -485,7 +485,7 @@
           "unit": "kPa"
         },
         "head": {
-          "value": 4.71031,
+          "value": 4.71025,
           "unit": "m"
         },
         "solved": {
@@ -919,7 +919,7 @@
           "unit": "kPa"
         },
         "head": {
-          "value": 5.18505,
+          "value": 5.18498,
           "unit": "m"
         },
         "solved": {
