@@ -185,7 +185,9 @@ public sealed class Water : SubstanceBase
         // this pair simply cannot say which of the two phases is meant. Both boundaries of the liquid
         // domain do it, and the *lower* one is the surprise: `07` states 0 °C as an endpoint of water's
         // domain, and 0 °C is the melting line, so the endpoint it claims is not itself a state (`F-14`).
-        if (measured is null && (OnTheSaturationLine(kelvin, absolute) || OnTheMeltingLine(kelvin)))
+        // IF97 answers on the line itself, from region 1's side, so the line is checked before the
+        // measurement is trusted; the melting line is still only asked about when the backend refused.
+        if (OnTheSaturationLine(kelvin, absolute) || (measured is null && OnTheMeltingLine(kelvin)))
         {
             return Result.Failure<FluidState>(ResultError.From(
                 FluidDiagnostics.PairDoesNotFixAState,

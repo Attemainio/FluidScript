@@ -81,7 +81,7 @@
           "basis": "no elevation stated"
         },
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s",
           "source": "sized",
           "basis": "0.2392 kg/s — the flow HE1's 20 kPa is measured at, 0.24 l/s"
@@ -110,7 +110,7 @@
       },
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         },
         "tIn": {
@@ -122,11 +122,11 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 324.323,
+          "value": 324.325,
           "unit": "kPa"
         },
         "pOut": {
-          "value": 304.323,
+          "value": 304.325,
           "unit": "kPa"
         },
         "dp": {
@@ -175,7 +175,7 @@
       "tag": "100TV01",
       "parameters": {
         "authority": {
-          "value": 0.83284,
+          "value": 0.832841,
           "unit": null,
           "source": "sized",
           "basis": "0.83 against the variable circuit, fully open — Kv 2.5 drops 5.6 kPa of its 6.7 kPa; reported, not targeted: a mixing valve is sized to its drop band"
@@ -199,7 +199,7 @@
           "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         },
         "position": {
-          "value": 0.520375,
+          "value": 0.520384,
           "unit": null,
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -207,7 +207,7 @@
       },
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         },
         "tIn": {
@@ -219,7 +219,7 @@
           "unit": "°C"
         },
         "pIn": {
-          "value": 304.323,
+          "value": 304.325,
           "unit": "kPa"
         },
         "pOut": {
@@ -227,12 +227,12 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": 4.32282,
+          "value": 4.32461,
           "unit": "kPa"
         },
         "solved": {
           "position": {
-            "value": 0.520375,
+            "value": 0.520384,
             "unit": ""
           }
         }
@@ -280,7 +280,7 @@
           "basis": "no elevation stated"
         },
         "head": {
-          "value": 2.48434,
+          "value": 2.48452,
           "unit": "m",
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -294,7 +294,7 @@
       },
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         },
         "tIn": {
@@ -310,20 +310,20 @@
           "unit": "kPa"
         },
         "pOut": {
-          "value": 324.323,
+          "value": 324.325,
           "unit": "kPa"
         },
         "dp": {
-          "value": -24.3228,
+          "value": -24.3246,
           "unit": "kPa"
         },
         "head": {
-          "value": 2.48434,
+          "value": 2.48452,
           "unit": "m"
         },
         "solved": {
           "head": {
-            "value": 2.48434,
+            "value": 2.48452,
             "unit": "m"
           }
         }
@@ -378,7 +378,7 @@
       },
       "state": {
         "flow": {
-          "value": 0.162953,
+          "value": 0.162957,
           "unit": "kg/s"
         },
         "tIn": {
@@ -398,7 +398,7 @@
           "unit": "kPa"
         },
         "dp": {
-          "value": 1.11838,
+          "value": 1.11842,
           "unit": "kPa"
         }
       },
@@ -544,7 +544,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 324.323,
+          "value": 324.325,
           "unit": "kPa"
         }
       },
@@ -576,7 +576,7 @@
           "unit": "°C"
         },
         "p": {
-          "value": 304.323,
+          "value": 304.325,
           "unit": "kPa"
         }
       },
@@ -1382,7 +1382,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.162953,
+          "value": 0.162957,
           "unit": "kg/s"
         }
       }
@@ -1400,7 +1400,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         }
       }
@@ -1418,7 +1418,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         }
       }
@@ -1436,7 +1436,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         }
       }
@@ -1454,7 +1454,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         }
       }
@@ -1472,7 +1472,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.239213,
+          "value": 0.239235,
           "unit": "kg/s"
         }
       }
@@ -1490,7 +1490,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.0762606,
+          "value": 0.0762779,
           "unit": "kg/s"
         }
       }
@@ -1508,7 +1508,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.162953,
+          "value": 0.162957,
           "unit": "kg/s"
         }
       }
@@ -1526,7 +1526,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.162953,
+          "value": 0.162957,
           "unit": "kg/s"
         }
       }
@@ -1544,7 +1544,7 @@
       "flow": "forward",
       "state": {
         "flow": {
-          "value": 0.162953,
+          "value": 0.162957,
           "unit": "kg/s"
         }
       }
@@ -1668,7 +1668,7 @@
         "scale": 0.1,
         "scales": {
           "flow": {
-            "at": 0.0369,
+            "at": 0.037,
             "from": null,
             "to": null
           },
@@ -1749,7 +1749,7 @@
         "scale": 0.3334,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -1820,7 +1820,7 @@
         "scale": 0.3333,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -1891,7 +1891,7 @@
         "scale": 0.3333,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -1982,7 +1982,7 @@
         "scale": 0.8335,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -2053,7 +2053,7 @@
         "scale": 0.8335,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -2134,7 +2134,7 @@
         "scale": 0.8335,
         "scales": {
           "flow": {
-            "at": 0.9902,
+            "at": 0.9904,
             "from": null,
             "to": null
           },
@@ -2205,7 +2205,7 @@
         "scale": 0.8336,
         "scales": {
           "flow": {
-            "at": 0.0369,
+            "at": 0.037,
             "from": null,
             "to": null
           },
@@ -2276,7 +2276,7 @@
         "scale": 0.8336,
         "scales": {
           "flow": {
-            "at": 0.0369,
+            "at": 0.037,
             "from": null,
             "to": null
           },
@@ -2337,7 +2337,7 @@
         "scale": 0.8336,
         "scales": {
           "flow": {
-            "at": 0.0369,
+            "at": 0.037,
             "from": null,
             "to": null
           },
@@ -2378,8 +2378,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.0369,
-            "to": 0.9902
+            "from": 0.037,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2416,8 +2416,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2454,8 +2454,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2494,8 +2494,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2534,8 +2534,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2572,8 +2572,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2610,8 +2610,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.9902
+            "from": 0.9904,
+            "to": 0.9904
           },
           "pressure": {
             "at": null,
@@ -2648,8 +2648,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.9902,
-            "to": 0.0369
+            "from": 0.9904,
+            "to": 0.037
           },
           "pressure": {
             "at": null,
@@ -2686,8 +2686,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.0369,
-            "to": 0.0369
+            "from": 0.037,
+            "to": 0.037
           },
           "pressure": {
             "at": null,
@@ -2724,8 +2724,8 @@
         "scales": {
           "flow": {
             "at": null,
-            "from": 0.0369,
-            "to": 0.0369
+            "from": 0.037,
+            "to": 0.037
           },
           "pressure": {
             "at": null,
@@ -2923,7 +2923,7 @@
   "solve": {
     "converged": true,
     "iterations": 8,
-    "residualNorm": 6.04E-10,
+    "residualNorm": 6.16E-10,
     "elapsedMs": null,
     "sizingPasses": 2
   }

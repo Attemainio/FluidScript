@@ -122,8 +122,15 @@ internal static class PropertyBackend
     public static string PackageVersion { get; } =
         typeof(Fluid).Assembly.GetName().Version?.ToString() ?? "unknown";
 
-    /// <summary>This thread's water instance, constructed on first use.</summary>
-    private static Fluid Water => water ??= new Fluid(FluidsList.Water);
+    /// <summary>This thread's water instance, constructed on first use, on CoolProp's IF97 backend (<c>D-137</c>).</summary>
+    /// <remarks>
+    /// IAPWS-IF97 is the industrial formulation: closed-form regions with backward equations, so a
+    /// (p, h) fix is an evaluation rather than an iteration. Measured against HEOS (IAPWS-95) on the
+    /// header's state: 5.8 µs per (p, h) against 142, within 1e-4 on enthalpy and 5e-4 on cp, and
+    /// without the flash noise a finite-difference Jacobian reads as a derivative (<c>S-74</c>). The
+    /// refrigerants stay on HEOS, which is the only backend that covers them.
+    /// </remarks>
+    private static Fluid Water => water ??= new Fluid(FluidsList.Water, null, "IF97");
 
 
     /// <summary>Measures water at an absolute pressure and a temperature.</summary>
@@ -162,34 +169,51 @@ internal static class PropertyBackend
                 Input.Pressure(Pressure.FromPascals(absolutePressure)),
                 Input.Enthalpy(SpecificEnergy.FromJoulesPerKilogram(enthalpy)));
 
-            return Read(fluid);
+            // IF97's T(p, h) is a backward fit, good to 25 mK by the formulation's own statement and
+            // measured 4 mK at 3 bar and 60 °C. Left there, a node stated at 6 °C would read 6.004 after
+            // the solve wrote its enthalpy and read the temperature back. One Newton step on the forward
+            // h(p, T) -- two (p, T) evaluations, about 9 µs each -- brings the pair to round-off, which
+            // is what the round-trip invariant (`21` invariant 5) asks for.
+            return Read(Refine(fluid, absolutePressure, enthalpy));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
         {
             return null;
         }
+    }
+
+    /// <summary>Puts the forward and backward IF97 equations in agreement: one Newton step on <c>h(p, T)</c> from the backward <c>T(p, h)</c>.</summary>
+    /// <param name="fluid">The instance, fixed at the backward state.</param>
+    /// <param name="absolutePressure">Pa absolute.</param>
+    /// <param name="enthalpy">J/kg, the enthalpy asked for.</param>
+    /// <returns>The same instance, fixed by (p, T) at the refined temperature.</returns>
+    private static Fluid Refine(Fluid fluid, double absolutePressure, double enthalpy)
+    {
+        var pressure = Input.Pressure(Pressure.FromPascals(absolutePressure));
+        var temperature = fluid.Temperature.Kelvins;
+
+        fluid.Update(pressure, Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)));
+
+        var correction = (enthalpy - fluid.Enthalpy.JoulesPerKilogram) / fluid.SpecificHeat.JoulesPerKilogramKelvin;
+
+        if (double.IsFinite(correction) && correction != 0)
+        {
+            fluid.Update(pressure, Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature + correction)));
+        }
+
+        return fluid;
     }
 
     /// <summary>Finds water's saturation pressure at a temperature.</summary>
     /// <param name="temperature">K.</param>
     /// <returns>Pa absolute, or <see langword="null"/> when the backend could not say.</returns>
-    public static double? WaterSaturationPressure(double temperature)
-    {
-        try
-        {
-            var fluid = Water;
-
-            fluid.Update(
-                Input.Temperature(UnitsNet.Temperature.FromKelvins(temperature)),
-                Input.Quality(Ratio.FromPercent(0)));
-
-            return fluid.Pressure.Pascals;
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
-        {
-            return null;
-        }
-    }
+    /// <remarks>
+    /// Region 4 of IF97 in closed form (<see cref="If97Saturation"/>): CoolProp's IF97 backend refuses
+    /// a quality input as SharpProp reaches it, and the line is read on every stated temperature, so
+    /// it is computed rather than asked for.
+    /// </remarks>
+    public static double? WaterSaturationPressure(double temperature) =>
+        If97Saturation.Pressure(temperature) is var pressure && double.IsFinite(pressure) ? pressure : null;
 
     /// <summary>Finds water's boiling temperature at an absolute pressure.</summary>
     /// <param name="absolutePressure">Pa absolute.</param>
@@ -198,23 +222,8 @@ internal static class PropertyBackend
     /// The upper edge of the liquid domain, which a rectangular temperature bound does not describe:
     /// it moves from 99.61 °C at 100 kPa absolute to 179.88 °C at 1000 kPa.
     /// </remarks>
-    public static double? WaterSaturationTemperature(double absolutePressure)
-    {
-        try
-        {
-            var fluid = Water;
-
-            fluid.Update(
-                Input.Pressure(Pressure.FromPascals(absolutePressure)),
-                Input.Quality(Ratio.FromPercent(0)));
-
-            return fluid.Temperature.Kelvins;
-        }
-        catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException)
-        {
-            return null;
-        }
-    }
+    public static double? WaterSaturationTemperature(double absolutePressure) =>
+        If97Saturation.Temperature(absolutePressure) is var boiling && double.IsFinite(boiling) ? boiling : null;
 
     /// <summary>Measures humid air from pressure, dry bulb and one humidity input.</summary>
     /// <param name="absolutePressure">Pa absolute.</param>

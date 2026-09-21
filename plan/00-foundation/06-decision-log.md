@@ -179,6 +179,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-134` | Accepted | 2026-09-21 | A register row carries the date it was filed and the date it closed, and no modified date |
 | `D-135` | Accepted | 2026-09-21 | A three-way valve's leg passes its body's rated leakage at the stop; 2 % by default, never under class IV |
 | `D-136` | Accepted | 2026-09-21 | `mixing_valve` and `diverting_valve` declare the body's service; a bare `three_way_valve` claims nothing |
+| `D-137` | Accepted | 2026-09-22 | Water is measured through IAPWS-IF97; every other substance stays on the Helmholtz equation of state |
 <!-- index:end -->
 
 ---
@@ -6233,3 +6234,53 @@ of this decision.
 **Constrains.** `ComponentFactory.Arrangement`, `ThreeWayValve.Arrangement`, `OuterLoop.Arrangements`,
 `DesignDiagnostics.ArrangementContradictsKind`, `docs/functions/three-way-valve.md`.
 
+## D-137 · Water is measured through IAPWS-IF97; every other substance stays on the Helmholtz equation of state
+
+**Accepted · 2026-09-22** (the user's call, closing the option `C-68` and `F-19` left open) · amends `21` and `07`'s water row
+
+`Water` measured through CoolProp's `HEOS` backend, IAPWS-95, the reference formulation. Its (p, h)
+fix is an iteration: 142 µs on the header's state against 9 µs for (p, T), and an iteration has a
+tolerance, so two calls a pascal apart disagree in their last digits. `S-74` found the Jacobian's
+pressure columns reading that noise as a derivative and widened the step; `C-68` found the whole
+water solve four to ten times slower than on constant properties with the flash the only cost that
+mattered. Both are properties of the iteration, not of water.
+
+**Decided.** `PropertyBackend` constructs water on the `IF97` backend, the industrial formulation:
+closed-form regions whose (p, h) and (p, s) are backward equations, evaluated rather than iterated.
+Measured before deciding (release, CoolProp's own `AbstractState`): 5.8 µs per (p, h) against 142,
+within 1.5e-5 of IAPWS-95 on density, 1.0e-4 on enthalpy, 5.2e-4 on cp, 2e-5 on the transport
+properties — all inside `07`'s water row by an order of magnitude. Measured after, debug build, whole
+pipeline: the header's water solve 73 ms to 17, the cooling loop 29 to 7, the substation 37 to 8, the
+simple loop 15 to 4; a residual on the header 1.45 ms to 0.17 and its Jacobian 3.3 to 1.0. The
+refrigerants, humid air and the brine keep their backends: there is no IF97 for them, and HEOS is
+the only formulation that covers a refrigerant across its phases.
+
+**Three things the backend does not do, and the adapter does.** IF97's backward T(p, h) is a fit,
+good to 25 mK by the formulation's own statement and measured 4 mK at 3 bar and 60 °C; left there, a
+node stated at 6 °C would read 6.004 after the solve wrote its enthalpy and read the temperature
+back. `PropertyBackend.Refine` takes one Newton step on the forward h(p, T) after every backward fix,
+two (p, T) evaluations, and the round trip is at round-off again (`21` invariant 5 holds at 1e-6
+as before). CoolProp's IF97 backend refuses a quality input as the package reaches it, so the
+saturation line — read on every stated temperature by `Water`'s phase guard — is Region 4 in closed
+form, `If97Saturation`, pinned to the formulation's own verification tables. And IF97 answers on
+the line itself, from the liquid side, where IAPWS-95 refused; `Water` now checks the line before
+trusting the measurement, so `FS2002` on the boiling line is unchanged.
+
+**What moved, and what it uncovered.** Every solved value moved in its fifth or sixth digit and the
+goldens were regenerated under this entry. On the ladder's series header the moves were not small:
+the two blocks' pump heads went from 5.68 + 2.56 m to 4.62 + 3.05 m with every flow and every Kv
+unchanged, and the balancing valve the `C-111` rule sets on the bypass from Kv 1.53 at 32 kPa to
+1.87 at 21. That is `S-37` measured: a primary ring driven only through its injection blocks' pumps
+has one head to share and nothing in the script to say how, the Jacobian's smallest pivot sits at
+2e-5 of its largest, and a 1e-4 change in the fluid slides the solution a metre along the valley.
+The tests that pinned points on it now pin the flows, the Kvs and the levelled legs, with the
+measured band for the rest; `S-37` carries the numbers and the decision it still needs.
+
+**Rejected.** The (p, h)-gridded tables (`BICUBIC`, `TTSE`): faster still, 0.4–0.6 µs, but 8e-3 off
+on viscosity, outside `07`'s 0.5 %. A per-solve property cache first: `21` still specifies it and
+`C-68` still wants it, but it is a cache in front of a flash that is now 5.8 µs, and its case is
+to be re-measured rather than assumed. Naming the formulation on the wire: the contract's
+provenance carries the package and its version; the formulation is this entry.
+
+**Constrains.** `PropertyBackend.Water`, `PropertyBackend.Refine`, `If97Saturation`,
+`Water.FromPressureTemperature`'s line check, `21` §adapter, `07`'s water row, the goldens.

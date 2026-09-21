@@ -42,6 +42,15 @@ how much they matter:
 3. **Package risk.** SharpProp's exact API and native packaging are M0 spike gates (`05`). One adapter
    class is a contained blast radius; property calls scattered through twenty components is not.
 
+**Which formulation each substance is measured through** (`D-137`, 2026-09-22). Water is on
+CoolProp's `IF97` backend, the industrial formulation: closed-form regions with backward equations,
+so a (p, h) fix is an evaluation (5.8 µs) rather than IAPWS-95's iteration (142 µs), and it carries
+no iteration noise for a finite-difference Jacobian to read. The adapter adds what the backend lacks:
+one Newton step on the forward h(p, T) after every backward fix, so the round trip is at round-off
+rather than at the backward equation's 25 mK; and the saturation line as Region 4 in closed form,
+because the backend refuses a quality input. Every other substance — the refrigerants across their
+phases, humid air, the brine — stays on the backend that covers it (`HEOS`, `HAPropsSI`, `INCOMP`).
+
 ### What the adapter is expected to wrap
 
 Expected from SharpProp's published surface; the M0 spike must compile, publish, and exercise these

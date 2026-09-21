@@ -202,7 +202,7 @@
       },
       "state": {
         "t": {
-          "value": 54.0021,
+          "value": 54.0018,
           "unit": "°C"
         },
         "p": {
@@ -261,7 +261,7 @@
       },
       "state": {
         "t": {
-          "value": 54.0021,
+          "value": 54.0018,
           "unit": "°C"
         },
         "p": {
@@ -297,7 +297,7 @@
       },
       "state": {
         "t": {
-          "value": 54.0021,
+          "value": 54.0018,
           "unit": "°C"
         },
         "p": {
@@ -1700,7 +1700,7 @@
   "solve": {
     "converged": true,
     "iterations": 1,
-    "residualNorm": 1.01E-09,
+    "residualNorm": 1.24E-09,
     "elapsedMs": null,
     "sizingPasses": 1
   }

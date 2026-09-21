@@ -76,7 +76,7 @@ assertions. The release claim is:
 
 | Capability | Validated v1 domain | Maximum error against independent reference |
 |---|---|---|
-| Water properties | Liquid water, 0–120 °C, from the triple-point pressure (611.657 Pa) up to 1000 kPa absolute, **below the boiling line at that pressure** (`D-121`) | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
+| Water properties | Liquid water, 0–120 °C, from the triple-point pressure (611.657 Pa) up to 1000 kPa absolute, **below the boiling line at that pressure** (`D-121`); measured through IAPWS-IF97 Region 1 (`D-137`), which is within 1.5e-5 of IAPWS-95 on density and 1e-4 on enthalpy over the row | temperature 0.02 K; density 0.1%; enthalpy 0.1%; viscosity 0.5% |
 | Humid-air properties | 0–50 °C dry bulb, 10–90% RH, 80–110 kPa absolute; no condensation circuit | humidity ratio 0.5%; enthalpy 0.5%; dew point 0.1 K |
 | Conservation | Every converged supported circuit | mass residual ≤ max(1e-8 kg/s, 1e-6 of circuit flow); energy residual ≤ max(0.1 W, 1e-6 of circuit duty) |
 | Pressure drop | Single-phase water, Darcy–Weisbach correlations and catalogue geometry declared by the model | 1% against the same published correlation evaluated independently |

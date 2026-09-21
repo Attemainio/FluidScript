@@ -549,7 +549,11 @@ less the AHU pump's help. A balancing valve in the bypass dissipates that same 3
 side instead of the three-way valve doing it, and the pump head does not fall: 20 kPa of coil plus
 32 of ring plus the valve's 7.6 at mid-travel is 59.5 kPa against the 55 solved, not the 3 m the
 row first guessed. What the balancing valve buys is the valve's travel and a secondary flow that
-holds as the valve moves, which is what VM-12 calls the design requirement.[^vm12] The message says
+holds as the valve moves, which is what VM-12 calls the design requirement.[^vm12] Those kilopascals
+are one point on `S-37`'s valley: the ring has no pump of its own, the two blocks' pumps share its
+head, and `D-137`'s move from IAPWS-95 to IF97 slid the same script to 24.7 kPa across `b` at 0.74,
+an imbalance of 21.3 and Kv 1.88 -- every flow and every Kv unchanged. The rule and the message are
+right on either; which split a real plant runs at is what the script does not say. The message says
 "would level the legs and leave the valve its travel" and nothing about the pump.
 
 #### A `valve` on a switched leg is set to level the legs
@@ -596,7 +600,9 @@ guess alike, while the same first pass with the Kv *stated* took 5 iterations at
 2.94. `S-74` found the Jacobian's pressure columns perturbed inside the property flash's noise and
 closed the same day; with that fixed the rule settles on this ring too, in three passes: `BV_RAD`
 Kv 1.53 dropping 32.0 kPa, `TV_RAD` at 0.501 with 7.27 kPa across each leg, `PU_RAD` at 59.2 kPa,
-which is the 59.5 the row predicted.
+which is the 59.5 the row predicted. Under `D-137` the same ring settles at Kv 1.87 dropping 21.3 kPa
+and `PU_RAD` at 49 kPa, the legs still level at 0.501: the balancing valve is set to whatever the
+ring's undetermined head split leaves on the bypass (`S-37`), and the rule holds at either point.
 
 [^stad]: IMI Hydronic Engineering, *STAD balancing valve* technical guide: "Kvs = m³/h at a pressure
     drop of 1 bar with fully open valve"; the presetting example takes DN 25 at 1.6 m³/h and 10 kPa
@@ -1016,7 +1022,8 @@ three of those numbers are engineering, and one is a guess.
       `m2-cooling-loop`, where the two differ by the recirculation (0.163 against 0.239 kg/s).
 - [x] A three-way valve whose legs differ by more than its full-open drop raises `FS4011` naming the
       balancing valve's leg, drop and Kv; one inside the line is silent: asserted on the ladder's series
-      header, `TV_RAD` at 32.0 kPa against 7.6 (Kv 1.53) and `TV_AHU` at 6.5 against 7.5 (`C-111`).
+      header, `TV_RAD` at 32.0 kPa against 7.6 (Kv 1.53) and `TV_AHU` at 6.5 against 7.5 (`C-111`);
+      21.3 against 7.6 (Kv 1.88) under `D-137`, the same valley (`S-37`).
 - [x] A `valve` with no `kv` on a three-way valve's switched leg is set, pass by pass, to the drop that
       levels the legs, unrounded, and the three-way valve settles at its ratio: the one-branch ring's
       `BV_AHU` at Kv 0.75 with `TV_AHU` at 0.674 and both legs at 6.5 kPa; the cooling loop's diverting

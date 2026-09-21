@@ -161,15 +161,18 @@ public sealed class SolveExplanationTests
         Assert.Contains("--- iterations", report, StringComparison.Ordinal);
         Assert.Matches(@"\n      1 +[0-9.E+-]+ +1  (HX1: HX1|LOAD: LOAD) side-1 drop +SP\.head", report);
         Assert.Contains("Converged", report, StringComparison.Ordinal);
-        Assert.Matches(@"NPS -> NPR +0\.8953  forward", report);
+        // 0.8953 on IAPWS-95 and 0.8957 on IF97, whose cp differs by 5e-4 (D-137): the digit the
+        // formulation owns is left free.
+        Assert.Matches(@"NPS -> NPR +0\.895[0-9]  forward", report);
         Assert.Matches(@"NPS +85\.00 +600\.00", report);
         Assert.Contains("kg/s  Duty(", report, StringComparison.Ordinal);
         Assert.Contains(
             "[0] sources +0 kW, loads -150 kW (HX1 -150), boundary streams +150 kW", report, StringComparison.Ordinal);
         Assert.Contains("[1] sources +150 kW (HX1 +150), loads -150 kW (LOAD -150), boundary streams +0 kW — net +0 kW", report, StringComparison.Ordinal);
         Assert.Contains("--- operating points", report, StringComparison.Ordinal);
-        Assert.Matches(@"SP +pump +1\.7932 kg/s  head +10\.23 m  rise +99\.56 kPa  \(solved for\)", report);
-        Assert.Matches(@"PCV +valve +0\.8953 kg/s  Kv +2\.13  position +1  drop +237\.36 kPa", report);
+        // The flow's fourth digit and the rise's second decimal are the formulation's (D-137).
+        Assert.Matches(@"SP +pump +1\.79[34]\d kg/s  head +10\.2\d m  rise +99\.\d\d kPa  \(solved for\)", report);
+        Assert.Matches(@"PCV +valve +0\.895\d kg/s  Kv +2\.13  position +1  drop +237\.\d\d kPa", report);
     }
 
     [Fact]

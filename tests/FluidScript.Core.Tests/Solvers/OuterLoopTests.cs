@@ -415,8 +415,14 @@ public sealed class OuterLoopTests
         // the AHU's from the radiators' return.
         Assert.Equal(0.2393, Stream("TV_RAD.a->NM_AHU"), 0.001);
         Assert.Equal(0.2393, Stream("TV_AHU.a->NM_RAD"), 0.001);
+        // `S-37`, measured here. Nothing in the script drives the primary ring except the two blocks'
+        // pumps, so how the ring's head divides between PU_RAD and PU_AHU -- and where each valve then
+        // sits -- is a valley of the equations, not a point: the Jacobian's smallest pivot is 2e-5 of
+        // its largest, and moving the water formulation by 1e-4 (D-137, IAPWS-95 to IF97) slid the
+        // split from 5.68 + 2.56 m to 4.62 + 3.05 m with every flow unchanged. The bands below hold
+        // both ends of what was measured; the flows and the Kv above are what the physics fixes.
         Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.7, 0.85);
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.3, 0.5);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_AHU", "TV_AHU.position")], 0.3, 0.6);
         Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 4, 7);
         Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_AHU", "PU_AHU.head")], 2, 3.5);
         Assert.Contains("Kv 6.3", run.Bases["TV_RAD.kv"], StringComparison.Ordinal);
@@ -431,9 +437,11 @@ public sealed class OuterLoopTests
 
         Assert.Equal("TV_RAD", unbalanced.ComponentName);
         Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Warning, unbalanced.Severity);
-        Assert.Contains("throttles its b leg by 35.0 kPa at position 0.78", unbalanced.Message, StringComparison.Ordinal);
-        Assert.Contains("32.0 kPa easier than the a path, more than the 7.6 kPa", unbalanced.Message, StringComparison.Ordinal);
-        Assert.Contains("between NM_RAD and TV_RAD.b dropping 32.0 kPa at 0.239 kg/s (Kv 1.53)", unbalanced.Message, StringComparison.Ordinal);
+        // The kilopascals are a point on S-37's valley (32.0 kPa on IAPWS-95, 21.3 on IF97); the leg,
+        // the band, the far node and the flow are not.
+        Assert.Matches(@"throttles its b leg by \d+\.\d kPa at position 0\.7\d", unbalanced.Message);
+        Assert.Contains("kPa easier than the a path, more than the 7.6 kPa", unbalanced.Message, StringComparison.Ordinal);
+        Assert.Matches(@"between NM_RAD and TV_RAD\.b dropping \d+\.\d kPa at 0\.239 kg/s \(Kv 1\.\d+\)", unbalanced.Message);
     }
 
     [Fact]
@@ -496,13 +504,17 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Settled, $"not settled after {run.Passes} passes");
         Assert.True(run.Iterations <= 20, $"{run.Iterations} iterations over {run.Passes} passes");
-        Assert.Equal(1.53, run.Sizes.For("BV_RAD", "kv")!.Value, 0.03);
+        // Kv 1.53 dropping 32 kPa on IAPWS-95, 1.87 dropping 21 kPa on IF97 (D-137): the drop the valve
+        // is set to is whatever the ring's undetermined head split leaves on the bypass (S-37, measured
+        // in TwoInjectionBlocksInSeriesConvergeAndSettle), so the band holds both. What is determined
+        // is that the valve is set and the legs come out level.
+        Assert.InRange(run.Sizes.For("BV_RAD", "kv")!.Value, 1.4, 2.0);
 
         var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal(0.50, solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.01);
-        Assert.Equal(6.1, solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 0.1);
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "PU_RAD", "PU_RAD.head")], 4.5, 6.5);
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
     }
 
@@ -619,7 +631,9 @@ public sealed class OuterLoopTests
         Assert.Equal(0.1435, Flow("TV_DHW.ab->NM_DHW"), 0.001);
         // The floor's legs are linear and unequally fed: its `a` arrives through the radiators' block at
         // a higher pressure than its own return, so half-and-half mixing sits below mid-travel.
-        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_FLR", "TV_FLR.position")], 0.3, 0.5);
+        // 0.399 on IAPWS-95, 0.579 on IF97: the floor's block shares the ring's head with the others
+        // (S-37, measured on 8b), and its position is a point on that valley.
+        Assert.InRange(solved[Index(layout, UnknownKind.Parameter, "TV_FLR", "TV_FLR.position")], 0.3, 0.6);
         Assert.Contains("Kv 6.3", run.Bases["TV_FLR.kv"], StringComparison.Ordinal);
         Assert.Contains("Kv 1.6", run.Bases["TV_DHW.kv"], StringComparison.Ordinal);
     }
