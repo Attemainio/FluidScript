@@ -55,7 +55,7 @@ Three columns, and they are three different things — conflating any two is how
 | `Power` | W | **kW** — *exception* | kW | `power=30` is the brief's own example and `R-04` states it. |
 | `Energy` | J | J | kWh | |
 | `MassFlow` | kg/s | kg/s | kg/s | |
-| `VolumeFlow` | m³/s | m³/s | l/s | Litres per second is the working *display* unit in hydronics. `vflow` (P5.13b) is the one parameter that takes a volume flow, and a bare `vflow=0.3` is 300 l/s: the pages tell the user to write the unit, and whether this row should join the exceptions is an open question (`L-57`). |
+| `VolumeFlow` | m³/s | **l/s** — *exception* | l/s | `vflow=0.3` is 0.3 l/s, the number a hydronics engineer writes; `vflow=0.3` as 300 l/s was `L-57` (`D-125`). `vflow` (P5.13b) is the one parameter of this dimension; `m3/h`, `l/min`, `l/h` are explicit spellings. |
 | `Mass` | kg | kg | kg | |
 | `Time` | s | s | s | |
 | `Velocity` | m/s | m/s | m/s | |
@@ -79,7 +79,7 @@ the number, which defeats the point of a canonical unit
 ([`22-component-model`](../20-core-domain/22-component-model.md)'s parameter tables state the
 dimension and inherit the unit from here; they never restate or override it).
 
-The four exceptions are exceptions to **SI**, not to that rule: `°C`, `kPa`, `kW`, and `dm³` each apply to
+The five exceptions are exceptions to **SI**, not to that rule: `°C`, `kPa`, `kW`, `dm³` and `l/s` each apply to
 every parameter of their dimension, uniformly. Each is listed because a stated exception a reader can
 memorise in one line is cheaper than an unstated one they discover from a wrong answer.
 
@@ -417,8 +417,8 @@ A format that depends on the reader's locale means one file means two things on 
    meaning of existing scripts silently.
 7. **The canonical script unit is a function of the dimension alone.** Two parameters of the same
    dimension interpret a bare number identically, whatever component they belong to.
-8. **The canonical script unit equals the SI base unit except on the five rows marked *exception*.**
-   Five rows, four distinct units: `Pressure` and `PressureDelta` both take `kPa`. Counting rows and
+8. **The canonical script unit equals the SI base unit except on the six rows marked *exception*.**
+   Six rows, five distinct units: `Pressure` and `PressureDelta` both take `kPa`. Counting rows and
    counting units gives different answers and an earlier draft of this invariant said "four rows",
    which no implementation could satisfy. `dK` is not among them — it changes type, not scale.
    Adding another exception requires a decision-log entry amending `D-14`/`D-32`.
@@ -485,9 +485,9 @@ drawn a diagram.
 - [ ] Every parameter of the same dimension resolves a bare number identically — asserted by a test
       that walks [`22-component-model`](../20-core-domain/22-component-model.md)'s registry and groups
       by dimension (invariant 7).
-- [ ] Exactly five dimensions have a canonical script unit whose *conversion* differs from their SI
-      base unit — `Temperature`, `Pressure`, `PressureDelta`, `Power`, `Volume` — spelling the four
-      units named here (invariant 8). The test compares factor and offset, not spelling, so the `dK`
+- [x] Exactly six dimensions have a canonical script unit whose *conversion* differs from their SI
+      base unit — `Temperature`, `Pressure`, `PressureDelta`, `Power`, `VolumeFlow`, `Volume` —
+      spelling the five units named here (invariant 8; `DimensionTests`). The test compares factor and offset, not spelling, so the `dK`
       row is correctly excluded: it changes type, not scale.
 - [ ] `power=30 in=20` lexes as two parameters, **not** as thirty inches — the `=`-lookahead clause
       has a test of its own, because it is the whole safety of the whitespace rule.

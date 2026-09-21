@@ -207,7 +207,8 @@ public sealed class PortPressureTests
         var over = Assert.Single(posedness.Diagnostics, static d => d.Code == "FS2210");
 
         Assert.Equal(1, posedness.Counting.Excess);
-        Assert.Contains("N1.p, N2.p", over.Message, StringComparison.Ordinal);
+        // Named as the script wrote them, not as the nodes the binder copied them onto (`PressureStatedAs`).
+        Assert.Contains("PU1 in.p, PU1 out.p", over.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("HE1.in.t", over.Message, StringComparison.Ordinal);
     }
 

@@ -908,18 +908,18 @@
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "VolumeFlow",
-          "unit": "m3/s",
+          "unit": "l/s",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
           "defaultBasis": null,
           "usualRange": {
             "min": 0,
-            "max": 1
+            "max": 1000
           },
           "validRange": null,
           "wholeNumber": false,
-          "displayPrecision": 4
+          "displayPrecision": 2
         },
         {
           "name": "lamella",
@@ -1108,18 +1108,18 @@
           ],
           "valueKind": "quantity",
           "dimension": "VolumeFlow",
-          "unit": "m3/s",
+          "unit": "l/s",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
           "defaultBasis": null,
           "usualRange": {
             "min": 0,
-            "max": 1
+            "max": 1000
           },
           "validRange": null,
           "wholeNumber": false,
-          "displayPrecision": 4
+          "displayPrecision": 2
         }
       ],
       "indexedParameters": [],
@@ -1937,18 +1937,18 @@
           "aliases": [],
           "valueKind": "quantity",
           "dimension": "VolumeFlow",
-          "unit": "m3/s",
+          "unit": "l/s",
           "acceptedSymbols": [],
           "omission": "size",
           "default": null,
           "defaultBasis": null,
           "usualRange": {
             "min": 0,
-            "max": 1
+            "max": 1000
           },
           "validRange": null,
           "wholeNumber": false,
-          "displayPrecision": 4
+          "displayPrecision": 2
         }
       ],
       "indexedParameters": [],
@@ -2713,7 +2713,7 @@
     {
       "name": "VolumeFlow",
       "siUnit": "m3/s",
-      "canonicalUnit": "m3/s",
+      "canonicalUnit": "l/s",
       "units": [
         "m3/s",
         "m3/h",

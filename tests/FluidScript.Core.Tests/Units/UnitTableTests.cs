@@ -183,6 +183,8 @@ public sealed class UnitTableTests
         Assert.Equal("°C", UnitTable.CanonicalUnitFor(Dimension.Temperature)?.Text);
         Assert.Equal("kPa", UnitTable.CanonicalUnitFor(Dimension.Pressure)?.Text);
         Assert.Equal("dm3", UnitTable.CanonicalUnitFor(Dimension.Volume)?.Text);
+        Assert.Equal("l/s", UnitTable.CanonicalUnitFor(Dimension.VolumeFlow)?.Text);
+        Assert.Equal(0.0003, UnitTable.CanonicalUnitFor(Dimension.VolumeFlow)!.Factor * 0.3, 1e-12);
         Assert.Equal("m", UnitTable.CanonicalUnitFor(Dimension.Length)?.Text);
         Assert.Null(UnitTable.CanonicalUnitFor(Dimension.Head));
     }

@@ -165,6 +165,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-120` | Accepted | 2026-09-19 | A port's state is written `port[n].quantity`; every port family is indexed in brackets; a node has one state |
 | `D-121` | Accepted | 2026-09-19 | Water's validated floor is its triple point, and whether a plant runs sub-atmospheric is a diagnostic's question, not the property table's |
 | `D-122` | Accepted | 2026-09-19 | A three-way valve is a constant-flow mixing device: linear legs by default, sized on its common-port flow to a drop band |
+| `D-125` | Accepted | 2026-09-21 | A bare volume flow is litres per second |
 | `D-124` | Accepted | 2026-09-21 | A port's pressure is the touching node's pressure, stated on the component and copied onto the node |
 | `D-123` | Accepted | 2026-09-20 | A `d` prefix on a state quantity is that quantity's change across a component, and the property table is the one reserved quantity list |
 <!-- index:end -->
@@ -5682,6 +5683,36 @@ equal-percentage). Flows and the vision's `01` figures do not move. Every ladder
 [`22-component-model`](../20-core-domain/22-component-model.md) three-way valve; `ComponentRegistry`
 `three_way_valve`; `ValveSizer.MixingBand`; `ValveLaw.LegOpening`; `SolutionSeed.Integrate`;
 `docs/functions/three-way-valve.md`, `docs/functions/valve.md`.
+
+## D-125 · A bare volume flow is litres per second
+
+**Accepted · 2026-09-21** (the user's call) · *amends `D-14` and `D-32`*: the sixth exception row,
+the fifth unit; closes `L-57`
+
+`D-14` made a bare number the SI unit of its dimension with three exceptions, `D-32` added a fourth
+(`dm³` for a tank's volume), and `VolumeFlow` kept m³/s because until P5.13b no parameter took one
+and the row was never exercised. `vflow` (`S-72`) exercises it: `vflow=0.3` on a pump meant 0.3 m³/s,
+300 l/s, a district main's flow written on a domestic circulator, and the docs told the user to write
+the unit every time. The number a hydronics engineer writes for a circuit's flow is litres per second
+(or m³/h on a datasheet); `vflow=0.3` meaning 300 l/s is the `in=293.15` case `D-14`'s exceptions
+exist for, one dimension later.
+
+**Decided.** `VolumeFlow`'s canonical script unit is `l/s`. `m3/s`, `m3/h`, `l/min`, `l/h` remain
+explicit spellings; the display unit was already `l/s`. The registry's `vflow` rows keep their usual
+range at 0 … 1000 l/s (the same 1 m³/s as before, respelled). Invariant 8 of `13` counts six rows and
+five units, and the test that pins the count says so.
+
+**Rejected.**
+- *Keep m³/s and warn on a bare value above 0.05.* A notice on every ordinary script, and the wrong
+  default still binds behind it.
+- *`m3/h`.* The datasheet unit, and ESBE's, Grundfos's and Belimo's selection charts use it; but
+  `l/s` is the design-calculation unit (CIBSE, VDI 2073, the whole of `24`'s worked figures) and the
+  display unit the tree already chose.
+
+**Constrains.** `Dimension.Entries` (`VolumeFlow`), `DimensionTests`, `UnitTableTests`;
+[`13`](../10-language/13-type-and-unit-system.md) dimension table and invariant 8;
+[`22`](../20-core-domain/22-component-model.md) `vflow` rows; `docs/functions/units.md`
+(generated), `heat-exchanger.md`, `pump.md`.
 
 ## D-124 · A port's pressure is the touching node's pressure, stated on the component and copied onto the node
 

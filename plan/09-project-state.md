@@ -974,6 +974,8 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `D-120`'s example read found `L-59`: `SemanticModel.Deferred` has no consumer, so
 > `head=1.2*HE1.dp` sizes the head as if absent and says nothing. One closed, one opened; 58 open.
 > Core 1948/0/3, Api 59/0, frontend 223/0.
+> **`L-57` closed** (the same day, the user's call): `D-125`, a bare `vflow` is l/s, the sixth
+> exception row. 57 open.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -1006,13 +1008,13 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 26 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **58** | |
+| | **57** | |
 
 Counted from the files on 2026-09-20 after the sweep's tier 4b (seven closed, `C-108` opened, six
 re-triaged). Of the 58: **35 measured, 23 hunch**; 3 tiny, 12 small, 30 medium, 9 big, 4 large.

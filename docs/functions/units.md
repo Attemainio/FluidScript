@@ -28,7 +28,7 @@ number you have not seen before still reads the way you would guess.
 | Power | `W` | `kW` ** | `kW` |
 | Energy | `J` | `J` | `kWh` |
 | Mass flow | `kg/s` | `kg/s` | `kg/s` |
-| Volume flow | `m3/s` | `m3/s` | `l/s` |
+| Volume flow | `m3/s` | `l/s` ** | `l/s` |
 | Mass | `kg` | `kg` | `kg` |
 | Time | `s` | `s` | `s` |
 | Velocity | `m/s` | `m/s` | `m/s` |

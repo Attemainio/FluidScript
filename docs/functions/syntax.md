@@ -125,6 +125,7 @@ ports; it does not own a pressure of its own. `V1 valve out.p=100` is the pressu
 ```fluidscript
 V1 valve
 N1 node p=100
+connections
 V1 - N1
 ```
 

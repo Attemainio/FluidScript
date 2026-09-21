@@ -76,8 +76,8 @@ public readonly record struct Dimension
 
     /// <summary>Gets a value indicating whether a bare number means something other than the SI unit.</summary>
     /// <value>
-    /// <see langword="true"/> for the five rows where a bare number carries a different scale from SI,
-    /// spelling four distinct units: °C, kPa (twice), kW and dm³.
+    /// <see langword="true"/> for the six rows where a bare number carries a different scale from SI,
+    /// spelling five distinct units: °C, kPa (twice), kW, dm³ and l/s.
     /// </value>
     /// <remarks>
     /// The test is the conversion, not the spelling. <c>dK</c> is not one of these: it differs from
@@ -243,8 +243,8 @@ public readonly record struct Dimension
         bool Synthesisable = true);
 
     // Indexed by DimensionId. The canonical column is what a bare number means; it equals the SI
-    // column except on the five rows spelling the four documented exceptions -- degC, kPa (twice),
-    // kW and dm3.
+    // column except on the six rows spelling the five documented exceptions -- degC, kPa (twice),
+    // kW, dm3 and l/s (D-14, D-32, D-125).
     private static readonly Entry[] Entries =
     [
         new(default, DimensionCategory.Linear, "", null, null),                                              // Unnamed
@@ -257,7 +257,7 @@ public readonly record struct Dimension
         new(new DimensionVector(1, 2, -3, 0), DimensionCategory.Linear, "W", "kW", "kW"),                    // Power
         new(new DimensionVector(1, 2, -2, 0), DimensionCategory.Linear, "J", "J", "kWh"),                    // Energy
         new(new DimensionVector(1, 0, -1, 0), DimensionCategory.Linear, "kg/s", "kg/s", "kg/s"),             // MassFlow
-        new(new DimensionVector(0, 3, -1, 0), DimensionCategory.Linear, "m3/s", "m3/s", "l/s"),              // VolumeFlow
+        new(new DimensionVector(0, 3, -1, 0), DimensionCategory.Linear, "m3/s", "l/s", "l/s"),               // VolumeFlow (D-125)
         new(new DimensionVector(1, 0, 0, 0), DimensionCategory.Linear, "kg", "kg", "kg"),                    // Mass
         new(new DimensionVector(0, 0, 1, 0), DimensionCategory.Linear, "s", "s", "s"),                       // Time
         new(new DimensionVector(0, 1, -1, 0), DimensionCategory.Linear, "m/s", "m/s", "m/s"),                // Velocity

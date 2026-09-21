@@ -74,13 +74,14 @@ public sealed class DimensionTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void ExactlyFiveDimensions_ReadABareNumberInSomethingOtherThanSi()
+    public void ExactlySixDimensions_ReadABareNumberInSomethingOtherThanSi()
     {
-        // Invariant 8. Five rows spelling four distinct units -- degC, kPa twice, kW and dm3.
+        // Invariant 8. Six rows spelling five distinct units -- degC, kPa twice, kW, dm3 and l/s
+        // (D-125: `vflow=0.3` is 0.3 l/s, the number a hydronics engineer writes).
         var exceptions = Dimension.All.Where(static d => d.CanonicalDiffersFromSi).ToArray();
 
         Assert.Equal(
-            [Dimension.Temperature, Dimension.Pressure, Dimension.PressureDelta, Dimension.Power, Dimension.Volume],
+            [Dimension.Temperature, Dimension.Pressure, Dimension.PressureDelta, Dimension.Power, Dimension.VolumeFlow, Dimension.Volume],
             exceptions);
     }
 
@@ -88,7 +89,7 @@ public sealed class DimensionTests
     [Trait("Category", "Unit")]
     public void TheDeltaSpelling_ChangesTypeRatherThanScale()
     {
-        // dK is not a sixth exception: it differs from K in what it means, not what it is worth.
+        // dK is not a seventh exception: it differs from K in what it means, not what it is worth.
         Assert.False(Dimension.TemperatureDelta.CanonicalDiffersFromSi);
         Assert.Equal("dK", Dimension.TemperatureDelta.CanonicalUnit);
         Assert.Equal("K", Dimension.TemperatureDelta.SiUnit);
