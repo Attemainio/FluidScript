@@ -87,7 +87,12 @@ public sealed record DeferredExpression(
     ExpressionSyntax Expression,
     ValueId Target,
     Quantity? CurrentEstimate,
-    ImmutableHashSet<ValueId> Dependencies);
+    ImmutableHashSet<ValueId> Dependencies)
+{
+    /// <summary>Gets the text the expression was parsed from, so the outer loop can evaluate it and quote it (<c>L-59</c>).</summary>
+    /// <value><see langword="null"/> only for a deferral built without one, which nothing in Core does.</value>
+    public Syntax.SourceText? Source { get; init; }
+}
 
 /// <summary>The order values may be evaluated in, or the cycle that prevents one.</summary>
 public abstract record OrderResult

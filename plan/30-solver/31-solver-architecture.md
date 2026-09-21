@@ -232,6 +232,12 @@ another sized value would converge in an inner loop against a stale outer value,
 could oscillate against each other with neither detecting it. One loop, one convergence test, one
 iteration cap.
 
+`evaluateDeferredExpressions` is `DeferredEvaluation` since P5.13c (2026-09-21, `L-59`). It runs
+*after* `applySizing` within the pass, so a reference to a sized value reads that pass's choice, and
+once against the seed before the first pass so a target the script anchors is stated before sizing
+decides ownership; the settle test is the sizes and the deferred values together.
+[`14`](../10-language/14-expressions-and-references.md) has what building it found.
+
 The loop is **the same code path for steady and transient**. A transient run does one outer pass to
 establish the initial condition, then steps in time with sizes held fixed
 ([`24`](../20-core-domain/24-auto-sizing.md)'s fixed-snapshot rule — sizing is a design-point property

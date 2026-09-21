@@ -85,9 +85,11 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1402` | Error | Expressions | '{name}' depends on itself: {cycle}. |
 | `FS1403` | Error | Expressions | Dividing by zero here. '{expression}' is zero. |
 | `FS1404` | Error | Expressions | Nothing named '{name}'. |
+| `FS1405` | Error | Expressions | '{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly. |
 | `FS1406` | Error | Expressions | A {kind} has no '{property}'. It has: {available}. |
 | `FS1408` | Error | Expressions | No function '{name}'. Available: {available}. |
 | `FS1409` | Error | Expressions | '{function}' takes {expected} arguments. |
+| `FS1410` | Warning | Expressions | '{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly. |
 | `FS1501` | Error | Binder | '{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits. |
 | `FS1502` | Error | Binder | There is no '{kind}'. |
 | `FS1503` | Error | Binder | A {kind} has no '{parameter}'. It accepts: {available}. |

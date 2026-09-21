@@ -519,6 +519,7 @@ in the corpus converged or unchanged; only the `FS2201` text moved on closed loo
 | P5.9 | The file lifecycle ([`58`](50-frontend/58-file-lifecycle.md), `D-116`): New, Open into a new tab, Save in place through the File System Access API, Save As, Download in browsers that cannot overwrite, `dirty` by hashes, the conflict check before an overwrite with Reload / Save As / Compare, recovery to IndexedDB on the idle timer and its return after a reload, `FS1701` withholding Save with the version line offered (Core now attaches its suggestion), read-only unsupported files, the close questions for text and run, the eight-document limit; the File menu, the notice bar, the dialog; `docs/advanced/files-and-recovery.md` | `19c7584` | Shipped 2026-09-18; `F-8` (the native path unverified in a real browser), `F-9` (re-permission after a reload) opened |
 | P5.10 | State visualization ([`57`](50-frontend/57-state-visualization.md), `D-117`): every available scale on the wire with every element's place on each (`ColourScales`), enthalpy and density mapped, `FS1210`/`FS1213`/`FS1214` raised; pipe gradients between the outlet left and the inlet entered, the exchanger gradient across its body, the legend with unit, 1-2-5 ticks, the switcher (no request), the band hover, degenerate and unavailable notes, stale desaturation, `Home` resetting the switch; `docs/advanced/the-canvas.md` and `show.md` | `f43774d` | Shipped 2026-09-18; `C-103` found and closed (a port read its node; an outlet now reads its own stream, `22`); not built: tank layer bands, the run-wide transient domain (M4), `57`'s wider property table |
 | P5.11 | Static export and the accessibility pass ([`59`](50-frontend/59-static-export.md), `D-118`, `D-45`): `renderExportSvg`/`exportSvg`/`exportPng` from the canvas's `SceneView` with `scene.css` resolved to the theme's literal colours (Oklab for the mixes), strokes in world units, the legend band, the value under each symbol, the provenance `<desc>`; the Export dialog and `Ctrl+E`; export goldens per sample; `SceneTable`, keyboard pan/zoom/select/card, axe-core under jsdom, the status line's landmark and the editor's accessible name fixed; `baseline.test.tsx`; `docs/advanced/exporting.md`, the canvas page's keyboard table | `d3b7323` | Shipped 2026-09-19; `F-10` opened (the browser-only checks: PNG pixels, four viewers, axe with layout, zoom, screen reader, the panning budget); the render budget is not met by extrapolation (`53`) |
+| P5.13c | `14`'s Phase B (`L-59`): `DeferredEvaluation` in the outer loop -- each pass evaluates the deferred expressions against the solved state and writes them in as stated values with a basis, pass 0 against the seed with the script's own anchors only, the settle test over sizes and values, `FS1405` at the cap, `FS1410` for a line no pass could evaluate; `docs/functions/let.md`, the report guide; the S-58 trickle paragraph in `three-way-valve.md` | *(this commit)* | Shipped 2026-09-21. `L-59` closed; `L-60`–`L-63` and `C-109` opened |
 | P5.13b | The rest of `D-120`: `vflow` and `flow` as constraints (`S-72`), keyed spellings in the report (`L-56`), and a port's pressure as the touching node's (`D-124`: generated `port.p` rows, `PropagatePortPressures`, `FS1538`, `FS1539`, `FS2210` naming the pressures, `PressureStatedAs`); `docs/functions/{syntax,heat-exchanger}.md`, `reading-the-solve-report.md` | *(this commit)* | Shipped 2026-09-21. `L-56` closed; `L-59` opened (a deferred reference to a solved value is never evaluated); `in.p`→`in.t` near miss and `FS2210`'s level-paid candidate fixed with it |
 | P5.13a | Port-indexed state syntax (`D-120`): `in[n].quantity` on declarations, references, endpoints and schedule targets; `FS1119`, `FS1536`, `FS1537`; `PropertyTable`; registry rows keyed by model key with a script name; the corpus, `22` and `docs/functions/{syntax,heat-exchanger,tank,show,properties}.md` respelled; frontend tokenizer and completion | *(uncommitted, 2026-09-20)* | Shipped 2026-09-20. `L-56` opened for P5.13b (`in.p` on a component, `vflow` as a constraint, keyed spellings in the report and on the wire) |
 | Sweep 1–3 | The defect sweep after P5 (tiers 1–3, 2026-09-19): 15 entries closed across five registers -- `L-1`, `L-3`, `L-21`, `S-65`, `L-53`, `L-54`, `A-3`, `C-28`, `C-97`, `A-1`, `A-4`, `C-39`, `F-1`, `S-20`, `L-40`, `L-55`, `C-74`, `S-52` -- with `D-119` (named exchanger dimensions), `D-120` (port-indexed state syntax, P5.13 to implement), `SizingDiagnostics`, `FS1534`/`FS1535`/`FS3012`, and the dotnet-toolkit observations report | `20fccb9` | Recorded above under P5.11 |
@@ -976,6 +977,14 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > Core 1948/0/3, Api 59/0, frontend 223/0.
 > **`L-57` closed** (the same day, the user's call): `D-125`, a bare `vflow` is l/s, the sixth
 > exception row. 57 open.
+> **P5.13c -- `L-59` closed** (the same day, the user's call to build the fixed point now): each
+> pass evaluates `SemanticModel.Deferred` and writes the results in as stated values; `HE2
+> in[2].t=HE1.out[2].t` is 67.146 °C at pass 1 and settles at pass 2. Building it found that the
+> flagship `head=1.2*HE1.dp` cannot type (`L-60`), that no pressure-delta literal exists (`L-61`),
+> that a target the seed cannot supply leaves pass 1 without it so the walk to `FS1405` has no
+> script yet (`L-62`), that a connection-line node is not a name to an expression (`L-63`), and that
+> a valve's stated `dp` is read by nothing (`C-109`). `S-58`'s valve observation went to the docs as
+> a paragraph, no row. One closed, five opened; 61 open. Core 1955/0/3, Api 59/0, frontend 223/0.
 
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
@@ -1061,8 +1070,10 @@ unassessed, not clean.
 3. **The sweep's tier 4 resumes where P5.13a interrupted it**: `S-56` is closed (option b) and tier 4b
    (2026-09-20) closed the seven rows the columns called fixable; P5.13b shipped 2026-09-21 (`D-124`,
    `L-56` closed, `L-59` opened -- a deferred read of a solved value is never evaluated, which is what
-   makes every `Name.port.quantity` read inert until `31`'s step exists); next is the valve-sizing
-   observation under `S-58`, then `L-59`. Two report packages the
+   makes every `Name.port.quantity` read inert until `31`'s step exists); P5.13c built that step
+   the same day (`L-59` closed, `L-60`–`L-63` and `C-109` opened). Next: the user's decisions on
+   `L-60` (how a head is written from a pressure) and the queued rows `C-84`, `D-108`, `C-54`,
+   `C-38`/`C-36`, `C-108`, `C-91`. Two report packages the
    user asked for on 2026-09-20 -- layout provenance (`C-107`) and the solver report's iteration
    history, engineering-unit state, heat balance and seed bases (`S-71`) -- are both done.
 4. **P5 — M3, the usable static product** (`08`); `P5.1`, the model contract and layout hints, is
@@ -1104,9 +1115,9 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1936 total, 0 failed, 3 skipped** (2026-09-20), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **1955 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
-| Frontend tests | **219 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
+| Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Render baseline (M3, `D-45`) | **4.8 ms** to prepare and render the 24-placement header to static markup in Node; the browser numbers (`07`: 50 fps p95 panning 200 components, 8 ms per commit) are unmeasured, `F-10` | `frontend/src/features/canvas/baseline.test.tsx` |

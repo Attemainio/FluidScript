@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Sizing;
 using FluidScript.Core.Topology;
 using FluidScript.Core.Units;
 
@@ -16,6 +17,37 @@ namespace FluidScript.Core.Solvers;
 /// <param name="SpecificHeat">Specific heat, J/(kg·K).</param>
 public readonly record struct SolvedPort(
     int Node, double Flow, double Pressure, double Enthalpy, double Temperature, double Density, double SpecificHeat);
+
+/// <summary>An extended-mode exchanger at the solution: both sides, the duty and the two routes to its conductance.</summary>
+/// <param name="Inlet1">Side 1 entering temperature, K.</param>
+/// <param name="Outlet1">Side 1 leaving temperature, K.</param>
+/// <param name="Capacity1">Side 1 capacity rate, W/K.</param>
+/// <param name="Inlet2">Side 2 entering temperature, K -- the stated profile when the side is not wired.</param>
+/// <param name="Outlet2">Side 2 leaving temperature, K.</param>
+/// <param name="Capacity2">Side 2 capacity rate, W/K.</param>
+/// <param name="Duty">Heat into side 1, W, positive when side 1 gains.</param>
+/// <param name="Ntu">Number of transfer units on Cmin.</param>
+/// <param name="Effectiveness">ε for the arrangement.</param>
+/// <param name="CapacityRatio">Cmin / Cmax.</param>
+/// <param name="Lmtd">The log-mean temperature difference, K.</param>
+/// <param name="ConductanceByLogMean">|Duty| / Lmtd, W/K -- the validation route.</param>
+/// <param name="Approach">The closest approach, K.</param>
+/// <param name="Rating">The rating the exchanger was built with.</param>
+public sealed record SolvedExchanger(
+    double Inlet1,
+    double Outlet1,
+    double Capacity1,
+    double Inlet2,
+    double Outlet2,
+    double Capacity2,
+    double Duty,
+    double Ntu,
+    double Effectiveness,
+    double CapacityRatio,
+    double Lmtd,
+    double ConductanceByLogMean,
+    double Approach,
+    ExchangerRating Rating);
 
 /// <summary>Reads a solved state vector back as per-port conditions and per-component solved parameters.</summary>
 /// <remarks>
@@ -261,5 +293,135 @@ public static class SolvedStates
         }
 
         return result.ToImmutable();
+    }
+
+    /// <summary>An exchanger's two sides, duty and rating figures at a solution, by the ε-NTU route the residuals use.</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">The unknown layout.</param>
+    /// <param name="solution">The solved vector.</param>
+    /// <param name="index">The exchanger's index in <see cref="CircuitGraph.Components"/>.</param>
+    /// <returns>The figures, or <see langword="null"/> for a Duty exchanger, one not yet rated, or a side whose state cannot be read.</returns>
+    /// <remarks>
+    /// A rated exchanger's second side is the stated profile -- its entering temperature and capacity
+    /// rate -- and its leaving temperature is <c>inlet2 − duty / capacity2</c>: the number a script reads
+    /// as <c>HE1.out[2].t</c> and the report prints as the rating. Shared between the two so they cannot
+    /// disagree.
+    /// </remarks>
+    public static SolvedExchanger? Exchanger(CircuitGraph graph, SystemLayout layout, StateVector solution, int index)
+    {
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(solution);
+
+        if (index < 0 || index >= graph.Components.Length
+            || graph.Components[index] is not HeatExchanger { Rating: { CanRate: true } rating } exchanger
+            || Side(graph, layout, solution, index, exchanger, side: 1) is not { } one)
+        {
+            return null;
+        }
+
+        double inlet2, capacity2;
+
+        if (exchanger.SecondarySideConnected)
+        {
+            if (Side(graph, layout, solution, index, exchanger, side: 2) is not { } two)
+            {
+                return null;
+            }
+
+            (inlet2, capacity2) = two;
+        }
+        else
+        {
+            (inlet2, capacity2) = (rating.SecondaryInletTemperature, rating.SecondaryCapacityRate);
+        }
+
+        if (capacity2 <= 0)
+        {
+            return null;
+        }
+
+        var duty = HeatExchanger.Duty(rating, one.Capacity, one.Inlet, capacity2, inlet2);
+        var minimum = Math.Min(one.Capacity, capacity2);
+        var ratio = minimum / Math.Max(one.Capacity, capacity2);
+        var ntu = rating.Conductance / minimum;
+        var effectiveness = Effectiveness.Of(ntu, ratio, rating.Arrangement);
+        var outlet1 = one.Inlet + (duty / one.Capacity);
+        var outlet2 = inlet2 - (duty / capacity2);
+        var hotSide1 = one.Inlet >= inlet2;
+        var (hotIn, hotOut, coldIn, coldOut) = hotSide1
+            ? (one.Inlet, outlet1, inlet2, outlet2)
+            : (inlet2, outlet2, one.Inlet, outlet1);
+        var lmtd = rating.Arrangement == ExchangerArrangement.Parallel
+            ? LogMeanTemperatureDifference.Parallel(hotIn, hotOut, coldIn, coldOut)
+            : LogMeanTemperatureDifference.Counterflow(hotIn, hotOut, coldIn, coldOut);
+        var byLogMean = LogMeanTemperatureDifference.Conductance(Math.Abs(duty), lmtd);
+        var approach = rating.Arrangement == ExchangerArrangement.Parallel
+            ? hotOut - coldOut
+            : Math.Min(hotIn - coldOut, hotOut - coldIn);
+
+        return new SolvedExchanger(
+            one.Inlet, outlet1, one.Capacity, inlet2, outlet2, capacity2, duty, ntu, effectiveness, ratio, lmtd, byLogMean, approach, rating);
+    }
+
+    /// <summary>One side of an exchanger as the solution left it: where it enters and what it carries.</summary>
+    /// <returns>K and W/K, or <see langword="null"/> when the side is not wired or its state cannot be read.</returns>
+    /// <remarks>
+    /// The inlet is the port the solved flow arrives by, not the port named <c>in</c>: a branch's path
+    /// direction and its solved sign together say which end the stream enters at.
+    /// </remarks>
+    private static (double Inlet, double Capacity)? Side(
+        CircuitGraph graph, SystemLayout layout, StateVector solution, int index, HeatExchanger exchanger, int side)
+    {
+        var branch = graph.Branches.FirstOrDefault(
+            candidate => candidate.Path.Contains(exchanger) && BranchFlows.Side(graph, candidate, exchanger) == side);
+
+        if (branch is null)
+        {
+            return null;
+        }
+
+        var position = branch.Path.IndexOf(exchanger);
+        var before = position > 0 ? branch.Path[position - 1] : branch.From.Element;
+        var arrival = graph.Components.IndexOf(before);
+        var first = side == 1 ? 0 : 2;
+        var arrivalPort = graph.Adjacency.Peer(index, first).Component == arrival ? first : first + 1;
+        var flow = solution.Values[layout.BranchFlow(branch.Index)];
+        var inletPort = flow >= 0 ? arrivalPort : (arrivalPort == first ? first + 1 : first);
+        var peer = graph.Adjacency.Peer(index, inletPort);
+
+        if (!peer.Exists)
+        {
+            return null;
+        }
+
+        var node = -1;
+
+        for (var candidate = 0; candidate < graph.Nodes.Length; candidate++)
+        {
+            if (ReferenceEquals(graph.Nodes[candidate].Component, graph.Components[peer.Component]))
+            {
+                node = candidate;
+                break;
+            }
+        }
+
+        if (node < 0)
+        {
+            return null;
+        }
+
+        var state = graph.Substance.FromPressureEnthalpy(
+            Quantity.FromSi(solution.Values[layout.NodePressure(node)], Dimension.Pressure),
+            Quantity.FromSi(solution.Values[layout.NodeEnthalpy(node)], Dimension.Enthalpy));
+
+        if (!state.IsSuccess)
+        {
+            return null;
+        }
+
+        var capacity = Math.Abs(flow) * state.Value.SpecificHeat.SiValue;
+
+        return capacity > 0 ? (state.Value.Temperature.SiValue, capacity) : null;
     }
 }

@@ -305,10 +305,18 @@ public static class ModelContractBuilder
             }
         }
 
+        // A parameter the outer loop evaluated from a deferred expression is stated -- the script wrote
+        // it, and the counting treats it so -- and carries the expression and the pass as its basis (L-59).
         foreach (var (name, quantity) in component.StatedParameters.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
         {
             var (value, unit) = Canonical(quantity.SiValue, quantity.Dimension, component.Name, name, raised);
-            parameters[name] = new ParameterWire { Value = value, Unit = unit, Source = "stated" };
+            parameters[name] = new ParameterWire
+            {
+                Value = value,
+                Unit = unit,
+                Source = "stated",
+                Basis = run?.Bases.GetValueOrDefault($"{component.Name}.{name}"),
+            };
         }
 
         return parameters

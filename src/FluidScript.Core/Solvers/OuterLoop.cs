@@ -83,7 +83,15 @@ public sealed record PreparedModel(
     LoweringResult Lowered,
     SizingOverlay Sizes,
     ImmutableDictionary<string, string> Bases,
-    ImmutableArray<string> Notes);
+    ImmutableArray<string> Notes)
+{
+    /// <summary>Gets the model the passes lower: the bound model with every deferred expression the seed could evaluate written in (<c>L-59</c>).</summary>
+    /// <value><see langword="null"/> when the model deferred nothing, in which case the bound model is the one.</value>
+    public SemanticModel? Model { get; init; }
+
+    /// <summary>Gets what evaluating against the seed had to say: a dimension a deferred value could not have.</summary>
+    public ImmutableArray<Diagnostics.Diagnostic> Said { get; init; } = [];
+}
 
 /// <summary>The single fixed-point loop that reconciles sizing with the solve (<c>31</c>).</summary>
 /// <param name="solver">The solver each pass runs.</param>
@@ -198,6 +206,31 @@ public sealed class OuterLoop(
             return new PreparedModel(bootstrap, overlay, [], []);
         }
 
+        // 14's Phase B, pass 0 (L-59): every deferred expression the bootstrap's seed can supply is
+        // written in as a stated value *before* sizing decides what it owns. A deferred `head` that
+        // turned from sized to stated between passes left the flow constraint nothing to promote, because
+        // the valve's Kv was already sizing's; stated from the start, the promotion lands on the valve
+        // and the system keeps one shape. The seed supplies only what the script anchored -- a stated
+        // parameter, a `let` -- because its guess at an unstated node is a placeholder, and a placeholder
+        // written in as a stated value is what the first solve is then held to. A solved state, and a
+        // rated exchanger's second side, wait for the first solve.
+        var seedSaid = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+        var seedNotes = ImmutableArray.CreateBuilder<string>();
+
+        if (!model.Deferred.IsDefaultOrEmpty)
+        {
+            var layout = SystemLayout.Build(bootstrap.Graph, WellPosedness.Check(bootstrap.Graph).Counting);
+            var seeded = DeferredEvaluation.Evaluate(
+                model, bootstrap.Graph, layout, SolutionSeed.Build(bootstrap.Graph, layout), seedSaid, seedNotes, seeding: true);
+
+            if (!seeded.IsEmpty)
+            {
+                model = DeferredEvaluation.Apply(model, seeded, pass: 0);
+                overlay = Bootstrap(model);
+                bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
+            }
+        }
+
         var closure = ImmutableDictionary.CreateBuilder<string, string>(StringComparer.Ordinal);
         var closed = overlay;
 
@@ -220,7 +253,11 @@ public sealed class OuterLoop(
             Lowering.Lower(model, substance, new ComponentFactory(bores, sized, substance), name),
             sized,
             WithStated(model, bases),
-            notes);
+            notes.AddRange(seedNotes))
+        {
+            Model = model.Deferred.IsDefaultOrEmpty ? null : model,
+            Said = seedSaid.ToImmutable(),
+        };
     }
 
     /// <summary>Compiles a bound model to a solved circuit, sizing whatever it left open.</summary>
@@ -313,12 +350,20 @@ public sealed class OuterLoop(
         ImmutableArray<Diagnostics.Diagnostic> raised = [];
         SizingOverlay? previous = null;
 
+        // The model as this pass lowers it: the bound model, plus every deferred expression the last
+        // pass could evaluate, written in as a stated value (L-59, 14's Phase B). What each target has
+        // been so far is kept for FS1405, which shows the last three values when one never settles.
+        var current = prepared.Model ?? model;
+        var histories = new Dictionary<ValueId, List<DeferredEvaluation.Evaluated>>();
+        ImmutableArray<Diagnostics.Diagnostic> evaluationSaid = prepared.Said;
+        var deferredMoved = false;
+
         while (passes < maxPasses)
         {
             passes++;
             cancellationToken.ThrowIfCancellationRequested();
 
-            lowered = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
+            lowered = Lowering.Lower(current, substance, new ComponentFactory(bores, overlay, substance), name);
             var posedness = WellPosedness.Check(lowered.Graph);
 
             // A malformed script is the normal case while one is being edited, and a script whose
@@ -341,7 +386,12 @@ public sealed class OuterLoop(
             var fromWarm = warm is null && warmStart is { } offered
                 && string.Equals(offered.TopologyHash, hash, StringComparison.Ordinal)
                 && offered.Solution.Count == layout.Count;
-            var iterate = warm ?? (fromWarm ? warmStart!.Solution : Seed(lowered.Graph));
+            // A deferred value written in as stated can change the system's shape between passes -- a
+            // head that was promotable is now a constraint -- and the last pass's iterate no longer
+            // addresses it; the pass then starts from the seed like a first one.
+            var iterate = warm is { } carried && carried.Count == layout.Count
+                ? carried
+                : fromWarm ? warmStart!.Solution : Seed(lowered.Graph);
             var system = EquationSystem.Build(lowered.Graph, posedness, iterate);
 
             // `CanSolve` speaks for the counting table, which is a prediction. `Rows` and `Columns` are
@@ -364,7 +414,6 @@ public sealed class OuterLoop(
                     ("name", name),
                     ("state", $"{assembled}, though {predicted}")));
             }
-
 
             solve = await solver.SolveAsync(system, iterate, progress: null, cancellationToken)
                 .ConfigureAwait(false);
@@ -391,10 +440,57 @@ public sealed class OuterLoop(
             bases = chosen;
             notes = said;
 
-            if (next.Matches(overlay))
+            // 14's step 2: every deferred expression against this pass; step 3: go round again when
+            // one moved. Evaluated after sizing so a reference to a sized value reads this pass's
+            // choice, and written into the model the next pass lowers.
+            var evaluationDiagnostics = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+            var evaluationNotes = ImmutableArray.CreateBuilder<string>();
+            var evaluated = DeferredEvaluation.Evaluate(current, lowered.Graph, layout, solve.Solution, evaluationDiagnostics, evaluationNotes);
+            evaluationSaid = evaluationDiagnostics.ToImmutable();
+            notes = notes.AddRange(evaluationNotes);
+            deferredMoved = false;
+
+            foreach (var value in evaluated)
+            {
+                if (!histories.TryGetValue(value.Target, out var history))
+                {
+                    histories[value.Target] = history = [];
+                }
+
+                if (history.Count == 0 || DeferredEvaluation.Moved(history[^1].Value.SiValue, value.Value.SiValue))
+                {
+                    deferredMoved = true;
+                }
+
+                history.Add(value);
+            }
+
+            if (deferredMoved)
+            {
+                current = DeferredEvaluation.Apply(current, evaluated, passes);
+            }
+
+            if (next.Matches(overlay) && !deferredMoved)
             {
                 return Result.Success(
-                    Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid) }, next, WithStated(model, bases), notes, passes, iterations, perPass.ToImmutable(), settled: true, hash));
+                    Report(
+                        lowered.Graph,
+                        solve with
+                        {
+                            Diagnostics = solve.Diagnostics
+                                .AddRange(raised)
+                                .AddRange(loopSaid)
+                                .AddRange(evaluationSaid)
+                                .AddRange(DeferredEvaluation.NeverEvaluated(current, histories)),
+                        },
+                        next,
+                        WithStated(current, bases),
+                        notes,
+                        passes,
+                        iterations,
+                        perPass.ToImmutable(),
+                        settled: true,
+                        hash));
             }
 
             previous = overlay;
@@ -409,7 +505,26 @@ public sealed class OuterLoop(
                 ("name", name),
                 ("state", "the pass cap is not positive")))
             : Result.Success(
-                Report(lowered.Graph, solve with { Diagnostics = solve.Diagnostics.AddRange(raised).AddRange(loopSaid).Add(NotSettled(previous, overlay)) }, overlay, WithStated(model, bases), notes, passes, iterations, perPass.ToImmutable(), settled: false, hash));
+                Report(
+                    lowered.Graph,
+                    solve with
+                    {
+                        Diagnostics = solve.Diagnostics
+                            .AddRange(raised)
+                            .AddRange(loopSaid)
+                            .AddRange(evaluationSaid)
+                            .AddRange(deferredMoved ? DeferredEvaluation.Unsettled(histories) : [])
+                            .AddRange(DeferredEvaluation.NeverEvaluated(current, histories))
+                            .Add(NotSettled(previous, overlay)),
+                    },
+                    overlay,
+                    WithStated(current, bases),
+                    notes,
+                    passes,
+                    iterations,
+                    perPass.ToImmutable(),
+                    settled: false,
+                    hash));
     }
 
     /// <summary>Why a graph cannot be handed to the solver, in one clause.</summary>
@@ -520,7 +635,6 @@ public sealed class OuterLoop(
 
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString())))[..16];
     }
-
 
     /// <summary>Adds the bases the script states itself to the ones a sizing rule chose.</summary>
     /// <param name="model">The bound model.</param>
@@ -898,7 +1012,6 @@ public sealed class OuterLoop(
             notes.AddRange(sized.Value.Notes);
         }
     }
-
 
     /// <summary>Says a three-way valve kept its bootstrap value, and why (<c>C-60</c>).</summary>
     /// <param name="valve">The valve that was not sized.</param>

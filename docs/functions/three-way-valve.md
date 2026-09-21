@@ -140,6 +140,14 @@ short circuit: the supply-to-return differential falls and other consumers on th
 starved. Nothing here sizes that valve for you — give it an explicit `kv` — and one coefficient could
 not do the job anyway, because the two legs carry different flows.
 
+### A consumer that is off still passes a trickle
+
+A consumer at `power=0` does not shut its valve. Both header legs stay open at the position the solve
+finds, so the supply-to-return differential drives a small flow in at `a` and out through `b` across
+the chamber while the common port carries next to nothing. The report shows it as the two legs equal
+and opposite. That is a three-port body doing what its geometry allows, not a leak in the model; a
+consumer that must be isolated needs a shut-off valve of its own.
+
 ### When it cannot be sized
 
 If the connections name no ports **and** the two switched legs are the same distance from the leg they

@@ -505,7 +505,7 @@ internal sealed partial class BindingRun
                 if (_deferredTargets.Add(pending.Id))
                 {
                     _deferred.Add(new DeferredExpression(
-                        pending.Expression, pending.Id, pending.Value, pending.Dependencies));
+                        pending.Expression, pending.Id, pending.Value, pending.Dependencies) { Source = parse.Source });
                 }
 
                 continue;

@@ -168,6 +168,26 @@ the parameter being set** — a duty-constrained flow, a stated boundary, a para
 example below is one of those, and `FS1405` reports the degenerate cases with their values rather than
 picking one.
 
+**What shipped (P5.13c, 2026-09-21, `L-59`).** `DeferredEvaluation` evaluates `SemanticModel.Deferred`
+against each pass through the ordinary `ExpressionEvaluator`, with a scope over the pass -- a stated
+parameter reads as stated, a node or a port from its solved state, a rated exchanger's second side
+from the rating -- and writes each result into the model as a *stated* value with a basis
+(`from \`HE1.out[2].t\` at pass 1`) for the next pass to lower. Pass 0 evaluates against the bootstrap
+seed, so a target the script anchors is stated before sizing decides what it owns; the seed supplies
+only stated parameters and `let`s, because its guess at an unstated node, written in as a stated
+value, put a 38 °C primary on a 150 kW exchanger and the first solve went non-finite. The run settles
+when the sizes match and no deferred value moved by more than 1e-6 relative; `FS1405` carries the
+last three values at the cap; `FS1410` names a line no pass could evaluate -- two exchangers each
+reading the other's leaving temperature, neither rated until the other is -- because a silently
+absent parameter was the whole of `L-59`. Three things the measuring found. The flagship
+`head=1.2*HE1.dp` does not type: `Head` accepts no symbol and nothing converts a pressure to it
+([`13`](13-type-and-unit-system.md)), so the worked example below is written in a conversion the
+language does not have and the run answers `FS1304` (`L-60`). A target the seed cannot supply is
+absent from pass 1, so a script whose well-posedness hangs on it -- an inlet's only temperature, the
+profile a flow constraint reads -- fails on pass 1 rather than walking to `FS1405`, and the walk is
+pinned on the builder alone (`L-62`). A node declared only on a connection line is not a name an
+expression can read (`L-63`).
+
 **The alternative, rejected:** forbid references to solved values, allowing only declared parameters.
 That removes the whole problem and most of the feature's value — `1.2*HE1.dp` is exactly the expression
 a designer wants to write, and forbidding it sends them back to hand-computing and pasting.
@@ -254,6 +274,7 @@ hangs.
 | `FS1407` | Reference to a solved value in a context evaluated before the solve | Error | `'{ref}' is only known after solving; it cannot set '{target}'.` |
 | `FS1408` | Unknown function | Error | `No function '{name}'. Available: {list}.` |
 | `FS1409` | Wrong argument count | Error | `'{fn}' takes {n} arguments.` |
+| `FS1410` | A deferred expression no pass could evaluate | Warning | `'{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly.` |
 
 `FS1406` listing the available properties is the difference between a diagnostic and a scavenger hunt,
 and it costs one string join.
@@ -339,10 +360,18 @@ directly.
       0.2392 kg/s that [`22-component-model`](../20-core-domain/22-component-model.md) computes for the
       same duty: the script states `cp = 4.18 kJ/(kg*K)` and the property backend gives 4178 J/(kg·K).
       An expression uses the number the user wrote.
-- [ ] The fixed-point loop converges on the worked example in ≤ 3 iterations.
+- [ ] The fixed-point loop converges on the worked example in ≤ 3 iterations. *The example does not
+      type (`L-60`); the loop converges in 2 passes on `HE2 in[2].t=HE1.out[2].t`, written in at pass 1
+      and confirmed at pass 2 (`DeferredEvaluationTests`, P5.13c).*
+- [x] A chain through a deferred `let` (`let tprim = HE1.out[2].t`, `in[2].t=tprim - 2 dK`) is
+      evaluated in the same pass as its link (P5.13c).
+- [x] A deferred value of the wrong dimension is `FS1304` on the first pass that has it, and the
+      parameter is sized as if absent (P5.13c).
+- [x] Two references each waiting on the other are `FS1410`, one per line (P5.13c).
 - [ ] `head=1.2*HE1.dp` on a loop whose flow the pump sets produces `FS1405`, not a converged answer —
-      the degenerate case has a test of its own.
+      the degenerate case has a test of its own. *Blocked by `L-60`; the builder is pinned (`L-62`).*
 - [ ] A deliberately divergent script produces `FS1405` with three values and no partial result.
+      *No well-posed script reached it (`L-62`).*
 - [ ] Every function in the table has a test for correct use and for a dimension violation.
 - [ ] `HE1.nonsense` produces `FS1406` listing the real properties.
 - [ ] A solved-value reference in a quantity component parameter becomes deferred, while the same

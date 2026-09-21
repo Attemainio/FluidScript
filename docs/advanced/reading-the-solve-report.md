@@ -288,6 +288,18 @@ is listed here too, because it was arrived at rather than typed:
 The fraction is the number to check a bivalent choice by, and it is an outcome of the point you
 chose, never something the script states.
 
+So is a parameter written from an expression that reads a solved value
+([`let`](../functions/let.md#reading-a-value-the-solve-produces)), listed with the expression and the
+pass whose solution it read:
+
+```
+    HE2.in[2].t          67.146 °C from `HE1.out[2].t` at pass 1
+```
+
+The value stood from the pass after that one. A line the run could never evaluate is in the notes
+below and is a diagnostic (`FS1410`); one still moving at the pass cap is `FS1405`, with its last
+three values.
+
 This is where to look when a result is *plausible but wrong*. A valve at `Kv 630` where you expected
 `6.3` is a rule that declined to size and left a bootstrap value in place, and it will bury every
 other residual in the report above.

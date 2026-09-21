@@ -120,6 +120,32 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "Nothing named '{name}'.");
 
+    /// <summary>A deferred expression whose value kept moving between the outer loop's passes (<c>14</c>, <c>L-59</c>).</summary>
+    /// <value><c>FS1405</c>, an error carrying the last three values.</value>
+    /// <remarks>
+    /// The fixed point <c>14</c> describes contracts only where the referenced value is anchored by
+    /// something other than the parameter being set. Where it is not -- a pump's head from the drop
+    /// of the loop that pump drives -- the iteration walks off, and the three values show which way.
+    /// The last value stands in the run, as <c>FS2301</c>'s sizes do.
+    /// </remarks>
+    public static DiagnosticDescriptor FixedPointNotSettled { get; } = new(
+        "FS1405",
+        DiagnosticSeverity.Error,
+        "'{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly.");
+
+    /// <summary>A deferred expression that no pass of the run could evaluate.</summary>
+    /// <value><c>FS1410</c>, a warning.</value>
+    /// <remarks>
+    /// The parameter is then absent to lowering and a sizing rule chooses in its place, so the line
+    /// did nothing; saying so is the whole point (<c>L-59</c>). The usual cause is two references
+    /// each waiting on the other -- an exchanger's leaving temperature that needs the other
+    /// exchanger rated, which needs this one's profile, which is the deferred value.
+    /// </remarks>
+    public static DiagnosticDescriptor DeferredNeverEvaluated { get; } = new(
+        "FS1410",
+        DiagnosticSeverity.Warning,
+        "'{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly.");
+
     /// <summary>A property the component's kind does not have.</summary>
     /// <value><c>FS1406</c>, an error.</value>
     /// <remarks>Listing what it does have is the difference between a diagnostic and a scavenger hunt.</remarks>
@@ -740,10 +766,12 @@ public static class BinderDiagnostics
         "'{written}' states the pressure of '{node}', which '{other}' already states. State it once.");
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Sixty-seven descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixty-nine descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         LegacySpelling,
+        FixedPointNotSettled,
+        DeferredNeverEvaluated,
         PortStateOnNode,
         UnknownPortQuantity,
         PortPressureStatedTwice,

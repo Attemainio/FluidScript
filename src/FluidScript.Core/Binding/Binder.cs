@@ -915,7 +915,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     break;
 
                 case EvaluationResult.Deferred deferred:
-                    _deferred.Add(new DeferredExpression(pending.Expression, id, null, deferred.Dependencies));
+                    _deferred.Add(new DeferredExpression(pending.Expression, id, null, deferred.Dependencies) { Source = parse.Source });
                     _deferredTargets.Add(id);
                     break;
 

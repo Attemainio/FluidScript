@@ -3959,6 +3959,18 @@
       ]
     },
     {
+      "code": "FS1405",
+      "severity": "error",
+      "area": "Expressions",
+      "message": "'{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly.",
+      "arguments": [
+        "expr",
+        "v1",
+        "v2",
+        "v3"
+      ]
+    },
+    {
       "code": "FS1406",
       "severity": "error",
       "area": "Expressions",
@@ -3987,6 +3999,17 @@
       "arguments": [
         "function",
         "expected"
+      ]
+    },
+    {
+      "code": "FS1410",
+      "severity": "warning",
+      "area": "Expressions",
+      "message": "'{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly.",
+      "arguments": [
+        "target",
+        "expr",
+        "waited"
       ]
     },
     {
