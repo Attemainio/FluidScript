@@ -521,14 +521,103 @@ public static class LayoutHintsDerivation
         ImmutableArray<ImmutableArray<string>> loops,
         ImmutableArray<Diagnostic>.Builder diagnostics)
     {
-        var count = graph.Components.Length;
-
-        if (count == 0)
+        if (graph.Components.Length == 0)
         {
             return [];
         }
 
-        // 1. Vertices. `vertexOf[component]` is the vertex id; members listed in graph order.
+        var stages = CollapseVertices(graph, index);
+        ClassifyPivots(graph, stages);
+        LinkTransport(graph, stages);
+        ClassifyByReach(graph, model, stages, diagnostics);
+        RankClassified(stages);
+        FillNeutral(stages);
+        BandLoops(index, loops, stages);
+        return Stages(graph, stages);
+    }
+
+    /// <summary>The working state of <see cref="ThermalStages"/>: the collapsed vertices and what each phase decided about them.</summary>
+    /// <param name="vertexOf">The vertex of each component, by component index.</param>
+    /// <param name="vertices">Each vertex's members, in graph order.</param>
+    private sealed class StageGraph(int[] vertexOf, List<List<int>> vertices)
+    {
+        /// <summary>Gets the vertex of each component, by component index.</summary>
+        public int[] VertexOf { get; } = vertexOf;
+
+        /// <summary>Gets each vertex's members, in graph order.</summary>
+        public List<List<int>> Vertices { get; } = vertices;
+
+        /// <summary>Gets the number of vertices.</summary>
+        public int Count => Vertices.Count;
+
+        /// <summary>Gets each vertex's role; <see cref="ThermalStageRole.Neutral"/> until a phase decides it.</summary>
+        public ThermalStageRole[] Role { get; } = new ThermalStageRole[vertices.Count];
+
+        /// <summary>Gets, per pivot, the vertices its losing side peers into.</summary>
+        public List<int>[] Hot { get; } = Lists(vertices.Count);
+
+        /// <summary>Gets, per pivot, the vertices its gaining side peers into.</summary>
+        public List<int>[] Cold { get; } = Lists(vertices.Count);
+
+        /// <summary>Gets the transport adjacency between vertices, in both directions.</summary>
+        public HashSet<int>[] Adjacent { get; } = Sets(vertices.Count);
+
+        /// <summary>Gets the pivots: the vertices classified as conversion or storage before the rest.</summary>
+        public List<int> Pivots { get; set; } = [];
+
+        /// <summary>Gets what each pivot's hot side reaches without crossing another pivot.</summary>
+        public HashSet<int>[] HotReach { get; } = new HashSet<int>[vertices.Count];
+
+        /// <summary>Gets what each pivot's cold side reaches without crossing another pivot.</summary>
+        public HashSet<int>[] ColdReach { get; } = new HashSet<int>[vertices.Count];
+
+        /// <summary>Gets the vertices ranked in the last classification, in vertex order.</summary>
+        public List<int> Classified { get; set; } = [];
+
+        /// <summary>Gets each vertex's rank; <c>-1</c> until assigned.</summary>
+        public int[] Rank { get; } = Unranked(vertices.Count);
+
+        /// <summary>The vertices whose role is decided, in vertex order.</summary>
+        /// <returns>The classified vertices.</returns>
+        public List<int> Decided() => Enumerable.Range(0, Count).Where(v => Role[v] != ThermalStageRole.Neutral).ToList();
+
+        private static List<int>[] Lists(int count)
+        {
+            var lists = new List<int>[count];
+
+            for (var v = 0; v < count; v++)
+            {
+                lists[v] = [];
+            }
+
+            return lists;
+        }
+
+        private static HashSet<int>[] Sets(int count)
+        {
+            var sets = new HashSet<int>[count];
+
+            for (var v = 0; v < count; v++)
+            {
+                sets[v] = [];
+            }
+
+            return sets;
+        }
+
+        private static int[] Unranked(int count)
+        {
+            var rank = new int[count];
+            Array.Fill(rank, -1);
+            return rank;
+        }
+    }
+
+    /// <summary>Phase 1 of <see cref="ThermalStages"/>: every group is one vertex and every other component its own.</summary>
+    /// <remarks>A loop is not collapsed: a cycle-basis loop can run through two circuits' headers, and one vertex spanning two circuits could carry neither's role. Loop members are banded in <see cref="BandLoops"/>.</remarks>
+    private static StageGraph CollapseVertices(CircuitGraph graph, ImmutableDictionary<string, int> index)
+    {
+        var count = graph.Components.Length;
         var vertexOf = new int[count];
         Array.Fill(vertexOf, -1);
         var vertices = new List<List<int>>();
@@ -554,8 +643,6 @@ public static class LayoutHintsDerivation
             vertices.Add(members);
         }
 
-        // A loop is not collapsed: a cycle-basis loop can run through two circuits' headers, and one
-        // vertex spanning two circuits could carry neither's role. Loop members are banded in step 7.
         foreach (var group in graph.Groups)
         {
             Collapse(group.Members);
@@ -569,112 +656,102 @@ public static class LayoutHintsDerivation
             }
         }
 
-        // 2. Pivots and sides. For an exchanger, side 2 (ports 2, 3) loses heat when the duty is positive;
-        // for a tank, in{n} ports charge it. Each pivot's hot and cold neighbours are the vertices its
-        // sides peer into.
-        var role = new ThermalStageRole[vertices.Count];
-        var hot = new List<int>[vertices.Count];
-        var cold = new List<int>[vertices.Count];
+        return new StageGraph(vertexOf, vertices);
+    }
 
-        for (var v = 0; v < vertices.Count; v++)
-        {
-            hot[v] = [];
-            cold[v] = [];
-        }
-
-        for (var i = 0; i < count; i++)
+    /// <summary>Phase 2 of <see cref="ThermalStages"/>: pivots and their sides.</summary>
+    /// <remarks>For an exchanger, side 2 (ports 2, 3) loses heat when the duty is positive; for a tank, <c>in{n}</c> ports charge it. Each pivot's hot and cold neighbours are the vertices its sides peer into.</remarks>
+    private static void ClassifyPivots(CircuitGraph graph, StageGraph stages)
+    {
+        for (var i = 0; i < graph.Components.Length; i++)
         {
             var component = graph.Components[i];
-            var v = vertexOf[i];
+            var v = stages.VertexOf[i];
 
             switch (component)
             {
                 case HeatExchanger exchanger when exchanger.SecondarySideConnected || exchanger.Rating is { CanRate: true }:
-                    role[v] = ThermalStageRole.Conversion;
+                    stages.Role[v] = ThermalStageRole.Conversion;
 
                     for (var port = 0; port < exchanger.Ports.Length; port++)
                     {
                         var peer = graph.Adjacency.Peer(i, port);
 
-                        if (!peer.Exists || vertexOf[peer.Component] == v)
+                        if (!peer.Exists || stages.VertexOf[peer.Component] == v)
                         {
                             continue;
                         }
 
                         var losing = (port >= 2) == (exchanger.Power >= 0);
-                        (losing ? hot[v] : cold[v]).Add(vertexOf[peer.Component]);
+                        (losing ? stages.Hot[v] : stages.Cold[v]).Add(stages.VertexOf[peer.Component]);
                     }
 
                     break;
 
                 case Tank tank:
-                    role[v] = ThermalStageRole.Storage;
+                    stages.Role[v] = ThermalStageRole.Storage;
 
                     for (var port = 0; port < tank.Ports.Length; port++)
                     {
                         var peer = graph.Adjacency.Peer(i, port);
 
-                        if (!peer.Exists || vertexOf[peer.Component] == v)
+                        if (!peer.Exists || stages.VertexOf[peer.Component] == v)
                         {
                             continue;
                         }
 
                         var charging = tank.Ports[port].Name.StartsWith("in", StringComparison.Ordinal);
-                        (charging ? hot[v] : cold[v]).Add(vertexOf[peer.Component]);
+                        (charging ? stages.Hot[v] : stages.Cold[v]).Add(stages.VertexOf[peer.Component]);
                     }
 
                     break;
             }
         }
+    }
 
-        // 3. Transport adjacency between vertices, in both directions, for reachability.
-        var adjacent = new HashSet<int>[vertices.Count];
-
-        for (var v = 0; v < vertices.Count; v++)
-        {
-            adjacent[v] = [];
-        }
-
-        for (var i = 0; i < count; i++)
+    /// <summary>Phase 3 of <see cref="ThermalStages"/>: transport adjacency between vertices, and what each pivot's sides reach without crossing another pivot.</summary>
+    private static void LinkTransport(CircuitGraph graph, StageGraph stages)
+    {
+        for (var i = 0; i < graph.Components.Length; i++)
         {
             foreach (var next in Neighbours(graph, i))
             {
-                if (vertexOf[next] != vertexOf[i])
+                if (stages.VertexOf[next] != stages.VertexOf[i])
                 {
-                    adjacent[vertexOf[i]].Add(vertexOf[next]);
+                    stages.Adjacent[stages.VertexOf[i]].Add(stages.VertexOf[next]);
                 }
             }
         }
 
-        // What each pivot's hot side and cold side reach without crossing another pivot.
-        var pivots = Enumerable.Range(0, vertices.Count).Where(v => role[v] != ThermalStageRole.Neutral).ToList();
-        var hotReach = new HashSet<int>[vertices.Count];
-        var coldReach = new HashSet<int>[vertices.Count];
+        stages.Pivots = stages.Decided();
 
-        foreach (var pivot in pivots)
+        foreach (var pivot in stages.Pivots)
         {
-            hotReach[pivot] = Reach(hot[pivot], role, adjacent);
-            coldReach[pivot] = Reach(cold[pivot], role, adjacent);
+            stages.HotReach[pivot] = Reach(stages.Hot[pivot], stages.Role, stages.Adjacent);
+            stages.ColdReach[pivot] = Reach(stages.Cold[pivot], stages.Role, stages.Adjacent);
         }
+    }
 
-        // 4. Classify the rest: relative to pivots first, then by circuit role with the duty as a check.
-        for (var v = 0; v < vertices.Count; v++)
+    /// <summary>Phase 4 of <see cref="ThermalStages"/>: classify the rest, relative to pivots first, then by circuit role with the duty as a check.</summary>
+    private static void ClassifyByReach(CircuitGraph graph, SemanticModel model, StageGraph stages, ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        for (var v = 0; v < stages.Count; v++)
         {
-            if (role[v] != ThermalStageRole.Neutral)
+            if (stages.Role[v] != ThermalStageRole.Neutral)
             {
                 continue;
             }
 
-            var feeds = pivots.Any(pivot => hotReach[pivot].Contains(v));
-            var fed = pivots.Any(pivot => coldReach[pivot].Contains(v));
+            var feeds = stages.Pivots.Any(pivot => stages.HotReach[pivot].Contains(v));
+            var fed = stages.Pivots.Any(pivot => stages.ColdReach[pivot].Contains(v));
 
             if (feeds != fed)
             {
-                role[v] = feeds ? ThermalStageRole.Source : ThermalStageRole.Consumer;
+                stages.Role[v] = feeds ? ThermalStageRole.Source : ThermalStageRole.Consumer;
                 continue;
             }
 
-            var circuit = CircuitOf(graph, vertices[v]);
+            var circuit = CircuitOf(graph, stages.Vertices[v]);
 
             if (circuit is null)
             {
@@ -688,7 +765,7 @@ public static class LayoutHintsDerivation
                 continue;
             }
 
-            var duty = vertices[v]
+            var duty = stages.Vertices[v]
                 .Select(i => graph.Components[i])
                 .OfType<HeatExchanger>()
                 .Sum(static exchanger => exchanger.Power);
@@ -697,7 +774,7 @@ public static class LayoutHintsDerivation
 
             if (evidence.Stage is ThermalStageRole.Source or ThermalStageRole.Consumer && physics != evidence.Stage)
             {
-                role[v] = physics;
+                stages.Role[v] = physics;
 
                 diagnostics.Add(Diagnostic.Create(
                     LayoutDiagnostics.RoleContradictsDuty,
@@ -708,125 +785,129 @@ public static class LayoutHintsDerivation
             }
             else
             {
-                role[v] = evidence.Stage;
+                stages.Role[v] = evidence.Stage;
             }
         }
+    }
 
-        // 5. Rank the classified vertices by longest path over heat progression: across each pivot from
-        // its hot side to its cold side, and from one pivot's cold side to the next pivot's hot side.
-        var successors = new HashSet<int>[vertices.Count];
+    /// <summary>Phase 5 of <see cref="ThermalStages"/>: rank the classified vertices by longest path over heat progression.</summary>
+    /// <remarks>Across each pivot from its hot side to its cold side, and from one pivot's cold side to the next pivot's hot side. Where no pivot orders them, class order does: a source before a consumer in one circuit.</remarks>
+    private static void RankClassified(StageGraph stages)
+    {
+        var successors = new HashSet<int>[stages.Count];
 
-        for (var v = 0; v < vertices.Count; v++)
+        for (var v = 0; v < stages.Count; v++)
         {
             successors[v] = [];
         }
 
-        foreach (var pivot in pivots)
+        foreach (var pivot in stages.Pivots)
         {
-            foreach (var upstream in hotReach[pivot].Where(u => role[u] != ThermalStageRole.Neutral))
+            foreach (var upstream in stages.HotReach[pivot].Where(u => stages.Role[u] != ThermalStageRole.Neutral))
             {
                 successors[upstream].Add(pivot);
             }
 
-            foreach (var downstream in coldReach[pivot].Where(d => role[d] != ThermalStageRole.Neutral))
+            foreach (var downstream in stages.ColdReach[pivot].Where(d => stages.Role[d] != ThermalStageRole.Neutral))
             {
                 successors[pivot].Add(downstream);
             }
         }
 
-        // Where no pivot orders them, class order does: a source before a consumer in one circuit.
-        var classified = Enumerable.Range(0, vertices.Count).Where(v => role[v] != ThermalStageRole.Neutral).ToList();
+        stages.Classified = stages.Decided();
 
-        foreach (var a in classified)
+        foreach (var a in stages.Classified)
         {
-            foreach (var b in classified)
+            foreach (var b in stages.Classified)
             {
-                if (a != b && ClassOrder.IndexOf(role[a]) < ClassOrder.IndexOf(role[b]) && Connected(a, b, adjacent))
+                if (a != b && ClassOrder.IndexOf(stages.Role[a]) < ClassOrder.IndexOf(stages.Role[b]) && Connected(a, b, stages.Adjacent))
                 {
                     successors[a].Add(b);
                 }
             }
         }
 
-        var rank = new int[vertices.Count];
-        Array.Fill(rank, -1);
-
-        foreach (var v in classified.OrderBy(v => v))
+        foreach (var v in stages.Classified.OrderBy(v => v))
         {
-            LongestPath(v, successors, rank, []);
+            LongestPath(v, successors, stages.Rank, []);
         }
+    }
 
-        // 6. Neutral vertices take the rank of the nearest classified vertex, breadth-first.
-        var pending = Enumerable.Range(0, vertices.Count).Where(v => rank[v] < 0).ToList();
+    /// <summary>Phase 6 of <see cref="ThermalStages"/>: neutral vertices take the rank of the nearest classified vertex, breadth-first; with nothing classified, every rank is zero.</summary>
+    private static void FillNeutral(StageGraph stages)
+    {
+        var pending = Enumerable.Range(0, stages.Count).Where(v => stages.Rank[v] < 0).ToList();
 
-        if (classified.Count == 0)
+        if (stages.Classified.Count == 0)
         {
             foreach (var v in pending)
             {
-                rank[v] = 0;
+                stages.Rank[v] = 0;
             }
+
+            return;
         }
-        else
+
+        var frontier = new Queue<int>(stages.Classified.OrderBy(v => v));
+        var assigned = new HashSet<int>(stages.Classified);
+
+        while (frontier.Count > 0)
         {
-            var frontier = new Queue<int>(classified.OrderBy(v => v));
-            var assigned = new HashSet<int>(classified);
+            var current = frontier.Dequeue();
 
-            while (frontier.Count > 0)
+            foreach (var next in stages.Adjacent[current].OrderBy(static n => n))
             {
-                var current = frontier.Dequeue();
-
-                foreach (var next in adjacent[current].OrderBy(static n => n))
+                if (assigned.Add(next))
                 {
-                    if (assigned.Add(next))
-                    {
-                        rank[next] = rank[current];
-                        frontier.Enqueue(next);
-                    }
+                    stages.Rank[next] = stages.Rank[current];
+                    frontier.Enqueue(next);
                 }
             }
-
-            foreach (var v in pending.Where(v => rank[v] < 0))
-            {
-                rank[v] = 0;
-            }
         }
 
-        // 7. A loop is one band (25): its members that are not pivots share the highest rank among
-        // them, so a recirculation loop hanging off an exchanger sits wholly on the exchanger's cold side.
+        foreach (var v in pending.Where(v => stages.Rank[v] < 0))
+        {
+            stages.Rank[v] = 0;
+        }
+    }
+
+    /// <summary>Phase 7 of <see cref="ThermalStages"/>: a loop is one band (<c>25</c>): its members that are not pivots share the highest rank among them, so a recirculation loop hanging off an exchanger sits wholly on the exchanger's cold side.</summary>
+    private static void BandLoops(ImmutableDictionary<string, int> index, ImmutableArray<ImmutableArray<string>> loops, StageGraph stages)
+    {
         foreach (var loop in loops)
         {
             var members = loop
-                .Select(name => index.TryGetValue(name, out var i) ? vertexOf[i] : -1)
-                .Where(v => v >= 0 && !pivots.Contains(v))
+                .Select(name => index.TryGetValue(name, out var i) ? stages.VertexOf[i] : -1)
+                .Where(v => v >= 0 && !stages.Pivots.Contains(v))
                 .Distinct()
                 .ToList();
 
             if (members.Count > 1)
             {
-                var band = members.Max(v => rank[v]);
+                var band = members.Max(v => stages.Rank[v]);
 
                 foreach (var member in members)
                 {
-                    rank[member] = band;
+                    stages.Rank[member] = band;
                 }
             }
         }
-
-        // 8. Stages: one per (rank, role), members in graph order.
-        return
-        [
-            .. Enumerable.Range(0, vertices.Count)
-                .GroupBy(v => (rank[v], Role: role[v]))
-                .OrderBy(static group => group.Key.Item1)
-                .ThenBy(static group => ClassOrder.IndexOf(group.Key.Role) is var at && at < 0 ? ClassOrder.Length : at)
-                .Select(group => new ThermalStage
-                {
-                    Rank = group.Key.Item1,
-                    Role = group.Key.Role,
-                    Components = [.. group.SelectMany(v => vertices[v]).OrderBy(static i => i).Select(i => graph.Components[i].Name)],
-                }),
-        ];
     }
+
+    /// <summary>Phase 8 of <see cref="ThermalStages"/>: one stage per (rank, role), members in graph order.</summary>
+    private static ImmutableArray<ThermalStage> Stages(CircuitGraph graph, StageGraph stages) =>
+    [
+        .. Enumerable.Range(0, stages.Count)
+            .GroupBy(v => (stages.Rank[v], Role: stages.Role[v]))
+            .OrderBy(static group => group.Key.Item1)
+            .ThenBy(static group => ClassOrder.IndexOf(group.Key.Role) is var at && at < 0 ? ClassOrder.Length : at)
+            .Select(group => new ThermalStage
+            {
+                Rank = group.Key.Item1,
+                Role = group.Key.Role,
+                Components = [.. group.SelectMany(v => stages.Vertices[v]).OrderBy(static i => i).Select(i => graph.Components[i].Name)],
+            }),
+    ];
 
     /// <summary>The vertices reachable from a set of starting vertices without entering a pivot.</summary>
     private static HashSet<int> Reach(List<int> starts, ThermalStageRole[] role, HashSet<int>[] adjacent)

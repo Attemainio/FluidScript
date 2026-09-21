@@ -540,31 +540,6 @@ public static class SceneAudit
         return [.. left, .. right];
     }
 
-    /// <summary>Whether a point lies inside a closed polygon, by ray casting; a point on the boundary may fall either way.</summary>
-    /// <param name="point">The point.</param>
-    /// <param name="polygon">The polygon's vertices in order, without repeating the first.</param>
-    /// <returns><see langword="true"/> when inside.</returns>
-    public static bool Inside(Point point, IReadOnlyList<Point> polygon)
-    {
-        var inside = false;
-        var j = polygon.Count - 1;
-
-        for (var i = 0; i < polygon.Count; i++)
-        {
-            var a = polygon[i];
-            var b = polygon[j];
-
-            if ((a.Y > point.Y) != (b.Y > point.Y) && point.X < ((b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y)) + a.X)
-            {
-                inside = !inside;
-            }
-
-            j = i;
-        }
-
-        return inside;
-    }
-
     /// <summary>The two symbols a connection's run joins: through the inline elements at either end to the first box.</summary>
     /// <param name="route">The pipe route.</param>
     /// <param name="model">The semantic model, for the connection's ends.</param>

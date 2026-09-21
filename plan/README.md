@@ -55,8 +55,9 @@ rating and coupled circuits), the demand-step loop (transient and control), and 
 |---|---|---|
 | [08-implementation-sequence](08-implementation-sequence.md) | work-package decomposition and order inside each milestone | draft |
 | [09-project-state](09-project-state.md) | which phase we are in, what has shipped, what is next | living |
+| [70-core-refactoring](70-core-refactoring.md) | which Core sections are rewritten wholesale, in what order, and the parameter-ownership and solved-view shapes they are rewritten to | draft |
 
-Both sit above the tiers because both are about the whole project. `08` moved here from
+All three sit above the tiers because all three are about the whole project; `70` is numbered past the last tier so that its short reference stays unique. `08` moved here from
 `00-foundation/` on 2026-09-09; it had always been a whole-plan document filed as a foundation one.
 
 ### 00 · Foundation

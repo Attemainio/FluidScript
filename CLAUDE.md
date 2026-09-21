@@ -24,6 +24,7 @@ Read the relevant document before working in that area; update it when you learn
 | Milestones and their exit criteria | `plan/00-foundation/05-milestones-and-acceptance.md` |
 | Work-package order inside a milestone, and why — **the plan** | `plan/08-implementation-sequence.md` |
 | What has shipped, which phase we are in, what is next — **the state** | `plan/09-project-state.md` |
+| Which Core sections are rewritten wholesale, in what order, to what shape — **the refactoring plan** | `plan/70-core-refactoring.md` |
 | Performance, scale, accuracy, execution isolation, stop, accessibility | `plan/00-foundation/07-quality-attributes.md` |
 | The script language: grammar, units, expressions, binding, diagnostics, printer | `plan/10-language/` |
 | Fluids, components, topology, sizing, catalogue, model contract, the layout (`28`) and its ladder (`29`) | `plan/20-core-domain/` |

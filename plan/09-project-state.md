@@ -1004,6 +1004,14 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `material=` to read its `dn` in another shipped series. `C-110` filed for the unsourced
 > `steel_en10220`. Four closed, one opened; 54 open.
 
+### R — Core refactoring ([`70`](70-core-refactoring.md)) · in progress
+
+Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
+
+| # | Package | Commit(s) | State |
+|---|---|---|---|
+| R0 | Seams and dead code: `LayoutEngine` into seven partials along its own section markers (`Solve`, `Rings`, `Blocks`, `Anchors`, `Connections`, `Instruments`, `Scene`; the file's order gave seven seams, not `70`'s four), `SolutionSeed.Field` to a partial file, `SceneAudit.Inside` deleted, `ThermalStages` as eight phase methods over a `StageGraph`, the two `Tank` casts merged | *(this commit)* | Shipped 2026-09-21. Measured: Core 1975/0/3, Api 59/0, no golden under `diagnostics/` or `tests/` moved |
+
 ### After P3.7b — the convergence work · 2026-09-07 to 2026-09-09 · 60 commits
 
 **This is state no phase table shows, and it is most of the last three days.** P3.7b closed with the
@@ -1076,6 +1084,8 @@ unassessed, not clean.
 
 ## What is next
 
+0. **The Core refactoring (`70`)** runs R0–R5 in order, each measured on its listed set; R0 shipped
+   2026-09-21. R3 waits on `70`'s open question 1, the actuator principle, which needs a `D-`.
 1. **`01`'s header listing has drifted from the sample that meets its figures**, in three recorded
    ways: attachment replaced by hand wiring (`F-16`/`F-17`), `PU_MAIN` removed because the consumer
    pumps drive the whole loop (`S-55`'s subject), and `load` in place of `heat_exchanger` (`D-91`).

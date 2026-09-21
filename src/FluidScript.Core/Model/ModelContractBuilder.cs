@@ -354,14 +354,15 @@ public static class ModelContractBuilder
         for (var port = 0; port < flow.Ports.Length; port++)
         {
             var peer = graph.Adjacency.Peer(index, port);
+            var tank = component as Tank;
 
             ports.Add(new PortWire
             {
                 Name = flow.Ports[port].Name,
                 Role = flow.Ports[port].Role.ToString().ToLowerInvariant(),
                 ConnectedTo = peer.Exists ? graph.Components[peer.Component].Name : null,
-                Elevation = component is Tank tank ? Round(tank.PortLevels[port]) : null,
-                Layer = component is Tank stratified ? stratified.LayerForPort(port) : null,
+                Elevation = tank is null ? null : Round(tank.PortLevels[port]),
+                Layer = tank?.LayerForPort(port),
             });
         }
 
