@@ -1046,6 +1046,18 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > changed to match in their own repository. The solver register's three rows that sat between the
 > Closed table's header and its separator were moved below it while there.
 
+> **The property-backend measuring package** (the same day, the user's call: measure before designing):
+> `PipelineTimingDiagnostics` now times the Jacobian as `NewtonSolver` builds it, one
+> `TryEvaluateScaledAt` per column, and keeps the old N+1 extrapolation as a *naive* column beside it;
+> `StateTimingDiagnostics` splits a SharpProp water fix into the update and each property read. Run on
+> release and debug. `C-68`'s 99.98 % was the extrapolation: the header's real Jacobian is 2.7 ms
+> against 47.8 naive, a Newton iteration about 4 ms, and the whole water solve 52 ms against 5.4 on
+> constant properties, so two thirds of the property cost sits outside the Newton step, where the
+> per-solve cache `21` specifies would catch the repeats. Below `ISubstance` the flash is the cost --
+> `(p, h)` 138 µs, `(p, T)` 9 µs, the seven reads about 10 µs. `F-19`'s 705 µs from earlier in the day
+> was measured with the test suite running. Both rows re-measured and re-triaged to medium; neither
+> closed.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.

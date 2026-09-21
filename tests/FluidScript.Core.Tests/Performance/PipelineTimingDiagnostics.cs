@@ -63,7 +63,15 @@ public sealed class PipelineTimingDiagnostics
         string Termination);
 
     private sealed record Step(
-        string Sample, int Unknowns, int Rows, double Constant, double Water, double Lu);
+        string Sample,
+        int Unknowns,
+        int Rows,
+        int NodeColumns,
+        double Constant,
+        double Water,
+        double JacobianConstant,
+        double JacobianWater,
+        double Lu);
 
     [Fact]
     public async Task WhereDoesTheTimeGo()
@@ -134,11 +142,20 @@ public sealed class PipelineTimingDiagnostics
             return;
         }
 
-        _steps.Add(new Step(name, cheap.Unknowns, cheap.Rows, cheap.PerCall, costly.PerCall, Lu(cheap.Unknowns)));
+        _steps.Add(new Step(
+            name,
+            cheap.Unknowns,
+            cheap.Rows,
+            cheap.NodeColumns,
+            cheap.PerCall,
+            costly.PerCall,
+            cheap.Jacobian,
+            costly.Jacobian,
+            Lu(cheap.Unknowns)));
     }
 
     /// <summary>One residual evaluation, which is the unit a Jacobian is <c>N+1</c> of.</summary>
-    private static (int Unknowns, int Rows, double PerCall)? Residual(
+    private static (int Unknowns, int Rows, int NodeColumns, double PerCall, double Jacobian)? Residual(
         string source, ResolvedCatalog<PipeSpec> catalog, ISubstance substance, int runs)
     {
         // Lowered with the substance under test: `GraphFixture.Lower` pins constant properties, and what
@@ -162,9 +179,36 @@ public sealed class PipelineTimingDiagnostics
 
         var residuals = new double[system.Rows];
         var x = seed.Values.ToArray();
+        var perCall = Time(() => system.TryEvaluateResiduals(x, residuals), runs);
 
-        return (system.Columns, system.Rows,
-            Time(() => system.TryEvaluateResiduals(x, residuals), runs));
+        // The Jacobian as `NewtonSolver.Jacobian` actually builds it: the scaled base residual once, then
+        // one `TryEvaluateScaledAt` per column, which re-fixes only the node the column moves (S-2). The
+        // first version of this table multiplied the base residual by N+1 instead, which is the naive
+        // cost and not the one the solver pays (C-68's re-measurement).
+        var scaled = new double[system.Rows];
+        var perturbed = new double[system.Rows];
+        var trial = new double[system.Columns];
+        var nodeColumns = Enumerable.Range(0, system.Columns).Count(column => system.NodeOfUnknown(column) >= 0);
+
+        Assert.True(system.TryEvaluateScaled(x, scaled));
+
+        var jacobian = Time(
+            () =>
+            {
+                Array.Copy(x, trial, x.Length);
+
+                for (var column = 0; column < system.Columns; column++)
+                {
+                    var scale = system.UnknownScales[column];
+                    var delta = Tolerances.NewtonFiniteDifferenceStep * Math.Max(Math.Abs(x[column]), scale);
+                    trial[column] = x[column] + delta;
+                    Assert.True(system.TryEvaluateScaledAt(trial, column, perturbed));
+                    trial[column] = x[column];
+                }
+            },
+            Math.Max(1, runs / 4));
+
+        return (system.Columns, system.Rows, nodeColumns, perCall, jacobian);
     }
 
     /// <summary>A dense LU of the same order, which is the other half of a Newton step.</summary>
@@ -271,19 +315,23 @@ public sealed class PipelineTimingDiagnostics
         text.AppendLine()
             .AppendLine("## Inside one Newton step, mean ms")
             .AppendLine()
-            .AppendLine("`EvaluateResiduals` runs `N+1` times per iteration — once for the residual and once")
-            .AppendLine("per column of the finite-difference Jacobian — so the Jacobian columns are that cost")
-            .AppendLine("multiplied out. `LU` factors and solves a dense system of the same order, and is the")
-            .AppendLine("only part of a step that is linear algebra.")
+            .AppendLine("`Residual` is one full `TryEvaluateResiduals`, which fixes a state at every node.")
+            .AppendLine("`Jacobian` is the finite-difference sweep as `NewtonSolver` builds it: one")
+            .AppendLine("`TryEvaluateScaledAt` per column, re-fixing only the node that column moves --")
+            .AppendLine("`Node cols` of the N columns are a node pressure or enthalpy and fix one state each;")
+            .AppendLine("the rest fix none. `Naive (water)` is the base residual times N+1, what a sweep that")
+            .AppendLine("re-fixed every node per column would cost, kept for comparison with the earlier")
+            .AppendLine("editions of this table that reported it as the Jacobian. `LU` factors and solves a")
+            .AppendLine("dense system of the same order, and is the only part of a step that is linear algebra.")
             .AppendLine()
-            .AppendLine("| Sample | N | Rows | Residual (constant) | Residual (water) | Jacobian (constant) | Jacobian (water) | LU |")
-            .AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|");
+            .AppendLine("| Sample | N | Rows | Node cols | Residual (constant) | Residual (water) | Jacobian (constant) | Jacobian (water) | Naive (water) | LU |")
+            .AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
 
         foreach (var step in _steps)
         {
             text.AppendLine(CultureInfo.InvariantCulture,
-                $"| `{step.Sample}` | {step.Unknowns} | {step.Rows} | {step.Constant:F3} | {step.Water:F2} "
-                + $"| {step.Constant * (step.Unknowns + 1):F2} | {step.Water * (step.Unknowns + 1):F1} "
+                $"| `{step.Sample}` | {step.Unknowns} | {step.Rows} | {step.NodeColumns} | {step.Constant:F3} | {step.Water:F2} "
+                + $"| {step.JacobianConstant:F2} | {step.JacobianWater:F1} | {step.Water * (step.Unknowns + 1):F1} "
                 + $"| {step.Lu:F3} |");
         }
 

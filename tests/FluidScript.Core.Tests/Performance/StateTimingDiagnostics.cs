@@ -7,6 +7,8 @@ using FluidScript.Core.Fluids;
 using FluidScript.Core.Units;
 using FluidScript.Fixtures;
 
+using SharpProp;
+
 namespace FluidScript.Core.Tests.Performance;
 
 /// <summary>Measures what it costs to fix a fluid state, per substance and per property pair.</summary>
@@ -87,6 +89,8 @@ public sealed class StateTimingDiagnostics
         Measure(air, "(p, T, w)", i => air.FromPressureTemperatureHumidity(
             Atmospheric, Celsius(18 + (i % 12)), Fraction(0.008)));
 
+        MeasureBackendSplit(waterEnthalpy.SiValue);
+
         var report = Path.Combine(RepositoryLayout.Diagnostics, "fluid-state-timings.md");
         Directory.CreateDirectory(RepositoryLayout.Diagnostics);
         File.WriteAllText(report, Render(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
@@ -95,13 +99,98 @@ public sealed class StateTimingDiagnostics
         Assert.All(_rows, row => Assert.All(row.PerCall, sample => Assert.True(sample > 0)));
     }
 
+    /// <summary>Where a water fix's time goes below <c>ISubstance</c>: the backend's flash against the property reads that follow it.</summary>
+    /// <remarks>
+    /// <c>PropertyBackend</c> updates one <c>Fluid</c> in place and then reads seven properties off it, each
+    /// read a native call of its own; <c>Water.Build</c> wraps the result in quantities. Timing the update
+    /// alone, then the update with one read, then with all seven, attributes the (p, h) cost between the
+    /// flash and the reads -- SharpProp clears its lazy property cache on every update, so a read cannot be
+    /// timed without the update in front of it, and each row below is the update plus what it names.
+    /// </remarks>
+    private void MeasureBackendSplit(double enthalpy)
+    {
+        var fluid = new Fluid(FluidsList.Water);
+        var pressure = Input.Pressure(UnitsNet.Pressure.FromPascals(101_325));
+
+        static Input Enthalpy(double joulesPerKilogram) =>
+            Input.Enthalpy(UnitsNet.SpecificEnergy.FromJoulesPerKilogram(joulesPerKilogram));
+
+        static Input Temperature(double celsius) =>
+            Input.Temperature(UnitsNet.Temperature.FromDegreesCelsius(celsius));
+
+        Measure("SharpProp Fluid (water)", "(p, T) update only", i => fluid.Update(pressure, Temperature(40 + (i % 20))));
+        Measure("SharpProp Fluid (water)", "(p, h) update only", i => fluid.Update(pressure, Enthalpy(enthalpy + (i % 20))));
+        Measure("SharpProp Fluid (water)", "(p, h) update + Temperature", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Temperature.Kelvins;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + Density", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Density.KilogramsPerCubicMeter;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + Entropy", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Entropy.JoulesPerKilogramKelvin;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + SpecificHeat", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.SpecificHeat.JoulesPerKilogramKelvin;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + DynamicViscosity", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.DynamicViscosity?.PascalSeconds;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + Conductivity", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Conductivity?.WattsPerMeterKelvin;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + Phase", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Phase;
+        });
+        Measure("SharpProp Fluid (water)", "(p, h) update + all seven reads and Phase", i =>
+        {
+            fluid.Update(pressure, Enthalpy(enthalpy + (i % 20)));
+            _ = fluid.Temperature.Kelvins;
+            _ = fluid.Enthalpy.JoulesPerKilogram;
+            _ = fluid.Entropy.JoulesPerKilogramKelvin;
+            _ = fluid.Density.KilogramsPerCubicMeter;
+            _ = fluid.DynamicViscosity?.PascalSeconds;
+            _ = fluid.SpecificHeat.JoulesPerKilogramKelvin;
+            _ = fluid.Conductivity?.WattsPerMeterKelvin;
+            _ = fluid.Phase;
+        });
+        Measure("SharpProp Fluid (water)", "(p, T) update + all seven reads and Phase", i =>
+        {
+            fluid.Update(pressure, Temperature(40 + (i % 20)));
+            _ = fluid.Temperature.Kelvins;
+            _ = fluid.Enthalpy.JoulesPerKilogram;
+            _ = fluid.Entropy.JoulesPerKilogramKelvin;
+            _ = fluid.Density.KilogramsPerCubicMeter;
+            _ = fluid.DynamicViscosity?.PascalSeconds;
+            _ = fluid.SpecificHeat.JoulesPerKilogramKelvin;
+            _ = fluid.Conductivity?.WattsPerMeterKelvin;
+            _ = fluid.Phase;
+        });
+    }
+
     private static Quantity Celsius(double value) =>
         Quantity.FromSi(value + 273.15, Dimension.Temperature);
 
     private static Quantity Fraction(double value) =>
         Quantity.FromSi(value, Dimension.Dimensionless);
 
-    private void Measure(ISubstance substance, string operation, Action<int> call)
+    private void Measure(ISubstance substance, string operation, Action<int> call) =>
+        Measure(Label(substance), operation, call);
+
+    private void Measure(string label, string operation, Action<int> call)
     {
         // The cold call is reported on its own because it is a different question. CoolProp loads its
         // tables lazily, so the first call through a pair carries that load and is not the number a
@@ -130,7 +219,7 @@ public sealed class StateTimingDiagnostics
             perCall[sample] = Microseconds(Stopwatch.GetTimestamp() - started) / Batch;
         }
 
-        _rows.Add(new Row(Label(substance), operation, coldMicroseconds, perCall));
+        _rows.Add(new Row(label, operation, coldMicroseconds, perCall));
     }
 
     /// <summary>Names a substance in the report.</summary>
