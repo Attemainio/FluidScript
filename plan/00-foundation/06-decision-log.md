@@ -6741,6 +6741,29 @@ instant. That is the behaviour wanted rather than a complication: the substation
 constants, because the two sides carry different flows. At part load both lengthen in proportion,
 with no extra machinery, because the balance already divides by the flow the circuit solved.
 
+### Why the estimate is per area and not per channel
+
+Danfoss's `V = 0.027 · N/2` is the better *form*: it is exact for the plate it describes, and its two
+halves sum to the `N−1` channels of an `N`-plate stack. It cannot be the rule here, for two reasons
+that are both about what the model holds rather than about the physics.
+
+- **It needs a plate count, and there is none to read.** `ThermalSizer` derives `plates` from
+  `area / plate_area`, and `plate_area` is a **stated** parameter, not a catalogue lookup — no sample
+  states it, and a user who did would be supplying plate geometry by hand. The plate catalogue that
+  would supply it is the same one `D-99` is waiting for.
+- **The coefficient is per plate model, not universal.** 0.027 l per channel is one H30
+  configuration; the same manufacturer's range runs 0.017–0.025 on an XB06 and 0.239 on an XB61L, a
+  factor of fourteen. Applying any single number generically would be wrong by up to that.
+
+The area rule inverts both problems. It needs only `area`, which the sizer already produces from
+`UA/U`, and its coefficient is the channel gap — the one quantity that *is* near-constant across
+models, measured at 1.96 mm on two Alfa Laval units an order of magnitude apart in duty. **Per
+channel is exact and unavailable; per area is approximate and computable**, and the approximation is
+the enlargement factor named above.
+
+If a plate catalogue ever ships carrying per-channel volume per plate model, the Danfoss form becomes
+the rule and the area rule falls back to being the estimate for a script that names no plate.
+
 ### The plate metal is a real second term, and it is not in this decision
 
 The user's caveat: residence time is not the thermal time constant, because the plates store heat
