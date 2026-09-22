@@ -1233,6 +1233,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > line of work started from, and `24` records the two candidate mitigations. `C-116` and `C-117`
 > closed; `12`, `15`, `24` and `08`'s P6.8 row carry the detail. 43 open.
 
+| P6.8a | **The scenario language** (`D-143`, [`12`](10-language/12-grammar.md), [`15`](10-language/15-semantic-model.md)): `ReservedWord.Scenarios` and the `scenarios` directive; `ScenarioListSyntax` as a `parameter-value` admitted only after `=`; `design <name>` beside `D-58`'s `driver=value`; `FS1120`/`FS1121` in the parser and `FS1540`–`FS1544` in the binder; `ProjectSettings.Scenarios`/`DesignScenario`, `ParameterValue.Scenarios`, `ValueId.ScenarioParameter`; `ScenarioProjection.Project`; `docs/functions/scenarios.md` | `aa93675`, `99794e2` | Shipped 2026-09-22; `L-64` closed in the same change. Nothing consumes the list yet — that is P6.8b |
 | P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
 
 > **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
@@ -1294,6 +1295,21 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > `volume`/`volume[2]` and the substation's 3.658 m² gives 3.585 dm³ a side with nothing written.
 > `33`'s worked example, its CFL row (8.6 s → 1.86 s, the hold-up now the smallest volume) and one
 > acceptance criterion moved with it. 49 open.
+>
+> **P6.8a shipped 2026-09-22**, in two commits. What it meant to do: teach the language `D-143`'s
+> scenarios, with nothing consuming them yet. **The design decision worth recording is where the list
+> is not**: `ParameterValue.Value` stays a *scalar* whether or not a list was written, holding the
+> design case's number, and the other cases sit beside it in `ParameterValue.Scenarios`. Thirty-three
+> sites read `.Value` — the component factory, the contract builder, deferred evaluation, six binder
+> passes, the scene audit — and not one changed. `ScenarioProjection.Project(model, i)` rewrites that
+> one field and nothing else, so P6.8b's N solves run today's code N times. The alternative, a model
+> carrying lists all the way down with a selector at each read, is the same feature with thirty-three
+> places to get it wrong, every one on a path that files *without* scenarios also take.
+> What it found: `scenarios` was missing from `Binder`'s list of statements step 0b reads for itself,
+> so a file-wide line before the first `circuit` header built an implicit circuit — reported obliquely
+> as `FS1508` "no circuit name" rather than as anything about the directive (`L-64`, closed in the
+> same change). The three `expects=FS1104,FS1105` fences in `plan/` came off, which is `15`'s own
+> mechanism working: the corpus test failed because three blocks had become *too* correct. 49 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1380,10 +1396,29 @@ unassessed, not clean.
 
 ## What is next
 
-**`C-114` shipped 2026-09-22 and `P6.8` is next by the user's call** ("after this, I want the sizing
-first before transient", 2026-09-22). P6.8 is **sizing over scenarios** (`D-143`), tier-20 work
-specified end to end in `24` §Sizing over scenarios, `12` and `15`; its two open measurements are
-named in `08`'s row, and nothing in P6 blocks it.
+**P6.8a shipped 2026-09-22 and `P6.8b` is next** — the user's call was sizing before transient
+("after this, I want the sizing first before transient", 2026-09-22). The language is built and
+nothing consumes it yet. **P6.8b is the pipeline** (`24` §Sizing over scenarios): solve each case
+through `ScenarioProjection.Project`, merge per parameter under the kind's envelope, re-solve every
+case with the merged sizes frozen, draw `design`'s. Three things it must settle, in `08`'s row and
+`24`'s:
+
+- **`OuterLoop` cannot solve with sizes frozen.** All three `RunAsync` overloads run the sizers and
+  `Prepare` does lowering and sizing together, so step 3 has no entry point. It needs one taking a
+  supplied `SizingOverlay` with the sizing loop capped at zero passes. The tempting shortcut —
+  inject the merged sizes as *stated* parameters, since a sizer never sees a stated one — is a trap:
+  a stated value is a constraint under `D-02`, so an exchanger merged with both `ua` and `area`
+  would raise `FS2101` on a well-posed plant. Freezing is a tier below stating.
+- **The valve turn-down check's figures are looked up** (2026-09-22): rangeability is 50:1 equal
+  percentage, 33:1 linear, 20:1 quick-opening, and good authority is 35–75 % with 40–50 % ideal —
+  which corroborates `SizingDefaults.ValveAuthorityTarget` 0.5 and `ValveAuthorityMinimum` 0.25,
+  neither of which carried a published source before. The relation `R_installed = R·√a` is *not*
+  from a primary standard: it is corroborated by a secondary source and derives from the Kv law, so
+  it is this project's reasoning and the part to test.
+- **Whether step 3's re-merge loop terminates** on a plant whose valve, pipe and pump sizes move
+  together, and whether the zero-envelope diagnostic `24` §What this gives up leaves unsettled is
+  needed. Of its two candidate mitigations, the diagnostic is the one to build; range-sugar that
+  generates scenarios would re-introduce `D-138`'s driver sweep under another spelling.
 
 P6.3 follows, and **needs `S-79` first**: where a run's t = 0 sits on a time curve's timestamp axis,
 which `D-143` did not resolve and which a setpoint following a curve reaches immediately. `C-118`

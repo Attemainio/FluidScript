@@ -171,11 +171,41 @@ Kv moves with a pipe that moves with a pump is the shape that could cycle.
 | Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down |
 | Tank | Not sized here; a profile (`C-115`) | — |
 
-A plain maximum on a valve gives one that sits 15 % open in the light case and hunts. The
-rangeability figures a turn-down check needs are looked up and cited here when the package lands;
-they are not this project's to derive. Load-case and load-combination conventions are to be looked
-up too: structural engineering has settled vocabulary for exactly this idea and it is worth
-borrowing rather than reasoning out.
+A plain maximum on a valve gives one that sits 15 % open in the light case and hunts.
+
+**The rangeability figures, looked up 2026-09-22.** Manufacturers quote rangeability `R = Q_max /
+Q_min,controllable` by trim characteristic: **50:1 equal percentage, 33:1 linear, 20:1 quick
+opening**. On authority, the same source gives *"good control with reasonable pressure drop … at
+35 %–75 % of authority, but ideally 40–50 %"* — which corroborates this project's
+`SizingDefaults.ValveAuthorityTarget` of 0.5 and `ValveAuthorityMinimum` of 0.25, neither of which
+carried a published source until now. Source:
+`https://www.flocontrol.ltd.uk/wp-content/uploads/post/Rangeability-and-Turndown-ratio.pdf`.
+
+**The check, with the part that is this project's reasoning marked.** A bench rangeability is
+measured at constant Δp across the valve. Installed, the valve's share of the circuit drop rises as
+it closes — from `a` at full lift toward 1 — so the drop across it at minimum lift is `1/a` times
+the drop at full lift, and flow goes as `√Δp`. The installed rangeability is therefore
+`R·√a`, and the minimum-flow case passes when
+
+```
+Q_min / Q_max  >  1 / (R · sqrt(a_achieved))
+```
+
+At `R = 50` and `a = 0.5` that is 2.8 %: a valve sized on the winter case and asked for 3 % of its
+flow in summer fails it. **`R·√a` is not from a primary standard.** A secondary source states it
+(30:1 at authority 0.5 → 21:1, which is `30·√0.5`) and it derives cleanly from the Kv law as above,
+but the search did not confirm it in a standard — so it is this project's reasoning and the part
+most worth testing. `a_achieved` is already reported by `ValveSizer`, so the check needs no new
+input.
+
+**Load-case vocabulary, looked up the same day.** Structural engineering's terms map cleanly and are
+worth borrowing: a **load case** is one unfactored named condition — a scenario; an **envelope** takes,
+for every element, the case giving the worst value of each result component — the merge in step 2.
+There is no analogue of a **load combination**, because nothing here is factored and superposed: a
+plant scenario is already a complete state. The useful borrow is that a structural envelope is taken
+**per result component per member**, not per member wholesale, which is independent corroboration of
+the per-parameter merge above. Sources: `https://skyciv.com/docs/structural-3d/applying-loads/load-combinations/`
+and `https://manuals.dianafea.com/d103/Theory/Theoryse382.html`.
 
 The basis of every size names its governing scenario — "sized at winter, 50 kW" — and a component
 that is off in one scenario but on in another is sized where it is on, which closes the case `S-56`
