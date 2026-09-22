@@ -6719,12 +6719,27 @@ small on any stack worth modelling.
 3. **Otherwise zero**, reported informationally in a run.
 
 **The sized-area exclusion in `D-144` is withdrawn, and the stability problem it existed for is
-solved differently.** An exchanger in a **dynamic** circuit always declares its hold-up unknown per
-connected side, whatever the volume is, including zero. A zero hold-up is algebraically identical to
+solved differently.** An exchanger in a **dynamic** circuit always declares, per connected side, one
+unknown for the **enthalpy of the fluid it holds** — never for the volume itself, which is a fixed
+geometric parameter throughout — whatever that volume is, including zero. A zero hold-up is algebraically identical to
 today's outlet, so the first sizing pass is unchanged and the counting table is fixed from the start;
 later passes move only the number. A **static** circuit declares nothing extra, so no existing
 counting table, golden or layout moves. This is what lets the substation take about 3.6 l a side from
 its own sizing with nothing added to the script.
+
+### The volume is never solved for
+
+It is read at lowering from `volume`/`volume2` or from the area, then frozen for the run like every
+other size (`33` invariant 4, `D-22`), and the static solve that produced the area is the same one
+that produces every other size. What the solver varies is the **enthalpy of the fluid sitting in that
+volume**: algebraic in a static solve, where the balance `ṁ(h_in − h_hold) + Q̇ = 0` makes it exactly
+today's outlet, and differential in a run, where `Vρ dh_hold/dt` is the same expression.
+
+The **residence time** `Vρ/ṁ` therefore moves with flow while the volume does not, per side and per
+instant. That is the behaviour wanted rather than a complication: the substation's 3.6 l a side is
+4.0 s on its 0.895 kg/s primary and 2.0 s on its 1.793 kg/s secondary — one exchanger, two time
+constants, because the two sides carry different flows. At part load both lengthen in proportion,
+with no extra machinery, because the balance already divides by the flow the circuit solved.
 
 ### The plate metal is a real second term, and it is not in this decision
 
