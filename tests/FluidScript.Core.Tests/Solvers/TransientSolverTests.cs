@@ -77,15 +77,35 @@ public sealed class TransientSolverTests
 
     [Fact]
     [Trait("Category", "Validation")]
-    public async Task TheDemandStepLandsOnSixtySecondsAndTheOutletJumpsThere()
+    public async Task TheDemandStepLandsOnSixtySecondsAndTheOutletLeavesItAsAFirstOrderLag()
     {
-        // Invariant 10b and the acceptance row: the 60 s frame shows the outlet after the step, 65.0 °C,
-        // not a value between 50 and 65. 45 000 W over 0.2391 kg/s at 4178 J/(kg·K) is 45.0 K above
-        // the 20.07 °C inlet. The frame at 59 s is untouched.
+        // Invariant 10b: the step lands *on* the 60 s frame, never between two. What the frame shows
+        // changed with `C-114`. The duty rises at 60 s, but the exchanger's 0.5 dm³ still holds the
+        // water that was in it, so the outlet is unmoved at 60 s and empties from there.
+        //
+        // 45 000 W over 0.2392 kg/s at 4178 J/(kg·K) is 45.0 K above the 20.07 °C inlet, so the
+        // asymptote is still 65.1 °C. The approach is exactly first order with tau = m/mdot =
+        // 0.494 kg / 0.2392 kg/s = 2.065 s, which is the one number a hold-up has to get right:
+        //
+        //   t − 60    1 − e^(−t/tau)    measured          predicted
+        //        1 s           0.3833   55.82 °C          50.06 + 0.3833 · 15.03 = 55.82
+        //        2 s           0.6196   59.37 °C          50.06 + 0.6196 · 15.03 = 59.37
         var run = await TransientRunFixture.RunSampleAsync("m4-demand-step.fluid", new TransientSettings { Horizon = 120 }, TestContext.Current.CancellationToken);
+        var before = run.NodeCelsius(run.At(59), "HE1__3WV.h");
 
-        Assert.Equal(50.06, run.NodeCelsius(run.At(59), "HE1__3WV.h"), 0.1);
-        Assert.Equal(65.1, run.NodeCelsius(run.At(60), "HE1__3WV.h"), 0.2);
+        Assert.Equal(50.06, before, 0.1);
+        Assert.Equal(before, run.NodeCelsius(run.At(60), "HE1__3WV.h"), 1e-9);
+
+        var tau = 0.494 / 0.2392;
+        var asymptote = 65.09;
+
+        foreach (var elapsed in new[] { 1, 2, 3, 4 })
+        {
+            var expected = before + ((asymptote - before) * (1 - Math.Exp(-elapsed / tau)));
+
+            Assert.Equal(expected, run.NodeCelsius(run.At(60 + elapsed), "HE1__3WV.h"), 0.15);
+        }
+
         Assert.Equal(20.07, run.NodeCelsius(run.At(60), "N2.h"), 0.05);
         Assert.All(run.Frames.Select((f, i) => (f.Time, i)), pair => Assert.Equal(pair.i, pair.Time, 1e-9));
     }
@@ -95,14 +115,17 @@ public sealed class TransientSolverTests
     public async Task TheFrontCrossesTheRecirculationPipeAsAFourStageLag()
     {
         // 33's worked example while it holds: the closed form assumes a 65 °C source, and the source
-        // rises as the warmed front returns to N2 (65.2 at 70 s, 65.9 at 80 s, 67.0 at 90 s), so the
+        // rises as the warmed front returns to N2 (65.0 at 70 s, 65.5 at 80 s, 66.5 at 90 s), so the
         // rows past 90 s are above the table on a correct run. PB#n4 is the last cell.
+        //
+        // Each row is about half a kelvin below what it read before `C-114`, because the exchanger's
+        // hold-up delays the front by its own 2.1 s before the pipe's four stages ever see it.
         var run = await TransientRunFixture.RunSampleAsync("m4-demand-step.fluid", new TransientSettings { Horizon = 200 }, TestContext.Current.CancellationToken);
 
         Assert.True(run.Celsius(run.At(70), "PB#n4.h") - 50.06 < 0.5, "the outlet moved more than 0.5 K ten seconds after the step");
-        Assert.Equal(50.3, run.Celsius(run.At(70), "PB#n4.h"), 0.2);
-        Assert.Equal(52.4, run.Celsius(run.At(80), "PB#n4.h"), 0.3);
-        Assert.Equal(55.7, run.Celsius(run.At(90), "PB#n4.h"), 0.4);
+        Assert.Equal(50.25, run.Celsius(run.At(70), "PB#n4.h"), 0.2);
+        Assert.Equal(51.91, run.Celsius(run.At(80), "PB#n4.h"), 0.3);
+        Assert.Equal(55.12, run.Celsius(run.At(90), "PB#n4.h"), 0.4);
 
         // Ordering: the front reaches the first cell before the last, by about three residence times.
         var first = run.Frames.First(f => run.Celsius(f, "PB#n1.h") > 57.5).Time;

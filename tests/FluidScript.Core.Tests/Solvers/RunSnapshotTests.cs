@@ -72,13 +72,13 @@ public sealed class RunSnapshotTests
     [Fact]
     public async Task TheDemandStepStartsFromItsDesignState()
     {
-        // The four cells of PB start at the enthalpy the design solve gave their nodes, and both
-        // promotions — the pump head that HE1's out.t chose and the valve position the setpoint chose —
-        // are frozen at their design values (D-140): 2.55 m and 0.50 on 01's figures.
+        // The four cells of PB and HE1's hold-up start at the enthalpy the design solve gave their
+        // nodes, and both promotions — the pump head that HE1's out.t chose and the valve position the
+        // setpoint chose — are frozen at their design values (D-140): 2.55 m and 0.50 on 01's figures.
         var snapshot = await SnapshotAsync("m4-demand-step.fluid");
         var layout = snapshot.System.Unknowns;
 
-        Assert.Equal(4, snapshot.DifferentialInitial.Length);
+        Assert.Equal(5, snapshot.DifferentialInitial.Length);
 
         for (var index = 0; index < layout.Differential.Length; index++)
         {

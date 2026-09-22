@@ -188,6 +188,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-143` | Accepted | 2026-09-22 | A plant is sized for a stated list of scenarios, not for a swept driver range |
 | `D-144` | Accepted | 2026-09-22 | A heat exchanger's hold-up is its plate area times the channel gap, and it is one mixed volume per side |
 | `D-145` | Accepted | 2026-09-22 | Exchanger hold-up is two stated per-side volumes first, and the area rule is only the fallback |
+| `D-146` | Accepted | 2026-09-22 | An exchanger's hold-up is a volume given to the node it discharges into, not an unknown of its own |
 <!-- index:end -->
 
 ---
@@ -6781,3 +6782,67 @@ which is a 100 % error. It is **not** second-order where one side is a refrigera
 volumetric heat capacity is one to three orders below water's; there the metal dominates and a model
 without it is wrong rather than approximate. It also couples the two sides rather than adding to
 either, so it is a third state between them and not a bigger volume. `C-119`.
+
+## D-146 · An exchanger's hold-up is a volume given to the node it discharges into, not an unknown of its own
+
+**Accepted · 2026-09-22** (found while building `C-114`) · amends the mechanism of `D-144` and
+`D-145`, whose physics and whose numbers both stand · constrains
+[`22`](../20-core-domain/22-component-model.md),
+[`33`](../30-solver/33-transient-time-domain.md), [`23`](../20-core-domain/23-topology-and-graph.md)
+
+`D-144` chose between two ways to give an exchanger a control volume: declare the component an
+unknown of its own, or insert a node in the circuit. It took the first and rejected the second,
+because inserting a node changes every counting table and every layout whether or not the exchanger
+has a volume. `D-145` kept that and specified the balance row, which meant moving the duty off the
+downstream node and reversing half of `D-69`.
+
+**There is a third way, and it was not considered: give the volume to a node that is already there.**
+The exchanger's outlet port is wired to a node, and `SystemLayout` has turned any node with a
+`ThermalVolume` into a differential state since P6.1 — the mechanism discretized pipes use. So the
+lowering pass adds each side's hold-up to the node that side discharges into, and stops.
+
+### Why it is the same physics
+
+At forward flow `D-69` already puts the whole duty on the outlet node, and the fluid arriving there
+is the inlet's. That node's energy balance is therefore `ṁ(h_in − h) + Q̇`, which is exactly the row
+`D-145` was going to write. Giving the node a mass turns it into `m·dh/dt = ṁ(h_in − h) + Q̇` — one
+perfectly mixed volume per side carrying its own heat, `D-144`'s words, with no row rewritten and no
+duty moved.
+
+### What it costs, against what `D-145` specified
+
+| | `D-145`'s unknown | This |
+|---|---|---|
+| Columns and rows added | one per connected side, in every dynamic circuit | none, ever |
+| `D-69` | reversed on the exchanger | untouched |
+| Steady solve | a new row that must reduce to today's answer | literally unreached — `SystemLayout` builds the state only in `SolveMode.Transient` |
+| Pinning, port delivery | `EquationSystem.Pin` and `Arriving` generalised off the tank path | unchanged |
+| Code | a restructure across four files | 60 lines in `Lowering` |
+
+**Measured on the demand-step loop.** `HE1` holding 0.5 dm³ becomes a fifth differential state,
+`HE1__3WV.h`, at 0.494 kg. The duty step at 60 s used to move the outlet 50.06 → 65.09 °C between
+two frames; it now leaves 50.06 °C at 60 s and approaches 65.09 as a first-order lag with
+`τ = m/ṁ = 0.494 / 0.2392 = 2.065 s` — 55.82 °C at 61 s against a predicted 55.82, 59.37 at 62 s
+against 59.37. The settled state is unchanged at 72.2 °C, and the steady cross-check (V8) still
+agrees. Whole suite: 2120 green, one token golden and the sample's own line the only diffs.
+
+### What it gets wrong, and why that is acceptable
+
+- **The volume sits at the nominal outlet, so a reversed side holds its water on the wrong end of
+  itself.** `D-69`'s forward share moves the *duty* smoothly through a reversal; the volume cannot
+  follow it, because a node's thermal volume is fixed at lowering. A component-owned unknown would
+  have had the same problem for the same reason — the hold-up would still have been declared on one
+  side, not on a flow direction.
+- **A node shared with other components mixes the hold-up into whatever else arrives there.** The
+  total capacitance on the circuit is right; its placement is upstream of where it should be by one
+  junction. Both reference circuits wire the outlet to a dedicated node, which is the ordinary case.
+- **An outlet wired to nothing gets no hold-up**, silently. An unconnected outlet is already an
+  inference-rule finding, so nothing new is hidden.
+
+### Rejected
+
+- *`D-145`'s own mechanism.* Cost: a column, a row, a duty move and the pin generalisation, for a
+  result this reaches without any of them. It is not wrong; it is unnecessary.
+- *Splitting the hold-up between the two ports.* Symmetric under reversal. Cost: halves the lag in
+  the forward case and puts water upstream of the heat, which is the wrong answer twice over to fix a
+  case that is already degenerate.

@@ -104,8 +104,8 @@ non-goals: no acoustics).
 
 `D-140`. The demand-step loop states `HE1 heat_exchanger power=30 out.t=50`, and in static mode a
 stated `out.t` is a constraint that promotes the pump's head (`D-02`, `D-130`). In a run it is not
-held: the worked example's outlet jumps to 65 °C at the step because `out.t` names *the flow the
-exchanger was sized for*, not a thermostat.
+held: the worked example's outlet leaves 50 °C for 65 °C after the step because `out.t` names *the
+flow the exchanger was sized for*, not a thermostat.
 
 | Written | At t = 0 (the design solve) | At t > 0 |
 |---|---|---|
@@ -215,6 +215,16 @@ stir a chilled store that was resting correctly. The whole spread from 1 °C to 
 0.07 kg/m³, seven parts in a hundred thousand, so near 4 °C the ordering is very weakly determined;
 it stays deterministic, because the backend is a function rather than a measurement, and two layers
 that close are the same water.
+
+**Built in C-114** (2026-09-22). An exchanger's hold-up needed no new machinery at all: `Lowering`
+adds each side's volume to the node that side discharges into, and that node was already a
+differential state whenever it carried one (`D-146`). No column, no row, no change to `D-69`, and
+nothing at all in a steady solve, where `SystemLayout` builds no differential states. Measured on the
+demand-step loop with `HE1` holding 0.5 dm³: the outlet no longer jumps 50.06 → 65.09 °C between two
+frames, but leaves 50.06 °C at the step and approaches 65.09 as a first-order lag with
+`τ = m/ṁ = 2.065 s`, to three figures at 1, 2 and 4 s. The settled state is unchanged and the steady
+cross-check still agrees. The CFL limit on that loop moved from the pipe cell's 8.6 s to the
+hold-up's 1.86 s, which is still above the frame interval.
 
 No ambient loss, wall conduction, or inlet-jet entrainment term exists in v1. Adding a small hidden
 diffusivity would make a stored temperature decay for a reason absent from the script.
@@ -563,29 +573,45 @@ the path a front from `HE1` actually takes to reach `N2`.
 | Secondary-loop residence time | 4.5 l × 0.988 / 0.2392 = **18.6 s** | One circulation of the pump loop |
 | Pipe cell (2 m of DN20, 21.7 mm bore) | 0.740 l × 0.988 / 0.0763 = **9.58 s** | Per internal node |
 | Dead time `HE1` → `N2` | 4 × 9.6 = **38.3 s** | The four pipe cells in series |
-| CFL step limit | 0.9 × 9.6 = **8.6 s** | Set by the smallest volume |
-| Frame interval | 1.0 s | Interpolated between steps |
+| `HE1` hold-up (0.5 dm³, `C-114`) | 0.494 / 0.2392 = **2.07 s** | The exchanger's own lag, on the side-1 flow |
+| CFL step limit | 0.9 × 2.07 = **1.86 s** | Set by the smallest volume, which is now the hold-up |
+| Frame interval | 1.0 s | A step lands on every frame time; nothing is interpolated |
 
-**Response.** At t = 60 s the duty rises 50 %. The heat exchanger has no capacitance in v1, so its
-outlet enthalpy jumps within one step — **to 65.0 °C**. At the instant of the step the flow has not
-changed, so the rise is 45 000 W ÷ (0.2392 kg/s × 4178 J/(kg·K)) = 45.0 K above the 20 °C inlet.
+**Response.** At t = 60 s the duty rises 50 %. At the instant of the step the flow has not changed, so
+the exchanger's outlet is heading for 45 000 W ÷ (0.2392 kg/s × 4178 J/(kg·K)) = 45.0 K above the
+20 °C inlet — **65.1 °C**.
 
-That jump reaches `3WV.a` immediately: there is no volume between `HE1` and the valve. It reaches the
-**measured** node `N2` only after crossing `PB`, and that is the transport this document exists to
-model. Tracking `PB`'s outlet with the valve **held at its design position** — the uncontrolled case,
-which is the one with a closed form — the four pipe cells give a four-stage series lag from 50.0 °C to
-65.0 °C:
+**It does not get there in one step, and until `C-114` it did.** `HE1` states `volume=0.5`, so the
+exchanger holds 0.494 kg, and the water already in it has to be displaced before the new temperature
+leaves. The outlet is therefore *unmoved* at 60 s and approaches 65.1 °C as a first-order lag with
+`τ = m/ṁ = 0.494 / 0.2392 = 2.065 s`:
+
+| t − 60 | `1 − e^(−t/τ)` | Predicted | Measured |
+|---|---|---|---|
+| 1 s | 0.3833 | 55.82 °C | 55.82 |
+| 2 s | 0.6196 | 59.37 °C | 59.37 |
+| 4 s | 0.8553 | 62.91 °C | 62.91 |
+
+Three significant figures on a lag that no part of the step controller knows about, which is the
+check worth having: the hold-up is a node volume and the integrator does not treat it specially
+(`D-146`). Take the `volume=` away and the table above collapses back to a single-frame jump.
+
+That outlet reaches `3WV.a` immediately after it: there is no volume between `HE1` and the valve. It
+reaches the **measured** node `N2` only after crossing `PB`, and that is the transport this document
+exists to model. Tracking `PB`'s outlet with the valve **held at its design position** — the
+uncontrolled case, which is the one with a closed form — the four pipe cells give a four-stage series
+lag from 50.0 °C to 65.0 °C:
 
 | Time | s = (t−60)/9.6 | Fraction of the 15.0 K rise | `PB` outlet, closed form | Measured (P6.1) | `HE1` outlet, measured |
 |---|---|---|---|---|---|
-| 60 s | 0 | 0 % | 50.0 °C — step applied at `HE1` | 50.06 | 65.09 |
-| 70 s | 1.04 | 2 % | 50.3 °C | 50.39 | 65.19 |
-| 80 s | 2.08 | 16 % | 52.4 °C | 52.46 | 65.85 |
-| 90 s | 3.13 | 38 % | 55.7 °C | 55.87 | 66.95 |
-| 100 s | 4.17 | 60 % | 59.0 °C | 59.37 | 68.07 |
-| 110 s | 5.21 | 76 % | 61.4 °C | 62.31 | 69.01 |
-| 130 s | 7.29 | 93 % | 64.0 °C | 66.33 | 70.30 |
-| 160 s | 10.42 | 99 % | 64.9 °C | 69.48 | 71.32 |
+| 60 s | 0 | 0 % | 50.0 °C — step applied at `HE1` | 50.06 | 50.06 |
+| 70 s | 1.04 | 2 % | 50.3 °C | 50.25 | 65.00 |
+| 80 s | 2.08 | 16 % | 52.4 °C | 51.91 | 65.53 |
+| 90 s | 3.13 | 38 % | 55.7 °C | 55.12 | 66.48 |
+| 100 s | 4.17 | 60 % | 59.0 °C | 58.62 | 67.60 |
+| 110 s | 5.21 | 76 % | 61.4 °C | 61.64 | 68.61 |
+| 130 s | 7.29 | 93 % | 64.0 °C | 65.82 | 70.03 |
+| 160 s | 10.42 | 99 % | 64.9 °C | 69.15 | 71.16 |
 | 600 s | — | settled | — | 72.18 | 72.18 |
 
 The fractions are the analytic four-stage series lag, `1 − e⁻ˢ(1 + s + s²/2 + s³/6)`, which is what
@@ -593,8 +619,11 @@ four lumped nodes in series produce and is worth asserting directly in a test �
 rows only**. The closed form assumes a source held at 65.0 °C, and the source is not held: as soon
 as the front's foot reaches `N2` the mixing node warms, the exchanger's inlet with it, and its outlet
 climbs from 65.1 °C towards the settled 72.2 °C (measured 2026-09-22, `diagnostics/transient/`). The
-rows past 90 s are therefore above the closed form on a correct run, by 0.4 K at 100 s and 4.6 K at
-160 s, and a test asserting them fails a correct implementation. The dead time and the shape of the
+rows past 90 s are therefore above the closed form on a correct run, by 4.3 K at 160 s, and a test
+asserting them fails a correct implementation. The measured column is about half a kelvin *below* the
+closed form between 80 and 100 s for the opposite reason: the exchanger's own 2.1 s of hold-up delays
+the front before the pipe's four stages ever see it, which the closed form does not carry either
+(`C-114`, measured 2026-09-22). The dead time and the shape of the
 first arrival are the closed form's; the level it arrives at is the loop's.
 
 **The first ten seconds are the row that matters.** At t = 70 s the outlet has moved 0.3 K — within
@@ -634,13 +663,17 @@ unstable adjacent block remixes and its total enthalpy remains unchanged.
 
 ## Acceptance criteria
 
-- [x] The pinned system of the demand-step loop counts square with exactly the four `PB` cells as
-      differential states; the storage header with exactly five, and no `h_tank` (`D-139`).
+- [x] The pinned system of the demand-step loop counts square with exactly the four `PB` cells and
+      `HE1`'s hold-up as differential states (`C-114`); the storage header with exactly five, and no
+      `h_tank` (`D-139`).
 - [x] A run with no disturbance drifts less than 0.1 % over 600 s (invariant 3). Measured 2e-11 (P6.1).
 - [x] A run started from `01`'s demand-step script begins at the cooling loop's figures — 0.2392 kg/s
       secondary, 0.0763 kg/s recirculating, the valve at 0.50 — with `N2` at its setpoint (`D-141`).
-- [x] A step boundary falls on every scheduled time and every frame time; the 60 s frame of the
-      demand-step run shows `HE1.out.t` at 65.0 °C, not a value between 50 and 65.
+- [x] A step boundary falls on every scheduled time and every frame time. **The 60 s frame shows
+      `HE1.out.t` still at 50.06 °C, and 65.1 °C is reached over the exchanger's own 2.1 s** — the
+      criterion originally read "65.0 °C at the 60 s frame", which was the no-hold-up model
+      (`C-114`, `D-146`). What it tests is unchanged: the step lands *on* a frame, never between two,
+      and the frame at 59 s is untouched.
 - [x] The settled state after a step equals a steady solve of the post-step system within tolerance.
 - [x] A front reaches a node 8 m downstream later than one 2 m downstream, by roughly length ÷ velocity.
 - [x] `PB`'s outlet has moved less than 0.5 K ten seconds after the step, and the transport figures use

@@ -69,6 +69,7 @@ public static partial class Lowering
         build.ExpandPipes();
         build.Prune();
         build.Connect();
+        build.AttachHoldUp();
 
         var junctions = build.JunctionElements();
         var branches = build.Decompose(junctions);

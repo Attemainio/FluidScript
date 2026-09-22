@@ -895,6 +895,77 @@ public static partial class Lowering
         /// Run after every expansion rather than during one, because <see cref="Expand"/> rewrites link
         /// endpoints by element index and removing an element mid-pass would move the ones after it.
         /// </remarks>
+        /// <summary>Gives each exchanger's hold-up to the node its outlet delivers into (<c>C-114</c>).</summary>
+        /// <remarks>
+        /// <para>
+        /// <strong>The water an exchanger holds has to sit in a control volume, and the node at its
+        /// outlet already is one.</strong> A node with a thermal volume is a differential state in a run
+        /// and nothing at all in a steady solve (<c>SystemLayout</c> builds the state only in
+        /// <see cref="SolveMode.Transient"/>), which is exactly the hold-up's behaviour -- so the lag
+        /// arrives without a column, a row, or a change to any counting table.
+        /// </para>
+        /// <para>
+        /// The duty already lands on that node at forward flow (<c>D-69</c>'s forward share), so the
+        /// node's balance becomes <c>m·dh/dt = ṁ(h_in − h) + Q̇</c>: one perfectly mixed volume per side
+        /// carrying its own heat, which is what <c>D-144</c> asked for.
+        /// </para>
+        /// <para>
+        /// <strong>Two approximations, both in a stated direction.</strong> The volume is fixed at the
+        /// nominal outlet, so a reversed side holds its water on the wrong end of itself; and a node
+        /// shared with other components mixes the hold-up into whatever else arrives there instead of
+        /// keeping it inside the exchanger. Neither changes the total capacitance on the circuit.
+        /// </para>
+        /// </remarks>
+        public void AttachHoldUp()
+        {
+            for (var element = 0; element < _elements.Count; element++)
+            {
+                if (_elements[element] is not HeatExchanger exchanger)
+                {
+                    continue;
+                }
+
+                Hold(element, port: 1, exchanger.HoldUp);
+
+                if (exchanger.SecondarySideConnected)
+                {
+                    Hold(element, port: 3, exchanger.HoldUp2);
+                }
+            }
+        }
+
+        /// <summary>Adds one side's hold-up to whatever node that port is wired to.</summary>
+        /// <param name="element">The exchanger.</param>
+        /// <param name="port">Its outlet port on that side.</param>
+        /// <param name="volume">m³ held, ignored when it is zero or the port reaches no node.</param>
+        private void Hold(int element, int port, double volume)
+        {
+            if (!(volume > 0) || port >= _peerElement[element].Length)
+            {
+                return;
+            }
+
+            var peer = _peerElement[element][port];
+
+            if (peer < 0 || _elements[peer] is not CircuitNode node)
+            {
+                return;
+            }
+
+            for (var index = 0; index < _nodes.Count; index++)
+            {
+                if (ReferenceEquals(_nodes[index].Component, node))
+                {
+                    _nodes[index] = _nodes[index] with
+                    {
+                        ThermalVolume = _nodes[index].ThermalVolume + volume,
+                    };
+
+                    return;
+                }
+            }
+        }
+
         public void Prune()
         {
             if (_replaced.Count == 0)

@@ -43,18 +43,25 @@ public sealed class PinnedViewTests
     }
 
     [Fact]
-    public async Task TheDemandStepLoopHasExactlyItsFourPipeCellsAsDifferentialStates()
+    public async Task TheDemandStepLoopHasItsPipeCellsAndTheExchangersHoldUpAsDifferentialStates()
     {
         // Partition by volume, not by kind: the four cells of `PB` carry 0.740 l each (2 m of the
-        // 21.7 mm bore) and nothing else in the loop carries any. The exchanger's outlet, the mixing
-        // node and the terminals are algebraic, exactly as in the steady solve.
+        // 21.7 mm bore), and `HE1`'s stated 0.5 dm³ lands on the node it discharges into (`C-114`).
+        // The mixing node and the terminals carry none and stay algebraic, as in the steady solve.
         var run = await DesignAsync("m4-demand-step.fluid");
         var layout = SystemLayout.Build(run.Graph, WellPosedness.Check(run.Graph).Counting);
+        var cell = Math.PI * 0.0217 * 0.0217 / 4 * 2;
 
         Assert.Equal(SolveMode.Transient, run.Graph.Mode);
-        Assert.Equal(["PB#n1.h", "PB#n2.h", "PB#n3.h", "PB#n4.h"], layout.Differential.Select(static s => s.Name).ToArray());
-        Assert.All(layout.Differential, state => Assert.Equal(Math.PI * 0.0217 * 0.0217 / 4 * 2, state.Volume, 1e-9));
+        Assert.Equal(
+            ["HE1__3WV.h", "PB#n1.h", "PB#n2.h", "PB#n3.h", "PB#n4.h"],
+            layout.Differential.Select(static s => s.Name).ToArray());
+        Assert.Equal(0.0005, layout.Differential[0].Volume, 1e-12);
+        Assert.All(layout.Differential.Skip(1), state => Assert.Equal(cell, state.Volume, 1e-9));
         Assert.All(layout.Differential, state => Assert.True(state.Column >= layout.NodeEnthalpyOffset));
+
+        // The hold-up costs no column and no row: it is a volume on a node that already existed, which
+        // is why no counting table moved when exchangers gained one (`D-146`).
         Assert.Equal(layout.Count, run.Solve.Solution.Values.Length);
     }
 

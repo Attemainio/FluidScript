@@ -7,13 +7,17 @@
 # Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
 # `N2` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
 # cells keep the pipe's stated dn (C-113). The run itself arrives with P6.1.
+#
+# `HE1` holds 0.5 dm3 a side (C-114): a 30 kW brazed plate unit is around 0.5 m2 of area, and the
+# rule in 22 puts about a litre per square metre in each side. At 0.239 kg/s that is a 2.1 s lag,
+# so the duty step at 60 s leaves the exchanger as a curve and not as a cliff.
 
 fluidscript 1
 circuit demandStep
 fluid dynamic water
 show temperature
 
-HE1 heat_exchanger power=30 out.t=50
+HE1 heat_exchanger power=30 out.t=50 volume=0.5
 3WV three_way_valve
 PU1 pump
 P1  pipe length=25

@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1 and P6.2 shipped 2026-09-22 (the assembly, the integrator, the stratified tank); `C-114` next by the user's call, then P6.3; P6.8 runnable in parallel; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22 (the assembly, the integrator, the stratified tank, the exchanger's hold-up); **P6.8 next by the user's call**, then P6.3; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1274,6 +1274,26 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > bracketing the 0.040 and 0.103 l measured on Alfa Laval. `C-119` opened for the plate metal,
 > measured at 15–20 % of the fluid's capacitance on water/water and dominant on a refrigerant or air
 > side. 50 open.
+>
+> **`C-114` shipped 2026-09-22, and `D-146` records why it was small.** What it meant to do: give an
+> exchanger the water it holds, so a duty step leaves it as a curve rather than a cliff. `D-145`
+> specified the mechanism as an unknown and a balance row per connected side, with the duty moved off
+> the downstream node and half of `D-69` reversed. **What the build found is that a third mechanism
+> exists and neither `D-144` nor `D-145` considered it**: the node the side discharges into is already
+> a control volume whenever it carries a thermal volume, and has been since the pipe cells landed in
+> P6.1. At forward flow `D-69` already puts the whole duty on that node and the fluid arriving is the
+> inlet's, so its balance is already the row `D-145` was going to write — giving the node a mass turns
+> it into `m·dh/dt = ṁ(h_in − h) + Q̇`. Sixty lines in `Lowering`, no column, no row, nothing in a
+> static solve (`SystemLayout` builds differential states only in `SolveMode.Transient`). What it
+> costs, stated rather than discovered later: the volume sits at the nominal outlet, so a reversed
+> side holds its water at the wrong end, and a shared node mixes the hold-up one junction upstream of
+> true. Measured on the demand-step loop with `HE1` stating `volume=0.5`: a fifth differential state
+> at 0.494 kg; the outlet leaves 50.06 °C at the step instead of jumping to 65.09, and approaches it
+> as a first-order lag with `τ = m/ṁ = 2.065 s` — 55.82 °C at 1 s against a predicted 55.82, 59.37 at
+> 2 s against 59.37. Settled state unchanged at 72.18 °C, V8 still agrees, 2120 green. The sizer owns
+> `volume`/`volume[2]` and the substation's 3.658 m² gives 3.585 dm³ a side with nothing written.
+> `33`'s worked example, its CFL row (8.6 s → 1.86 s, the hold-up now the smallest volume) and one
+> acceptance criterion moved with it. 49 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1360,23 +1380,17 @@ unassessed, not clean.
 
 ## What is next
 
-**`C-114` is next, and its physics is now settled** (`D-144` and `D-145`, 2026-09-22): stated
-`volume`/`volume2` per side first, else `area × 1.96 mm / 2` from a stated or sized area, else zero
-reported informationally. **The code is not built.** It is a restructure rather than plumbing — the
-hold-up is the exchanger's own unknown per connected side, declared for every exchanger in a dynamic
-circuit so the counting table is fixed from the first pass, which moves the duty off the downstream
-node's balance onto the hold-up's row, reversing half of `D-69`, and generalises the tank-only
-branches of `SystemLayout.Differential` and `EquationSystem.Pin`. Static circuits declare nothing
-extra. Do it as its own package and read the corpus report before and after; it is **cheap now and
-expensive later**, because a differential state travels in the frame and adding one after `43`'s
-contract and the frontend exist costs a version bump. `C-118` (one mixed volume over-damps) and
-`C-119` (the plates store heat) follow it and share a structure, the three-node exchanger, so design
-them together. Then P6.3, which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
-timestamp axis, which `D-143` did not resolve and which a setpoint following a curve reaches
-immediately. P6.8 is **sizing over scenarios** (`D-143`), tier-20 work runnable in parallel and
+**`C-114` shipped 2026-09-22 and `P6.8` is next by the user's call** ("after this, I want the sizing
+first before transient", 2026-09-22). P6.8 is **sizing over scenarios** (`D-143`), tier-20 work
 specified end to end in `24` §Sizing over scenarios, `12` and `15`; its two open measurements are
-named in `08`'s row. Read `33` whole before any transient package; its worked example now carries the
-measured column beside the closed form and says where the two part.
+named in `08`'s row, and nothing in P6 blocks it.
+
+P6.3 follows, and **needs `S-79` first**: where a run's t = 0 sits on a time curve's timestamp axis,
+which `D-143` did not resolve and which a setpoint following a curve reaches immediately. `C-118`
+(one mixed volume over-damps) and `C-119` (the plates store heat, **not scheduled** — the user's
+call) share a structure, the three-node exchanger, so design them together when either is built.
+Read `33` whole before any transient package; its worked example now carries the measured column
+beside the closed form and says where the two part.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens

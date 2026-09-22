@@ -551,6 +551,22 @@ Checked against a unit rather than a coefficient: an AC18-30 has 30 plates of 0.
 channels instead gives `15 · 0.040 = 0.60 dm³`. The 7 % gap is the two end plates, and it is well
 inside what the estimate is for.
 
+### Where the volume lives
+
+**It is given to the node the side discharges into, not declared on the exchanger** (`D-146`). A node
+with a thermal volume has been a differential state since the pipe cells landed, and it is one only in
+`SolveMode.Transient`, so a hold-up costs no column, no row and nothing at all in a steady solve. At
+forward flow `D-69` already puts the whole duty on that node and the fluid arriving there is the
+inlet's, so its balance is already `ṁ(h_in − h) + Q̇`; giving it a mass makes that
+`m·dh/dt = ṁ(h_in − h) + Q̇`, which is the mixed volume this section describes. Nothing about `D-69`
+moves and no counting table changes.
+
+Two consequences follow from a node's volume being fixed at lowering. A **reversed** side holds its
+water at the end it is now entering, because the volume cannot follow the forward share the way the
+duty does. And a node **shared** with other components mixes the hold-up into whatever else arrives
+there — the capacitance on the circuit is right, its position is one junction upstream of true. Both
+reference circuits wire an exchanger outlet to a node of its own.
+
 **What this is and is not.** The 1.96 mm is this project's reading of two published units, not a
 manufacturer's stated rule, so it is the part most worth testing — and it is why `volume` exists as a
 parameter at all. What the rule deliberately leaves out is the plates themselves: steel adds roughly
