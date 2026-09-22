@@ -372,7 +372,7 @@ instrument that reaches "a designer would not draw it that way", and it is cheap
 | P6.5 | Backend worker and the WebSocket contract ([`43`](40-api/43-realtime-contract.md)) |
 | P6.6 | Frontend Web Worker, frame reconstruction, playback ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P6.7 | Detached runs across tabs (`D-39`, `D-42`) — V23 |
-| P6.8 | **Sizing over a driver range** (`D-138`, added 2026-09-22): `design tout=-26..32 step=1`, the sweep at grid, breakpoints and crossings, the per-kind envelope with the pump-curve and valve minimum-flow checks, the verification sweep, the governing point in every size's basis ([`24`](20-core-domain/24-auto-sizing.md) §Sizing over a driver range). Tier-20 work independent of P6.0–P6.7 and runnable in parallel with them; placed here because it changes nothing a static script does today and the transient reads its envelope sizes from the snapshot |
+| P6.8 | **Sizing over a driver range** (`D-138`, added 2026-09-22): `design tout=-26..32 step=1`, the sweep at grid, breakpoints and crossings, the per-kind envelope with the pump-curve and valve minimum-flow checks, the verification sweep, the governing point in every size's basis, the chunked workers and the sweep report ([`24`](20-core-domain/24-auto-sizing.md) §Sizing over a driver range). Tier-20 work independent of P6.0–P6.7 and runnable in parallel with them; placed here because it changes nothing a static script does today and the transient reads its envelope sizes from the snapshot |
 
 Sizing is frozen for the duration of a run: it is a design-point property, and re-running it per
 frame would make the model's geometry a function of time. **P6.0 exists because P6.1 as first

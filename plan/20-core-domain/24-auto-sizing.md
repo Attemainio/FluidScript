@@ -160,6 +160,33 @@ tout = 12.7 °C, 5.0 kW" — and a component that is off at the first point but 
 where it is on, which closes the case `S-56` left. A static solve operates at the range's first
 value; a run starts there too, its schedule moving the drivers from that state.
 
+**How the sweep runs** (the user's call, 2026-09-22, option C of three; not built). The points are
+solved by a fixed set of workers, `sizing.workers` (default 6, a setting and never a constant), each
+taking a **contiguous chunk** of the range and warm-starting every point from the one before it in
+the chunk: the solution at −26 °C is the seed for −25 °C, which is what turns four iterations into
+one and keeps a point out of a valley its neighbour avoided. A fully parallel grid would cold-start
+every point; a sequential sweep would keep the warm start on one core; chunks keep both, at one
+cold start per chunk. The workers are dedicated threads, not the pool: the property state is
+per-thread and its native half is never returned (`21`, `C-76`), so a fixed set costs one state
+each and thread churn costs one per thread that dies. The solvers hold no mutable state and are
+shared; each point lowers its own graph, because sizing writes to it.
+
+Three phases drain in order: the grid, breakpoints and crossings, all known before the first
+solve; the local refinement around each component's peak, which needs the first phase's results
+and is small; then, after the envelope, the verification sweep, which is embarrassingly parallel
+because nothing is sized in it. The sweep checks cancellation between points, because a ranged
+script sweeps on every debounced edit and the session supersedes a stale solve (`41`); a superseded
+sweep leaves the previous sizes in place and the report says how far it got.
+
+**The sweep report**, alongside the solve report (`62`): per point the driver value, iterations,
+passes, termination, wall time and worker; per size the governing point and its value, which is
+the basis string; totals — points, solves, wall time, the longest point, and solver time against
+wall time, which is the parallel efficiency. `PipelineTimingDiagnostics` gains a sweep row on the
+demand-step loop, so the number sits next to the per-solve figures and whether `C-68` and `F-19`
+ever become a sweep problem is decided from evidence. Measured today (Debug, water): one outer-loop
+solve is 21–55 ms on the samples, so two sweeps at 1 K are under 7 s sequential and about 1 s on
+six workers; the transient meets `C-68` first.
+
 ## Constraint propagation
 
 `D-02`'s second half: a stated value constrains rather than seeds. Concretely:
