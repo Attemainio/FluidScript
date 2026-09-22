@@ -29,6 +29,21 @@ public abstract record ValueId
         public override string ToString() => $"{Component}.{Parameter}";
     }
 
+    /// <summary>One element of a parameter's per-scenario value list (<c>D-143</c>).</summary>
+    /// <param name="Component">The component's name.</param>
+    /// <param name="Parameter">The canonical parameter name.</param>
+    /// <param name="Scenario">The element's position, which is the scenario's position.</param>
+    /// <remarks>
+    /// Separate from <see cref="ComponentParameter"/> because each element is evaluated on its own:
+    /// an element may read a curve or a <c>let</c> the others do not, so they are different nodes in
+    /// the dependency graph even though they are one line in the file.
+    /// </remarks>
+    public sealed record ScenarioParameter(string Component, string Parameter, int Scenario) : ValueId
+    {
+        /// <inheritdoc/>
+        public override string ToString() => $"{Component}.{Parameter}[{Scenario}]";
+    }
+
     /// <summary>A property read off a component.</summary>
     /// <param name="Component">The component's name.</param>
     /// <param name="Property">The canonical property name.</param>

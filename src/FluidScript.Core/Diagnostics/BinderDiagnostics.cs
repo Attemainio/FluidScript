@@ -788,6 +788,56 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{written}' states the pressure of '{node}', which '{other}' already states. State it once.");
 
+    /// <summary>A scenario list whose length is not the declared count (<c>D-143</c>).</summary>
+    /// <value><c>FS1540</c>, an error naming what was written, its length and the cases.</value>
+    /// <remarks>
+    /// <strong>Nothing is padded.</strong> Extending <c>[50, 60]</c> to four by repeating the last
+    /// value invents two cases nobody stated, and the plant would then be sized for them. <c>D-60</c>
+    /// already refused that shape of rule for timestamp formats, for the same reason: a repair that
+    /// guesses is worse than a message that asks.
+    /// </remarks>
+    public static DiagnosticDescriptor ScenarioCountMismatch { get; } = new(
+        "FS1540",
+        DiagnosticSeverity.Error,
+        "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.");
+
+    /// <summary>A scenario list in a file that declares no scenarios (<c>D-143</c>).</summary>
+    /// <value><c>FS1541</c>, an error saying where the list would have bound.</value>
+    public static DiagnosticDescriptor ScenarioListWithoutScenarios { get; } = new(
+        "FS1541",
+        DiagnosticSeverity.Error,
+        "'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.");
+
+    /// <summary><c>design</c> naming a case that was not declared (<c>D-143</c>).</summary>
+    /// <value><c>FS1542</c>, an error listing the declared names.</value>
+    public static DiagnosticDescriptor UnknownDesignScenario { get; } = new(
+        "FS1542",
+        DiagnosticSeverity.Error,
+        "'{name}' is not a scenario of this file. It declares: {names}.");
+
+    /// <summary>Scenarios declared with no <c>design</c> naming one of them (<c>D-143</c>).</summary>
+    /// <value><c>FS1543</c>, an error suggesting the first.</value>
+    /// <remarks>
+    /// There is no default. The first name is a <em>position</em> -- what element one of every list
+    /// binds to -- and reading a position as a choice would make reordering the line silently change
+    /// which case the canvas draws.
+    /// </remarks>
+    public static DiagnosticDescriptor DesignScenarioMissing { get; } = new(
+        "FS1543",
+        DiagnosticSeverity.Error,
+        "This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.");
+
+    /// <summary>Two scenarios declared under one name (<c>D-143</c>).</summary>
+    /// <value><c>FS1544</c>, an error naming the repeat.</value>
+    /// <remarks>
+    /// The names are the vocabulary every basis string and report uses, so two cases called
+    /// <c>summer</c> would produce a size whose stated reason cannot be checked against a case.
+    /// </remarks>
+    public static DiagnosticDescriptor DuplicateScenario { get; } = new(
+        "FS1544",
+        DiagnosticSeverity.Error,
+        "'{name}' is declared twice. Each scenario needs its own name.");
+
     /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
     /// <param name="dimension">The parameter's dimension.</param>
     /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
@@ -799,9 +849,14 @@ public static class BinderDiagnostics
     }
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Seventy-one descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Seventy-six descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        ScenarioCountMismatch,
+        ScenarioListWithoutScenarios,
+        UnknownDesignScenario,
+        DesignScenarioMissing,
+        DuplicateScenario,
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,

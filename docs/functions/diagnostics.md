@@ -132,6 +132,11 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='. |
 | `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
 | `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
+| `FS1540` | Error | Binder | '{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them. |
+| `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit. |
+| `FS1542` | Error | Binder | '{name}' is not a scenario of this file. It declares: {names}. |
+| `FS1543` | Error | Binder | This file declares {count} scenarios and does not say which one to show. Add 'design {first}'. |
+| `FS1544` | Error | Binder | '{name}' is declared twice. Each scenario needs its own name. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |

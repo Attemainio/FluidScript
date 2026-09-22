@@ -47,6 +47,15 @@ internal sealed partial class BindingRun
     private readonly List<CurveSymbol> _curves = [];
     private readonly Dictionary<string, int> _curvesByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DesignValue> _design = new(StringComparer.Ordinal);
+
+    /// <summary>The scenario names in the order written, which is what an array binds to (<c>D-143</c>).</summary>
+    private readonly List<string> _scenarios = [];
+
+    /// <summary>The scenario <c>design</c> named, with the span to report an unknown one against.</summary>
+    private (string Name, TextSpan Span)? _designScenario;
+
+    /// <summary>The <c>scenarios</c> line's span, which is where a missing <c>design</c> is reported.</summary>
+    private TextSpan? _scenarioSpan;
     private readonly Dictionary<string, double?> _curveValues = new(StringComparer.Ordinal);
 
     // ---- step 0b: the curves, their rows, and the design point ------------------------------------
@@ -75,6 +84,10 @@ internal sealed partial class BindingRun
                     DeclareDesign(design);
                     break;
 
+                case ScenariosDirectiveSyntax scenarios:
+                    DeclareScenarios(scenarios);
+                    break;
+
                 // Nothing else closes a curve section: it is file-wide, so the first circuit is the
                 // end of the region curves may be declared in.
                 case CircuitHeaderSyntax:
@@ -99,8 +112,40 @@ internal sealed partial class BindingRun
         }
     }
 
+    /// <summary>Records the declared cases, refusing a repeated name (<c>D-143</c>).</summary>
+    /// <param name="scenarios">The directive.</param>
+    /// <remarks>
+    /// Order is kept exactly as written, because that order is the whole binding: element <c>i</c> of
+    /// every list belongs to the name at position <c>i</c>. A duplicate is refused rather than
+    /// collapsed -- two cases called <c>summer</c> would give a size a basis naming a case that
+    /// cannot be looked up -- and the repeat is skipped so the positions of the rest do not shift.
+    /// </remarks>
+    private void DeclareScenarios(ScenariosDirectiveSyntax scenarios)
+    {
+        _scenarioSpan ??= scenarios.Span;
+
+        foreach (var name in scenarios.Names)
+        {
+            if (_scenarios.Contains(name.Token.Text, StringComparer.Ordinal))
+            {
+                Report(BinderDiagnostics.DuplicateScenario, name.Span, ("name", name.Token.Text));
+                continue;
+            }
+
+            _scenarios.Add(name.Token.Text);
+        }
+    }
+
     private void DeclareDesign(DesignDirectiveSyntax design)
     {
+        // `design winter` names the operating case and gives no driver a value (`D-143`). Recorded
+        // here and checked after the whole file is read, because the `scenarios` line may follow it.
+        if (design.Scenario is { } named)
+        {
+            _designScenario = (named.Token.Text, named.Span);
+            return;
+        }
+
         foreach (var argument in design.Arguments)
         {
             var written = argument.Name.Text;
@@ -545,6 +590,46 @@ internal sealed partial class BindingRun
         return _circuits
             .FirstOrDefault(candidate => string.Equals(candidate.Name, circuit, StringComparison.Ordinal))
             ?.Mode ?? FluidMode.Static;
+    }
+
+    /// <summary>Settles which case the file operates at, once the whole file has been read (<c>D-143</c>).</summary>
+    /// <returns>The scenario name, or <see langword="null"/> when no scenarios are declared.</returns>
+    /// <remarks>
+    /// Two errors and no repair. A <c>design</c> naming a case that does not exist is <c>FS1542</c>;
+    /// scenarios with no <c>design</c> at all is <c>FS1543</c>, and **the first name is not taken as a
+    /// default** -- it is a position, and reading a position as a choice would make reordering the
+    /// <c>scenarios</c> line silently change which case the canvas draws. A <c>design</c> naming a
+    /// case in a file with no scenarios is left alone: it binds nothing, and the file is a `D-58` file
+    /// whose driver form this is not.
+    /// </remarks>
+    private string? SettleDesignScenario()
+    {
+        if (_scenarios.Count == 0)
+        {
+            return null;
+        }
+
+        if (_designScenario is not { } named)
+        {
+            Report(
+                BinderDiagnostics.DesignScenarioMissing,
+                _scenarioSpan ?? default,
+                ("count", _scenarios.Count.ToString(CultureInfo.InvariantCulture)),
+                ("first", _scenarios[0]));
+            return null;
+        }
+
+        if (!_scenarios.Contains(named.Name, StringComparer.Ordinal))
+        {
+            Report(
+                BinderDiagnostics.UnknownDesignScenario,
+                named.Span,
+                ("name", named.Name),
+                ("names", string.Join(", ", _scenarios)));
+            return null;
+        }
+
+        return named.Name;
     }
 
     /// <summary>Writes each design value's evaluated result back, for the model to carry.</summary>

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language;
@@ -108,7 +109,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         var model = new SemanticModel
         {
             Circuits = [.. _circuits],
-            Project = _project with { Design = PublishDesign() },
+            Project = _project with
+            {
+                Design = PublishDesign(),
+                Scenarios = [.. _scenarios],
+                DesignScenario = SettleDesignScenario(),
+            },
             Components = [.. _components],
             Bindings = [.. _bindings],
             Style = new StyleSettings([.. _styleTokens], _spacing, _projectStyle, _styleDefinitions.ToImmutableDictionary(StringComparer.Ordinal)),
@@ -190,10 +196,13 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 case ShowDirectiveSyntax:
 
                 // Step 0b reads these instead, and it walks the whole file rather than one circuit's
-                // block: a curve and a design point belong to no circuit (`D-57`, `D-58`).
+                // block: a curve, a design point and a scenario list belong to no circuit (`D-57`,
+                // `D-58`, `D-143`). Left out of this list, a file-wide line before the first `circuit`
+                // header makes an implicit circuit of its own -- which is what `FS1508` was reporting.
                 case CurveHeaderSyntax:
                 case CurveRowSyntax:
                 case DesignDirectiveSyntax:
+                case ScenariosDirectiveSyntax:
                 case MalformedStatementSyntax:
                     break;
 
@@ -868,6 +877,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
             default:
             {
+                if (parameter.Value is ScenarioListSyntax list)
+                {
+                    return BindScenarioList(kind, info, parameter, list, componentName, written);
+                }
+
                 var id = new ValueId.ComponentParameter(componentName, info.Key);
                 _graph.Add(id);
                 _pending[id] = new PendingValue(parameter.Value, id, span, new ParameterTarget(componentName, kind, info));
@@ -880,6 +894,94 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 };
             }
         }
+    }
+
+    /// <summary>Binds one value per declared scenario (<c>D-143</c>).</summary>
+    /// <param name="kind">The component's kind.</param>
+    /// <param name="info">The parameter's registry row.</param>
+    /// <param name="parameter">The whole <c>name=[...]</c>.</param>
+    /// <param name="list">Its bracketed values.</param>
+    /// <param name="componentName">The component's name.</param>
+    /// <param name="written">The spelling the file used.</param>
+    /// <returns>The bound parameter, or <see langword="null"/> when the list binds to nothing.</returns>
+    /// <remarks>
+    /// <para>
+    /// Each element becomes its own node in the dependency graph, because each may read a curve or a
+    /// <c>let</c> the others do not. The design scenario's element also takes the ordinary
+    /// <see cref="ValueId.ComponentParameter"/> id, which is what keeps <see cref="ParameterValue.Value"/>
+    /// a scalar filled by the path that already existed -- so nothing downstream of the binder learns
+    /// that scenarios exist, and projecting to another case is one rewrite of that one field.
+    /// </para>
+    /// <para>
+    /// <strong>Length is checked before anything binds, and nothing is padded.</strong> A list of the
+    /// wrong length binds no value at all rather than a partial one: a parameter half-bound across
+    /// cases would size a plant from cases the file never stated.
+    /// </para>
+    /// </remarks>
+    private ParameterValue? BindScenarioList(
+        ComponentKindInfo kind,
+        ParameterInfo info,
+        ParameterSyntax parameter,
+        ScenarioListSyntax list,
+        string componentName,
+        string written)
+    {
+        var span = parameter.Span;
+        var declared = _scenarios.Count;
+
+        if (declared == 0)
+        {
+            Report(BinderDiagnostics.ScenarioListWithoutScenarios, span, ("written", written));
+            return null;
+        }
+
+        if (list.Elements.Length != declared)
+        {
+            Report(
+                BinderDiagnostics.ScenarioCountMismatch,
+                span,
+                ("written", written),
+                ("given", list.Elements.Length.ToString(CultureInfo.InvariantCulture)),
+                ("count", declared.ToString(CultureInfo.InvariantCulture)),
+                ("names", string.Join(", ", _scenarios)));
+            return null;
+        }
+
+        // Which element fills `Value`. Already reported as FS1542 or FS1543 when it is not settled,
+        // and the first element stands in so the rest of the bind has a scalar to work from rather
+        // than a second failure on every parameter in the file.
+        var design = _designScenario is { } named
+            ? Math.Max(0, _scenarios.IndexOf(named.Name))
+            : 0;
+
+        var target = new ParameterTarget(componentName, kind, info);
+        var elements = ImmutableArray.CreateBuilder<ParameterValue>(declared);
+
+        for (var index = 0; index < declared; index++)
+        {
+            var element = list.Elements[index].Value;
+            ValueId id = index == design
+                ? new ValueId.ComponentParameter(componentName, info.Key)
+                : new ValueId.ScenarioParameter(componentName, info.Key, index);
+
+            _graph.Add(id);
+            _pending[id] = new PendingValue(element, id, element.Span, target);
+
+            elements.Add(new ParameterValue
+            {
+                WrittenName = written,
+                Expression = element,
+                Span = element.Span,
+            });
+        }
+
+        return new ParameterValue
+        {
+            WrittenName = written,
+            Expression = parameter.Value,
+            Span = span,
+            Scenarios = elements.MoveToImmutable(),
+        };
     }
 
     // ---- steps 4-5: the dependency graph, then evaluation ---------------------------------------
@@ -1165,16 +1267,55 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
             foreach (var (canonical, value) in component.Parameters)
             {
+                var bound = value;
                 var id = new ValueId.ComponentParameter(component.Name, canonical);
 
                 if (_pending.TryGetValue(id, out var pending) && pending.Value is { } quantity)
                 {
-                    parameters[canonical] = value with
+                    bound = bound with
                     {
                         Value = quantity,
                         Basis = SizingBasis(component.Name, pending),
                     };
                     CheckRoleSign(component, canonical, quantity, pending.Span);
+                }
+
+                // The other cases of a list (`D-143`). The design case's element shares the id above,
+                // so it is filled from that same evaluation rather than a second one -- one expression
+                // with two homes, and a projection that found the design slot empty would read the
+                // case the file operates at as unstated.
+                if (!bound.Scenarios.IsEmpty)
+                {
+                    var design = Math.Max(0, _scenarios.IndexOf(_designScenario?.Name ?? string.Empty));
+                    var elements = bound.Scenarios.ToBuilder();
+
+                    for (var slot = 0; slot < elements.Count; slot++)
+                    {
+                        var (element, at) = slot == design
+                            ? (bound.Value, pending)
+                            : (_pending.TryGetValue(
+                                   new ValueId.ScenarioParameter(component.Name, canonical, slot),
+                                   out var each)
+                                   ? each.Value
+                                   : null,
+                               null);
+
+                        if (element is { } settled)
+                        {
+                            elements[slot] = elements[slot] with
+                            {
+                                Value = settled,
+                                Basis = at is null ? elements[slot].Basis : SizingBasis(component.Name, at),
+                            };
+                        }
+                    }
+
+                    bound = bound with { Scenarios = elements.ToImmutable() };
+                }
+
+                if (!ReferenceEquals(bound, value))
+                {
+                    parameters[canonical] = bound;
                 }
             }
 
@@ -1483,6 +1624,18 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var parameter in parameters)
         {
+            // A list is not an expression that evaluates; its elements are (`D-143`). Yielding the
+            // list itself would make the graph depend on a node nothing ever produces a value for.
+            if (parameter.Value is ScenarioListSyntax list)
+            {
+                foreach (var element in list.Elements)
+                {
+                    yield return element.Value;
+                }
+
+                continue;
+            }
+
             yield return parameter.Value;
         }
 

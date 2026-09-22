@@ -20,6 +20,7 @@ export const reservedWords: readonly string[] = [
   'control',
   'curve',
   'design',
+  'scenarios',
 ];
 
 /** Every accepted unit spelling, longest first, as the lexer probes them (maximal munch). */

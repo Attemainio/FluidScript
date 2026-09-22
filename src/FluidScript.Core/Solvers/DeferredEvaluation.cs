@@ -204,11 +204,61 @@ public static class DeferredEvaluation
                         var basis = string.Create(
                             CultureInfo.InvariantCulture,
                             $"{Describe(evaluated.Value)} from `{evaluated.Expression}` at pass {pass}");
+                        // The design scenario's slot is filled here too, from the same evaluation:
+                        // it is one expression with two homes, and a projection that found the slot
+                        // empty would read the design case as unstated (`D-143`).
+                        var design = model.Project.DesignScenarioIndex;
+                        var bound = existing with { Value = evaluated.Value, Basis = basis };
+
+                        if (design >= 0 && design < bound.Scenarios.Length)
+                        {
+                            bound = bound with
+                            {
+                                Scenarios = bound.Scenarios.SetItem(
+                                    design,
+                                    bound.Scenarios[design] with { Value = evaluated.Value, Basis = basis }),
+                            };
+                        }
+
+                        components[i] = components[i] with
+                        {
+                            Parameters = components[i].Parameters.SetItem(parameter.Parameter, bound),
+                        };
+                    }
+
+                    break;
+
+                case ValueId.ScenarioParameter element:
+                    for (var i = 0; i < components.Count; i++)
+                    {
+                        if (!string.Equals(components[i].Name, element.Component, StringComparison.Ordinal)
+                            || !components[i].Parameters.TryGetValue(element.Parameter, out var listed)
+                            || element.Scenario >= listed.Scenarios.Length)
+                        {
+                            continue;
+                        }
+
+                        // Only the element. `Value` belongs to the design scenario, whose element
+                        // carries an ordinary `ComponentParameter` id and is written by the case
+                        // above -- which is what keeps one field scalar for every reader (`D-143`).
+                        var written = string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"{Describe(evaluated.Value)} from `{evaluated.Expression}` at pass {pass}");
+
                         components[i] = components[i] with
                         {
                             Parameters = components[i].Parameters.SetItem(
-                                parameter.Parameter,
-                                existing with { Value = evaluated.Value, Basis = basis }),
+                                element.Parameter,
+                                listed with
+                                {
+                                    Scenarios = listed.Scenarios.SetItem(
+                                        element.Scenario,
+                                        listed.Scenarios[element.Scenario] with
+                                        {
+                                            Value = evaluated.Value,
+                                            Basis = written,
+                                        }),
+                                }),
                         };
                     }
 

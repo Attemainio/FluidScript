@@ -174,6 +174,32 @@ public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode)
     /// </remarks>
     public ImmutableDictionary<string, DesignValue> Design { get; init; } =
         ImmutableDictionary<string, DesignValue>.Empty;
+
+    /// <summary>Gets the operating cases the plant is sized for, in the order written (<c>D-143</c>).</summary>
+    /// <value>
+    /// Empty for a file with no <c>scenarios</c> line, which is every file written before P6.8 and
+    /// every file that needs only one case. <strong>The order is the binding</strong>: an array
+    /// parameter's element <c>i</c> belongs to the name at position <c>i</c> and to nothing else.
+    /// </value>
+    public ImmutableArray<string> Scenarios { get; init; } = [];
+
+    /// <summary>Gets the scenario the file operates at, from <c>design &lt;name&gt;</c> (<c>D-143</c>).</summary>
+    /// <value>
+    /// A name in <see cref="Scenarios"/>, or <see langword="null"/> when no scenarios are declared.
+    /// Never null when they are: <c>FS1543</c> refuses a scenario list with no <c>design</c>, because
+    /// a first column is a position and not a decision.
+    /// </value>
+    /// <remarks>
+    /// This names where the plant <em>operates</em> and nothing about how it is sized. Every scenario
+    /// is sized for; this one supplies the numbers the canvas draws, an export carries and a run
+    /// starts from.
+    /// </remarks>
+    public string? DesignScenario { get; init; }
+
+    /// <summary>Gets the position of <see cref="DesignScenario"/> in <see cref="Scenarios"/>.</summary>
+    /// <value>Its index, or <c>-1</c> when no scenarios are declared or the name is not one of them.</value>
+    public int DesignScenarioIndex =>
+        DesignScenario is { } named ? Scenarios.IndexOf(named) : -1;
 }
 
 /// <summary>Presentation values: the <c>style</c> directives read (<c>D-104</c>) and the <c>spacing</c>.</summary>
@@ -323,6 +349,22 @@ public sealed record ParameterValue
     /// choice by, and it is an outcome of the point, never something the file states.
     /// </value>
     public string? Basis { get; init; }
+
+    /// <summary>Gets one value per declared scenario, when the parameter was written as a list (<c>D-143</c>).</summary>
+    /// <value>
+    /// Empty unless the file wrote <c>power=[30, 10]</c>, and then exactly as long as
+    /// <see cref="ProjectSettings.Scenarios"/> -- any other length is <c>FS1540</c> and binds nothing.
+    /// Each element is a whole <see cref="ParameterValue"/>, so it carries its own span, expression
+    /// and basis and a dimension error is reported against the element that caused it.
+    /// </value>
+    /// <remarks>
+    /// <strong><see cref="Value"/> stays a scalar whether or not this is empty</strong>, and holds the
+    /// design scenario's element when it is not. That is what keeps the whole feature additive: the
+    /// thirty-odd readers of <see cref="Value"/> -- the component factory, the contract, the scene
+    /// audit -- never learn that scenarios exist, and projecting the model to scenario <c>i</c> is one
+    /// pass rewriting <see cref="Value"/> from this array.
+    /// </remarks>
+    public ImmutableArray<ParameterValue> Scenarios { get; init; } = [];
 }
 
 /// <summary>A <c>let</c> binding: a name for a value used more than once.</summary>

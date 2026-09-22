@@ -5018,6 +5018,56 @@
       ]
     },
     {
+      "code": "FS1540",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.",
+      "arguments": [
+        "written",
+        "given",
+        "count",
+        "names"
+      ]
+    },
+    {
+      "code": "FS1541",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.",
+      "arguments": [
+        "written"
+      ]
+    },
+    {
+      "code": "FS1542",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is not a scenario of this file. It declares: {names}.",
+      "arguments": [
+        "name",
+        "names"
+      ]
+    },
+    {
+      "code": "FS1543",
+      "severity": "error",
+      "area": "Binder",
+      "message": "This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.",
+      "arguments": [
+        "count",
+        "first"
+      ]
+    },
+    {
+      "code": "FS1544",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' is declared twice. Each scenario needs its own name.",
+      "arguments": [
+        "name"
+      ]
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",
