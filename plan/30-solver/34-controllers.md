@@ -107,7 +107,16 @@ circuit is well posed: without it the valve defaults to 1, the exchanger's `out.
 the pump to 62 m, and the t = 0 solve goes non-finite (measured, `diagnostics/circuit-reports.md`).
 
 When the actuator **is stated**, the setpoint is not a constraint; the run starts with an offset and
-`FS3210` reports it.
+`FS3210` reports it. Two more cases are the same code: the measured node states its own `t`, and a
+neighbouring stated terminal already fixes it — the ladder's step 10 puts the sensor on `HE1`'s outlet
+node with `HE1 out.t=50` and a setpoint of 50, which applied would be the same statement twice,
+square by count and singular in truth (measured: non-finite in five iterations before the guard).
+What the design solve can hold is a plain node's temperature, read directly or through a sensor
+placed on it (`D-61`); a boundary's temperature, a flow, a pressure or an exchanger's terminal has no
+row of its own yet and is `FS3211`. **Built in P6.0** (2026-09-22): lowering writes the setpoint into
+the node's stated parameters and records every binding on `CircuitGraph.Setpoints`, applied or not;
+`WellPosedness` answers the node-temperature constraint with the named actuator alone and raises the
+two codes. The demand-step loop solves on `01`'s figures (`S-75` closed).
 
 **These three properties are populated from the binding, not from the declaration** (`D-40`). The
 controller *declaration* carries the algorithm and its gains; the `control` *binding* carries what is
@@ -247,7 +256,8 @@ discrete-time nature.
 | `FS3207` | Setpoint outside the measurement's plausible range | Warning | `{name}: a setpoint of {v} is outside the usual range for {dimension}.` |
 | `FS3208` | A declared controller is named by no `control` binding | Warning | `{name}` drives nothing; add a 'control' line naming it. |
 | `FS3209` | Two `control` bindings name one controller | Error | `{name}` is used by {n} control lines; a controller holds one integral term and drives one actuator. |
-| `FS3210` | The run starts off setpoint because the actuator is stated | Info | `{name} starts {offset} from its setpoint: '{actuator}' is stated, so the design solve did not hold {measurement}.` |
+| `FS3210` | The setpoint is not a constraint of the design solve: the actuator is stated, the node states its own temperature, or a neighbouring stated terminal already fixes it | Info | `{controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}.` |
+| `FS3211` | The measurement is not one the design solve can hold at a setpoint — a boundary's temperature, a flow, a pressure, an exchanger's terminal | Info | `{controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands.` |
 
 `FS3203` requires oscillation detection — zero crossings of the error over a sliding window, with a
 period and an amplitude — which is a small amount of work and turns the most common user problem from

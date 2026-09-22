@@ -35,6 +35,13 @@ public sealed class CorpusStatusTests
         // Solves in one pass: nothing in it needs sizing.
         { "m4-storage-header.fluid", SolveTermination.Converged },
 
+        // `D-141` (P6.0): the control line's setpoint holds `N2` at 20 C in the design solve and chooses
+        // the valve position, so the run's t = 0 is the cooling loop's design state -- 0.2393 kg/s
+        // secondary, 0.0763 recirculating, the valve at 0.501, 2.55 m of head. Without that rule the
+        // valve defaulted to 1 and `HE1.out.t`'s promotion drove the pump non-finite (`S-75`); with the
+        // segments of `PB` reading their stated DN20 (`C-113`) the transport figures in `33` hold.
+        { "m4-demand-step.fluid", SolveTermination.Converged },
+
         // Converged, after three fixes in a row: `S-30b` anchored the seed's temperatures, `S-35` stopped
         // a component in the bypass leg collapsing the valve's three ports onto one pressure, and
         // `C-63`'s three-way pass finally chose `3WV.kv` rather than leaving it on the bootstrap Kv 630.

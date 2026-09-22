@@ -90,6 +90,7 @@ public static partial class Lowering
                 StatedPorts = build.StatedPorts,
                 ProvisionalParameters = factory.Provisional,
                 CircuitOf = build.CircuitOf,
+                Setpoints = build.Setpoints,
             },
             build.Unresolved);
     }

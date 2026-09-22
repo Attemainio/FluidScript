@@ -3,6 +3,7 @@ using System.Globalization;
 
 using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
+using FluidScript.Core.Units;
 
 namespace FluidScript.Core.Topology;
 
@@ -47,12 +48,16 @@ public static partial class Lowering
         private readonly ImmutableArray<string>.Builder _unresolved = ImmutableArray.CreateBuilder<string>();
         private readonly HashSet<int> _replaced = [];
         private readonly HashSet<string> _stated = new(StringComparer.Ordinal);
+        private readonly List<Setpoint> _setpoints = [];
 
         private int[][] _peerElement = [];
         private int[][] _peerPort = [];
         public ImmutableArray<GraphNode> Nodes => [.. _nodes];
 
         public ImmutableArray<IFlowComponent> Components => [.. _elements];
+
+        /// <summary>Every <c>control</c> line's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
+        public ImmutableArray<Setpoint> Setpoints => [.. _setpoints];
 
         /// <summary>The ports the script itself named, as <c>component.port</c> (<c>D-88</c>).</summary>
         /// <value>
@@ -171,6 +176,8 @@ public static partial class Lowering
         /// </remarks>
         public void CreateComponents()
         {
+            var held = ResolveSetpoints();
+
             foreach (var symbol in model.Components)
             {
                 if (symbol.Kind is not { } kind || kind.IsObserver
@@ -188,7 +195,11 @@ public static partial class Lowering
                     Add(
                         new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1)
                         {
-                            StatedParameters = ComponentFactory.Stated(symbol),
+                            // A setpoint on this node's temperature is stated here as the design point
+                            // (D-141): the row and the promotion it raises are a node temperature's.
+                            StatedParameters = held.TryGetValue(symbol.Name, out var setpoint)
+                                ? ComponentFactory.Stated(symbol).SetItem(setpoint.Parameter, setpoint.Value)
+                                : ComponentFactory.Stated(symbol),
                             // A pressure the binder copied from a port keeps the port's spelling (D-124).
                             PressureStatedAs = symbol.Parameters.TryGetValue("p", out var stated)
                                 && stated.WrittenName.Contains(' ', StringComparison.Ordinal)
@@ -217,6 +228,132 @@ public static partial class Lowering
 
                 Add(component, symbol.CircuitName, origin: null);
             }
+        }
+
+        /// <summary>Resolves every <c>control</c> line's setpoint into the design solve's constraints (<c>D-141</c>).</summary>
+        /// <returns>The nodes whose temperature a setpoint states, and the value.</returns>
+        /// <remarks>
+        /// <para>
+        /// <strong>A setpoint holds in the design solve when the actuator is the solve's to choose.</strong>
+        /// <c>control actuate=3WV.position measure=N2.t by=TC1 setpoint=20</c> with no position stated
+        /// on <c>3WV</c> is <c>N2 t=20</c> answered by <c>3WV.position</c>: the loop's design point. With
+        /// the position stated the solve has nothing to hold the temperature with, the setpoint is not a
+        /// constraint, and the run starts off setpoint by whatever the design solve lands on
+        /// (<c>FS3210</c>, raised by well-posedness).
+        /// </para>
+        /// <para>
+        /// What can be held is a plain node's temperature, read directly (<c>N2.t</c>) or through a sensor
+        /// on it. A boundary's temperature is what enters the model and is not a demand; a node that
+        /// states its own <c>t</c> has said what it wants; a measurement of anything else has no
+        /// constraint row to become yet (<c>FS3211</c>). Each of those is recorded unapplied so the
+        /// diagnostic can name it.
+        /// </para>
+        /// </remarks>
+        private Dictionary<string, (string Parameter, Quantity Value)> ResolveSetpoints()
+        {
+            var symbols = new Dictionary<string, ComponentSymbol>(StringComparer.Ordinal);
+
+            foreach (var symbol in model.Components)
+            {
+                symbols.TryAdd(symbol.Name, symbol);
+            }
+
+            var held = new Dictionary<string, (string Parameter, Quantity Value)>(StringComparer.Ordinal);
+
+            // What each node is wired to, so a terminal stated on a neighbour -- `HE1 out.t=50` with the
+            // sensor on HE1's outlet node -- is seen to fix the node's temperature already. A setpoint
+            // applied there would be the same statement twice, square by count and singular in truth.
+            var neighbours = new Dictionary<string, List<(ComponentSymbol Component, string Port)>>(StringComparer.Ordinal);
+
+            foreach (var connection in model.Connections)
+            {
+                Neighbour(neighbours, symbols, connection.From, connection.To);
+                Neighbour(neighbours, symbols, connection.To, connection.From);
+            }
+
+            foreach (var binding in model.ControlBindings)
+            {
+                if (binding.Setpoint is not { } value)
+                {
+                    continue;
+                }
+
+                var measured = binding.Measurement;
+
+                // A sensor reads the node it is placed on (D-61).
+                if (symbols.TryGetValue(measured.Component, out var sensor)
+                    && sensor.Kind?.IsObserver == true
+                    && sensor.AttachedTo is { } node)
+                {
+                    measured = new PropertyReference(node, measured.Property);
+                }
+
+                var holdable = symbols.TryGetValue(measured.Component, out var target)
+                    && target.Kind is { HasUnlimitedPorts: true } kind
+                    && Role(kind) == BoundaryRole.Interior
+                    && string.Equals(measured.Property, HydraulicPartition.Temperature, StringComparison.Ordinal);
+
+                string? reason = null;
+
+                if (holdable)
+                {
+                    var fixing = neighbours.TryGetValue(measured.Component, out var wired)
+                        ? wired.FirstOrDefault(wire => wire.Component.Parameters.ContainsKey(wire.Port))
+                        : default;
+
+                    reason = target!.Parameters.ContainsKey(HydraulicPartition.Temperature)
+                        ? $"'{measured.Component}' states its own temperature"
+                        : fixing.Component is not null
+                            ? $"'{fixing.Component.Name}.{fixing.Port}.t' already fixes it"
+                            : symbols.TryGetValue(binding.Actuator.Component, out var actuated)
+                                && actuated.Parameters.ContainsKey(binding.Actuator.Property)
+                                ? $"'{binding.Actuator.Component}.{binding.Actuator.Property}' is stated"
+                                : held.ContainsKey(measured.Component)
+                                    ? $"another control line already holds '{measured.Component}'"
+                                    : null;
+                }
+
+                var applied = holdable && reason is null;
+
+                if (applied)
+                {
+                    held[measured.Component] = (measured.Property, value);
+                }
+
+                _setpoints.Add(new Setpoint(
+                    binding.Controller.Name,
+                    measured.Component,
+                    measured.Property,
+                    binding.Actuator.Component,
+                    binding.Actuator.Property,
+                    value,
+                    applied,
+                    reason));
+            }
+
+            return held;
+        }
+
+        /// <summary>Records one end of a connection as the other end's neighbour, when that end is a node.</summary>
+        private static void Neighbour(
+            Dictionary<string, List<(ComponentSymbol Component, string Port)>> neighbours,
+            Dictionary<string, ComponentSymbol> symbols,
+            EndpointSymbol node,
+            EndpointSymbol other)
+        {
+            if (!symbols.TryGetValue(node.Component, out var symbol)
+                || symbol.Kind is not { HasUnlimitedPorts: true }
+                || !symbols.TryGetValue(other.Component, out var component))
+            {
+                return;
+            }
+
+            if (!neighbours.TryGetValue(node.Component, out var list))
+            {
+                neighbours[node.Component] = list = [];
+            }
+
+            list.Add((component, other.Port));
         }
 
         /// <summary>Which end of an open circuit a node kind declares itself to be.</summary>
@@ -690,6 +827,15 @@ public static partial class Lowering
                         pipe.Rise / (cells + 1))
                     {
                         Material = pipe.Material,
+
+                        // What the script stated on the pipe it stated on every cell of it (`C-113`):
+                        // a sub-pipe with an empty stated map read as a pipe nobody had sized, and
+                        // `PB pipe dn=20 nodes=4` came out as five segments stepped down to DN15, with
+                        // every transport figure computed from the wrong bore. Length is not copied,
+                        // because the segment's is derived and a report must not call it stated.
+                        StatedParameters = pipe.StatedParameters.Remove("length").Remove("nodes"),
+                        SizedParameters = pipe.SizedParameters,
+                        DefaultParameters = pipe.DefaultParameters,
                     },
                     circuit,
                     origin: null);

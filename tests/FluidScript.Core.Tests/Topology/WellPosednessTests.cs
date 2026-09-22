@@ -963,7 +963,10 @@ public sealed class WellPosednessTests
                 // D-115 wired its expressions circuit through junctions.
                 // 4 since D-133: `TV2` mixes `SB1` with water tapped *from* `NJ1`, so its stream is `RB1` and
                 // it never held `HE2`'s inlet; the promotion that made it 3 was the reach S-45 was filed for.
-                ["m1-syntax-tour.fluid"] = "4",
+                // 5 since D-141: the tour's `control ... measure=NJ2.t ... setpoint=20` is a constraint on
+                // NJ2's temperature now, and its actuator TV3.position is already HE3.in.t's, so nothing
+                // is left to hold it -- the tour states both, which a plant would not.
+                ["m1-syntax-tour.fluid"] = "5",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",

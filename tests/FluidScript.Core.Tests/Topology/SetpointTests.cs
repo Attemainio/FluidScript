@@ -1,0 +1,139 @@
+using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Topology;
+using FluidScript.Fixtures;
+
+namespace FluidScript.Core.Tests.Topology;
+
+/// <summary>A control line's setpoint is the design point of its loop (<c>D-141</c>, <c>S-75</c>).</summary>
+public sealed class SetpointTests
+{
+    private const string DemandStep = """
+        fluidscript 1
+        circuit demandStep
+        fluid water
+
+        HE1 heat_exchanger power=30 out.t=50
+        3WV three_way_valve
+        PU1 pump
+        P1  pipe length=25
+        PB  pipe length=8 dn=20 nodes=4
+        TC1 pi
+
+        control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
+
+        connections
+        N1 - N2
+        N2 - PU1
+        PU1 - HE1
+        HE1 - 3WV
+        3WV - PB - N2
+        3WV - P1
+        P1 - N3
+
+        N1 inlet t=6 p=300
+        N3 outlet p=280
+        """;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASetpointOnAnUnstatedActuatorIsANodeTemperatureAnsweredByThatActuator()
+    {
+        // `01`'s demand-step loop states no `in.t` and no valve position: the setpoint is what makes it
+        // well posed. Lowering writes 20 C into N2's stated parameters, the constraint is a node
+        // temperature, and the promotion is the valve the line names -- not the nearest split, which
+        // here is the same valve but need not be.
+        var graph = GraphFixture.Lower(DemandStep).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        Assert.True(setpoint.Applied);
+        Assert.Equal("TC1", setpoint.Controller);
+        Assert.Equal(("N2", "t", "3WV", "position"), (setpoint.Measured, setpoint.Parameter, setpoint.ActuatorComponent, setpoint.ActuatorParameter));
+
+        var node = Assert.Single(graph.Components, static c => c.Name == "N2");
+        Assert.Equal(293.15, node.StatedParameters["t"].SiValue, 1e-9);
+
+        var result = WellPosedness.Check(graph);
+        var promotion = Assert.Single(result.Counting.Promotions, static p => p.Constraint.Component == "N2");
+
+        Assert.Equal(ConstraintKind.NodeTemperature, promotion.Constraint.Kind);
+        Assert.Equal(("3WV", "position"), (promotion.Component, promotion.Parameter));
+        Assert.Equal(0, result.Counting.Excess);
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS3210" or "FS3211");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AStatedActuatorLeavesTheSetpointOutAndSaysTheRunStartsOffIt()
+    {
+        // `3WV position=0.4` written by the user is the user's design; the solve cannot also hold N2
+        // at 20 C with it, so the setpoint is not a constraint and FS3210 says why.
+        var graph = GraphFixture.Lower(DemandStep.Replace("3WV three_way_valve", "3WV three_way_valve position=0.4", StringComparison.Ordinal)).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        Assert.False(setpoint.Applied);
+        Assert.Equal("'3WV.position' is stated", setpoint.Reason);
+        Assert.False(Assert.Single(graph.Components, static c => c.Name == "N2").StatedParameters.ContainsKey("t"));
+
+        var info = Assert.Single(WellPosedness.Check(graph).Diagnostics, static d => d.Code == "FS3210");
+
+        Assert.Equal(DiagnosticSeverity.Info, info.Severity);
+        Assert.Contains("TC1 may start off its setpoint: '3WV.position' is stated, so the design solve did not hold N2.t at 20 °C", info.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ANeighbouringStatedTerminalAlreadyFixesTheNodeAndTheSetpointIsNotAppliedTwice()
+    {
+        // The ladder's step 10: the sensor sits on HE1's outlet node and HE1 states out.t=50, so a
+        // setpoint of 50 there is the same statement twice -- square by count, singular in truth, and
+        // non-finite in five iterations before this guard.
+        const string source = """
+            fluidscript 1
+            circuit ladder
+            fluid water
+
+            PU1  pump
+            HE1  heat_exchanger power=30 in.t=20 out.t=50
+            LOAD heat_exchanger power=-30
+            CV1  valve kv=6.3
+            PID1 pid kp=2
+            TE1  t_sensor at N1
+
+            connections
+            PU1 - HE1
+            HE1 - N1
+            N1 - LOAD
+            LOAD - CV1
+            CV1 - PU1
+
+            control CV1 with TE1 by PID1 setpoint=50
+            """;
+
+        var graph = GraphFixture.Lower(source).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        // The sensor's node, not the sensor, is what is measured.
+        Assert.Equal("N1", setpoint.Measured);
+        Assert.False(setpoint.Applied);
+        Assert.Equal("'HE1.out.t' already fixes it", setpoint.Reason);
+        Assert.Contains(WellPosedness.Check(graph).Diagnostics, static d => d.Code == "FS3210");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMeasurementTheDesignSolveCannotHoldIsSaidRatherThanDropped()
+    {
+        // A boundary's temperature is what enters the model, not a demand on it; the loop still runs
+        // from wherever the design solve lands, and FS3211 says so.
+        var graph = GraphFixture.Lower(DemandStep.Replace("measure=N2.t", "measure=N1.t", StringComparison.Ordinal)).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        Assert.False(setpoint.Applied);
+        Assert.Null(setpoint.Reason);
+
+        var info = Assert.Single(WellPosedness.Check(graph).Diagnostics, static d => d.Code == "FS3211");
+
+        Assert.Equal(DiagnosticSeverity.Info, info.Severity);
+        Assert.Contains("TC1 measures N1.t, which the design solve cannot hold at a setpoint", info.Message, StringComparison.Ordinal);
+    }
+}

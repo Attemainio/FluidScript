@@ -1230,8 +1230,8 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 12 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |

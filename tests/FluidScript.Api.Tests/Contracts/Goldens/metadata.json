@@ -5677,6 +5677,28 @@
       ]
     },
     {
+      "code": "FS3210",
+      "severity": "info",
+      "area": "Controllers",
+      "message": "{controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}.",
+      "arguments": [
+        "controller",
+        "reason",
+        "measurement",
+        "setpoint"
+      ]
+    },
+    {
+      "code": "FS3211",
+      "severity": "info",
+      "area": "Controllers",
+      "message": "{controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands.",
+      "arguments": [
+        "controller",
+        "measurement"
+      ]
+    },
+    {
       "code": "FS4008",
       "severity": "error",
       "area": "DesignWarning",

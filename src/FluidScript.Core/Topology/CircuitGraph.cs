@@ -139,6 +139,15 @@ public sealed record CircuitGraph
     /// </value>
     public ImmutableHashSet<string> ProvisionalParameters { get; init; } = [];
 
+    /// <summary>Gets every <c>control</c> line's setpoint, applied to the design solve or not (<c>D-141</c>).</summary>
+    /// <value>
+    /// Empty by default, which is right for a hand-built graph and for a static circuit with no control
+    /// line. An applied entry says the measured component's stated parameter of that name is the
+    /// setpoint rather than the script's own word, and that the constraint it raises is answered by
+    /// the named actuator alone (<see cref="WellPosedness"/>).
+    /// </value>
+    public ImmutableArray<Setpoint> Setpoints { get; init; } = [];
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

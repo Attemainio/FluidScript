@@ -319,6 +319,13 @@ public sealed class LoweringTests
             graph.Nodes.Where(static node => node.Origin != NodeOrigin.PipeInternal),
             node => Assert.Equal(0, node.ThermalVolume));
 
+        // `C-113`: what the script stated on the pipe is stated on every segment, so no sizing rule
+        // reads a segment as a pipe nobody sized and steps its DN25 down for velocity. The length is
+        // not: a segment's is derived, and a report must not call 2 m stated when 10 m was.
+        Assert.All(pipes, pipe => Assert.Equal(25.0, pipe.StatedParameters["dn"].SiValue));
+        Assert.All(pipes, pipe => Assert.False(pipe.StatedParameters.ContainsKey("length")));
+        Assert.All(pipes, pipe => Assert.False(pipe.StatedParameters.ContainsKey("nodes")));
+
         // One group, nine members: the source pipe itself is not among them, because it is not in the
         // graph any more.
         var group = Assert.Single(graph.Groups);

@@ -113,6 +113,7 @@ public static class DiagnosticRegistry
         .. FluidDiagnostics.All,
         .. TopologyDiagnostics.All,
         .. SolverDiagnostics.All,
+        .. ControllerDiagnostics.All,
         .. CatalogDiagnostics.All,
         .. DesignDiagnostics.All,
         .. SizingDiagnostics.All,

@@ -80,6 +80,7 @@ public static class WellPosedness
         ReportStaticHead(graph, hydraulics, diagnostics);
         ReportClosure(graph, hydraulics, diagnostics);
         ReportBoundaries(graph, hydraulics, diagnostics);
+        ReportSetpoints(graph, diagnostics);
 
         var constraints = Constraints(graph, hydraulics);
         var assignment = Promote(graph, hydraulics, constraints);
@@ -90,6 +91,48 @@ public static class WellPosedness
         ReportReaches(graph, promotions, diagnostics);
 
         return new WellPosednessResult(counting, hydraulics, diagnostics.ToImmutable());
+    }
+
+    /// <summary>Says which control lines' setpoints the design solve does not hold, and why (<c>D-141</c>).</summary>
+    /// <remarks>
+    /// Lowering decided; this reads the decision off the graph and names it. Two reasons, two codes: the
+    /// measurement is one the solve could hold but the actuator or the node was stated (<c>FS3210</c>),
+    /// or it is not a plain node's temperature at all (<c>FS3211</c>).
+    /// </remarks>
+    private static void ReportSetpoints(CircuitGraph graph, ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        foreach (var setpoint in graph.Setpoints)
+        {
+            if (setpoint.Applied)
+            {
+                continue;
+            }
+
+            var measurement = $"{setpoint.Measured}.{setpoint.Parameter}";
+
+            if (setpoint.Reason is { } reason)
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    ControllerDiagnostics.StartsOffSetpoint,
+                    null,
+                    new DiagnosticArgument("controller", setpoint.Controller),
+                    new DiagnosticArgument("reason", reason),
+                    new DiagnosticArgument("measurement", measurement),
+                    new DiagnosticArgument(
+                        "setpoint",
+                        string.Equals(setpoint.Parameter, HydraulicPartition.Temperature, StringComparison.Ordinal)
+                            ? (setpoint.Value.SiValue - 273.15).ToString("0.##", CultureInfo.InvariantCulture) + " °C"
+                            : setpoint.Value.ToString())));
+
+                continue;
+            }
+
+            diagnostics.Add(Diagnostic.Create(
+                ControllerDiagnostics.MeasurementNotHeld,
+                null,
+                new DiagnosticArgument("controller", setpoint.Controller),
+                new DiagnosticArgument("measurement", measurement)));
+        }
     }
 
     /// <summary>Names each flow constraint whose pump sits on no branch its owner does.</summary>
@@ -868,6 +911,23 @@ public static class WellPosedness
         if (hydraulic is null)
         {
             return [];
+        }
+
+        // A node temperature a control line's setpoint stated is answered by the actuator the line names
+        // and by nothing else (D-141): the loop said who holds it, and offering the nearest split instead
+        // would put the design point on a valve the controller never touches.
+        if (constraint.Kind is ConstraintKind.NodeTemperature
+            && graph.Setpoints.FirstOrDefault(held =>
+                held.Applied
+                && string.Equals(held.Measured, constraint.Component, StringComparison.Ordinal)
+                && string.Equals(held.Parameter, constraint.Parameter, StringComparison.Ordinal)) is { } setpoint)
+        {
+            var actuator = graph.Components.FirstOrDefault(
+                element => string.Equals(element.Name, setpoint.ActuatorComponent, StringComparison.Ordinal));
+
+            return actuator is not null && IsFree(graph, actuator, setpoint.ActuatorParameter)
+                ? [(setpoint.ActuatorComponent, setpoint.ActuatorParameter)]
+                : [];
         }
 
         return constraint.Kind switch
