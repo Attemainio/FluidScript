@@ -7,7 +7,7 @@ owns: [WebSocket protocol, frame messages, backpressure, reconnection, run lifec
 depends_on: [26-model-contract, 33-transient-time-domain, 41-api-architecture]
 traces_to: [R-19, R-12, R-40, R-41, R-45, R-50]
 open_questions: 0
-last_review_pass: 6
+last_review_pass: 7
 ---
 
 # Realtime contract
@@ -62,7 +62,7 @@ and costs one flag.
 // 1 — sent once, immediately after start
 { "type": "base", "model": { /* immutable full model contract at t=0 */ },
   "runId": "r-7f2a", "snapshotId": "sha256:…", "sourceHash": "sha256:…",
-  "frameContractVersion": "1.0", "sequence": 0,
+  "frameContractVersion": "1.0", "sequence": 0,      // independent of the model contract's version
   "stateChecksum": "sha256:…", "estimatedFrames": 600 }
 
 // 2 — the stream. Deltas against `base`.
@@ -70,7 +70,7 @@ and costs one flag.
   "sequence": 61, "baseSequence": 60, "t": 61.0,
   "state": { "N2":       { "t": 20.04, "p": 301.2 },
              "HE1":      { "tOut": 65.0, "power": 45.0 },
-             "3WV":      { "position": 0.418 },
+             "3WV":      { "position": 0.418 },      // every key is a model-contract state field
              "T1":       { "layers": { "2": { "t": 30.20 } } } },
   "diagnosticEvents": [
     { "occurrenceId": "FS4001:N2:1", "action": "started",
@@ -96,6 +96,19 @@ Realtime deliberately uses validated deltas rather than repeating the static mod
 | Full state, all components | ~6 kB | 3.6 MB. Workable but wasteful — most components are static most of the time. |
 | **Delta: changed values only** | ~0.4 kB typical | **Chosen.** 240 kB per run. |
 | Binary | ~0.1 kB | Fastest, opaque, hard to debug. Not worth it at these sizes. |
+
+**A delta's keys are the model contract's own state fields**, per component and per connection, with
+the same names and the same canonical units as [`26`](../20-core-domain/26-model-contract.md)'s
+`ComponentStateWire` and `ConnectionStateWire`, and a tank's layers under `layers` keyed by one-based
+index. A frame never invents a name the static contract does not carry, so the worker reconstructs
+into the same shape the canvas already draws. The frame message has its own committed schema,
+`Contracts/Schemas/frame.json`, gated like the others (`D-46`).
+
+**`stateChecksum` is computable on both sides.** It is the SHA-256 of the canonical serialization of
+the **full reconstructed state** after the frame is applied — every component and connection in the
+contract's order, every state field in declared order, doubles written with the round-trip `R`
+format, no whitespace — never of the delta. The worker recomputes it after applying each delta, which
+is how invariant 8 is checked on every frame and not only in a test build.
 
 "Changed" means differing from the **last transmitted/reconstructed value** by more than display
 precision, so sub-threshold changes accumulate and eventually cross the threshold. Display

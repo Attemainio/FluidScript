@@ -7,7 +7,7 @@ owns: [ISolver seam, system assembly, unknown and equation registry, the outer f
 depends_on: [22-component-model, 23-topology-and-graph, 24-auto-sizing]
 traces_to: [R-11, R-12, R-15, R-16]
 open_questions: 0
-last_review_pass: 2
+last_review_pass: 7
 ---
 
 # Solver architecture
@@ -57,9 +57,9 @@ public interface ISolver
 
     /// <summary>Whether this solver can handle the given system.</summary>
     /// <returns>
-    /// A reason when it cannot — a steady solver refuses a system with time derivatives, an
-    /// explicit transient solver refuses one whose stiffness exceeds its step limit. Checked
-    /// before solving so the user gets a sentence rather than a divergence.
+    /// A reason when it cannot — a steady solver refuses a system with differential states
+    /// left unpinned. Checked before solving so the user gets a sentence rather than a divergence.
+    /// Stiffness is not checked here: it is a run-time property of the step, FS3102 (33).
     /// </returns>
     Result<Unit> CanSolve(EquationSystem system);
 
@@ -239,9 +239,12 @@ decides ownership; the settle test is the sizes and the deferred values together
 [`14`](../10-language/14-expressions-and-references.md) has what building it found.
 
 The loop is **the same code path for steady and transient**. A transient run does one outer pass to
-establish the initial condition, then steps in time with sizes held fixed
-([`24`](../20-core-domain/24-auto-sizing.md)'s fixed-snapshot rule — sizing is a design-point property
-and must not re-run per frame).
+establish the initial condition — the design solve, with the control bindings as constraint sources
+(`D-141`) — then steps in time with sizes and promotions held fixed
+([`24`](../20-core-domain/24-auto-sizing.md)'s fixed-snapshot rule, `D-140`). **`ITransientSolver` is
+not an `ISolver`; it owns one.** Every step's algebraic solve is this Newton on the pinned system
+(`D-139`), reached through the same `Prepare`/`WarmStart` seams a re-solve uses, so V8 compares one
+code in two modes and not two codes.
 
 ## Solver selection
 
@@ -251,7 +254,7 @@ question the user cannot answer better than the tool can.
 | Model | Solver |
 |---|---|
 | `fluid water` (static) | Newton |
-| `fluid dynamic water` | Time-domain, with Newton establishing t = 0 |
+| `fluid dynamic water` | Time-domain ([`33`](33-transient-time-domain.md)), owning a Newton for t = 0 and for every step's pinned system |
 | An explicit optimization request (M6) | Evolutionary, wrapping Newton per evaluation |
 
 `CanSolve` is checked before the run so an unsuitable pairing produces a sentence rather than a

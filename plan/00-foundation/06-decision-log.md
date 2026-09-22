@@ -180,6 +180,10 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-135` | Accepted | 2026-09-21 | A three-way valve's leg passes its body's rated leakage at the stop; 2 % by default, never under class IV |
 | `D-136` | Accepted | 2026-09-21 | `mixing_valve` and `diverting_valve` declare the body's service; a bare `three_way_valve` claims nothing |
 | `D-137` | Accepted | 2026-09-22 | Water is measured through IAPWS-IF97; every other substance stays on the Helmholtz equation of state |
+| `D-138` | Accepted | 2026-09-22 | Sizing sweeps a driver range, and each component takes its kind's envelope over it |
+| `D-139` | Accepted | 2026-09-22 | A transient's differential states are the nodes with thermal volume; each step solves the steady system with them pinned |
+| `D-140` | Accepted | 2026-09-22 | A stated value is a design point: it holds at t = 0, its promotion freezes, and following it in time takes a `control` line |
+| `D-141` | Accepted | 2026-09-22 | A run starts from its design state, and an unstated actuator's setpoint is its design-point constraint; the cold start is a later opt-in |
 <!-- index:end -->
 
 ---
@@ -6284,3 +6288,155 @@ provenance carries the package and its version; the formulation is this entry.
 
 **Constrains.** `PropertyBackend.Water`, `PropertyBackend.Refine`, `If97Saturation`,
 `Water.FromPressureTemperature`'s line check, `21` §adapter, `07`'s water row, the goldens.
+
+## D-138 · Sizing sweeps a driver range, and each component takes its kind's envelope over it
+
+**Accepted · 2026-09-22** (the user's call: a plant with a heating end at −26 °C and a cooling end at
++32 °C has no single design point, and an internal exchanger can peak between them) · *amends
+`D-58` and `D-94`* · constrains [`24`](../20-core-domain/24-auto-sizing.md), [`12`](../10-language/12-grammar.md)
+
+`D-58` gives the file one sizing point and rejected per-circuit points because "a plant with two
+climates does not exist". The case this entry answers is one climate with **two governing conditions**:
+a chilled-water network at 7/12 °C carries 1.91 kg/s for 40 kW where the heating network at 45/35 °C
+carries 1.20 kg/s for 50 kW, so a shared pump, pipe or valve sized at the heating design day is
+undersized by 60 % on flow in summer. And the governing condition of some components is at neither
+end: a heat-recovery exchanger between the two networks moves `min(Q_heat, Q_cool)`, which is zero
+at −26 and at +32 and peaks where the two load curves cross (about +12.7 °C and 5 kW on the curves in
+[`24`](../20-core-domain/24-auto-sizing.md)). `D-94`'s `sized_at` lets a user name that point when they
+know it; for a crossing of two curves they do not.
+
+**Decided.**
+
+- `design` accepts a **range** for a driver: `design tout=-26..32`, with an optional `step=` (default
+  1 K). A single value behaves exactly as `D-58` today. A static solve **operates at the range's first
+  value**, so the operating-point rule of `D-58` is unchanged.
+- Sizing runs the outer loop **at every point of the range** — the grid, plus every breakpoint of
+  every curve the drivers reach and every pairwise crossing of those curves, which is where a
+  piecewise-linear composition can peak — and each point yields a candidate size for every component.
+  A component's size is its **kind's envelope** over the candidates, and its basis names the governing
+  point: "sized at tout = 12.7 °C, 5.0 kW". Pipe, exchanger and most kinds take the maximum. A pump is
+  a point on a curve: the case demanding the largest head at its flow governs, and every other case is
+  checked to lie under that curve. A control valve takes its Kv from the maximum-flow case and is
+  **checked at the minimum-flow case** for authority and turn-down; a plain maximum on a valve gives one
+  that hunts in winter. The per-kind rules and the rangeability figures are looked up and cited in
+  `24` when the package lands, not derived.
+- After the envelope, the whole range is **solved again with every size frozen** to verify it. A pump
+  off its curve, a valve outside its band or an exchanger short of duty at some point is a warning
+  naming the outdoor temperature. Sizes only grow under a maximum and the catalogue bounds them, so a
+  second envelope pass after a failed verification converges monotonically; two sweeps is the
+  expected cost, about 120 steady solves at 1 K.
+- A component that is off at the first point but on elsewhere is sized where it is on, which is the
+  answer `S-56` did not have.
+- Drivers other than the swept one — setpoints, occupancy — are enumerated as named cases on top of
+  the range; v1 sweeps one dimension.
+- A transient run starts from one point of the range, the first by default; its schedule moves the
+  drivers from there, and the frozen sizes in its snapshot are the envelope sizes (`D-22`).
+
+**Why not the alternatives.** *Extremes plus a few checks:* misses every interior peak — recovery,
+free cooling, a bypass whose flow is largest at part load. *Named cases only:* the user must know the
+crossing point. *A weather file:* thousands of solves for the same sizes; sizing depends on which
+conditions occur, not on when or for how long. The one genuinely dynamic sizing question, a storage
+volume from a load profile, is a separate later item (`C-115`).
+
+**Constrains.** `24` §*Sizing over a driver range*; `12`'s `design-directive` value grammar; the
+sizing basis on the wire (`26`) carrying the governing point; `08`'s P6.8.
+
+## D-139 · A transient's differential states are the nodes with thermal volume; each step solves the steady system with them pinned
+
+**Accepted · 2026-09-22** (the P6 readiness review, F-1; the user confirmed *partition by volume*) ·
+constrains [`33`](../30-solver/33-transient-time-domain.md), `SystemLayout`, `EquationSystem`
+
+`33`'s table integrated "node enthalpies" while its own text said only a pipe-internal node has a
+volume. A node with `V = 0` has `τ = Vρ/ṁ = 0`: its equation `Vρ dh/dt = ṁ(h_up − h)` collapses to
+the algebraic mixing balance the steady system already holds, and integrating it is an infinitely
+stiff state that fails on the first step.
+
+**Decided.** The partition is **by volume, not by kind**. Every graph node with
+`ThermalVolume > 0` — pipe cells and tank layers today, an exchanger's hold-up (`C-114`) or a metal
+mass later — is a **differential** state. Everything else — branch flows, node pressures, every
+zero-volume node enthalpy, exchanger injections, promotions — is **algebraic**. The per-step
+algebraic solve is *the steady system with the differential enthalpy unknowns removed and their
+values substituted*: a partitioned `SystemLayout` (Differential / Algebraic) and a pinned
+`EquationSystem` view, solved by the existing scaled Newton with warm start from the previous step.
+A static circuit in a file with a dynamic one has no differential states and is solved algebraically
+each step for free. Adding a volume to a kind later is a registry row and a `ThermalVolume`, never a
+solver change.
+
+**Rejected.** *Integrate every node with a floor volume:* a number nothing chose, and a time constant
+in the answer that is not in the plant. *A separate transient equation system:* two assemblies to
+keep consistent, and V8 (transient to steady state equals Newton) would then compare two codes
+rather than one code in two modes.
+
+**Constrains.** `33` §partition, `31` §seam, `22`'s tank residual set in a run, P6.0.
+
+## D-140 · A stated value is a design point: it holds at t = 0, its promotion freezes, and following it in time takes a `control` line
+
+**Accepted · 2026-09-22** (the user's call: "the static simulation is to design the system at the
+design point … the time-dependent simulation should use the design-point-sized components to drive
+the system") · constrains [`33`](../30-solver/33-transient-time-domain.md), [`15`](../10-language/15-semantic-model.md), [`22`](../20-core-domain/22-component-model.md), `WellPosedness`
+
+The demand-step loop states `HE1 heat_exchanger power=30 out.t=50`. In static mode a stated `out.t`
+is a constraint (`D-02`) that promotes the pump's head (`D-130`). `33`'s worked example has the outlet
+jump to 65 °C at t = 60 s, so it is not held during the run — and nothing said which reading was
+meant. Held for the run, the flow re-promotes every step and there is no front to observe; the M4
+criterion is unsatisfiable on its own reference circuit.
+
+**Decided.**
+
+- **At t = 0 the steady solve runs exactly as static mode**, with every stated constraint and every
+  promotion. It is the design solve, and its sizes and promoted values are the run's.
+- **Promoted values freeze** for the run — a pump's head or speed, a valve's position, every sized
+  value — extending `33` invariant 4 from sizes to promotions.
+- **Stated thermal values on non-boundary components** (`out.t`, `in.t`, a `dt`, a stated exchanger
+  flow) are **design points**: released at t > 0 and carried as initial conditions. An exchanger's
+  `out.t` names the flow it was sized for; it is not a thermostat.
+- **Boundary states and inputs stay constraints** for the run: `inlet t=`, `p=`, `flow=` and `power=`
+  hold unless a schedule or a controller moves them.
+- **No implicit controllers.** Following a value in time takes a `control` line naming its actuator
+  (`D-40`, `D-43`); a stated `out.t` with no control line floats and the canvas shows it floating.
+- **A scheduled parameter is stated from t = 0.** Scheduling a sized or promoted parameter freezes it at
+  its design value and then moves it. A schedule target that is also a control binding's actuator is
+  a bind-time error (`FS3109`); two hands on one valve is never meant.
+
+**Rejected.** *Hold every stated value for the run:* the reading above; the transient shows nothing.
+*A per-parameter `hold` flag:* a second way to say what the `control` line already says.
+
+**Constrains.** `33` §*What a stated value means in a run*, `15` §omission policy pointer, `22` §per-kind
+pointer, `34`, the schedule binder, P6.0.
+
+## D-141 · A run starts from its design state, and an unstated actuator's setpoint is its design-point constraint; the cold start is a later opt-in
+
+**Accepted · 2026-09-22** (the user's hunch was a cold start from ambient with the pumps off; accepted
+as an opt-in, `S-76`, on the arguments below) · constrains [`33`](../30-solver/33-transient-time-domain.md), [`34`](../30-solver/34-controllers.md), `WellPosedness`
+
+**Measured 2026-09-22** (`diagnostics/circuit-reports.md`, `scratch/m4-demand-step-static`): the
+demand-step loop as `01` writes it — `out.t=50`, no `in.t`, `setpoint=20`, no valve position — does
+not solve. The valve defaults to position 1, `HE1.out.t`'s promotion drives `PU1.head` to 62 m and
+1.16 kg/s, and Newton goes non-finite in three iterations. The same script with `in.t=20` stated —
+which is what the setpoint means, `N2` being `HE1.in` — converges in one pass on `01`'s figures:
+0.2392 kg/s secondary, 0.0763 kg/s recirculation, the valve at 0.501, Kv 2.5, 2.55 m head.
+
+**Decided.**
+
+- A `control` binding whose actuator is **unstated** contributes its setpoint as a **t = 0 constraint
+  on the measurement**, promoting the actuator (`N2.t = 20` promotes `3WV.position`), so the design
+  solve is the controlled equilibrium and the controller's `Initialize` is bumpless by construction.
+  `WellPosedness` gains the control binding as a constraint source, after the terminal rows and
+  stated flows in `D-130`'s order.
+- When the actuator **is stated**, the setpoint is not a constraint; the run starts with an offset and
+  `FS3210` (info) says by how much.
+- **The default t = 0 of every run is the design state.** `33` invariant 3 (no disturbance, no drift)
+  and V8/V9 depend on it, and it needs no ambient.
+- **The cold start** — every volume at a stated temperature, pumps at `speed=0`, a schedule ramping
+  them — is an **opt-in initial-condition statement added later** (`S-76`). Its blockers are named:
+  the language has no ambient (`S-18`); at zero flow every zero-volume node's balance `ṁ(h_up − h) = 0`
+  leaves `h` undetermined and the algebraic system singular, so a stopped pump in a closed loop needs
+  a defined zero-flow state; a pump-off model with a check valve, else the primary boundaries drive
+  reverse flow through it; and a demo whose step waits for the ramp to settle (loop residence
+  18.6 s, dead time 38 s, a PI loop settling in minutes).
+
+**Rejected.** *Cold start by default:* the four blockers, and V9 loses its reference. *Setpoint
+always a constraint:* over-specifies a loop whose valve position the user stated deliberately.
+
+**Constrains.** `34` §*The design point and the setpoint*, `33` §initial state, `WellPosedness.Candidates`,
+`01`'s demand-step note, `S-75`, P6.0.

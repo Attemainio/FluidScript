@@ -1,0 +1,39 @@
+# The demand-step loop reference from plan/00-foundation/01-vision-and-scope.md (D-16).
+#
+# The cooling loop in time: `PB` puts 8 m of DN20 pipe in four cells on the recirculation branch,
+# so a change at `HE1` reaches the measured node `N2` 38 s later; `TC1` holds `N2` at 20 C through
+# the three-way valve; the schedule steps the load from 30 to 45 kW at t = 60 s.
+#
+# Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
+# `N2` at 20 C in the design solve and chooses the valve position. Until P6.0 builds that rule the
+# script does not solve (S-75), and until C-113 closes the pipe's stated dn is lost by its cells;
+# it is committed as the reference and stays out of CorpusStatusTests until it solves.
+
+fluidscript 1
+circuit demandStep
+fluid dynamic water
+show temperature
+
+HE1 heat_exchanger power=30 out.t=50
+3WV three_way_valve
+PU1 pump
+P1  pipe length=25
+PB  pipe length=8 dn=20 nodes=4   # recirculation branch — the path the controller sees
+TC1 pi                            # definition: algorithm and gains (D-40)
+
+control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
+
+connections
+N1 - N2
+N2 - PU1
+PU1 - HE1
+HE1 - 3WV
+3WV - PB - N2                # recirculation, now with volume in it
+3WV - P1
+P1 - N3
+
+N1 inlet t=6 p=300
+N3 outlet p=280
+
+schedule
+at 60 s   HE1.power = 45

@@ -7,7 +7,7 @@ owns: [controller model, v1 PI algorithm, optional PID extension, anti-windup, s
 depends_on: [22-component-model, 33-transient-time-domain]
 traces_to: [R-13, R-49]
 open_questions: 0
-last_review_pass: 6
+last_review_pass: 7
 ---
 
 # Controllers
@@ -36,14 +36,21 @@ binding), or how a binding's named arguments resolve
 A controller reads a measurement, compares it to a setpoint, and drives an actuator. In FluidScript
 it is a **component with no ports**: it participates in the model but not in the flow network.
 
+**Two types, not one.** The built `IController : IObserver` (`Components/Observers.cs`) is the *read*
+side: it names the node it is attached to, the properties it observes, and its actuator reference, and
+it is what the binder and the model contract already see. The control *law* below is a tier-30 type the
+controller component owns — the PI/PID state machine with its limits, slew and anti-windup — and it
+is what P6.3 adds. The two were once one interface under one name in this document and in the code
+with different members; a session implementing either would have broken the other.
+
 ```csharp
-/// <summary>Drives an actuator to hold a measured value at a setpoint.</summary>
+/// <summary>The discrete-time law a controller component steps once per accepted timestep.</summary>
 /// <remarks>
-/// A controller has no ports and contributes no residuals — it is not part of the algebraic
-/// system. It is integrated alongside the energy states each timestep and writes its output
-/// into the actuator's parameter before the next algebraic solve.
+/// Has no ports and contributes no residuals — it is not part of the algebraic system. Stepped
+/// in the accepted-step loop before the first derivative evaluation (33 §The step, once) and its
+/// output written into the actuator's parameter before the next algebraic solve.
 /// </remarks>
-public interface IController
+public interface IControlLaw
 {
     string Name { get; }
 
@@ -76,9 +83,31 @@ public interface IController
     double Step(Quantity measured, double dt);
 
     /// <summary>Resets integral and derivative state to a bumpless start at the given output.</summary>
+    /// <remarks>Called once with the design solve's actuator value (D-141), so the first step
+    /// produces no increment when the measurement is at its setpoint.</remarks>
     void Initialize(double actuatorValue);
 }
 ```
+
+The `controller` registry row carries `kp`, `ki`, `kd`, `slew` and `deadband`. `slew` and `deadband`
+take the defaults of *Actuator limits and rate* below; `kp` and `ki` when omitted are **estimated at
+run start** from the perturbation under *Default tunings*, which is a run-time measurement reported by
+`FS3201`, not a sizing pass — their basis on the wire says so, and [`24`](../20-core-domain/24-auto-sizing.md)'s
+frozen-snapshot rule does not apply to them because the run has not started when they are chosen.
+
+### The design point and the setpoint
+
+`D-141`. A `control` binding whose actuator is **unstated** contributes its setpoint as a constraint on
+its measurement in the design solve, promoting the actuator: `control actuate=3WV.position
+measure=N2.t by=TC1 setpoint=20` holds `N2` at 20 °C at t = 0 and the solve chooses the valve
+position that does it — the demand-step loop's 0.501. The run then starts at the controlled
+equilibrium, `Initialize` receives that position, and the first step produces no increment. This is
+what a designer means by the design point of a controlled loop, and it is the only way the reference
+circuit is well posed: without it the valve defaults to 1, the exchanger's `out.t` promotion drives
+the pump to 62 m, and the t = 0 solve goes non-finite (measured, `diagnostics/circuit-reports.md`).
+
+When the actuator **is stated**, the setpoint is not a constraint; the run starts with an offset and
+`FS3210` reports it.
 
 **These three properties are populated from the binding, not from the declaration** (`D-40`). The
 controller *declaration* carries the algorithm and its gains; the `control` *binding* carries what is
@@ -181,16 +210,12 @@ oscillates for others.
 
 ## Coupling into the transient loop
 
-Per accepted timestep, in this order:
-
-```
-1. Read the measurement from the current state.
-2. controller.Step(measured, dt) → new actuator value.
-3. Apply slew-rate and range limits.
-4. Write the value into the actuator's parameter.
-5. Integrate the energy states.
-6. Solve the hydraulic subsystem algebraically at the new state.
-```
+The order of a step is written once, in [`33`](33-transient-time-domain.md) §*The step, once*, and
+not restated here; what this document owns is the controller's place in it: **stepped once per
+accepted step, on the measurement from the previous step's algebraic state, before the first
+derivative evaluation, never inside one and never on a rejected step**, its output limited and
+written into the actuator's parameter before `alg(x_n, t_n)` is evaluated. Because the step lands on
+every frame time, the controller's sample time is never longer than `frameInterval`.
 
 **The controller acts on the previous step's measurement**, which is a one-step delay and is physically
 correct: a real controller cannot respond to a temperature before it is measured. Making it
@@ -222,6 +247,7 @@ discrete-time nature.
 | `FS3207` | Setpoint outside the measurement's plausible range | Warning | `{name}: a setpoint of {v} is outside the usual range for {dimension}.` |
 | `FS3208` | A declared controller is named by no `control` binding | Warning | `{name}` drives nothing; add a 'control' line naming it. |
 | `FS3209` | Two `control` bindings name one controller | Error | `{name}` is used by {n} control lines; a controller holds one integral term and drives one actuator. |
+| `FS3210` | The run starts off setpoint because the actuator is stated | Info | `{name} starts {offset} from its setpoint: '{actuator}' is stated, so the design solve did not hold {measurement}.` |
 
 `FS3203` requires oscillation detection — zero crossings of the error over a sliding window, with a
 period and an amplitude — which is a small amount of work and turns the most common user problem from

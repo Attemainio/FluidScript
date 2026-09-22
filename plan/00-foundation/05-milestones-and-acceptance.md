@@ -340,8 +340,10 @@ source boundaries feeding a five-layer 300 dm³ tank and two consumer boundaries
 - [ ] `fluid dynamic water` selects the transient model; `fluid water` stays steady-state.
 - [ ] The step disturbance produces a visible transient that settles to the new equilibrium, and that
       equilibrium equals what a steady-state solve of the post-step system returns, within tolerance.
-- [ ] Transport delay is observable: a temperature change at the heat exchanger reaches a node 20 m
-      downstream later than one 5 m downstream, by roughly length ÷ velocity.
+- [ ] Transport delay is observable: a temperature change at the heat exchanger reaches `PB`'s outlet
+      (8 m) later than its first cell (2 m), by roughly length ÷ velocity.
+- [ ] The run starts from the design state with `N2` at its setpoint and the valve at the position the
+      design solve chose (`D-141`); a stated `out.t` is released at t > 0 and its promotion frozen (`D-140`).
 - [ ] `T1 tank` defaults visibly to 300 dm³ and five layers; `container` and `v` bind as aliases but
       canonical metadata and completion emit `tank` and `volume`.
 - [ ] The storage header materializes exactly `in1`, `in2`, `out1`, and `out2`; its 30% ports map to

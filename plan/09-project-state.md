@@ -355,7 +355,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 7 | Not started | — |
+| P6 | M4 | 9 | Not started — readied 2026-09-22: the P6 review added P6.0 (transient assembly) and P6.8 (sizing over a driver range), `D-138`–`D-141`, `S-75`/`S-76`, `C-113`–`C-115` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1159,6 +1159,24 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 >
 > **`U-5` closed 2026-09-22:** the binder types a deferred `let` from the units and properties its
 > expression names, the wire carries the dimension, and completion filters it. 38 open.
+>
+> **P6 readied 2026-09-22** (`.claude/plan-review/findings/2026-09-22-P6-transient-readiness.md`,
+> pass 7): the transient's design was sound and its assembly unspecified — `33` integrated node
+> enthalpies the built graph gives no volume, nothing said what a stated `out.t` means at t > 0, the
+> setpoint played no part at t = 0, two `IController`s shared one name, the tank's run-time residual
+> set and the `ISolver`/`ITransientSolver` seam were unstated, and the reference circuit did not exist
+> as a sample. Measured: `01`'s demand-step loop does not solve as written (valve at 1, pump to 62 m,
+> non-finite) and does on the cooling loop's figures once the setpoint constrains `N2` (`S-75`); a
+> discretized pipe loses its stated `dn` (`C-113`). The user's calls became `D-138` (sizing sweeps a
+> driver range, the envelope per kind — a plant with a heating end and a cooling end, and an internal
+> exchanger that peaks between them), `D-139` (partition by volume, each step the pinned steady
+> system), `D-140` (a stated value is a design point; following it takes a `control` line) and `D-141`
+> (a run starts from its design state; an unstated actuator's setpoint is its constraint; the cold
+> start is `S-76`, an opt-in later). `08` gained P6.0 before P6.1 and P6.8 after P6.7; `33`, `34`,
+> `31`, `43`, `36`, `05`, `22`, `24`, `15`, `12` and `01` carry the rest; `samples/m4-demand-step.fluid`
+> is committed with its token golden and counted square, outside `CorpusStatusTests` until P6.0.
+> `C-114` (exchanger hold-up) and `C-115` (storage from a profile) are the user's two further points,
+> filed as hunches. P7 (M5, the mutation API) was checked and is implementable as written. 43 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1205,8 +1223,8 @@ Counts only. Every description lives in the file named.
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
 | 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 26 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 20 · Core domain | 29 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 13 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
@@ -1244,6 +1262,13 @@ tier-20 sweep recorded as `C-77`; all closed before P4.1 starts. The review's un
 unassessed, not clean.
 
 ## What is next
+
+**P6 starts with P6.0** (`08`, 2026-09-22): the partitioned `SystemLayout` and pinned `EquationSystem`
+view (`D-139`), the control binding as a constraint source in `WellPosedness` (`D-141`, `S-75`), the
+run-time meaning of a stated value (`D-140`), `RunSnapshot`, `C-113`, and `samples/m4-demand-step.fluid`
+solving on `01`'s figures and entering `CorpusStatusTests`. P6.8 (`D-138`) is tier-20 sizing work that
+can run in parallel with P6.0–P6.7. Read `33` whole before either; its worked example is the trap
+its own text names.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens
@@ -1306,7 +1331,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **1990 total, 0 failed, 3 skipped** (2026-09-21), ~60 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **2063 total, 0 failed, 3 skipped** (2026-09-22), ~55 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
 | API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
 | Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

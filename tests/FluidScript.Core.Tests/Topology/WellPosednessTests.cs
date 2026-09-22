@@ -973,6 +973,10 @@ public sealed class WellPosednessTests
                 ["m2-distribution-header.fluid"] = "0",
                 ["m2-substation.fluid"] = "0",
                 ["m4-storage-header.fluid"] = "0",
+                // Square, and not solvable as written: the control line's setpoint is not yet a
+                // constraint, so the valve defaults to fully open and `HE1.out.t`'s promotion runs the
+                // pump away (S-75, D-141). Counting is right; the constraint source is what P6.0 adds.
+                ["m4-demand-step.fluid"] = "0",
             },
             outcomes);
     }

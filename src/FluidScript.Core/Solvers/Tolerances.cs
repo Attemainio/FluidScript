@@ -144,6 +144,14 @@ public static class Tolerances
     /// <value><c>transient.energy_drift_fail</c>, dimensionless and relative. Five percent stops with <c>FS3107</c>.</value>
     public const double TransientEnergyDriftFail = 5e-2;
 
+    /// <summary>The scaled change per frame interval below which a differential state has stopped moving.</summary>
+    /// <value><c>transient.settle_tol</c>, dimensionless, on the same state scales as the local error. Read by <c>FS3104</c>.</value>
+    public const double TransientSettleTol = 1e-4;
+
+    /// <summary>How many consecutive frame intervals every state must stay under the settle tolerance.</summary>
+    /// <value><c>transient.settle_frames</c>, a count of frame intervals: ten seconds at the default interval.</value>
+    public const int TransientSettleFrames = 10;
+
     /// <summary>The pressure drop below which a valve's square-root law is blended.</summary>
     /// <value>
     /// <c>valve.dp_regularization</c>, pascals, always compared against a magnitude so the law stays

@@ -98,9 +98,11 @@ deferred expression. Two loops would interleave unpredictably and could oscillat
 first iterate close to the answer, and where the duty fully determines the flow it *is* the answer —
 the worked example needs two passes for that reason, one to size and one to confirm.
 
-**Every pass of this pipeline runs at the `design` point, and only there** (`D-58`). Sizing is
-inherently a single-condition question, so `design` supplies each driver a value, every curve
-short-circuits to a constant against it, and the sizes that come out hold for the whole run. In a
+**Every pass of this pipeline runs at one `design` point** (`D-58`) — and, once `D-138` lands, at
+every point of a `design` range in turn, each point a full run of the pipeline and the component's
+size its kind's envelope over them (*Sizing over a driver range*, below). At one point `design`
+supplies each driver a value, every curve short-circuits to a constant against it, and the sizes
+that come out hold for the whole run. In a
 static solve the design point is also the operating point and the distinction is invisible. In a
 dynamic one it is not: sizing is **not** re-run per time step and it is not run at t = 0 either, which
 would size the plant for whatever the weather is at midnight on the first of January. **No rule here
@@ -111,6 +113,52 @@ should *not* be sized at the peak — the heat pump of a bivalent pair — says 
 on its own declaration (`D-94`), reads the curve there, and the closed-circuit closure in step 1
 gives its backup the remainder. The fraction of peak that results is reported as the parameter's
 basis, never taken as an input (`C-51`, closed).
+
+## Sizing over a driver range
+
+`D-138`, the user's call on 2026-09-22; **not built** — it is `08`'s P6.8. A plant with a heating end
+at −26 °C and a cooling end at +32 °C has two governing conditions, and a component between its two
+networks can peak at neither:
+
+| Driver | Heating load | Cooling load | Recovery `min(Q_heat, Q_cool)` |
+|---|---|---|---|
+| −26 °C | 50 kW | 0 | 0 |
+| +10 °C | 8.1 kW | 0 | 0 |
+| +12.7 °C | 5.0 kW | 5.0 kW | **5.0 kW** — the exchanger's design point |
+| +17 °C | 0 | 12.7 kW | 0 |
+| +32 °C | 0 | 40 kW | 0 |
+
+And the chilled-water side of a shared circuit at 7/12 °C carries 1.91 kg/s for 40 kW where the
+heating side at 45/35 °C carries 1.20 kg/s for 50 kW: the smaller duty has the larger flow, and a
+pump, pipe or valve sized on the heating day is 60 % short on flow in summer.
+
+**The sweep.** `design tout=-26..32 step=1` runs the pipeline above at every grid point, at every
+breakpoint of every curve the drivers reach, and at every pairwise crossing of those curves — the
+points where a piecewise-linear composition can peak — with a local refinement around each
+component's own peak for ratio-shaped quantities. Each point yields a candidate for every size.
+
+**The envelope is per kind, and it is not a plain maximum.**
+
+| Kind | Envelope | Also checked at |
+|---|---|---|
+| Pipe | Maximum flow | — |
+| Heat exchanger | Maximum UA | — |
+| Pump | The case demanding the largest head at its flow; the curve must cover every other case | Every point: on the curve |
+| Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down |
+| Tank | Not sized here; a profile (`C-115`) | — |
+
+A plain maximum on a valve gives one that sits 15 % open in winter and hunts. The rangeability
+figures a turn-down check needs are looked up and cited here when the package lands; they are not
+this project's to derive.
+
+**Then the verification sweep.** Every point is solved again with every size frozen. A pump off its
+curve, a valve outside its authority band, an exchanger short of duty at some point is a warning
+naming the outdoor temperature. Sizes only grow under a maximum and the catalogue bounds them, so a
+second envelope pass after a failed verification converges; two sweeps, about 120 steady solves at
+1 K, is the expected cost. The basis of every size names its governing point — "sized at
+tout = 12.7 °C, 5.0 kW" — and a component that is off at the first point but on elsewhere is sized
+where it is on, which closes the case `S-56` left. A static solve operates at the range's first
+value; a run starts there too, its schedule moving the drivers from that state.
 
 ## Constraint propagation
 

@@ -7,7 +7,7 @@ owns: [time integration, transport delay, thermal capacitance, step-size control
 depends_on: [31-solver-architecture, 32-steady-state-newton, 36-numerics-and-convergence]
 traces_to: [R-12, R-14, R-19, R-40, R-41, R-43, R-45]
 open_questions: 0
-last_review_pass: 0
+last_review_pass: 7
 ---
 
 # Transient time-domain solver
@@ -67,23 +67,59 @@ So the model is **quasi-static in pressure, dynamic in energy**:
 
 | Quantity | Treatment | Why |
 |---|---|---|
-| Branch flows, node pressures | Solved algebraically each step, as a steady problem | Equilibrate far faster than the timestep |
-| Node enthalpies | Integrated in time | The physics of interest |
-| Pipe internal-node enthalpies | Integrated — this is transport delay (`R-14`) | |
-| Tank-layer enthalpies | Integrated — intentional thermal storage and stratification (`R-45`) | One state per layer, bottom to top |
-| Component metal temperatures | Integrated, M4+ | Thermal inertia of the hardware |
-| Controller states | Integrated ([`34`](34-controllers.md)) | |
+| Branch flows, node pressures | Algebraic, solved each step as a steady problem | Equilibrate far faster than the timestep |
+| Enthalpy of a node with `ThermalVolume > 0` — pipe cells, tank layers | **Integrated** — transport delay (`R-14`) and storage (`R-45`) | The physics of interest; one state per cell or layer |
+| Enthalpy of every zero-volume node — junctions, terminals, the exchanger's outlet | Algebraic: the mixing balance the steady system already holds | `τ = Vρ/ṁ = 0`; integrating it is an infinitely stiff state that fails on the first step |
+| Exchanger injections, promotions, stated constraints | Algebraic, as in static mode; see *What a stated value means in a run* | |
+| Component metal temperatures, exchanger hold-up | Integrated once they carry a volume (M4+, `C-114`) | Thermal inertia of the hardware |
+| Controller states | Stepped outside the derivative ([`34`](34-controllers.md)) | Discrete-time, not a residual |
 
-This makes each step a **differential-algebraic system solved by splitting**: integrate the energy
-states explicitly, then solve the hydraulic subsystem algebraically at the new state. It is the brief's
-"explicit with no need of the solver" made precise — explicit for the part that is genuinely dynamic,
-Newton for the part that is instantaneous.
+**The partition is by volume, not by kind (`D-139`).** Every graph node with `ThermalVolume > 0` is a
+differential state; everything else is algebraic. Today that is pipe cells and tank layers, and
+nothing else: a heat exchanger has no capacitance in v1, so its outlet enthalpy is an algebraic
+consequence of its inlet and its duty within the step. Giving a kind a volume later is a registry row
+and a `ThermalVolume` on its node, never a solver change.
+
+**Each step is the steady system with the differential unknowns pinned.** `SystemLayout` carries
+the partition (Differential / Algebraic); the transient solver substitutes the integrated enthalpies
+into an `EquationSystem` view that no longer lists them as unknowns and solves *everything else* —
+flows, pressures, zero-volume enthalpies, injections — with [`32`](32-steady-state-newton.md)'s scaled
+Newton, warm-started from the previous step. It is the brief's "explicit with no need of the solver"
+made precise: explicit for the part that is genuinely dynamic, Newton for the part that is
+instantaneous. A static circuit in a file with a dynamic one has no differential states and is
+solved algebraically each step at no extra cost; `FS3110` (info) names it once at the start of the run.
 
 **The alternative, rejected:** integrate everything, including pressures, with an implicit method. It is
 more general and handles water hammer and fast valve slams. It is also stiff — the pressure dynamics'
 time constant is microseconds — forcing either microsecond steps or a stiff implicit integrator, for
 phenomena outside this tool's scope ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)'s
 non-goals: no acoustics).
+
+## What a stated value means in a run
+
+`D-140`. The demand-step loop states `HE1 heat_exchanger power=30 out.t=50`, and in static mode a
+stated `out.t` is a constraint that promotes the pump's head (`D-02`, `D-130`). In a run it is not
+held: the worked example's outlet jumps to 65 °C at the step because `out.t` names *the flow the
+exchanger was sized for*, not a thermostat.
+
+| Written | At t = 0 (the design solve) | At t > 0 |
+|---|---|---|
+| A stated thermal value on a non-boundary component — `out.t`, `in.t`, a `dt`, a stated exchanger flow | Constraint, exactly as static mode; promotes what `D-130` says | **Released.** Its solved value is the initial condition; the promoted quantity is **frozen** at its design value |
+| A sized value | Sized | Frozen (invariant 4) |
+| A boundary state — `inlet t=`, `p=`, `flow=` | Constraint | Constraint, unless a schedule moves it |
+| An input — `power=` | Constraint | Constraint, unless a schedule moves it |
+| A `control` binding on an unstated actuator | Its setpoint constrains the measurement and promotes the actuator (`D-141`) | The controller drives the actuator |
+| A scheduled parameter | Stated at its design value (frozen if it was sized or promoted) | Moved by the schedule |
+
+**No implicit controllers.** Following a value in time takes a `control` line (`D-40`, `D-43`). A
+`schedule` target that is also a binding's actuator is `FS3109` at bind time.
+
+**The initial state is the design state (`D-141`).** The t = 0 solve is one outer pass of
+[`31`](31-solver-architecture.md)'s loop with the control bindings as constraint sources; the run
+starts at the controlled equilibrium and every controller is initialized bumplessly at its design
+output. A cold start — every volume at a stated temperature, pumps off, a schedule ramping them — is
+an opt-in initial-condition statement to be added later (`S-76`); at zero flow every zero-volume
+balance leaves its enthalpy undetermined, so it needs a defined zero-flow state before it can exist.
 
 ## Transport delay
 
@@ -159,6 +195,15 @@ property backend's density rather than assuming hotter always means lighter.
 No ambient loss, wall conduction, or inlet-jet entrainment term exists in v1. Adding a small hidden
 diffusivity would make a stored temperature decay for a reason absent from the script.
 
+**The tank's residual set in a run.** In static mode the tank is one perfectly mixed unknown `h_tank`
+with a zero incoming-stream balance ([`22`](../20-core-domain/22-component-model.md) §6). In a run
+**that unknown is not allocated**: the K layer enthalpies are differential states under `D-139`, the
+K−1 pressure equalities and the junction mass balance `Σ ṁ_p = 0` stay algebraic and unchanged, an
+outflow port reads the enthalpy of the layer `22`'s level rule maps it to, and an inflow lands in
+that layer. `SystemLayout` allocates `h_tank` in `SolveMode.Steady` only. `layers=1` reduces to the
+mixed control volume of V15; the remix runs after every accepted step, never inside a derivative
+evaluation.
+
 ## Integration
 
 **Explicit, adaptive.** Heun's method (RK2): one predictor, one corrector, two derivative evaluations
@@ -201,6 +246,32 @@ surfaced: `FS3101` reports the limiting component when the step is constrained, 
 capped by the CFL limit and by the frame interval. A rejected step (err > tol) halves and retries. The
 0.5/2.0 clamps prevent the oscillation that unclamped controllers produce on a discontinuous
 disturbance.
+
+### The step, once
+
+Written here once; [`34`](34-controllers.md) points at it rather than restating the order. `x` is
+the differential state vector, `alg(x, t)` the pinned steady solve at that state and time (every
+scheduled value at `t`, every frozen size and promotion), `f(x, t) = dx/dt` from the pipe-cell and
+tank-layer balances evaluated on `alg(x, t)`'s flows and enthalpies.
+
+```
+per accepted step from t_n with size h:
+  h   ← min(h, CFL limit, next scheduled time − t_n, next frame time − t_n)
+  u   ← controllers stepped once on the measurement in alg(x_n, t_n)      (34: before k1, never inside f)
+  k1  ← f(x_n, t_n)                                                       needs alg(x_n, t_n)
+  x*  ← x_n + h·k1
+  k2  ← f(x*, t_n + h)                                                    needs alg(x*, t_n + h)
+  x'  ← x_n + h/2·(k1 + k2);  err ← ‖x' − (x_n + h·k1)‖ scaled
+  reject if err > tol: halve h, retry (controllers are not re-stepped)
+  accept: x_{n+1} ← x'; remix tank layers; alg(x_{n+1}, t_n + h) is the frame state
+```
+
+Two or three Newton solves per accepted step, warm-started; the third is shared with the next step's
+`k1` when nothing scheduled falls at `t_{n+1}`. **The step lands on every scheduled time and every
+frame time.** A step straddling `at 60 s` would apply the disturbance in one derivative evaluation
+and not the other, and the interpolated 60 s frame would show a smeared jump where the plant has a
+step. Landing there costs at most one short step per event, and the controller's sample time is then
+never longer than `frameInterval`.
 
 ## Disturbances
 
@@ -261,6 +332,12 @@ language rather than from a hand-rolled protocol.
 ## Contracts
 
 ```csharp
+/// <summary>Runs a transient, yielding frames as they are computed.</summary>
+/// <remarks>
+/// Not an <see cref="ISolver"/>: it owns one. The t = 0 state is one pass of the outer loop
+/// (31); every step's algebraic solve is the steady Newton on the pinned system (D-139), reached
+/// through the same Prepare / WarmStart seams a re-solve uses.
+/// </remarks>
 public interface ITransientSolver
 {
     /// <summary>Runs a transient, yielding frames as they are computed.</summary>
@@ -289,6 +366,28 @@ public sealed record TransientSettings
     public double CflSafety { get; init; } = 0.9;
     public double LocalErrorTolerance { get; init; } = 1e-4;
 }
+
+/// <summary>Everything a run reads, frozen before its first step (D-22).</summary>
+/// <remarks>
+/// Built by the Api on <c>start</c> from the session's compiled model; Core owns the type. No draft
+/// object is reachable from it. <see cref="SnapshotId"/> is the SHA-256 of the source hash, the
+/// language, catalogue, property and contract versions, and the settings, so two starts of one
+/// script with one setting set share an id and any edit changes it.
+/// </remarks>
+public sealed record RunSnapshot
+{
+    public required SnapshotId SnapshotId { get; init; }
+    public required string SourceHash { get; init; }
+    /// <summary>The pinned view: differential states listed, algebraic system assembled.</summary>
+    public required EquationSystem System { get; init; }
+    /// <summary>The design state (D-141): every unknown, every size, every promotion.</summary>
+    public required StateVector Initial { get; init; }
+    public required ImmutableArray<ScheduledChange> Schedule { get; init; }
+    public required ImmutableArray<ControlBinding> Controls { get; init; }
+    public required TransientSettings Settings { get; init; }
+    public required RunLimits Limits { get; init; }
+    public required ContractVersions Versions { get; init; }
+}
 ```
 
 ## Invariants
@@ -314,8 +413,11 @@ public sealed record TransientSettings
 10. The integration step and the frame interval are never spelled `dt` anywhere a script or the wire
     can see them: `dt` is the temperature change across a component (`D-123`). `step` and
     `interval` are the words.
-10. A non-finite state, shape/version change, conservation failure threshold, worker fault, or failed
+10a. A non-finite state, shape/version change, conservation failure threshold, worker fault, or failed
     cancellation terminates the run; a partial corrupt state is never emitted.
+10b. Every scheduled time and every frame time is a step boundary; no step straddles one.
+10c. A zero-volume node is never a differential state, and a node with volume is never an algebraic
+    unknown (`D-139`); the counting table of the pinned system is square by construction.
 11. A tank's layer count, reference masses, port-to-layer map, and total volume are immutable within a
     run snapshot. Every accepted tank step conserves total reference mass exactly and changes stored
     enthalpy only by integrated external enthalpy flow.
@@ -334,6 +436,23 @@ public sealed record TransientSettings
 | `FS3106` | Energy drift beyond tolerance | Warning | `Energy balance drifted by {pct} % over the run. Results may be unreliable.` |
 | `FS3107` | Non-finite/shape/snapshot/conservation invariant failure | Error | `Simulation stopped at {t} s because {invariant} failed. The last verified frame is {sequence}.` |
 | `FS3108` | A tank layer/profile cannot initialize inside the supported property domain | Error | `Cannot initialize '{tank}' layer {layer} at {state}.` |
+| `FS3109` | A schedule target is also a control binding's actuator | Error | `'{target}' is driven by {controller}; a schedule cannot also move it.` |
+| `FS3110` | A static circuit is carried along in a transient run | Info | `'{circuit}' is static and is solved at each step without states of its own.` |
+
+**Settled (`FS3104`)** means every differential state has changed by less than
+`transient.settle_tol` of its scale over each of the last `transient.settle_frames` frame intervals
+([`36`](36-numerics-and-convergence.md)). The horizon reached before that is the info; a run that
+settles earlier still runs to the horizon, because a schedule may have a later entry.
+
+**Drift (`FS3106`)** has a numerator. With `E(t) = Σ_differential V ρ h` over the pinned states only,
+```
+drift = |E(t) − E(0) − ∫₀ᵗ (Σ Q̇_injected + Σ_boundary ṁ h_in − Σ_boundary ṁ h_out) dτ|
+        / max(∫₀ᵗ Σ |Q̇| dτ, E(0))
+```
+where the boundary terms are the `inlet`/`outlet` attachments and the injected terms every
+exchanger's and heater's duty. Zero-volume nodes contribute nothing to `E` and nothing to the
+integral; the algebraic solve balances them exactly at every step, which is what makes the
+accumulator a check on the integrator alone.
 
 `FS3106` is a self-check, and it is the one that catches an integration bug in production rather than
 in a test. It costs one accumulator. Drift above `transient.energy_drift_tol` (1 %) warns; drift at or
@@ -425,7 +544,13 @@ unstable adjacent block remixes and its total enthalpy remains unchanged.
 
 ## Acceptance criteria
 
+- [ ] The pinned system of the demand-step loop counts square with exactly the four `PB` cells as
+      differential states; the storage header with exactly five, and no `h_tank` (`D-139`).
 - [ ] A run with no disturbance drifts less than 0.1 % over 600 s (invariant 3).
+- [ ] A run started from `01`'s demand-step script begins at the cooling loop's figures — 0.2392 kg/s
+      secondary, 0.0763 kg/s recirculating, the valve at 0.50 — with `N2` at its setpoint (`D-141`).
+- [ ] A step boundary falls on every scheduled time and every frame time; the 60 s frame of the
+      demand-step run shows `HE1.out.t` at 65.0 °C, not a value between 50 and 65.
 - [ ] The settled state after a step equals a steady solve of the post-step system within tolerance.
 - [ ] A front reaches a node 8 m downstream later than one 2 m downstream, by roughly length ÷ velocity.
 - [ ] `PB`'s outlet has moved less than 0.5 K ten seconds after the step, and the transport figures use

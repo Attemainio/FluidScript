@@ -507,6 +507,11 @@ schedule
 at 60 s   HE1.power = 45
 ```
 
+**Its t = 0 state is the cooling loop's design state** (`D-141`): the `control` line's setpoint holds
+`N2` at 20 °C in the design solve and chooses the valve position, so the run starts at 0.2392 kg/s
+secondary, 0.0763 kg/s recirculating, the valve at 0.50 and `HE1` at 50 °C — the figures above.
+Without that rule the script does not solve (measured 2026-09-22, `S-75`).
+
 **Three changes from the cooling loop, and each is load-bearing** (`D-16`):
 
 **`PB` puts pipe volume on the recirculation branch.** This is the change the whole transient story

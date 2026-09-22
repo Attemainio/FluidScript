@@ -587,7 +587,8 @@ public sealed record ParameterValue
 implementation rule because the natural C# instinct is a `Quantity?` property per parameter, and that
 loses the distinction the moment a component gains a legitimately-null parameter. Absence from the
 dictionary is unambiguous; the kind registry then selects sizing, a binding visible default, or a
-diagnostic under its omission policy (`D-02`, `D-32`, `D-64`).
+diagnostic under its omission policy (`D-02`, `D-32`, `D-64`); in a run a stated value holds at
+t = 0 and `D-140` says what it means afterwards.
 
 **`Require` is the third policy, and it is deliberately rare** (`D-64`). Absence is a diagnostic
 (`FS2117`) rather than a value, and it is right only where every possible substitute would be a guess

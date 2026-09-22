@@ -364,16 +364,23 @@ instrument that reaches "a designer would not draw it that way", and it is cheap
 
 | # | Package |
 |---|---|
-| P6.1 | Transport delay and time integration on a fixed graph ([`33`](30-solver/33-transient-time-domain.md)) |
+| P6.0 | **Transient assembly on the existing system** (added 2026-09-22 by the P6 readiness review, `.claude/plan-review/findings/2026-09-22-P6-transient-readiness.md`): the partitioned `SystemLayout` and the pinned `EquationSystem` view (`D-139`); the design solve with control bindings as constraint sources (`D-141`, `S-75`) and the run-time meaning of a stated value (`D-140`); `RunSnapshot` and `SnapshotId` ([`33`](30-solver/33-transient-time-domain.md) §Contracts); `C-113` (a discretized pipe keeps its stated `dn`); `samples/m4-demand-step.fluid` solving at t = 0 on `01`'s figures and entering `CorpusStatusTests`. Exit: the pinned demand-step system counts square with four differential states, the storage header with five and no `h_tank`, and V9 with the integrator stubbed to zero holds |
+| P6.1 | Transport delay and time integration on a fixed graph ([`33`](30-solver/33-transient-time-domain.md)) — the step written once in `33`, landing on every scheduled and frame time; settling and drift as `36` defines them |
 | P6.2 | Stratified tank ([`33`](30-solver/33-transient-time-domain.md), `D-32`) — V15, V16, V17 |
 | P6.3 | Controllers, actuator limits, anti-windup ([`34`](30-solver/34-controllers.md)) |
 | P6.4 | `RunSnapshot` and run isolation (`D-22`, [`07`](00-foundation/07-quality-attributes.md)) |
 | P6.5 | Backend worker and the WebSocket contract ([`43`](40-api/43-realtime-contract.md)) |
 | P6.6 | Frontend Web Worker, frame reconstruction, playback ([`51`](50-frontend/51-frontend-architecture.md)) |
 | P6.7 | Detached runs across tabs (`D-39`, `D-42`) — V23 |
+| P6.8 | **Sizing over a driver range** (`D-138`, added 2026-09-22): `design tout=-26..32 step=1`, the sweep at grid, breakpoints and crossings, the per-kind envelope with the pump-curve and valve minimum-flow checks, the verification sweep, the governing point in every size's basis ([`24`](20-core-domain/24-auto-sizing.md) §Sizing over a driver range). Tier-20 work independent of P6.0–P6.7 and runnable in parallel with them; placed here because it changes nothing a static script does today and the transient reads its envelope sizes from the snapshot |
 
 Sizing is frozen for the duration of a run: it is a design-point property, and re-running it per
-frame would make the model's geometry a function of time.
+frame would make the model's geometry a function of time. **P6.0 exists because P6.1 as first
+written assumed an assembly that did not exist**: the built graph has volume on pipe cells only, the
+built tank has one steady unknown, the built controller is an observer, and the reference circuit did
+not solve at t = 0 (`S-75`). A session starting P6.1 would have chosen the partition, the freeze rule
+and the t = 0 semantics itself, and the readiness review found each choice already contradicted by
+a worked example somewhere in `33`. `D-139`, `D-140` and `D-141` make those choices once.
 
 **V8 is P6's payoff** — a transient run to steady state agreeing with Newton, from two solvers
 sharing no numerical code. It is the strongest evidence in the suite and the test most likely to be

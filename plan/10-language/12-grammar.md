@@ -275,7 +275,7 @@ statement       = project-directive | spacing-directive | design-directive
 version-directive   = "fluidscript" , unsigned-integer ;
 project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
 spacing-directive   = "spacing" , number ;
-design-directive    = "design" , parameter , { parameter } ;   (* driver=value, per D-58 *)
+design-directive    = "design" , parameter , { parameter } ;   (* driver=value per D-58, or driver=range per D-138: tout=-26..32 [step=1] *)
 circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
 attachment          = ( "inlet" | "outlet" ) , endpoint ;
 control-binding     = "control" , ( control-short | parameter , { parameter } ) ;

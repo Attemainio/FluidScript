@@ -174,7 +174,9 @@ per component for a speedup nobody has measured a need for.
    [`21-fluid-and-state`](21-fluid-and-state.md)'s reasoning applied consistently: an energy balance
    produces enthalpy, and going via temperature requires inverting cp.
 4. **Every parameter is optional** (`D-02`). The registry's `OmissionBehavior` decides what absence
-   means: normally sizing, or an explicit visible default backed by a binding decision. The tank's
+   means: normally sizing, or an explicit visible default backed by a binding decision. A stated
+   value is a constraint in a static solve and at t = 0 of a run; what it means at t > 0 is
+   `D-140`'s table in [`33`](../30-solver/33-transient-time-domain.md). The tank's
    `volume=300 dm3`, `layers=5`, and mid-height port levels are explicit visible defaults because
    the graph cannot infer them (`D-32`).
 5. **Every parameter declares a dimension, a plausible range (for `FS1306`), and a display
@@ -765,8 +767,9 @@ it and the incoming-stream energy balance is zero. `volume`, `layers`, and level
 effect and remain visible design data. This supplies a unique equilibrium and makes `layers=1`
 identical to the steady behavior of every larger count.
 
-In a transient, each layer owns one enthalpy state and each materialized port is attached to the layer
-selected above. [`33-transient-time-domain`](../30-solver/33-transient-time-domain.md) owns the
+In a transient the single `h_tank` unknown is **not allocated** (`D-139`): each layer owns one
+enthalpy state, the K−1 pressure equalities and the mass balance stay algebraic, and each
+materialized port is attached to the layer selected above. [`33-transient-time-domain`](../30-solver/33-transient-time-domain.md) owns the
 finite-volume derivative, internal displacement flow, density-inversion remixing, and step-size
 limits; this document owns the state/parameter/port contract they operate on.
 
