@@ -403,6 +403,7 @@ public sealed class TopologyBindingTests
         Assert.Equal(60, step.From!.Value.SiValue, 6);
         Assert.Equal(60, step.To!.Value.SiValue, 6);
         Assert.Equal(45000, step.ToValue!.Value.SiValue, 6);
+        Assert.Null(step.FromValue);
 
         var ramp = model.Disturbances[1];
         Assert.Equal(120, ramp.To!.Value.SiValue, 6);

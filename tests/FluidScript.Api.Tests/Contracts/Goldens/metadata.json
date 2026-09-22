@@ -5677,6 +5677,16 @@
       ]
     },
     {
+      "code": "FS3109",
+      "severity": "error",
+      "area": "Transient",
+      "message": "'{target}' is driven by {controller}; a schedule cannot also move it.",
+      "arguments": [
+        "target",
+        "controller"
+      ]
+    },
+    {
       "code": "FS3210",
       "severity": "info",
       "area": "Controllers",

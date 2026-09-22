@@ -81,6 +81,7 @@ public static class WellPosedness
         ReportClosure(graph, hydraulics, diagnostics);
         ReportBoundaries(graph, hydraulics, diagnostics);
         ReportSetpoints(graph, diagnostics);
+        ReportScheduledActuators(graph, diagnostics);
 
         var constraints = Constraints(graph, hydraulics);
         var assignment = Promote(graph, hydraulics, constraints);
@@ -132,6 +133,32 @@ public static class WellPosedness
                 null,
                 new DiagnosticArgument("controller", setpoint.Controller),
                 new DiagnosticArgument("measurement", measurement)));
+        }
+    }
+
+    /// <summary>Refuses each scheduled change whose target a control line already drives (<c>FS3109</c>).</summary>
+    /// <remarks>
+    /// Applied or not: a setpoint that the design solve could not hold still owns its actuator once the
+    /// run starts (<c>D-140</c>), so the schedule is refused either way.
+    /// </remarks>
+    private static void ReportScheduledActuators(CircuitGraph graph, ImmutableArray<Diagnostic>.Builder diagnostics)
+    {
+        foreach (var change in graph.Schedule)
+        {
+            var owner = graph.Setpoints.FirstOrDefault(setpoint =>
+                string.Equals(setpoint.ActuatorComponent, change.Component, StringComparison.Ordinal)
+                && string.Equals(setpoint.ActuatorParameter, change.Parameter, StringComparison.Ordinal));
+
+            if (owner is null)
+            {
+                continue;
+            }
+
+            diagnostics.Add(Diagnostic.Create(
+                TransientDiagnostics.ScheduledActuator,
+                null,
+                new DiagnosticArgument("target", $"{change.Component}.{change.Parameter}"),
+                new DiagnosticArgument("controller", owner.Controller)));
         }
     }
 

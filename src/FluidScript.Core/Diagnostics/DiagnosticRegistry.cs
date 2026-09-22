@@ -114,6 +114,7 @@ public static class DiagnosticRegistry
         .. TopologyDiagnostics.All,
         .. SolverDiagnostics.All,
         .. ControllerDiagnostics.All,
+        .. TransientDiagnostics.All,
         .. CatalogDiagnostics.All,
         .. DesignDiagnostics.All,
         .. SizingDiagnostics.All,

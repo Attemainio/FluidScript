@@ -340,6 +340,7 @@ M2a asks for three demo scripts to solve. All three do:
 | `m2-distribution-header.fluid` | **Converged** | One Newton iteration, three sizing passes: 0.1914 / 0.2392 kg/s drawn from the 60 °C header, 0.4307 through the source against `01`'s 0.4306, valves at 0.63 / 0.62 of travel. `S-58` |
 | `m2-substation.fluid` | **Converged** | Two Newton iterations, two sizing passes: `HX1.ua` 12.071 kW/K, `HX1.area` 3.658 m², primary 0.895 kg/s at 85/45, secondary 1.793 kg/s at 60/40, `PCV.kv` 2.13, `SP.head` 10.2 m. `S-32`, `S-62`, `D-97`, `D-98` |
 | `m4-storage-header.fluid` | **Converged** | Solves in one pass; nothing in it needs sizing |
+| `m4-demand-step.fluid` | **Converged** | One iteration on `01`'s figures once the setpoint constrains `N2` (`S-75`, `D-141`): `N2` 20.00 °C, 0.2393 kg/s secondary, 0.0763 recirculating, the valve at 0.501, `PU1` 2.55 m; the cells keep DN20 (`C-113`) |
 
 The recorded status of every sample is asserted by `CorpusStatusTests.EachSampleStandsWhereItStood`,
 which is the durable form of this table: a sample that starts solving without anyone noticing fails
@@ -355,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | Not started — readied 2026-09-22: the P6 review added P6.0 (transient assembly) and P6.8 (sizing over a driver range), `D-138`–`D-141`, `S-75`/`S-76`, `C-113`–`C-115` | — |
+| P6 | M4 | 9 | **In progress** — P6.0 shipped 2026-09-22 (the transient assembly on the steady system); P6.1 next, P6.8 runnable in parallel | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1174,7 +1175,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > (a run starts from its design state; an unstated actuator's setpoint is its constraint; the cold
 > start is `S-76`, an opt-in later). `08` gained P6.0 before P6.1 and P6.8 after P6.7; `33`, `34`,
 > `31`, `43`, `36`, `05`, `22`, `24`, `15`, `12` and `01` carry the rest; `samples/m4-demand-step.fluid`
-> is committed with its token golden and counted square, outside `CorpusStatusTests` until P6.0.
+> is committed with its token golden and counted square (it entered `CorpusStatusTests` with P6.0).
 > `C-114` (exchanger hold-up) and `C-115` (storage from a profile) are the user's two further points,
 > filed as hunches. P7 (M5, the mutation API) was checked and is implementable as written. 43 open.
 >
@@ -1184,6 +1185,23 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > names the sizes sharing the Jacobian's weakest direction at a converged answer under
 > `jacobian.valley_tol`, the report prints the direction, and stating one head was measured to move
 > the valley to a balancing valve rather than close it. No new language. 42 open.
+
+### P6 — M4, the transient · in progress
+
+| # | Package | Commit(s) | State |
+|---|---|---|---|
+| P6.0 | The transient assembly on the steady system ([`33`](30-solver/33-transient-time-domain.md), [`34`](30-solver/34-controllers.md)): `SystemLayout.Differential` partitioned by volume and `EquationSystem.Pin`/`Freeze`/`Release` (`D-139`, `D-140`); a `control` line's setpoint as a constraint source on an unstated actuator, `CircuitGraph.Setpoints`, `FS3210`/`FS3211` (`D-141`, `S-75`); `FS3016` on the way in (`S-37`, `D-142`); `C-113`; `CircuitGraph.Schedule` in SI, `TransientSettings`, `RunSnapshot.Create` with the design state, the differential and promotion initial vectors and the tank profile, `SnapshotId`; `FS3109`; `samples/m4-demand-step.fluid` in `CorpusStatusTests` | `cb2b959`, `2bc5a4c`, (this commit) | Shipped 2026-09-22; `S-75`, `C-113` closed; `S-76`, `C-114`, `C-115` stay open; not built: `FS3110` (no per-circuit modes on the graph), `RunLimits`, `ControlBinding`, the `SnapshotId` struct — each named with its package in `33` |
+
+> **P6.0 shipped 2026-09-22** in three commits. What it meant to do: give the integrator a system to
+> pin, a state to start from and a snapshot to own, without integrating anything. What it found:
+> the pinned view at rest is the equilibrium (a design state stays put in 0 iterations with every
+> cell pinned and every promotion frozen — V9 with the integrator stubbed to zero); the demand-step
+> loop carries two promotions at t = 0, not one (`PU1.head` chosen by `HE1.out.t` as well as the
+> valve position chosen by the setpoint), and both freeze; the storage header's five layers start
+> at their stated 25–60 °C while the design solve holds `T1.h` at their mix, which is `33`'s
+> invariant 3 rather than a contradiction. Fixed on the way, not filed: the binder filled both ends
+> of a single scheduled value over a span with that value, which is a hold and not the step at the
+> span's end `12` describes — a step now carries no start value. 42 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1270,11 +1288,14 @@ unassessed, not clean.
 
 ## What is next
 
-**P6 starts with P6.0** (`08`, 2026-09-22): the partitioned `SystemLayout` and pinned `EquationSystem`
-view (`D-139`), the control binding as a constraint source in `WellPosedness` (`D-141`, `S-75`), the
-run-time meaning of a stated value (`D-140`), `RunSnapshot`, `C-113`, and `samples/m4-demand-step.fluid`
-solving on `01`'s figures and entering `CorpusStatusTests`. P6.8 (`D-138`) is tier-20 sizing work that
-can run in parallel with P6.0–P6.7. Read `33` whole before either; its worked example is the trap
+**P6.1 is next** (`08`): the step written once in `33` §The step, once — clip to the CFL limit, the
+next scheduled edge and the next frame time; controllers before k1 (none built yet, so the freeze
+holds); Heun; remix — on the pinned view `EquationSystem.Pin` gives and the `RunSnapshot` P6.0
+builds; `FS3101`–`FS3103` and `RunLimits`; settling and drift as `36` defines them; `FS3110` once the
+graph carries a per-circuit mode. Its first measurement is `33`'s worked example on
+`samples/m4-demand-step.fluid`: 38 s of transport before `N2` moves, with the exchanger's outlet
+jumping within one step until `C-114` gives it a volume. P6.8 (`D-138`) is tier-20 sizing work that
+can run in parallel with P6.1–P6.7. Read `33` whole before either; its worked example is the trap
 its own text names.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
@@ -1338,9 +1359,9 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2063 total, 0 failed, 3 skipped** (2026-09-22), ~55 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
-| API test suite | **59 passed, 0 failed**, ~7 s | `FluidScript.Api.Tests` |
-| Frontend tests | **223 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
+| Core test suite | **2080 total, 0 failed, 3 skipped** (2026-09-22), ~70 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
+| Frontend tests | **229 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Render baseline (M3, `D-45`) | **4.8 ms** to prepare and render the 24-placement header to static markup in Node; the browser numbers (`07`: 50 fps p95 panning 200 components, 8 ms per commit) are unmeasured, `F-10` | `frontend/src/features/canvas/baseline.test.tsx` |

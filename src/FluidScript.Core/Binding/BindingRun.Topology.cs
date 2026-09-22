@@ -1159,12 +1159,14 @@ internal sealed partial class BindingRun
         var (from, to) = Bounds(statement.When, Dimension.Time);
         var (fromValue, toValue) = Bounds(statement.Value, info?.Dimension);
 
+        // A single value is where the change ends: at the instant for `at`, at the end of the span for
+        // `over` (`12` §Schedule: a step at the end of the ramp). Only a range has a start value.
         _disturbances.Add(new DisturbanceSymbol(
             circuit,
             new PropertyReference(component, info?.Key ?? parameter),
             from,
             to ?? from,
-            fromValue,
+            toValue is null ? null : fromValue,
             toValue ?? fromValue,
             statement.Span));
     }

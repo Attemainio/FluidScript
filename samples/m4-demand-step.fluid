@@ -5,9 +5,8 @@
 # the three-way valve; the schedule steps the load from 30 to 45 kW at t = 60 s.
 #
 # Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
-# `N2` at 20 C in the design solve and chooses the valve position. Until P6.0 builds that rule the
-# script does not solve (S-75), and until C-113 closes the pipe's stated dn is lost by its cells;
-# it is committed as the reference and stays out of CorpusStatusTests until it solves.
+# `N2` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
+# cells keep the pipe's stated dn (C-113). The run itself arrives with P6.1.
 
 fluidscript 1
 circuit demandStep

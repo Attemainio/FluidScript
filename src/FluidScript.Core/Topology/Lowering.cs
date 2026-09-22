@@ -91,8 +91,42 @@ public static partial class Lowering
                 ProvisionalParameters = factory.Provisional,
                 CircuitOf = build.CircuitOf,
                 Setpoints = build.Setpoints,
+                Schedule = Schedule(model, build),
             },
             build.Unresolved);
+    }
+
+    /// <summary>The disturbances whose target the graph holds, in SI (<c>33</c>).</summary>
+    /// <remarks>
+    /// The binder has already checked the component and the parameter (<c>FS1515</c>-family codes); what
+    /// can still be missing here is a target the factory could not build, which is dropped with its
+    /// connections. A value with no number — a step written without one — is dropped too, because a
+    /// change to nothing is not a change.
+    /// </remarks>
+    private static ImmutableArray<ScheduledChange> Schedule(SemanticModel model, Build build)
+    {
+        var schedule = ImmutableArray.CreateBuilder<ScheduledChange>();
+
+        foreach (var disturbance in model.Disturbances)
+        {
+            if (disturbance.From is not { } from
+                || disturbance.ToValue is not { } to
+                || !build.Components.Any(component =>
+                    string.Equals(component.Name, disturbance.Target.Component, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            schedule.Add(new ScheduledChange(
+                disturbance.Target.Component,
+                disturbance.Target.Property,
+                from.SiValue,
+                (disturbance.To ?? from).SiValue,
+                disturbance.FromValue?.SiValue,
+                to.SiValue));
+        }
+
+        return schedule.ToImmutable();
     }
 
     /// <summary>How the model is solved, resolved across every circuit in it.</summary>

@@ -148,6 +148,10 @@ public sealed record CircuitGraph
     /// </value>
     public ImmutableArray<Setpoint> Setpoints { get; init; } = [];
 
+    /// <summary>Gets the schedule: every disturbance the script wrote, in SI, in source order (<c>33</c>).</summary>
+    /// <value>Empty by default, which is right for a hand-built graph and for a static script.</value>
+    public ImmutableArray<ScheduledChange> Schedule { get; init; } = [];
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

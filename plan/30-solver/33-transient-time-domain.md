@@ -399,6 +399,31 @@ public sealed record RunSnapshot
 }
 ```
 
+**Built in P6.0** (2026-09-22), with these departures from the block above, each the smallest shape the
+package needed rather than a settled contract:
+
+- `SnapshotId` is a `string`, `sha256:` and 64 hex digits, hashed over the source hash, every version
+  and the six settings; a struct earns its place when `43` serialises it, not before. `Versions` is a
+  sorted `name → version` map for the same reason: `ContractVersions` is `43`'s type and `43` is not
+  built.
+- `Schedule` is on the graph (`CircuitGraph.Schedule`, lowered from the model's disturbances with SI
+  times and values, targets the factory dropped left out) and copied into the snapshot in start-time
+  order. `ScheduledChange` carries `FromValue = null` for a step and both ends for a ramp; a single
+  value over a span is a step at the span's end, which is what `12` says and what the binder now does
+  (it used to fill both ends with the one value, which is a hold, not a step).
+- `Controls` is `Setpoints` — the graph's resolved control lines, applied or not — until P6.3 builds
+  the control law that a `ControlBinding` carries. `Limits` arrives with the integrator in P6.1 with
+  `FS3101`–`FS3103`.
+- Two initial vectors the block above folds into `Initial`: `DifferentialInitial`, one value per
+  `SystemLayout.Differential` entry, a pipe cell's from the design solution and a tank layer's from
+  the stated `layer[k].t` (or `t`) evaluated at the tank's port-node pressure, else the tank's mixed
+  design enthalpy; and `PromotionInitial`, what `Freeze` holds from t = 0 (`D-140`). The storage
+  header's five layers start at 25/30/40/50/60 °C while the design solve holds `T1.h` at their
+  mix, which is invariant 3's non-equilibrium start.
+- `FS3109` is raised by `WellPosedness` from the schedule and the setpoints together, applied or
+  not: a setpoint the design solve could not hold still owns its actuator once the run starts.
+  `FS3110` waits for per-circuit modes on the graph, which the graph does not carry (P6.1).
+
 ## Invariants
 
 1. Energy is conserved to within the integration tolerance over the run: the integral of net heat
