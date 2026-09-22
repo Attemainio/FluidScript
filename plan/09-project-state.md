@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0 shipped 2026-09-22 (the transient assembly on the steady system); P6.1 next, P6.8 runnable in parallel | — |
+| P6 | M4 | 9 | **In progress** — P6.0 and P6.1 shipped 2026-09-22 (the assembly, then the integrator: the demand-step loop runs in time); P6.2 next, P6.8 runnable in parallel; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1203,6 +1203,22 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > of a single scheduled value over a span with that value, which is a hold and not the step at the
 > span's end `12` describes — a step now carries no start value. 42 open.
 
+| P6.1 | Transport delay and time integration on a fixed graph ([`33`](30-solver/33-transient-time-domain.md)): `TransientSolver : ITransientSolver`, Heun with the adaptive controller, the CFL limit from reference masses, landing on every scheduled and frame time; `EquationSystem.TryEvaluateRates` (the balance the pin overwrote, divided by the mass), `.Schedule` (a stated parameter's table or `Freeze`), `NodeDensity`; `RunSnapshot.ReferenceMasses`; `TransientFrame` with `Differential`, `Steps`, `Settled`, `EnergyDrift`; `TransientSolver.SteadyAt` for invariant 8; the tank layer balance with interface flows (no remix); `FS3101`–`FS3107` less `FS3108`; `docs/advanced/discretized-pipes.md`, `pipe.md`, `schedule.md`; `TransientRunFixture` writing `diagnostics/transient/*.run.txt` | (this commit) | Shipped 2026-09-22; `S-77` (a boundary state cannot be scheduled; `FS3105` refuses it), `S-78` (three exits unprovoked), `S-79` (the live-curve half: where t = 0 sits) opened; `FS3110` still waits for per-circuit modes |
+
+> **P6.1 shipped 2026-09-22.** What it meant to do: integrate the states P6.0 partitioned, on the
+> pinned system, landing on every scheduled and frame time, and measure `33`'s worked example. What
+> it found, in the order it was found: `33` said frames were interpolated and said no step straddles
+> a frame time, and only the second can be true — landing caps the step at the 1 s frame interval,
+> so the demo is 750 steps rather than 70 and 1.8 s of Debug wall time, which is fine; the derivative
+> is the energy balance the pin overwrites, captured before the overwrite, so the integrator and the
+> algebraic rows are one evaluation and the drift accumulator reads 2e-11 on every run; `33`'s
+> closed-form table holds for three rows and then the recirculation feedback lifts the source — the
+> exchanger's outlet climbs from 65.1 to 72.2 °C as the warmed front returns to `N2`, so the rows
+> past 90 s are above the table on a correct run and the settled state is the post-step steady
+> solve, held by V8 to 1e-3 scaled; a schedule on `N1.t` bound, lowered, and would have been silently
+> ignored, now `FS3105` (`S-77`); and the live-curve half P3.8 moved here has no t = 0 anchor
+> (`S-79`), a user's call. Not built: the tank's remix (P6.2), `FS3108`, `FS3110`. 45 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1288,15 +1304,14 @@ unassessed, not clean.
 
 ## What is next
 
-**P6.1 is next** (`08`): the step written once in `33` §The step, once — clip to the CFL limit, the
-next scheduled edge and the next frame time; controllers before k1 (none built yet, so the freeze
-holds); Heun; remix — on the pinned view `EquationSystem.Pin` gives and the `RunSnapshot` P6.0
-builds; `FS3101`–`FS3103` and `RunLimits`; settling and drift as `36` defines them; `FS3110` once the
-graph carries a per-circuit mode. Its first measurement is `33`'s worked example on
-`samples/m4-demand-step.fluid`: 38 s of transport before `N2` moves, with the exchanger's outlet
-jumping within one step until `C-114` gives it a volume. P6.8 (`D-138`) is tier-20 sizing work that
-can run in parallel with P6.1–P6.7. Read `33` whole before either; its worked example is the trap
-its own text names.
+**P6.2 is next** (`08`): the stratified tank's remix after every accepted step (`33` §Stratified
+tank, the pool-adjacent-violators scan on the property backend's density), `FS3108`, and V15–V17 —
+the layer balance itself already integrates (P6.1 measured the storage header's layer 2 at
+0.020 K/s). **Before P6.3**, `S-79` needs the user's call: where a run's t = 0 sits on a time curve's
+timestamp axis, which is what the live-curve half moved from P3.8 waits on. P6.8 (`D-138`) is tier-20
+sizing work that can run in parallel with P6.2–P6.7; `24` §How the sweep runs has its execution
+model. Read `33` whole before any of them; its worked example now carries the measured column
+beside the closed form and says where the two part.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens
@@ -1359,7 +1374,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2080 total, 0 failed, 3 skipped** (2026-09-22), ~70 s with the `Diagnostic` classes | `FluidScript.Core.Tests` |
+| Core test suite | **2095 total, 0 failed, 3 skipped** (2026-09-22), ~72 s with the `Diagnostic` classes and the transient runs; the `Unit` slice 1945 in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **229 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

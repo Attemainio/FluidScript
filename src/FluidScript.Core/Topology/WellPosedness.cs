@@ -145,6 +145,26 @@ public static class WellPosedness
     {
         foreach (var change in graph.Schedule)
         {
+            var target = graph.Components.FirstOrDefault(component =>
+                string.Equals(component.Name, change.Component, StringComparison.Ordinal));
+
+            if (target is not null && !target.Resolvable.Any(parameter => string.Equals(parameter.Name, change.Parameter, StringComparison.Ordinal)))
+            {
+                // A parameter the run has no slot for (FS3105): the schedule would be silently ignored.
+                var movable = string.Join(", ", target.Resolvable.Select(parameter => $"'{parameter.Name}'"));
+
+                diagnostics.Add(Diagnostic.Create(
+                    TransientDiagnostics.NotSchedulable,
+                    null,
+                    new DiagnosticArgument("target", $"{change.Component}.{change.Parameter}"),
+                    new DiagnosticArgument(
+                        "reason",
+                        movable.Length == 0
+                            ? $"a {target.Kind} has no parameter a run can move"
+                            : $"a run can move {movable} on a {target.Kind}, not '{change.Parameter}'")));
+                continue;
+            }
+
             var owner = graph.Setpoints.FirstOrDefault(setpoint =>
                 string.Equals(setpoint.ActuatorComponent, change.Component, StringComparison.Ordinal)
                 && string.Equals(setpoint.ActuatorParameter, change.Parameter, StringComparison.Ordinal));

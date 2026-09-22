@@ -753,7 +753,7 @@ public sealed class NewtonSolver : ISolver
         // `FS3016` is a statement about the answer too: whether it is a point or a place on a valley
         // (`S-37`, `D-142`). One more Jacobian on a run that is over, and the direction its weakest
         // pivot leaves nearly free; two or more sizes moving together in it is the shared path.
-        if (termination is SolveTermination.Converged)
+        if (termination is SolveTermination.Converged && !system.Pinned)
         {
             var valley = Valley(system, x);
 

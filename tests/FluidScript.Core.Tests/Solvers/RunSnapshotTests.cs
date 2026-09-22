@@ -164,6 +164,27 @@ public sealed class RunSnapshotTests
     }
 
     [Fact]
+    public void AScheduleOnABoundaryTemperatureIsRefusedWithFs3105()
+    {
+        // `N1.t` binds — the inlet has a `t` — but a boundary state enters the model at assembly and a
+        // run has no slot to write it at t > 0 (S-77). Silently ignoring it would be worse than the error.
+        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   N1.t = 10"));
+        var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3105");
+
+        Assert.Equal(DiagnosticSeverity.Error, error.Severity);
+        Assert.Equal("Cannot change 'N1.t' — a node has no parameter a run can move.", error.Message);
+    }
+
+    [Fact]
+    public void AScheduleOnAPipeLengthNamesWhatARunCanMove()
+    {
+        var lowered = GraphFixture.Lower(DemandStepWith("at 60 s   PU1.efficiency = 0.5"));
+        var error = Assert.Single(WellPosedness.Check(lowered.Graph).Diagnostics, static d => d.Code == "FS3105");
+
+        Assert.Contains("a run can move 'head' on a pump, not 'efficiency'", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ARampCarriesBothEndsInSi()
     {
         var lowered = GraphFixture.Lower(DemandStepWith("over 60 s .. 120 s   HE1.power = 30 .. 45"));

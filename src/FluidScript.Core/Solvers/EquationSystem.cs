@@ -97,6 +97,16 @@ public sealed class EquationSystem
     private readonly double[] _frozen;
     private readonly int[] _promotedRow;
 
+    // What the integrator reads off a pinned evaluation (33): each pinned node's energy balance before
+    // the pin overwrote its row, each tank's layer states, and the two totals the drift accumulator
+    // integrates. Watts throughout; nothing here is scaled.
+    private readonly double[] _balance;
+    private readonly int[] _elementOfNode;
+    private readonly double[][] _layerPin;
+    private readonly double[] _rateScratch;
+    private double _injected;
+    private double _boundary;
+
     /// <summary>One stated constraint, resolved to either node temperatures or a derived branch flow.</summary>
     /// <param name="Row">The row it writes, or the row of one nothing resolved.</param>
     /// <param name="Node">The node whose temperature it reads, or −1 when this is a flow constraint.</param>
@@ -183,6 +193,25 @@ public sealed class EquationSystem
         _attached = new (int Component, int Port)[graph.Components.Length][];
         _frozen = new double[promoted.Length];
         _promotedRow = new int[promoted.Length];
+        _balance = new double[graph.Nodes.Length];
+        _elementOfNode = new int[graph.Nodes.Length];
+        _layerPin = new double[graph.Components.Length][];
+        Array.Fill(_elementOfNode, -1);
+
+        for (var element = 0; element < nodeOf.Length; element++)
+        {
+            if (nodeOf[element] >= 0)
+            {
+                _elementOfNode[nodeOf[element]] = element;
+            }
+        }
+
+        _rateScratch = new double[equations.Count];
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            _layerPin[element] = graph.Components[element] is Tank tank ? new double[tank.Layers] : [];
+        }
 
         Array.Fill(_nodePin, double.NaN);
         Array.Fill(_ownPin, double.NaN);
@@ -327,6 +356,8 @@ public sealed class EquationSystem
                 continue;
             }
 
+            _layerPin[state.Element][state.Layer - 1] = states[index];
+
             for (var port = 0; port < tank.Ports.Length; port++)
             {
                 if (tank.LayerForPort(port) == state.Layer)
@@ -376,6 +407,202 @@ public sealed class EquationSystem
         }
 
         Pinned = false;
+    }
+
+    /// <summary>Evaluates the pinned system at a state and reads each differential state's energy balance (<c>33</c>).</summary>
+    /// <param name="x">The algebraic solution at the pinned state, <see cref="Columns"/> long.</param>
+    /// <param name="balances">
+    /// Destination, one per entry of <see cref="SystemLayout.Differential"/> in that order. W, positive
+    /// when the state gains energy: <c>Σ ṁ_in (h_in − h) + Q̇</c> for a pipe cell, the upwind layer
+    /// balance with the interface flows for a tank layer. Divided by the state's reference mass it is
+    /// <c>dh/dt</c>.
+    /// </param>
+    /// <param name="inflows">
+    /// Destination, same length and order: kg/s arriving at each state — a cell's incoming port flows, a
+    /// layer's external inflows plus the interface flow entering it. The reference mass over this is
+    /// the residence time the CFL limit is taken from (<c>33</c> §The step-size limit).
+    /// </param>
+    /// <param name="injected">W added to the circuit by every injecting component at this state.</param>
+    /// <param name="boundary">W carried into the circuit by its boundary streams at this state, net of what leaves.</param>
+    /// <returns><see langword="false"/> when a node's state left the property domain.</returns>
+    /// <exception cref="InvalidOperationException">The system is not pinned.</exception>
+    /// <remarks>
+    /// One residual evaluation, allocation-free. The tank's layer balance is <c>33</c> §Stratified tank
+    /// with a hard switch on the interface flows: <c>u_k = Σ_(j≤k) s_j</c> positive upward, layer
+    /// <c>k</c> gaining from below when <c>u_(k−1) &gt; 0</c> and from above when <c>u_k &lt; 0</c>, and an
+    /// outflow leaving at the layer's own enthalpy, which is the fixed-mass form.
+    /// </remarks>
+    public bool TryEvaluateRates(ReadOnlySpan<double> x, Span<double> balances, Span<double> inflows, out double injected, out double boundary)
+    {
+        if (!Pinned)
+        {
+            throw new InvalidOperationException("The rates of an unpinned system are its residuals; pin it first.");
+        }
+
+        var differential = Unknowns.Differential;
+
+        if (balances.Length != differential.Length || inflows.Length != differential.Length)
+        {
+            throw new ArgumentException($"Expected {differential.Length} balances and inflows.", nameof(balances));
+        }
+
+        injected = 0;
+        boundary = 0;
+
+        if (!TryEvaluateResiduals(x, _rateScratch))
+        {
+            return false;
+        }
+
+        injected = _injected;
+        boundary = _boundary;
+
+        for (var index = 0; index < differential.Length; index++)
+        {
+            var state = differential[index];
+
+            if (state.Column >= 0)
+            {
+                var node = state.Column - Unknowns.NodeEnthalpyOffset;
+                var arriving = 0.0;
+
+                if (_elementOfNode[node] >= 0)
+                {
+                    var count = Fill(_elementOfNode[node], x);
+
+                    for (var port = 0; port < count; port++)
+                    {
+                        arriving += Math.Max(_flowScratch[port], 0);
+                    }
+                }
+
+                balances[index] = _balance[node];
+                inflows[index] = arriving;
+                continue;
+            }
+
+            if (_graph.Components[state.Element] is not Tank tank)
+            {
+                balances[index] = 0;
+                inflows[index] = 0;
+                continue;
+            }
+
+            var ports = Fill(state.Element, x);
+            var layers = _layerPin[state.Element];
+            var own = layers[state.Layer - 1];
+            var balance = 0.0;
+            var inflow = 0.0;
+
+            // External inflows into this layer, at the enthalpy the node delivers to the port.
+            for (var port = 0; port < ports; port++)
+            {
+                if (tank.LayerForPort(port) == state.Layer && _flowScratch[port] > 0)
+                {
+                    balance += _flowScratch[port] * (_portScratch[port].Enthalpy - own);
+                    inflow += _flowScratch[port];
+                }
+            }
+
+            // Interface flows: the cumulative imbalance below the interface, positive upward.
+            var below = Interface(tank, state.Layer - 1, ports);
+            var above = Interface(tank, state.Layer, ports);
+
+            if (state.Layer > 1 && below > 0)
+            {
+                balance += below * (layers[state.Layer - 2] - own);
+                inflow += below;
+            }
+
+            if (state.Layer < tank.Layers && above < 0)
+            {
+                balance += -above * (layers[state.Layer] - own);
+                inflow += -above;
+            }
+
+            balances[index] = balance;
+            inflows[index] = inflow;
+        }
+
+        return true;
+    }
+
+    /// <summary>The internal flow across the interface above a layer, positive upward, from the port flows <see cref="Fill"/> left.</summary>
+    /// <param name="tank">The tank.</param>
+    /// <param name="layer">The layer below the interface, 1-based; 0 or the top layer is a wall.</param>
+    /// <param name="ports">How many ports the tank has.</param>
+    /// <returns>kg/s.</returns>
+    private double Interface(Tank tank, int layer, int ports)
+    {
+        if (layer <= 0 || layer >= tank.Layers)
+        {
+            return 0;
+        }
+
+        var cumulative = 0.0;
+
+        for (var port = 0; port < ports; port++)
+        {
+            if (tank.LayerForPort(port) <= layer)
+            {
+                cumulative += _flowScratch[port];
+            }
+        }
+
+        return cumulative;
+    }
+
+    /// <summary>The density of a node's state as the last evaluation left it.</summary>
+    /// <param name="node">The node's index in the graph.</param>
+    /// <returns>kg/m³.</returns>
+    /// <remarks>What a run fixes a pipe cell's reference mass from, at the design state (<c>33</c>).</remarks>
+    public double NodeDensity(int node) => _nodeStates[node].Density;
+
+    /// <summary>Moves a scheduled parameter to a value (<c>33</c> §Disturbances).</summary>
+    /// <param name="component">The component's name.</param>
+    /// <param name="parameter">The parameter's registry key: <c>power</c>, <c>position</c>, <c>kv</c>, <c>head</c>.</param>
+    /// <param name="value">The value in the parameter's own SI unit.</param>
+    /// <returns><see langword="false"/> when no component of that name resolves that parameter.</returns>
+    /// <remarks>
+    /// A stated or sized parameter is written into the table every residual reads; a promoted one goes
+    /// through <see cref="Freeze"/>, because its column is the solver's and the frozen row is what holds
+    /// it (<c>D-140</c>). Idempotent, so a schedule may apply it at every evaluation time.
+    /// </remarks>
+    public bool Schedule(string component, string parameter, double value)
+    {
+        for (var element = 0; element < _graph.Components.Length; element++)
+        {
+            if (!string.Equals(_graph.Components[element].Name, component, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var resolvable = _graph.Components[element].Resolvable;
+
+            for (var slot = 0; slot < resolvable.Length; slot++)
+            {
+                if (!string.Equals(resolvable[slot].Name, parameter, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                for (var index = 0; index < _promoted.Length; index++)
+                {
+                    if (_promoted[index].Element == element && _promoted[index].Slot == slot)
+                    {
+                        Freeze(index, value);
+                        return true;
+                    }
+                }
+
+                _parameters[element][slot] = value;
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
     }
 
     /// <summary>Assembles the system of a lowered graph.</summary>
@@ -1292,6 +1519,35 @@ public sealed class EquationSystem
             if (_energyRow[node] >= 0)
             {
                 residuals[_energyRow[node]] += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
+            }
+        }
+
+        // The integrator's right-hand side is exactly the balance the pin is about to overwrite:
+        // `Σ ṁ_in (h_in − h) + Q̇` with the same upwind blend, injection and boundary stream the
+        // algebraic rows use, so the derivative and the constraints are one evaluation (33). The two
+        // totals feed the drift accumulator, which must be built from the injections and the boundary
+        // streams and never from the balances it checks.
+        if (Pinned)
+        {
+            _injected = 0;
+            _boundary = 0;
+
+            for (var node = 0; node < _graph.Nodes.Length; node++)
+            {
+                _injected += _nodeInjection[node];
+
+                if (!double.IsNaN(_nodePin[node]))
+                {
+                    _balance[node] = _energyRow[node] >= 0 ? residuals[_energyRow[node]] : 0;
+                }
+            }
+
+            foreach (var (node, _, column, magnitude, boundary, known) in _fluxes)
+            {
+                var flux = column >= 0 ? x[column] : magnitude;
+                var own = x[Unknowns.NodeEnthalpy(node)];
+
+                _boundary += flux * Smoothing.Upwind(flux, known ? boundary : own, own);
             }
         }
 

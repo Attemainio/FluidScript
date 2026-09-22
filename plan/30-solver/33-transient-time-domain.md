@@ -119,6 +119,12 @@ exchanger was sized for*, not a thermostat.
 **No implicit controllers.** Following a value in time takes a `control` line (`D-40`, `D-43`). A
 `schedule` target that is also a binding's actuator is `FS3109` at bind time.
 
+**No pump heating in v1.** A pump's shaft work ends up as heat in the water, a fraction of a kelvin
+per pass, and `Pump` writes no energy term (`C-47`). A run therefore shows a closed loop that never
+warms of itself, where a real one drifts up slowly; the static solve ignores it too, so invariant 3
+and invariant 8 both hold with it absent. Stated here so that the first plant comparison that asks
+why the loop does not warm finds the answer, not a defect.
+
 **The initial state is the design state (`D-141`).** The t = 0 solve is one outer pass of
 [`31`](31-solver-architecture.md)'s loop with the control bindings as constraint sources; the run
 starts at the controlled equilibrium and every controller is initialized bumplessly at its design
@@ -232,8 +238,13 @@ Explicit integration of transport is conditionally stable. The limit is the resi
 smallest control volume:
 
 ```
-Δt < CFL · min_i (V_i ρ_i / ṁ_i)         CFL = 0.9
+Δt < CFL · min_i (m_i / ṁ_in,i)          CFL = 0.9
 ```
+
+`m_i` is the state's **reference mass**, `V_i ρ(h_i(0), p)`, fixed at t = 0 for a pipe cell exactly as
+for a tank layer below: one rule, the incompressible approximation, and what makes invariant 2 exact.
+`ṁ_in,i` is the mass arriving at the state — a cell's incoming port flows, a layer's external inflows
+plus the interface flow entering it. `RunSnapshot.ReferenceMasses` carries the masses.
 
 For a tank layer, the same limit is `m_k / Σ incoming mass flow to k`, including an incoming internal
 interface flow. A stagnant layer contributes no limit. `FS3101` names `T1.layer2` when it is the
@@ -324,15 +335,40 @@ public sealed record TransientFrame
     /// and clears at t = 140 s is information a steady solve cannot produce.</summary>
     public required ImmutableArray<Diagnostic> Diagnostics { get; init; }
 
-    /// <summary>The integration step actually taken, for diagnosing a slow run.</summary>
+    /// <summary>The smallest integration step accepted since the previous frame, for diagnosing a slow run.</summary>
     public required double StepTaken { get; init; }
+    /// <summary>Every differential state, in SystemLayout.Differential order: a tank layer has no column in State.</summary>
+    public required ImmutableArray<double> Differential { get; init; }
+    public required int Steps { get; init; }
+    public required bool Settled { get; init; }
+    /// <summary>The drift accumulator so far (FS3106), relative.</summary>
+    public required double EnergyDrift { get; init; }
 }
 ```
 
+**Built in P6.1** (2026-09-22): `TransientSolver : ITransientSolver` in Core, the step as §The step,
+once writes it with no controllers yet (the freeze holds). The derivative is
+`EquationSystem.TryEvaluateRates`: the energy balance the pin overwrote — the same upwind blend,
+injection and boundary stream the algebraic rows use — divided by the reference mass, so the
+integrator and the constraints are one evaluation and cannot disagree. A scheduled value is written
+by `EquationSystem.Schedule` into the parameter table every residual reads, or through `Freeze` when
+the parameter is promoted. A failing run emits its last verified pair — the differential state and
+the algebraic solve of one instant — never a differential state beside another instant's flows
+(10a). `TransientSolver.SteadyAt` builds the post-schedule steady system for invariant 8.
+`SnapshotId` on the frame is the snapshot's string id. The three frame fields above the block did not
+carry were added because a test needs them: `Differential` because a layer has no column, `Steps`
+and `EnergyDrift` because a slow run and a drifting run are diagnosed from them.
+
 **Frames are emitted on a fixed wall-clock-independent schedule** — every `frameInterval` of simulated
 time, default 1 s — not once per integration step. Steps are adaptive and can be milliseconds; emitting
-every one would flood the WebSocket with data no one can see. The frame is interpolated from the
-bracketing steps.
+every one would flood the WebSocket with data no one can see. **A frame is never interpolated**: the
+step lands on every frame time (invariant 10b), so every frame is a solved state — the algebraic
+system converged at the integrated state — and a frame at a scheduled time shows the plant after the
+change. What landing costs is the step: at the default 1 s interval no step exceeds 1 s whatever the
+CFL limit allows, so the demand-step loop takes about 750 steps over 600 s rather than 70, and 1.8 s
+of wall time in a Debug build. Interpolating between larger steps was the alternative, rejected
+because a linear blend of two solved states satisfies no algebraic equation and the 60 s frame would
+still have needed a landing (the P6.1 re-read, 2026-09-22).
 
 **Frames stream as they are produced** (`R-19`), so playback begins immediately. The solver is an
 `IAsyncEnumerable<TransientFrame>`, which gives streaming, backpressure, and cancellation from the
@@ -466,7 +502,7 @@ package needed rather than a settled contract:
 | `FS3102` | Step fell below `MinStep` | Error | `The simulation cannot advance past {t} s. Something is changing faster than the model can follow.` |
 | `FS3103` | Algebraic solve failed within a step | Error | `Could not balance the circuit at t = {t} s: {inner}.` |
 | `FS3104` | Horizon reached before settling | Info | `Still changing at {horizon} s. Extend the run to see it settle.` |
-| `FS3105` | Disturbance names an unknown component or parameter | Error | `Cannot change '{target}' — {reason}.` |
+| `FS3105` | A schedule target is a parameter the run cannot move — a boundary state, a size, a parameter the component does not resolve at solve time (`S-77`) | Error | `Cannot change '{target}' — {reason}.` |
 | `FS3106` | Energy drift beyond tolerance | Warning | `Energy balance drifted by {pct} % over the run. Results may be unreliable.` |
 | `FS3107` | Non-finite/shape/snapshot/conservation invariant failure | Error | `Simulation stopped at {t} s because {invariant} failed. The last verified frame is {sequence}.` |
 | `FS3108` | A tank layer/profile cannot initialize inside the supported property domain | Error | `Cannot initialize '{tank}' layer {layer} at {state}.` |
@@ -527,19 +563,26 @@ model. Tracking `PB`'s outlet with the valve **held at its design position** —
 which is the one with a closed form — the four pipe cells give a four-stage series lag from 50.0 °C to
 65.0 °C:
 
-| Time | s = (t−60)/9.6 | Fraction of the 15.0 K rise | `PB` outlet |
-|---|---|---|---|
-| 60 s | 0 | 0 % | 50.0 °C — step applied at `HE1` |
-| 70 s | 1.04 | 2 % | 50.3 °C |
-| 80 s | 2.08 | 16 % | 52.4 °C |
-| 90 s | 3.13 | 38 % | 55.7 °C |
-| 100 s | 4.17 | 60 % | 59.0 °C |
-| 110 s | 5.21 | 76 % | 61.4 °C |
-| 130 s | 7.29 | 93 % | 64.0 °C |
-| 160 s | 10.42 | 99 % | 64.9 °C |
+| Time | s = (t−60)/9.6 | Fraction of the 15.0 K rise | `PB` outlet, closed form | Measured (P6.1) | `HE1` outlet, measured |
+|---|---|---|---|---|---|
+| 60 s | 0 | 0 % | 50.0 °C — step applied at `HE1` | 50.06 | 65.09 |
+| 70 s | 1.04 | 2 % | 50.3 °C | 50.39 | 65.19 |
+| 80 s | 2.08 | 16 % | 52.4 °C | 52.46 | 65.85 |
+| 90 s | 3.13 | 38 % | 55.7 °C | 55.87 | 66.95 |
+| 100 s | 4.17 | 60 % | 59.0 °C | 59.37 | 68.07 |
+| 110 s | 5.21 | 76 % | 61.4 °C | 62.31 | 69.01 |
+| 130 s | 7.29 | 93 % | 64.0 °C | 66.33 | 70.30 |
+| 160 s | 10.42 | 99 % | 64.9 °C | 69.48 | 71.32 |
+| 600 s | — | settled | — | 72.18 | 72.18 |
 
 The fractions are the analytic four-stage series lag, `1 − e⁻ˢ(1 + s + s²/2 + s³/6)`, which is what
-four lumped nodes in series produce and is worth asserting directly in a test.
+four lumped nodes in series produce and is worth asserting directly in a test — **for the first three
+rows only**. The closed form assumes a source held at 65.0 °C, and the source is not held: as soon
+as the front's foot reaches `N2` the mixing node warms, the exchanger's inlet with it, and its outlet
+climbs from 65.1 °C towards the settled 72.2 °C (measured 2026-09-22, `diagnostics/transient/`). The
+rows past 90 s are therefore above the closed form on a correct run, by 0.4 K at 100 s and 4.6 K at
+160 s, and a test asserting them fails a correct implementation. The dead time and the shape of the
+first arrival are the closed form's; the level it arrives at is the loop's.
 
 **The first ten seconds are the row that matters.** At t = 70 s the outlet has moved 0.3 K — within
 measurement noise on a real plant — which is the dead time
@@ -578,27 +621,27 @@ unstable adjacent block remixes and its total enthalpy remains unchanged.
 
 ## Acceptance criteria
 
-- [ ] The pinned system of the demand-step loop counts square with exactly the four `PB` cells as
+- [x] The pinned system of the demand-step loop counts square with exactly the four `PB` cells as
       differential states; the storage header with exactly five, and no `h_tank` (`D-139`).
-- [ ] A run with no disturbance drifts less than 0.1 % over 600 s (invariant 3).
-- [ ] A run started from `01`'s demand-step script begins at the cooling loop's figures — 0.2392 kg/s
+- [x] A run with no disturbance drifts less than 0.1 % over 600 s (invariant 3). Measured 2e-11 (P6.1).
+- [x] A run started from `01`'s demand-step script begins at the cooling loop's figures — 0.2392 kg/s
       secondary, 0.0763 kg/s recirculating, the valve at 0.50 — with `N2` at its setpoint (`D-141`).
-- [ ] A step boundary falls on every scheduled time and every frame time; the 60 s frame of the
+- [x] A step boundary falls on every scheduled time and every frame time; the 60 s frame of the
       demand-step run shows `HE1.out.t` at 65.0 °C, not a value between 50 and 65.
-- [ ] The settled state after a step equals a steady solve of the post-step system within tolerance.
-- [ ] A front reaches a node 8 m downstream later than one 2 m downstream, by roughly length ÷ velocity.
-- [ ] `PB`'s outlet has moved less than 0.5 K ten seconds after the step, and the transport figures use
+- [x] The settled state after a step equals a steady solve of the post-step system within tolerance.
+- [x] A front reaches a node 8 m downstream later than one 2 m downstream, by roughly length ÷ velocity.
+- [x] `PB`'s outlet has moved less than 0.5 K ten seconds after the step, and the transport figures use
       `PB`'s **inside** diameter and the **recirculation** flow — not the DN number and not the
       secondary flow. Both substitutions look plausible and both are wrong by 16 % or more.
-- [ ] Doubling `nodes` sharpens the front, measured as the 10–90 % rise time.
-- [ ] `FS3101` names the limiting component.
-- [ ] Cancelling mid-run stops within one step, with no background work left.
-- [ ] Frames arrive at the configured interval regardless of the internal step size.
-- [ ] Energy drift over the M4 demo is below `FS3106`'s threshold; crossing the failure threshold
-      produces `FS3107`, stops the worker, and emits no unverified frame.
+- [x] Doubling `nodes` sharpens the front, measured as the 10–50 % rise time of the last cell (the 90 % point is inside the loop warm-up the feedback adds, so the 10–90 % measure conflates the two).
+- [x] `FS3101` names the limiting component.
+- [x] Cancelling mid-run stops within one step, with no background work left (in Core; the worker is P6.5's).
+- [x] Frames arrive at the configured interval regardless of the internal step size.
+- [x] Energy drift over the M4 demo is below `FS3106`'s threshold; crossing the failure threshold
+      produces `FS3107`, stops the worker, and emits no unverified frame. (The threshold half is measured, 2e-11; the failure path is built and no test provokes it — `S-78`.)
 - [ ] Editing, saving, or invalidating the draft during a run does not change snapshot identity,
       equation count, sizes, schedule, settings, or frame sequence.
-- [ ] The storage header's layer-2 initial derivative is 0.020 K/s and its 10 s temperature increase
+- [x] The storage header's layer-2 initial derivative is 0.020 K/s and its 10 s temperature increase
       is 0.20 K within integration tolerance; all other initial layer derivatives are zero.
 - [ ] A multi-height flow fixture reproduces the cumulative interface-flow formula for upward and
       downward displacement, including a reversed nominal tank port.

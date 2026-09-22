@@ -5677,6 +5677,74 @@
       ]
     },
     {
+      "code": "FS3101",
+      "severity": "info",
+      "area": "Transient",
+      "message": "Step limited to {step} s by '{component}'. Fewer internal nodes would run faster.",
+      "arguments": [
+        "step",
+        "component"
+      ]
+    },
+    {
+      "code": "FS3102",
+      "severity": "error",
+      "area": "Transient",
+      "message": "The simulation cannot advance past {time} s. Something is changing faster than the model can follow.",
+      "arguments": [
+        "time"
+      ]
+    },
+    {
+      "code": "FS3103",
+      "severity": "error",
+      "area": "Transient",
+      "message": "Could not balance the circuit at t = {time} s: {inner}.",
+      "arguments": [
+        "time",
+        "inner"
+      ]
+    },
+    {
+      "code": "FS3104",
+      "severity": "info",
+      "area": "Transient",
+      "message": "Still changing at {horizon} s. Extend the run to see it settle.",
+      "arguments": [
+        "horizon"
+      ]
+    },
+    {
+      "code": "FS3105",
+      "severity": "error",
+      "area": "Transient",
+      "message": "Cannot change '{target}' — {reason}.",
+      "arguments": [
+        "target",
+        "reason"
+      ]
+    },
+    {
+      "code": "FS3106",
+      "severity": "warning",
+      "area": "Transient",
+      "message": "Energy balance drifted by {pct} % over the run. Results may be unreliable.",
+      "arguments": [
+        "pct"
+      ]
+    },
+    {
+      "code": "FS3107",
+      "severity": "error",
+      "area": "Transient",
+      "message": "Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}.",
+      "arguments": [
+        "time",
+        "invariant",
+        "sequence"
+      ]
+    },
+    {
       "code": "FS3109",
       "severity": "error",
       "area": "Transient",

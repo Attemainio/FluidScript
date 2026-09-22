@@ -55,6 +55,10 @@ public sealed record RunSnapshot
     /// <value>J/kg.</value>
     public required ImmutableArray<double> DifferentialInitial { get; init; }
 
+    /// <summary>The reference mass of every differential state, in <see cref="SystemLayout.Differential"/> order.</summary>
+    /// <value>kg: the state's volume at the density of its initial state. Fixed for the run (<c>33</c> invariant 11), which is the incompressible approximation that makes mass conservation exact.</value>
+    public required ImmutableArray<double> ReferenceMasses { get; init; }
+
     /// <summary>The design value of every promotion, in <c>CountingTable.Promotions</c> order.</summary>
     /// <value>Each in its parameter's own SI unit. What <see cref="EquationSystem.Freeze"/> holds at t &gt; 0 until a controller or a schedule moves it (<c>D-140</c>).</value>
     public required ImmutableArray<double> PromotionInitial { get; init; }
@@ -94,12 +98,18 @@ public sealed record RunSnapshot
         var system = EquationSystem.Build(graph, posedness, design);
         var layout = system.Unknowns;
         var differential = ImmutableArray.CreateBuilder<double>(layout.Differential.Length);
+        var masses = ImmutableArray.CreateBuilder<double>(layout.Differential.Length);
+
+        // One evaluation at the design state, so each cell's node carries the density its reference
+        // mass is fixed from.
+        system.TryEvaluateResiduals(design.Values.AsSpan(), new double[system.Rows]);
 
         foreach (var state in layout.Differential)
         {
             if (state.Column >= 0)
             {
                 differential.Add(design.Values[state.Column]);
+                masses.Add(state.Volume * system.NodeDensity(state.Column - layout.NodeEnthalpyOffset));
                 continue;
             }
 
@@ -110,7 +120,17 @@ public sealed record RunSnapshot
                 return Result.Failure<RunSnapshot>(initial.Error);
             }
 
+            var layer = graph.Substance.FromPressureEnthalpy(
+                Quantity.FromSi(Math.Max(PortPressure(graph, layout, design, state.Element), 0), Dimension.Pressure),
+                Quantity.FromSi(initial.Value, Dimension.Enthalpy));
+
+            if (!layer.IsSuccess)
+            {
+                return Result.Failure<RunSnapshot>(layer.Error);
+            }
+
             differential.Add(initial.Value);
+            masses.Add(state.Volume * layer.Value.Density.SiValue);
         }
 
         var promotions = ImmutableArray.CreateBuilder<double>(posedness.Counting.Promotions.Length);
@@ -132,6 +152,7 @@ public sealed record RunSnapshot
             Posedness = posedness,
             Initial = new StateVector([.. design.Values]),
             DifferentialInitial = differential.ToImmutable(),
+            ReferenceMasses = masses.ToImmutable(),
             PromotionInitial = promotions.ToImmutable(),
             Schedule = [.. graph.Schedule.OrderBy(static change => change.From).ThenBy(static change => change.To)],
             Setpoints = graph.Setpoints,
@@ -162,30 +183,34 @@ public sealed record RunSnapshot
             return Result.Success(mixed is null ? 0.0 : design.Values[mixed.Index]);
         }
 
-        // At the pressure of the node on the tank's first port, which every layer shares to within the
-        // head of the tank; water's enthalpy barely notices either way.
-        var pressure = 0.0;
-        var peer = graph.Adjacency.Peer(state.Element, 0);
-
-        if (peer.Exists)
-        {
-            for (var node = 0; node < graph.Nodes.Length; node++)
-            {
-                if (ReferenceEquals(graph.Components[peer.Component], graph.Nodes[node].Component))
-                {
-                    pressure = design.Values[layout.NodePressure(node)];
-                    break;
-                }
-            }
-        }
-
         var fluid = graph.Substance.FromPressureTemperature(
-            Quantity.FromSi(Math.Max(pressure, 0), Dimension.Pressure),
+            Quantity.FromSi(Math.Max(PortPressure(graph, layout, design, state.Element), 0), Dimension.Pressure),
             Quantity.FromSi(stated.Value.SiValue, Dimension.Temperature));
 
         return fluid.IsSuccess
             ? Result.Success(fluid.Value.Enthalpy.SiValue)
             : Result.Failure<double>(fluid.Error);
+    }
+
+    /// <summary>The pressure of the node on a tank's first port: what every layer shares to within the tank's head, which water's properties barely notice.</summary>
+    private static double PortPressure(CircuitGraph graph, SystemLayout layout, StateVector design, int element)
+    {
+        var peer = graph.Adjacency.Peer(element, 0);
+
+        if (!peer.Exists)
+        {
+            return 0;
+        }
+
+        for (var node = 0; node < graph.Nodes.Length; node++)
+        {
+            if (ReferenceEquals(graph.Components[peer.Component], graph.Nodes[node].Component))
+            {
+                return design.Values[layout.NodePressure(node)];
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>The snapshot id: one hash over what the run reads and nothing the editor can change.</summary>

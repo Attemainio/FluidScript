@@ -200,6 +200,13 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3014` | Warning | Solver | {parameter} solved to {head} m: the header pushes forward through {component}'s stopped branch and a pump cannot resist that. Close the branch -- an isolation valve, or the mixing valve at its stop -- or the plant runs through it. |
 | `FS3015` | Info | Solver | {parameter} runs dead-headed at {head} m: it holds {component}'s stopped branch still against the header pushing backwards through it. If that pump is off, nothing here stops the flow: add a check valve to the branch, or state the flow you expect through it. |
 | `FS3016` | Warning | Solver | {parameters} move together along a valley of the circuit: one series path fixes only their combination, so the values shown are one answer among those the script allows. State all but one of them, or decouple the blocks so the path is no longer shared. |
+| `FS3101` | Info | Transient | Step limited to {step} s by '{component}'. Fewer internal nodes would run faster. |
+| `FS3102` | Error | Transient | The simulation cannot advance past {time} s. Something is changing faster than the model can follow. |
+| `FS3103` | Error | Transient | Could not balance the circuit at t = {time} s: {inner}. |
+| `FS3104` | Info | Transient | Still changing at {horizon} s. Extend the run to see it settle. |
+| `FS3105` | Error | Transient | Cannot change '{target}' — {reason}. |
+| `FS3106` | Warning | Transient | Energy balance drifted by {pct} % over the run. Results may be unreliable. |
+| `FS3107` | Error | Transient | Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}. |
 | `FS3109` | Error | Transient | '{target}' is driven by {controller}; a schedule cannot also move it. |
 | `FS3210` | Info | Controllers | {controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}. |
 | `FS3211` | Info | Controllers | {controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands. |
