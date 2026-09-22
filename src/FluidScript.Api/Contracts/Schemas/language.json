@@ -17,7 +17,8 @@
     "outlet",
     "control",
     "curve",
-    "design"
+    "design",
+    "scenarios"
   ],
   "unitSymbols": [
     "kJ/(kg*K)",

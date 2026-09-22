@@ -965,6 +965,8 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
 | `FS1118` | `design` with no arguments, or an argument with no `=` | Error | `A 'design' line needs named values, such as 'design tout=-26'.` |
 | `FS1119` | An index that is not a whole number touching its name: `in[a]`, `in[ 2 ]`, `in[]` (`D-120`) | Error | `An index is a whole number in brackets right after the name, such as 'in[2]'.` |
+| `FS1120` | `scenarios` with no names (`D-143`) | Error | `A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'.` |
+| `FS1121` | A bracketed value list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A value list is one value per scenario, separated by commas, such as '[30, 10]'.` |
 | `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |

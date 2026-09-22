@@ -126,7 +126,7 @@ driver nobody wrote, and the cases a plant is sized for are the cases an enginee
 
 ### Scenarios
 
-```fluidscript expects=FS1104,FS1105
+```fluidscript
 scenarios winter summer
 design winter
 
@@ -207,13 +207,32 @@ component.
 
 ### How the run executes
 
-(The user's call, 2026-09-22, option C of three; not built.) Scenarios are solved by a fixed set of
-workers, `sizing.workers` (default 6, a setting and never a constant), each taking a contiguous
-chunk of the list and warm-starting each scenario from the previous one in its chunk. A fully
-parallel fan-out would cold-start every scenario; a sequential run would keep the warm start on one
-core; chunks keep both, at one cold start per chunk. Warm starting across scenarios is weaker here
-than it was across a 1 K grid, since adjacent scenarios need not be near each other, so the chunk
-assignment is worth measuring rather than assuming.
+**Sequentially, with `sizing.workers` present and the report measuring** (the user's call,
+2026-09-22, revising the same day's choice of chunked workers).
+
+The chunked design is below and still stands as the shape to build *if a measurement asks for it*:
+a fixed set of workers, `sizing.workers` (default 6, a setting and never a constant), each taking a
+contiguous chunk of the list and warm-starting each scenario from the previous one in its chunk. A
+fully parallel fan-out would cold-start every scenario; a sequential run keeps the warm start on one
+core; chunks keep both, at one cold start per chunk.
+
+**What changed is the premise, not the reasoning.** Option C was chosen against `D-138`'s swept
+range — hundreds of points — and against a solve costing 21–55 ms. `D-143` replaced the sweep with a
+hand-written list of a handful of cases, and `D-137` put water on IF97: a whole-pipeline solve is now
+**7.2 ms on the cooling loop, 8.1 on the substation, 16.9 on the header** (debug). Steps 1 and 3 over
+six scenarios of the substation are `2 × 6 × 8 ms ≈ 100 ms`, sequentially — under the interactive
+budget in `07` with an order of magnitude to spare. Six workers would save perhaps 80 ms and cost a
+fixed thread set, one native property state each (`C-76`), chunk assignment and cancellation across
+chunks. The user's words: *"we are talking about milliseconds, a fraction of a second. This is still
+extremely fast."*
+
+So the setting ships, the sequential path ships, and **the sizing report carries the per-scenario
+wall time and the solver-time-against-wall-time ratio from the first version** — which is what turns
+"should this be parallel" into a reading rather than an argument. The case that would change the
+answer is `07`'s scale target, a 200-component plant with ten scenarios, and it is the report that
+will say so. Warm starting across scenarios is weaker here than it was across a 1 K grid, since
+adjacent scenarios need not be near each other, so the chunk assignment stays worth measuring rather
+than assuming if it is ever built.
 
 The workers are dedicated threads, not the pool: the property state is per-thread and its native
 half is never returned (`21`, `C-76`), so a fixed set costs one state each while thread churn costs

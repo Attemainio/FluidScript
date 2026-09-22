@@ -207,10 +207,31 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "An index is a whole number in brackets right after the name, such as 'in[2]'.");
 
+    /// <summary>A <c>scenarios</c> line with no names (<c>D-143</c>).</summary>
+    /// <value><c>FS1120</c>, an error.</value>
+    public static DiagnosticDescriptor MalformedScenariosDirective { get; } = new(
+        "FS1120",
+        DiagnosticSeverity.Error,
+        "A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'.");
+
+    /// <summary>A bracketed value list that is not closed, or that has an empty slot (<c>D-143</c>).</summary>
+    /// <value><c>FS1121</c>, an error.</value>
+    /// <remarks>
+    /// Shape only. <strong>Whether the list has the right number of values is not a parser question</strong>
+    /// -- the count comes from the <c>scenarios</c> line, which the parser has no view of, so a wrong
+    /// length is the binder's <c>FS1540</c>. This code is for <c>[30,</c>, <c>[30 10]</c> and <c>[]</c>.
+    /// </remarks>
+    public static DiagnosticDescriptor MalformedScenarioList { get; } = new(
+        "FS1121",
+        DiagnosticSeverity.Error,
+        "A value list is one value per scenario, separated by commas, such as '[30, 10]'.");
+
     /// <summary>Gets every code the parser emits, for the registry to collect.</summary>
-    /// <value>Twenty-one descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Twenty-three descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        MalformedScenariosDirective,
+        MalformedScenarioList,
         MalformedIndex,
         NameReadsAsQuantity,
         ReservedWordAsName,

@@ -404,20 +404,56 @@ public sealed record CurveRowSyntax(ImmutableArray<Token> Parts) : StatementSynt
     public override ImmutableArray<Token> Tokens => Parts;
 }
 
-/// <summary>Gives each curve driver its design value (<c>D-58</c>).</summary>
+/// <summary>Names the operating point: a scenario (<c>D-143</c>), or each curve driver's value (<c>D-58</c>).</summary>
 /// <param name="Keyword">The <c>design</c> word.</param>
-/// <param name="Arguments">One <c>driver=value</c> per driver, order-independent.</param>
+/// <param name="Arguments">One <c>driver=value</c> per driver, order-independent. Empty when a scenario is named.</param>
+/// <param name="Scenario">The scenario named, or <see langword="null"/> for the driver form.</param>
 /// <remarks>
+/// <para>
 /// File-wide, like <c>project</c> and <c>spacing</c>, and for the same reason: an outdoor temperature
 /// is a property of the site, not of one circuit.
+/// </para>
+/// <para>
+/// <strong>One word, one job (<c>D-143</c>).</strong> Either spelling names where the plant
+/// <em>operates</em> -- the state the canvas draws, the numbers an export carries, the inputs a run
+/// starts from -- and neither sizes anything. The driver form remains for a file with no
+/// <c>scenarios</c> line; <c>D-138</c>'s <c>driver=range</c>, which made this word mean a sizing
+/// range as well, is withdrawn.
+/// </para>
 /// </remarks>
 public sealed record DesignDirectiveSyntax(
     Token Keyword,
-    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax
+    ImmutableArray<ParameterSyntax> Arguments,
+    IdentifierSyntax? Scenario = null) : StatementSyntax
+{
+    /// <inheritdoc/>
+    public override ImmutableArray<Token> Tokens => Scenario is { } named
+        ? [Keyword, .. named.Tokens]
+        : [Keyword, .. Arguments.SelectMany(static argument => argument.Tokens)];
+}
+
+/// <summary>Names the operating cases the plant is sized for (<c>D-143</c>).</summary>
+/// <param name="Keyword">The <c>scenarios</c> word.</param>
+/// <param name="Names">The case names, in the order written; that order is what an array binds to.</param>
+/// <remarks>
+/// <para>
+/// File-wide, like <c>project</c> and <c>design</c>. <strong>The order is the contract</strong>: an
+/// array parameter binds to it positionally and to nothing else, so reordering this line silently
+/// reassigns every array in the file. That is why the names appear in every basis string a size
+/// carries -- a number a user can check the position against.
+/// </para>
+/// <para>
+/// A file without this line is unchanged in every respect, which is what makes the whole feature
+/// additive: no array can be written where there is no list to bind it to (<c>FS1541</c>).
+/// </para>
+/// </remarks>
+public sealed record ScenariosDirectiveSyntax(
+    Token Keyword,
+    ImmutableArray<IdentifierSyntax> Names) : StatementSyntax
 {
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>
-        [Keyword, .. Arguments.SelectMany(static argument => argument.Tokens)];
+        [Keyword, .. Names.SelectMany(static name => name.Tokens)];
 }
 
 /// <summary>One <c>name=value</c> pair.</summary>

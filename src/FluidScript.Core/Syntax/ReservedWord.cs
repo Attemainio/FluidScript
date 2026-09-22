@@ -75,4 +75,7 @@ public enum ReservedWord
 
     /// <summary>Gives a curve driver its sizing, and static-solve operating, value (<c>D-58</c>).</summary>
     Design,
+
+    /// <summary>Declares the named operating cases a plant is sized for (<c>D-143</c>).</summary>
+    Scenarios,
 }

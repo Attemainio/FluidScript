@@ -51,7 +51,8 @@ public static class SyntaxPage
         ReservedWord.Outlet => "where a subcircuit gives that flow back",
         ReservedWord.Control => "which controller drives what, measuring what",
         ReservedWord.Curve => "a named table of values, interpolated between its rows",
-        ReservedWord.Design => "the conditions the plant is sized for",
+        ReservedWord.Design => "which case the drawing shows — and, with no scenarios, what is sized for",
+        ReservedWord.Scenarios => "the named cases the plant must work in, all of which it is sized for",
         _ => throw new ArgumentOutOfRangeException(nameof(word), word, "Every reserved word needs a description."),
     };
 }

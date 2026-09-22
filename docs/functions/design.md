@@ -9,6 +9,22 @@ design tout=-26
 Everything that is sized automatically is sized for this. A radiator circuit sized at −26 °C outside
 is a different circuit from one sized at −10 °C, and `design` is where you say which.
 
+## With scenarios, it names one of them
+
+If the file has a [`scenarios`](scenarios.md) line, `design` takes a case name instead of driver
+values, and its job is smaller:
+
+```fluidscript
+scenarios winter summer
+design winter
+```
+
+It then chooses **which case you are looking at** — the canvas, the numbers on it, a static export,
+the starting state of a run — and **nothing about size**. Every case was sized for. There is no
+default, so declaring scenarios without a `design` line is [`FS1543`](diagnostics.md).
+
+The rest of this page is the driver form, for a file with no scenarios.
+
 ## What it does
 
 **It sizes.** Pumps, pipes and valves with no stated size are chosen for the design condition,

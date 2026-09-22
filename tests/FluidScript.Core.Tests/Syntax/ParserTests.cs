@@ -130,6 +130,7 @@ public sealed class ParserTests
         CurveHeaderSyntax => StatementKind.CurveHeader,
         CurveRowSyntax => StatementKind.CurveRow,
         DesignDirectiveSyntax => StatementKind.Design,
+        ScenariosDirectiveSyntax => StatementKind.Scenarios,
         _ => StatementKind.Unclassifiable,
     };
 
@@ -446,6 +447,45 @@ public sealed class ParserTests
     [Fact]
     [Trait("Category", "Unit")]
     public void FS1118_DesignWithNoValues() => OnlyDiagnostic("design", "FS1118");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void FS1120_ScenariosWithNoNames() => OnlyDiagnostic("scenarios", "FS1120");
+
+    [Theory]
+    [InlineData("HX1 heat_exchanger power=[]")]
+    [InlineData("HX1 heat_exchanger power=[30,]")]
+    [InlineData("HX1 heat_exchanger power=[30")]
+    [InlineData("HX1 heat_exchanger power=[30 10]")]
+    [InlineData("HX1 heat_exchanger power=[30, [10, 5]]")]
+    [Trait("Category", "Unit")]
+    public void FS1121_AValueListThatIsNotCommaSeparatedValues(string text)
+    {
+        // The last row is the one worth stating: a nested list is not a shape with a meaning, and it
+        // is refused because `ParseExpression` has no rule for `[` rather than by a check of its own.
+        OnlyDiagnostic(text, "FS1121");
+    }
+
+    [Theory]
+    [InlineData("scenarios winter summer")]
+    [InlineData("design winter")]
+    [InlineData("HX1 heat_exchanger power=[30, 10]")]
+    [InlineData("HX1 heat_exchanger power=[30 kW, 10 kW]")]
+    [InlineData("N3 node t=[30, 40]")]
+    [InlineData("HX1 heat_exchanger in[2].t=[85, 70]")]
+    [Trait("Category", "Unit")]
+    public void AScenarioLineAndAValueListParseCleanly(string text)
+    {
+        // The last row is the ambiguity `12` promises does not exist: an index's bracket follows an
+        // identifier and a list's follows `=`, so one line carries both and neither needs lookahead.
+        var result = Parse(text);
+
+        Assert.True(
+            result.Diagnostics.IsEmpty,
+            string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}")));
+
+        Assert.Equal(text, SyntaxPrinter.Print(result));
+    }
 
     [Theory]
     [InlineData("HX1 heat_exchanger in [2].t=85")]

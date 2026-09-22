@@ -4361,6 +4361,20 @@
       "arguments": []
     },
     {
+      "code": "FS1120",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'.",
+      "arguments": []
+    },
+    {
+      "code": "FS1121",
+      "severity": "error",
+      "area": "Parser",
+      "message": "A value list is one value per scenario, separated by commas, such as '[30, 10]'.",
+      "arguments": []
+    },
+    {
       "code": "FS1201",
       "severity": "warning",
       "area": "StyleDirective",

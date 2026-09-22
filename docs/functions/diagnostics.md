@@ -67,6 +67,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
 | `FS1118` | Error | Parser | A 'design' line needs named values, such as 'design tout=-26'. |
 | `FS1119` | Error | Parser | An index is a whole number in brackets right after the name, such as 'in[2]'. |
+| `FS1120` | Error | Parser | A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'. |
+| `FS1121` | Error | Parser | A value list is one value per scenario, separated by commas, such as '[30, 10]'. |
 | `FS1201` | Warning | Style directive | Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern. |
 | `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |

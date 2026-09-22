@@ -119,6 +119,9 @@ public enum StatementKind
     /// <summary>A <c>design</c> line, giving each driver a value (<c>D-58</c>).</summary>
     Design,
 
+    /// <summary>A <c>scenarios</c> line, naming the cases the plant is sized for (<c>D-143</c>).</summary>
+    Scenarios,
+
     /// <summary>A <c>curve</c> line, which names a table and opens its section (<c>D-57</c>).</summary>
     CurveHeader,
 

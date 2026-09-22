@@ -180,7 +180,8 @@ is legal.
 | `outlet` | where a subcircuit gives that flow back |
 | `control` | which controller drives what, measuring what |
 | `curve` | a named table of values, interpolated between its rows |
-| `design` | the conditions the plant is sized for |
+| `design` | which case the drawing shows — and, with no scenarios, what is sized for |
+| `scenarios` | the named cases the plant must work in, all of which it is sized for |
 <!-- END GENERATED: reserved-words -->
 
 `|` is not used for anything, and is deliberately kept free.

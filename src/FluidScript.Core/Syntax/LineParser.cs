@@ -71,6 +71,7 @@ internal sealed class LineParser(
             StatementKind.CurveHeader => ParseCurveHeader(state),
             StatementKind.CurveRow => ParseCurveRow(),
             StatementKind.Design => ParseDesign(state),
+            StatementKind.Scenarios => ParseScenarios(state),
             _ => Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan),
         };
 
@@ -124,6 +125,7 @@ internal sealed class LineParser(
             case StatementKind.Version or StatementKind.Project or StatementKind.Spacing
                 or StatementKind.Fluid or StatementKind.Catalog or StatementKind.Style
                 or StatementKind.Show or StatementKind.Let or StatementKind.Design
+                or StatementKind.Scenarios
                 when section != ScriptSection.Declaration:
                 Report(
                     ParserDiagnostics.StatementInWrongSection,
@@ -162,6 +164,7 @@ internal sealed class LineParser(
         StatementKind.CurveHeader => "curve line",
         StatementKind.CurveRow => "curve row",
         StatementKind.Design => "design directive",
+        StatementKind.Scenarios => "scenarios directive",
         _ => "statement",
     };
 
@@ -582,6 +585,19 @@ internal sealed class LineParser(
                 new DiagnosticArgument("word", keyword.Text));
         }
 
+        // `design winter` names a scenario; `design tout=-26` gives a driver a value (`D-143`). One
+        // token tells them apart -- a scenario name is the whole line, a driver is followed by `=` --
+        // and the check is the one `ParseParameters` already makes, so neither form needs lookahead
+        // it does not already have.
+        if (Current is { Kind: TokenKind.Identifier } && !EqualsFollowsName())
+        {
+            var scenario = TakeIdentifier();
+
+            return scenario is null || !AtEnd
+                ? Fail(ParserDiagnostics.MalformedDesignDirective, LineSpan)
+                : new DesignDirectiveSyntax(keyword, [], scenario);
+        }
+
         var arguments = ParseParameters(out var failed);
         if (failed)
         {
@@ -596,6 +612,101 @@ internal sealed class LineParser(
         }
 
         return new DesignDirectiveSyntax(keyword, arguments);
+    }
+
+    /// <summary>Parses a <c>scenarios</c> directive (<c>D-143</c>).</summary>
+    /// <remarks>
+    /// Bare identifiers, not parameters: a scenario has a name and no value of its own. Duplicates
+    /// and a missing <c>design</c> are the binder's (<c>FS1544</c>, <c>FS1543</c>) -- both are
+    /// questions about the set, and the parser reads one line.
+    /// </remarks>
+    private StatementSyntax ParseScenarios(FluidScriptParser.ScriptState state)
+    {
+        var keyword = Advance();
+
+        if (state.SeenCircuit)
+        {
+            Report(
+                ParserDiagnostics.GlobalDirectiveOutOfPlace,
+                keyword.Span,
+                new DiagnosticArgument("word", keyword.Text));
+        }
+
+        var names = ImmutableArray.CreateBuilder<IdentifierSyntax>();
+
+        while (!AtEnd)
+        {
+            var name = TakeIdentifier();
+            if (name is null)
+            {
+                return Malformed();
+            }
+
+            names.Add(name);
+        }
+
+        if (names.Count == 0)
+        {
+            return Fail(ParserDiagnostics.MalformedScenariosDirective, LineSpan);
+        }
+
+        return new ScenariosDirectiveSyntax(keyword, names.ToImmutable());
+    }
+
+    /// <summary>Parses the bracketed value list a parameter may take after <c>=</c> (<c>D-143</c>).</summary>
+    /// <returns>The list, or <see langword="null"/> after reporting <c>FS1121</c>.</returns>
+    /// <remarks>
+    /// The <c>[</c> is already known to be here, and the elements are ordinary values, so this is a
+    /// comma loop around <see cref="ParseExpression"/>. It never recurses into itself: a nested list
+    /// would be an element whose first token is <c>[</c>, and <c>ParseExpression</c> has no rule for
+    /// one, so it fails there with its own message rather than parsing into a shape with no meaning.
+    /// </remarks>
+    private ScenarioListSyntax? ParseScenarioList()
+    {
+        var open = Advance();
+        var elements = ImmutableArray.CreateBuilder<ArgumentSyntax>();
+        Token? comma = null;
+
+        while (true)
+        {
+            if (Current is not { } token || token.Kind == TokenKind.CloseBracket)
+            {
+                // `[]`, `[30,]` and an unterminated `[30` all land here: every one of them is a slot
+                // with no value in it, and none is worth its own message.
+                Report(ParserDiagnostics.MalformedScenarioList, (comma ?? open).Span);
+                return null;
+            }
+
+            var explained = diagnostics.Count;
+            var value = ParseExpression();
+
+            if (value is null)
+            {
+                if (diagnostics.Count == explained)
+                {
+                    Report(ParserDiagnostics.MalformedScenarioList, token.Span);
+                }
+
+                return null;
+            }
+
+            elements.Add(new ArgumentSyntax(comma, value));
+
+            if (Current is { Kind: TokenKind.Comma })
+            {
+                comma = Advance();
+                continue;
+            }
+
+            if (Current is { Kind: TokenKind.CloseBracket })
+            {
+                return new ScenarioListSyntax(open, elements.ToImmutable(), Advance());
+            }
+
+            // Two values with nothing between them -- `[30 10]` -- or a line that ended open.
+            Report(ParserDiagnostics.MalformedScenarioList, (Current ?? open).Span);
+            return null;
+        }
     }
 
     private StatementSyntax ParseAttachment(FluidScriptParser.ScriptState state)
@@ -904,7 +1015,13 @@ internal sealed class LineParser(
 
             var equals = Advance();
             var explained = diagnostics.Count;
-            var value = ParseExpression();
+
+            // A bracket directly after `=` opens a scenario list and can be nothing else (`D-143`):
+            // an indexed name puts its bracket after an identifier, and that name is already consumed.
+            ExpressionSyntax? value = Current is { Kind: TokenKind.OpenBracket }
+                ? ParseScenarioList()
+                : ParseExpression();
+
             if (value is null)
             {
                 // A value that failed with its own message (`FS1119`) does not also need the general one.

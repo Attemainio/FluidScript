@@ -93,6 +93,7 @@ public static class FluidScriptParser
                 ReservedWord.Control => StatementKind.Control,
                 ReservedWord.Curve => StatementKind.CurveHeader,
                 ReservedWord.Design => StatementKind.Design,
+                ReservedWord.Scenarios => StatementKind.Scenarios,
 
                 // `dynamic` and `static` qualify another directive and introduce nothing.
                 _ => StatementKind.Unclassifiable,
