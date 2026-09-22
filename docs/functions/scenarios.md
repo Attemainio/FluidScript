@@ -80,6 +80,34 @@ from the exchanger's winning case and it is 60 % short in summer.
 
 Every sized value says which case decided it, so a report reads `PU1.head — sized at winter, 4.2 m`.
 
+## What you get back
+
+The sizing report says which case decided each size, and what the pass cost:
+
+```
+=== scenarios  2 cases: winter, summer — design winter
+    merge      2 rounds, settled
+
+    size                            value  governed by
+    HE1.flow                1.90641 kg/s  summer
+    LOAD.flow               1.90641 kg/s  summer
+    P1.dn                             65  summer
+
+    case            iterations  passes  settled     ms
+    winter                   2       1      yes    1.6
+    summer                   2       1      yes    1.5
+```
+
+That is the flow trap caught in the act. **Summer governs everything** — the 40 kW case, not the
+50 kW one — because 40 kW over a 5 K program carries 1.91 kg/s where 50 kW over a 10 K program
+carries 1.20. Size that pipe from the bigger duty and it is a size short in the other half of the
+year.
+
+"merge — 2 rounds" is the pipeline going round twice. Sizes are coupled: a larger pipe drops less
+pressure, so the pump needs less head, so the valve sees a different authority. The second round
+re-sizes every case against the merged plant and confirmed the first; if a plant is still changing
+after four rounds you get the last merge and a note saying so.
+
 ## What a list is not
 
 - **Not a time series.** Cases are unordered and nothing interpolates between them. A duty that

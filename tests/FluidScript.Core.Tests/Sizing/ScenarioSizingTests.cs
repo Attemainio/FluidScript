@@ -1,10 +1,12 @@
 using FluidScript.Core.Binding;
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Catalogs;
 using FluidScript.Core.Components;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Topology;
+using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Sizing;
 
@@ -187,6 +189,35 @@ public sealed class ScenarioSizingTests
         Assert.True(
             (winter.Value.Sizes.For("HE1", "flow") ?? 0) < 1.3,
             $"winter alone wanted {winter.Value.Sizes.For("HE1", "flow")} kg/s, so the two cases do not disagree");
+    }
+
+    [Fact]
+    [Trait("Category", "Diagnostic")]
+    public async Task TheScenarioReportIsWritten()
+    {
+        // Alongside `circuit-reports.md`: the numbers this package produces, where they can be read
+        // rather than re-derived. The timing line is what decides whether `24`'s chunked workers are
+        // ever worth building.
+        var source = await File.ReadAllTextAsync(
+            Path.Combine(RepositoryLayout.Samples, "m5-scenarios.fluid"), TestContext.Current.CancellationToken);
+
+        var model = GraphFixture.Bind(source);
+        var result = await ScenarioSizing.SizeAsync(
+            Loop(), model, Water.Instance, "m5-scenarios", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var report = Path.Combine(RepositoryLayout.Diagnostics, "scenario-sizing.md");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(report)!);
+        await File.WriteAllTextAsync(
+            report,
+            "# Scenario sizing\n\nWritten by `ScenarioSizingTests`. One `ScenarioExplanation` per\n"
+            + "scenario-bearing sample: which case governed each size, what each case does in the\n"
+            + "merged plant, and what the pass cost.\n\n```\n"
+            + ScenarioExplanation.Explain(result.Value, model.Project.Scenarios)
+            + "```\n",
+            TestContext.Current.CancellationToken);
     }
 
     [Fact]

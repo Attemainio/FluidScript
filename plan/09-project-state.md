@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22 (the assembly, the integrator, the stratified tank, the exchanger's hold-up); **P6.8 next by the user's call**, then P6.3; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline). Next: `C-121`, which the valve turn-down check waits on, then P6.3; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1234,6 +1234,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > closed; `12`, `15`, `24` and `08`'s P6.8 row carry the detail. 43 open.
 
 | P6.8a | **The scenario language** (`D-143`, [`12`](10-language/12-grammar.md), [`15`](10-language/15-semantic-model.md)): `ReservedWord.Scenarios` and the `scenarios` directive; `ScenarioListSyntax` as a `parameter-value` admitted only after `=`; `design <name>` beside `D-58`'s `driver=value`; `FS1120`/`FS1121` in the parser and `FS1540`–`FS1544` in the binder; `ProjectSettings.Scenarios`/`DesignScenario`, `ParameterValue.Scenarios`, `ValueId.ScenarioParameter`; `ScenarioProjection.Project`; `docs/functions/scenarios.md` | `aa93675`, `99794e2` | Shipped 2026-09-22; `L-64` closed in the same change. Nothing consumes the list yet — that is P6.8b |
+| P6.8b | **The scenario sizing pipeline** (`D-143`, [`24`](20-core-domain/24-auto-sizing.md) §Sizing over scenarios): `OuterLoop.Freeze` and `PreparedModel.Frozen`, `Prepare(from:)`; `ScenarioEnvelope` with a closed per-parameter rule set; `ScenarioSizing.SizeAsync` — project, size, merge, re-size against the merge until it settles, then solve every case frozen; `ScenarioExplanation` and `diagnostics/scenario-sizing.md`; `samples/m5-scenarios.fluid` | `dbd53a0`, (this commit) | Shipped 2026-09-23; `C-120` and `C-121` opened. Not built: the valve turn-down check and the zero-envelope diagnostic, both waiting on `C-121` |
 | P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
 
 > **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
@@ -1310,6 +1311,39 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > as `FS1508` "no circuit name" rather than as anything about the directive (`L-64`, closed in the
 > same change). The three `expects=FS1104,FS1105` fences in `plan/` came off, which is `15`'s own
 > mechanism working: the corpus test failed because three blocks had become *too* correct. 49 open.
+>
+> **P6.8b shipped 2026-09-23.** What it meant to do: build `24`'s four steps. What it found, in the
+> order it mattered.
+>
+> **`OuterLoop` had no way to solve without sizing**, which step 3 needs — all three `RunAsync`
+> overloads run the rules and `Prepare` does lowering and sizing in one method. `Freeze` adds it. The
+> shortcut worth recording as refused: writing the merged sizes back as *stated* parameters would
+> freeze them for free, since a sizer never sees a stated one — but a stated value is a **constraint**
+> under `D-02`, so an exchanger merged with both `ua` and `area` would raise `FS2101` on a well-posed
+> plant. Freezing is a tier below stating.
+>
+> **The flow trap is real, and measured on `m5-scenarios`.** A changeover loop, 50 kW over 35/45 °C
+> in winter against 40 kW over 7/12 °C in summer: the *smaller* duty governs every flow-driven size,
+> because a 5 K program carries 1.906 kg/s where a 10 K one carries 1.20. `HE1.flow` and `P1`'s DN65
+> are both governed by summer. A plant merged from the duty's winner is a pipe size short, which is
+> why the envelope is per parameter and not per component — the same rule structural engineering
+> applies per result component per member.
+>
+> **The merge settles in two rounds**, the second confirming the first — `08`'s first open
+> measurement, answered on one plant. Rounds exist because sizes are coupled: a larger pipe lowers
+> the head a pump asks for. `MaxRounds` is 4 and a plant still moving at the cap reports its last
+> merge with a note, the same shape as the outer loop's `FS2301`. One plant is not a proof, which is
+> why the cap is real.
+>
+> **Two gaps filed rather than papered over.** `C-121`: a merged plant reports no valve `authority`,
+> because it is `Δp_valve/Δp_circuit` at the case's own flow and the merged valve's is a different
+> number in every case — so `FS4006` silently stops applying the moment a file gains a `scenarios`
+> line, and the turn-down check `24` now specifies cannot run. `C-120`: every binder *review* reads
+> `ParameterValue.Value`, which holds the design case alone, so a physically contradictory non-design
+> case binds clean and fails two layers down as a non-finite residual — found because the first
+> fixture I wrote had exactly that mistake in its summer element and `FS2119` stayed silent. That is
+> the standing cost of the scalar-`Value` design, worth paying for the thirty-three readers it left
+> untouched, but a review is not a reader. 51 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1396,29 +1430,25 @@ unassessed, not clean.
 
 ## What is next
 
-**P6.8a shipped 2026-09-22 and `P6.8b` is next** — the user's call was sizing before transient
-("after this, I want the sizing first before transient", 2026-09-22). The language is built and
-nothing consumes it yet. **P6.8b is the pipeline** (`24` §Sizing over scenarios): solve each case
-through `ScenarioProjection.Project`, merge per parameter under the kind's envelope, re-solve every
-case with the merged sizes frozen, draw `design`'s. Three things it must settle, in `08`'s row and
-`24`'s:
+**P6.8a and P6.8b shipped 2026-09-22 and 2026-09-23.** A plant is sized for every case it declares,
+the merge is measured to settle in two rounds, and `diagnostics/scenario-sizing.md` names the case
+that governed each size. What P6.8 still owes, and what comes after:
 
-- **`OuterLoop` cannot solve with sizes frozen.** All three `RunAsync` overloads run the sizers and
-  `Prepare` does lowering and sizing together, so step 3 has no entry point. It needs one taking a
-  supplied `SizingOverlay` with the sizing loop capped at zero passes. The tempting shortcut —
-  inject the merged sizes as *stated* parameters, since a sizer never sees a stated one — is a trap:
-  a stated value is a constraint under `D-02`, so an exchanger merged with both `ua` and `area`
-  would raise `FS2101` on a well-posed plant. Freezing is a tier below stating.
-- **The valve turn-down check's figures are looked up** (2026-09-22): rangeability is 50:1 equal
-  percentage, 33:1 linear, 20:1 quick-opening, and good authority is 35–75 % with 40–50 % ideal —
-  which corroborates `SizingDefaults.ValveAuthorityTarget` 0.5 and `ValveAuthorityMinimum` 0.25,
-  neither of which carried a published source before. The relation `R_installed = R·√a` is *not*
-  from a primary standard: it is corroborated by a secondary source and derives from the Kv law, so
-  it is this project's reasoning and the part to test.
-- **Whether step 3's re-merge loop terminates** on a plant whose valve, pipe and pump sizes move
-  together, and whether the zero-envelope diagnostic `24` §What this gives up leaves unsettled is
-  needed. Of its two candidate mitigations, the diagnostic is the one to build; range-sugar that
-  generates scenarios would re-introduce `D-138`'s driver sweep under another spelling.
+- **`C-121` first, because two things wait on it.** A merged plant reports no valve `authority`, so
+  `FS4006` silently stops applying to any file with a `scenarios` line, and `24`'s minimum-flow row
+  — the turn-down check — is unimplementable. The figures are looked up and in `24`: rangeability
+  50:1 equal percentage, 33:1 linear, 20:1 quick opening; good authority 35–75 %, ideally 40–50 %,
+  which corroborates `ValveAuthorityTarget` 0.5 and `ValveAuthorityMinimum` 0.25. The check is
+  `Q_min/Q_max > 1/(R·√a)`, and the `√a` half is **this project's reasoning**, not a standard. The
+  fix computes `a` from step 3's frozen solve, which already holds the resistances and the frozen
+  Kv — a focused calculation, not a sizing pass, which would re-choose Kv and undo the merge.
+- **`C-120`**, every binder review seeing only the design case. Diagnostic quality on malformed
+  files, not correctness on good ones, so it follows `C-121`.
+- **The zero-envelope diagnostic** `24` §What this gives up leaves unsettled. Of its two candidate
+  mitigations the diagnostic is the one to build; range-sugar that generates scenarios would
+  re-introduce `D-138`'s driver sweep under another spelling.
+- **Then P6.3**, which needs `S-79` first: where a run's t = 0 sits on a time curve's timestamp
+  axis, which `D-143` did not resolve and which a setpoint following a curve reaches immediately.
 
 P6.3 follows, and **needs `S-79` first**: where a run's t = 0 sits on a time curve's timestamp axis,
 which `D-143` did not resolve and which a setpoint following a curve reaches immediately. `C-118`

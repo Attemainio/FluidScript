@@ -1,0 +1,28 @@
+# Sizing over scenarios (D-143), the reference case for plan/20-core-domain/24-auto-sizing.md.
+#
+# A changeover distribution loop: the same pipework carries hot water in winter and chilled water
+# in summer. One plant, two duties, and the components must cover both.
+#
+# This sample exists for the trap in `24`. The duties say winter is the bigger case -- 50 kW against
+# 40 -- but the *flows* say the opposite, because a chilled program is narrower:
+#
+#   winter  50 kW over 35/45 C  =  50 000 / (4180 * 10)  =  1.20 kg/s
+#   summer  40 kW over  7/12 C  =  40 000 / (4180 *  5)  =  1.91 kg/s   <- 59 % more
+#
+# So every flow-driven size is governed by summer, the smaller duty, and a plant sized from the
+# duty's winner alone is a pipe size short. The sizing report names the governing case per size.
+
+fluidscript 1
+scenarios winter summer
+design winter
+
+circuit distribution
+fluid water
+
+HE1  heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]   # source: boiler, then chiller
+LOAD heat_exchanger power=[-50, 40] dp=0                          # the building, either way round
+PU1  pump
+P1   pipe length=20
+
+connections
+N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1

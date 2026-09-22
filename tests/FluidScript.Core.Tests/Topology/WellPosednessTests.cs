@@ -980,6 +980,13 @@ public sealed class WellPosednessTests
                 // constraint, so the valve defaults to fully open and `HE1.out.t`'s promotion runs the
                 // pump away (S-75, D-141). Counting is right; the constraint source is what P6.0 adds.
                 ["m4-demand-step.fluid"] = "0",
+
+                // Counted at its *design* scenario, which is what `Excess` binds and lowers: a
+                // scenario list leaves `ParameterValue.Value` a scalar, so a file with scenarios
+                // counts exactly like the one-case file it projects to (`D-143`). Every case has the
+                // same shape here -- the lists change numbers, not topology -- so one entry is the
+                // whole sweep for this sample.
+                ["m5-scenarios.fluid"] = "0",
             },
             outcomes);
     }
