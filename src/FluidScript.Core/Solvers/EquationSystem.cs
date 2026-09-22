@@ -87,6 +87,16 @@ public sealed class EquationSystem
     private readonly PortState[] _nodeStates;
     private readonly double[] _nodeInjection;
 
+    // The pinned view (D-139, D-140): a differential state's value replaces its energy balance, a
+    // tank's ports read their layers, and a frozen promotion replaces the constraint row that promoted
+    // it. NaN is "not pinned", so the steady path pays one comparison per row and no allocation.
+    private readonly double[] _nodePin;
+    private readonly double[][] _portPin;
+    private readonly double[] _ownPin;
+    private readonly (int Component, int Port)[][] _attached;
+    private readonly double[] _frozen;
+    private readonly int[] _promotedRow;
+
     /// <summary>One stated constraint, resolved to either node temperatures or a derived branch flow.</summary>
     /// <param name="Row">The row it writes, or the row of one nothing resolved.</param>
     /// <param name="Node">The node whose temperature it reads, or −1 when this is a flow constraint.</param>
@@ -133,7 +143,8 @@ public sealed class EquationSystem
         double[][] parameters,
         (int Element, int Slot, int Column, string? Holds)[] promoted,
         Constraint[] constraints,
-        (int Node, int Anchor)[] stagnant)
+        (int Node, int Anchor)[] stagnant,
+        int[] promotedRow)
     {
         _graph = graph;
         _ports = ports;
@@ -166,6 +177,37 @@ public sealed class EquationSystem
 
         _nodeStates = new PortState[graph.Nodes.Length];
         _nodeInjection = new double[graph.Nodes.Length];
+        _nodePin = new double[graph.Nodes.Length];
+        _ownPin = new double[graph.Components.Length];
+        _portPin = new double[graph.Components.Length][];
+        _attached = new (int Component, int Port)[graph.Components.Length][];
+        _frozen = new double[promoted.Length];
+        _promotedRow = new int[promoted.Length];
+
+        Array.Fill(_nodePin, double.NaN);
+        Array.Fill(_ownPin, double.NaN);
+        Array.Fill(_frozen, double.NaN);
+
+        for (var element = 0; element < graph.Components.Length; element++)
+        {
+            var count = graph.Components[element].Ports.Length;
+
+            _portPin[element] = new double[count];
+            Array.Fill(_portPin[element], double.NaN);
+            _attached[element] = new (int Component, int Port)[count];
+
+            for (var port = 0; port < count; port++)
+            {
+                var peer = graph.Adjacency.Peer(element, port);
+
+                _attached[element][port] = peer.Exists ? (peer.Component, peer.Port) : (-1, -1);
+            }
+        }
+
+        // A frozen promotion writes over the row of the constraint that promoted it: the constraint is
+        // released at t > 0 and the actuator it chose holds its design value (D-140).
+        Array.Copy(promotedRow, _promotedRow, promotedRow.Length);
+
         _portScratch = new PortState[widest];
         _flowScratch = new double[widest];
         _injectionScratch = new double[widest];
@@ -232,6 +274,109 @@ public sealed class EquationSystem
         [.. Equations.Rows
             .Skip(Equations.ConstraintOffset)
             .Where((_, index) => _constraints[index].Node < 0 && _constraints[index].FlowBranch < 0)];
+
+    /// <summary>Gets whether the system is currently the pinned view rather than the equilibrium.</summary>
+    /// <value>
+    /// <see langword="true"/> after <see cref="Pin"/> or <see cref="Freeze"/> until <see cref="Release"/>.
+    /// Unpinned, a transient graph's system is its equilibrium — the design solve every run starts from
+    /// (<c>D-141</c>); pinned, it is one step's algebraic problem (<c>D-139</c>).
+    /// </value>
+    public bool Pinned { get; private set; }
+
+    /// <summary>Pins the differential states, so the next solve is one step's algebraic problem (<c>D-139</c>).</summary>
+    /// <param name="states">
+    /// J/kg, one per entry of <see cref="SystemLayout.Differential"/> in that order: pipe cells by node,
+    /// then each tank's layers bottom to top.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// A pinned node keeps its column and loses its energy balance, which becomes the identity
+    /// <c>ṁ_nominal · (h − h_pinned) = 0</c> on the row's own watt scale — exactly what removing the
+    /// unknown and substituting would solve, without re-indexing anything. Its balance is the ODE the
+    /// integrator owns, not an algebraic equation.
+    /// </para>
+    /// <para>
+    /// A tank's layers have no column. Each port reads the layer its level maps to, so the node the port
+    /// feeds sees that layer's enthalpy arriving rather than the inflow-weighted mix a steady junction
+    /// delivers, and the tank's own mixed enthalpy is pinned to the layers' mean so that it enters no
+    /// equation the integrator does not already own.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="states"/> is the wrong length.</exception>
+    public void Pin(ReadOnlySpan<double> states)
+    {
+        var differential = Unknowns.Differential;
+
+        if (states.Length != differential.Length)
+        {
+            throw new ArgumentException($"Expected {differential.Length} differential states, got {states.Length}.", nameof(states));
+        }
+
+        for (var index = 0; index < differential.Length; index++)
+        {
+            var state = differential[index];
+
+            if (state.Column >= 0)
+            {
+                _nodePin[state.Column - Unknowns.NodeEnthalpyOffset] = states[index];
+                continue;
+            }
+
+            if (_graph.Components[state.Element] is not Tank tank)
+            {
+                continue;
+            }
+
+            for (var port = 0; port < tank.Ports.Length; port++)
+            {
+                if (tank.LayerForPort(port) == state.Layer)
+                {
+                    _portPin[state.Element][port] = states[index];
+                }
+            }
+
+            // Equal-volume layers of one incompressible liquid: the mean is the mixed enthalpy.
+            _ownPin[state.Element] = double.IsNaN(_ownPin[state.Element])
+                ? states[index] / tank.Layers
+                : _ownPin[state.Element] + (states[index] / tank.Layers);
+        }
+
+        Pinned = true;
+    }
+
+    /// <summary>Freezes a promoted parameter at a value, releasing the constraint that promoted it (<c>D-140</c>).</summary>
+    /// <param name="promotion">The promotion's index in <c>CountingTable.Promotions</c>.</param>
+    /// <param name="value">The parameter's value in its own SI unit: the design solve's, or what a controller or a schedule moved it to.</param>
+    /// <remarks>
+    /// The constraint row becomes <c>x − value</c> on the parameter's own scale. A stated <c>out.t</c>
+    /// on an exchanger is a design point: it chose a pump head at t = 0 and is released after it; the
+    /// head holds, and the outlet temperature follows the flow. A controller writes here once per
+    /// accepted step; a schedule on a promoted parameter writes here at its time.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="promotion"/> names no promotion.</exception>
+    public void Freeze(int promotion, double value)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(promotion);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(promotion, _frozen.Length);
+
+        _frozen[promotion] = value;
+        Pinned = true;
+    }
+
+    /// <summary>Returns the system to its equilibrium form: every pin and every freeze cleared.</summary>
+    public void Release()
+    {
+        Array.Fill(_nodePin, double.NaN);
+        Array.Fill(_ownPin, double.NaN);
+        Array.Fill(_frozen, double.NaN);
+
+        foreach (var pins in _portPin)
+        {
+            Array.Fill(pins, double.NaN);
+        }
+
+        Pinned = false;
+    }
 
     /// <summary>Assembles the system of a lowered graph.</summary>
     /// <param name="graph">The lowered graph.</param>
@@ -405,6 +550,7 @@ public sealed class EquationSystem
         }
 
         var promoted = new List<(int Element, int Slot, int Column, string? Holds)>(posedness.Counting.Promotions.Length);
+        var promotedRow = new List<int>(posedness.Counting.Promotions.Length);
 
         for (var index = 0; index < posedness.Counting.Promotions.Length; index++)
         {
@@ -437,6 +583,10 @@ public sealed class EquationSystem
                 {
                     promoted.Add((element, slot, unknowns.PromotionOffset + index, holds));
 
+                    var constraintIndex = posedness.Counting.Constraints.IndexOf(promotion.Constraint);
+
+                    promotedRow.Add(constraintIndex < 0 ? -1 : equations.ConstraintOffset + constraintIndex);
+
                     break;
                 }
             }
@@ -447,7 +597,7 @@ public sealed class EquationSystem
         return new EquationSystem(
             graph, unknowns, equations, ports, unknownScales, residualScales,
             nodeOf, energyRow, arriving, [.. stated], [.. datums], links, owned, [.. fluxes],
-            parameters, [.. promoted], constraints, Stagnant(graph, ports, byComponent, constraints));
+            parameters, [.. promoted], constraints, Stagnant(graph, ports, byComponent, constraints), [.. promotedRow]);
     }
 
     /// <summary>Resolves each stated constraint to the state its residual reads.</summary>
@@ -1157,6 +1307,33 @@ public sealed class EquationSystem
             }
         }
 
+        if (Pinned)
+        {
+            // A differential state's balance is the integrator's; here it is the identity on the pin,
+            // in watts through the nominal flow like a stagnant node's (D-139).
+            for (var node = 0; node < _nodePin.Length; node++)
+            {
+                if (!double.IsNaN(_nodePin[node]) && _energyRow[node] >= 0)
+                {
+                    residuals[_energyRow[node]] = Sizing.BranchFlows.Nominal
+                        * (x[Unknowns.NodeEnthalpy(node)] - _nodePin[node]);
+                }
+            }
+
+            // A tank's own mixed enthalpy, pinned to its layers' mean: its energy row is local 0.
+            for (var element = 0; element < _ownPin.Length; element++)
+            {
+                var row = double.IsNaN(_ownPin[element]) ? -1 : Equations.Row(element, 0);
+
+                if (row >= 0)
+                {
+                    var column = Unknowns.ComponentUnknownOffset + _owned[element].Offset + Tank.EnthalpyIndex;
+
+                    residuals[row] = Sizing.BranchFlows.Nominal * (x[column] - _ownPin[element]);
+                }
+            }
+        }
+
             // A fixed-flow statement is the derived form of power + inlet + outlet. Other constraints
             // retain their direct absolute- or difference-temperature residual.
             foreach (var constraint in _constraints)
@@ -1187,6 +1364,25 @@ public sealed class EquationSystem
                             - _nodeStates[constraint.Reference].Temperature))
                         - constraint.Target;
             }
+
+        if (Pinned)
+        {
+            // A frozen promotion replaces the row of the constraint that promoted it (D-140): the
+            // actuator holds, and the temperature the constraint asked for follows the flow. Written on
+            // the parameter's own scale, carried to the row's, so the scaled residual is the relative
+            // miss on the parameter and not a position read in kelvin.
+            for (var index = 0; index < _frozen.Length; index++)
+            {
+                var row = double.IsNaN(_frozen[index]) ? -1 : _promotedRow[index];
+
+                if (row >= 0)
+                {
+                    var column = _promoted[index].Column;
+
+                    residuals[row] = (x[column] - _frozen[index]) / UnknownScales[column] * ResidualScales[row];
+                }
+            }
+        }
 
         var assembly = Equations.LinkOffset;
 
@@ -1388,6 +1584,14 @@ public sealed class EquationSystem
     /// </remarks>
     private double Arriving(int element, int port, ReadOnlySpan<double> x, int node)
     {
+        // Pinned view: a port of a tank delivers its layer, whatever flows into the tank elsewhere.
+        var (attachedComponent, attachedPort) = _attached[element][port];
+
+        if (attachedComponent >= 0 && !double.IsNaN(_portPin[attachedComponent][attachedPort]))
+        {
+            return _portPin[attachedComponent][attachedPort];
+        }
+
         var sources = _arriving[element][port];
 
         if (sources.Length == 0)

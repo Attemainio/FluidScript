@@ -243,8 +243,10 @@ establish the initial condition — the design solve, with the control bindings 
 (`D-141`) — then steps in time with sizes and promotions held fixed
 ([`24`](../20-core-domain/24-auto-sizing.md)'s fixed-snapshot rule, `D-140`). **`ITransientSolver` is
 not an `ISolver`; it owns one.** Every step's algebraic solve is this Newton on the pinned system
-(`D-139`), reached through the same `Prepare`/`WarmStart` seams a re-solve uses, so V8 compares one
-code in two modes and not two codes.
+(`D-139`) — `EquationSystem.Pin` / `Freeze` / `Release`, built in P6.0 — reached through the same
+`Prepare`/`WarmStart` seams a re-solve uses, so V8 compares one code in two modes and not two codes.
+`CanSolve` accepts a transient graph's system in both forms: unpinned it is the equilibrium the design
+solve wants, pinned it is one step's problem; stiffness is the step's to report (`FS3102`).
 
 ## Solver selection
 

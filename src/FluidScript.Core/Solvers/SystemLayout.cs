@@ -38,7 +38,8 @@ public sealed class SystemLayout
         int nodeEnthalpyOffset,
         int componentUnknownOffset,
         int externalFluxOffset,
-        ImmutableArray<GraphNode> fluxNodes)
+        ImmutableArray<GraphNode> fluxNodes,
+        ImmutableArray<DifferentialState> differential)
     {
         Unknowns = unknowns;
         BranchFlowOffset = branchFlowOffset;
@@ -47,7 +48,27 @@ public sealed class SystemLayout
         ComponentUnknownOffset = componentUnknownOffset;
         ExternalFluxOffset = externalFluxOffset;
         FluxNodes = fluxNodes;
+        Differential = differential;
     }
+
+    /// <summary>Gets the states a transient integrates rather than solves (<c>D-139</c>).</summary>
+    /// <value>
+    /// <para>
+    /// Empty for a steady graph. For a transient one, the enthalpy of every node with a thermal volume
+    /// — pipe cells today — in node order, then each tank's layers bottom to top. <strong>The partition
+    /// is by volume, not by kind:</strong> a node with <c>V = 0</c> has <c>τ = Vρ/ṁ = 0</c>, its balance
+    /// is the algebraic mixing row the steady system already holds, and integrating it is an
+    /// infinitely stiff state that fails on the first step.
+    /// </para>
+    /// <para>
+    /// A node state names its column in the vector, and the pinned view (<see cref="EquationSystem.Pin"/>)
+    /// replaces that node's energy balance with an identity on it. A tank layer has no column: the
+    /// tank's own mixed enthalpy stays allocated and is pinned to the layers' mean, and each port reads
+    /// its layer, so the layers live only in the integrator. Either way the algebraic system stays
+    /// square, which is what lets one Newton serve both modes (<c>31</c>).
+    /// </para>
+    /// </value>
+    public ImmutableArray<DifferentialState> Differential { get; }
 
     /// <summary>Gets every unknown, in solve order.</summary>
     public ImmutableArray<UnknownDeclaration> Unknowns { get; }
@@ -156,6 +177,34 @@ public sealed class SystemLayout
                 unknowns.Count, UnknownKind.ExternalMassFlux, node.Name, $"{node.Name} external flow", "kg/s"));
         }
 
+        var differential = ImmutableArray.CreateBuilder<DifferentialState>();
+
+        if (graph.Mode is SolveMode.Transient)
+        {
+            for (var node = 0; node < graph.Nodes.Length; node++)
+            {
+                if (graph.Nodes[node].ThermalVolume > 0)
+                {
+                    differential.Add(new DifferentialState(
+                        enthalpies + node, -1, 0, graph.Nodes[node].Name, $"{graph.Nodes[node].Name}.h", graph.Nodes[node].ThermalVolume));
+                }
+            }
+
+            for (var element = 0; element < graph.Components.Length; element++)
+            {
+                if (graph.Components[element] is not Tank tank)
+                {
+                    continue;
+                }
+
+                for (var layer = 1; layer <= tank.Layers; layer++)
+                {
+                    differential.Add(new DifferentialState(
+                        -1, element, layer, tank.Name, $"{tank.Name}.layer[{layer}].h", tank.Volume / tank.Layers));
+                }
+            }
+        }
+
         foreach (var promotion in counting.Promotions)
         {
             // The unit is the component's, because the component is the only thing that knows what its
@@ -181,7 +230,8 @@ public sealed class SystemLayout
         }
 
         return new SystemLayout(
-            unknowns.ToImmutable(), branchFlows, pressures, enthalpies, owned, fluxes, counting.FluxNodes);
+            unknowns.ToImmutable(), branchFlows, pressures, enthalpies, owned, fluxes, counting.FluxNodes,
+            differential.ToImmutable());
     }
 
     /// <summary>Finds the state-vector index of a branch's flow.</summary>
@@ -199,3 +249,12 @@ public sealed class SystemLayout
     /// <returns>Its position in the state vector.</returns>
     public int NodeEnthalpy(int node) => NodeEnthalpyOffset + node;
 }
+
+/// <summary>One state a transient integrates: a node's enthalpy, or one layer of a tank (<c>D-139</c>).</summary>
+/// <param name="Column">The state's column in the vector, or <c>-1</c> for a tank layer, which has none.</param>
+/// <param name="Element">The tank's index in the graph for a layer, <c>-1</c> for a node state.</param>
+/// <param name="Layer">The one-based layer, bottom to top; 0 for a node state.</param>
+/// <param name="Owner">The node or tank that holds it.</param>
+/// <param name="Name">A human-readable name: <c>PB#n1.h</c>, <c>T1.layer[2].h</c>.</param>
+/// <param name="Volume">m³ of fluid the state stands for, the cell's or the layer's; its mass at the state's density is the capacitance.</param>
+public sealed record DifferentialState(int Column, int Element, int Layer, string Owner, string Name, double Volume);

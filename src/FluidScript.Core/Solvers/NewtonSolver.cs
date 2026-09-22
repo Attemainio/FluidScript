@@ -51,18 +51,16 @@ public sealed class NewtonSolver : ISolver
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Two refusals. A transient system needs the solver that integrates rather than the one that
-    /// balances; a system whose rows and columns disagree has no unique solution to look for, and that
-    /// disagreement is an assembly defect rather than a user's, so the message says so.
+    /// One refusal: a system whose rows and columns disagree has no unique solution to look for, and
+    /// that disagreement is an assembly defect rather than a user's, so the message says so. A transient
+    /// graph's system is accepted in both of its forms (<c>31</c>): unpinned it is the equilibrium the
+    /// design solve wants (<c>D-141</c>), pinned it is one step's algebraic problem (<c>D-139</c>), and
+    /// both are square balances this solver is for. Stiffness is not checked here; it is the step's,
+    /// <c>FS3102</c>.
     /// </remarks>
     public Result<Unit> CanSolve(EquationSystem system)
     {
         ArgumentNullException.ThrowIfNull(system);
-
-        if (system.Mode is not SolveMode.Steady)
-        {
-            return Refuse($"it is solved in time rather than as a balance ({system.Mode})");
-        }
 
         return system.Rows == system.Columns
             ? Result.Success(Unit.Value)

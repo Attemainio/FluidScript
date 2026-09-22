@@ -80,11 +80,16 @@ nothing else: a heat exchanger has no capacitance in v1, so its outlet enthalpy 
 consequence of its inlet and its duty within the step. Giving a kind a volume later is a registry row
 and a `ThermalVolume` on its node, never a solver change.
 
-**Each step is the steady system with the differential unknowns pinned.** `SystemLayout` carries
-the partition (Differential / Algebraic); the transient solver substitutes the integrated enthalpies
-into an `EquationSystem` view that no longer lists them as unknowns and solves *everything else* —
-flows, pressures, zero-volume enthalpies, injections — with [`32`](32-steady-state-newton.md)'s scaled
-Newton, warm-started from the previous step. It is the brief's "explicit with no need of the solver"
+**Each step is the steady system with the differential unknowns pinned.** `SystemLayout.Differential`
+carries the partition; the transient solver writes the integrated enthalpies with
+`EquationSystem.Pin`, which replaces each pinned node's energy balance by the identity
+`ṁ_nominal·(h − h_pinned) = 0` on the row's own scale — the same solution as removing the unknown and
+substituting, with nothing re-indexed and the system square — and solves *everything else* — flows,
+pressures, zero-volume enthalpies, injections — with [`32`](32-steady-state-newton.md)'s scaled
+Newton, warm-started from the previous step. `Freeze` does the same for a promotion (`D-140`) and
+`Release` returns the system to its equilibrium form. **Built in P6.0** (2026-09-22): the demand-step
+loop's design state, pinned and frozen at its own values, is Newton's answer in zero iterations
+(`PinnedViewTests`, V9 with the integrator stubbed to zero). It is the brief's "explicit with no need of the solver"
 made precise: explicit for the part that is genuinely dynamic, Newton for the part that is
 instantaneous. A static circuit in a file with a dynamic one has no differential states and is
 solved algebraically each step at no extra cost; `FS3110` (info) names it once at the start of the run.
@@ -197,12 +202,16 @@ diffusivity would make a stored temperature decay for a reason absent from the s
 
 **The tank's residual set in a run.** In static mode the tank is one perfectly mixed unknown `h_tank`
 with a zero incoming-stream balance ([`22`](../20-core-domain/22-component-model.md) §6). In a run
-**that unknown is not allocated**: the K layer enthalpies are differential states under `D-139`, the
-K−1 pressure equalities and the junction mass balance `Σ ṁ_p = 0` stay algebraic and unchanged, an
-outflow port reads the enthalpy of the layer `22`'s level rule maps it to, and an inflow lands in
-that layer. `SystemLayout` allocates `h_tank` in `SolveMode.Steady` only. `layers=1` reduces to the
-mixed control volume of V15; the remix runs after every accepted step, never inside a derivative
-evaluation.
+the K layer enthalpies are differential states under `D-139` **with no column of their own**: the K−1
+pressure equalities and the junction mass balance `Σ ṁ_p = 0` stay algebraic and unchanged, an
+outflow port delivers the enthalpy of the layer `22`'s level rule maps it to (the node it feeds reads
+that, not the steady junction's inflow-weighted mix), and an inflow lands in that layer. `h_tank`
+stays allocated — the design solve needs it — and the pinned view pins it to the layers' mean, so it
+enters no equation the integrator does not own. **Built in P6.0** (2026-09-22): `SystemLayout.Differential`
+lists the cells and the layers, `EquationSystem.Pin` writes the pins, and `PinnedViewTests` reads
+60 °C at the radiator draw and 30 °C at the air-handling draw from the stated profile. `layers=1`
+reduces to the mixed control volume of V15; the remix runs after every accepted step, never inside a
+derivative evaluation.
 
 ## Integration
 
