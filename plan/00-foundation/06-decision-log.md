@@ -187,6 +187,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-142` | Accepted | 2026-09-22 | A series path with two free sizes in it is a valley, and the solver says so rather than landing on it |
 | `D-143` | Accepted | 2026-09-22 | A plant is sized for a stated list of scenarios, not for a swept driver range |
 | `D-144` | Accepted | 2026-09-22 | A heat exchanger's hold-up is its plate area times the channel gap, and it is one mixed volume per side |
+| `D-145` | Accepted | 2026-09-22 | Exchanger hold-up is two stated per-side volumes first, and the area rule is only the fallback |
 <!-- index:end -->
 
 ---
@@ -6670,3 +6671,75 @@ of this.
 - *Three cells per side by default.* Closer to the real profile. Cost: on a typical unit it puts the
   stability limit near 1.2 s against a 1 s frame interval, so it binds with no headroom, and it needs
   the duty split that `C-118` owns.
+
+## D-145 · Exchanger hold-up is two stated per-side volumes first, and the area rule is only the fallback
+
+**Accepted · 2026-09-22** (the user's analysis, with Danfoss channel-volume data and the
+`V/Q`-is-not-geometry argument) · amends `D-144`, which stands as the record of the channel-gap
+measurement · constrains [`22`](../20-core-domain/22-component-model.md),
+[`24`](../20-core-domain/24-auto-sizing.md), [`33`](../30-solver/33-transient-time-domain.md)
+
+`D-144` settled that hold-up is geometric rather than duty-proportional and measured the channel gap.
+It then made the stated route an override and the derived route the headline, and it excluded a
+*sized* area to keep the counting table stable between passes. Checked against the two reference
+exchangers, that ordering fails: the demand-step loop states no `u` and so has no area at all, and
+the substation's 3.658 m² is sized rather than stated, so **neither reference circuit would get any
+hold-up** without a hand-written line. A rule that fires on neither script it was designed for is the
+wrong rule.
+
+**`V/Q` is not a property of an exchanger, and that is why the search for one failed.** Two units of
+the same duty differ in volume by a factor of two or three according to the temperature program, the
+allowable pressure drop and the approach, because those set the plate count. `V/A` is the fundamental
+one: it is the mean channel gap, and `1 mm` of gap is `1 l/m²` of area exactly.
+
+**More of the measurement, from a second manufacturer.** Danfoss publishes the channel count
+explicitly rather than only the volume, for an H30 plate configuration:
+
+```
+V₁ = 0.027 · N/2         [l]
+V₂ = 0.027 · (N−2)/2     [l]
+```
+
+with `N` the plate count. Two things fall out. The per-channel volume is 0.027 l, alongside
+0.017–0.025 l for the XB06 range and 0.239 l for an XB61L, which sits either side of the 0.040 and
+0.103 l `D-144` measured on Alfa Laval. And the two sides are **not** symmetric: `N/2` against
+`(N−2)/2` sums to `N−1`, the channel count of an `N`-plate stack, so one side carries exactly one
+channel more than the other. The asymmetry is structural, not a difference in geometry, and it is
+small on any stack worth modelling.
+
+### The rule, revised
+
+1. **`volume` and `volume2` are first-class stated parameters**, one per side, canonical `dm³`.
+   This is the primary route and the one a user reaching for accuracy takes. Two parameters rather
+   than one because the sides genuinely differ, and spelled with the `2` suffix rather than `hot`
+   and `cold` because a FluidScript exchanger's sides carry no such labels — either side may be
+   either, and a `load` block's hot side depends on the sign of its duty.
+2. **Omitted, from area**: `area × 1.96 mm / 2` per side, about 1 l/m², from a stated *or sized*
+   area.
+3. **Otherwise zero**, reported informationally in a run.
+
+**The sized-area exclusion in `D-144` is withdrawn, and the stability problem it existed for is
+solved differently.** An exchanger in a **dynamic** circuit always declares its hold-up unknown per
+connected side, whatever the volume is, including zero. A zero hold-up is algebraically identical to
+today's outlet, so the first sizing pass is unchanged and the counting table is fixed from the start;
+later passes move only the number. A **static** circuit declares nothing extra, so no existing
+counting table, golden or layout moves. This is what lets the substation take about 3.6 l a side from
+its own sizing with nothing added to the script.
+
+### The plate metal is a real second term, and it is not in this decision
+
+The user's caveat: residence time is not the thermal time constant, because the plates store heat
+too — `C = m_metal·cp_metal + m_fluid·cp_fluid`. Measured on `D-144`'s CB60 figures, a 0.113 × 0.466 m
+stainless plate at 8000 kg/m³ and 500 J/(kg·K):
+
+| Plate thickness | Metal per plate | Against one channel of water, 430 J/K |
+|---|---|---|
+| 0.30 mm | 63 J/K | 15 % |
+| 0.35 mm | 74 J/K | 17 % |
+| 0.40 mm | 84 J/K | 20 % |
+
+So about a fifth on a water/water unit: real, and second-order against having no hold-up at all,
+which is a 100 % error. It is **not** second-order where one side is a refrigerant or air, whose
+volumetric heat capacity is one to three orders below water's; there the metal dominates and a model
+without it is wrong rather than approximate. It also couples the two sides rather than adding to
+either, so it is a third state between them and not a bigger volume. `C-119`.

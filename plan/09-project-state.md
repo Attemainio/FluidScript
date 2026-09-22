@@ -1260,6 +1260,20 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > sizing runs after lowering, so the hold-up would appear between passes and change the counting table
 > mid-solve — which is the same shape as `D-99` stopping at `ua` with no default `U`. `C-114` rewritten
 > with the build that remains, `C-118` opened for the profile. 49 open.
+>
+> **`D-145` accepted 2026-09-22, amending `D-144` the same day, no code:** checked against the two
+> reference exchangers, `D-144`'s ordering fired on neither — the demand-step loop states no `u` and
+> so has no area at all, and the substation's 3.658 m² is sized rather than stated, which `D-144`
+> excluded. So stated `volume`/`volume2` per side becomes the primary route and the area rule the
+> fallback, now reading a sized area too; the stability worry that exclusion existed for is solved by
+> declaring the hold-up unknown for every exchanger in a **dynamic** circuit whatever its volume,
+> since a zero hold-up is algebraically today's outlet and a static circuit declares nothing extra.
+> The user's evidence added a second manufacturer: Danfoss publishes `V₁ = 0.027·N/2` and
+> `V₂ = 0.027·(N−2)/2`, which sum to the `N−1` channels of an `N`-plate stack and give the exact
+> one-channel asymmetry between sides, with per-channel volumes of 0.017–0.239 l across a range
+> bracketing the 0.040 and 0.103 l measured on Alfa Laval. `C-119` opened for the plate metal,
+> measured at 15–20 % of the fluid's capacitance on water/water and dominant on a refrigerant or air
+> side. 50 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1346,16 +1360,18 @@ unassessed, not clean.
 
 ## What is next
 
-**`C-114` is next, and its physics is now settled** (`D-144`, 2026-09-22): hold-up per side is plate
-area times a 1.96 mm channel gap, measured consistently on two Alfa Laval models, which is 0.8–1.0 l
-per m² of area. **The code is not built.** It is a restructure rather than plumbing — the hold-up is
-the exchanger's own unknown per connected side, so the duty moves off the downstream node's balance
-onto the hold-up's row, reversing half of `D-69`, and the tank-only branches of
-`SystemLayout.Differential` and `EquationSystem.Pin` generalise. Do it as its own package and read the
-corpus report before and after; it is **cheap now and expensive later**, because a differential state
-travels in the frame and adding one after `43`'s contract and the frontend exist costs a version bump.
-`C-118` (one mixed volume over-damps; the profile is logarithmic) follows it, not with it. Then P6.3,
-which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
+**`C-114` is next, and its physics is now settled** (`D-144` and `D-145`, 2026-09-22): stated
+`volume`/`volume2` per side first, else `area × 1.96 mm / 2` from a stated or sized area, else zero
+reported informationally. **The code is not built.** It is a restructure rather than plumbing — the
+hold-up is the exchanger's own unknown per connected side, declared for every exchanger in a dynamic
+circuit so the counting table is fixed from the first pass, which moves the duty off the downstream
+node's balance onto the hold-up's row, reversing half of `D-69`, and generalises the tank-only
+branches of `SystemLayout.Differential` and `EquationSystem.Pin`. Static circuits declare nothing
+extra. Do it as its own package and read the corpus report before and after; it is **cheap now and
+expensive later**, because a differential state travels in the frame and adding one after `43`'s
+contract and the frontend exist costs a version bump. `C-118` (one mixed volume over-damps) and
+`C-119` (the plates store heat) follow it and share a structure, the three-node exchanger, so design
+them together. Then P6.3, which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
 timestamp axis, which `D-143` did not resolve and which a setpoint following a curve reaches
 immediately. P6.8 is **sizing over scenarios** (`D-143`), tier-20 work runnable in parallel and
 specified end to end in `24` §Sizing over scenarios, `12` and `15`; its two open measurements are
