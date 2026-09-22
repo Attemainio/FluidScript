@@ -137,6 +137,22 @@ public sealed class HeatExchanger : IFlowComponent
     /// <value><see langword="true"/> when <c>in2</c>/<c>out2</c> are connected, which adds a row.</value>
     public bool SecondarySideConnected { get; }
 
+    /// <summary>Gets the fluid side 1 holds between its ports.</summary>
+    /// <value>
+    /// m³, never negative. Stated as <c>volume</c>, and otherwise the plate pack's own geometry:
+    /// heat-transfer area times <see cref="Sizing.SizingDefaults.ExchangerChannelGap"/>, halved between
+    /// the two sides (<c>D-145</c>). Zero when the design point fixes no area, which is what an ideal
+    /// block has always been -- the outlet is then today's algebraic answer with no lag at all.
+    /// </value>
+    public double HoldUp { get; init; }
+
+    /// <summary>Gets the fluid side 2 holds between its ports.</summary>
+    /// <value>
+    /// m³, never negative, on the same basis as <see cref="HoldUp"/> and stated as <c>volume[2]</c>.
+    /// Meaningless unless <see cref="SecondarySideConnected"/>: an unwired side holds no stream to lag.
+    /// </value>
+    public double HoldUp2 { get; init; }
+
     /// <inheritdoc/>
     public string Name { get; }
 

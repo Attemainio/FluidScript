@@ -212,6 +212,12 @@ public sealed class ComponentFactory(IBoreLookup bores, SizingOverlay? sizes = n
             SizedParameters = sized,
             DefaultParameters = defaults,
             Rating = Rating(symbol, kind, secondary, power),
+
+            // Zero on the bootstrap pass, because no area has been chosen yet. That is deliberate and
+            // not a gap: a dynamic circuit declares the hold-up's enthalpy as an unknown whatever the
+            // volume (`D-145`), so the counting table is the same on every pass and only the lag moves.
+            HoldUp = Math.Max(0, Value(symbol, kind, "volume") ?? 0),
+            HoldUp2 = Math.Max(0, Value(symbol, kind, "volume2") ?? 0),
         };
     }
 

@@ -44,7 +44,7 @@ namespace FluidScript.Core.Sizing;
 public sealed class ThermalSizer : ISizer
 {
     /// <inheritdoc/>
-    public ImmutableArray<string> Parameters { get; } = ["ua", "area", "plates"];
+    public ImmutableArray<string> Parameters { get; } = ["ua", "area", "plates", "volume", "volume2"];
 
     /// <inheritdoc/>
     /// <value>Nothing. An exchanger without a size transfers its stated duty until one arrives.</value>
@@ -178,9 +178,14 @@ public sealed class ThermalSizer : ISizer
                 string.Create(CultureInfo.InvariantCulture, $"{sizedArea:0.###} m² — UA {conductance / 1000:0.###} kW/K over u {u:0} W/(m²·K)"),
                 FromDefault: false);
         }
-        else if (statedArea is null && statedSize is null)
+        else if (statedArea is null)
         {
-            notes.Add($"{exchanger.Name}: UA {conductance / 1000:0.###} kW/K is sized, but no area follows from it without a u; state u=, or area= directly");
+            // One note, because there is one cause: with no `u` and no stated area, nothing fixes the
+            // metal. That leaves two consequences and they belong together -- no area to report, and no
+            // plate pack to read a hold-up off (`D-145`).
+            notes.Add(
+                $"{exchanger.Name}: UA {conductance / 1000:0.###} kW/K, but no area follows from it without a u; "
+                + "state u=, or area= directly. With no area the fluid it holds is taken as zero -- state volume= to give it one");
         }
 
         if (plates is { } chosen && Si(stated, "plates") is null && installedArea is { } built)
@@ -193,6 +198,25 @@ public sealed class ThermalSizer : ISizer
                 FromDefault: false);
         }
 
+        // What the pack holds, from what it is built of (`D-145`). The area here is the installed one,
+        // not the required one: a plate count rounded up holds the fluid of the plates it actually has.
+        // When there is none the note above has already said so, and the exchanger holds nothing --
+        // which is the behaviour before `D-144`, rather than a volume invented from the duty.
+        if (installedArea is { } wetted)
+        {
+            var holdUp = wetted * SizingDefaults.ExchangerChannelGap / 2;
+            var holdUpBasis = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{holdUp * 1000:0.###} dm³ per side — {wetted:0.###} m² at a {SizingDefaults.ExchangerChannelGap * 1000:0.##} mm channel gap, halved between the two sides");
+
+            foreach (var side in HoldUpParameters)
+            {
+                if (Si(stated, side) is null)
+                {
+                    values[side] = new SizedValue(Quantity.FromSi(holdUp, Dimension.Volume), holdUpBasis, FromDefault: false);
+                }
+            }
+        }
         var surplus = (achievedDuty - duty) / duty;
 
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
@@ -242,6 +266,9 @@ public sealed class ThermalSizer : ISizer
     }
 
     /// <summary>W/K, the dimension the registry gives <c>ua</c>.</summary>
+    /// <summary>The two hold-up slots, under the keys the model stores side 2's parameters by (<c>D-120</c>).</summary>
+    private static readonly ImmutableArray<string> HoldUpParameters = ["volume", "volume2"];
+
     private static Dimension ConductancePerKelvin { get; } =
         Dimension.FromVector(new DimensionVector(Mass: 1, Length: 2, Time: -3, Temperature: -1));
 

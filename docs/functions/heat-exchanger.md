@@ -59,6 +59,7 @@ the solve makes it the cold side is worse than one that says nothing.
 | `lamella` | m | Gap between adjacent plates, usually written `lamella=2.4 mm` |
 | `plate_area` | m² | Effective area of one plate |
 | `fouling` | m²·K/W | Combined fouling resistance. Defaults to 1e-5, clean surfaces |
+| `volume`, `volume[2]` | dm³ | Fluid that side holds between its ports. Sized from the plate pack when you omit it; see [What it holds](#what-it-holds) |
 | `elevation` | m | Height above the project datum, both sides' ports at it; see [`node`](node.md#height). Never sized: wherever it is wired to, else 0 m |
 
 Everything except `arrangement`, `fouling` and `u` is sized when you omit it. `u` is never invented:
@@ -151,6 +152,38 @@ outlet 20 K below the inlet; `BLR1 heater power=70 dt=20` adds 70 kW and raises 
 neutral spelling, direction stays explicit: `RAD1 heat_exchanger power=-70 dt=20` means the same
 consumer. `dt=-20` is rejected because it would encode direction twice.
 
+## What it holds
+
+An exchanger is not a tank, but it is not empty either. The pack holds water, and in a run that water
+has to be pushed out before a new temperature reaches the outlet. So `volume` and `volume[2]` say how
+much each side holds, and in a static solve they change nothing at all.
+
+**You do not normally write them.** They are sized from the pack the same pass chose:
+
+| | |
+|---|---|
+| You wrote `volume=` | that, as written |
+| Otherwise, an area was fixed | `area × 1.96 mm ÷ 2` — about **1 dm³ per m²**, per side |
+| Otherwise | 0 — nothing was fixed to estimate from, and nothing is invented |
+
+1.96 mm is the pressed gap between two plates, and it is remarkably steady across a brazed range: Alfa
+Laval give 0.040 dm³ per channel for the AC18 and 0.103 dm³ for the CB60, whose plates differ in area
+by 2.6×, and both work out at 1.96 mm. The halving is the two sides sharing the pack — the channels
+alternate, so each stream gets about half of them.
+
+The 120 kW unit sized further up this page comes to 3.66 m², so it holds **3.59 dm³** per side. At
+0.25 kg/s that is about **14 seconds** of residence: long enough to see in a step response, short
+enough that a tank on the same circuit still dominates it.
+
+Write `volume=` when you have the datasheet and the lag matters:
+
+```fluidscript
+HX1 heat_exchanger power=120 kW u=3300 volume=4.2 volume[2]=3.9
+```
+
+The plates' own heat is *not* counted — only the water's. Steel adds roughly 15–20 % to a water/water
+pack's capacitance, so the modelled exchanger responds a little faster than the real one.
+
 ## Pressure drop
 
 Every exchanger resists flow, so `dp` carries a decided default of **20 kPa** — a plate exchanger at
@@ -203,8 +236,9 @@ side you did not.
 
 ## Properties
 
-`power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `dp`, `in[2].dp`,
-`dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`, `in[2].t`, `out[2].t`.
+`power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`, `volume`,
+`volume[2]`, `dp`, `in[2].dp`, `dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`, `in[2].t`,
+`out[2].t`.
 
 `lmtd` is reported, never solved: it is formed from the terminal temperatures the solve produced, and
 the conductance it implies is printed beside the rated one so the two can be compared.

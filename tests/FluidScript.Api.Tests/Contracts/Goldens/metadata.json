@@ -1139,6 +1139,42 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 2
+        },
+        {
+          "name": "volume",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.01,
+            "max": 2000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "volume[2]",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.01,
+            "max": 2000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
         }
       ],
       "indexedParameters": [],
@@ -1279,6 +1315,18 @@
           "name": "ua",
           "dimension": null,
           "unit": "W/K",
+          "availability": "sized"
+        },
+        {
+          "name": "volume",
+          "dimension": "Volume",
+          "unit": "dm3",
+          "availability": "sized"
+        },
+        {
+          "name": "volume[2]",
+          "dimension": "Volume",
+          "unit": "dm3",
           "availability": "sized"
         }
       ],

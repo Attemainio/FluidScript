@@ -350,6 +350,18 @@
           "unit": "W/K",
           "source": "sized",
           "basis": "chosen by a sizing rule"
+        },
+        "volume": {
+          "value": 3.58466,
+          "unit": "dm3",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
+        },
+        "volume2": {
+          "value": 3.58466,
+          "unit": "dm3",
+          "source": "sized",
+          "basis": "chosen by a sizing rule"
         }
       },
       "state": null,

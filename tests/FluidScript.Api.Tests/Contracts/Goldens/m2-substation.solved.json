@@ -469,6 +469,18 @@
           "unit": "W/K",
           "source": "sized",
           "basis": "UA 12.071 kW/K — NTU 3.219, ε 0.8889, Cr 0.5, approach 5 K"
+        },
+        "volume": {
+          "value": 3.58466,
+          "unit": "dm3",
+          "source": "sized",
+          "basis": "3.585 dm³ per side — 3.658 m² at a 1.96 mm channel gap, halved between the two sides"
+        },
+        "volume2": {
+          "value": 3.58466,
+          "unit": "dm3",
+          "source": "sized",
+          "basis": "3.585 dm³ per side — 3.658 m² at a 1.96 mm channel gap, halved between the two sides"
         }
       },
       "state": {

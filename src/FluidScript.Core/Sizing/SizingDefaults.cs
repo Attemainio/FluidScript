@@ -119,4 +119,22 @@ public static class SizingDefaults
     /// it the designer should know the unit is larger than the duty needs.
     /// </remarks>
     public const double ExchangerOvershootReport = 0.02;
+
+    /// <summary>The pressed gap between two plates, which is the fluid depth over the plate's face.</summary>
+    /// <value>m. <c>D-145</c>'s hold-up rule: volume per side is heat-transfer area times this, halved.</value>
+    /// <remarks>
+    /// <para>
+    /// A plate pack's fluid volume is its wetted area times the channel gap, and the gap is the one
+    /// dimension a brazed plate range barely varies: Alfa Laval publish 0.040 dm³ per channel for the
+    /// AC18 (plate 73.5 × 278 mm, 0.0204 m²) and 0.103 dm³ for the CB60 (113 × 466 mm, 0.0527 m²), which
+    /// is 1.96 mm on both across a 2.6× change in plate size. That is the 1 dm³/m² the trade quotes.
+    /// </para>
+    /// <para>
+    /// <strong>Half, because a pack has two sides.</strong> The channels alternate, so roughly half the
+    /// gaps carry each stream, and the heat-transfer area the sizer reports is counted once for the pair.
+    /// A stated <c>volume</c> replaces the estimate as a constraint (<c>D-02</c>), and the estimate is
+    /// this project's reasoning from two published units, not a manufacturer's rule — <c>D-145</c>.
+    /// </para>
+    /// </remarks>
+    public const double ExchangerChannelGap = 1.96e-3;
 }

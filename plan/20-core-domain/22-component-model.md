@@ -431,10 +431,12 @@ that says `hot_in=40` when the solve makes it the cold side is worse than one th
 | `lamella` | Length | m | 1 mm … 20 mm | Lamella between adjacent plates. Written `lamella=2.4 mm` |
 | `plate_area` | Area | m² | 1e-3 … 5 | Effective heat transfer area of one plate |
 | `fouling` | — (m²·K/W) | m²·K/W | 0 … 1e-2 | Combined fouling resistance. Default 1e-5 |
+| `volume`, `volume[2]` | Volume | dm³ | 0.01 … 2000 | Fluid that side holds between its ports (`D-144`, `D-145`). Sized from the plate pack when omitted; never solved for |
 | `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Both sides' ports sit at it. |
 
 **Properties:** `power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`,
-`dp`, `in[2].dp`, `dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`, `in[2].t`, `out[2].t`.
+`volume`, `volume[2]`, `dp`, `in[2].dp`, `dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`,
+`in[2].t`, `out[2].t`.
 
 `ua`, `area` and `u` are related by `UA = U·A`, so **any two fix the third** and stating all three is
 `FS2101`, exactly as `power`/`in.t`/`out.t`/`flow` already are. Geometry (`plates`, `lamella`,
@@ -515,6 +517,45 @@ sets the velocity, which sets `h`, which sets `U`, which sets the area required.
 above — a larger guess gives lower velocities, lower `U`, and therefore a larger area, so the sequence
 is monotone — and it is resolved by [`31-solver-architecture`](../30-solver/31-solver-architecture.md)'s
 existing outer loop rather than a nested one.
+
+### What the exchanger holds
+
+A plate exchanger has no reservoir, but it is not empty either, and until `D-144` the model treated it
+as though it were: the outlet was the algebraic answer to today's duty, so a step in the primary
+arrived at the secondary in the same instant. Physically it cannot. The pack holds water, and that
+water has to be displaced before the new temperature leaves.
+
+The volume comes from geometry, in the order `D-145` sets:
+
+```
+volume, volume[2]   stated                     — a constraint (`D-02`), from a datasheet
+                    else area · b / 2          — the plate pack, per side
+                    else 0                     — no area was fixed, so nothing is claimed
+b = 1.96 mm         the pressed channel gap
+```
+
+`area · b` is the fluid standing over the wetted plates, and the halving is the two sides sharing the
+pack: the channels alternate, so each stream occupies roughly half the gaps, while `area` counts the
+pair once. The area used is the **installed** one — `(plates − 2) · plate_area` when a plate count was
+chosen — because a count rounded up holds the fluid of the plates it actually has, not of the plates
+the duty required.
+
+**The gap is the one dimension a brazed range barely varies**, which is why it and not a litre-per-kW
+rule is the estimate. Alfa Laval publish 0.040 dm³ per channel for the AC18 (plate 73.5 × 278 mm,
+0.0204 m²) and 0.103 dm³ for the CB60 (113 × 466 mm, 0.0527 m²): 1.96 mm and 1.96 mm, across a 2.6×
+change in plate size. A duty-based rule has no such anchor — the same 0.040 dm³ channel serves a wide
+band of duties depending on flow and approach.
+
+Checked against a unit rather than a coefficient: an AC18-30 has 30 plates of 0.0204 m², so
+`area = 28 · 0.0204 = 0.572 m²` and the rule gives `0.572 · 0.00196 / 2 = 0.56 dm³` per side. Counting
+channels instead gives `15 · 0.040 = 0.60 dm³`. The 7 % gap is the two end plates, and it is well
+inside what the estimate is for.
+
+**What this is and is not.** The 1.96 mm is this project's reading of two published units, not a
+manufacturer's stated rule, so it is the part most worth testing — and it is why `volume` exists as a
+parameter at all. What the rule deliberately leaves out is the plates themselves: steel adds roughly
+15–20 % to a water/water pack's capacitance, and ignoring it makes the modelled exchanger respond that
+much faster than the real one. That is `C-119`, deferred, and a bias in a known direction.
 
 ### The approach, and what "pinch" does and does not mean here
 

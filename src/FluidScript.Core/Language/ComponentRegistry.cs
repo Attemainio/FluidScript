@@ -593,6 +593,11 @@ public sealed class ComponentRegistry : IComponentRegistry
             Sized("plates", Dimension.Dimensionless, 3, 800, precision: 0),
             Sized("lamella", Dimension.Length, 1e-3, 20e-3, precision: 4),
             Sized("plate_area", Dimension.Area, 1e-3, 5, precision: 4),
+            // The fluid each side holds (`D-144`, `D-145`). Stated when a datasheet gives it, and
+            // otherwise sized from the plate area the same pass decided -- never solved for: a volume
+            // is geometry, and a circuit that could pick one would be sizing from its own transient.
+            Sized("volume", Dimension.Volume, 0.01, 2000, precision: 3),
+            Keyed(Sized("volume[2]", Dimension.Volume, 0.01, 2000, precision: 3), "volume2"),
             Defaulted("fouling", FoulingResistance, 0, 1e-2, "0.00001", "clean surfaces", precision: 6),
             Elevation()),
         Properties = Properties(
@@ -605,6 +610,8 @@ public sealed class ComponentRegistry : IComponentRegistry
             Solved("lmtd", Dimension.TemperatureDelta),
             Solved("approach", Dimension.TemperatureDelta),
             Sized("plates", Dimension.Dimensionless),
+            Sized("volume", Dimension.Volume),
+            Keyed(Sized("volume[2]", Dimension.Volume), "volume2"),
             Solved("dp", Dimension.PressureDelta),
             Keyed(Solved("in[2].dp", Dimension.PressureDelta), "dp2"),
             Solved("dt", Dimension.TemperatureDelta),

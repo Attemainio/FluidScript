@@ -73,6 +73,8 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `heat_exchanger` | `power` | `kW` | after sizing |
 | `heat_exchanger` | `u` | `W/(m2*K)` | after sizing |
 | `heat_exchanger` | `ua` | `W/K` | after sizing |
+| `heat_exchanger` | `volume` | `dm3` | after sizing |
+| `heat_exchanger` | `volume[2]` | `dm3` | after sizing |
 | `valve` | `authority` | — | after sizing |
 | `valve` | `dp` | `kPa` | after the solve |
 | `valve` | `flow` | `kg/s` | after the solve |
