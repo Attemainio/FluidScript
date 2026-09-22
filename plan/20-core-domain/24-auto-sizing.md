@@ -161,6 +161,21 @@ Step 3's loop should terminate because sizes grow under a maximum and the catalo
 the outer loop already caps sizing passes; **that is to be measured, not asserted.** A valve whose
 Kv moves with a pipe that moves with a pump is the shape that could cycle.
 
+**Measured, 2026-09-23 (P6.8b).** On a two-case changeover loop — 50 kW over 35/45 °C in winter,
+40 kW over 7/12 °C in summer — the envelope settles in **two rounds**, the second confirming the
+first rather than moving it. Round 1 sizes each case from the bootstrap, and every round after it
+re-sizes each case *against the merged plant*, which is what lets the coupling show: a pipe one case
+enlarged lowers the resistance the other case's pump sees. `ScenarioSizing.MaxRounds` is 4, and a
+plant still moving at the cap reports the last merge with a note rather than looping — the same shape
+as the outer loop's own pass cap and its `FS2301`. One plant is not a proof; the cap is real because
+of it.
+
+**And the flow trap is not hypothetical.** On that same loop the *smaller* duty governs every
+flow-driven size: summer's 40 kW over a 5 K program is 1.906 kg/s where winter's 50 kW over a 10 K
+program is 1.20 kg/s, so `HE1.flow` and `P1`'s DN65 are both **governed by summer**. A plant merged
+from the case that won on duty would be a pipe size short. Two Newton iterations and about 1.5 ms per
+case, which is the sequential-execution case in miniature.
+
 **The envelope is per kind, and it is not a plain maximum.**
 
 | Kind | Envelope | Also checked at |
@@ -168,8 +183,20 @@ Kv moves with a pipe that moves with a pump is the shape that could cycle.
 | Pipe | Maximum flow | — |
 | Heat exchanger | Maximum UA | — |
 | Pump | The case demanding the largest head at its flow; the curve must cover every other case | Every scenario: on the curve |
-| Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down |
+| Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down (`C-121`) |
 | Tank | Not sized here; a profile (`C-115`) | — |
+
+**A valve's `authority` is not merged at all**, and the rule set says so rather than leaving it to a
+default: it is `Δp_valve,open / Δp_circuit` at the case's own flow, so the merged valve has a
+different authority in every case and none of them is the figure any case's own sizer reported. A
+maximum, a minimum and the governing case's value would each report one that no case achieves. It is
+`EnvelopeRule.Solved` — left out, and owed to the re-solve, which is `C-121` and is what the
+minimum-flow row above waits on.
+
+**The rule set is closed.** A parameter no rule names stops the merge with an error rather than
+defaulting to a maximum, so a sizer that gains a parameter cannot quietly acquire an envelope nobody
+chose for it — a maximum is right for a capacity and wrong for anything else, and the wrong one
+produces a plant that *looks* sized. A test walks every sizer's `Parameters` against the table.
 
 A plain maximum on a valve gives one that sits 15 % open in the light case and hunts.
 

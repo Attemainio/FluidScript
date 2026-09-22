@@ -99,6 +99,22 @@ public sealed record PreparedModel(
     /// head beside a sized valve is over-specified. The seed's value is pass 0's, and it counts.
     /// </remarks>
     public ImmutableArray<DeferredEvaluation.Evaluated> Seeded { get; init; } = [];
+
+    /// <summary>Gets whether <see cref="Sizes"/> is given rather than chosen (<c>D-143</c>, step 3).</summary>
+    /// <value>
+    /// <see langword="true"/> for a model prepared by <see cref="OuterLoop.Freeze"/>. The loop then
+    /// solves once against these sizes and runs no sizer, so the answer is the equilibrium of
+    /// <em>this</em> plant rather than of whatever the rules would have chosen for this case.
+    /// </value>
+    /// <remarks>
+    /// <strong>Frozen is not the same as stated, and the difference is not cosmetic.</strong> A stated
+    /// parameter is a <em>constraint</em> (<c>D-02</c>): it can promote an unknown, and stating two
+    /// members of one freedom group is an error. So merging an exchanger that took both <c>ua</c> and
+    /// <c>area</c> from two cases and writing them back as stated would raise <c>FS2101</c> on a plant
+    /// that is perfectly well posed. Freezing bypasses the sizers without touching the counting table,
+    /// which is the only way to re-solve a merged plant without changing what the script said.
+    /// </remarks>
+    public bool Frozen { get; init; }
 }
 
 /// <summary>The single fixed-point loop that reconciles sizing with the solve (<c>31</c>).</summary>
@@ -204,12 +220,22 @@ public sealed class OuterLoop(
     /// reached for a consumer's pump, shifting every promotion after it by one.
     /// </para>
     /// </remarks>
-    public PreparedModel Prepare(SemanticModel model, ISubstance substance, string name = "model")
+    /// <param name="from">
+    /// Sizes to start from instead of the bootstrap's provisional ones — the merged envelope, when a
+    /// scenario is being re-sized against the plant the other cases built (<c>D-143</c>). Not a floor:
+    /// the rules still choose freely, and what this changes is the resistances they read.
+    /// </param>
+    public PreparedModel Prepare(
+        SemanticModel model, ISubstance substance, string name = "model", SizingOverlay? from = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(substance);
 
-        var overlay = Bootstrap(model);
+        // `from` is where the sizing starts, not a floor: the rules still choose freely, and what it
+        // buys is that they choose against the *merged* plant's resistances rather than this case's
+        // own (`D-143`, step 3). A pipe one case enlarged changes the head another case's pump needs,
+        // and that coupling is the reason the merge is iterated rather than taken once.
+        var overlay = from ?? Bootstrap(model);
         var bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
 
         if (!bootstrap.Unresolved.IsEmpty)
@@ -238,7 +264,7 @@ public sealed class OuterLoop(
             if (!seeded.IsEmpty)
             {
                 model = DeferredEvaluation.Apply(model, seeded, pass: 0);
-                overlay = Bootstrap(model);
+                overlay = from ?? Bootstrap(model);
                 bootstrap = Lowering.Lower(model, substance, new ComponentFactory(bores, overlay, substance), name);
             }
 
@@ -272,6 +298,43 @@ public sealed class OuterLoop(
             Model = model.Deferred.IsDefaultOrEmpty ? null : model,
             Said = seedSaid.ToImmutable(),
             Seeded = seededValues,
+        };
+    }
+
+    /// <summary>Prepares a model to be solved against sizes already chosen, running no sizer (<c>D-143</c>).</summary>
+    /// <param name="model">The bound model, projected onto one scenario.</param>
+    /// <param name="substance">The fluid.</param>
+    /// <param name="sizes">The sizes to hold, normally the merged envelope of every scenario.</param>
+    /// <param name="name">The model's name, for diagnostics.</param>
+    /// <returns>A prepared model whose <see cref="PreparedModel.Frozen"/> is set.</returns>
+    /// <remarks>
+    /// <para>
+    /// Step 3 of <c>24</c>'s scenario pipeline. After merging, the sizes exceed what any single case's
+    /// own solve used, so <em>none</em> of those solves describes the merged plant: a case solved with a
+    /// DN20 pipe is not a state of a plant that ended up with DN32. This is what produces the operating
+    /// states, and what catches a component still short somewhere.
+    /// </para>
+    /// <para>
+    /// The lowering is the one the sizes ask for and nothing else runs: no bootstrap sizing, no
+    /// two-pass exchanger warm-up, no rule reading a resistance. A deferred expression is still
+    /// evaluated, because a value the script wrote as an expression is the script's and not a size.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    public PreparedModel Freeze(SemanticModel model, ISubstance substance, SizingOverlay sizes, string name = "model")
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(substance);
+        ArgumentNullException.ThrowIfNull(sizes);
+
+        return new PreparedModel(
+            Lowering.Lower(model, substance, new ComponentFactory(bores, sizes, substance), name),
+            sizes,
+            ImmutableDictionary<string, string>.Empty,
+            [])
+        {
+            Model = model.Deferred.IsDefaultOrEmpty ? null : model,
+            Frozen = true,
         };
     }
 
@@ -444,6 +507,25 @@ public sealed class OuterLoop(
                 }
 
                 break;
+            }
+
+            // Sizes that were given are not chosen again (`D-143`, step 3): one converged solve against
+            // this plant is the whole answer, and running the rules here would size each case back to
+            // what it alone needs, undoing the merge this pass exists to check.
+            if (prepared.Frozen)
+            {
+                return Result.Success(
+                    Report(
+                        lowered.Graph,
+                        Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, failedPass: null, unsettled: [], closing: []),
+                        overlay,
+                        WithStated(current, bases),
+                        notes,
+                        passes,
+                        iterations,
+                        perPass.ToImmutable(),
+                        settled: true,
+                        hash));
             }
 
             var (next, chosen, said, raisedNow) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
