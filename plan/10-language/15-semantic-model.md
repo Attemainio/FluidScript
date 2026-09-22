@@ -964,6 +964,44 @@ Invariant 7 is checkable by an architecture test and should be, since it is the 
 refactor breaks first. Invariant 14 needs the same treatment for the same reason: reading a tag during
 binding is a natural-looking shortcut whose cost only appears when a user inserts a line.
 
+## Scenarios
+
+`D-143`. A file may declare a list of named operating cases, and any parameter may state one value
+per case:
+
+```fluidscript
+scenarios winter summer
+design winter
+
+HX1 heat_exchanger power = [30, 10]
+```
+
+**The list binds to the declaration positionally and to nothing else.** Binding a scenario list is
+four rules, and each one is a diagnostic rather than a repair:
+
+1. The declared names are the count. A list of another length is `FS1540`, naming what was written,
+   how many values it has and what the scenarios are called. **Nothing is padded to fit**: extending
+   `[50, 60]` to four by repeating the last value invents a case nobody stated, and `D-60` already
+   refused that shape of rule for timestamp formats.
+2. A **scalar is not a short list.** It means the same value in every scenario, which is what a
+   scalar already means, so `PU1 pump` and `power=30` need no change and no file that exists today
+   acquires a length.
+3. A list with no `scenarios` line is `FS1541`, and duplicate names are `FS1544`.
+4. `design <name>` names the operating scenario: `FS1542` when the name is not one of them,
+   `FS1543` when scenarios are declared and none is named. There is no default, because the first
+   column is a position and not a decision.
+
+**Each element binds exactly as the scalar would.** An element is an ordinary `parameter-value`, so
+a curve reference, an expression and a unit suffix all work inside a list, `D-14`'s bare-number rule
+applies per element, and a dimension error is reported against the element that caused it rather
+than the list.
+
+**What a scenario is not.** It is not a time step and not a sequence: the cases are unordered, and
+nothing interpolates between them. It is not a solve mode either — a file with scenarios and
+`fluid static` is an ordinary static file solved N times, and one with `fluid dynamic` runs from
+`design`'s scenario. What consumes the list is the sizing pipeline in
+[`24`](../20-core-domain/24-auto-sizing.md) §Sizing over scenarios.
+
 ## Error cases
 
 | Code | Trigger | Severity | Message shape |
@@ -1008,6 +1046,11 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 | `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.` |
 | `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
 | `FS1539` | A node's pressure stated twice: on the node and as a port pressure of a component touching it, or by two ports on one node (`D-124`) | Error | `'{written}' states the pressure of '{node}', which '{other}' already states. State it once.` |
+| `FS1540` | A scenario list whose length is not the declared count (`D-143`). Never padded | Error | `'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.` |
+| `FS1541` | A scenario list where no `scenarios` line was written (`D-143`) | Error | `'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.` |
+| `FS1542` | `design` names a scenario that was not declared (`D-143`) | Error | `'{name}' is not a scenario of this file. It declares: {names}.` |
+| `FS1543` | Scenarios are declared and `design` names none of them (`D-143`) | Error | `This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.` |
+| `FS1544` | Two scenarios declared with one name (`D-143`) | Error | `'{name}' is declared twice. Each scenario needs its own name.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`

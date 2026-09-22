@@ -185,6 +185,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-140` | Accepted | 2026-09-22 | A stated value is a design point: it holds at t = 0, its promotion freezes, and following it in time takes a `control` line |
 | `D-141` | Accepted | 2026-09-22 | A run starts from its design state, and an unstated actuator's setpoint is its design-point constraint; the cold start is a later opt-in |
 | `D-142` | Accepted | 2026-09-22 | A series path with two free sizes in it is a valley, and the solver says so rather than landing on it |
+| `D-143` | Accepted | 2026-09-22 | A plant is sized for a stated list of scenarios, not for a swept driver range |
 <!-- index:end -->
 
 ---
@@ -6489,3 +6490,107 @@ needs it.
 `NewtonSolver.Valley`, `SolverDiagnostics.Valley`, `SolveExplanation`'s conditioning section,
 `OuterLoopTests` on the series and the parallel header, `docs/functions/diagnostics.md`; `32`'s
 error table, `36`'s tolerance row, `23` and `24`'s sentences on the series ring.
+
+## D-143 · A plant is sized for a stated list of scenarios, not for a swept driver range
+
+**Accepted · 2026-09-22** (the user's call: "Well, I think we could go with this. No dependency on
+outdoor temperature at all", with the padding rule dropped, the counts made explicit, and the layout
+merged; naming and the shown state settled the same day) · supersedes `D-138`'s driver sweep ·
+closes `C-116`, `C-117` · constrains [`24`](../20-core-domain/24-auto-sizing.md),
+[`12`](../10-language/12-grammar.md), [`15`](../10-language/15-semantic-model.md),
+[`33`](../30-solver/33-transient-time-domain.md), [`31`](../30-solver/31-solver-architecture.md)
+
+`D-138` sized a plant by sweeping `design tout=-26..32 step=1` and taking a per-kind envelope over
+the solves. It was written from a two-season example in which both loads happened to be functions of
+outdoor temperature, and the assumption leaked into the mechanism: the sweep traverses one named
+driver, so a plant whose duties are stated as constants does 59 identical solves and a plant whose
+duties arrive as a load profile in time is never traversed at all and gets sized from one instant
+(`C-117`). The same word was left carrying two jobs, a sizing range and an operating point
+(`C-116`).
+
+**The user's correction is the premise, and it is about what a plant model is.** Duties are not
+functions of outdoor temperature. They are set by occupancy, lighting, equipment and the building's
+structure, and computing them is a building-energy problem this tool explicitly does not solve
+(`01`'s non-goals). A plant model takes demands and setpoints as **given information**. It must
+therefore never derive a duty from a driver the user did not write, and the cases a plant is sized
+for are the cases an engineer names, not points on a temperature axis.
+
+### The model
+
+**A scenario is a named operating case, and a parameter may state one value per scenario.**
+
+```fluidscript
+scenarios winter summer
+design winter
+
+HX1 heat_exchanger power = [30, 10]
+N3  node t = [30, 40]
+PU1 pump                                # no array: the same pump in both
+```
+
+- `scenarios` declares the set once, before the first circuit, with the other whole-file lines. The
+  names are the vocabulary every report, basis string and UI switcher uses.
+- An array parameter states one value per scenario, positionally against that declaration.
+- **A scalar is not a short array.** It means the same value in every scenario, which is what a
+  scalar already means everywhere else in the language.
+- **Any array whose length is not the declared count is an error**, naming the parameter, its length
+  and the count. No padding: extending `[50, 60]` to `[50, 60, 60, 60]` invents a case nobody stated,
+  and `D-60` already rejected that shape of rule when it refused to infer a timestamp format from the
+  data. A rule that works on most inputs and silently reverses on some is worse than one that asks.
+- `design <name>` names the **operating** scenario: the one whose state the canvas draws, whose
+  numbers a static export carries, and whose inputs a run starts from. It sizes nothing. That is the
+  whole of `design`'s meaning now, and `C-116`'s overload is removed rather than patched.
+
+### The pipeline, and why it is four steps
+
+1. **Solve each scenario, sizing freely.** N independent static solves, each producing candidate
+   sizes for every component.
+2. **Merge, parameter by parameter, under the kind's rule.** A pipe takes the largest flow, an
+   exchanger the largest UA, a valve its Kv from the largest-flow case with a turn-down check at the
+   smallest, a pump the case demanding the largest head at its flow with its curve required to cover
+   every other case (`24`'s envelope table, unchanged from `D-138`). **Not by adopting one scenario's
+   component wholesale:** the pump a plant needs is the one whose curve covers every scenario's duty
+   point, and that can be no single scenario's pump.
+3. **Re-solve every scenario against the merged sizes, frozen.** This step is not optional and is not
+   only verification. After merging, the sizes are larger than any single scenario's solve used, so
+   **none of step 1's equilibria is a state of the merged plant** — a scenario solved with a DN20
+   pipe is not describing a plant that ended up with DN32. Step 3 produces the true operating states
+   and catches a component that is short somewhere; if one is, merge again and repeat. Sizes grow
+   under a maximum and the catalogue is finite, so it should terminate, and the outer loop already
+   caps sizing passes; termination is to be **measured**, not asserted.
+4. **Draw the merged plant.** One layout, the merged sizes, and the numbers on it from `design`'s
+   scenario in step 3.
+
+### What this buys, and what it gives up
+
+**Bounded, explicit, and driver-free.** The candidate count is exactly what is written: no step size
+to choose, no breakpoints to find, no crossings to compute, no root-driver analysis, and no product
+grid when two loads move independently. The implementation is smaller than `D-138`'s. Nothing changes
+a size when someone edits a data row, because no size is derived from data rows.
+
+**It gives up the interior peak, and that is the case this whole line of work started from.** With
+heating 50 kW at the cold end, cooling 40 kW at the warm end and a recovery exchanger taking the
+lesser of the two, a file stating only `winter` and `summer` sizes the recovery exchanger at **zero
+in both**: the component does not come out small, it disappears. A discrete list only checks what
+someone thought to write. Two mitigations, neither settled here: a driver range may remain as sugar
+that **generates** scenarios into the same list, so that one candidate list has two spellings that
+cannot disagree; and a component whose sized quantity is at zero or a bound in every scenario while
+its inputs are active in different ones is a detectable pattern worth a diagnostic. Both are P6.8's
+to settle with measurement.
+
+**Curves still compose.** A curve of any driver evaluated at a scenario's stated value for that
+driver gives that scenario's number, so `power=heating` keeps working; what has gone is the
+*sweep* over the driver, not the driver. A curve of `time` in a dynamic circuit is untouched and
+still has no clock anchor (`S-79`).
+
+**Rejected.**
+- *Keep `D-138`'s range and add `time` as an allowed driver.* Smallest change, and it keeps one
+  mechanism. Cost: an hourly year is 8760 solves at a step chosen arbitrarily, the data's own rows
+  are better candidates than a grid over them, and `design` would still mean two things.
+- *Derive the candidate set from the stated curves' own rows and crossings.* No new syntax and it
+  handles profiles. Cost: adding a row to a curve can change a size with nothing in the script
+  asking for it, which is the same silent-edit failure this decision's length rule exists to prevent.
+- *Scenarios with positional indices and no names.* Least syntax. Cost: a basis string reading
+  "sized at scenario 2" tells an engineer nothing, and the UI switcher has nothing to label.
+- *Cross-product of arrays rather than a positional zip.* More general. Cost: two arrays of four
+  become sixteen solves and the count is invisible in the file; the user's zip is the bounded one.

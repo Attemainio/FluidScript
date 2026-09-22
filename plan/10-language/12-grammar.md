@@ -185,11 +185,16 @@ append-only-with-review, and a test asserts that no sample script's identifiers 
 ### Reserved words
 
 `fluidscript` · `project` · `circuit` · `fluid` · `dynamic` · `static` · `spacing` · `style` · `show` · `let` ·
-`catalog` · `connections` · `schedule` · `inlet` · `outlet` · `control` · `curve` · `design`
+`catalog` · `connections` · `schedule` · `inlet` · `outlet` · `control` · `curve` · `design` · `scenarios`
 
-Seven words were added for `D-33`, `D-37`, `D-40`, `D-57` and `D-58`: `project`, `spacing`, `inlet`,
-`outlet` (spelled `supply` and `return` until `D-115`), `control`, `curve` and `design`. Each introduces a statement, so each must be recognisable
+Eight words were added for `D-33`, `D-37`, `D-40`, `D-57`, `D-58` and `D-143`: `project`, `spacing`,
+`inlet`, `outlet` (spelled `supply` and `return` until `D-115`), `control`, `curve`, `design` and
+`scenarios`. Each introduces a statement, so each must be recognisable
 from the first token — the same standard the original eleven meet.
+
+`scenarios` is plural where every other reserved word is singular, and deliberately: `scenario` is
+the word a user will want for a *name* in their own file, and one that collides with its own
+declaration keyword is a trap. The plural also reads as what the line is, a list.
 
 `with`, `by`, `at`, `over` and `extrapolated` are **not** reserved. Each is classified by its position
 inside a statement whose first token already identified it, which is the trade `P6` exists to make:
@@ -265,7 +270,7 @@ impossible, and only the hyphen needs a diagnostic.
 
 ```ebnf
 script          = version-directive , { statement } ;
-statement       = project-directive | spacing-directive | design-directive
+statement       = project-directive | spacing-directive | design-directive | scenarios-directive
                 | circuit-header | attachment | fluid-directive | catalog-directive | style-directive
                 | show-directive | let-binding | component-decl | control-binding
                 | connections-header | connection
@@ -275,7 +280,11 @@ statement       = project-directive | spacing-directive | design-directive
 version-directive   = "fluidscript" , unsigned-integer ;
 project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
 spacing-directive   = "spacing" , number ;
-design-directive    = "design" , parameter , { parameter } ;   (* driver=value per D-58, or driver=range per D-138: tout=-26..32 [step=1] *)
+design-directive    = "design" , ( identifier | parameter , { parameter } ) ;
+                                         (* D-143: a bare identifier names the operating scenario.
+                                            driver=value per D-58 remains, for a file with no
+                                            scenarios; D-138's driver=range is withdrawn *)
+scenarios-directive = "scenarios" , identifier , { identifier } ;   (* D-143 *)
 circuit-header      = "circuit" , identifier , [ unsigned-integer ] ;
 attachment          = ( "inlet" | "outlet" ) , endpoint ;
 control-binding     = "control" , ( control-short | parameter , { parameter } ) ;
@@ -311,7 +320,13 @@ component-decl      = identifier , kind-name , [ "at" , identifier ] , { paramet
 kind-name           = identifier | keyword ;        (* resolved against the registry at bind time;
                                                        a keyword here is a kind, never a statement -- D-64 *)
 parameter           = qualified-name , "=" , parameter-value ;
-parameter-value     = expression | reference | symbol ;   (* by the parameter's declared kind — see 15 *)
+parameter-value     = expression | reference | symbol | scenario-list ;
+                                         (* by the parameter's declared kind — see 15 *)
+scenario-list       = "[" , parameter-value , { "," , parameter-value } , "]" ;
+                                         (* D-143: one value per declared scenario, positionally.
+                                            The brackets and the comma are existing tokens, and a
+                                            list is unambiguous with `in[2]` because an indexed name
+                                            puts its bracket after an identifier, never after "=" *)
 qualified-name      = indexed-name , { "." , indexed-name } ;   (* power; in.t; in[2].flow; layer[3].t -- D-120 *)
 indexed-name        = identifier , [ "[" , unsigned-integer , "]" ] ;
                       (* the brackets and the integer touch the name on both sides: `in [2]`,

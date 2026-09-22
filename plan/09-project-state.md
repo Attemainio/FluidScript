@@ -1218,6 +1218,20 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > solve, held by V8 to 1e-3 scaled; a schedule on `N1.t` bound, lowered, and would have been silently
 > ignored, now `FS3105` (`S-77`); and the live-curve half P3.8 moved here has no t = 0 anchor
 > (`S-79`), a user's call. Not built: the tank's remix (P6.2), `FS3108`, `FS3110`. 45 open.
+>
+> **`D-143` accepted 2026-09-22, superseding `D-138`:** a plant is sized for a stated list of named
+> scenarios, not for a swept driver range. The user's premise is that duties are inputs — occupancy,
+> lighting, equipment, structure — and not functions of outdoor temperature, so the sizer must never
+> derive one from a driver nobody wrote. `scenarios winter summer` declares the cases, a parameter
+> states one value per case as an array, a scalar means all of them, any other length is `FS1540`
+> with nothing padded, and `design <name>` names the operating scenario and sizes nothing. The
+> pipeline is four steps, not three: solve each scenario sizing freely, merge parameter by parameter
+> under the kind's rule, **re-solve every scenario against the merged sizes frozen** — none of the
+> first solves is a state of the merged plant, since the merged sizes exceed what any of them used —
+> then draw the merged plant with `design`'s numbers. What it gives up is the interior peak: a file
+> naming only winter and summer sizes a recovery exchanger to zero in both, which is the case this
+> line of work started from, and `24` records the two candidate mitigations. `C-116` and `C-117`
+> closed; `12`, `15`, `24` and `08`'s P6.8 row carry the detail. 43 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1308,10 +1322,11 @@ unassessed, not clean.
 tank, the pool-adjacent-violators scan on the property backend's density), `FS3108`, and V15–V17 —
 the layer balance itself already integrates (P6.1 measured the storage header's layer 2 at
 0.020 K/s). **Before P6.3**, `S-79` needs the user's call: where a run's t = 0 sits on a time curve's
-timestamp axis, which is what the live-curve half moved from P3.8 waits on. P6.8 (`D-138`) is tier-20
-sizing work that can run in parallel with P6.2–P6.7; `24` §How the sweep runs has its execution
-model. Read `33` whole before any of them; its worked example now carries the measured column
-beside the closed form and says where the two part.
+timestamp axis, which `D-143` did not resolve. P6.8 is now **sizing over scenarios** (`D-143`),
+tier-20 work runnable in parallel with P6.2–P6.7 and specified end to end in `24` §Sizing over
+scenarios, `12` and `15`; its two open measurements are named in `08`'s row. Read `33` whole before
+any transient package; its worked example now carries the measured column beside the closed form and
+says where the two part.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens

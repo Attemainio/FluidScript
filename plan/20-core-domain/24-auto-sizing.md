@@ -98,11 +98,11 @@ deferred expression. Two loops would interleave unpredictably and could oscillat
 first iterate close to the answer, and where the duty fully determines the flow it *is* the answer —
 the worked example needs two passes for that reason, one to size and one to confirm.
 
-**Every pass of this pipeline runs at one `design` point** (`D-58`) — and, once `D-138` lands, at
-every point of a `design` range in turn, each point a full run of the pipeline and the component's
-size its kind's envelope over them (*Sizing over a driver range*, below). At one point `design`
-supplies each driver a value, every curve short-circuits to a constant against it, and the sizes
-that come out hold for the whole run. In a
+**Every pass of this pipeline runs at one operating case** — and, once `D-143` lands, once per
+declared scenario in turn, each a full run of the pipeline and each component's size the envelope of
+its kind over them (*Sizing over scenarios*, below). Within one case `design` supplies each driver a
+value, every curve short-circuits to a constant against it (`D-58`), and the sizes that come out hold
+for the whole run. In a
 static solve the design point is also the operating point and the distinction is invisible. In a
 dynamic one it is not: sizing is **not** re-run per time step and it is not run at t = 0 either, which
 would size the plant for whatever the weather is at midnight on the first of January. **No rule here
@@ -114,28 +114,52 @@ on its own declaration (`D-94`), reads the curve there, and the closed-circuit c
 gives its backup the remainder. The fraction of peak that results is reported as the parameter's
 basis, never taken as an input (`C-51`, closed).
 
-## Sizing over a driver range
+## Sizing over scenarios
 
-`D-138`, the user's call on 2026-09-22; **not built** — it is `08`'s P6.8. A plant with a heating end
-at −26 °C and a cooling end at +32 °C has two governing conditions, and a component between its two
-networks can peak at neither:
+`D-143`, the user's call on 2026-09-22, superseding `D-138`'s driver sweep; **not built** — it is
+`08`'s P6.8.
 
-| Driver | Heating load | Cooling load | Recovery `min(Q_heat, Q_cool)` |
-|---|---|---|---|
-| −26 °C | 50 kW | 0 | 0 |
-| +10 °C | 8.1 kW | 0 | 0 |
-| +12.7 °C | 5.0 kW | 5.0 kW | **5.0 kW** — the exchanger's design point |
-| +17 °C | 0 | 12.7 kW | 0 |
-| +32 °C | 0 | 40 kW | 0 |
+**Duties are inputs, not functions of a driver.** A plant's loads are set by occupancy, lighting,
+equipment and the building's structure, which is a building-energy problem `01` puts outside this
+tool. A plant model takes demands and setpoints as given, so it must never derive a duty from a
+driver nobody wrote, and the cases a plant is sized for are the cases an engineer names.
 
-And the chilled-water side of a shared circuit at 7/12 °C carries 1.91 kg/s for 40 kW where the
-heating side at 45/35 °C carries 1.20 kg/s for 50 kW: the smaller duty has the larger flow, and a
-pump, pipe or valve sized on the heating day is 60 % short on flow in summer.
+### Scenarios
 
-**The sweep.** `design tout=-26..32 step=1` runs the pipeline above at every grid point, at every
-breakpoint of every curve the drivers reach, and at every pairwise crossing of those curves — the
-points where a piecewise-linear composition can peak — with a local refinement around each
-component's own peak for ratio-shaped quantities. Each point yields a candidate for every size.
+```fluidscript
+scenarios winter summer
+design winter
+
+HX1 heat_exchanger power = [30, 10]
+N3  node t = [30, 40]
+PU1 pump                                # no array: one pump serving both
+```
+
+- `scenarios` declares the set once, with the other whole-file lines. The names are the vocabulary
+  every basis string, report and UI switcher uses.
+- An array states one value per scenario, positionally against that declaration.
+- **A scalar is not a short array.** It is the same value in every scenario.
+- **Any array whose length is not the declared count is an error**, naming the parameter, its length
+  and the count. Nothing is padded (`D-143`; `D-60`'s rule against inferring from data).
+- `design <name>` names the **operating** scenario and sizes nothing: the state the canvas draws,
+  the numbers a static export carries, the inputs a run starts from.
+
+### The pipeline, and why it is four steps
+
+1. **Solve each scenario, sizing freely.** N static solves, N sets of candidate sizes.
+2. **Merge parameter by parameter**, under the kind's rule below — never by adopting one scenario's
+   component wholesale, because the pump a plant needs is the one whose curve covers every
+   scenario's duty point and that can be no single scenario's pump.
+3. **Re-solve every scenario against the merged sizes, frozen.** Not optional and not only a check:
+   after merging, the sizes exceed what any single solve used, so none of step 1's equilibria is a
+   state of the merged plant — a scenario solved with a DN20 pipe does not describe a plant that
+   ended up with DN32. This step produces the operating states and catches a component short
+   somewhere; if one is, merge again and repeat.
+4. **Draw the merged plant**, with `design`'s scenario supplying the numbers on it.
+
+Step 3's loop should terminate because sizes grow under a maximum and the catalogue is finite, and
+the outer loop already caps sizing passes; **that is to be measured, not asserted.** A valve whose
+Kv moves with a pipe that moves with a pump is the shape that could cycle.
 
 **The envelope is per kind, and it is not a plain maximum.**
 
@@ -143,49 +167,69 @@ component's own peak for ratio-shaped quantities. Each point yields a candidate 
 |---|---|---|
 | Pipe | Maximum flow | — |
 | Heat exchanger | Maximum UA | — |
-| Pump | The case demanding the largest head at its flow; the curve must cover every other case | Every point: on the curve |
+| Pump | The case demanding the largest head at its flow; the curve must cover every other case | Every scenario: on the curve |
 | Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down |
 | Tank | Not sized here; a profile (`C-115`) | — |
 
-A plain maximum on a valve gives one that sits 15 % open in winter and hunts. The rangeability
-figures a turn-down check needs are looked up and cited here when the package lands; they are not
-this project's to derive.
+A plain maximum on a valve gives one that sits 15 % open in the light case and hunts. The
+rangeability figures a turn-down check needs are looked up and cited here when the package lands;
+they are not this project's to derive. Load-case and load-combination conventions are to be looked
+up too: structural engineering has settled vocabulary for exactly this idea and it is worth
+borrowing rather than reasoning out.
 
-**Then the verification sweep.** Every point is solved again with every size frozen. A pump off its
-curve, a valve outside its authority band, an exchanger short of duty at some point is a warning
-naming the outdoor temperature. Sizes only grow under a maximum and the catalogue bounds them, so a
-second envelope pass after a failed verification converges; two sweeps, about 120 steady solves at
-1 K, is the expected cost. The basis of every size names its governing point — "sized at
-tout = 12.7 °C, 5.0 kW" — and a component that is off at the first point but on elsewhere is sized
-where it is on, which closes the case `S-56` left. A static solve operates at the range's first
-value; a run starts there too, its schedule moving the drivers from that state.
+The basis of every size names its governing scenario — "sized at winter, 50 kW" — and a component
+that is off in one scenario but on in another is sized where it is on, which closes the case `S-56`
+left.
 
-**How the sweep runs** (the user's call, 2026-09-22, option C of three; not built). The points are
-solved by a fixed set of workers, `sizing.workers` (default 6, a setting and never a constant), each
-taking a **contiguous chunk** of the range and warm-starting every point from the one before it in
-the chunk: the solution at −26 °C is the seed for −25 °C, which is what turns four iterations into
-one and keeps a point out of a valley its neighbour avoided. A fully parallel grid would cold-start
-every point; a sequential sweep would keep the warm start on one core; chunks keep both, at one
-cold start per chunk. The workers are dedicated threads, not the pool: the property state is
-per-thread and its native half is never returned (`21`, `C-76`), so a fixed set costs one state
-each and thread churn costs one per thread that dies. The solvers hold no mutable state and are
-shared; each point lowers its own graph, because sizing writes to it.
+### What this gives up
 
-Three phases drain in order: the grid, breakpoints and crossings, all known before the first
-solve; the local refinement around each component's peak, which needs the first phase's results
-and is small; then, after the envelope, the verification sweep, which is embarrassingly parallel
-because nothing is sized in it. The sweep checks cancellation between points, because a ranged
-script sweeps on every debounced edit and the session supersedes a stale solve (`41`); a superseded
-sweep leaves the previous sizes in place and the report says how far it got.
+A discrete list only checks what someone thought to write. With heating 50 kW at the cold end,
+cooling 40 kW at the warm end and a recovery exchanger taking the lesser of the two, a file stating
+only `winter` and `summer` sizes that exchanger at **zero in both** — it does not come out small, it
+disappears:
 
-**The sweep report**, alongside the solve report (`62`): per point the driver value, iterations,
-passes, termination, wall time and worker; per size the governing point and its value, which is
-the basis string; totals — points, solves, wall time, the longest point, and solver time against
-wall time, which is the parallel efficiency. `PipelineTimingDiagnostics` gains a sweep row on the
-demand-step loop, so the number sits next to the per-solve figures and whether `C-68` and `F-19`
-ever become a sweep problem is decided from evidence. Measured today (Debug, water): one outer-loop
-solve is 21–55 ms on the samples, so two sweeps at 1 K are under 7 s sequential and about 1 s on
-six workers; the transient meets `C-68` first.
+| Case | Heating | Cooling | Recovery `min(Q_heat, Q_cool)` |
+|---|---|---|---|
+| `winter` | 50 kW | 0 | 0 |
+| A case between them | 5 kW | 5 kW | **5.0 kW** — the exchanger's real governing point |
+| `summer` | 0 | 40 kW | 0 |
+
+Two mitigations, neither settled, both P6.8's to decide with measurement: a driver range kept as
+**sugar that generates scenarios into the same list**, so one candidate list has two spellings that
+cannot disagree; and a diagnostic on the detectable pattern — a sized quantity at zero or a bound in
+every scenario while the inputs feeding it are active in different ones.
+
+The flow trap `D-138` recorded outlives it and is worth stating in its new form: a chilled side at
+7/12 °C carries 1.91 kg/s for 40 kW where a heating side at 45/35 °C carries 1.20 kg/s for 50 kW.
+The smaller duty has the larger flow, so a pipe or pump merged from the heating case alone is 60 %
+short in the cooling one. This is why the merge is per parameter and per kind rather than per
+component.
+
+### How the run executes
+
+(The user's call, 2026-09-22, option C of three; not built.) Scenarios are solved by a fixed set of
+workers, `sizing.workers` (default 6, a setting and never a constant), each taking a contiguous
+chunk of the list and warm-starting each scenario from the previous one in its chunk. A fully
+parallel fan-out would cold-start every scenario; a sequential run would keep the warm start on one
+core; chunks keep both, at one cold start per chunk. Warm starting across scenarios is weaker here
+than it was across a 1 K grid, since adjacent scenarios need not be near each other, so the chunk
+assignment is worth measuring rather than assuming.
+
+The workers are dedicated threads, not the pool: the property state is per-thread and its native
+half is never returned (`21`, `C-76`), so a fixed set costs one state each while thread churn costs
+one per thread that dies. The solvers hold no mutable state and are shared; each scenario lowers its
+own graph, because sizing writes to it. Steps 1 and 3 each drain the whole list, and step 3 is
+embarrassingly parallel because nothing is sized in it. Both check cancellation between scenarios,
+because a session re-sizes on every debounced edit and supersedes a stale solve (`41`); a superseded
+run leaves the previous sizes in place and the report says how far it got.
+
+**The sizing report**, alongside the solve report (`62`): per scenario the iterations, passes,
+termination, wall time and worker; per size the governing scenario and its value, which is the basis
+string; totals — scenarios, solves, wall time, the longest scenario, and solver time against wall
+time, which is the parallel efficiency. `PipelineTimingDiagnostics` gains a row, so whether `C-68`
+and `F-19` ever become a sizing problem is decided from evidence. Measured today (Debug, water): one
+outer-loop solve is 21–55 ms on the samples, so a handful of scenarios costs well under a second
+even sequentially, and the transient meets `C-68` long before sizing does.
 
 ## Constraint propagation
 
