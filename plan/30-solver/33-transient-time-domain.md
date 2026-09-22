@@ -203,6 +203,19 @@ stable. The operation changes neither block mass nor `Σ m_k h_k`; it models rap
 not wall conduction. It also remains correct near water's density maximum because it compares the
 property backend's density rather than assuming hotter always means lighter.
 
+**Built in P6.2** (2026-09-22). `Stratification.Remix` is one pool-adjacent-violators pass, bottom to
+top: each layer joins a stack, and while the block below it is lighter it merges to the mass-weighted
+mean. A merge can create a violation only below it, never above, which is what makes one pass enough
+and bounds the work at one density evaluation per layer plus one per merge. `EquationSystem.Remix`
+slices each tank's contiguous layers out of the differential vector, and the run calls it after each
+accepted step, before the next pin. **The density anomaly is measured, not assumed:** on `D-137`'s
+IF97 backend water peaks at 999.9754 kg/m³ at 4 °C against 999.9030 at 1 °C and 999.8505 at 8 °C, so
+a 6 °C layer under a 1 °C layer is the *stable* arrangement and a rule written on temperature would
+stir a chilled store that was resting correctly. The whole spread from 1 °C to the maximum is
+0.07 kg/m³, seven parts in a hundred thousand, so near 4 °C the ordering is very weakly determined;
+it stays deterministic, because the backend is a function rather than a measurement, and two layers
+that close are the same water.
+
 No ambient loss, wall conduction, or inlet-jet entrainment term exists in v1. Adding a small hidden
 diffusivity would make a stored temperature decay for a reason absent from the script.
 

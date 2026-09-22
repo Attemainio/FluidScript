@@ -46,6 +46,19 @@ public static class TransientDiagnostics
         DiagnosticSeverity.Info,
         "Still changing at {horizon} s. Extend the run to see it settle.");
 
+    /// <summary>A tank's stated layer profile cannot be evaluated inside the property domain.</summary>
+    /// <value><c>FS3108</c>, error.</value>
+    /// <remarks>
+    /// The one place a run can fail before its first step. A profile is a stated initial condition and
+    /// the only unchecked number in a snapshot, so a layer written at a temperature the fluid does not
+    /// reach at the vessel's pressure is caught here, naming the tank and the layer rather than
+    /// passing the backend's own message through.
+    /// </remarks>
+    public static DiagnosticDescriptor CannotInitializeLayer { get; } = new(
+        "FS3108",
+        DiagnosticSeverity.Error,
+        "Cannot initialize '{tank}' layer {layer} at {state}.");
+
     /// <summary>A scheduled target is a parameter the run cannot move.</summary>
     /// <value><c>FS3105</c>, error.</value>
     /// <remarks>
@@ -97,6 +110,7 @@ public static class TransientDiagnostics
         NotSchedulable,
         EnergyDrift,
         InvariantFailed,
+        CannotInitializeLayer,
         ScheduledActuator,
     ];
 }

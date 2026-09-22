@@ -5745,6 +5745,17 @@
       ]
     },
     {
+      "code": "FS3108",
+      "severity": "error",
+      "area": "Transient",
+      "message": "Cannot initialize '{tank}' layer {layer} at {state}.",
+      "arguments": [
+        "tank",
+        "layer",
+        "state"
+      ]
+    },
+    {
       "code": "FS3109",
       "severity": "error",
       "area": "Transient",

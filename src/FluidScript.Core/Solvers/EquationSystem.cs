@@ -103,6 +103,7 @@ public sealed class EquationSystem
     private readonly double[] _balance;
     private readonly int[] _elementOfNode;
     private readonly double[][] _layerPin;
+    private readonly double[][] _layerMass;
     private readonly double[] _rateScratch;
     private double _injected;
     private double _boundary;
@@ -196,6 +197,7 @@ public sealed class EquationSystem
         _balance = new double[graph.Nodes.Length];
         _elementOfNode = new int[graph.Nodes.Length];
         _layerPin = new double[graph.Components.Length][];
+        _layerMass = new double[graph.Components.Length][];
         Array.Fill(_elementOfNode, -1);
 
         for (var element = 0; element < nodeOf.Length; element++)
@@ -211,6 +213,9 @@ public sealed class EquationSystem
         for (var element = 0; element < graph.Components.Length; element++)
         {
             _layerPin[element] = graph.Components[element] is Tank tank ? new double[tank.Layers] : [];
+            _layerMass[element] = graph.Components[element] is Tank vessel ? new double[vessel.Layers] : [];
+
+            Array.Fill(_layerMass[element], 1.0);
         }
 
         Array.Fill(_nodePin, double.NaN);
@@ -550,6 +555,74 @@ public sealed class EquationSystem
         }
 
         return cumulative;
+    }
+
+    /// <summary>Restores density order in every tank after an accepted step (<c>33</c>, invariant 12).</summary>
+    /// <param name="states">
+    /// The differential state vector, in <see cref="SystemLayout.Differential"/> order, rewritten in
+    /// place where a tank overturned. Pipe cells are untouched: a cell has one enthalpy and no stack.
+    /// </param>
+    /// <param name="pooled">Receives how many layers ended up inside a pool, across every tank.</param>
+    /// <returns>The tank whose layer left the property domain, or <see langword="null"/> on success.</returns>
+    /// <remarks>
+    /// Each tank's layers are contiguous in the layout, bottom to top, which is what lets one slice go
+    /// to <see cref="Stratification.Remix"/>. The pressure is the tank's own, read from the node on its
+    /// first port as the last evaluation left it; every layer shares it, because the tank's pressure
+    /// equalities carry no hydrostatic term (<c>22</c>).
+    /// </remarks>
+    public string? Remix(Span<double> states, out int pooled)
+    {
+        var differential = Unknowns.Differential;
+        var index = 0;
+
+        pooled = 0;
+
+        while (index < differential.Length)
+        {
+            if (differential[index].Column >= 0 || _graph.Components[differential[index].Element] is not Tank tank)
+            {
+                index++;
+                continue;
+            }
+
+            var element = differential[index].Element;
+            var attached = _attached[element][0];
+            var pressure = attached.Component >= 0 && _nodeOf[attached.Component] >= 0
+                ? _nodeStates[_nodeOf[attached.Component]].Pressure
+                : 0;
+
+            if (!Stratification.Remix(_layerMass[element], states.Slice(index, tank.Layers), _graph.Substance, pressure, out var turned))
+            {
+                return tank.Name;
+            }
+
+            pooled += turned;
+            index += tank.Layers;
+        }
+
+        return null;
+    }
+
+    /// <summary>Records each tank's layer reference masses, so a remix needs no geometry of its own.</summary>
+    /// <param name="masses">The reference mass of every differential state, in layout order. kg.</param>
+    /// <remarks>
+    /// Written once by the run before its first step, from <c>RunSnapshot.ReferenceMasses</c>. Until it
+    /// is, every layer weighs 1, which gives the same pooled mean for the equal-volume layers of one
+    /// liquid and differs only where a profile spans enough temperature for density to vary layer to
+    /// layer. Supplying the masses makes the mean exact there and keeps the remix invisible to the
+    /// drift accumulator.
+    /// </remarks>
+    public void SetLayerMasses(ReadOnlySpan<double> masses)
+    {
+        var differential = Unknowns.Differential;
+
+        for (var index = 0; index < differential.Length; index++)
+        {
+            if (differential[index].Column < 0 && differential[index].Layer >= 1)
+            {
+                _layerMass[differential[index].Element][differential[index].Layer - 1] = masses[index];
+            }
+        }
     }
 
     /// <summary>The density of a node's state as the last evaluation left it.</summary>

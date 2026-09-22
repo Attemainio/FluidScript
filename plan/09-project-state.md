@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0 and P6.1 shipped 2026-09-22 (the assembly, then the integrator: the demand-step loop runs in time); P6.2 next, P6.8 runnable in parallel; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1 and P6.2 shipped 2026-09-22 (the assembly, the integrator, the stratified tank); `C-114` next by the user's call, then P6.3; P6.8 runnable in parallel; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1233,6 +1233,21 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > line of work started from, and `24` records the two candidate mitigations. `C-116` and `C-117`
 > closed; `12`, `15`, `24` and `08`'s P6.8 row carry the detail. 43 open.
 
+| P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
+
+> **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
+> water, and close `62`'s three tank cases. What it found: the density anomaly is real on this
+> backend and worth asserting rather than assuming — IF97 peaks at 999.9754 kg/m³ at 4 °C, so a 6 °C
+> layer under a 1 °C layer is the stable arrangement and a rule written on temperature would stir a
+> chilled store that was resting correctly; `FS3108` was registered by P6.0 and unreachable, because
+> the layer's own failure passed the backend's range message through instead of being wrapped, which
+> is why a code can exist, be named by a test and still never fire. Measured: V15 within 0.03 K of
+> `T(t) = 54 − 34e^(−t/1495)` over 1800 s; V17's 25/55/40/45/60 °C profile pools layers 2–4 to
+> 46.61 °C on the first step and leaves 25 and 60 alone; drift 3e-12. Two gaps filed rather than
+> papered over: the interface-flow formula's non-zero branches have no fixture (`S-80`), and V17's
+> refinement half compares the solver against itself because `62`'s independent table was never
+> written (`S-81`). 47 open.
+
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
 Behaviour-preserving packages in `70`'s order; each row states what was measured and what moved.
@@ -1318,15 +1333,18 @@ unassessed, not clean.
 
 ## What is next
 
-**P6.2 is next** (`08`): the stratified tank's remix after every accepted step (`33` §Stratified
-tank, the pool-adjacent-violators scan on the property backend's density), `FS3108`, and V15–V17 —
-the layer balance itself already integrates (P6.1 measured the storage header's layer 2 at
-0.020 K/s). **Before P6.3**, `S-79` needs the user's call: where a run's t = 0 sits on a time curve's
-timestamp axis, which `D-143` did not resolve. P6.8 is now **sizing over scenarios** (`D-143`),
-tier-20 work runnable in parallel with P6.2–P6.7 and specified end to end in `24` §Sizing over
-scenarios, `12` and `15`; its two open measurements are named in `08`'s row. Read `33` whole before
-any transient package; its worked example now carries the measured column beside the closed form and
-says where the two part.
+**`C-114` is next** (the user's call, 2026-09-22): a heat exchanger has no hold-up volume, so its
+outlet jumps within one step — P6.1 measured 50.06 → 65.09 °C — where a brazed plate unit in that
+duty class holds about a litre a side, a quarter of the demand-step loop. It is a registry row and a
+`ThermalVolume` on the exchanger's internal node with no solver change, and it is **cheap now and
+expensive later**: a differential state travels in the frame, so adding one after `43`'s contract and
+the frontend exist costs a version bump. The litre is a hunch until a manufacturer's hold-up figure
+is cited. Then P6.3, which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
+timestamp axis, which `D-143` did not resolve and which a setpoint following a curve reaches
+immediately. P6.8 is **sizing over scenarios** (`D-143`), tier-20 work runnable in parallel and
+specified end to end in `24` §Sizing over scenarios, `12` and `15`; its two open measurements are
+named in `08`'s row. Read `33` whole before any transient package; its worked example now carries the
+measured column beside the closed form and says where the two part.
 
 0. **The Core refactoring (`70`)** shipped R0–R5 on 2026-09-21 (`D-130` for the actuator order); R6
    (the binder's phase records, `EquationSystem`'s builder) waits for the next feature that opens
@@ -1389,7 +1407,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2095 total, 0 failed, 3 skipped** (2026-09-22), ~72 s with the `Diagnostic` classes and the transient runs; the `Unit` slice 1945 in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2118 total, 0 failed, 3 skipped** (2026-09-22), ~71 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **229 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

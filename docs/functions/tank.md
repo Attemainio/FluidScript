@@ -81,6 +81,17 @@ you get no value for it.
 
 `S` — a tank in circuit 400 is tagged `400S01`.
 
+## In a run
+
+Each layer is a state the solver integrates, and a port delivers the layer its level picks rather
+than a mixed average. After every step the layers are put back in density order if the flow left them
+inverted, pooling only the smallest block that is out of order and conserving its energy exactly. A
+stated profile is a starting disturbance, so the vessel evolves from t = 0 with nothing in the
+schedule. A layer stated at a temperature the fluid does not reach at the vessel's pressure is
+[`FS3108`](diagnostics.md), naming the tank and the layer.
+
+→ [Stratified storage](../advanced/stratified-storage.md)
+
 ## See also
 
 [`node`](node.md) · [`schedule`](schedule.md) · [Units](units.md)

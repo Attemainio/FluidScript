@@ -64,6 +64,8 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             system.Freeze(index, snapshot.PromotionInitial[index]);
         }
 
+        system.SetLayerMasses(masses.AsSpan());
+
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         var time = 0.0;
         var sequence = 0L;
@@ -174,6 +176,17 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             if (Array.Exists(x, static value => !double.IsFinite(value)))
             {
                 diagnostics.Add(Invariant(time, "a finite state", sequence));
+                yield return Frame(snapshot, sequence + 1, verifiedTime, algebraic, verified, diagnostics, Math.Min(smallestStep, tried), stepsSinceFrame, false, drift);
+                yield break;
+            }
+
+            // Natural convection, applied as a correction rather than a flux: it turns a stack over in
+            // seconds, far faster than any step here (33 §Stratified tank). It conserves mass and
+            // `Σ mh` exactly, so the drift accumulator below is blind to it, which is the check that
+            // it is doing what it claims.
+            if (system.Remix(x, out _) is { } stirred)
+            {
+                diagnostics.Add(Invariant(time, $"a layer of '{stirred}' inside the property domain", sequence));
                 yield return Frame(snapshot, sequence + 1, verifiedTime, algebraic, verified, diagnostics, Math.Min(smallestStep, tried), stepsSinceFrame, false, drift);
                 yield break;
             }

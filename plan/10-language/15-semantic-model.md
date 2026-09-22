@@ -969,12 +969,17 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 `D-143`. A file may declare a list of named operating cases, and any parameter may state one value
 per case:
 
-```fluidscript
+```fluidscript expects=FS1104,FS1105
 scenarios winter summer
 design winter
 
 HX1 heat_exchanger power = [30, 10]
 ```
+
+The fence says `expects=FS1104,FS1105` because the parser does not know this syntax yet: the block is
+the specification, and `ScriptCorpus` holds it to what today's parser actually produces. When P6.8
+teaches the parser, that line becomes wrong and the corpus test says so, which is how the two stay in
+step.
 
 **The list binds to the declaration positionally and to nothing else.** Binding a scenario list is
 four rules, and each one is a diagnostic rather than a repair:

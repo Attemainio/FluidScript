@@ -6519,7 +6519,7 @@ for are the cases an engineer names, not points on a temperature axis.
 
 **A scenario is a named operating case, and a parameter may state one value per scenario.**
 
-```fluidscript
+```fluidscript expects=FS1104,FS1105
 scenarios winter summer
 design winter
 

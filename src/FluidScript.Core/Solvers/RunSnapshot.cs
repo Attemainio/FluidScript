@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Topology;
 using FluidScript.Core.Units;
@@ -120,13 +121,18 @@ public sealed record RunSnapshot
                 return Result.Failure<RunSnapshot>(initial.Error);
             }
 
+            if (!double.IsFinite(initial.Value))
+            {
+                return Result.Failure<RunSnapshot>(CannotInitialize(state, Enthalpy(initial.Value)));
+            }
+
             var layer = graph.Substance.FromPressureEnthalpy(
                 Quantity.FromSi(Math.Max(PortPressure(graph, layout, design, state.Element), 0), Dimension.Pressure),
                 Quantity.FromSi(initial.Value, Dimension.Enthalpy));
 
             if (!layer.IsSuccess)
             {
-                return Result.Failure<RunSnapshot>(layer.Error);
+                return Result.Failure<RunSnapshot>(CannotInitialize(state, Enthalpy(initial.Value)));
             }
 
             differential.Add(initial.Value);
@@ -187,10 +193,30 @@ public sealed record RunSnapshot
             Quantity.FromSi(Math.Max(PortPressure(graph, layout, design, state.Element), 0), Dimension.Pressure),
             Quantity.FromSi(stated.Value.SiValue, Dimension.Temperature));
 
+        // `FS3108` rather than the backend's own range message: the user wrote a temperature on a
+        // layer, so the answer names that layer and that temperature.
         return fluid.IsSuccess
             ? Result.Success(fluid.Value.Enthalpy.SiValue)
-            : Result.Failure<double>(fluid.Error);
+            : Result.Failure<double>(CannotInitialize(
+                state,
+                (stated.Value.SiValue - 273.15).ToString("0.#", CultureInfo.InvariantCulture) + " °C"));
     }
+
+    /// <summary><c>FS3108</c>: a tank's stated layer cannot be evaluated inside the supported property domain.</summary>
+    /// <param name="state">The layer.</param>
+    /// <param name="described">What it was asked for, written the way the script wrote it.</param>
+    /// <returns>The error, naming the tank, the layer and the state it was asked for.</returns>
+    private static ResultError CannotInitialize(DifferentialState state, string described) => new(
+        TransientDiagnostics.CannotInitializeLayer,
+        [
+            new DiagnosticArgument("tank", state.Owner),
+            new DiagnosticArgument("layer", state.Layer.ToString(CultureInfo.InvariantCulture)),
+            new DiagnosticArgument("state", described),
+        ]);
+
+    /// <summary>An enthalpy as a message writes it.</summary>
+    private static string Enthalpy(double value) =>
+        (value / 1000).ToString("0.#", CultureInfo.InvariantCulture) + " kJ/kg";
 
     /// <summary>The pressure of the node on a tank's first port: what every layer shares to within the tank's head, which water's properties barely notice.</summary>
     private static double PortPressure(CircuitGraph graph, SystemLayout layout, StateVector design, int element)

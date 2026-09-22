@@ -215,7 +215,8 @@ public sealed class TransientSolverTests
         Assert.Equal(DiagnosticSeverity.Info, TransientDiagnostics.NotSettled.Severity);
         Assert.Equal(DiagnosticSeverity.Warning, TransientDiagnostics.EnergyDrift.Severity);
         Assert.Equal(DiagnosticSeverity.Error, TransientDiagnostics.InvariantFailed.Severity);
-        Assert.Equal(["FS3101", "FS3102", "FS3103", "FS3104", "FS3105", "FS3106", "FS3107", "FS3109"], TransientDiagnostics.All.Select(d => d.Code).ToArray());
+        Assert.Equal(DiagnosticSeverity.Error, TransientDiagnostics.CannotInitializeLayer.Severity);
+        Assert.Equal(["FS3101", "FS3102", "FS3103", "FS3104", "FS3105", "FS3106", "FS3107", "FS3108", "FS3109"], TransientDiagnostics.All.Select(d => d.Code).ToArray());
     }
 
     [Fact]

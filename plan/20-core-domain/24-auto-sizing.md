@@ -126,7 +126,7 @@ driver nobody wrote, and the cases a plant is sized for are the cases an enginee
 
 ### Scenarios
 
-```fluidscript
+```fluidscript expects=FS1104,FS1105
 scenarios winter summer
 design winter
 

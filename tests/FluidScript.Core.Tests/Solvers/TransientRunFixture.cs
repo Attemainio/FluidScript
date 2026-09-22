@@ -99,7 +99,7 @@ internal static class TransientRunFixture
             "sha256:" + new string('0', 64),
             Versions);
 
-        Assert.True(snapshot.IsSuccess, snapshot.Error?.Message);
+        Assert.True(snapshot.IsSuccess, $"{snapshot.Error?.Code}: {snapshot.Error?.Message}");
 
         var frames = new List<TransientFrame>();
         var started = System.Diagnostics.Stopwatch.StartNew();

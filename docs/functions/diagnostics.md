@@ -207,6 +207,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS3105` | Error | Transient | Cannot change '{target}' — {reason}. |
 | `FS3106` | Warning | Transient | Energy balance drifted by {pct} % over the run. Results may be unreliable. |
 | `FS3107` | Error | Transient | Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}. |
+| `FS3108` | Error | Transient | Cannot initialize '{tank}' layer {layer} at {state}. |
 | `FS3109` | Error | Transient | '{target}' is driven by {controller}; a schedule cannot also move it. |
 | `FS3210` | Info | Controllers | {controller} may start off its setpoint: {reason}, so the design solve did not hold {measurement} at {setpoint}. |
 | `FS3211` | Info | Controllers | {controller} measures {measurement}, which the design solve cannot hold at a setpoint; only a node's temperature can be. The run starts wherever the design solve lands. |
