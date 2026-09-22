@@ -1156,6 +1156,9 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > **`A-6` closed 2026-09-22:** unit factors and offsets travel in the metadata, so the quantity hover
 > converts; a pipe's state carries the velocity and Reynolds number its drop was computed at, from
 > the mean properties the residual used, and the connection card shows them. Contract `2.2`. 39 open.
+>
+> **`U-5` closed 2026-09-22:** the binder types a deferred `let` from the units and properties its
+> expression names, the wire carries the dimension, and completion filters it. 38 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 

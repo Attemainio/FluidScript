@@ -626,7 +626,10 @@ function values(
   for (const binding of sources.model?.bindings ?? []) {
     const deferred = binding.value === null;
     const unnamed = binding.dimension === null && binding.siUnit !== null;
-    if (filtered && binding.dimension !== dimension && !deferred) {
+    // A deferred let with a typed dimension is filtered like any other (U-5); one nothing typed is
+    // offered everywhere, dimmed, since the filter has nothing to go on.
+    const untyped = deferred && binding.dimension === null && binding.siUnit === null;
+    if (filtered && binding.dimension !== dimension && !untyped) {
       continue;
     }
     const value = deferred ? '—' : `${binding.value} ${binding.unit ?? ''}`.trim();

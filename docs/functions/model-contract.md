@@ -251,7 +251,7 @@ An evaluated `let`.
 | `name` | string | The name. |
 | `value` | number or `null` | The value in `unit`, or `null` when the binding is deferred to the solve. |
 | `unit` | string or `null` | The canonical unit, or `null` when dimensionless or deferred. |
-| `dimension` | string or `null` | The dimension's name, so the editor can filter completion by it (`52`); `null` for a dimensionless, an unnamed or a deferred binding. |
+| `dimension` | string or `null` | The dimension's name, so the editor can filter completion by it (`52`); present for a deferred binding too when the binder could type its expression from the units and properties it names (`U-5`); `null` for a dimensionless or an unnamed one, or a deferred one nothing types. |
 | `siUnit` | string or `null` | For an unnamed dimension, the SI spelling the value carries, shown dimmed by completion; otherwise `null`. |
 
 ### `Diagnostic`

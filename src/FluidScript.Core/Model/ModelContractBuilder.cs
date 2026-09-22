@@ -933,9 +933,11 @@ public static class ModelContractBuilder
     {
         if (binding.Value is not { } quantity)
         {
-            // Deferred: the binder does not type an expression it cannot evaluate, so the dimension is
-            // unknown here as well (50-frontend/defects.md, U-5).
-            return new BindingWire(binding.Name, null, null, null, null);
+            // Deferred: no value until the solve, but the dimension the binder typed from the expression
+            // travels, so completion can filter by it (U-5). Null when the expression does not say.
+            return binding.Dimension is { } typed
+                ? new BindingWire(binding.Name, null, null, typed.IsNamed ? typed.Name : null, typed.IsNamed ? null : typed.SiUnit)
+                : new BindingWire(binding.Name, null, null, null, null);
         }
 
         var (value, unit) = Canonical(quantity.SiValue, quantity.Dimension, binding.Name, "value", raised);

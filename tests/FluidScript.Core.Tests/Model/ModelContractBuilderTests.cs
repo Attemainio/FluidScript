@@ -62,6 +62,19 @@ public sealed class ModelContractBuilderTests
     }
 
     [Fact]
+    public void ADeferredBindingCarriesItsTypedDimensionOnTheWire()
+    {
+        // U-5: no value, but the dimension the binder typed, so the editor filters it like any other let.
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid") + "\nlet later = 1.2 * HE1.dp\nlet blank = 7\n";
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
+        var later = contract.Bindings.Single(static b => b.Name == "later");
+
+        Assert.Null(later.Value);
+        Assert.Equal("PressureDelta", later.Dimension);
+        Assert.Null(contract.Bindings.Single(static b => b.Name == "blank").Dimension);
+    }
+
+    [Fact]
     public void ADefaultCarriesItsBasisAndAStatedValueNone()
     {
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid")));

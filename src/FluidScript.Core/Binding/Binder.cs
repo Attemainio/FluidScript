@@ -1150,7 +1150,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         {
             _pending.TryGetValue(slot.Id, out var pending);
             _bindings.Add(new BindingSymbol(
-                name, slot.Declaration.Value, slot.Id, pending?.Value, slot.Declaration.Span));
+                name,
+                slot.Declaration.Value,
+                slot.Id,
+                pending?.Value,
+                slot.Declaration.Span,
+                pending?.Value?.Dimension ?? DimensionOf(slot.Declaration.Value, [name])));
         }
 
         for (var i = 0; i < _components.Count; i++)
@@ -1286,6 +1291,137 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         // Sized or solved, and nobody stated it: this is the deferral `14`'s two-phase evaluation
         // exists for, not an error.
         return new ScopeLookup.Deferred(new ValueId.ComponentProperty(head, property.Key));
+    }
+
+    /// <summary>
+    /// The dimension an expression has, without evaluating it (<c>U-5</c>): a deferred <c>let</c> has no value
+    /// until the solve, but <c>1.2*HE1.dp</c> is a pressure difference as soon as <c>HE1</c>'s kind is known,
+    /// and completion after <c>dp=</c> should offer it while completion after <c>power=</c> should not.
+    /// </summary>
+    /// <param name="expression">The expression to type.</param>
+    /// <param name="visiting">The bindings on the path here, so a cycle types as unknown rather than recursing.</param>
+    /// <returns>
+    /// The dimension, or <see langword="null"/> when the expression does not say: a bare number alone, a curve,
+    /// a call, or a reference nothing resolves. A bare number beside a dimensioned operand is dimensionless,
+    /// so <c>2*HE1.dp</c> types; a curve is unknown, so <c>heating*2</c> does not -- the two kinds of "no
+    /// dimension" are kept apart, and only the first is treated as a number.
+    /// </returns>
+    private Dimension? DimensionOf(ExpressionSyntax expression, HashSet<string> visiting)
+    {
+        var (known, dimension) = Type(expression, visiting);
+        return known && dimension.IsNamed && dimension.Name != "Dimensionless" ? dimension : known && !dimension.IsNamed ? dimension : null;
+    }
+
+    /// <summary>The typing behind <see cref="DimensionOf(ExpressionSyntax, HashSet{string})"/>: whether the dimension is known, and what it is when it is.</summary>
+    private (bool Known, Dimension Dimension) Type(ExpressionSyntax expression, HashSet<string> visiting)
+    {
+        switch (expression)
+        {
+            case NumberLiteralSyntax:
+                return (true, Dimension.Dimensionless);
+
+            case QuantityLiteralSyntax literal:
+                return UnitTable.Resolve(literal.Unit, null) is { } unit ? (true, unit.Dimension) : (false, default);
+
+            case QuantityReferenceSyntax quantity:
+            {
+                // `HE1.dp kPa`: the reference's own dimension picks between a shared spelling's readings.
+                var inner = TypeReference(quantity.Reference, visiting);
+                return UnitTable.Resolve(quantity.Unit, inner.Known ? inner.Dimension : null) is { } stated ? (true, stated.Dimension) : (false, default);
+            }
+
+            case ParenthesizedExpressionSyntax parenthesized:
+                return Type(parenthesized.Inner, visiting);
+
+            case UnaryExpressionSyntax unary:
+                return Type(unary.Operand, visiting);
+
+            case BinaryExpressionSyntax binary:
+            {
+                var left = Type(binary.Left, visiting);
+                var right = Type(binary.Right, visiting);
+
+                if (!left.Known || !right.Known)
+                {
+                    return (false, default);
+                }
+
+                switch (binary.Operator)
+                {
+                    case BinaryOperator.Multiply:
+                        return (true, Dimension.FromVector(left.Dimension.Vector + right.Dimension.Vector));
+
+                    case BinaryOperator.Divide:
+                        return (true, Dimension.FromVector(left.Dimension.Vector - right.Dimension.Vector));
+
+                    default:
+                        // A sum keeps the dimensioned side: `HE1.dp + 5` reads the 5 in the other's unit (D-14).
+                        if (left.Dimension.IsNamed && left.Dimension.Name == "Dimensionless")
+                        {
+                            return right;
+                        }
+
+                        if (left.Dimension == right.Dimension || (right.Dimension.IsNamed && right.Dimension.Name == "Dimensionless"))
+                        {
+                            return left;
+                        }
+
+                        // `HE1.dp + 5 kPa`: the literal's spelling is shared by a reading and a difference, and
+                        // with no destination to consult it typed as the reading; the evaluator reads it against
+                        // the other operand, and a sum of like vectors is the difference dimension (FromVector).
+                        return left.Dimension.Vector == right.Dimension.Vector ? (true, Dimension.FromVector(left.Dimension.Vector)) : (false, default);
+                }
+            }
+
+            case ReferenceSyntax reference:
+                return TypeReference(reference, visiting);
+
+            default:
+                // A call: the closed set has functions of every shape, and typing them is a second evaluator.
+                return (false, default);
+        }
+    }
+
+    private (bool Known, Dimension Dimension) TypeReference(ReferenceSyntax reference, HashSet<string> visiting)
+    {
+        var head = reference.Head.Token.Text;
+
+        if (reference.Parts.IsEmpty)
+        {
+            if (Constants.TryGet(head, out var constant))
+            {
+                return (true, constant.Dimension);
+            }
+
+            if (!_bindingsByName.TryGetValue(head, out var binding))
+            {
+                // A curve, or nothing: a curve's numbers are bare until something reads them (D-57).
+                return (false, default);
+            }
+
+            if (_pending.TryGetValue(binding.Id, out var pending) && pending.Value is { } value)
+            {
+                return (true, value.Dimension);
+            }
+
+            return visiting.Add(head) ? Type(binding.Declaration.Value, visiting) : (false, default);
+        }
+
+        if (!_componentsByName.TryGetValue(head, out var slot) || _components[slot.Index].Kind is not { } kind)
+        {
+            return (false, default);
+        }
+
+        var written = reference.PropertyPath();
+
+        if (StatedParameterKey(kind, written) is { } key
+            && _components[slot.Index].Parameters.ContainsKey(key)
+            && kind.Parameters.GetValueOrDefault(key) is { ValueKind: ParameterValueKind.Quantity } parameter)
+        {
+            return (true, parameter.Dimension);
+        }
+
+        return kind.ResolveProperty(written) is { } property ? (true, property.Dimension) : (false, default);
     }
 
     /// <summary>The key a stated parameter spelled like a property is stored under, or null when no parameter is spelled so.</summary>

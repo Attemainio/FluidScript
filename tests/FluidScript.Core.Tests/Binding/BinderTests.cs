@@ -625,6 +625,42 @@ public sealed class BinderTests
 
     [Fact]
     [Trait("Category", "Unit")]
+    public void ADeferredLetIsTypedWithoutBeingEvaluated()
+    {
+        // U-5: `let x = 1.2*HE1.dp` has no value until the solve but is a pressure difference the
+        // moment HE1's kind is known, so completion after `dp=` may offer it and after `power=` must
+        // not. A dimension-only pass: units and properties type, a bare number beside them is a number,
+        // a product combines vectors, and a let reading a let follows the chain.
+        var model = Model("""
+            fluidscript 1
+            design tout=-26
+            curve heating tout
+            -26 50
+            20 0
+            HE1 heat_exchanger power=30 kW
+            let x = 1.2 * HE1.dp
+            let y = x / 2 + 5 kPa
+            let z = heating * 2
+            let w = HE1.power / (4180 J/(kg*K) * 20 dK)
+            let v = HE1.flow * 3
+            let u = HE1.dp kPa
+            """);
+
+        Dimension? Of(string name) => model.Bindings.Single(b => b.Name == name).Dimension;
+
+        Assert.Null(model.Bindings.Single(static b => b.Name == "x").Value);
+        Assert.Equal(Dimension.PressureDelta, Of("x"));
+        Assert.Equal(Dimension.PressureDelta, Of("y"));
+        // A curve in a static circuit is read at the design point, so `z` is not deferred at all: 100, bare.
+        Assert.Equal(100, model.Bindings.Single(static b => b.Name == "z").Value!.Value.SiValue, 9);
+        Assert.Equal(Dimension.Dimensionless, Of("z"));
+        Assert.Equal(Dimension.MassFlow, Of("w"));
+        Assert.Equal(Dimension.MassFlow, Of("v"));
+        Assert.Equal(Dimension.PressureDelta, Of("u"));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
     public void FS1306_AValueFarOutsideItsUsualRange()
     {
         // The real-world failure: `power=30000` meaning watts draws a plausible diagram of a 30 MW

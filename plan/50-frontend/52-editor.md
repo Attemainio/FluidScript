@@ -403,7 +403,7 @@ item and it is right. The cost is a dimension lookup the editor already has from
       distinction `FS1302` exists to catch.
 - [x] After `power=`, both `kW` and `W` are offered — filtering is by dimension, never by canonical
       unit, or the explicit-unit escape hatch disappears.
-- [ ] A `let` whose value is deferred is offered with its dimension and no value. (Offered with no value: yes. With its dimension: `U-5`, the binder does not type a deferred expression.)
+- [x] A `let` whose value is deferred is offered with its dimension and no value. (`U-5`, closed 2026-09-22: the binder types a deferred expression from the units and properties it names, and the wire carries the dimension.)
 - [x] A parameter on an unresolved kind offers everything rather than nothing.
 - [x] `container` and `v` find canonical `tank` and `volume`; `T1.in2` completion materializes `in2`,
       and no completion offers `in17` or a `tN` above the tank's resolved layer count.

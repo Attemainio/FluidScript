@@ -333,12 +333,19 @@ public sealed record ParameterValue
 /// The evaluated value, or <see langword="null"/> when the expression was deferred or failed.
 /// </param>
 /// <param name="DeclarationSpan">Where the binding sits in the source.</param>
+/// <param name="Dimension">
+/// The dimension the expression has, whether or not it has a value yet (<c>U-5</c>): the value's own when
+/// evaluated, else what a dimension-only pass over the expression tree derives from the units it writes,
+/// the properties it references and the bindings it reads. <see langword="null"/> when nothing in the
+/// expression says -- a bare number, a curve, or a reference nothing resolves.
+/// </param>
 public sealed record BindingSymbol(
     string Name,
     ExpressionSyntax Expression,
     ValueId Id,
     Quantity? Value,
-    TextSpan DeclarationSpan);
+    TextSpan DeclarationSpan,
+    Dimension? Dimension = null);
 
 /// <summary>A reference to a component's property, such as <c>N2.t</c>.</summary>
 /// <param name="Component">The component's name, as written.</param>

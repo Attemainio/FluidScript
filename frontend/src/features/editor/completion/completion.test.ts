@@ -33,6 +33,7 @@ const model: ModelContract = {
     { name: 'dTdesign', value: 20, unit: 'dK', dimension: 'TemperatureDelta', siUnit: null },
     { name: 'Qtotal', value: 120, unit: 'kW', dimension: 'Power', siUnit: null },
     { name: 'later', value: null, unit: null, dimension: null, siUnit: null },
+    { name: 'laterDp', value: null, unit: null, dimension: 'PressureDelta', siUnit: null },
     { name: 'perK', value: 6, unit: null, dimension: null, siUnit: 'kg·m²/(s³·K)' },
   ],
 };
@@ -238,6 +239,13 @@ describe('value completion is dimension-filtered', () => {
     const item = at('HE1 heat_exchanger power=').items.find((i) => i.label === 'later');
     expect(item?.dimmed).toBe(true);
     expect(item?.detail).toContain('—');
+  });
+
+  it('filters a deferred let by the dimension the binder typed (U-5)', () => {
+    const dp = at('HE1 heat_exchanger dp=').items.find((i) => i.label === 'laterDp');
+    expect(dp?.dimmed).toBe(true);
+    expect(dp?.detail).toContain('PressureDelta');
+    expect(at('HE1 heat_exchanger power=').items.find((i) => i.label === 'laterDp')).toBeUndefined();
   });
 
   it('offers an unnamed-dimension let dimmed with its derived unit, where the filter is off', () => {
