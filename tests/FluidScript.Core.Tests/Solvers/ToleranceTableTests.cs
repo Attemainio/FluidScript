@@ -35,6 +35,7 @@ public sealed partial class ToleranceTableTests
         ("newton.fd_step", Tolerances.NewtonFiniteDifferenceStep),
         ("newton.fd_step_state", Tolerances.NewtonFiniteDifferenceStateStep),
         ("jacobian.singular_tol", Tolerances.JacobianSingular),
+        ("jacobian.valley_tol", Tolerances.JacobianValley),
         ("outer.max_passes", Tolerances.OuterMaxPasses),
         ("outer.relative_tol", Tolerances.OuterRelative),
         ("transient.cfl_safety", Tolerances.TransientCflSafety),

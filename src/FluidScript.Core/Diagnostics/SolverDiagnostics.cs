@@ -247,6 +247,44 @@ public static class SolverDiagnostics
         + "the header pushing backwards through it. If that pump is off, nothing here stops the flow: "
         + "add a check valve to the branch, or state the flow you expect through it.");
 
+    /// <summary>Two or more sizes move together along a valley of the equations, and only their combination is fixed.</summary>
+    /// <value><c>FS3016</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>The answer converged, and it is one point on a valley</strong> (<c>S-37</c>, <c>D-142</c>).
+    /// On a ring with no pump of its own, driven by the pumps of the blocks that hang off it in series,
+    /// the ring's loop equation fixes only the <em>sum</em> of what each block adds; every flow and
+    /// every Kv is determined, and the split -- and the valve positions that follow it -- is not.
+    /// Measured on the ladder's series header, the Jacobian's smallest pivot is 2e-5 of its largest, the
+    /// weakest direction is <c>PU_RAD.head +1, PU_AHU.head -0.73, TV_AHU.position -0.36</c> with the
+    /// pressures of the segment between the pumps at <c>+0.22</c>, and a 1e-4 change in the water
+    /// formulation slid the split from 5.68 + 2.56 m to 4.62 + 3.05 m with nothing else moving.
+    /// </para>
+    /// <para>
+    /// <strong>Stating one head moves the valley rather than closing it</strong> (measured 2026-09-22):
+    /// with <c>PU_RAD head=5</c> the radiators' flow has no free actuator and the count is over-specified
+    /// (<c>FS2210</c>); with a balancing valve added to take it, the valve's Kv and the other pump's head
+    /// share the same direction. A series path with two free sizes in it has a valley whatever the sizes
+    /// are, which is why the participants are named rather than a kind: the fix is to state all but one
+    /// of them, or to decouple the blocks so the path is no longer shared.
+    /// </para>
+    /// <para>
+    /// Not raised for consumer pumps on parallel branches between a supply and a return header: there
+    /// each pump lifts its own losses plus the whole common loss, the difference between two heads is
+    /// the difference between two local losses, and nothing is shared (the distribution header, full
+    /// rank at 44, pivot ratio 0.027). The direction is read, not the pivot alone, because a single small
+    /// valve drives the pivot as low on the ladder's step 5 with one flow in the direction and nothing
+    /// sized in it. A warning rather than an error, because the flows and the Kvs are right and worth
+    /// showing; what the note says is that the named sizes are one answer among those the script allows.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor Valley { get; } = new(
+        "FS3016",
+        DiagnosticSeverity.Warning,
+        "{parameters} move together along a valley of the circuit: one series path fixes only their "
+        + "combination, so the values shown are one answer among those the script allows. State all "
+        + "but one of them, or decouple the blocks so the path is no longer shared.");
+
     /// <summary>A warm start did not converge and the pass was rerun from the sizing seed.</summary>
     /// <value><c>FS3012</c>, an info.</value>
     /// <remarks>
@@ -278,5 +316,6 @@ public static class SolverDiagnostics
         ReversedFlow,
         HeldShut,
         DeadHeaded,
+        Valley,
     ];
 }

@@ -706,6 +706,17 @@ alone and handed the header setpoint to `TV_AHU`, downstream of it.
 either. This is the trap `D-02` creates and it is worth naming explicitly, because both lines look
 individually reasonable and the interaction is invisible.
 
+**A series path with two free sizes in it is a valley, not a point** (`D-142`, closing `S-37`). Two
+consumer blocks in series on a ring with no pump of its own pass one stream through both pumps; the
+ring's loop equation fixes only the sum of what each block adds, and the split — with the valve
+positions that follow it — is decided by the sixth digit of the fluid. The count is square and the
+rank full, so nothing here refuses it; the solver reads the weakest direction at the answer and
+`FS3016` names the sizes sharing it. Consumer pumps on **parallel** branches between a supply and a
+return header share nothing: each lifts its own losses plus the whole common loss, and the answer is
+a point. Stating one head on the series ring over-specifies the block it is on (`FS2210`) unless a
+balancing valve takes the flow, and then the valve's Kv joins the valley; the closures are stating
+all but one free size on the path, or decoupling the blocks.
+
 ## Invariants
 
 1. Every graph node is reachable from every other **through flow or through a shared component**, or

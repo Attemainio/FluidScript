@@ -34,7 +34,7 @@ public static class NullDirection
 {
     /// <summary>A share of one null direction, carried by one unknown or by one equation.</summary>
     /// <param name="Index">
-    /// Which one: a <strong>column</strong> of the system for a direction from <see cref="Of"/>, and a
+    /// Which one: a <strong>column</strong> of the system for a direction from <see cref="Of(double[], int)"/>, and a
     /// <strong>row</strong> for one from <see cref="Redundancy"/>. The two null spaces are the same
     /// elimination on a matrix and on its transpose, so they share this type and mean different things
     /// by it — which is why it is not called <c>Column</c>.
@@ -86,7 +86,23 @@ public static class NullDirection
     /// <exception cref="ArgumentException">
     /// <paramref name="matrix"/> is not <paramref name="order"/> squared.
     /// </exception>
-    public static ImmutableArray<Participant> Of(double[] matrix, int order)
+    public static ImmutableArray<Participant> Of(double[] matrix, int order) =>
+        Of(matrix, order, RankTolerance);
+
+    /// <summary>Finds the combination of unknowns a matrix leaves undetermined, or nearly so.</summary>
+    /// <param name="matrix">As <see cref="Of(double[], int)"/>: the scaled Jacobian, overwritten.</param>
+    /// <param name="order">The number of rows, which equals the number of columns.</param>
+    /// <param name="rankTolerance">
+    /// How far a pivot must collapse, against the largest entry, before its column counts as free.
+    /// <see cref="RankTolerance"/> asks for an exact deficiency; <see cref="Tolerances.JacobianValley"/>
+    /// asks for a valley — a direction the equations fix so weakly that a change in the fluid's sixth
+    /// digit slides the answer along it (<c>S-37</c>).
+    /// </param>
+    /// <returns>As <see cref="Of(double[], int)"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="matrix"/> is not <paramref name="order"/> squared.
+    /// </exception>
+    public static ImmutableArray<Participant> Of(double[] matrix, int order, double rankTolerance)
     {
         ArgumentNullException.ThrowIfNull(matrix);
 
@@ -116,7 +132,7 @@ public static class NullDirection
         // calls the collapsed pivot live, so one report printed `1 unknown nothing determines` and
         // `(none found)` two lines apart. **A rank criterion that differs between an instrument and its
         // caller is worse than either criterion, because the disagreement is silent.**
-        var floor = RankTolerance * largestEntry;
+        var floor = rankTolerance * largestEntry;
         var columnOf = new int[order];
 
         for (var index = 0; index < order; index++)
@@ -180,7 +196,7 @@ public static class NullDirection
     /// <summary>Finds the equation a matrix's other rows already imply.</summary>
     /// <param name="matrix">
     /// The scaled Jacobian, <paramref name="order"/> squared and row-major. Read only — unlike
-    /// <see cref="Of"/> this transposes into its own working copy, because a caller wanting both
+    /// <see cref="Of(double[], int)"/> this transposes into its own working copy, because a caller wanting both
     /// directions would otherwise have to keep two matrices.
     /// </param>
     /// <param name="order">The number of rows, which equals the number of columns.</param>
@@ -195,7 +211,7 @@ public static class NullDirection
     /// <remarks>
     /// <para>
     /// <strong>A square system short by one has two null directions, and only this one is the
-    /// defect.</strong> <see cref="Of"/> answers "which unknowns are free", which reads like a cause and
+    /// defect.</strong> <see cref="Of(double[], int)"/> answers "which unknowns are free", which reads like a cause and
     /// is not: after full pivoting the free columns are whichever combination the elimination happened
     /// to leave over. This answers "which equation says nothing the others did not", and that is the
     /// redundancy itself — the row the user has to change, or supply a different one in place of.
@@ -210,7 +226,7 @@ public static class NullDirection
     /// </para>
     /// <para>
     /// The transpose is the whole implementation. The left null space of <c>A</c> is the right null
-    /// space of <c>A</c> transposed, so this is <see cref="Of"/> on transposed data and inherits its
+    /// space of <c>A</c> transposed, so this is <see cref="Of(double[], int)"/> on transposed data and inherits its
     /// pivoting, its significance floor and its one-direction-only rule.
     /// </para>
     /// </remarks>

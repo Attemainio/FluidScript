@@ -109,6 +109,17 @@ public static class Tolerances
     /// </value>
     public const double JacobianSingular = 1e-12;
 
+    /// <summary>The pivot ratio, smallest to largest under full pivoting, below which a converged answer is one point on a valley.</summary>
+    /// <value>
+    /// <c>jacobian.valley_tol</c>, dimensionless: the smallest pivot over the largest at the solution.
+    /// Measured on the corpus (2026-09-22): every circuit whose answer is unique runs 8e-3 and above,
+    /// and the series headers with two pumps sharing one ring run 3e-5 and below (<c>S-37</c>). A
+    /// single-pump circuit with a tiny valve can also sit below this (the ladder's step 5 at 6e-6),
+    /// which is why the direction below it is read before anything is said: only two pump heads moving
+    /// together in that direction is <c>FS3016</c>.
+    /// </value>
+    public const double JacobianValley = 1e-3;
+
     /// <summary>The most passes the sizing and deferred-expression loop may take.</summary>
     /// <value><c>outer.max_passes</c>. Typical convergence is three.</value>
     public const int OuterMaxPasses = 10;

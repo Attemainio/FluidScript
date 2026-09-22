@@ -184,6 +184,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-139` | Accepted | 2026-09-22 | A transient's differential states are the nodes with thermal volume; each step solves the steady system with them pinned |
 | `D-140` | Accepted | 2026-09-22 | A stated value is a design point: it holds at t = 0, its promotion freezes, and following it in time takes a `control` line |
 | `D-141` | Accepted | 2026-09-22 | A run starts from its design state, and an unstated actuator's setpoint is its design-point constraint; the cold start is a later opt-in |
+| `D-142` | Accepted | 2026-09-22 | A series path with two free sizes in it is a valley, and the solver says so rather than landing on it |
 <!-- index:end -->
 
 ---
@@ -6440,3 +6441,51 @@ always a constraint:* over-specifies a loop whose valve position the user stated
 
 **Constrains.** `34` §*The design point and the setpoint*, `33` §initial state, `WellPosedness.Candidates`,
 `01`'s demand-step note, `S-75`, P6.0.
+
+## D-142 · A series path with two free sizes in it is a valley, and the solver says so rather than landing on it
+
+**Accepted · 2026-09-22** (the user's call: "Yes, I agree", on the diagnostic-not-language closure of
+`S-37`) · closes `S-37` · constrains [`32`](../30-solver/32-steady-state-newton.md), [`36`](../30-solver/36-numerics-and-convergence.md), [`23`](../20-core-domain/23-topology-and-graph.md), [`24`](../20-core-domain/24-auto-sizing.md)
+
+`S-37` was filed as "two pumps in series have one head between them and nothing says how it
+divides", and two outside analyses the user brought (2026-09-22) answered a different plant: consumer
+pumps on **parallel** branches between a supply and a return header. There they are right and the
+built code agrees — each pump lifts its own losses plus the whole common loss, the difference of two
+heads is the difference of two local losses, nothing is shared, and the distribution header is full
+rank at 44 with a pivot ratio of 0.027. The ladder's **series** header is the other shape: the ring's
+water passes through both blocks in turn, the ring's loop equation fixes only the sum of what each
+block adds, and both analyses name that case as the undetermined one.
+
+**Measured.** At the series header's answer the Jacobian's smallest pivot is 2.4e-5 of its largest
+and the weakest direction is `PU_RAD.head +1, PU_AHU.head −0.73, TV_AHU.position −0.36`, with the
+pressures of the ring segment between the two pumps at `+0.22`: one pump up, the other down, the
+segment shifts, the valve follows. Every circuit with a unique answer on the corpus runs a ratio of
+8e-3 and above; the three series headers run 3e-5 and below. **Stating one head does not close it:**
+`PU_RAD head=5` leaves the radiators' flow with no free actuator (`FS2210`), and a balancing valve
+added to take it puts `BV_RAD.kv` and `PU_AHU.head` in the same direction at 9e-6. A series path with
+two free sizes in it has a valley whatever the sizes are.
+
+**Decided.**
+
+- **No new language.** The closures a plant has exist already: state all but one of the free sizes on
+  the path, or decouple the blocks so the path is not shared. A differential-pressure controller
+  across the header is `34`'s and M4's.
+- **`FS3016`, a warning at the converged answer**, names the sizes that share the weakest direction —
+  parameter unknowns carrying at least 0.2 of it — when the pivot ratio is under
+  `jacobian.valley_tol` (1e-3, `36`), and says the values shown are one answer among those the script
+  allows. The direction is read, not the pivot alone: the ladder's step 5 sits at 6e-6 with one
+  branch's flow through a tiny valve in the direction and nothing sized in it, and stays silent. The
+  report prints the direction under *rank and conditioning* whenever the ratio is under the tolerance.
+- **A warning, not a refusal.** The flows and the Kvs on the valley are right and worth showing;
+  refusing would hide them to protect two heads the note already labels. An invented split — equal
+  heads, say — is rejected: a number nothing chose on the equipment list.
+
+**Not decided, and marked untested.** Whether giving the ring its own pump closes the valley. The
+ring pump's head joins the sum; it is expected to move the valley rather than close it, and the
+decoupler — close tees, a low-loss header — is the closure a designer uses. Measured when a script
+needs it.
+
+**Constrains.** `NullDirection.Of(matrix, order, rankTolerance)`, `Tolerances.JacobianValley`,
+`NewtonSolver.Valley`, `SolverDiagnostics.Valley`, `SolveExplanation`'s conditioning section,
+`OuterLoopTests` on the series and the parallel header, `docs/functions/diagnostics.md`; `32`'s
+error table, `36`'s tolerance row, `23` and `24`'s sentences on the series ring.

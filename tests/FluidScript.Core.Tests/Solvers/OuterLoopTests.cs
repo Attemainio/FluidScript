@@ -428,6 +428,18 @@ public sealed class OuterLoopTests
         Assert.Contains("Kv 6.3", run.Bases["TV_RAD.kv"], StringComparison.Ordinal);
         Assert.Contains("Kv 6.3", run.Bases["TV_AHU.kv"], StringComparison.Ordinal);
 
+        // `D-142`: the valley is said, not silently landed on. The weakest direction at the answer is
+        // PU_RAD.head +1, PU_AHU.head -0.73, TV_AHU.position -0.36 on the cold pass; on the warm final
+        // pass TV_RAD.position crosses the share floor too. Which sizes lead is itself a point on the
+        // valley, so the two heads and the AHU's position are asserted as members, not in order.
+        var valley = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS3016");
+
+        Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Warning, valley.Severity);
+        Assert.Contains("PU_RAD.head", valley.Message, StringComparison.Ordinal);
+        Assert.Contains("PU_AHU.head", valley.Message, StringComparison.Ordinal);
+        Assert.Contains("TV_AHU.position", valley.Message, StringComparison.Ordinal);
+        Assert.Contains("move together along a valley of the circuit", valley.Message, StringComparison.Ordinal);
+
         // `C-111`. The radiators' bypass returns to NM_RAD 32 kPa above the primary supply at TV_RAD.a,
         // because PU_RAD drives the primary ring and pays its 32 kPa on the a leg's path; the valve
         // absorbs the difference by throttling b, 35 kPa at 0.784, where its own full-open drop is
@@ -723,6 +735,11 @@ public sealed class OuterLoopTests
         Assert.Equal(ReferenceNumbers.DistributionHeader.AhuHeaderFlow, Flow("TV_AHU.a->N3"), 0.001);
         Assert.Equal(ReferenceNumbers.DistributionHeader.RadiatorHeaderFlow, Flow("TV_RAD.a->N3"), 0.001);
         Assert.Equal(ReferenceNumbers.DistributionHeader.SourceFlow, Flow("N3->N5"), 0.001);
+
+        // Consumer pumps on parallel branches share nothing: each lifts its own losses plus the whole
+        // common loss, and the answer is a point (pivot ratio 0.027). `FS3016` is the series ring's
+        // (`D-142`) and must stay silent here.
+        Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS3016");
 
         foreach (var valve in (string[])["TV_AHU", "TV_RAD"])
         {

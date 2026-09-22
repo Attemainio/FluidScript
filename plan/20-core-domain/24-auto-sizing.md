@@ -601,8 +601,10 @@ holds as the valve moves, which is what VM-12 calls the design requirement.[^vm1
 are one point on `S-37`'s valley: the ring has no pump of its own, the two blocks' pumps share its
 head, and `D-137`'s move from IAPWS-95 to IF97 slid the same script to 24.7 kPa across `b` at 0.74,
 an imbalance of 21.3 and Kv 1.88 -- every flow and every Kv unchanged. The rule and the message are
-right on either; which split a real plant runs at is what the script does not say. The message says
-"would level the legs and leave the valve its travel" and nothing about the pump.
+right on either; which split a real plant runs at is what the script does not say, and since `D-142`
+the solve says so: `FS3016` names `PU_RAD.head`, `PU_AHU.head` and `TV_AHU.position` as one answer
+among those the script allows. The message says "would level the legs and leave the valve its
+travel" and nothing about the pump.
 
 #### A `valve` on a switched leg is set to level the legs
 

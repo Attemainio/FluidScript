@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Fluids;
 using FluidScript.Core.Topology;
@@ -366,6 +367,49 @@ public sealed class NewtonSolver : ISolver
             Render(rows, index => Equation(system, index)));
     }
 
+    /// <summary>Names the sizes a converged answer leaves sharing one valley, or nothing.</summary>
+    /// <param name="system">The assembled system.</param>
+    /// <param name="x">The solution.</param>
+    /// <returns>
+    /// The parameter unknowns' names, joined for a sentence, when two or more move together in the
+    /// Jacobian's weakest direction at <see cref="Tolerances.JacobianValley"/>; <see langword="null"/>
+    /// when the answer is a point, when fewer than two sizes share the direction, or when the Jacobian
+    /// cannot be rebuilt.
+    /// </returns>
+    /// <remarks>
+    /// The share floor is ten times <see cref="NullDirection.Significant"/>: a size that carries a
+    /// fiftieth of the direction is being dragged by it, not sharing it. On the series header the two
+    /// heads carry 1 and 0.73 and the AHU's valve position 0.36; the radiators' position at 0.12 is not
+    /// named. On a single-pump circuit whose weakest direction is one branch's flow through a tiny valve,
+    /// no size appears and nothing is said.
+    /// </remarks>
+    private static string? Valley(EquationSystem system, double[] x)
+    {
+        var columns = system.Columns;
+        var residuals = new double[system.Rows];
+        var rebuilt = new double[columns * columns];
+
+        if (!system.TryEvaluateScaled(x, residuals)
+            || !Jacobian(system, x, residuals, new double[columns], new double[system.Rows], rebuilt))
+        {
+            return null;
+        }
+
+        var sizes = NullDirection.Of(rebuilt, columns, Tolerances.JacobianValley)
+            .Where(static participant => Math.Abs(participant.Weight) >= 10 * NullDirection.Significant)
+            .Select(participant => system.Unknowns.Unknowns[participant.Index])
+            .Where(static unknown => unknown.Kind == UnknownKind.Parameter)
+            .Select(static unknown => unknown.Name)
+            .ToArray();
+
+        return sizes.Length switch
+        {
+            < 2 => null,
+            2 => sizes[0] + " and " + sizes[1],
+            _ => string.Join(", ", sizes[..^1]) + " and " + sizes[^1],
+        };
+    }
+
     /// <summary>Names one equation the way a user would recognise it.</summary>
     /// <param name="system">The assembled system.</param>
     /// <param name="row">The equation's row.</param>
@@ -706,6 +750,22 @@ public sealed class NewtonSolver : ISolver
                 new DiagnosticArgument("parameter", system.Unknowns.Unknowns[column].Name),
                 Number("head", x[column]),
                 new DiagnosticArgument("component", holds)));
+        }
+
+        // `FS3016` is a statement about the answer too: whether it is a point or a place on a valley
+        // (`S-37`, `D-142`). One more Jacobian on a run that is over, and the direction its weakest
+        // pivot leaves nearly free; two or more sizes moving together in it is the shared path.
+        if (termination is SolveTermination.Converged)
+        {
+            var valley = Valley(system, x);
+
+            if (valley is not null)
+            {
+                diagnostics.Add(Diagnostic.Create(
+                    SolverDiagnostics.Valley,
+                    null,
+                    new DiagnosticArgument("parameters", valley)));
+            }
         }
 
         var raw = new double[system.Rows];

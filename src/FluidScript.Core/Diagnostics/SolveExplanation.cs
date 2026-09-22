@@ -979,6 +979,21 @@ public static class SolveExplanation
                 + $"ratio {(seedLargest > 0 ? seedSmallest / seedLargest : 0):G4}; rank {seedRank}");
         }
 
+        // A full-rank answer can still be a place on a valley (`S-37`): the weakest direction is printed
+        // whenever the pivot ratio is under the valley tolerance, so a session can see which unknowns
+        // move together before `FS3016` -- or anything else -- is claimed about them.
+        if (undetermined == 0 && dependent == 0 && rows == columns
+            && largest > 0 && smallest / largest < Tolerances.JacobianValley)
+        {
+            report.AppendLine();
+            report.AppendLine(CultureInfo.InvariantCulture,
+                $"    a valley: the weakest direction, at pivot ratio under {Tolerances.JacobianValley:G1}, "
+                + $"along which these move together:");
+            var valley = NullDirection.Of([.. matrix], columns, Tolerances.JacobianValley);
+
+            Direction(report, valley, index => system.Unknowns.Unknowns[index].Name);
+        }
+
         if (undetermined == 0 && dependent == 0)
         {
             return;
