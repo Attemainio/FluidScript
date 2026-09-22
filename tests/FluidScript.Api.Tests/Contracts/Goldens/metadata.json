@@ -5668,6 +5668,15 @@
       ]
     },
     {
+      "code": "FS3016",
+      "severity": "warning",
+      "area": "Solver",
+      "message": "{parameters} move together along a valley of the circuit: one series path fixes only their combination, so the values shown are one answer among those the script allows. State all but one of them, or decouple the blocks so the path is no longer shared.",
+      "arguments": [
+        "parameters"
+      ]
+    },
+    {
       "code": "FS4008",
       "severity": "error",
       "area": "DesignWarning",
