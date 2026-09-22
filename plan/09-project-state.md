@@ -1247,6 +1247,19 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > papered over: the interface-flow formula's non-zero branches have no fixture (`S-80`), and V17's
 > refinement half compares the solver against itself because `62`'s independent table was never
 > written (`S-81`). 47 open.
+>
+> **`D-144` accepted 2026-09-22, no code:** a heat exchanger's hold-up is plate area times the channel
+> gap. The obvious rule was litres per kW and the search does not support one — manufacturers publish
+> hold-up per channel, and the published litres-per-kW figures (11, 17–18, 25–27, 30) are *system*
+> water content for buffer sizing, wrong here by two orders of magnitude. What the search does support
+> is the gap: 0.040 l per channel behind a 73.5 × 278 mm plate on an AC18 and 0.103 l behind a
+> 113 × 466 mm plate on a CB60 both give **1.96 mm**, two models an order of magnitude apart in duty.
+> This project's reasoning, and the part to test: that gap is measured against projected plate area
+> while a quoted heat transfer area is the developed area, larger by an enlargement factor of order
+> 1.15–1.25, so the rule reads high by that much. A sized `area` deliberately does not feed it —
+> sizing runs after lowering, so the hold-up would appear between passes and change the counting table
+> mid-solve — which is the same shape as `D-99` stopping at `ua` with no default `U`. `C-114` rewritten
+> with the build that remains, `C-118` opened for the profile. 49 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1333,13 +1346,16 @@ unassessed, not clean.
 
 ## What is next
 
-**`C-114` is next** (the user's call, 2026-09-22): a heat exchanger has no hold-up volume, so its
-outlet jumps within one step — P6.1 measured 50.06 → 65.09 °C — where a brazed plate unit in that
-duty class holds about a litre a side, a quarter of the demand-step loop. It is a registry row and a
-`ThermalVolume` on the exchanger's internal node with no solver change, and it is **cheap now and
-expensive later**: a differential state travels in the frame, so adding one after `43`'s contract and
-the frontend exist costs a version bump. The litre is a hunch until a manufacturer's hold-up figure
-is cited. Then P6.3, which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
+**`C-114` is next, and its physics is now settled** (`D-144`, 2026-09-22): hold-up per side is plate
+area times a 1.96 mm channel gap, measured consistently on two Alfa Laval models, which is 0.8–1.0 l
+per m² of area. **The code is not built.** It is a restructure rather than plumbing — the hold-up is
+the exchanger's own unknown per connected side, so the duty moves off the downstream node's balance
+onto the hold-up's row, reversing half of `D-69`, and the tank-only branches of
+`SystemLayout.Differential` and `EquationSystem.Pin` generalise. Do it as its own package and read the
+corpus report before and after; it is **cheap now and expensive later**, because a differential state
+travels in the frame and adding one after `43`'s contract and the frontend exist costs a version bump.
+`C-118` (one mixed volume over-damps; the profile is logarithmic) follows it, not with it. Then P6.3,
+which **needs `S-79` first**: where a run's t = 0 sits on a time curve's
 timestamp axis, which `D-143` did not resolve and which a setpoint following a curve reaches
 immediately. P6.8 is **sizing over scenarios** (`D-143`), tier-20 work runnable in parallel and
 specified end to end in `24` §Sizing over scenarios, `12` and `15`; its two open measurements are
