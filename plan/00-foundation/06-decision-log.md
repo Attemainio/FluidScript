@@ -186,6 +186,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-141` | Accepted | 2026-09-22 | A run starts from its design state, and an unstated actuator's setpoint is its design-point constraint; the cold start is a later opt-in |
 | `D-142` | Accepted | 2026-09-22 | A series path with two free sizes in it is a valley, and the solver says so rather than landing on it |
 | `D-143` | Accepted | 2026-09-22 | A plant is sized for a stated list of scenarios, not for a swept driver range |
+| `D-144` | Accepted | 2026-09-22 | A heat exchanger's hold-up is its plate area times the channel gap, and it is one mixed volume per side |
 <!-- index:end -->
 
 ---
@@ -6594,3 +6595,78 @@ still has no clock anchor (`S-79`).
   "sized at scenario 2" tells an engineer nothing, and the UI switcher has nothing to label.
 - *Cross-product of arrays rather than a positional zip.* More general. Cost: two arrays of four
   become sixteen solves and the count is invisible in the file; the user's zip is the bounded one.
+
+## D-144 · A heat exchanger's hold-up is its plate area times the channel gap, and it is one mixed volume per side
+
+**Accepted · 2026-09-22** (the user's proposal: "we can derive the hold up from the logarithmic
+temperature difference from sizing", refined to the geometric form below; "Yeah, this will do") ·
+closes the citation half of `C-114` · constrains
+[`22`](../20-core-domain/22-component-model.md), [`24`](../20-core-domain/24-auto-sizing.md),
+[`27`](../20-core-domain/27-component-catalog.md), [`33`](../30-solver/33-transient-time-domain.md)
+
+A heat exchanger had no volume, so in a run its outlet enthalpy is an algebraic consequence of its
+inlet and its duty and jumps within one step. P6.1 measured the artifact on the demand-step loop:
+50.06 → 65.09 °C between two frames. A real unit holds water.
+
+**The obvious rule was a litres-per-kW default, and the search does not support one.** Manufacturer
+literature publishes hold-up per channel, not per kW, and the litres-per-kW figures that are
+published — 11, 17–18, 25–27, 30 l/kW — are *system* water content for buffer sizing, a different
+quantity that would have been wrong by two orders of magnitude if borrowed.
+
+**What the search does support is a channel gap, and it is remarkably constant.** Hold-up per side is
+plate area times the gap behind it, so the only looked-up number is the gap:
+
+| Model | Volume per channel | Plate width × port distance | Implied gap |
+|---|---|---|---|
+| Alfa Laval AC18 (2–10 kW) | 0.040 l | 73.5 × 278 mm | 1.96 mm |
+| Alfa Laval CB60 | 0.103 l | 113 × 466 mm | 1.96 mm |
+
+Two models an order of magnitude apart in duty, both at 1.96 mm. Sources:
+`https://s3.eu-west-2.amazonaws.com/cdn.productsolutions.co.uk/2017/04/ac18.pdf` and
+`https://www.alfalaval.com/globalassets/documents/microsites/heating-and-cooling-hub/pd-leaflets/cb60.pdf`.
+Folded back through the plate count this is roughly **0.8 to 1.0 litres per m² of heat transfer area,
+per side**, which puts the substation sample's 3.658 m² exchanger at about 3 litres a side.
+
+**This project's reasoning, and the part most worth testing:** the 1.96 mm is measured against the
+*projected* plate area, width times port distance, while a manufacturer's quoted heat transfer area
+is conventionally the *developed* area of the corrugated plate, larger by an enlargement factor of
+order 1.15 to 1.25. The rule below therefore overestimates hold-up by that factor when it reads a
+quoted area. The factor is not invented here with a number; it is named as the uncertainty, and a
+stated `volume=` is the escape.
+
+### The rule
+
+- `volume` is a registry parameter on `heat_exchanger`, canonical `dm³`, and a stated value is a
+  constraint like any other.
+- Omitted, the hold-up is `area × 1.96 mm / 2` per side from a **stated** `area`.
+- With neither, the exchanger has no hold-up, exactly as today, and a transient reports it
+  informationally rather than guessing. **A sized `area` does not feed it**: sizing runs after
+  lowering, so a hold-up derived from it would appear between passes and change the counting table
+  mid-solve. This is the same shape as `D-99`, where the rule stops at `ua` because no default `U`
+  exists, and it is recorded as the narrow gap it is.
+
+### One mixed volume per side, and what that gets wrong
+
+The hold-up is **one perfectly mixed control volume per connected side**, declared as the component's
+own unknown and pinned in a run exactly as a tank's layer is (`D-139`), not as a node inserted in the
+circuit. An unknown declared only where a volume exists leaves every existing counting table
+untouched, which an inserted node would not.
+
+**One mixed volume over-damps, and the user named why.** The water inside spans inlet to outlet along
+the logarithmic profile the LMTD and NTU relations describe, so the real response is closer to plug
+flow with distributed heating than to a first-order lag at outlet temperature. Both have the same
+capacity and the same steady state; they differ in the shape of the transient, and on the demand-step
+loop the difference is second-order against the pipe's 38 s. Getting it right means discretizing each
+side and splitting the duty between cells by local temperature difference, which is a change to the
+exchanger's residual rather than to its plumbing, and it is `C-118` rather than a half-built version
+of this.
+
+**Rejected.**
+- *A litres-per-kW default.* What `C-114` proposed. Cost: the search does not support it, and the
+  published figures with those units are a different quantity.
+- *A node inserted on each side's outlet.* Reuses the pipe-cell path with no component change. Cost:
+  it changes every counting table, every compile golden and every layout for every sample with an
+  exchanger, whether or not the exchanger has a volume.
+- *Three cells per side by default.* Closer to the real profile. Cost: on a typical unit it puts the
+  stability limit near 1.2 s against a 1 s frame interval, so it binds with no headroom, and it needs
+  the duty split that `C-118` owns.
