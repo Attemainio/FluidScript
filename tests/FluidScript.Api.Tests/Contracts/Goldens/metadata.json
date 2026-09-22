@@ -1,6 +1,6 @@
 {
   "restMajor": 1,
-  "contractVersion": "2.1",
+  "contractVersion": "2.2",
   "language": {
     "current": 1,
     "supported": [
@@ -2638,6 +2638,13 @@
       "canonicalUnit": null,
       "units": [
         "%"
+      ],
+      "conversions": [
+        {
+          "symbol": "%",
+          "factor": 0.01,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2652,6 +2659,43 @@
         "km",
         "in",
         "ft"
+      ],
+      "conversions": [
+        {
+          "symbol": "m",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "mm",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "cm",
+          "factor": 0.01,
+          "offset": 0
+        },
+        {
+          "symbol": "dm",
+          "factor": 0.1,
+          "offset": 0
+        },
+        {
+          "symbol": "km",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "in",
+          "factor": 0.0254,
+          "offset": 0
+        },
+        {
+          "symbol": "ft",
+          "factor": 0.3048,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2664,6 +2708,33 @@
         "K",
         "F",
         "°F"
+      ],
+      "conversions": [
+        {
+          "symbol": "C",
+          "factor": 1,
+          "offset": 273.15
+        },
+        {
+          "symbol": "°C",
+          "factor": 1,
+          "offset": 273.15
+        },
+        {
+          "symbol": "K",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "F",
+          "factor": 0.5555555555555556,
+          "offset": 255.3722222222222
+        },
+        {
+          "symbol": "°F",
+          "factor": 0.5555555555555556,
+          "offset": 255.3722222222222
+        }
       ]
     },
     {
@@ -2673,6 +2744,18 @@
       "units": [
         "dK",
         "dC"
+      ],
+      "conversions": [
+        {
+          "symbol": "dK",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "dC",
+          "factor": 1,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2696,6 +2779,88 @@
         "bara",
         "mbara",
         "psia"
+      ],
+      "conversions": [
+        {
+          "symbol": "Pa",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kPa",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "MPa",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "symbol": "bar",
+          "factor": 100000,
+          "offset": 0
+        },
+        {
+          "symbol": "mbar",
+          "factor": 100,
+          "offset": 0
+        },
+        {
+          "symbol": "psi",
+          "factor": 6894.757293168361,
+          "offset": 0
+        },
+        {
+          "symbol": "mH2O",
+          "factor": 9806.65,
+          "offset": 0
+        },
+        {
+          "symbol": "mmH2O",
+          "factor": 9.80665,
+          "offset": 0
+        },
+        {
+          "symbol": "kPag",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "barg",
+          "factor": 100000,
+          "offset": 0
+        },
+        {
+          "symbol": "Paa",
+          "factor": 1,
+          "offset": -101325
+        },
+        {
+          "symbol": "kPaa",
+          "factor": 1000,
+          "offset": -101325
+        },
+        {
+          "symbol": "MPaa",
+          "factor": 1000000,
+          "offset": -101325
+        },
+        {
+          "symbol": "bara",
+          "factor": 100000,
+          "offset": -101325
+        },
+        {
+          "symbol": "mbara",
+          "factor": 100,
+          "offset": -101325
+        },
+        {
+          "symbol": "psia",
+          "factor": 6894.757293168361,
+          "offset": -101325
+        }
       ]
     },
     {
@@ -2714,6 +2879,63 @@
         "dPa",
         "dkPa",
         "dbar"
+      ],
+      "conversions": [
+        {
+          "symbol": "Pa",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kPa",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "MPa",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "symbol": "bar",
+          "factor": 100000,
+          "offset": 0
+        },
+        {
+          "symbol": "mbar",
+          "factor": 100,
+          "offset": 0
+        },
+        {
+          "symbol": "psi",
+          "factor": 6894.757293168361,
+          "offset": 0
+        },
+        {
+          "symbol": "mH2O",
+          "factor": 9806.65,
+          "offset": 0
+        },
+        {
+          "symbol": "mmH2O",
+          "factor": 9.80665,
+          "offset": 0
+        },
+        {
+          "symbol": "dPa",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "dkPa",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "dbar",
+          "factor": 100000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2725,6 +2947,28 @@
         "kW",
         "MW",
         "hp"
+      ],
+      "conversions": [
+        {
+          "symbol": "W",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kW",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "MW",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "symbol": "hp",
+          "factor": 745.6998715822702,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2738,6 +2982,38 @@
         "Wh",
         "kWh",
         "MWh"
+      ],
+      "conversions": [
+        {
+          "symbol": "J",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kJ",
+          "factor": 1000,
+          "offset": 0
+        },
+        {
+          "symbol": "MJ",
+          "factor": 1000000,
+          "offset": 0
+        },
+        {
+          "symbol": "Wh",
+          "factor": 3600,
+          "offset": 0
+        },
+        {
+          "symbol": "kWh",
+          "factor": 3600000,
+          "offset": 0
+        },
+        {
+          "symbol": "MWh",
+          "factor": 3600000000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2748,6 +3024,23 @@
         "kg/s",
         "kg/h",
         "t/h"
+      ],
+      "conversions": [
+        {
+          "symbol": "kg/s",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kg/h",
+          "factor": 0.0002777777777777778,
+          "offset": 0
+        },
+        {
+          "symbol": "t/h",
+          "factor": 0.2777777777777778,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2760,6 +3053,33 @@
         "l/s",
         "l/min",
         "l/h"
+      ],
+      "conversions": [
+        {
+          "symbol": "m3/s",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "m3/h",
+          "factor": 0.0002777777777777778,
+          "offset": 0
+        },
+        {
+          "symbol": "l/s",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "l/min",
+          "factor": 1.6666666666666667E-05,
+          "offset": 0
+        },
+        {
+          "symbol": "l/h",
+          "factor": 2.7777777777777776E-07,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2770,6 +3090,23 @@
         "kg",
         "g",
         "t"
+      ],
+      "conversions": [
+        {
+          "symbol": "kg",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "g",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "t",
+          "factor": 1000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2782,6 +3119,33 @@
         "min",
         "h",
         "d"
+      ],
+      "conversions": [
+        {
+          "symbol": "s",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "ms",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "min",
+          "factor": 60,
+          "offset": 0
+        },
+        {
+          "symbol": "h",
+          "factor": 3600,
+          "offset": 0
+        },
+        {
+          "symbol": "d",
+          "factor": 86400,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2791,6 +3155,18 @@
       "units": [
         "m/s",
         "km/h"
+      ],
+      "conversions": [
+        {
+          "symbol": "m/s",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "km/h",
+          "factor": 0.2777777777777778,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2799,6 +3175,13 @@
       "canonicalUnit": "kg/m3",
       "units": [
         "kg/m3"
+      ],
+      "conversions": [
+        {
+          "symbol": "kg/m3",
+          "factor": 1,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2808,6 +3191,18 @@
       "units": [
         "J/(kg*K)",
         "kJ/(kg*K)"
+      ],
+      "conversions": [
+        {
+          "symbol": "J/(kg*K)",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kJ/(kg*K)",
+          "factor": 1000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2817,6 +3212,18 @@
       "units": [
         "J/kg",
         "kJ/kg"
+      ],
+      "conversions": [
+        {
+          "symbol": "J/kg",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kJ/kg",
+          "factor": 1000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2827,6 +3234,23 @@
         "m2",
         "mm2",
         "cm2"
+      ],
+      "conversions": [
+        {
+          "symbol": "m2",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "mm2",
+          "factor": 1E-06,
+          "offset": 0
+        },
+        {
+          "symbol": "cm2",
+          "factor": 0.0001,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2838,25 +3262,50 @@
         "dm3",
         "l",
         "ml"
+      ],
+      "conversions": [
+        {
+          "symbol": "m3",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "dm3",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "l",
+          "factor": 0.001,
+          "offset": 0
+        },
+        {
+          "symbol": "ml",
+          "factor": 1E-06,
+          "offset": 0
+        }
       ]
     },
     {
       "name": "Kv",
       "siUnit": "m3/h",
       "canonicalUnit": null,
-      "units": []
+      "units": [],
+      "conversions": []
     },
     {
       "name": "Head",
       "siUnit": "m",
       "canonicalUnit": null,
-      "units": []
+      "units": [],
+      "conversions": []
     },
     {
       "name": "NominalDiameter",
       "siUnit": "",
       "canonicalUnit": null,
-      "units": []
+      "units": [],
+      "conversions": []
     },
     {
       "name": "Pixels",
@@ -2864,6 +3313,13 @@
       "canonicalUnit": "px",
       "units": [
         "px"
+      ],
+      "conversions": [
+        {
+          "symbol": "px",
+          "factor": 1,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2873,6 +3329,18 @@
       "units": [
         "W/(m2*K)",
         "kW/(m2*K)"
+      ],
+      "conversions": [
+        {
+          "symbol": "W/(m2*K)",
+          "factor": 1,
+          "offset": 0
+        },
+        {
+          "symbol": "kW/(m2*K)",
+          "factor": 1000,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2881,6 +3349,13 @@
       "canonicalUnit": "m2*K/W",
       "units": [
         "m2*K/W"
+      ],
+      "conversions": [
+        {
+          "symbol": "m2*K/W",
+          "factor": 1,
+          "offset": 0
+        }
       ]
     },
     {
@@ -2889,6 +3364,13 @@
       "canonicalUnit": "m/s2",
       "units": [
         "m/s2"
+      ],
+      "conversions": [
+        {
+          "symbol": "m/s2",
+          "factor": 1,
+          "offset": 0
+        }
       ]
     }
   ],

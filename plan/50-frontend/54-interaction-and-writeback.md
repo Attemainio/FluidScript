@@ -39,9 +39,10 @@ primitive (150 ms, flips at the pane's edges) and by the editor through CodeMirr
 one component, two mount points. Selection is `state/selectionStore.ts`, ids per document with the
 origin of the last change: the canvas selects on click and Shift+click and clears on Escape, the
 editor selects when the caret lands on a declaration, the log on its component column; the editor
-highlights the declaration's line and scrolls to it when the change came from elsewhere. What the
-wire lacks for the connection card: velocity and Reynolds number (`A-6`); it shows the flow and,
-for a line carrying a pipe, the pipe's parameters and pressure drop. The inferred component's card
+highlights the declaration's line and scrolls to it when the change came from elsewhere. The
+connection card shows the flow and, for a line carrying a pipe, the pipe's parameters, its velocity,
+its Reynolds number and its pressure drop -- the last three from the pipe's state on the wire since
+`A-6` closed (2026-09-22), computed in Core where the bore is. The inferred component's card
 says so; the "write this into the script" offer waits for `Materialize` (P7.1).
 
 ## Hover

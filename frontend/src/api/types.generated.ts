@@ -311,6 +311,14 @@ export interface ComponentState {
    */
   dp?: Quantity | null;
   /**
+   * A pipe's mean velocity, m/s: the mass flow over the mean of the two ports' densities and the bore's flow area -- the velocity its pressure drop was computed at (A-6).
+   */
+  velocity?: Quantity | null;
+  /**
+   * A pipe's Reynolds number at that velocity, with the mean density and dynamic viscosity of its two ports; dimensionless. Below 2300 the flow is laminar, above 4000 turbulent, and the pressure drop blends between (A-6).
+   */
+  re?: Quantity | null;
+  /**
    * Heat into the fluid on the first side, positive when the fluid gains.
    */
   power?: Quantity | null;
@@ -1380,6 +1388,25 @@ export interface Dimension {
    * Every unit symbol accepted for this dimension.
    */
   units: string[];
+  /**
+   * How each of converts to , in the same order (A-6): the editor's quantity hover shows a value in SI and in the alternative units from this, so no second unit table exists on the client.
+   */
+  conversions: UnitConversion[];
+}
+
+export interface UnitConversion {
+  /**
+   * The symbol as a script writes it.
+   */
+  symbol: string;
+  /**
+   * The multiplier to the SI base unit: 1000 for kW.
+   */
+  factor: number;
+  /**
+   * Added after scaling, in the SI base unit: 273.15 for °C; zero for every ratio unit.
+   */
+  offset: number;
 }
 
 export interface DiagnosticCode {

@@ -1,4 +1,4 @@
-import type { Diagnostic, ModelContract, Quantity } from '../../api/types.ts';
+import type { Diagnostic, Metadata, ModelContract, Quantity } from '../../api/types.ts';
 
 /** One row of a hover card: a name, a value with its unit, and for a parameter where it came from. */
 export interface CardRow {
@@ -49,6 +49,8 @@ const stateLabels: Readonly<Record<string, string>> = {
   pIn: 'p in',
   pOut: 'p out',
   dp: 'Δp',
+  velocity: 'velocity',
+  re: 'Re',
   power: 'power',
   head: 'head',
   t: 't',
@@ -147,9 +149,16 @@ export function connectionCard(model: ModelContract | null, id: string): Card | 
         });
       }
     }
-    const dp = pipe.state?.dp;
-    if (dp !== null && dp !== undefined && dp.value !== null) {
-      state.push({ label: 'Δp', value: formatValue(dp.value), unit: dp.unit });
+    // 54: flow, velocity, Reynolds number and pressure drop, the numbers a designer wants about a run (A-6).
+    for (const [key, label] of [
+      ['velocity', 'velocity'],
+      ['re', 'Re'],
+      ['dp', 'Δp'],
+    ] as const) {
+      const quantity = pipe.state?.[key];
+      if (quantity !== null && quantity !== undefined && quantity.value !== null) {
+        state.push({ label, value: formatValue(quantity.value), unit: quantity.unit });
+      }
     }
   }
   const from =
@@ -188,6 +197,39 @@ export function bindingCard(model: ModelContract | null, name: string): Card | n
       binding.value === null
         ? []
         : [{ label: 'value', value: formatValue(binding.value), unit: binding.unit ?? '' }],
+    warnings: [],
+    note: null,
+  };
+}
+
+/**
+ * The card of a quantity literal (`52`): its value in SI and in every other unit of its dimension,
+ * converted from the factors the metadata carries (A-6), so the client holds no unit table of its own.
+ */
+export function quantityCard(text: string, metadata: Metadata): Card | null {
+  const symbol = text.replace(/^[\d.eE+-]+\s*/, '');
+  const written = Number(text.slice(0, text.length - symbol.length).trim());
+  const dimension = metadata.dimensions.find((d) => d.units.includes(symbol));
+  if (dimension === undefined || Number.isNaN(written)) {
+    return null;
+  }
+  const from = dimension.conversions.find((c) => c.symbol === symbol);
+  const state: CardRow[] = [];
+  if (from !== undefined) {
+    const si = written * from.factor + from.offset;
+    state.push({ label: 'SI', value: formatValue(si), unit: dimension.siUnit });
+    for (const to of dimension.conversions) {
+      if (to.symbol !== symbol && to.symbol !== dimension.siUnit) {
+        state.push({ label: to.symbol, value: formatValue((si - to.offset) / to.factor), unit: to.symbol });
+      }
+    }
+  }
+  return {
+    title: text,
+    subtitle: `${dimension.name} · canonical ${dimension.canonicalUnit ?? dimension.siUnit}`,
+    inferred: false,
+    parameters: [],
+    state,
     warnings: [],
     note: null,
   };

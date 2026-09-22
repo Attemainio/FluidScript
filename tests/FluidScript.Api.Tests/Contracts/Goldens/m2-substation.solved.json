@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2.1",
+  "contractVersion": "2.2",
   "provenance": {
     "sourceHash": "sha256:e578cc6e3431b9166abd1e3f201317ca5b097123d8b76aad24621c1f94df68c5",
     "languageMajor": 1,
@@ -595,6 +595,14 @@
         "dp": {
           "value": 12.6498,
           "unit": "kPa"
+        },
+        "velocity": {
+          "value": 1.57959,
+          "unit": "m/s"
+        },
+        "re": {
+          "value": 125453,
+          "unit": ""
         }
       },
       "ports": [
@@ -669,6 +677,14 @@
         "dp": {
           "value": 29.5601,
           "unit": "kPa"
+        },
+        "velocity": {
+          "value": 1.79262,
+          "unit": "m/s"
+        },
+        "re": {
+          "value": 136438,
+          "unit": ""
         }
       },
       "ports": [
@@ -743,6 +759,14 @@
         "dp": {
           "value": 30.0452,
           "unit": "kPa"
+        },
+        "velocity": {
+          "value": 1.77635,
+          "unit": "m/s"
+        },
+        "re": {
+          "value": 97481.5,
+          "unit": ""
         }
       },
       "ports": [

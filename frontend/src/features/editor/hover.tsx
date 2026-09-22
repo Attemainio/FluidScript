@@ -2,7 +2,7 @@ import { hoverTooltip, type EditorView, type Tooltip } from '@codemirror/view';
 import { createRoot, type Root } from 'react-dom/client';
 
 import type { Metadata, ModelContract } from '../../api/types.ts';
-import { bindingCard, componentCard, type Card } from '../hover/card.ts';
+import { bindingCard, componentCard, quantityCard, type Card } from '../hover/card.ts';
 import { HoverCard } from '../hover/HoverCard.tsx';
 import { lexLine } from './language/tokenizer.ts';
 import { draftOf, useDraftStore } from '../../state/draftStore.ts';
@@ -71,20 +71,7 @@ function cardFor(
     return componentCard(model, hit.text, diagnostics) ?? bindingCard(model, hit.text);
   }
   if (hit.kind === 'QuantityLiteral' && metadata !== null) {
-    const symbol = hit.text.replace(/^[\d.eE+-]+\s*/, '');
-    const dimension = metadata.dimensions.find((d) => d.units.includes(symbol));
-    if (dimension === undefined) {
-      return null;
-    }
-    return {
-      title: hit.text,
-      subtitle: `${dimension.name} · canonical ${dimension.canonicalUnit ?? dimension.siUnit}`,
-      inferred: false,
-      parameters: [],
-      state: [],
-      warnings: [],
-      note: null,
-    };
+    return quantityCard(hit.text, metadata);
   }
   return null;
 }

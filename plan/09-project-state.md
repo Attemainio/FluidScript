@@ -1152,6 +1152,10 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > **`U-6` and `T-2` closed 2026-09-22:** an ambiguous completion list opens on the typed text
 > itself, which inserts nothing, and the properties page is held to the resolver -- every spelling
 > the registry offers a reference must resolve and have a row. 40 open.
+>
+> **`A-6` closed 2026-09-22:** unit factors and offsets travel in the metadata, so the quantity hover
+> converts; a pipe's state carries the velocity and Reynolds number its drop was computed at, from
+> the mean properties the residual used, and the connection card shows them. Contract `2.2`. 39 open.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 

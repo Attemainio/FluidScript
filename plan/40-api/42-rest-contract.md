@@ -147,7 +147,9 @@ The static description of the language: every component kind with parameters, al
 fixed ports and indexed port/parameter-family patterns (`D-32`),
 `SymbolId` and `SymbolDefinition` delivered under `D-24`; every unit and diagnostic; current/supported language and contract
 versions; exact catalogue/property versions; quality/input/concurrency limits; and `docsIndex`, a URI
-to the matching generated function index. Cacheable with an ETag. Parameters and properties are
+to the matching generated function index. Each dimension lists its unit symbols and, beside them in
+the same order, each symbol's conversion to the SI base unit as a factor and an offset (`A-6`,
+2026-09-22): the client converts from these and holds no unit table of its own. Cacheable with an ETag. Parameters and properties are
 listed by name and a parameter's range is in its canonical unit (P5.5, `A-5`), and the document is
 committed as `Api.Tests/Contracts/Goldens/metadata.json` so the editor's completion tests run against
 the real registry without a host. The editor's lexicon -- the reserved words, the unit symbols and

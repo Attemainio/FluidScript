@@ -241,6 +241,14 @@ public sealed record ComponentStateWire
     [AbsentWhenNull]
     public QuantityWire? Dp { get; init; }
 
+    /// <summary>A pipe's mean velocity, m/s: the mass flow over the mean of the two ports' densities and the bore's flow area -- the velocity its pressure drop was computed at (<c>A-6</c>).</summary>
+    [AbsentWhenNull]
+    public QuantityWire? Velocity { get; init; }
+
+    /// <summary>A pipe's Reynolds number at that velocity, with the mean density and dynamic viscosity of its two ports; dimensionless. Below 2300 the flow is laminar, above 4000 turbulent, and the pressure drop blends between (<c>A-6</c>).</summary>
+    [AbsentWhenNull]
+    public QuantityWire? Re { get; init; }
+
     /// <summary>Heat into the fluid on the first side, positive when the fluid gains.</summary>
     [AbsentWhenNull]
     public QuantityWire? Power { get; init; }

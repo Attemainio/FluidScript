@@ -191,7 +191,14 @@ public sealed record IndexedPropertyWire(string Pattern, int MinIndex, int? MaxI
 /// <param name="SiUnit">The unit Core computes in.</param>
 /// <param name="CanonicalUnit">The unit a bare number means and the wire reports in, or <see langword="null"/>.</param>
 /// <param name="Units">Every unit symbol accepted for this dimension.</param>
-public sealed record DimensionWire(string Name, string SiUnit, string? CanonicalUnit, ImmutableArray<string> Units);
+/// <param name="Conversions">How each of <paramref name="Units"/> converts to <paramref name="SiUnit"/>, in the same order (<c>A-6</c>): the editor's quantity hover shows a value in SI and in the alternative units from this, so no second unit table exists on the client.</param>
+public sealed record DimensionWire(string Name, string SiUnit, string? CanonicalUnit, ImmutableArray<string> Units, ImmutableArray<UnitConversionWire> Conversions);
+
+/// <summary>One unit symbol's conversion to its dimension's SI base unit: <c>si = value × Factor + Offset</c> (<c>13</c>).</summary>
+/// <param name="Symbol">The symbol as a script writes it.</param>
+/// <param name="Factor">The multiplier to the SI base unit: 1000 for <c>kW</c>.</param>
+/// <param name="Offset">Added after scaling, in the SI base unit: 273.15 for <c>°C</c>; zero for every ratio unit.</param>
+public sealed record UnitConversionWire(string Symbol, double Factor, double Offset);
 
 /// <summary>One diagnostic code.</summary>
 /// <param name="Code">The code, <c>FS1302</c>.</param>

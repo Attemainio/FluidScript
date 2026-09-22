@@ -34,7 +34,7 @@ namespace FluidScript.Core.Model;
 public static class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "2.1";
+    public const string ContractVersion = "2.2";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", Fluids.PropertyBackend.PackageVersion);
@@ -457,6 +457,27 @@ public static class ModelContractBuilder
                 }
 
                 break;
+
+            case Pipe pipe:
+            {
+                // The same mean properties the pipe's own residual used (Pipe.EvaluateResiduals), so
+                // the velocity reported is the one its pressure drop was computed at (A-6).
+                var density = (inlet.Density + outlet.Density) / 2;
+                var viscosity = (inlet.DynamicViscosity + outlet.DynamicViscosity) / 2;
+
+                if (density > 0 && pipe.FlowArea > 0)
+                {
+                    var velocity = massFlow / (density * pipe.FlowArea);
+                    state = state with { Velocity = Q(velocity, Dimension.Velocity, "velocity") };
+
+                    if (viscosity > 0)
+                    {
+                        state = state with { Re = Q(density * velocity * pipe.InsideDiameter / viscosity, Dimension.Dimensionless, "re") };
+                    }
+                }
+
+                break;
+            }
         }
 
         return state;

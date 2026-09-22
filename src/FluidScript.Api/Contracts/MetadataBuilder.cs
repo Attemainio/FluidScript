@@ -149,12 +149,17 @@ public sealed class MetadataDocument
     private static PropertyMetaWire Property(PropertyInfo property) =>
         new(property.Name, property.Dimension.IsNamed ? property.Dimension.Name : null, property.CanonicalUnit, property.Availability.ToString().ToLowerInvariant());
 
-    private static DimensionWire DimensionOf(Dimension dimension) =>
-        new(
+    private static DimensionWire DimensionOf(Dimension dimension)
+    {
+        var units = UnitTable.All.Where(unit => unit.Dimension == dimension).ToImmutableArray();
+
+        return new DimensionWire(
             dimension.Name,
             dimension.SiUnit,
             dimension.CanonicalUnit,
-            [.. UnitTable.All.Where(unit => unit.Dimension == dimension).Select(static unit => unit.Text)]);
+            [.. units.Select(static unit => unit.Text)],
+            [.. units.Select(static unit => new UnitConversionWire(unit.Text, unit.Factor, unit.Offset))]);
+    }
 
     private static string Role(PortRole role) => role.ToString().ToLowerInvariant();
 }

@@ -333,6 +333,8 @@ A component's solved operating point. Fields a kind does not have are absent.
 | `pIn` | [`Quantity`](#quantity) or `null` | Pressure at the inlet port, gauge in the canonical unit (`D-26`). Absent when not applicable. |
 | `pOut` | [`Quantity`](#quantity) or `null` | Pressure at the outlet port, gauge in the canonical unit (`D-26`). Absent when not applicable. |
 | `dp` | [`Quantity`](#quantity) or `null` | Pressure drop inlet to outlet; negative across a pump. Absent when not applicable. |
+| `velocity` | [`Quantity`](#quantity) or `null` | A pipe's mean velocity, m/s: the mass flow over the mean of the two ports' densities and the bore's flow area -- the velocity its pressure drop was computed at (`A-6`). Absent when not applicable. |
+| `re` | [`Quantity`](#quantity) or `null` | A pipe's Reynolds number at that velocity, with the mean density and dynamic viscosity of its two ports; dimensionless. Below 2300 the flow is laminar, above 4000 turbulent, and the pressure drop blends between (`A-6`). Absent when not applicable. |
 | `power` | [`Quantity`](#quantity) or `null` | Heat into the fluid on the first side, positive when the fluid gains. Absent when not applicable. |
 | `flow2` | [`Quantity`](#quantity) or `null` | Mass flow on an exchanger's second side. Absent when not applicable. |
 | `tIn2` | [`Quantity`](#quantity) or `null` | Temperature at the second side's inlet. Absent when not applicable. |

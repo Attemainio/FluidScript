@@ -1,7 +1,20 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
+import type { Metadata } from '../../api/types.ts';
 import { solvedGoldens } from '../../test/goldens.ts';
-import { bindingCard, componentCard, connectionCard, formatValue } from './card.ts';
+import { bindingCard, componentCard, connectionCard, formatValue, quantityCard } from './card.ts';
+
+const metadata = JSON.parse(
+  readFileSync(
+    fileURLToPath(
+      new URL('../../../../tests/FluidScript.Api.Tests/Contracts/Goldens/metadata.json', import.meta.url),
+    ),
+    'utf8',
+  ),
+) as Metadata;
 
 const loop = solvedGoldens().find((g) => g.name === 'm2-cooling-loop')!.model;
 
@@ -54,6 +67,31 @@ describe('the hover card', () => {
     expect(c9.parameters.map((p) => p.label)).toContain('length');
     expect(c9.state.map((r) => r.label)).toEqual(expect.arrayContaining(['flow']));
     expect(connectionCard(loop, 'c0')!.subtitle).toBe('connection');
+  });
+
+  it('shows a pipe run with its velocity and Reynolds number from the wire (54, A-6)', () => {
+    const pipe = loop.components.find((c) => c.kind === 'pipe' && c.state?.velocity != null)!;
+    const connection = loop.connections.find(
+      (c) => c.from.component === pipe.id || c.to.component === pipe.id,
+    )!;
+    const card = connectionCard(loop, connection.id)!;
+    expect(card.state.map((r) => r.label)).toEqual(expect.arrayContaining(['flow', 'velocity', 'Re', 'Δp']));
+    expect(card.state.find((r) => r.label === 'velocity')!.unit).toBe('m/s');
+    expect(componentCard(loop, pipe.id, [])!.state.map((r) => r.label)).toContain('Re');
+  });
+
+  it('converts a quantity literal to SI and to the other units of its dimension (52, A-6)', () => {
+    const card = quantityCard('30 kW', metadata)!;
+    expect(card.subtitle).toContain('Power');
+    expect(card.state[0]).toEqual({ label: 'SI', value: '30000', unit: 'W' });
+    expect(card.state.map((r) => r.unit)).not.toContain('kW');
+    expect(card.state.map((r) => r.unit)).toContain('MW');
+    expect(card.state.find((r) => r.unit === 'MW')!.value).toBe('0.03');
+
+    const celsius = quantityCard('20 C', metadata)!;
+    expect(celsius.state[0]).toMatchObject({ label: 'SI', unit: 'K' });
+    expect(Number(celsius.state[0]!.value)).toBeCloseTo(293.15, 1);
+    expect(quantityCard('3 furlongs', metadata)).toBeNull();
   });
 
   it('shows a let with its value or that it waits for the solve', () => {

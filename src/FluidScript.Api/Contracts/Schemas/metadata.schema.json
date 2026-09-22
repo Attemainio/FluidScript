@@ -573,13 +573,42 @@
             "items": {
               "type": "string"
             }
+          },
+          "conversions": {
+            "description": "How each of converts to , in the same order (A-6): the editor\u0027s quantity hover shows a value in SI and in the alternative units from this, so no second unit table exists on the client.",
+            "type": "array",
+            "items": {
+              "title": "UnitConversion",
+              "description": "One unit symbol\u0027s conversion to its dimension\u0027s SI base unit: si = value \u00D7 Factor \u002B Offset (13).",
+              "type": "object",
+              "properties": {
+                "symbol": {
+                  "description": "The symbol as a script writes it.",
+                  "type": "string"
+                },
+                "factor": {
+                  "description": "The multiplier to the SI base unit: 1000 for kW.",
+                  "type": "number"
+                },
+                "offset": {
+                  "description": "Added after scaling, in the SI base unit: 273.15 for \u00B0C; zero for every ratio unit.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "symbol",
+                "factor",
+                "offset"
+              ]
+            }
           }
         },
         "required": [
           "name",
           "siUnit",
           "canonicalUnit",
-          "units"
+          "units",
+          "conversions"
         ]
       }
     },

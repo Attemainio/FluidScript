@@ -258,10 +258,11 @@ sourced from the same model. One implementation, two mount points.
 
 **As built:** P5.5 ships the diagnostic hover; P5.8 the component hover (the canvas's card,
 `54`), the `let` hover (value, unit and dimension, or that it is deferred) and the quantity hover.
-The quantity hover names the dimension and the canonical unit and does **not** convert to SI or
-alternative units: the wire's unit table carries symbols and no factors (`A-6`), and a conversion
-table on the client would be a second `13`. The parameter hover is the completion detail's
-information and is left to completion.
+The quantity hover names the dimension and the canonical unit and, since `A-6` closed (2026-09-22),
+converts to SI and to every other unit of the dimension from the factors and offsets
+`metadata.dimensions[].conversions` carries -- `13`'s table travels on the wire, so no second copy
+exists on the client (`quantityCard` in `hover/card.ts`). The parameter hover is the completion
+detail's information and is left to completion.
 
 ## Commands
 

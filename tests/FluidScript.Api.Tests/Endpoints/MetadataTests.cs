@@ -55,7 +55,7 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
         var body = await response.ReadAsync<MetadataWire>();
 
         Assert.Equal(1, body.RestMajor);
-        Assert.Equal("2.1", body.ContractVersion);
+        Assert.Equal("2.2", body.ContractVersion);
         Assert.Equal(1, body.Language.Current);
         Assert.Equal(ComponentRegistry.Default.Kinds.Select(static k => k.Keyword), body.Kinds.Select(static k => k.Keyword));
         Assert.Equal(DiagnosticRegistry.All.Select(static d => d.Code), body.Diagnostics.Select(static d => d.Code));
@@ -107,6 +107,29 @@ public sealed class MetadataTests(ApiFactory factory) : IClassFixture<ApiFactory
 
             Assert.Contains(parameter.Dimension, dimensions);
         }
+    }
+
+    [Fact]
+    public async Task EveryUnitCarriesItsConversionToSi()
+    {
+        // A-6: the quantity hover converts on the client from these, so every unit symbol has a factor and
+        // an offset, in the order the symbols are listed, and they are 13's numbers: kW is a thousand
+        // watts, °C is offset by 273.15, and a ratio unit has no offset.
+        using var client = factory.CreateClient();
+        using var response = await client.GetAsync(Metadata, TestContext.Current.CancellationToken);
+        var body = await response.ReadAsync<MetadataWire>();
+
+        foreach (var dimension in body.Dimensions)
+        {
+            Assert.Equal(dimension.Units, dimension.Conversions.Select(static c => c.Symbol));
+            Assert.All(dimension.Conversions, static c => Assert.True(c.Factor > 0, $"{c.Symbol} has factor {c.Factor}"));
+        }
+
+        var power = body.Dimensions.Single(static d => d.Name == "Power");
+        Assert.Equal((1000.0, 0.0), power.Conversions.Single(static c => c.Symbol == "kW") is var kw ? (kw.Factor, kw.Offset) : default);
+
+        var temperature = body.Dimensions.Single(static d => d.Name == "Temperature");
+        Assert.Equal(273.15, temperature.Conversions.Single(static c => c.Symbol == "°C").Offset, 6);
     }
 
     [Fact]

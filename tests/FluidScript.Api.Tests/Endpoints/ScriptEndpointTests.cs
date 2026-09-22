@@ -29,7 +29,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         var body = await response.ReadAsync<CompileResponse>();
 
         Assert.NotNull(body.Model);
-        Assert.Equal("2.1", body.Model.ContractVersion);
+        Assert.Equal("2.2", body.Model.ContractVersion);
         Assert.True(body.Model.Circuits[0].Solved);
         Assert.NotNull(body.Model.Solve);
         Assert.True(body.Model.Solve.Converged);
@@ -121,7 +121,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.ReadAsync<ValidateResponse>();
 
-        Assert.Equal("2.1", body.ContractVersion);
+        Assert.Equal("2.2", body.ContractVersion);
         Assert.Equal(1, body.LanguageMajor);
         Assert.Contains(body.Diagnostics, static d => d.Code == "FS1507");
         Assert.Equal(0, body.Timings.SizeMs);

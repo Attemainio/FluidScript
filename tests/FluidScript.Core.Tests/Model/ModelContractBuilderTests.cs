@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Components;
 using FluidScript.Core.Model;
 using FluidScript.Core.Units;
 
@@ -29,6 +30,35 @@ public sealed class ModelContractBuilderTests
         Assert.Equal(30.0, he1.State.Power!.Value!.Value, 2);
         Assert.Equal(50.0, he1.State.TOut!.Value!.Value, 1);
         Assert.Equal(20.0, he1.State.TIn!.Value!.Value, 1);
+    }
+
+    [Fact]
+    public async Task APipeCarriesTheVelocityAndReynoldsNumberItsDropWasComputedAt()
+    {
+        // A-6: the connection card wants velocity and Reynolds number, and only Core has the bore. Both
+        // are read at the pipe's own mean properties, so v = ṁ / (ρ A) reproduces from the wire's flow
+        // and the bore, and Re at 0.24 kg/s through DN25 water is well into the turbulent regime.
+        var input = await ContractFixture.SolveAsync(ContractFixture.Sample("m2-simple-loop.fluid"));
+        var contract = ModelContractBuilder.Build(input);
+        var wire = contract.Components.Single(static c => c.Id == "N5__N1");
+        var pipe = (Pipe)input.Graph.Components.Single(static c => c.Name == "N5__N1");
+
+        var velocity = wire.State!.Velocity!.Value!.Value;
+        var flow = Math.Abs(wire.State.Flow!.Value!.Value);
+        Assert.Equal("m/s", wire.State.Velocity.Unit);
+        Assert.InRange(velocity, 0.2, 1.5);
+
+        // Back out the density the report used; it must be that of water near 20 °C.
+        var density = flow / (velocity * pipe.FlowArea);
+        Assert.InRange(density, 990, 1000);
+
+        // Water's viscosity at the return's 20 °C is 1.0e-3 Pa·s; the mean over the pipe is within a few percent of it.
+        var re = wire.State.Re!.Value!.Value;
+        Assert.InRange(re, 4000, 50_000);
+        Assert.Equal(density * velocity * pipe.InsideDiameter / 1.0e-3, re, re * 0.1);
+
+        // Nothing but a pipe reports them.
+        Assert.Null(contract.Components.Single(static c => c.Id == "PU1").State!.Velocity);
     }
 
     [Fact]
@@ -66,7 +96,7 @@ public sealed class ModelContractBuilderTests
     {
         // Changing a dimension's canonical unit changes the wire, which is a major bump (26): this
         // table is the version's, and it fails until both move together.
-        Assert.Equal("2.1", ModelContractBuilder.ContractVersion);
+        Assert.Equal("2.2", ModelContractBuilder.ContractVersion);
 
         var pinned = new Dictionary<string, string>(StringComparer.Ordinal)
         {

@@ -121,9 +121,10 @@ in hover.
 **Hover a symbol** and, after a moment, a card shows what the compiler knows about it: every
 parameter with its value and where the value came from, `stated` by you, `sized` by the tool or a
 `default` from the registry, with the reasoning under a sized or defaulted one; then the solved
-state, flow, temperatures, pressures; then any warning about it. Hover a pipe for its flow, and
-for a pipe with a length and a size, its pressure drop. The card comes from the model already in
-hand, so it never waits for the server. A component the compiler added says so on its card.
+state, flow, temperatures, pressures; then any warning about it. Hover a pipe for its flow, its
+velocity, its Reynolds number and, for a pipe with a length and a size, its pressure drop; the
+velocity and the Reynolds number are the ones its pressure drop was computed at, on the mean of
+its two ends. The card comes from the model already in hand, so it never waits for the server. A component the compiler added says so on its card.
 
 **Click a symbol** to select it: it takes the selection colour and the editor scrolls to its
 declaration and marks the line. Shift+click adds to the selection, `Esc` clears it. It works the

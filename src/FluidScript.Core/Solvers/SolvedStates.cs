@@ -15,8 +15,9 @@ namespace FluidScript.Core.Solvers;
 /// <param name="Temperature">Temperature, K.</param>
 /// <param name="Density">Density, kg/m³.</param>
 /// <param name="SpecificHeat">Specific heat, J/(kg·K).</param>
+/// <param name="DynamicViscosity">Dynamic viscosity, Pa·s; what a pipe's Reynolds number on the wire is read from (<c>A-6</c>). Zero when the state was built before it was carried.</param>
 public readonly record struct SolvedPort(
-    int Node, double Flow, double Pressure, double Enthalpy, double Temperature, double Density, double SpecificHeat);
+    int Node, double Flow, double Pressure, double Enthalpy, double Temperature, double Density, double SpecificHeat, double DynamicViscosity = 0);
 
 /// <summary>An extended-mode exchanger at the solution: both sides, the duty and the two routes to its conductance.</summary>
 /// <param name="Inlet1">Side 1 entering temperature, K.</param>
@@ -147,7 +148,8 @@ public static class SolvedStates
                     values[enthalpy],
                     state.Value.Temperature.SiValue,
                     state.Value.Density.SiValue,
-                    state.Value.SpecificHeat.SiValue);
+                    state.Value.SpecificHeat.SiValue,
+                    state.Value.DynamicViscosity.SiValue);
             }
         }
 
@@ -261,6 +263,7 @@ public static class SolvedStates
                     Temperature = state.Value.Temperature.SiValue,
                     Density = state.Value.Density.SiValue,
                     SpecificHeat = state.Value.SpecificHeat.SiValue,
+                    DynamicViscosity = state.Value.DynamicViscosity.SiValue,
                 };
             }
         }
