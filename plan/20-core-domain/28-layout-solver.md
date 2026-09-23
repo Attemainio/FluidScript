@@ -615,17 +615,22 @@ Each fragment becomes a tree of structures before any geometry exists.
 
 - **Terminals.** The fragment's head (C1: the largest positive duty, else the first inlet, else the first
   member with nothing upstream, else the first declared) fixes the two terminals: a source's outlet and
-  inlet, or an inlet boundary's junction and the outlet it reaches (C19). Without either, the consumer
-  cuts the loop (C18), and a member joined to itself is a ring of one (C20).
+  inlet, or an inlet and the outlet whose paths from it take in the most runs (C19). Without either, the
+  consumer cuts the loop (C18), and a member joined to itself is a ring of one (C20). An open form whose
+  body is one loop between two terminal runs -- the cooling loop written as a consumer, step 6c -- is a
+  ring fed from outside, and is drawn as C18 draws it.
+- **The body** is the biconnected block holding a virtual link between the two terminals: exactly the
+  elements on some path from one to the other. Everything else hangs off it at one port, as a pendant.
 - **Series-parallel reading.** Between the two terminals the boxed graph is read as a series-parallel
   composition. A **parallel group** is a split element and a merge element joined by two or more
   disjoint paths. Its paths' flow (E1) decides what it is:
   - all flow split → merge: a **header** -- the paths are **branches** (C14; C19 in the open form; a
     plain zone, `C-126`);
   - some flow each way: a **loop** -- the ring itself at the top (C2, C18), a **block** below it (C11).
-- **The ring** is the cycle through the source that passes the most junctions, then the earlier port in
-  script order. A header's taps therefore lie on its rails, every branch hangs between them, and the
-  last path of the last group is the ring's right side (C11's unit).
+- **The spine** (`D-154`): at a header the ring runs on through the branch declared last -- the one whose
+  first declared member comes latest -- and every other branch hangs between the rails in script order
+  (C14). A header's taps therefore lie on its rails, and the spine of the last header is the ring's right
+  side (C11's unit).
 - **Chains.** What hangs off a port and ends in a boundary or an open port is a chain (C4, C5, C6), and
   the open ends of a ring are paired (C7).
 - **Instruments** (C15) are attached to their hosts here, so a host's footprint knows its bubbles from

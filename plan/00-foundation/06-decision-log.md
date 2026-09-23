@@ -196,6 +196,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-151` | Accepted | 2026-09-23 | An instrument is drawn on its host as one footprint, on the host's first free side |
 | `D-152` | Accepted | 2026-09-23 | A signal line crosses the drawing by the fewest bends, then the shortest way; only an inner box stops it |
 | `D-153` | Accepted | 2026-09-23 | The layout engine is rebuilt as decompose, compose, draw, beside the old one until parity |
+| `D-154` | Accepted | 2026-09-23 | A header's spine is its branch declared last |
 <!-- index:end -->
 
 ---
@@ -7196,3 +7197,27 @@ are the tests. What changes is how the engine is built, not what it is asked to 
   tenths and `C-108`'s packing; the gate is the standard, and the user judges what changes.
 - *A general graph-drawing library* (layered, force-directed) -- none knows H9/H10, standing kinds or
   flow vectors; `28` part D already rejected discovering a layout by search.
+
+---
+
+## D-154 · A header's spine is its branch declared last
+
+**Accepted · 2026-09-23** · amends `D-153` item 2 ("the ring is the cycle through the most junctions") · `28` E2
+
+**What was wrong.** `D-153` chose the ring as the cycle through the most junctions, so that a header's taps lie on
+its rails and every branch hangs. Measured on the ladder's `08e` before any geometry was built: under `N4` the
+radiators-then-floor branch holds two junctions (`NM_RAD`, `NM_FLR`) and the DHW branch one (`NM_DHW`), so the
+most-junctions rule makes the radiators the ring's right side -- and the user accepted `08e` with DHW there.
+
+**The rule.** Where a header's branches all carry the flow from its split to its merge, the ring runs on through
+the branch **declared last** -- the one whose first declared member comes latest in the script -- and every other
+branch hangs between the rails in script order. It reproduces every accepted header (`08a`: the radiators, declared
+after the AHU, are the right side; `08d` and `08e`: DHW), and draws the three-zone plant of `C-126` as a reader
+expects, zones 1 and 2 hanging and zone 3 on the right. It is the ladder's own "branches hang in script order"
+(C14) carried to its last branch; this project's reasoning, not a quoted convention.
+
+### Rejected
+
+- *The most junctions* -- the `08e` counter-example above.
+- *The earliest-written port at the split* -- what the ladder engine's depth-first walk did in effect; it makes the
+  zones read 1, 3, 2 from left to right.

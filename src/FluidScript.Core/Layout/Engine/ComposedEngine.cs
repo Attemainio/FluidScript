@@ -38,8 +38,17 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
 
         foreach (var run in view.Runs)
         {
-            var points = run.Inline.Select(i => view.Name(i.Element));
-            trace.Add(new PlacementNote($"run {run.Index + 1}", "E1", string.Join(" > ", [Port(view, run.Start), .. points, Port(view, run.End)])));
+            trace.Add(new PlacementNote($"run {run.Index + 1}", "E1", StructureText.Run(view, run)));
+        }
+
+        for (var f = 0; f < view.Fragments.Length; f++)
+        {
+            var plan = Decomposition.Plan(view, view.Fragments[f]);
+
+            foreach (var line in StructureText.Lines(view, plan))
+            {
+                trace.Add(new PlacementNote($"fragment {f + 1}", "E2", line));
+            }
         }
 
         return new Scene
@@ -50,12 +59,5 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
             Margin = margin,
             Provenance = [.. trace],
         };
-    }
-
-    /// <summary>A run end as the trace names it: <c>PU1.out</c>, or <c>N2.#1</c> for a node's unnamed port.</summary>
-    private static string Port(CircuitView view, RunEnd end)
-    {
-        var name = view.Graph.Components[end.Component].Ports[end.Port].Name;
-        return $"{view.Name(end.Component)}.{(name.Length == 0 ? "#" + end.Port.ToString(System.Globalization.CultureInfo.InvariantCulture) : name)}";
     }
 }

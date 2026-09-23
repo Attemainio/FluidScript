@@ -1531,6 +1531,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     the fragments; a cycle of inline elements alone keeps its first element boxed. `GraphLinks` is the one
     link builder, the ladder engine's too. The composed engine traces fragments and runs (`E1`);
     `CircuitViewTests` read them. Core 2272/0.
+  - **R2 built 2026-09-23**: `Layout/Engine/Decomposition` reads each fragment before any geometry --
+    its head (C1) and form (sourced ring, ring of one, open form, unsourced ring, chain, tried in the
+    ladder engine's order), its body (the biconnected block between the two terminals) as series,
+    headers (paths that flow the same way) and loops (paths that flow opposite ways), and its pendants.
+    `D-154`: a header's spine is its branch declared last (the most-junctions rule of `D-153` failed on
+    `08e`). Every ladder step, pending script and sample reads with nothing loose and every pendant a
+    tree; step 6c reads as an open form whose body is one loop (the ring C18 draws). The plan is in the
+    trace (`E2`), `DecompositionTests` read it; header-200 decomposes in 3.7 ms against the ladder
+    engine's 43.9 ms for its whole solve (`LayoutTimingTests`, now timing both).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
