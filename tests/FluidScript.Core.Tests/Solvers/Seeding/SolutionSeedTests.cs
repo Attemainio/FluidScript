@@ -1,4 +1,5 @@
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Physics.Units;

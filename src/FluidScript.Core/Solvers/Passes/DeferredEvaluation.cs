@@ -2,12 +2,13 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Registry;
-using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Solvers.Results;

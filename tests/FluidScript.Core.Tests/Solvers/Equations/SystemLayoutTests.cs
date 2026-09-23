@@ -1,4 +1,4 @@
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Core.Topology.Counting;

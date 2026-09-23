@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Physics.Units;
 

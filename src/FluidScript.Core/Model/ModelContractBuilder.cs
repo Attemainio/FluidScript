@@ -4,12 +4,15 @@ using System.Security.Cryptography;
 using System.Text;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Layout;
 using FluidScript.Core.Layout.Drawing;

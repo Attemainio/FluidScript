@@ -3,26 +3,6 @@ using FluidScript.Core.Primitives;
 
 namespace FluidScript.Core.Physics.Fluids;
 
-/// <summary>The two dimensions a fluid property has that the language never names.</summary>
-/// <remarks>
-/// Neither viscosity nor thermal conductivity can be written in a script, so neither earns an entry in
-/// <c>13</c>'s closed <see cref="DimensionId"/> set — adding one would be a language change made to
-/// express a value the language cannot express. They are built from their exponent vectors instead,
-/// which is exactly what <see cref="Dimension.FromVector"/> is for and which keeps the dimensional
-/// algebra over them correct: dividing a conductivity by a viscosity gives a real vector, not an
-/// error.
-/// </remarks>
-public static class FluidDimensions
-{
-    /// <summary>Gets the dimension of a dynamic viscosity, Pa·s.</summary>
-    /// <value><c>M L⁻¹ T⁻¹</c>.</value>
-    public static Dimension DynamicViscosity { get; } = Dimension.FromVector(new DimensionVector(1, -1, -1, 0));
-
-    /// <summary>Gets the dimension of a thermal conductivity, W/(m·K).</summary>
-    /// <value><c>M L T⁻³ Θ⁻¹</c>.</value>
-    public static Dimension ThermalConductivity { get; } = Dimension.FromVector(new DimensionVector(1, 1, -3, -1));
-}
-
 /// <summary>A substance whose thermodynamic properties can be evaluated.</summary>
 /// <remarks>
 /// <para>
@@ -107,53 +87,4 @@ public interface ISubstance
     /// or evaporating temperature is chosen by the water it exchanges with, and the pressure follows.
     /// </remarks>
     Result<Quantity> SaturationTemperature(Quantity gaugePressure);
-}
-
-/// <summary>Humid air, which needs three independent properties rather than two.</summary>
-/// <remarks>
-/// Pressure, one temperature-like property and one humidity-like property fix the state, so humid air
-/// cannot be described by <see cref="ISubstance"/>'s two-property methods alone. It still <em>is</em>
-/// a substance — it has a name, a validated range, and a freezing point — so it extends rather than
-/// replaces the interface, and the two-property members below fix the state at zero humidity.
-/// </remarks>
-public interface IHumidAir : ISubstance
-{
-    /// <summary>Fixes a state from pressure, dry-bulb temperature and humidity ratio.</summary>
-    /// <param name="gaugePressure">The pressure, gauge.</param>
-    /// <param name="dryBulb">The dry-bulb temperature.</param>
-    /// <param name="humidityRatio">kg of water per kg of dry air.</param>
-    /// <returns>The state, or why it does not exist.</returns>
-    Result<HumidAirState> FromPressureTemperatureHumidity(
-        Quantity gaugePressure, Quantity dryBulb, Quantity humidityRatio);
-
-    /// <summary>Fixes a state from pressure, dry-bulb temperature and relative humidity.</summary>
-    /// <param name="gaugePressure">The pressure, gauge.</param>
-    /// <param name="dryBulb">The dry-bulb temperature.</param>
-    /// <param name="relativeHumidity">A fraction from 0 to 1, not a percentage.</param>
-    /// <returns>The state, or why it does not exist.</returns>
-    Result<HumidAirState> FromPressureTemperatureRelativeHumidity(
-        Quantity gaugePressure, Quantity dryBulb, Quantity relativeHumidity);
-
-    /// <summary>Fixes a state from pressure, enthalpy and humidity ratio.</summary>
-    /// <param name="gaugePressure">The pressure, gauge.</param>
-    /// <param name="dryAirBasisEnthalpy">
-    /// The specific enthalpy, J per kg of <strong>dry air</strong>. Passing a per-kg-of-mixture value
-    /// here is wrong by the humidity ratio and will not be detected.
-    /// </param>
-    /// <param name="humidityRatio">kg of water per kg of dry air.</param>
-    /// <returns>The state, or why it does not exist.</returns>
-    Result<HumidAirState> FromPressureEnthalpyHumidity(
-        Quantity gaugePressure, Quantity dryAirBasisEnthalpy, Quantity humidityRatio);
-}
-
-/// <summary>Resolves the name a script writes to the substance behind it.</summary>
-public interface ISubstanceRegistry
-{
-    /// <summary>Gets every registered name, in order, for a diagnostic that lists them.</summary>
-    System.Collections.Immutable.ImmutableArray<string> Names { get; }
-
-    /// <summary>Resolves a script name.</summary>
-    /// <param name="name">The name as written, such as <c>water</c>.</param>
-    /// <returns>The substance, or <c>FS2001</c> listing what is available.</returns>
-    Result<ISubstance> Resolve(string name);
 }

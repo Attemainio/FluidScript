@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
-
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 
 namespace FluidScript.Core.Solvers.Equations;
 

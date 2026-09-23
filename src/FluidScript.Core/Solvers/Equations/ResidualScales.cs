@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Solvers.Equations;

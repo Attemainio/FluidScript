@@ -4,6 +4,8 @@ using System.Globalization;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Physics.Units;

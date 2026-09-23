@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Physics.Units;

@@ -1,5 +1,5 @@
 using FluidScript.Core.Catalogs.Pipes;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Registry;

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Primitives;
@@ -516,7 +516,7 @@ public sealed class NewtonSolver : ISolver
             // A pressure column is read twice: once at the step that clears the flash's noise, for every
             // row, and once at √ε for the rows a valve marks steep, whose √Δp law may sit at a drop
             // smaller than the first step (`S-74`). Nothing else a pressure column feeds is steep.
-            if (kind == Components.UnknownKind.NodePressure)
+            if (kind == Components.Declarations.UnknownKind.NodePressure)
             {
                 var fine = Tolerances.NewtonFiniteDifferenceStep * Math.Max(Math.Abs(x[column]), scale);
 

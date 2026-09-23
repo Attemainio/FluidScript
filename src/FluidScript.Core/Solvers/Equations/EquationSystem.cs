@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Transient;
@@ -8,18 +9,6 @@ using FluidScript.Core.Topology.Graph;
 using FluidScript.Core.Topology.Hydraulics;
 
 namespace FluidScript.Core.Solvers.Equations;
-
-/// <summary>One node whose enthalpy can reach a node port, and the port it arrives through.</summary>
-/// <param name="Node">The node the enthalpy is read from.</param>
-/// <param name="Component">The component carrying it across, in graph order.</param>
-/// <param name="Port">The port of that component the flow enters by.</param>
-/// <param name="Lift">
-/// J/kg the enthalpy loses on the way: <c>g·(z_here − z_source)</c> across a bare connection between
-/// two nodes at different heights (<c>D-70</c>), 0 everywhere else. A pipe carries its own rise
-/// through <see cref="IFlowComponent.EvaluateEnergyInjection"/>; a bare link has no component to do
-/// it, so the node reads the arriving enthalpy already lifted.
-/// </param>
-internal readonly record struct ArrivingSource(int Node, int Component, int Port, double Lift = 0);
 
 /// <summary>The assembled residual function: everything the solver drives to zero, at one iterate.</summary>
 /// <remarks>
@@ -1437,7 +1426,7 @@ public sealed class EquationSystem
     /// <strong>The bounds are the component's, not the solver's</strong> (<c>D-30</c>). A
     /// <c>position</c> is a fraction and a <c>kv</c> is positive; nothing in Newton knows that, and
     /// <c>_promoted</c> already carries the element and the slot, so the range comes off
-    /// <see cref="Components.ResolvedParameter"/> with no second table to keep in step.
+    /// <see cref="Components.Declarations.ResolvedParameter"/> with no second table to keep in step.
     /// </para>
     /// <para>
     /// <strong>This is only safe because the residual is differentiable at a bound</strong>

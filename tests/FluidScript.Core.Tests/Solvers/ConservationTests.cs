@@ -1,5 +1,5 @@
 using FluidScript.Core.Catalogs.Pipes;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Solvers.Passes;

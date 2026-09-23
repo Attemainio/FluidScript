@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Text;
 

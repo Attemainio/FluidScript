@@ -14,7 +14,7 @@ last_review_pass: 0
 
 ## Purpose
 
-**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0 and S1 shipped; S2–S5 follow. Runs before
+**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S2 shipped; S3–S5 follow. Runs before
 P6.3, the user's call.
 
 `FluidScript.Core` is 204 files and 58 400 lines in **sixteen flat folders**. Only `Syntax/Ast` has a
@@ -272,7 +272,7 @@ by the file headers that one type per file and the partial splits create.
 | Package | Lines | How measured |
 |---|---|---|
 | S1 moves | ≈ 0 | a `namespace` line edited per file, `using` lines adjusted |
-| S2 one type per file | **≈ +1 500** | 270 types leave 68 files; a Core file's header averages 4.9 lines to and including `namespace`, plus a blank |
+| S2 one type per file | **≈ +1 500 estimated; +748 measured** (Core +696, Api +52) | 279 types left 69 files. The estimate assumed each new file kept its source's `using`s; pruning to what each file needs halved it |
 | S3 partial splits | **≈ +400** | 25 files over 600 lines, 27 630 lines, into ~400-line concerns: ~44 new files at ~9 header lines |
 | S4 `ComponentBase` | **−150**, base +60 | counted per member with docs, across the seven components |
 | S4 `ValveComponentBase` | ≈ −10 | shared members less the base's own |
@@ -295,7 +295,7 @@ suites green, the build at zero warnings, and the plan checker at its baseline.
 |---|---|---|---|
 | S0 | `D-147`; this document; the conventions in [`04`](00-foundation/04-engineering-standards.md); `03`'s tree | small | low |
 | S1 | **Moves only**, shipped 2026-09-23 as two commits rather than one per domain: every `git mv` in one commit with no content edit, which compiles as it stands because no file's text changed and keeps `git log --follow` intact; then the namespaces, the `using`s (rebuilt from a type map — a file gains a `using` for a type only if it could already see that type's old namespace), 149 unused `using`s removed, and three test literals that named a folder or a namespace. Tests moved with their code | medium | low — the compiler finds every missed `using` |
-| S2 | One type per file, 270 types out of 68 files; `SubstanceBase` out of `Water.cs`; `Result`/`Unit` into `Primitives/` | medium | low |
+| S2 | One type per file, shipped 2026-09-23: 279 types out of 69 files (Core and Api), nine files named for no type removed; `Ast/Statements/`, `Ast/Expressions/` and `Components/Declarations/` created; a type split out of a class folder goes to its parent so the folder stays one class's. A doc comment attaches across a blank line, and the splitter follows it | medium | low |
 | S3 | Concern partials for the 25 files over 600 lines, largest first (`EquationSystem`, `WellPosedness`, `OuterLoop`, `Binder`, `BindingRun.Topology`); takes `70`'s R6 where it touches the same files | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
 | S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol` | medium | **med** — the only package that touches the hot path |
 | S5 | `SizerBase<TComponent>` and `PipeCatalogBuilder` | small | low |

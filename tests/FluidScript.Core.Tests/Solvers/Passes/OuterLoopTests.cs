@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Physics.Units;

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Physics.Fluids;

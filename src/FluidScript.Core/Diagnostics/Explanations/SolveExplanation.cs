@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Language.Registry;

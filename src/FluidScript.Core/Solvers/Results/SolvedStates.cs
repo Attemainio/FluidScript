@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing.Flows;
@@ -8,73 +9,6 @@ using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Solvers.Results;
-
-/// <summary>One port's solved condition, in SI.</summary>
-/// <param name="Node">The graph node the port reads its state from.</param>
-/// <param name="Flow">Mass flow, kg/s, positive <em>into</em> the component (<c>22</c>'s convention); zero for a port no branch reaches.</param>
-/// <param name="Pressure">Absolute pressure, Pa.</param>
-/// <param name="Enthalpy">Specific enthalpy, J/kg.</param>
-/// <param name="Temperature">Temperature, K.</param>
-/// <param name="Density">Density, kg/m³.</param>
-/// <param name="SpecificHeat">Specific heat, J/(kg·K).</param>
-/// <param name="DynamicViscosity">Dynamic viscosity, Pa·s; what a pipe's Reynolds number on the wire is read from (<c>A-6</c>). Zero when the state was built before it was carried.</param>
-public readonly record struct SolvedPort(
-    int Node, double Flow, double Pressure, double Enthalpy, double Temperature, double Density, double SpecificHeat, double DynamicViscosity = 0);
-
-/// <summary>An extended-mode exchanger at the solution: both sides, the duty and the two routes to its conductance.</summary>
-/// <param name="Inlet1">Side 1 entering temperature, K.</param>
-/// <param name="Outlet1">Side 1 leaving temperature, K.</param>
-/// <param name="Capacity1">Side 1 capacity rate, W/K.</param>
-/// <param name="Inlet2">Side 2 entering temperature, K -- the stated profile when the side is not wired.</param>
-/// <param name="Outlet2">Side 2 leaving temperature, K.</param>
-/// <param name="Capacity2">Side 2 capacity rate, W/K.</param>
-/// <param name="Duty">Heat into side 1, W, positive when side 1 gains.</param>
-/// <param name="Ntu">Number of transfer units on Cmin.</param>
-/// <param name="Effectiveness">ε for the arrangement.</param>
-/// <param name="CapacityRatio">Cmin / Cmax.</param>
-/// <param name="Lmtd">The log-mean temperature difference, K.</param>
-/// <param name="ConductanceByLogMean">|Duty| / Lmtd, W/K -- the validation route.</param>
-/// <param name="Approach">The closest approach, K.</param>
-/// <param name="Rating">The rating the exchanger was built with.</param>
-public sealed record SolvedExchanger(
-    double Inlet1,
-    double Outlet1,
-    double Capacity1,
-    double Inlet2,
-    double Outlet2,
-    double Capacity2,
-    double Duty,
-    double Ntu,
-    double Effectiveness,
-    double CapacityRatio,
-    double Lmtd,
-    double ConductanceByLogMean,
-    double Approach,
-    ExchangerRating Rating);
-
-/// <summary>A pump at the solution: what it passes, the rise it makes, and the head that rise is worth.</summary>
-/// <param name="Flow">kg/s through the pump, positive from its inlet port to its outlet port.</param>
-/// <param name="Rise">Pa, the outlet port's pressure minus the inlet port's.</param>
-/// <param name="Head">
-/// m of the pumped fluid: <see cref="Rise"/> over the mean of the inlet and outlet densities and g, which
-/// is the convention <see cref="Components.Pump.EvaluateResiduals"/> solves with, so this is the head
-/// the equations were satisfied at whether a curve, a promotion or a stated rise set it.
-/// </param>
-/// <param name="Basis">What set the head.</param>
-public sealed record SolvedPump(double Flow, double Rise, double Head, PumpHeadBasis Basis);
-
-/// <summary>What determined a pump's head at the solution.</summary>
-public enum PumpHeadBasis
-{
-    /// <summary>The pump's curve at the solved flow, with a stated or sized shut-off head.</summary>
-    Curve,
-
-    /// <summary>The solver found it, to hold a stated constraint (<c>23</c>'s promotion).</summary>
-    Promoted,
-
-    /// <summary>A stated <c>dp</c>, flat in flow (<c>C-109</c>).</summary>
-    StatedRise,
-}
 
 /// <summary>Reads a solved state vector back as per-port conditions and per-component solved parameters.</summary>
 /// <remarks>

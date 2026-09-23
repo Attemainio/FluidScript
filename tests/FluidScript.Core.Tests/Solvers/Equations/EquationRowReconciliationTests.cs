@@ -1,4 +1,4 @@
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Core.Topology.Counting;
 using FluidScript.Core.Topology.Graph;

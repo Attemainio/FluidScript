@@ -1,5 +1,4 @@
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Solvers.Steady;
 
 namespace FluidScript.Api.Pipeline;
 
@@ -13,11 +12,4 @@ public interface ISolverFactory
     /// <summary>Creates a fresh solver.</summary>
     /// <returns>The solver.</returns>
     ISolver Create();
-}
-
-/// <summary>The production factory: a Newton solver on the default settings.</summary>
-public sealed class NewtonSolverFactory : ISolverFactory
-{
-    /// <inheritdoc />
-    public ISolver Create() => new NewtonSolver();
 }

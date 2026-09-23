@@ -1,96 +1,10 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Topology.Graph;
 using FluidScript.Core.Topology.Hydraulics;
 
 namespace FluidScript.Core.Topology.Counting;
-
-/// <summary>What a stated parameter asks the circuit to do, beyond supplying a coefficient.</summary>
-/// <remarks>
-/// The distinction decides what can absorb it. A mixed inlet temperature can only be met by moving a
-/// mixing split; a fixed flow can only be met by moving whatever sets the flow. Collapsing the two
-/// into "a constraint" lets a valve's <c>kv</c> be offered as the fix for a temperature it cannot
-/// change, and the circuit is then reported well-posed when it has no solution.
-/// </remarks>
-public enum ConstraintKind
-{
-    /// <summary>A heat exchanger's stated inlet temperature, met by a mixing split.</summary>
-    MixedInlet = 1,
-
-    /// <summary>A stated duty or outlet that pins a branch's mass flow.</summary>
-    FixedFlow,
-
-    /// <summary>A temperature stated on a node that is not a boundary.</summary>
-    NodeTemperature,
-
-    /// <summary>
-    /// A terminal temperature that pins the enthalpy level of a closed circuit rather than a flow
-    /// (<c>D-90</c>).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>It is the one constraint that promotes nothing, and it is the one that should.</strong> A
-    /// closed circuit drops one energy balance as its level -- adding the same enthalpy to every node
-    /// satisfies all of them -- so exactly one statement has to pay for that by contributing a row and
-    /// claiming no unknown. The count already expected it and nothing arranged it: whichever constraint
-    /// happened to run out of candidates paid, which is graph order deciding physics.
-    /// </para>
-    /// <para>
-    /// <strong>A terminal pins a flow only when the other end of the same side is known.</strong>
-    /// <c>power</c> with <c>in</c> and <c>out</c> gives m = Q/(h_out - h_in) and pins it; <c>power</c>
-    /// with <c>out</c> alone is one equation in two unknowns and pins nothing -- but it does fix an
-    /// absolute temperature, which is what the dropped level needs. In an <em>open</em> circuit the inlet
-    /// arrives from a boundary and is known without being stated, so a lone <c>out</c> pins the flow
-    /// there and this kind does not arise.
-    /// </para>
-    /// </remarks>
-    EnthalpyLevel,
-}
-
-/// <summary>One stated parameter the circuit must satisfy rather than merely read.</summary>
-/// <param name="Component">The component that states it.</param>
-/// <param name="Parameter">The parameter's model key: <c>out2</c>, <c>flow2</c>, <c>dt</c> -- what the assembler matches on.</param>
-/// <param name="Kind">What has to move to satisfy it.</param>
-/// <param name="Hydraulic">The hydraulic component it constrains.</param>
-/// <param name="Name">The parameter as the script spells it: <c>out[2].t</c>, <c>in[2].flow</c>, <c>dt</c> (<c>D-120</c>, <c>L-56</c>).</param>
-/// <remarks>
-/// <strong>Two spellings, one record.</strong> The assembler, the seed and the promotion rules read
-/// <see cref="Parameter"/>, the key the physics has always used; every sentence a user sees reads
-/// <see cref="Label"/>, which spells the key the way the script wrote it. Until <c>L-56</c> closed the
-/// report said <c>HX1.out2</c> beside a script that says <c>out[2].t</c>.
-/// </remarks>
-public sealed record ComponentConstraint(
-    string Component, string Parameter, ConstraintKind Kind, int Hydraulic, string Name)
-{
-    /// <summary>Gets the form a message names it by: the component and the script's spelling of the parameter.</summary>
-    public string Label => $"{Component}.{Name}";
-}
-
-/// <summary>A sized parameter a stated constraint turned into a solver unknown (<c>D-02</c>).</summary>
-/// <param name="Component">The component whose parameter moves.</param>
-/// <param name="Parameter">The canonical parameter name.</param>
-/// <param name="Constraint">The constraint it absorbs.</param>
-/// <remarks>
-/// <strong>The constraint and the unknown arrive together, which is what keeps the system square.</strong>
-/// Without the pairing a stated <c>in</c> would be an extra equation and the circuit would report as
-/// over-specified on the most ordinary hydronic arrangement there is.
-/// </remarks>
-public sealed record Promotion(string Component, string Parameter, ComponentConstraint Constraint)
-{
-    /// <summary>Gets the form a message names it by.</summary>
-    public string Label => $"{Component}.{Parameter}";
-}
-
-/// <summary>A bare connection between two nodes, which <c>D-25</c> makes an ideal zero-drop link.</summary>
-/// <param name="From">The node the branch walk reaches it from.</param>
-/// <param name="To">The node it continues to.</param>
-/// <remarks>
-/// <strong>It is a pressure relation with no component behind it.</strong> <c>A - B</c> written between
-/// two nodes puts nothing in the path, so nothing declares <c>p_A = p_B</c> and the assembler writes the
-/// row itself. Naming the pair is what lets it: a count says how many such rows exist and never which
-/// nodes they join (<c>S-15</c>).
-/// </remarks>
-public sealed record IdealLink(GraphNode From, GraphNode To);
 
 /// <summary>The counting argument: what the solver must find, against what it has to find it with.</summary>
 /// <remarks>

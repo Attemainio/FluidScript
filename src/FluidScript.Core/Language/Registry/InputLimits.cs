@@ -3,7 +3,7 @@ using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
-using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 
 namespace FluidScript.Core.Language.Registry;
 

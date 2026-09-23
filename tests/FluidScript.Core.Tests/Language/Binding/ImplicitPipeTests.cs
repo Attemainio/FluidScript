@@ -1,6 +1,6 @@
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Binding.Symbols;
-using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Printing;
 using FluidScript.Core.Language.Syntax.Text;

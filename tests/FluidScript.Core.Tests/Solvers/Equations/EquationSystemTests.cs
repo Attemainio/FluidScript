@@ -1,4 +1,5 @@
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Equations;

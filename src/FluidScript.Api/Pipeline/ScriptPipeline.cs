@@ -10,49 +10,14 @@ using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
-using FluidScript.Core.Model.Contract;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Solvers.Passes;
-using FluidScript.Core.Solvers.Seeding;
 using FluidScript.Core.Topology.Counting;
 
 using Microsoft.Extensions.Options;
 
 namespace FluidScript.Api.Pipeline;
-
-/// <summary>How far a request asks the pipeline to go, and how strict it is.</summary>
-public enum PipelineMode
-{
-    /// <summary>Parse and bind only: diagnostics, no physics (<c>/validate</c>).</summary>
-    Validate = 1,
-
-    /// <summary>The debounce path: lower, size and solve, tolerating an unconnected component (<c>/compile</c>).</summary>
-    Compile,
-
-    /// <summary>The Solve button: as <see cref="Compile"/>, with <c>FS1507</c> and <c>FS1511</c> raised to errors (<c>/solve</c>).</summary>
-    Solve,
-}
-
-/// <summary>One request to the pipeline.</summary>
-/// <param name="Script">The script text.</param>
-/// <param name="Mode">How far to go.</param>
-/// <param name="Solve">Whether to run the solver at all; <see langword="false"/> stops after lowering.</param>
-/// <param name="WarmStart">The session's last solution, offered to the outer loop; <see langword="null"/> for a cold start.</param>
-public sealed record PipelineRequest(string Script, PipelineMode Mode, bool Solve, WarmStart? WarmStart);
-
-/// <summary>What the pipeline produced.</summary>
-/// <param name="Model">The contract, or <see langword="null"/> when the language gate refused the script or the mode was <see cref="PipelineMode.Validate"/>.</param>
-/// <param name="Diagnostics">Every diagnostic in <c>44</c>'s order, rendered against the source; the model carries the same list when there is one.</param>
-/// <param name="Timings">Stage timings.</param>
-/// <param name="Run">The outer-loop result when something was solved, for the session to keep its solution.</param>
-/// <param name="LanguageMajor">The major the script declared, or <see langword="null"/>.</param>
-public sealed record PipelineResult(
-    ModelContract? Model,
-    ImmutableArray<DiagnosticWire> Diagnostics,
-    TimingsWire Timings,
-    OuterLoopResult? Run,
-    int? LanguageMajor);
 
 /// <summary>Runs Core's stages in order for one request, with the timings <c>42</c> ships and the limits <c>07</c> sets.</summary>
 /// <remarks>

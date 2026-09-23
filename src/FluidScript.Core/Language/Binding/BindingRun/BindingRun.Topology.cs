@@ -6,6 +6,8 @@ using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Binding;

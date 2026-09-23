@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Passes;

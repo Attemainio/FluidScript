@@ -90,17 +90,17 @@ public static class Tolerances
     /// pumpless ring the direction was poor enough to creep for forty iterations (<c>S-74</c>).
     /// The enthalpy columns need no such step: the same survey found the temperature and density
     /// derivatives in enthalpy exact to three digits at √ε over seven states from 10 to 72 °C.
-    /// A row a valve marks <see cref="Components.EquationDeclaration.SteepInPressure"/> keeps √ε on
+    /// A row a valve marks <see cref="Components.Declarations.EquationDeclaration.SteepInPressure"/> keeps √ε on
     /// these columns, because its Δp may be under a pascal and a step of pascals is then a secant
     /// across the whole operating range; the Jacobian evaluates a pressure column twice for that.
     /// </value>
     public const double NewtonFiniteDifferenceStateStep = 1e-5;
 
-    /// <summary>The relative perturbation a Jacobian column uses for an unknown of a given kind, on a row that is not <see cref="Components.EquationDeclaration.SteepInPressure"/>.</summary>
+    /// <summary>The relative perturbation a Jacobian column uses for an unknown of a given kind, on a row that is not <see cref="Components.Declarations.EquationDeclaration.SteepInPressure"/>.</summary>
     /// <param name="kind">The column's unknown kind.</param>
     /// <returns><see cref="NewtonFiniteDifferenceStateStep"/> for a node pressure, <see cref="NewtonFiniteDifferenceStep"/> otherwise.</returns>
-    public static double FiniteDifferenceStep(Components.UnknownKind kind) =>
-        kind is Components.UnknownKind.NodePressure
+    public static double FiniteDifferenceStep(Components.Declarations.UnknownKind kind) =>
+        kind is Components.Declarations.UnknownKind.NodePressure
             ? NewtonFiniteDifferenceStateStep
             : NewtonFiniteDifferenceStep;
 

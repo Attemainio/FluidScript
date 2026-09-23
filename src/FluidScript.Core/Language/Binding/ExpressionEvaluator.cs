@@ -3,71 +3,12 @@ using System.Collections.Immutable;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Language.Binding;
-
-/// <summary>What evaluating an expression produced.</summary>
-public abstract record EvaluationResult
-{
-    private EvaluationResult()
-    {
-    }
-
-    /// <summary>A value.</summary>
-    /// <param name="Quantity">The value, in SI.</param>
-    /// <param name="IsBare">
-    /// Whether no unit symbol took part anywhere in the expression. A bare result is reinterpreted in
-    /// the target's canonical unit when it is assigned, which is what makes <c>power=30</c> mean 30 kW
-    /// and <c>length=45</c> mean 45 m (<c>D-14</c>).
-    /// </param>
-    public sealed record Value(Quantity Quantity, bool IsBare) : EvaluationResult;
-
-    /// <summary>The expression reads something no stage has computed yet.</summary>
-    /// <param name="Dependencies">Every value it reads, so the outer loop knows what to wait for.</param>
-    public sealed record Deferred(ImmutableHashSet<ValueId> Dependencies) : EvaluationResult;
-
-    /// <summary>The expression could not be evaluated, and the reason has been reported.</summary>
-    public sealed record Failed : EvaluationResult;
-}
-
-/// <summary>What a name in an expression turned out to be.</summary>
-public abstract record ScopeLookup
-{
-    private ScopeLookup()
-    {
-    }
-
-    /// <summary>A value that is already known.</summary>
-    /// <param name="Quantity">The value.</param>
-    /// <param name="IsBare">Whether it came from a bare number.</param>
-    /// <param name="Id">Its identity in the dependency graph.</param>
-    public sealed record Value(Quantity Quantity, bool IsBare, ValueId Id) : ScopeLookup;
-
-    /// <summary>A value that will not exist until sizing or the solve has run.</summary>
-    /// <param name="Id">What to wait for.</param>
-    public sealed record Deferred(ValueId Id) : ScopeLookup;
-
-    /// <summary>Nothing of that name exists.</summary>
-    /// <param name="Suggestion">The closest name, or <see langword="null"/> when nothing is close.</param>
-    public sealed record UnknownName(string? Suggestion) : ScopeLookup;
-
-    /// <summary>The component exists; the property does not.</summary>
-    /// <param name="Kind">The component's kind, for the message.</param>
-    /// <param name="Available">What it does have.</param>
-    public sealed record UnknownProperty(string Kind, ImmutableArray<string> Available) : ScopeLookup;
-}
-
-/// <summary>Where an expression's names are looked up.</summary>
-public interface IValueScope
-{
-    /// <summary>Resolves one reference — a binding's name, or <c>Component.property</c>.</summary>
-    /// <param name="reference">The reference as written.</param>
-    /// <returns>What the name turned out to be.</returns>
-    ScopeLookup Lookup(ReferenceSyntax reference);
-}
 
 /// <summary>Evaluates a parsed expression against a scope.</summary>
 /// <remarks>

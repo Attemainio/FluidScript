@@ -154,7 +154,7 @@ public sealed class TransientSolverTests
 
         for (var index = 0; index < steady.Values.Length; index++)
         {
-            var scale = layout.Unknowns[index].Kind == Core.Components.UnknownKind.NodeEnthalpy ? Tolerances.EnthalpyScale : Math.Max(Math.Abs(steady.Values[index]), 1e-3);
+            var scale = layout.Unknowns[index].Kind == Core.Components.Declarations.UnknownKind.NodeEnthalpy ? Tolerances.EnthalpyScale : Math.Max(Math.Abs(steady.Values[index]), 1e-3);
 
             Assert.True(
                 Math.Abs(last.State.Values[index] - steady.Values[index]) / scale < 1e-3,

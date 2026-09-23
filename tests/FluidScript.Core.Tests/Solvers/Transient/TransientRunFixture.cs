@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using FluidScript.Core.Catalogs.Pipes;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Equations;

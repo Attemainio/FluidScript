@@ -4,7 +4,7 @@ using FluidScript.Core.Catalogs;
 using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding;
-using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Solvers.Passes;
 using FluidScript.Core.Topology.Graph;
