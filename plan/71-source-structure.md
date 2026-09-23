@@ -160,6 +160,9 @@ FluidScript.Core/
 │   └── Scenarios/    ScenarioSizing, ScenarioEnvelope
 ├── Layout/           LayoutSolver
 │   ├── LayoutEngine/ the LayoutEngine partials                    (class folder: namespace …Layout)
+│   │                 -- deleted at P6.10's switch (`D-153`)
+│   ├── Engine/       the rebuilt engine, P6.10 (`D-153`, `28` part E): CircuitView, Decomposition and
+│   │                 its structures, Occupancy, Composer, RunBuilder       (namespace …Layout.Engine)
 │   ├── Routing/      OrthogonalRouter, Segments, Direction
 │   ├── Hints/        LayoutHints, LayoutHintsDerivation/ (class folder, S3)
 │   └── Drawing/      Scene, SceneAudit, SceneText, LabelLayout

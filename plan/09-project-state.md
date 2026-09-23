@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain), `D-151` 2026-09-23 (instruments on their hosts, I8), `D-152` 2026-09-23 (signals cross the drawing). Next: the layout rewrite (`D-153`), then P6.3 | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain), `D-151` 2026-09-23 (instruments on their hosts, I8), `D-152` 2026-09-23 (signals cross the drawing). Next: P6.10, the layout engine rebuilt (`D-153`), then P6.3 | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1518,7 +1518,10 @@ that governed each size. What P6.8 still owes, and what comes after:
   drawn for the user the same day filed `C-126` (a plain parallel branch has no rule), `C-127` (the
   fallback's bare L breaks H5) and `C-128` (room for a bubble made on three run paths of nine); the
   user asked for a rewrite of the layout engine (`D-153`).
-- **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone.
+- **Next: P6.10**, the layout engine rebuilt beside the old one (`08`, `28` part E), R0 first: the
+  parity harness. Decided with the user 2026-09-23: built beside the old engine, changed pictures shown
+  before commit, H11 (no pipe beside a pipe within a margin) hard at the switch.
+- **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

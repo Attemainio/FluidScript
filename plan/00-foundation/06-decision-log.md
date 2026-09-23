@@ -195,6 +195,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-150` | Accepted | 2026-09-23 | A measurement reads a node with at most two connections; a junction is refused |
 | `D-151` | Accepted | 2026-09-23 | An instrument is drawn on its host as one footprint, on the host's first free side |
 | `D-152` | Accepted | 2026-09-23 | A signal line crosses the drawing by the fewest bends, then the shortest way; only an inner box stops it |
+| `D-153` | Accepted | 2026-09-23 | The layout engine is rebuilt as decompose, compose, draw, beside the old one until parity |
 <!-- index:end -->
 
 ---
@@ -7134,3 +7135,64 @@ so on a crowded plant a line can shadow a pipe for several units (the three-zone
 
 - *Crossings before length* -- keeps the route round the outside, the picture the user rejected.
 - *The pipe router's clearances for signals* -- the cause.
+
+---
+
+## D-153 · The layout engine is rebuilt as decompose, compose, draw, beside the old one until parity
+
+**Accepted · 2026-09-23** (the user's call, options chosen the same day) · restructures `D-106`'s engine, whose
+rules and standard stand · amends `28` (part E added, H11 stated) · package `P6.10` in `08` · supersedes
+nothing in `D-107`'s ladder, which stays the acceptance record
+
+**What was wrong.** The engine grew one rule at a time (`D-107`), and each rule brought its own geometry.
+Read in full on 2026-09-23 it has four whole-fragment forms tried in turn (sourced loop, ring of one, open
+form, unsourced ring), each declining as a whole, so anything no form recognises falls to a fallback
+column whose pipes are bare Ls with no stub (`C-127`); nine separate clearance tests, each with its own idea
+of an obstacle, so `D-151`'s "make room for a bubble" reached three of the nine places that lay a run
+(`C-128`); geometry patched after it is laid (C7 moves nodes and re-lays runs, C14 and `Close` rewrite the
+ends of runs already stored); a junction's side set in about twelve places with the right side as a silent
+default; pipes drawn three ways (by hand in the forms, by the router for leftovers, as Ls by the
+fallback); and link lookups that scan the whole list. On a three-zone heating plant -- the commonest
+shape in the trade -- this drew hard 11: a plain parallel branch has no rule (`C-126`), so two zones were
+laid as chains, a node was stranded in the fallback column, and two bubbles overlapped. The user: "it has
+grown fix by fix ... identify patterns in the code, see what is actually relevant, rewrite the whole
+system."
+
+**The decision.**
+
+1. **Three stages, each a type of its own** (`28` part E): *decompose* a fragment's topology into a tree of
+   structures before any geometry; *compose* the tree bottom-up, each structure laying itself out in local
+   coordinates and reporting its footprint and port anchors; *draw* every connection through one run
+   builder that guarantees the stub (H5), with the router for what is not straight.
+2. **The decomposition is series-parallel, read by the flow.** Between two terminals -- a source's outlet
+   and inlet, an inlet and an outlet boundary -- a fragment is a series or parallel composition of runs.
+   A parallel group whose paths all flow the same way is a **header with branches** (C14, C19, and the
+   plain zone of `C-126`); one whose paths flow opposite ways is a **loop** (the ring C2/C18, a block
+   C11). A chain hanging off a port to a boundary is a **chain** (C4–C6). The ring is the cycle through
+   the most junctions, so a header's taps lie on its rails and every branch hangs. What is not
+   series-parallel is still drawn -- placed by the chain rules, routed with its stubs -- and the trace says
+   so; no pipe is ever drawn without its stub.
+3. **One footprint, one clearance test.** A component's footprint is its box, its instruments' bubbles
+   (`D-151`) and the bands of the pipes it has laid; every placement asks the one occupancy the one
+   question. A run's length is one calculation: its stubs, its inline points and their bubbles.
+4. **H11: two pipes never run side by side closer than a margin**, except two runs of one symbol within
+   its clearance, where the port pitch decides (`C-96`). Hard, the user's call; stated now, enforced by
+   the audit when the new engine takes over, since the old one never kept it.
+5. **Beside the old engine until parity.** The new engine is built behind `LayoutSolver`; both run on
+   every ladder step and sample, and a report gives each step's geometry difference and audit counts.
+   The switch comes when every step and sample is hard 0 (H11 included) and soft no worse; a step whose
+   picture changes is shown to the user before its commit. The old engine is then deleted.
+
+The rules C1–C20 and the standard of `28` A and B are the specification; the accepted pictures of `29`
+are the tests. What changes is how the engine is built, not what it is asked to draw.
+
+### Rejected
+
+- *Replace in place* -- the product has no working layout until parity, and a regression is hard to trace
+  to the rule it broke.
+- *Refactor without restructuring* (unify the clearance tests, add a plain-branch rule, route the fallback)
+  -- fixes the three-zone plant, keeps the forms, and the next rule is patched in the same way.
+- *Byte-identical pictures as the gate* -- would make the new engine reproduce the old one's lattice of
+  tenths and `C-108`'s packing; the gate is the standard, and the user judges what changes.
+- *A general graph-drawing library* (layered, force-directed) -- none knows H9/H10, standing kinds or
+  flow vectors; `28` part D already rejected discovering a layout by search.

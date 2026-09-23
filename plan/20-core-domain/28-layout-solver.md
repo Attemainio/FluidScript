@@ -238,6 +238,7 @@ stated as constraints (`D-108`).
 | H8 | Every component and every connection is drawn; nothing is dropped |
 | H9 | **Every flow loop runs clockwise**: each simple directed cycle of the flow-oriented graph (A3), walked in flow order through its members' centres, encloses negative signed area (y up) |
 | H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right |
+| H11 | **Two pipes never run side by side closer than a margin**, except two runs of one symbol within that symbol's clearance, where the port pitch decides (`C-96`). *Stated 2026-09-23 (`D-153`); the audit enforces it when the new engine takes over (part E), since the old one never kept it -- until then it is the soft `pipe-beside-pipe`* |
 
 H9 and H10 together fix, for a loop with a standing source and a standing consumer: the source on
 the left side flowing up, the consumer on the right side flowing down, supply along the top to the
@@ -253,7 +254,7 @@ clearance touching the pipe it measures is C15's line one margin long and not a 
 clearance yields to a sibling run of the same symbol -- the tank's second supply at the symbol's
 0.96 port pitch under a margin of 1.0 (`C-96`), a node being a point and its outer box a
 convention, the same allowance the beside test makes for two runs of one symbol; a pipe running beside
-another closer than a margin; two pipes crossing; two outer boxes overlapping; a signal line running
+another closer than a margin (hard as H11 once the new engine takes over, `D-153`); two pipes crossing; two outer boxes overlapping; a signal line running
 along a pipe (a signal crosses pipes freely: C16 hops it); and, since labels are boxes (A11), a
 label entering another inner box, two labels intersecting, or a line crossing a label -- soft
 because the layout keeps the label with a leader rather than dropping it, and the count says how
@@ -591,6 +592,90 @@ proved; a candidate no step ever needs is deleted.
   layout. *Admitted for signals by `D-152`* in a mode of its own: inner boxes block, margins cost, a bend
   is worth 2 units of length, crossings and margins 0.25.
 
+## E. The engine *(D-153, 2026-09-23; being built as package P6.10)*
+
+The engine that draws C's rules, restructured after the first one grew a form, a clearance test and a way
+of drawing a pipe per rule (`D-153`). Three stages, each its own type; nothing in a later stage changes
+what an earlier one decided.
+
+### E1. The circuit view
+
+Built once per scene, read by everything after it.
+
+- **Ports and peers.** Every link indexed by both ends, so a port's peer is one lookup. Every port's flow
+  (A3) is computed once: role, else the joined port's role, else the boundary, else the writing.
+- **Runs** (A5). The inline elements -- pipes, pipe cells, two-connection nodes that are not
+  boundaries -- are collapsed first: a run joins two boxed elements' ports and carries its links in order
+  and its inline elements. Everything after this stage speaks of runs, not links.
+- **Fragments** (C17), in script order of their first declared member.
+
+### E2. Decompose
+
+Each fragment becomes a tree of structures before any geometry exists.
+
+- **Terminals.** The fragment's head (C1: the largest positive duty, else the first inlet, else the first
+  member with nothing upstream, else the first declared) fixes the two terminals: a source's outlet and
+  inlet, or an inlet boundary's junction and the outlet it reaches (C19). Without either, the consumer
+  cuts the loop (C18), and a member joined to itself is a ring of one (C20).
+- **Series-parallel reading.** Between the two terminals the boxed graph is read as a series-parallel
+  composition. A **parallel group** is a split element and a merge element joined by two or more
+  disjoint paths. Its paths' flow (E1) decides what it is:
+  - all flow split → merge: a **header** -- the paths are **branches** (C14; C19 in the open form; a
+    plain zone, `C-126`);
+  - some flow each way: a **loop** -- the ring itself at the top (C2, C18), a **block** below it (C11).
+- **The ring** is the cycle through the source that passes the most junctions, then the earlier port in
+  script order. A header's taps therefore lie on its rails, every branch hangs between them, and the
+  last path of the last group is the ring's right side (C11's unit).
+- **Chains.** What hangs off a port and ends in a boundary or an open port is a chain (C4, C5, C6), and
+  the open ends of a ring are paired (C7).
+- **Instruments** (C15) are attached to their hosts here, so a host's footprint knows its bubbles from
+  the start.
+- **The remainder.** A piece that is not series-parallel -- a bridge, say -- is a *loose* structure:
+  chain rules place it, the router joins it, and the trace names it. Nothing is stacked in a fallback
+  column and no pipe is drawn without its stub (H5).
+
+The tree is printed in the trace (A10) before any placement: one line per structure with its kind,
+members and parent.
+
+### E3. Compose
+
+Bottom-up: every structure lays itself out on its own canvas, then reports its **footprint** and its
+**port anchors** to its parent, which places it as one object (A8).
+
+- **Footprint.** The members' inner boxes, their instruments' bubbles (`D-151`) and the bands of the pipes
+  laid inside it (A7). **Occupancy** holds every placed footprint and answers every placement's one
+  question -- does this footprint keep the clearance from everything placed -- with one test: inner
+  boxes, bubbles and pipe bands against each other's margins, a symbol's own port pitch exempt (H11).
+- **Run length.** One calculation for every run: a stub at each boxed end, and room for each inline
+  point's bubble (`D-151`'s `L · min(t, c+1−t)/(c+1) ≥ m + s/2` and `L · (t2−t1)/(c+1) ≥ s + m`).
+  Every rule that lays a run asks it; none reserves room of its own.
+- **Rails.** A ring or a block lays its members along a top rail and a bottom rail from its left
+  side's two ports (C2), turns corners with the members that can (C9, C10), hangs its branches between
+  the rails under the junctions that feed them and over the ones they return to (C14), and stands its
+  right side at the longer rail's end (C11). A member on a side with slack sits at its middle (C12). A
+  plain branch is a vertical chain under its split junction, each member facing down the drop, its
+  merge junction directly under the split.
+- **Chains** grow from their port along its axis, a standing member entered by C3's turn, a pump kept
+  level (C13), and a chain off a loop member's flank leaving by two margins (C6).
+- **Fragments** stack under one another, left edges aligned (C17); then open ends align (C7), which is
+  the only move made after a structure is placed, and it moves a terminal along its own run only.
+
+### E4. Draw
+
+- **One run builder.** Every run is drawn from its two anchors through its stubs: straight where the
+  anchors face each other, one bend where the rules put the corner, else the router (part D) with both
+  stubs fixed. A junction's side is decided when its run is drawn and never defaulted.
+- **Signals** (C15, `D-152`) through the router's signal mode, then **crossings** (C16), **labels** (A11),
+  the **groups** (A8) and the **scene**.
+
+### E5. Parity
+
+Until the switch, both engines run on every ladder step and sample. A report per step gives the audit
+counts of each and the geometry difference -- each placement's move and each route's change in points,
+length and bends. The new engine takes over when every step and sample is hard 0 with H11 and soft no
+worse than the old engine's; a step whose picture changed is shown to the user and judged before its
+commit (`D-153`). The old engine is then deleted.
+
 ## Worked example
 
 The injection branch of `m2-distribution-header`, under H9, H10, C2–C4 and the catalogue as
@@ -648,5 +733,6 @@ for it.
 | A5, A6, C | `Layout/LayoutEngine.cs`; the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
 | A11 | `Layout/LabelLayout.cs`, called last from `LayoutEngine.ToScene`; `PlacementWire.LabelBox`/`LabelClear` and `LayoutWire.LabelMetric` on the wire; `LabelLayoutTests` |
 | A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core (`C-89`), its `PLACEMENT` trace from `Scene.Provenance` (`C-107`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
-| D (router) | `Layout/OrthogonalRouter.cs` |
+| D (router) | `Layout/Routing/OrthogonalRouter.cs` |
+| E (being built, P6.10) | `Layout/Engine/` beside `Layout/LayoutEngine/` until the switch ([`71`](../71-source-structure.md)) |
 | the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |
