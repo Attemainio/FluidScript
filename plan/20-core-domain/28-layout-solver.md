@@ -443,7 +443,8 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   outlet, and the last faces back to the left, so a series pair inside a parallel branch draws as
   the series header does (step 8e). The ring's right unit is slid until its own descent to the
   bottom rail clears every box as well. Not built yet: a branch off the bottom rail, a branch whose
-  bottom member is not a junction, and a boxed member on a branch before its first block.
+  bottom member is not a junction, and a boxed member on a branch before its first block. A branch
+  with no inner loop hangs as a column (E3, P6.10; the ladder engine has no rule for it, `C-126`).
 - **C15** *(step 10, corrected once, redrawn by `D-151`)* -- **An instrument is drawn on its host, as
   one footprint.** A sensor stands on the node it reads -- a point on one pipe or a terminal (`D-150`)
   -- and a controller on the device it actuates, each joined to its host by a straight line one margin
@@ -658,8 +659,18 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   side's two ports (C2), turns corners with the members that can (C9, C10), hangs its branches between
   the rails under the junctions that feed them and over the ones they return to (C14), and stands its
   right side at the longer rail's end (C11). A member on a side with slack sits at its middle (C12). A
-  plain branch is a vertical chain under its split junction, each member facing down the drop, its
-  merge junction directly under the split.
+  ring's members, its loops and its header branches are read from the decomposition, never searched
+  for in the graph: the path runs through each header's spine and each loop's forward way, a loop past
+  the ring's start is a block, and every other branch hangs from its split.
+- **Plain branches** *(built P6.10 R4)*. A branch with no loop is a vertical chain under its split, each
+  member facing down the drop, laid on a canvas of its own and slid right as one until it clears the
+  ring's left side and everything placed by the one test (boxes, bubbles, stubs); the split moves along
+  its rail to stand over it. Its merge stands on the bottom rail directly under the split, the rail's
+  cursor stopped short of it by the run length the merge's onward run needs, and the bottom rail lies a
+  whole return's run length under the column (bubbles included). Where the bottom rail still cannot
+  put the merge under its column -- a pump on the rail before it, a long reserved run -- the ring is laid
+  again from the state it started in with that split held over the merge; three passes at most. A merge
+  a column returns to never takes C10's corner under the right side's outlet.
 - **Chains** grow from their port along its axis, a standing member entered by C3's turn, a pump kept
   level (C13), and a chain off a loop member's flank leaving by two margins (C6).
 - **Fragments** stack under one another, left edges aligned (C17); then open ends align (C7), which is

@@ -94,7 +94,15 @@ internal sealed partial class Painter
             router.ReleaseStub(b.Component, b.Port);
             var towardsB = _view.Wildcard(b.Component) && !_sheet.Side.ContainsKey((b.Component, b.Port)) ? _sheet.Centre[b.Component] : _sheet.AnchorOf(b.Component, b.Port).At;
             var towardsA = _view.Wildcard(a.Component) && !_sheet.Side.ContainsKey((a.Component, a.Port)) ? _sheet.Centre[a.Component] : _sheet.AnchorOf(a.Component, a.Port).At;
-            var result = router.Route([.. Ends(a.Component, a.Port, towardsB)], a.Component, [.. Ends(b.Component, b.Port, towardsA)], b.Component)!;
+            var starts = Ends(a.Component, a.Port, towardsB).ToList();
+            var ends = Ends(b.Component, b.Port, towardsA).ToList();
+            var result = router.Route(starts, a.Component, ends, b.Component)!;
+
+            if (result.From.At.ManhattanTo(result.To.At) < 1e-9 && ends.Count > 1)
+            {
+                // A run from a node back to itself may not leave and return by one side: that is no pipe at all.
+                result = router.Route(starts, a.Component, [.. ends.Where(e => e.At.ManhattanTo(result.From.At) >= 1e-9)], b.Component)!;
+            }
 
             if (_view.Wildcard(a.Component))
             {
@@ -373,7 +381,8 @@ internal sealed partial class Painter
             var outs = 0;
             var inside = new HashSet<int>();
 
-            foreach (var i in members)
+            // An inline point is on one of the group's runs, not an end of one: only boxed members count connections.
+            foreach (var i in members.Where(i => !_view.IsInline(i)))
             {
                 foreach (var p in _view.Connected(i))
                 {

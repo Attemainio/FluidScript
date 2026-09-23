@@ -1540,11 +1540,17 @@ that governed each size. What P6.8 still owes, and what comes after:
     tree; step 6c reads as an open form whose body is one loop (the ring C18 draws). The plan is in the
     trace (`E2`), `DecompositionTests` read it; header-200 decomposes in 3.7 ms against the ladder
     engine's 43.9 ms for its whole solve (`LayoutTimingTests`, now timing both).
-  - **R3/R4 begun 2026-09-23**: `Sheet` (placement state, the one clearance test `Clashes`/`Clear`/
+  - **R3/R4 built 2026-09-23**: `Sheet` (placement state, the one clearance test `Clashes`/`Clear`/
     `Shift`/`ClearAt`, instruments as footprint, `RunLength` for every run), `Composer` (C17 stacking,
     the chain rules C3–C6, C7, stranded members stood under their fragment), `Painter` (every unlaid run
-    routed with both stubs, C15/C16, groups, labels, scene). Chains reach parity: steps 1, 2, 9, 3c's
-    exchanger and the storage header identical to the ladder engine. The ring forms are next.
+    routed with both stubs, C15/C16, groups, labels, scene). The ring forms (C2, C18, C19, C20), blocks
+    (C11) and hanging branches (C14) read a ring's members, loops and branches from the decomposition
+    (`Composer.Paths`) instead of searching the graph, over the ladder engine's rail geometry. **Parity:
+    every ladder step and sample -- instruments, signals and header-200 included -- is drawn identically
+    by both engines**, and `LayoutParityTests` now asserts it for every case but the pending ones. New
+    (`28` E3): a header's plain branch hangs as a column under its split, its merge straight under it; the
+    pending three-zone scripts draw hard 0 soft 0 (the ladder engine: hard 4 soft 7, hard 11 soft 12) --
+    `ComposerTests`. Next: show the user the zones pictures, then R5 (pipe bands in the occupancy, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

@@ -50,7 +50,7 @@ internal sealed partial class Composer
 
             using (_sheet.Canvas())
             {
-                Form(plan);
+                Form(plan, members, $"fragment {f + 1}");
                 Grow(fragmentRuns);
                 Stranded(members);
                 AlignOpenEnds(members);
@@ -70,18 +70,6 @@ internal sealed partial class Composer
             var dy = floor - _margin - box.Top;
             _sheet.Move(members, fragmentRuns, dx, dy);
             floor = box.Y + dy;
-        }
-    }
-
-    /// <summary>Lays the body the plan names; a form this engine has not built yet leaves the head at the origin for the chain rules.</summary>
-    private void Form(FragmentPlan plan)
-    {
-        switch (plan.Kind)
-        {
-            default:
-                _sheet.Note(_view.Name(plan.Head), "C1", "the fragment's head");
-                _sheet.Place(plan.Head, Transform.Identity, new Point(0, 0), "C1", "the fragment's head at the origin in its drawn default");
-                break;
         }
     }
 

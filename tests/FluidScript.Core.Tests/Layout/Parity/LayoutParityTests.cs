@@ -56,6 +56,7 @@ public sealed class LayoutParityTests
         Directory.CreateDirectory(directory);
         var summary = new StringBuilder();
         var cases = 0;
+        var drifted = new List<string>();
 
         foreach (var (name, source) in Cases())
         {
@@ -70,9 +71,17 @@ public sealed class LayoutParityTests
             File.WriteAllText(Path.Combine(directory, name + ".svg"), SceneSvg.Render(composed));
             summary.AppendLine(difference.Line());
             cases++;
+
+            // Until the switch (P6.10 R6) every accepted picture is drawn the same by both engines; only a pending
+            // script -- one the ladder engine draws wrong -- may differ, and its new picture is shown before it lands.
+            if (!name.StartsWith("pending-", StringComparison.Ordinal) && difference.Verdict != "identical")
+            {
+                drifted.Add($"{name}: {difference.Verdict}");
+            }
         }
 
         File.WriteAllText(Path.Combine(directory, "summary.txt"), summary.ToString());
         Assert.True(cases >= 30, $"the harness compared {cases} cases; the ladder's steps are missing");
+        Assert.True(drifted.Count == 0, $"the composed engine drew an accepted picture differently: {string.Join("; ", drifted)}");
     }
 }
