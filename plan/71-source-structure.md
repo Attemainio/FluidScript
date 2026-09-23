@@ -14,7 +14,7 @@ last_review_pass: 0
 
 ## Purpose
 
-**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S2 shipped; S3–S5 follow. Runs before
+**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S3 shipped; S4–S5 follow. Runs before
 P6.3, the user's call.
 
 `FluidScript.Core` is 204 files and 58 400 lines in **sixteen flat folders**. Only `Syntax/Ast` has a
@@ -116,12 +116,12 @@ FluidScript.Core/
 │   ├── Syntax/
 │   │   ├── Text/     SourceText, LinePosition, TextEdit
 │   │   ├── Lexing/   Lexer, LexResult, Token, TokenKind, Trivia, TriviaKind, ReservedWord, ReservedWords
-│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser (class folder after S3)
+│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser (class folder, S3)
 │   │   ├── Printing/ Formatter, SyntaxPrinter
 │   │   └── Ast/      SyntaxNode · Statements/ · Expressions/           (one node per file, S2)
 │   ├── Binding/      Binder, SemanticModel, DependencyGraph, ExpressionEvaluator, ScenarioProjection,
 │   │   │             HeightMap, StyleSpec, NamedColours, Constants
-│   │   ├── BindingRun/  the five BindingRun partials            (class folder: namespace …Binding)
+│   │   ├── BindingRun/  the BindingRun partials                  (class folder: namespace …Binding)
 │   │   └── Symbols/  SymbolMap, CurveSymbols, TopologySymbols
 │   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, ScheduleRoleRegistry,
 │   │                 PropertyTable, NameResolution, InputLimits, Range
@@ -142,15 +142,15 @@ FluidScript.Core/
 │   └── Valves/       ValveSpec, ValveKvR5
 ├── Topology/
 │   ├── Graph/        CircuitGraph, Branch, GraphNode, PortAdjacency
-│   ├── Construction/ Lowering, Lowering.Build, ComponentFactory, ScheduledChange, Setpoint
-│   ├── Counting/     WellPosedness, CountingTable, Assignment, Reach
+│   ├── Construction/ Lowering/ (class folder, S3), ComponentFactory, ScheduledChange, Setpoint
+│   ├── Counting/     WellPosedness/ (class folder, S3), CountingTable, Assignment, Reach
 │   └── Hydraulics/   HydraulicBlocks, HydraulicComponent, FillPressure
 ├── Solvers/          ISolver, Tolerances
 │   ├── Equations/    EquationSystem, EquationLayout, SystemLayout, PortMap, ResidualScales,
 │   │                 UnknownScales, StateVector
 │   ├── Steady/       NewtonSolver, NewtonSettings, DenseLu, NullDirection
-│   ├── Seeding/      SolutionSeed, SolutionSeed.Field, WarmStart
-│   ├── Passes/       OuterLoop, DeferredEvaluation
+│   ├── Seeding/      SolutionSeed/ (class folder, S3), WarmStart
+│   ├── Passes/       OuterLoop/ (class folder, S3), DeferredEvaluation
 │   ├── Transient/    ITransientSolver, TransientSolver, TransientSettings, TransientFrame, RunSnapshot,
 │   │                 Stratification
 │   └── Results/      SolvedStates, BranchResistance, ValveLegs
@@ -159,17 +159,17 @@ FluidScript.Core/
 │   ├── Flows/        BranchFlows, BypassBalance
 │   └── Scenarios/    ScenarioSizing, ScenarioEnvelope
 ├── Layout/           LayoutSolver
-│   ├── LayoutEngine/ the eight LayoutEngine partials              (class folder: namespace …Layout)
+│   ├── LayoutEngine/ the LayoutEngine partials                    (class folder: namespace …Layout)
 │   ├── Routing/      OrthogonalRouter, Segments, Direction
-│   ├── Hints/        LayoutHints, LayoutHintsDerivation
+│   ├── Hints/        LayoutHints, LayoutHintsDerivation/ (class folder, S3)
 │   └── Drawing/      Scene, SceneAudit, SceneText, LabelLayout
-├── Model/            ModelContractBuilder, ModelContractInput, ScaleDomain, Styles, SymbolCatalog
+├── Model/            ModelContractBuilder/ (class folder, S3), ModelContractInput, ScaleDomain, Styles, SymbolCatalog
 │   └── Contract/     ModelContract and its forty types                (one per file, S2)
 └── Diagnostics/      Diagnostic, DiagnosticDescriptor, DiagnosticSeverity, DiagnosticArea,
     │                 DiagnosticArgument, DiagnosticRegistry, RelatedLocation, RetiredDiagnostic,
     │                 Suggestion, TextSpan
     ├── Descriptors/  the sixteen *Diagnostics families
-    └── Explanations/ SolveExplanation, ScenarioExplanation
+    └── Explanations/ SolveExplanation/ (class folder, S3), ScenarioExplanation
 ```
 
 **Folder names were chosen so no namespace segment is also the name of a type in it** (`D-148`):
@@ -273,7 +273,7 @@ by the file headers that one type per file and the partial splits create.
 |---|---|---|
 | S1 moves | ≈ 0 | a `namespace` line edited per file, `using` lines adjusted |
 | S2 one type per file | **≈ +1 500 estimated; +748 measured** (Core +696, Api +52) | 279 types left 69 files. The estimate assumed each new file kept its source's `using`s; pruning to what each file needs halved it |
-| S3 partial splits | **≈ +400** | 25 files over 600 lines, 27 630 lines, into ~400-line concerns: ~44 new files at ~9 header lines |
+| S3 partial splits | **≈ +400 estimated; +678 measured** (Core only) | 22 classes split into 63 new partial files. Each new file carries its source's `using`s until pruned, the namespace, and one class header — two for a nested class, which is wrapped in its outer class |
 | S4 `ComponentBase` | **−150**, base +60 | counted per member with docs, across the seven components |
 | S4 `ValveComponentBase` | ≈ −10 | shared members less the base's own |
 | S5 `SizerBase<T>` | ≈ 0 | `CanSize` and guards removed, the base added |
@@ -296,7 +296,7 @@ suites green, the build at zero warnings, and the plan checker at its baseline.
 | S0 | `D-147`; this document; the conventions in [`04`](00-foundation/04-engineering-standards.md); `03`'s tree | small | low |
 | S1 | **Moves only**, shipped 2026-09-23 as two commits rather than one per domain: every `git mv` in one commit with no content edit, which compiles as it stands because no file's text changed and keeps `git log --follow` intact; then the namespaces, the `using`s (rebuilt from a type map — a file gains a `using` for a type only if it could already see that type's old namespace), 149 unused `using`s removed, and three test literals that named a folder or a namespace. Tests moved with their code | medium | low — the compiler finds every missed `using` |
 | S2 | One type per file, shipped 2026-09-23: 279 types out of 69 files (Core and Api), nine files named for no type removed; `Ast/Statements/`, `Ast/Expressions/` and `Components/Declarations/` created; a type split out of a class folder goes to its parent so the folder stays one class's. A doc comment attaches across a blank line, and the splitter follows it | medium | low |
-| S3 | Concern partials for the 25 files over 600 lines, largest first (`EquationSystem`, `WellPosedness`, `OuterLoop`, `Binder`, `BindingRun.Topology`); takes `70`'s R6 where it touches the same files | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
+| S3 | Concern partials, shipped 2026-09-23: every Core file over 600 lines split by concern, members moved whole and unedited — 22 classes, 63 new files, eight new class folders. Fields and initialised auto-properties stay in the core file, because C# does not order static initialisers across partial files. A nested class splits as a nested partial inside its outer partial (`Lowering.Build.*`, `SolutionSeed.Field.*`); primary-constructor parameters are visible in every part. Two static `char[]`/`string[]` fields moved beside their only readers, because `CA1870`'s analyzer crashes (`AD0001`, "Syntax node is not within syntax tree") when the array and its use sit in different files. `70`'s R6 was **not** taken: it changes how the binder and the equation system are built, and a package whose evidence is "members moved, nothing edited" is the wrong carrier for it | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
 | S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol` | medium | **med** — the only package that touches the hot path |
 | S5 | `SizerBase<TComponent>` and `PipeCatalogBuilder` | small | low |
 
@@ -319,7 +319,10 @@ the tier registers of whatever it found.
 1. Every package leaves every golden byte-identical.
 2. After S1, every file's namespace equals its folder path, a class folder being transparent, and a test enforces it.
 3. After S2, no file under `src/` declares more than one top-level type.
-4. After S3, no Core class file is over ~800 lines without a register row saying why.
+4. After S3, no Core class file is over ~800 lines without a register row saying why. The one today is
+   `BinderDiagnostics` (933 lines, 77 descriptors and the `All` list that reads them): a table, not a
+   class, and one that cannot split, since `All`'s initialiser would then read properties another file
+   initialises in an order C# does not define.
 5. The test tree mirrors the source tree folder for folder at every commit.
 6. No package changes a public member's behaviour or a residual's arithmetic.
 

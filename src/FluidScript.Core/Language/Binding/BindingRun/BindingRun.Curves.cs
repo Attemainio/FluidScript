@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
@@ -31,23 +30,6 @@ namespace FluidScript.Core.Language.Binding;
 /// </remarks>
 internal sealed partial class BindingRun
 {
-    /// <summary>What a timestamp may look like when the curve states no <c>format=</c>.</summary>
-    /// <remarks>
-    /// ISO 8601 only, per <c>D-60</c>. Culture-inferred layouts are rejected outright: the proposal's
-    /// own example ran <c>1.1</c>, <c>1.1</c>, <c>1.2</c> a minute apart, and whether the third point
-    /// is a day or a month later cannot be recovered from the text.
-    /// </remarks>
-    private static readonly string[] IsoTimestamps =
-    [
-        "yyyy-MM-ddTHH:mm:ss",
-        "yyyy-MM-ddTHH:mm",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyy-MM-dd HH:mm",
-        "yyyy-MM-dd",
-    ];
-
-    private static readonly char[] RowSeparators = [' ', '\t'];
-
     private readonly List<CurveSymbol> _curves = [];
     private readonly Dictionary<string, int> _curvesByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, DesignValue> _design = new(StringComparer.Ordinal);
@@ -113,72 +95,6 @@ internal sealed partial class BindingRun
         for (var i = 0; i < _curves.Count; i++)
         {
             _curves[i] = ResolveDriver(_curves[i]);
-        }
-    }
-
-    /// <summary>Records the declared cases, refusing a repeated name (<c>D-143</c>).</summary>
-    /// <param name="scenarios">The directive.</param>
-    /// <remarks>
-    /// Order is kept exactly as written, because that order is the whole binding: element <c>i</c> of
-    /// every list belongs to the name at position <c>i</c>. A duplicate is refused rather than
-    /// collapsed -- two cases called <c>summer</c> would give a size a basis naming a case that
-    /// cannot be looked up -- and the repeat is skipped so the positions of the rest do not shift.
-    /// </remarks>
-    private void DeclareScenarios(ScenariosDirectiveSyntax scenarios)
-    {
-        _scenarioSpan ??= scenarios.Span;
-
-        foreach (var name in scenarios.Names)
-        {
-            if (_scenarios.Contains(name.Token.Text, StringComparer.Ordinal))
-            {
-                Report(BinderDiagnostics.DuplicateScenario, name.Span, ("name", name.Token.Text));
-                continue;
-            }
-
-            _scenarios.Add(name.Token.Text);
-        }
-    }
-
-    private void DeclareDesign(DesignDirectiveSyntax design)
-    {
-        // `design winter` names the operating case and gives no driver a value (`D-143`). Recorded
-        // here and checked after the whole file is read, because the `scenarios` line may follow it.
-        if (design.Scenario is { } named)
-        {
-            _designScenario = (named.Token.Text, named.Span);
-            return;
-        }
-
-        foreach (var argument in design.Arguments)
-        {
-            var written = argument.Name.Text;
-            var role = ScheduleRoleRegistry.Resolve(written);
-
-            // Keyed by the role rather than the spelling, which is the whole of `D-59`: `design
-            // tout=-26` and `design outdoor=-26` are the same design point, and a curve driven by
-            // either name finds it.
-            var key = role?.CanonicalName ?? written;
-
-            if (_design.TryGetValue(key, out var existing))
-            {
-                Report(
-                    BinderDiagnostics.DuplicateBinding,
-                    argument.Span,
-                    ("name", written),
-                    ("line", LineOf(existing.Span)));
-                continue;
-            }
-
-            var id = new ValueId.Design(key);
-            _graph.Add(id);
-            _pending[id] = new PendingValue(argument.Value, id, argument.Span, null)
-            {
-                DesignRole = role,
-                IsDesign = true,
-            };
-
-            _design[key] = new DesignValue(written, role, null, null, argument.Span);
         }
     }
 
@@ -273,132 +189,6 @@ internal sealed partial class BindingRun
 
     /// <summary>How many unreadable rows of one curve are marked where they are before the rest are counted (<c>FS1535</c>).</summary>
     private const int UnreadableRowsShown = 5;
-
-    /// <summary>Reads every row of one curve into a sorted table.</summary>
-    /// <remarks>
-    /// Rows written out of order are sorted here rather than reported: a weather file is not obliged
-    /// to arrive monotonic, and <see cref="CurveSymbol.Evaluate"/> needs the order, not the user.
-    /// </remarks>
-    private ImmutableArray<CurvePoint> ReadRows(CurveDraft draft, string name, bool isTime, string? format)
-    {
-        var read = new List<CurvePoint>();
-        var unreadable = 0;
-
-        foreach (var row in draft.Rows)
-        {
-            if (ReadRow(row, isTime, format) is { } point)
-            {
-                read.Add(point);
-                continue;
-            }
-
-            if (++unreadable <= UnreadableRowsShown)
-            {
-                Report(ParserDiagnostics.MalformedCurveRow, row.Span);
-            }
-        }
-
-        if (unreadable > UnreadableRowsShown)
-        {
-            Report(
-                BinderDiagnostics.CurveRowsUnreadable,
-                draft.Header.Span,
-                ("curve", name),
-                ("count", (unreadable - UnreadableRowsShown).ToString(CultureInfo.InvariantCulture)),
-                ("shown", UnreadableRowsShown.ToString(CultureInfo.InvariantCulture)));
-        }
-
-        // Stable, so two rows at one x stay in the order they were written and the later one is the
-        // one kept below.
-        var sorted = read.OrderBy(static point => point.X).ToArray();
-        var table = ImmutableArray.CreateBuilder<CurvePoint>(sorted.Length);
-
-        foreach (var point in sorted)
-        {
-            if (table.Count > 0 && table[^1].X == point.X)
-            {
-                // Information, not an error: a step is a legitimate thing to write, and the later row
-                // is what a reader of the file would expect to win.
-                Report(
-                    BinderDiagnostics.DuplicateCurveRow,
-                    draft.Header.Span,
-                    ("curve", name),
-                    ("x", point.X.ToString("0.###", CultureInfo.InvariantCulture)));
-
-                table[^1] = point;
-                continue;
-            }
-
-            table.Add(point);
-        }
-
-        return table.ToImmutable();
-    }
-
-    /// <summary>Splits one row into its two columns and reads both.</summary>
-    /// <remarks>
-    /// Split at the last run of whitespace, not on tokens: <c>-26</c> is two tokens and one value, and
-    /// <c>01/01/2026 00:00:00</c> is many tokens and one timestamp. A timestamp cannot be lexed as a
-    /// unit, because <c>2026-01-01</c> is also a perfectly good subtraction, so the split has to
-    /// happen over the text and it has to happen here.
-    /// </remarks>
-    private CurvePoint? ReadRow(CurveRowSyntax row, bool isTime, string? format)
-    {
-        var text = parse.Source.ToString(row.Span).Trim();
-        var cut = text.LastIndexOfAny(RowSeparators);
-
-        if (cut < 0)
-        {
-            return null;
-        }
-
-        if (!double.TryParse(
-                text[(cut + 1)..], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
-        {
-            return null;
-        }
-
-        var written = text[..cut].TrimEnd();
-
-        return (isTime ? ReadTimestamp(written, format) : ReadNumber(written)) is { } x
-            ? new CurvePoint(x, y)
-            : null;
-    }
-
-    private static double? ReadNumber(string text) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-            ? value
-            : null;
-
-    /// <summary>Reads one <c>x</c> of a time-driven curve, in Unix seconds (<c>D-60</c>).</summary>
-    /// <param name="text">The column as written.</param>
-    /// <param name="format">The curve's <c>format=</c>, or <see langword="null"/> for the defaults.</param>
-    /// <returns>Seconds since the Unix epoch, or <see langword="null"/> when nothing read it.</returns>
-    /// <remarks>
-    /// The format string is .NET's and its case matters: <c>MM</c> is the month and <c>mm</c> the
-    /// minute, <c>HH</c> the 24-hour clock and <c>hh</c> the 12-hour. Read under the invariant culture
-    /// in every branch, so the same file means the same thing on two machines.
-    /// </remarks>
-    private static double? ReadTimestamp(string text, string? format)
-    {
-        if (format is not null)
-        {
-            return DateTime.TryParseExact(
-                text, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var stated)
-                ? (stated - DateTime.UnixEpoch).TotalSeconds
-                : null;
-        }
-
-        if (ReadNumber(text) is { } seconds)
-        {
-            return seconds;
-        }
-
-        return DateTime.TryParseExact(
-            text, IsoTimestamps, CultureInfo.InvariantCulture, DateTimeStyles.None, out var iso)
-            ? (iso - DateTime.UnixEpoch).TotalSeconds
-            : null;
-    }
 
     /// <summary>Settles what a curve's second position names, and wires the graph edge it implies.</summary>
     /// <remarks>
@@ -576,79 +366,6 @@ internal sealed partial class BindingRun
                     ("driver", _curves[_curvesByName[curve.Name]].DriverName ?? curve.Name));
             }
         }
-    }
-
-    /// <summary>Finds the solve mode of the circuit a value was written in.</summary>
-    /// <returns>Static when nothing places the value, which is the language's own default.</returns>
-    private FluidMode ModeOf(ValueId id)
-    {
-        var circuit = id switch
-        {
-            ValueId.ComponentParameter parameter
-                when _componentsByName.TryGetValue(parameter.Component, out var slot) =>
-                _components[slot.Index].CircuitName,
-            ValueId.Let let => _bindingCircuits.GetValueOrDefault(let.Name),
-            _ => null,
-        };
-
-        return _circuits
-            .FirstOrDefault(candidate => string.Equals(candidate.Name, circuit, StringComparison.Ordinal))
-            ?.Mode ?? FluidMode.Static;
-    }
-
-    /// <summary>Settles which case the file operates at, once the whole file has been read (<c>D-143</c>).</summary>
-    /// <returns>The scenario name, or <see langword="null"/> when no scenarios are declared.</returns>
-    /// <remarks>
-    /// Two errors and no repair. A <c>design</c> naming a case that does not exist is <c>FS1542</c>;
-    /// scenarios with no <c>design</c> at all is <c>FS1543</c>, and **the first name is not taken as a
-    /// default** -- it is a position, and reading a position as a choice would make reordering the
-    /// <c>scenarios</c> line silently change which case the canvas draws. A <c>design</c> naming a
-    /// case in a file with no scenarios is left alone: it binds nothing, and the file is a `D-58` file
-    /// whose driver form this is not.
-    /// </remarks>
-    private string? SettleDesignScenario()
-    {
-        if (_scenarios.Count == 0)
-        {
-            return null;
-        }
-
-        if (_designScenario is not { } named)
-        {
-            Report(
-                BinderDiagnostics.DesignScenarioMissing,
-                _scenarioSpan ?? default,
-                ("count", _scenarios.Count.ToString(CultureInfo.InvariantCulture)),
-                ("first", _scenarios[0]));
-            return null;
-        }
-
-        if (!_scenarios.Contains(named.Name, StringComparer.Ordinal))
-        {
-            Report(
-                BinderDiagnostics.UnknownDesignScenario,
-                named.Span,
-                ("name", named.Name),
-                ("names", string.Join(", ", _scenarios)));
-            return null;
-        }
-
-        return named.Name;
-    }
-
-    /// <summary>Writes each design value's evaluated result back, for the model to carry.</summary>
-    private ImmutableDictionary<string, DesignValue> PublishDesign()
-    {
-        var published = ImmutableDictionary.CreateBuilder<string, DesignValue>(StringComparer.Ordinal);
-
-        foreach (var (key, entry) in _design)
-        {
-            _pending.TryGetValue(new ValueId.Design(key), out var pending);
-
-            published[key] = entry with { Value = pending?.Value, Number = DesignNumber(key) };
-        }
-
-        return published.ToImmutable();
     }
 
     private sealed record CurveDraft(CurveHeaderSyntax Header, List<CurveRowSyntax> Rows);
