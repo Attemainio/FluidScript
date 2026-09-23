@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>Welded steel tube on EN 10220's Series 1 diameters, the walls a Finnish wholesaler stocks for heating pipe.</summary>
@@ -103,25 +101,6 @@ public static class SteelEn10220
     };
 
     /// <summary>The catalogue, ascending by nominal size.</summary>
-    public static ICatalog<PipeSpec> Instance { get; } = new Catalog<PipeSpec>(
-        Id,
-        "2026.1",
-        "EN 10220",
-        Rows.Select(static row => new CatalogEntry<PipeSpec>
-        {
-            Designation = "DN" + row.Dn.ToString(CultureInfo.InvariantCulture),
-            Spec = new PipeSpec
-            {
-                NominalDiameter = row.Dn,
-                DesignationBasis = DesignationBasis.NominalSize,
-                OutsideDiameter = row.OdMm / 1000,
-                WallThickness = row.WallMm / 1000,
-                Roughness = Roughness,
-                Series = Series,
-            },
-
-            Provenance = Sources,
-        }),
-        PipeSpec.Fault,
-        static spec => spec.OutsideDiameter);
+    public static ICatalog<PipeSpec> Instance { get; } =
+        PipeCatalogBuilder.Build(Id, "2026.1", "EN 10220", Series, Roughness, Rows, Sources);
 }

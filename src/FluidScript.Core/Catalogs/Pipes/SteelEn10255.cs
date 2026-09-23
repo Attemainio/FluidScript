@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>Medium-series non-alloy steel tube, the common European hydronic default.</summary>
@@ -144,25 +142,6 @@ public static class SteelEn10255
     };
 
     /// <summary>The catalogue, ascending by nominal size.</summary>
-    public static ICatalog<PipeSpec> Instance { get; } = new Catalog<PipeSpec>(
-        Id,
-        "2026.1",
-        "EN 10255",
-        Rows.Select(static row => new CatalogEntry<PipeSpec>
-        {
-            Designation = "DN" + row.Dn.ToString(CultureInfo.InvariantCulture),
-            Spec = new PipeSpec
-            {
-                NominalDiameter = row.Dn,
-                DesignationBasis = DesignationBasis.NominalSize,
-                OutsideDiameter = row.OdMm / 1000,
-                WallThickness = row.WallMm / 1000,
-                Roughness = Roughness,
-                Series = Series,
-            },
-
-            Provenance = Sources,
-        }),
-        PipeSpec.Fault,
-        static spec => spec.OutsideDiameter);
+    public static ICatalog<PipeSpec> Instance { get; } =
+        PipeCatalogBuilder.Build(Id, "2026.1", "EN 10255", Series, Roughness, Rows, Sources);
 }

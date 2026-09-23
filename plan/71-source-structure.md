@@ -14,7 +14,7 @@ last_review_pass: 0
 
 ## Purpose
 
-**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S4 shipped; S5 follows. Runs before
+**Status (2026-09-23).** Decided (`D-147`, `D-148`). **Shipped: S0–S5, all six packages.** Ran before
 P6.3, the user's call.
 
 `FluidScript.Core` is 204 files and 58 400 lines in **sixteen flat folders**. Only `Syntax/Ast` has a
@@ -286,7 +286,9 @@ by the file headers that one type per file and the partial splits create.
 | S4 `ValveComponentBase` | ≈ −10 | shared members less the base's own |
 | S5 `SizerBase<T>` | ≈ 0 | `CanSize` and guards removed, the base added |
 | S5 pipe-catalogue builder | ≈ −30 | three builders of 23, 23 and 32 lines to calls of ~6, plus a ~30-line builder |
+| S5 measured | **+53** | the sizers and catalogues lost 104 lines net of their edits; `SizerBase` (71) and the builder (86) cost more, most of it the XML docs a public base carries |
 | **Net** | **≈ +1 700 of 58 400** | |
+| **Net measured** | **+1 491 of 58 387** (Core, 204 → 513 files; Api +55) | S0's tree against S5's, every `.cs` line counted |
 
 Where a real reduction would come from is **duplicated logic**, not boilerplate — `70`'s method, a
 review that finds one question answered several ways. `70`'s R6 (the binder's phase records,
@@ -306,7 +308,7 @@ suites green, the build at zero warnings, and the plan checker at its baseline.
 | S2 | One type per file, shipped 2026-09-23: 279 types out of 69 files (Core and Api), nine files named for no type removed; `Ast/Statements/`, `Ast/Expressions/` and `Components/Declarations/` created; a type split out of a class folder goes to its parent so the folder stays one class's. A doc comment attaches across a blank line, and the splitter follows it | medium | low |
 | S3 | Concern partials, shipped 2026-09-23: every Core file over 600 lines split by concern, members moved whole and unedited — 22 classes, 63 new files, eight new class folders. Fields and initialised auto-properties stay in the core file, because C# does not order static initialisers across partial files. A nested class splits as a nested partial inside its outer partial (`Lowering.Build.*`, `SolutionSeed.Field.*`); primary-constructor parameters are visible in every part. Two static `char[]`/`string[]` fields moved beside their only readers, because `CA1870`'s analyzer crashes (`AD0001`, "Syntax node is not within syntax tree") when the array and its use sit in different files. `70`'s R6 was **not** taken: it changes how the binder and the equation system are built, and a package whose evidence is "members moved, nothing edited" is the wrong carrier for it | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
 | S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol`, shipped 2026-09-23. Three departures from the sketch above, each for a reason found while writing it. **The equations are a protected `init` property, not a constructor argument**: the tank and the exchanger build theirs from validated state over several statements, and a base-constructor argument would have forced each into a static helper. **The interface's default members are restated as virtuals** (`InjectsEnergy`, `EvaluateEnergyInjection`, `Resolvable`): a derived member the base did not declare would not implement the interface — the base's mapping to the interface default would win, and the pipe's rise would drop out of the energy balance with nothing failing to compile. **`CircuitNode` became `NodeComponent`**, which `71` had not named: the kind is `node`, and the glossary derives the type from the keyword. `EquationCount` stays abstract, because the node's and the exchanger's explain why their count is what it is. Solver-scale timing at 861 unknowns, two runs each, debug build: 5.50 and 5.63 s before, 5.58 and 5.52 s after; 1 597 MB allocated both times | medium | **med** — the only package that touches the hot path |
-| S5 | `SizerBase<TComponent>` and `PipeCatalogBuilder` | small | low |
+| S5 | `SizerBase<TComponent>` and `PipeCatalogBuilder`, shipped 2026-09-23. The five sizers take their family as the type argument and lose their `CanSize` type test, their re-test and cast, and their hand-written refusal; each keeps its refusal wording as a `Refusal` pair, so no message changed. The thermal rule narrows `CanSize` to an exchanger with a rating and refuses the rest itself. With the valve helpers typed to `ValveComponentBase`, `CA1859` asked for exactly that, and the two rules that listed `ValveComponent or ThreeWayValveComponent` now name the base. The builder has two overloads — nominal-size rows under one provenance (the two steels), and rows carrying their own designation and provenance (copper). **Found while closing it:** S1 moved the token goldens and `tokenizer.test.ts` still read the old folder, so one frontend file had failed since S1 — every package from S1 to S4 ran the .NET suites and not the frontend's, which this document's closing evidence names. Fixed here; `03`'s example paths, which had also gone stale, with it | small | low |
 
 S1 before S2 before S3 so a file moves once and splits in its final folder. S4 after S3 so the
 renames run over files already in place. Each package updates this document's status line, `09`, and

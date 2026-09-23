@@ -42,7 +42,7 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// </para>
 /// </remarks>
 public sealed class ValveSizer(
-    ICatalog<ValveSpec> catalog, double authorityTarget = SizingDefaults.ValveAuthorityTarget) : ISizer
+    ICatalog<ValveSpec> catalog, double authorityTarget = SizingDefaults.ValveAuthorityTarget) : SizerBase<ValveComponentBase>
 {
     /// <inheritdoc/>
     /// <remarks>
@@ -50,7 +50,7 @@ public sealed class ValveSizer(
     /// <c>authority</c> has set the target and keeps it; one that does not gets the value the chosen
     /// row actually delivers, which after rounding down is not the number that was asked for.
     /// </remarks>
-    public ImmutableArray<string> Parameters { get; } = ["kv", "authority"];
+    public override ImmutableArray<string> Parameters { get; } = ["kv", "authority"];
 
     /// <inheritdoc/>
     /// <remarks>
@@ -60,11 +60,15 @@ public sealed class ValveSizer(
     /// hand every other rule on the loop a branch drop dominated by a valve nobody has sized yet. The
     /// largest row is the closest thing the series has to an open port.
     /// </remarks>
-    public ImmutableDictionary<string, Quantity> Provisional { get; } =
+    public override ImmutableDictionary<string, Quantity> Provisional { get; } =
         ImmutableDictionary<string, Quantity>.Empty.Add(
             "kv",
             Quantity.FromSi(
                 catalog is { Entries.Count: > 0 } ? catalog.Entries[^1].Spec.Kvs : 1, Dimension.Kv));
+
+    /// <inheritdoc/>
+    protected override (string Property, string State) Refusal =>
+        ("a Kv", "a two-way valve, or a three-way valve with its bypass unconnected");
 
     /// <inheritdoc/>
     /// <remarks>
@@ -87,24 +91,8 @@ public sealed class ValveSizer(
     /// duplicating all of it to change which two numbers go in.
     /// </para>
     /// </remarks>
-    public bool CanSize(IFlowComponent component) => component is ValveComponent or ThreeWayValveComponent;
-
-    /// <inheritdoc/>
-    public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
+    protected override Result<SizingResult> Size(ValveComponentBase valve, in SizingContext context)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (!CanSize(component))
-        {
-            return Result.Failure<SizingResult>(ResultError.From(
-                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a Kv"),
-                ("name", component.Name),
-                ("state", "a two-way valve, or a three-way valve with its bypass unconnected")));
-        }
-
-        var valve = component;
-
         var target = Target(valve);
         var density = context.State.Density.SiValue;
 
@@ -266,7 +254,7 @@ public sealed class ValveSizer(
 
     /// <summary>Adds whatever is worth telling the user about the row that was chosen.</summary>
     private static void Report(
-        IFlowComponent valve,
+        ValveComponentBase valve,
         CatalogSelection<ValveSpec> chosen,
         double kvs,
         double achieved,
@@ -301,7 +289,7 @@ public sealed class ValveSizer(
     /// <param name="statedDrop">Pa, the script's <c>dp</c>.</param>
     /// <param name="density">kg/m³, the design state's.</param>
     /// <returns>The Kv and the authority it achieves, both with a basis naming the stated drop.</returns>
-    private Result<SizingResult> AtStatedDrop(IFlowComponent valve, in SizingContext context, double statedDrop, double density)
+    private Result<SizingResult> AtStatedDrop(ValveComponentBase valve, in SizingContext context, double statedDrop, double density)
     {
         var flow = Math.Abs(context.CommonFlow ?? context.MassFlow);
         var required = ValveLaw.RequiredKv(flow, statedDrop, density);
@@ -346,7 +334,7 @@ public sealed class ValveSizer(
     /// <summary>The target authority for one valve.</summary>
     /// <param name="valve">The valve.</param>
     /// <returns>Dimensionless. A stated <c>authority</c> is a constraint; otherwise the rule's target.</returns>
-    private double Target(IFlowComponent valve) =>
+    private double Target(ValveComponentBase valve) =>
         valve.StatedParameters.TryGetValue("authority", out var stated) ? stated.SiValue : authorityTarget;
 
     /// <summary>Sizes a three-way valve to the drop band a mixing valve is selected in (<c>D-122</c>).</summary>
@@ -382,7 +370,7 @@ public sealed class ValveSizer(
     /// </para>
     /// </remarks>
     private Result<SizingResult> MixingBand(
-        IFlowComponent valve, in SizingContext context, double common, double density)
+        ValveComponentBase valve, in SizingContext context, double common, double density)
     {
         var chosen = catalog.SmallestSatisfying(
             spec => Drop(common, spec.Kvs, density) <= SizingDefaults.ThreeWayDropMaximum);

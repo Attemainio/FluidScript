@@ -178,7 +178,7 @@ public static partial class WellPosedness
         {
             foreach (var element in branch.Path)
             {
-                if (element is ValveComponent or ThreeWayValveComponent
+                if (element is ValveComponentBase
                     && IsFree(graph, element, "kv")
                     && hydraulic.Elements.Contains(element))
                 {

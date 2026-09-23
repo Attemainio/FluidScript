@@ -3,7 +3,6 @@ using System.Globalization;
 
 using FluidScript.Core.Components.Declarations;
 using FluidScript.Core.Language.Registry;
-using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Components;
 

@@ -31,10 +31,10 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// (<c>D-25</c>).
 /// </para>
 /// </remarks>
-public sealed class PumpSizer : ISizer
+public sealed class PumpSizer : SizerBase<PumpComponent>
 {
     /// <inheritdoc/>
-    public ImmutableArray<string> Parameters { get; } = ["head"];
+    public override ImmutableArray<string> Parameters { get; } = ["head"];
 
     /// <inheritdoc/>
     /// <remarks>
@@ -43,25 +43,14 @@ public sealed class PumpSizer : ISizer
     /// bore. That keeps <c>head</c> claimed by no map on the bootstrap pass, which is what leaves it
     /// available for promotion when a stated constraint needs somewhere to go.
     /// </remarks>
-    public ImmutableDictionary<string, Quantity> Provisional => [];
+    public override ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is PumpComponent;
+    protected override (string Property, string State) Refusal => ("a head", "a component that is not a pump");
 
     /// <inheritdoc/>
-    public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
+    protected override Result<SizingResult> Size(PumpComponent pump, in SizingContext context)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (component is not PumpComponent pump)
-        {
-            return Result.Failure<SizingResult>(ResultError.From(
-                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a head"),
-                ("name", component.Name),
-                ("state", "a component that is not a pump")));
-        }
-
         // A stated rise is the pump's head by another name (C-109): nothing to choose.
         if (pump.StatedRise is not null)
         {
@@ -80,7 +69,7 @@ public sealed class PumpSizer : ISizer
                 ("state", "the circuit's resistance is not yet known")));
         }
 
-        var margin = Margin(component);
+        var margin = Margin(pump);
         var head = Hydrostatic.Head(Math.Max(0, drop ?? 0), density) * margin;
         var litresPerSecond = context.LitresPerSecond(density);
         var notes = ImmutableArray.CreateBuilder<string>();

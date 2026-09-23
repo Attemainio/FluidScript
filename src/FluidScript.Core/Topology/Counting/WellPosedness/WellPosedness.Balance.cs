@@ -287,7 +287,7 @@ public static partial class WellPosedness
     private static bool HasBranchValve(CircuitGraph graph, string component) =>
         graph.Branches.Any(branch =>
             branch.Path.Any(element => string.Equals(element.Name, component, StringComparison.Ordinal))
-            && branch.Path.Any(static element => element is ValveComponent or ThreeWayValveComponent));
+            && branch.Path.Any(static element => element is ValveComponentBase));
 
     /// <summary>What could be removed when no constraint is the culprit.</summary>
     /// <remarks>

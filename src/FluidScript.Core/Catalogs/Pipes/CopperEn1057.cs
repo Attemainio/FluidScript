@@ -105,34 +105,23 @@ public static class CopperEn1057
     private static SourceReference Source(string publisher, string url) => new(publisher, url, Retrieved);
 
     /// <summary>Gets the shipped copper catalogue: the Finnish type-approved range, verified 2026-09-21 (<c>D-128</c>).</summary>
-    public static ICatalog<PipeSpec> Instance { get; } = new Catalog<PipeSpec>(
+    public static ICatalog<PipeSpec> Instance { get; } = PipeCatalogBuilder.Build(
         Id,
         "2026.1",
         "EN 1057",
-        Rows.Select(static row => new CatalogEntry<PipeSpec>
-        {
-            // The designation a merchant and a script both use is the outside diameter itself; the
-            // one non-integer size, 88.9, is `dn=89`, which is how Finnish listings print it.
-            Designation = row.Designation,
-            Spec = new PipeSpec
-            {
-                NominalDiameter = row.Dn,
-                DesignationBasis = DesignationBasis.OutsideDiameter,
-                OutsideDiameter = row.OdMm / 1000,
-                WallThickness = row.WallMm / 1000,
-                Roughness = RoughnessBasis.Value,
-                Series = Series,
-            },
-            Provenance = new Provenance
-            {
-                Standard = "EN 1057",
-                Sources = [.. row.Sources],
+        Series,
+        RoughnessBasis.Value,
 
-                // Attested 2026-09-21 (D-128): two independent Finnish listings, or one and KME's
-                // published range, agree on the outside diameter and the wall of every row.
-                Verified = true,
-            },
-        }),
-        PipeSpec.Fault,
-        static spec => spec.OutsideDiameter);
+        // The designation a merchant and a script both use is the outside diameter itself; the one
+        // non-integer size, 88.9, is `dn=89`, which is how Finnish listings print it.
+        DesignationBasis.OutsideDiameter,
+        Rows.Select(static row => (row.Dn, row.OdMm, row.WallMm, row.Designation, new Provenance
+        {
+            Standard = "EN 1057",
+            Sources = [.. row.Sources],
+
+            // Attested 2026-09-21 (D-128): two independent Finnish listings, or one and KME's
+            // published range, agree on the outside diameter and the wall of every row.
+            Verified = true,
+        })));
 }

@@ -8,7 +8,7 @@ import { initialState, lexLine, tokenizeLine, type LineToken } from './tokenizer
 
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
 const samples = join(root, 'samples');
-const goldens = join(root, 'tests', 'FluidScript.Core.Tests', 'Syntax', 'TokenGoldens');
+const goldens = join(root, 'tests', 'FluidScript.Core.Tests', 'Language', 'Syntax', 'Lexing', 'TokenGoldens');
 
 function roles(line: string, state = initialState()): string {
   return tokenizeLine(line, state)

@@ -44,30 +44,29 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// <c>approach</c> or <see cref="SizingDefaults.ExchangerApproachMinimum"/> (<c>FS4008</c>).
 /// </para>
 /// </remarks>
-public sealed class ThermalSizer : ISizer
+public sealed class ThermalSizer : SizerBase<HeatExchangerComponent>
 {
     /// <inheritdoc/>
-    public ImmutableArray<string> Parameters { get; } = ["ua", "area", "plates", "volume", "volume2"];
+    public override ImmutableArray<string> Parameters { get; } = ["ua", "area", "plates", "volume", "volume2"];
 
     /// <inheritdoc/>
     /// <value>Nothing. An exchanger without a size transfers its stated duty until one arrives.</value>
-    public ImmutableDictionary<string, Quantity> Provisional => [];
+    public override ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is HeatExchangerComponent { Rating: not null };
+    protected override (string Property, string State) Refusal =>
+        ("a thermal size", "a component that is not an extended-mode heat exchanger");
 
     /// <inheritdoc/>
-    public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
+    /// <remarks>Only an exchanger with a rating: the rest are the pressure-drop rule's.</remarks>
+    public override bool CanSize(IFlowComponent component) => component is HeatExchangerComponent { Rating: not null };
+
+    /// <inheritdoc/>
+    protected override Result<SizingResult> Size(HeatExchangerComponent exchanger, in SizingContext context)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (component is not HeatExchangerComponent { Rating: { } rating } exchanger)
+        if (exchanger.Rating is not { } rating)
         {
-            return Result.Failure<SizingResult>(ResultError.From(
-                FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a thermal size"),
-                ("name", component.Name),
-                ("state", "a component that is not an extended-mode heat exchanger")));
+            return Refused(exchanger);
         }
 
         var notes = ImmutableArray.CreateBuilder<string>();

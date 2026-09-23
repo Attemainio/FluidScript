@@ -222,8 +222,8 @@ a `TreatWarningsAsErrors` repo that already has warnings on day one never gets c
 1. `FluidScript.Core` has no `PackageReference` to any ASP.NET or UI package, and no `ProjectReference`
    at all.
 2. Every package version appears exactly once in the repository, in `Directory.Packages.props`.
-3. The test tree mirrors the source tree folder for folder: `src/FluidScript.Core/Sizing/PumpSizer.cs`
-   is tested from `tests/FluidScript.Core.Tests/Sizing/PumpSizerTests.cs`.
+3. The test tree mirrors the source tree folder for folder: `src/FluidScript.Core/Sizing/Sizers/PumpSizer.cs`
+   is tested from `tests/FluidScript.Core.Tests/Sizing/Sizers/PumpSizerTests.cs`.
 4. No `.cs` file lives outside `src/` or `tests/`.
 5. `dotnet test` from the repository root runs every backend test with no additional arguments (`R-17`).
 
@@ -241,9 +241,9 @@ Where a new feature's files land — adding a `three_way_valve`:
 
 | Artifact | Path | Supplied by |
 |---|---|---|
-| Component type | `src/FluidScript.Core/Components/ThreeWayValve.cs` | the package that introduces the kind |
-| Keyword registration | `src/FluidScript.Core/Language/ComponentRegistry.cs` | the same package |
-| Unit tests | `tests/FluidScript.Core.Tests/Components/ThreeWayValveTests.cs` | the same package |
+| Component type | `src/FluidScript.Core/Components/Valves/ThreeWayValveComponent.cs` | the package that introduces the kind |
+| Keyword registration | `src/FluidScript.Core/Language/Registry/ComponentRegistry/` (the concern partial that holds its family) | the same package |
+| Unit tests | `tests/FluidScript.Core.Tests/Components/Valves/ThreeWayValveComponentTests.cs` | the same package |
 | Documentation (`R-28`) | `docs/functions/three-way-valve.md` | the same package — **never deferred** |
 | Sizing rule | `src/FluidScript.Core/Sizing/…` | the sizing package for that kind (`P3.7`) |
 | Sizing tests | `tests/FluidScript.Core.Tests/Sizing/…` | the same sizing package |

@@ -30,10 +30,10 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// two, which is <c>C-59</c>.
 /// </para>
 /// </remarks>
-public sealed class ExchangerSizer : ISizer
+public sealed class ExchangerSizer : SizerBase<HeatExchangerComponent>
 {
     /// <inheritdoc/>
-    public ImmutableArray<string> Parameters { get; } = ["flow"];
+    public override ImmutableArray<string> Parameters { get; } = ["flow"];
 
     /// <inheritdoc/>
     /// <remarks>
@@ -41,25 +41,14 @@ public sealed class ExchangerSizer : ISizer
     /// which is what the bootstrap pass wants, since a resistance guessed before any flow is known
     /// would be a resistance every other rule then sized against.
     /// </remarks>
-    public ImmutableDictionary<string, Quantity> Provisional => [];
+    public override ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is HeatExchangerComponent;
+    protected override (string Property, string State) Refusal => ("a design flow", "a component that is not a heat exchanger");
 
     /// <inheritdoc/>
-    public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
+    protected override Result<SizingResult> Size(HeatExchangerComponent exchanger, in SizingContext context)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (component is not HeatExchangerComponent exchanger)
-        {
-            return Result.Failure<SizingResult>(ResultError.From(
-                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a design flow"),
-                ("name", component.Name),
-                ("state", "a component that is not a heat exchanger")));
-        }
-
         var flow = Math.Abs(context.MassFlow);
         var density = context.State.Density.SiValue;
 

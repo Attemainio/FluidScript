@@ -37,10 +37,10 @@ namespace FluidScript.Core.Sizing.Sizers;
 public sealed class PipeSizer(
     ICatalog<PipeSpec> catalog,
     double gradientTarget = SizingDefaults.PipeGradientTarget,
-    IReadOnlyDictionary<string, ICatalog<PipeSpec>>? available = null) : ISizer
+    IReadOnlyDictionary<string, ICatalog<PipeSpec>>? available = null) : SizerBase<PipeComponent>
 {
     /// <inheritdoc/>
-    public ImmutableArray<string> Parameters { get; } = ["dn"];
+    public override ImmutableArray<string> Parameters { get; } = ["dn"];
 
     /// <inheritdoc/>
     /// <remarks>
@@ -49,7 +49,7 @@ public sealed class PipeSizer(
     /// empty catalogue -- refused by the catalogue gate before a sizer is ever built, and guarded here
     /// as <see cref="ValveSizer"/> guards its own row -- yields DN 0, which no rule accepts.
     /// </remarks>
-    public ImmutableDictionary<string, Quantity> Provisional { get; } =
+    public override ImmutableDictionary<string, Quantity> Provisional { get; } =
         ImmutableDictionary<string, Quantity>.Empty.Add(
             "dn",
             Quantity.FromSi(
@@ -57,22 +57,11 @@ public sealed class PipeSizer(
                 Dimension.NominalDiameter));
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is PipeComponent;
+    protected override (string Property, string State) Refusal => ("a diameter", "a component that is not a pipe");
 
     /// <inheritdoc/>
-    public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
+    protected override Result<SizingResult> Size(PipeComponent pipe, in SizingContext context)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (component is not PipeComponent pipe)
-        {
-            return Result.Failure<SizingResult>(ResultError.From(
-                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
-                ("property", "a diameter"),
-                ("name", component.Name),
-                ("state", "a component that is not a pipe")));
-        }
-
         var density = context.State.Density.SiValue;
         var viscosity = context.State.DynamicViscosity.SiValue;
 
