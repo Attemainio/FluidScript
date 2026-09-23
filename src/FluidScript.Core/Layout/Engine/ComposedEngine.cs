@@ -1,5 +1,8 @@
+using System.Collections.Immutable;
+
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Engine.Structures;
 using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Topology.Graph;
 
@@ -25,7 +28,7 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
     private readonly LayoutHints _hints = hints;
 
     /// <summary>Solves the layout.</summary>
-    /// <returns>The scene; empty of placements until the compose stage exists, its trace listing what the stages so far found.</returns>
+    /// <returns>The scene, its trace opening with the circuit view (E1) and each fragment's plan (E2).</returns>
     public Scene Solve()
     {
         var view = new CircuitView(_graph, _model, _hints);
@@ -41,9 +44,12 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
             trace.Add(new PlacementNote($"run {run.Index + 1}", "E1", StructureText.Run(view, run)));
         }
 
+        var plans = new List<(FragmentPlan Plan, ImmutableArray<int> Members)>();
+
         for (var f = 0; f < view.Fragments.Length; f++)
         {
             var plan = Decomposition.Plan(view, view.Fragments[f]);
+            plans.Add((plan, view.Fragments[f]));
 
             foreach (var line in StructureText.Lines(view, plan))
             {
@@ -51,13 +57,9 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
             }
         }
 
-        return new Scene
-        {
-            Placements = [],
-            Routes = [],
-            Extent = new Box(0, 0, 0, 0),
-            Margin = margin,
-            Provenance = [.. trace],
-        };
+        var sheet = new Sheet(view, margin);
+        sheet.Trace.AddRange(trace);
+        new Composer(sheet).Compose(plans);
+        return new Painter(sheet).Paint();
     }
 }

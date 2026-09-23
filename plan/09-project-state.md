@@ -1540,6 +1540,11 @@ that governed each size. What P6.8 still owes, and what comes after:
     tree; step 6c reads as an open form whose body is one loop (the ring C18 draws). The plan is in the
     trace (`E2`), `DecompositionTests` read it; header-200 decomposes in 3.7 ms against the ladder
     engine's 43.9 ms for its whole solve (`LayoutTimingTests`, now timing both).
+  - **R3/R4 begun 2026-09-23**: `Sheet` (placement state, the one clearance test `Clashes`/`Clear`/
+    `Shift`/`ClearAt`, instruments as footprint, `RunLength` for every run), `Composer` (C17 stacking,
+    the chain rules C3–C6, C7, stranded members stood under their fragment), `Painter` (every unlaid run
+    routed with both stubs, C15/C16, groups, labels, scene). Chains reach parity: steps 1, 2, 9, 3c's
+    exchanger and the storage header identical to the ladder engine. The ring forms are next.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
