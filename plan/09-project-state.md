@@ -1554,8 +1554,9 @@ that governed each size. What P6.8 still owes, and what comes after:
     switch). Drawn next at the user's request, step 8a with its controls (`Parity/header-instruments.fluid`,
     step 8f at the switch): a hanging block now keeps its bubbles a margin under its rail, a block's merge is
     held under its split by the re-lay pass, and a sliding unit clears pipes as well as boxes -- hard 0 soft
-    0 (the ladder engine: hard 5 soft 4); every accepted picture unchanged. Next: R5 (pipe bands in the
-    occupancy across forms, H11).
+    0 (the ladder engine: hard 5 soft 4); every accepted picture unchanged. Step 8b with its controls
+    (`Parity/series-instruments.fluid`, step 8g at the switch) draws clean and identically in both engines.
+    Next: R5 (pipe bands in the occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

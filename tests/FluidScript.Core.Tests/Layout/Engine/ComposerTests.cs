@@ -54,4 +54,14 @@ public sealed class ComposerTests
         Assert.Empty(findings);
         Assert.Equal(X(scene, "N3"), X(scene, "N5"), 6);
     }
+
+    [Fact]
+    public void SeriesLoopsWithTheirControlsDrawClean()
+    {
+        // Step 8b with its controls: both blocks stand on the ring -- the radiators on the top rail, the AHU as its
+        // right side -- so nothing hangs between the rails, and every bubble finds a free side.
+        var (_, findings) = Solve("series-instruments.fluid");
+
+        Assert.Empty(findings);
+    }
 }
