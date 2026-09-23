@@ -49,12 +49,7 @@ public sealed partial class ComponentFactory
         var power = Value(symbol, kind, "power") ?? 0;
         var writtenKind = NameResolution.Normalize(symbol.WrittenKind);
 
-        power = writtenKind switch
-        {
-            "load" or "cooler" or "radiator" or "chiller" => -Math.Abs(power),
-            "heater" or "boiler" => Math.Abs(power),
-            _ => power,
-        };
+        power = ExchangerRoles.Duty(writtenKind, power);
 
         // `S-14b`. Side 2's row exists whenever the script wired it, and its *resistance* only when a
         // script also states `flow2` -- no rule chooses that, because a rule sees one branch and this

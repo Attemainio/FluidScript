@@ -347,6 +347,14 @@ internal sealed partial class BindingRun
                         pending.Expression, pending.Id, pending.Value, pending.Dependencies) { Source = parse.Source });
                 }
 
+                // `D-149`: a curve that runs on the clock is read at start + t, so a run needs the start.
+                // A warning and not an error, because the design solve does not read the clock.
+                if (_project.Start is null
+                    && curves.Select(curve => Clocked(curve.Name)).FirstOrDefault(static clocked => clocked is not null) is { } clockedCurve)
+                {
+                    Report(BinderDiagnostics.ClockWithoutStart, pending.Span, ("curve", clockedCurve));
+                }
+
                 continue;
             }
 
@@ -366,6 +374,40 @@ internal sealed partial class BindingRun
                     ("driver", _curves[_curvesByName[curve.Name]].DriverName ?? curve.Name));
             }
         }
+    }
+
+    /// <summary>Reports a <c>start=</c> that no clock reads (<c>FS1547</c>).</summary>
+    private void ReviewStart()
+    {
+        if (_startSpan is { } span && _project.Start is not null
+            && !_circuits.Any(static circuit => circuit.Mode == FluidMode.Dynamic))
+        {
+            Report(BinderDiagnostics.StartWithoutClock, span);
+        }
+    }
+
+    /// <summary>The curve at the root of a chain when that root is the clock.</summary>
+    /// <param name="name">A curve's name.</param>
+    /// <returns>The name of the curve driven by <c>time</c> that the chain reaches, or <see langword="null"/> when it ends at a role or a design value.</returns>
+    private string? Clocked(string name)
+    {
+        for (var depth = 0; depth <= _curves.Count && _curvesByName.TryGetValue(name, out var index); depth++)
+        {
+            var curve = _curves[index];
+
+            switch (curve.DriverKind)
+            {
+                case CurveDriverKind.Time:
+                    return curve.Name;
+                case CurveDriverKind.Curve when curve.DriverName is { } driver:
+                    name = driver;
+                    continue;
+                default:
+                    return null;
+            }
+        }
+
+        return null;
     }
 
     private sealed record CurveDraft(CurveHeaderSyntax Header, List<CurveRowSyntax> Rows);

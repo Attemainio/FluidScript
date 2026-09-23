@@ -5,6 +5,7 @@ using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast.Expressions;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Physics.Units;
@@ -41,6 +42,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly Dictionary<string, string> _bindingCircuits = new(StringComparer.Ordinal);
 
     private ProjectSettings _project = new(null, null);
+
+    /// <summary>Where <c>start=</c> was written, for a start that has no clock to act on (<c>FS1547</c>).</summary>
+    private TextSpan? _startSpan;
     private double? _spacing;
 
     public BindResult Execute()
@@ -52,6 +56,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         Evaluate();
         ReviewComponents();
         ReviewCurveReferences();
+        ReviewStart();
         ReviewLegacyReferences();
         BindTopology(circuits);
 
@@ -184,8 +189,46 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return blocks;
     }
 
-    private void BindProject(ProjectDirectiveSyntax project) =>
-        _project = new ProjectSettings(project.Name.Text, project.Mode);
+    private void BindProject(ProjectDirectiveSyntax project)
+    {
+        double? start = null;
+
+        foreach (var argument in project.Arguments)
+        {
+            if (!string.Equals(argument.Name.Text, "start", StringComparison.Ordinal))
+            {
+                Report(
+                    BinderDiagnostics.UnknownParameter,
+                    argument.Span,
+                    ("kind", "project"),
+                    ("parameter", argument.Name.Text),
+                    ("available", "start"));
+                continue;
+            }
+
+            // `D-149`: the same reader as a time curve's rows, so a start and a curve cannot disagree
+            // about how a date is read. Quoted, because `2026-01-15` is also a subtraction.
+            var written = argument.Value switch
+            {
+                StringLiteralSyntax quoted => quoted.Value,
+                NumberLiteralSyntax number => parse.Source.ToString(number.Span).Trim(),
+                _ => null,
+            };
+
+            start = written is null ? null : ReadTimestamp(written, format: null);
+            _startSpan = argument.Span;
+
+            if (start is null)
+            {
+                Report(
+                    BinderDiagnostics.StartUnreadable,
+                    argument.Span,
+                    ("value", parse.Source.ToString(argument.Value.Span).Trim()));
+            }
+        }
+
+        _project = new ProjectSettings(project.Name.Text, project.Mode) { Start = start };
+    }
 
     private void AssignCircuits(List<CircuitBlock> blocks)
     {

@@ -48,7 +48,10 @@ internal sealed partial class LineParser
             return Fail(ParserDiagnostics.UnclassifiableStatement, LineSpan);
         }
 
-        return new ProjectDirectiveSyntax(keyword, mode, name);
+        // `start=` places a run's t = 0 on a time curve's axis (D-149); the binder reads what it says.
+        var arguments = ParseParameters(out var failed);
+
+        return failed ? Malformed() : new ProjectDirectiveSyntax(keyword, mode, name, arguments);
     }
 
     private StatementSyntax ParseSpacing(FluidScriptParser.ScriptState state)

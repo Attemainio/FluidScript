@@ -5068,6 +5068,31 @@
       ]
     },
     {
+      "code": "FS1545",
+      "severity": "error",
+      "area": "Binder",
+      "message": "start={value} is not a time. Write it as a quoted ISO 8601 date, such as start=\"2026-01-15T06:00:00\", or as Unix seconds.",
+      "arguments": [
+        "value"
+      ]
+    },
+    {
+      "code": "FS1546",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start=\"…\" to the project line; until then a run holds it at its design value.",
+      "arguments": [
+        "curve"
+      ]
+    },
+    {
+      "code": "FS1547",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.",
+      "arguments": []
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",

@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). Next: P6.3; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). Next: P6.3 | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1495,11 +1495,13 @@ that governed each size. What P6.8 still owes, and what comes after:
 - ~~The zero-envelope diagnostic~~ **built 2026-09-23** as `FS2314`, the user's call between `24`'s
   two candidate mitigations. The range sugar is rejected: it would spell one candidate set two ways,
   and the second spelling is `D-138`'s driver sweep under another name.
-- **Then P6.3**, which needs `S-79` first: where a run's t = 0 sits on a time curve's timestamp
-  axis, which `D-143` did not resolve and which a setpoint following a curve reaches immediately.
+- ~~`S-79`~~ **closed 2026-09-23 by `D-149`**: `start=` on the project line places t = 0 on the
+  time axis, and a run follows every curve of time from there. Open in `33`: whether t = 0 is the
+  design state (`D-141`, today) or the plant settled at the start's own conditions -- the user's call.
+- **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone.
 
-P6.3 follows, and **needs `S-79` first**: where a run's t = 0 sits on a time curve's timestamp axis,
-which `D-143` did not resolve and which a setpoint following a curve reaches immediately. `C-118`
+P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
+`start + t`. `C-118`
 (one mixed volume over-damps) and `C-119` (the plates store heat, **not scheduled** — the user's
 call) share a structure, the three-node exchanger, so design them together when either is built.
 Read `33` whole before any transient package; its worked example now carries the measured column

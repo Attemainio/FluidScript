@@ -838,6 +838,36 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}' is declared twice. Each scenario needs its own name.");
 
+    /// <summary>A <c>start=</c> on the project line that is not a timestamp (<c>D-149</c>).</summary>
+    /// <value><c>FS1545</c>, an error.</value>
+    /// <remarks>
+    /// Read by the same reader as a time curve's rows, ISO 8601 or Unix seconds, and quoted when it is a
+    /// date, because <c>2026-01-15</c> unquoted is a subtraction.
+    /// </remarks>
+    public static DiagnosticDescriptor StartUnreadable { get; } = new(
+        "FS1545",
+        DiagnosticSeverity.Error,
+        "start={value} is not a time. Write it as a quoted ISO 8601 date, such as start=\"2026-01-15T06:00:00\", or as Unix seconds.");
+
+    /// <summary>A dynamic circuit reads a curve that runs on the clock, and the project states no start (<c>D-149</c>).</summary>
+    /// <value><c>FS1546</c>, a warning on each reading parameter.</value>
+    /// <remarks>
+    /// The run reads every time curve at <c>start + t</c>, and <c>D-149</c> makes the start the script's
+    /// to state rather than the curve's first row. A warning, because the design solve does not read the
+    /// clock and still stands; the run is what cannot begin.
+    /// </remarks>
+    public static DiagnosticDescriptor ClockWithoutStart { get; } = new(
+        "FS1546",
+        DiagnosticSeverity.Warning,
+        "This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start=\"…\" to the project line; until then a run holds it at its design value.");
+
+    /// <summary>A <c>start=</c> in a file that nothing solves in time (<c>D-149</c>).</summary>
+    /// <value><c>FS1547</c>, a warning.</value>
+    public static DiagnosticDescriptor StartWithoutClock { get; } = new(
+        "FS1547",
+        DiagnosticSeverity.Warning,
+        "Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.");
+
     /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
     /// <param name="dimension">The parameter's dimension.</param>
     /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
@@ -857,6 +887,9 @@ public static class BinderDiagnostics
         UnknownDesignScenario,
         DesignScenarioMissing,
         DuplicateScenario,
+        StartUnreadable,
+        ClockWithoutStart,
+        StartWithoutClock,
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,

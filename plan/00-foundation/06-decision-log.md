@@ -191,6 +191,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-146` | Accepted | 2026-09-22 | An exchanger's hold-up is a volume given to the node it discharges into, not an unknown of its own |
 | `D-147` | Accepted | 2026-09-23 | Core is organised by domain folders whose namespaces mirror them, with shared bases for components and sizers |
 | `D-148` | Accepted | 2026-09-23 | A folder holding one class's partials is transparent to the namespace, and no namespace segment names a type in it |
+| `D-149` | Accepted | 2026-09-23 | A run's t = 0 is the instant the project line states, and a curve of time is read there plus t |
 <!-- index:end -->
 
 ---
@@ -6923,3 +6924,53 @@ rule off the files instead and names each breach.
   names the class pays for the folder, which inverts the point of the folder.
 - *No class folders; partials as siblings* — PandaAI's written guideline. The user chose the folder;
   this keeps it and removes the collision.
+
+---
+
+## D-149 · A run's t = 0 is the instant the project line states, and a curve of time is read there plus t
+
+**Accepted · 2026-09-23** (the user's call on `S-79`) · amends `D-37`'s project directive and
+`D-58`'s dynamic half · constrains [`12`](../10-language/12-grammar.md),
+[`15`](../10-language/15-semantic-model.md), [`33`](../30-solver/33-transient-time-domain.md)
+
+A time curve's `x` is Unix seconds (`D-60`) and a run's `t` counts from zero, and nothing said where
+the second sits on the first. Two readings were open: a stated instant, or the earliest row of the
+earliest time curve the model reads. **The user chose the stated instant.** The other reading makes
+the start a property of the data, so adding a curve whose first row is earlier silently moves every
+other curve in the run.
+
+**It is written on the project line**, `project dynamic plant_01 start="2026-01-15T06:00:00"`. The
+project line already owns how the whole file is solved and appears once, before any circuit; a new
+reserved word was the alternative and is a breaking change (`12`). The value is quoted because
+`2026-01-15` unquoted is a subtraction — the same reason a curve's rows are read as text — and is read
+by the curve rows' own reader, ISO 8601 or Unix seconds. That reader accepts no offset, so a start and
+a curve cannot disagree about a time zone.
+
+**What it does.** A parameter the binder deferred for a curve in a dynamic circuit (`D-58`) follows the
+clock when a curve it reads reaches `time` through its chain of drivers. The run evaluates the
+parameter's own expression at `start + t` at every evaluation time, with the binder's evaluator —
+`D-14`'s bare-number rule included — and writes it through `EquationSystem.Schedule`, so `FS3105` and
+`FS3109` refuse the same targets they refuse for a `schedule` line. A step lands on every row of a time
+curve, where a piecewise-linear curve changes slope. A chain ending at a role or a design value has no
+clock and keeps its design value; an expression that also reads a component's solved value keeps its
+design value too.
+
+**Missing or misplaced.** A start that does not read is `FS1545`, an error. A dynamic circuit reading a
+clocked curve with no start is `FS1546`, a warning on each reader: the design solve does not read the
+clock and still stands, and the run holds the parameter at its design value. A start in a file with no
+dynamic circuit is `FS1547`.
+
+**What it does not change.** `D-141` stands: t = 0 is the design state. A start whose curve values
+differ from the design day's therefore opens the run with a step, which is what the plant would see if
+it were at its design point at that instant. Whether t = 0 should instead be the steady plant at the
+start's own conditions is the user's question and is recorded as open in `33`.
+
+### Rejected
+
+- *The earliest row of the earliest time curve.* No syntax, and a curve added for another reason
+  moves the whole run.
+- *A new `start` line.* A sixth reserved word for one value the project line can carry.
+- *`start=` on `design`.* `design` sizes; the clock is the run's, and `D-143` already narrowed
+  `design` to naming the operating case.
+- *The start as a run setting on the wire, like the horizon.* The user's reading is that the script
+  states it; the same file then means the same run wherever it is opened.

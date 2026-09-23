@@ -50,6 +50,14 @@ public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode)
     /// </remarks>
     public string? DesignScenario { get; init; }
 
+    /// <summary>Gets where a run's t = 0 sits on the time axis of every time curve, from <c>start=</c> (<c>D-149</c>).</summary>
+    /// <value>
+    /// s since the Unix epoch, as a time curve's rows are read, or <see langword="null"/> when the
+    /// project line states none. A dynamic circuit reading a time curve needs one: a run then reads each
+    /// curve at <c>Start + t</c>.
+    /// </value>
+    public double? Start { get; init; }
+
     /// <summary>Gets the position of <see cref="DesignScenario"/> in <see cref="Scenarios"/>.</summary>
     /// <value>Its index, or <c>-1</c> when no scenarios are declared or the name is not one of them.</value>
     public int DesignScenarioIndex =>

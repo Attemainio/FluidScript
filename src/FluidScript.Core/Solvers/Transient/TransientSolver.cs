@@ -81,6 +81,7 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
         // t = 0: the design state, with the schedule's t = 0 entries applied and the tank profile pinned.
         system.Pin(x);
         Apply(system, snapshot.Schedule, time, inclusive: true);
+        Follow(system, snapshot.Graph.Clock, time);
 
         var solve = await _solver.SolveAsync(system, snapshot.Initial, null, cancellationToken).ConfigureAwait(false);
 
@@ -108,7 +109,9 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             cancellationToken.ThrowIfCancellationRequested();
 
             var nextFrame = (sequence + 1) * settings.FrameInterval;
-            var nextEvent = NextEvent(snapshot.Schedule, time);
+            // A curve of time is linear between its rows, so a step lands on each row as it does on a
+            // scheduled edge: no step's two evaluations straddle a change of slope (D-149).
+            var nextEvent = Math.Min(NextEvent(snapshot.Schedule, time), snapshot.Graph.Clock?.NextRow(time) ?? double.PositiveInfinity);
             var target = Math.Min(Math.Min(nextFrame, nextEvent), settings.Horizon);
             var landing = step >= target - time;
             var tried = landing ? target - time : step;
@@ -123,6 +126,7 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
 
             system.Pin(predictor);
             Apply(system, snapshot.Schedule, arrival, inclusive: false);
+            Follow(system, snapshot.Graph.Clock, arrival);
 
             solve = await _solver.SolveAsync(system, algebraic, null, cancellationToken).ConfigureAwait(false);
 
@@ -197,6 +201,7 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             // now, so the frame here shows the plant after it. This solve is the next step's k1.
             system.Pin(x);
             Apply(system, snapshot.Schedule, time, inclusive: true);
+            Follow(system, snapshot.Graph.Clock, time);
 
             solve = await _solver.SolveAsync(system, solve.Solution, null, cancellationToken).ConfigureAwait(false);
 
@@ -369,8 +374,33 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
         }
 
         Apply(system, snapshot.Schedule, time, inclusive: true);
+        Follow(system, snapshot.Graph.Clock, time);
 
         return system;
+    }
+
+    /// <summary>Writes every parameter that follows a curve of time as it stands at a time (<c>D-149</c>).</summary>
+    /// <param name="system">The system the values are written into.</param>
+    /// <param name="clock">The run's clock, or <see langword="null"/> when nothing follows one.</param>
+    /// <param name="time">s from t = 0; each curve is read at the clock's start plus this.</param>
+    /// <remarks>
+    /// A curve is continuous, so there is no left or right limit to choose between, and a drive the
+    /// clock cannot evaluate is left where it was rather than zeroed.
+    /// </remarks>
+    private static void Follow(EquationSystem system, CurveClock? clock, double time)
+    {
+        if (clock is null)
+        {
+            return;
+        }
+
+        foreach (var drive in clock.Drives)
+        {
+            if (clock.ValueAt(drive, time) is { } value)
+            {
+                system.Schedule(drive.Component, drive.Parameter, value);
+            }
+        }
     }
 
     /// <summary>Writes every scheduled value as it stands at a time (<c>33</c> §Disturbances).</summary>

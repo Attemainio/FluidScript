@@ -334,6 +334,16 @@ scenario, correct as far as it goes and not a weather one. Closing it needs an a
 schedule can reach and a `−UA(T̄ − T_amb)` term on the pipe; the component half already has its place,
 because `D-69`'s flux member is on `IFlowComponent` rather than on the exchanger for exactly this.
 
+**A curve of time is a disturbance too** (`D-149`). A parameter written as a curve in a dynamic
+circuit — `HE1 heat_exchanger power=heating`, with `heating` driven by `outdoor` and `outdoor` by
+`time` — is read again at every evaluation time at `start + t`, where `start` is the project line's
+`start=`. `CurveClock` holds the drives and evaluates each parameter's own expression with the binder's
+evaluator; `TransientSolver.Follow` writes the value through `EquationSystem.Schedule` beside the
+schedule, and `NextEvent` lands a step on every row of a time curve. **Measured** on the demand-step loop
+with a weather chain, outdoor −26 → −6 °C over five minutes and `heating` 30 → 15 kW: the rise across
+`HE1` at its fixed 0.2393 kg/s reads 30.0 K at t = 0, 22.5 K at 150 s and 15.0 K from 300 s on, and
+the final frame is `SteadyAt`'s at the horizon, which reads the same clock.
+
 **[`12-grammar`](../10-language/12-grammar.md) now defines this**, as a `schedule` section whose
 statements are `at`/`over` disturbances. `at` and `over` are not reserved words — section position
 classifies them, exactly as it does connections — and the target is the `component.parameter` shape the
@@ -698,6 +708,12 @@ unstable adjacent block remixes and its total enthalpy remains unchanged.
 
 ## Open questions
 
-None. Schedule values are statically evaluable; v1 uses the explicit integrator and stops with
+- **Whether t = 0 is the design state or the plant at the start's own conditions** (`D-149`). `D-141`
+  makes it the design state, so a run started on a mild morning opens with a step from the design
+  day's duty to that morning's. The alternative is one steady solve at the curve values read at
+  `start` before the first frame. It is the user's call, not a default: the first shows the plant as
+  sized meeting the weather, the second the plant already settled into it.
+
+Otherwise none. Schedule values are statically evaluable; v1 uses the explicit integrator and stops with
 `FS3102` when stiffness drives the step below its supported minimum; browser-worker checkpoints every
 60 frames provide bounded backward scrubbing (`43`).

@@ -9,10 +9,12 @@ namespace FluidScript.Core.Language.Syntax.Ast.Statements;
 /// <param name="Keyword">The <c>project</c> word.</param>
 /// <param name="ModeToken">The <c>dynamic</c> or <c>static</c> word, if one was written.</param>
 /// <param name="Name">The project name.</param>
+/// <param name="Arguments">Named arguments after the name: <c>start=</c>, where a run's t = 0 sits on a time curve (<c>D-149</c>).</param>
 public sealed record ProjectDirectiveSyntax(
     Token Keyword,
     Token? ModeToken,
-    IdentifierSyntax Name) : StatementSyntax
+    IdentifierSyntax Name,
+    ImmutableArray<ParameterSyntax> Arguments) : StatementSyntax
 {
     /// <summary>Gets the stated solve mode.</summary>
     /// <value>
@@ -23,5 +25,7 @@ public sealed record ProjectDirectiveSyntax(
 
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>
-        ModeToken is null ? [Keyword, .. Name.Tokens] : [Keyword, ModeToken, .. Name.Tokens];
+        ModeToken is null
+            ? [Keyword, .. Name.Tokens, .. Arguments.SelectMany(static argument => argument.Tokens)]
+            : [Keyword, ModeToken, .. Name.Tokens, .. Arguments.SelectMany(static argument => argument.Tokens)];
 }

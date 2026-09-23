@@ -278,7 +278,8 @@ statement       = project-directive | spacing-directive | design-directive | sce
                 | curve-header | curve-row ;
 
 version-directive   = "fluidscript" , unsigned-integer ;
-project-directive   = "project" , [ "dynamic" | "static" ] , identifier ;
+project-directive   = "project" , [ "dynamic" | "static" ] , identifier , { parameter } ;
+                                         (* D-149: start="<ISO 8601>" or Unix seconds *)
 spacing-directive   = "spacing" , number ;
 design-directive    = "design" , ( identifier | parameter , { parameter } ) ;
                                          (* D-143: a bare identifier names the operating scenario.
@@ -518,6 +519,11 @@ spacing 0.75
 circuit in the file (`D-37`). A circuit's own `fluid dynamic|static` still wins locally; the binder
 warns when the two disagree rather than picking silently, because both readings are defensible and
 the user should know which one they got.
+
+`start=` on the project line places a run's t = 0 on every time curve's axis (`D-149`):
+`project dynamic plant_01 start="2026-01-15T06:00:00"`. It is quoted because a date unquoted lexes as a
+subtraction, and it is read by a time curve's own row reader, ISO 8601 or Unix seconds. It is the
+project line's only parameter; any other is `FS1503`, an unknown parameter.
 
 `spacing <number>` is a bare number in world units. It is presentation, not physics and not layout
 structure: the binder puts it in style settings and Core never reads it (`D-37`,

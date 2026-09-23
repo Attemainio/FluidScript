@@ -139,6 +139,13 @@ public sealed record CircuitGraph
     /// <value>Empty by default, which is right for a hand-built graph and for a static script.</value>
     public ImmutableArray<ScheduledChange> Schedule { get; init; } = [];
 
+    /// <summary>Gets the clock a run reads its curves of time on, and the parameters that follow them (<c>D-149</c>).</summary>
+    /// <value>
+    /// <see langword="null"/> when nothing follows the clock: a static script, a dynamic one that reads
+    /// no time curve, or one whose project line states no <c>start=</c> (<c>FS1546</c>).
+    /// </value>
+    public CurveClock? Clock { get; init; }
+
     /// <summary>Tells whether a component's ports carry more than one flow between them.</summary>
     /// <param name="component">The component to classify.</param>
     /// <returns>

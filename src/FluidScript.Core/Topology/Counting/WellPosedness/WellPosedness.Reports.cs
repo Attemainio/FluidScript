@@ -60,7 +60,13 @@ public static partial class WellPosedness
     /// </remarks>
     private static void ReportScheduledActuators(CircuitGraph graph, ImmutableArray<Diagnostic>.Builder diagnostics)
     {
-        foreach (var change in graph.Schedule)
+        // A parameter following a curve of time is moved by the run exactly as a scheduled one is
+        // (`D-149`), so the same two refusals apply to it.
+        var moved = graph.Schedule
+            .Select(static change => (change.Component, change.Parameter))
+            .Concat(graph.Clock?.Drives.Select(static drive => (drive.Component, drive.Parameter)) ?? []);
+
+        foreach (var change in moved)
         {
             var target = graph.Components.FirstOrDefault(component =>
                 string.Equals(component.Name, change.Component, StringComparison.Ordinal));

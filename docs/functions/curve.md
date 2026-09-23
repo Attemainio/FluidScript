@@ -125,7 +125,10 @@ A curve's rows run until the next `curve` or the first `circuit`. Nothing else e
 A curve is a value that changes, so it needs something to change with.
 
 - **Solving in time** (`fluid dynamic`) — a curve of time follows the clock, and everything reading
-  it follows along.
+  it follows along. The clock starts where the [`project`](project.md#where-a-run-starts-in-time) line's
+  `start=` says: a run started at `start="2026-01-15T06:00:00"` reads the 06:00 row first. A chain
+  follows too — `heating` by `outdoor`, `outdoor` by `time` — and the run's steps land on every row of
+  a time curve, where the line between rows changes slope.
 - **Solving a steady state** (`fluid static`) — there is no clock, so say the condition instead with
   [`design`](design.md). Every curve is then read once at that condition and stays there. A
   component may read it somewhere else with `sized_at` on its own line — see

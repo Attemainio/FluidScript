@@ -452,7 +452,14 @@ public sealed record CircuitRole(string CanonicalName, ThermalStageRole Stage);
 /// </remarks>
 public sealed record ProjectSettings(
     string? Name,
-    FluidMode? DefaultMode);
+    FluidMode? DefaultMode)
+{
+    // ... Design, Scenarios, DesignScenario as above ...
+
+    /// <summary>Where a run's t = 0 sits on every time curve, from <c>start=</c> (`D-149`).</summary>
+    /// <value>s since the Unix epoch, or null when the project line states none.</value>
+    public double? Start { get; init; }
+}
 
 /// <summary>A controller bound to what it drives and what it reads (`D-40`).</summary>
 /// <remarks>
@@ -1056,6 +1063,9 @@ nothing interpolates between them. It is not a solve mode either — a file with
 | `FS1542` | `design` names a scenario that was not declared (`D-143`) | Error | `'{name}' is not a scenario of this file. It declares: {names}.` |
 | `FS1543` | Scenarios are declared and `design` names none of them (`D-143`) | Error | `This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.` |
 | `FS1544` | Two scenarios declared with one name (`D-143`) | Error | `'{name}' is declared twice. Each scenario needs its own name.` |
+| `FS1545` | `start=` on the project line is not a time (`D-149`) | Error | `start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds.` |
+| `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value.` |
+| `FS1547` | `start=` in a file no circuit of which is solved in time (`D-149`) | Warning | `Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Physics.Fluids;
 using FluidScript.Core.Topology.Graph;
@@ -86,6 +87,7 @@ public static partial class Lowering
                 CircuitOf = build.CircuitOf,
                 Setpoints = build.Setpoints,
                 Schedule = Schedule(model, build),
+                Clock = Clock(model, build),
             },
             build.Unresolved);
     }
@@ -111,16 +113,65 @@ public static partial class Lowering
                 continue;
             }
 
+            // A duty takes its role word's sign here as it does when lowered: `HL.power = 45` on a load
+            // is a 45 kW consumer, and written straight through it heated the loop (D-91).
+            var kind = NameResolution.Normalize(model.Components
+                .FirstOrDefault(component => string.Equals(component.Name, disturbance.Target.Component, StringComparison.Ordinal))?
+                .WrittenKind ?? string.Empty);
+            var power = string.Equals(disturbance.Target.Property, "power", StringComparison.Ordinal);
+            double Signed(double value) => power ? ExchangerRoles.Duty(kind, value) : value;
+
             schedule.Add(new ScheduledChange(
                 disturbance.Target.Component,
                 disturbance.Target.Property,
                 from.SiValue,
                 (disturbance.To ?? from).SiValue,
-                disturbance.FromValue?.SiValue,
-                to.SiValue));
+                disturbance.FromValue is { } start ? Signed(start.SiValue) : null,
+                Signed(to.SiValue)));
         }
 
         return schedule.ToImmutable();
+    }
+
+    /// <summary>The parameters that follow a curve of time, and the clock they are read on (<c>D-149</c>).</summary>
+    /// <remarks>
+    /// The binder deferred each of them for a curve in a dynamic circuit; one follows the clock when a
+    /// curve it reads reaches <c>time</c> and the project states where t = 0 sits. Anything reading a
+    /// component's solved value as well is left alone: its design value stands, as it did before.
+    /// </remarks>
+    private static CurveClock? Clock(SemanticModel model, Build build)
+    {
+        if (model.Project.Start is not { } start || model.Deferred.IsDefaultOrEmpty)
+        {
+            return null;
+        }
+
+        var drives = ImmutableArray.CreateBuilder<CurveDrive>();
+
+        foreach (var deferred in model.Deferred)
+        {
+            if (deferred.Target is not ValueId.ComponentParameter target
+                || deferred.Dependencies.Any(static dependency => dependency is ValueId.ComponentProperty)
+                || !deferred.Dependencies.OfType<ValueId.Curve>().Any(curve => CurveClock.IsClocked(model.Curves, curve.Name))
+                || !build.Components.Any(component => string.Equals(component.Name, target.Component, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            var symbol = model.Components.First(component => string.Equals(component.Name, target.Component, StringComparison.Ordinal));
+
+            drives.Add(new CurveDrive(
+                target.Component,
+                target.Parameter,
+                deferred.Expression,
+                symbol.Kind?.Parameters.GetValueOrDefault(target.Parameter)?.Dimension,
+                NameResolution.Normalize(symbol.WrittenKind)));
+        }
+
+        // Every deferral of one model carries the same source text; the clock reads its expressions from it.
+        return drives.Count == 0 || model.Deferred.Select(static deferred => deferred.Source).FirstOrDefault(static text => text is not null) is not { } source
+            ? null
+            : new CurveClock(start, drives.ToImmutable(), model.Curves, model.Bindings, source);
     }
 
     /// <summary>How the model is solved, resolved across every circuit in it.</summary>
