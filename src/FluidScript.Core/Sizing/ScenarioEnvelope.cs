@@ -29,6 +29,11 @@ public enum EnvelopeRule
     /// minimum or a governing case's value would each report one the built plant does not have. Left
     /// out, and owed to a calculation over the re-solve (<c>C-121</c>).
     /// </para>
+    /// <para>
+    /// The governing case's value is a floor, though: the merged Kv is that case's own, and every other
+    /// merged size is a capacity at its largest, which only lowers the rest of the branch's resistance.
+    /// So the built plant controls at least as well as the case that chose its valve.
+    /// </para>
     /// </remarks>
     Solved,
 }
