@@ -27,12 +27,14 @@ public enum EnvelopeRule
     /// <para>
     /// So every case's reported figure is stale the moment the envelope is taken, and a maximum, a
     /// minimum or a governing case's value would each report one the built plant does not have. Left
-    /// out, and owed to a calculation over the re-solve (<c>C-121</c>).
+    /// out here, and read off the frozen re-solve instead: <c>ScenarioSizing.Controllability</c> takes
+    /// the lowest reading across the cases of the one plant (<c>C-121</c>).
     /// </para>
     /// <para>
-    /// The governing case's value is a floor, though: the merged Kv is that case's own, and every other
-    /// merged size is a capacity at its largest, which only lowers the rest of the branch's resistance.
-    /// So the built plant controls at least as well as the case that chose its valve.
+    /// For the case that chose the Kv, its own figure is a floor — the merged Kv is that case's, and
+    /// every other merged size only lowers the rest of the branch's resistance. For the other cases it
+    /// is not: a stated value that differs by case (<c>dp=[5, 60]</c>) gives each its own branch, and
+    /// measured on that plant the governing case read 0.76 while the other read 0.23.
     /// </para>
     /// </remarks>
     Solved,

@@ -40,8 +40,9 @@ public sealed record ScenarioSizingResult(
 
     /// <summary>Gets what the merge itself has to report as a code rather than a sentence.</summary>
     /// <value>
-    /// <c>FS2314</c> per component every declared case leaves inert. Empty for a file with one case:
-    /// a single case cannot be missing an interior one.
+    /// <c>FS2314</c> per component every declared case leaves inert, then <c>FS4013</c> per control
+    /// valve whose lightest case is below its turn-down. Empty for a file with one case: a single case
+    /// can be missing no interior one, and has no turn-down to check.
     /// </value>
     public ImmutableArray<Diagnostics.Diagnostic> Said { get; init; } = [];
 }
@@ -199,19 +200,118 @@ public static class ScenarioSizing
         }
 
         var solves = operating.MoveToImmutable();
+        var (controlled, controlledBy, turnDown) = Controllability(solves, merged, governing, notes);
 
         return Result.Success(new ScenarioSizingResult(
             solves,
-            merged,
-            governing,
+            controlled,
+            controlledBy,
             rounds,
             converged,
             notes.ToImmutable())
         {
             DesignIndex = Math.Max(0, model.Project.DesignScenarioIndex),
-            Said = Inert(solves, scenarios),
+            Said = Inert(solves, scenarios).AddRange(turnDown),
         });
     }
+
+    /// <summary>Reports how well each control valve of the merged plant controls, across every case (<c>C-121</c>).</summary>
+    /// <param name="solves">Each case against the merged plant, carrying its valve readings.</param>
+    /// <param name="merged">The merged sizes, which carry no authority of their own.</param>
+    /// <param name="governing">The case behind each merged size.</param>
+    /// <param name="notes">Where <c>FS4006</c>'s note goes.</param>
+    /// <returns>The sizes with each valve's authority, the case each was lowest in, and <c>FS4013</c> per valve that fails its turn-down.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>The minimum across cases</strong> (the user's call, 2026-09-23). Every reading here is of
+    /// the <em>same</em> plant, which is what makes a minimum honest now where it was not at the merge:
+    /// there, each case's figure described a valve in pipework that was never built. Both drops go as
+    /// ṁ², so on one geometry the cases agree to a percent or two — unless a stated value differs
+    /// between them (an exchanger's <c>dp=[5, 60]</c>), which changes the branch per case and is
+    /// exactly when the lowest is the one that matters.
+    /// </para>
+    /// <para>
+    /// A stated <c>authority</c> is the script's target and stays what the report shows; the note
+    /// still fires on the reading, as it does for a single run.
+    /// </para>
+    /// </remarks>
+    private static (SizingOverlay Sizes, ImmutableDictionary<string, string> Governing, ImmutableArray<Diagnostics.Diagnostic> Said) Controllability(
+        ImmutableArray<ScenarioSolve> solves,
+        SizingOverlay merged,
+        ImmutableDictionary<string, string> governing,
+        ImmutableArray<string>.Builder notes)
+    {
+        var said = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+        var valves = solves
+            .SelectMany(static solve => solve.Result.Valves.Select(reading => (Case: solve.Name, Reading: reading, Given: solve.Result.Sizes)))
+            .GroupBy(static read => read.Reading.Name, StringComparer.Ordinal)
+            .OrderBy(static group => group.Key, StringComparer.Ordinal);
+
+        foreach (var valve in valves)
+        {
+            var lowest = valve.MinBy(static read => read.Reading.Authority);
+            var authority = lowest.Reading.Authority;
+
+            if (lowest.Given.For(valve.Key, "authority") is not null)
+            {
+                merged = merged.With(valve.Key, "authority", Units.Quantity.FromSi(authority, Units.Dimension.Dimensionless));
+                governing = governing.SetItem(Ownership.Key(valve.Key, "authority"), lowest.Case);
+            }
+
+            ValveSizer.Poor(valve.Key, authority, notes, lowest.Case);
+
+            var light = valve.MinBy(static read => read.Reading.MassFlow);
+            var heavy = valve.MaxBy(static read => read.Reading.MassFlow);
+
+            if (valve.Count() < 2 || heavy.Reading.MassFlow <= 0)
+            {
+                continue;
+            }
+
+            var range = SizingDefaults.ValveRangeability(lowest.Reading.Characteristic);
+            var limit = 1 / (range * Math.Sqrt(authority));
+            var ratio = light.Reading.MassFlow / heavy.Reading.MassFlow;
+
+            if (ratio >= limit)
+            {
+                continue;
+            }
+
+            said.Add(Diagnostics.Diagnostic.Create(
+                Diagnostics.DesignDiagnostics.TurnDownBeyondRange,
+                span: null,
+                new Diagnostics.DiagnosticArgument("name", valve.Key),
+                new Diagnostics.DiagnosticArgument("light", Format(light.Reading.MassFlow, "0.###")),
+                new Diagnostics.DiagnosticArgument("lightCase", light.Case),
+                new Diagnostics.DiagnosticArgument("heavy", Format(heavy.Reading.MassFlow, "0.###")),
+                new Diagnostics.DiagnosticArgument("heavyCase", heavy.Case),
+                new Diagnostics.DiagnosticArgument("ratio", Format(ratio * 100, "0.#")),
+                new Diagnostics.DiagnosticArgument("trim", Trim(lowest.Reading.Characteristic)),
+                new Diagnostics.DiagnosticArgument("authority", Format(authority, "0.##")),
+                new Diagnostics.DiagnosticArgument("limit", Format(limit * 100, "0.#")),
+                new Diagnostics.DiagnosticArgument("range", Format(range, "0")))
+                with
+            { ComponentName = valve.Key });
+        }
+
+        return (merged, governing, said.ToImmutable());
+    }
+
+    /// <summary>Formats a number for a diagnostic argument, culture-invariant.</summary>
+    /// <param name="value">The number.</param>
+    /// <param name="format">The .NET format string.</param>
+    /// <returns>The text.</returns>
+    private static string Format(double value, string format) => value.ToString(format, CultureInfo.InvariantCulture);
+
+    /// <summary>Names a trim the way a datasheet does, with the article that opens <c>FS4013</c>'s second sentence.</summary>
+    /// <param name="characteristic">The trim.</param>
+    /// <returns>Its name in a sentence.</returns>
+    private static string Trim(ValveCharacteristic characteristic) => characteristic switch
+    {
+        ValveCharacteristic.EqualPercentage => "An equal-percentage",
+        ValveCharacteristic.QuickOpen => "A quick-opening",
+        _ => "A linear",
+    };
 
     /// <summary>Finds the components every declared case leaves with nothing to do (<c>FS2314</c>).</summary>
     /// <param name="solves">Each case against the merged plant.</param>

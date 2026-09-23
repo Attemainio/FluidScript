@@ -84,7 +84,9 @@ would not be what the arithmetic says. You are told so and asked to add resistan
 state a `kv` yourself.
 
 If the achieved authority is below 0.25 you get [`FS4006`](diagnostics.md): the valve will behave as a
-switch. Raising authority means a smaller valve, and the smallest one in the catalogue may still be
+switch. In a file with [`scenarios`](scenarios.md) it is read on the finished plant in every case and
+the lowest is reported, with [`FS4013`](diagnostics.md) when the lightest case is below the valve's
+turn-down. Raising authority means a smaller valve, and the smallest one in the catalogue may still be
 larger than the branch needs, so the fix is usually to the branch rather than to the valve.
 
 ### Balancing valves

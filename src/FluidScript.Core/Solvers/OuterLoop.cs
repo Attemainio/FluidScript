@@ -64,6 +64,13 @@ public sealed record OuterLoopResult
     /// <value>See <see cref="OuterLoop.TopologyHash"/>.</value>
     public required string TopologyHash { get; init; }
 
+    /// <summary>Gets each control valve's operating point, read off a solve whose sizes were given (<c>C-121</c>).</summary>
+    /// <value>
+    /// One per valve that carries flow, for a result of <see cref="OuterLoop.Freeze"/>; empty for an
+    /// ordinary run, whose sizer already reports the same figure as <c>authority</c>.
+    /// </value>
+    public ImmutableArray<ValveReading> Valves { get; init; } = [];
+
     /// <summary>The full solve report: counting, constraints, unknowns, equations, sizes and rank.</summary>
     /// <returns>The report, as lines of text.</returns>
     /// <remarks>
@@ -74,6 +81,22 @@ public sealed record OuterLoopResult
     /// </remarks>
     public override string ToString() => Diagnostics.SolveExplanation.Render(this);
 }
+
+/// <summary>One control valve at one operating point of a plant whose Kv is already chosen (<c>C-121</c>).</summary>
+/// <param name="Name">The valve's name.</param>
+/// <param name="Authority">Dimensionless: its drop fully open over the branch total, at <paramref name="MassFlow"/>.</param>
+/// <param name="MassFlow">kg/s through the path it controls, positive.</param>
+/// <param name="ValveDrop">Pa, the valve's own drop fully open at that flow.</param>
+/// <param name="BranchDrop">Pa, the rest of the branch at that flow.</param>
+/// <param name="Characteristic">Its trim, which sets the rangeability the turn-down check reads.</param>
+public readonly record struct ValveReading(
+    string Name,
+    double Authority,
+    double MassFlow,
+    double ValveDrop,
+    double BranchDrop,
+    ValveCharacteristic Characteristic);
+
 /// <summary>A model lowered with sizing applied, before anything is solved.</summary>
 /// <param name="Lowered">The graph, and whatever could still not be built.</param>
 /// <param name="Sizes">What sizing chose from the seed's flow estimates.</param>
@@ -514,18 +537,23 @@ public sealed class OuterLoop(
             // what it alone needs, undoing the merge this pass exists to check.
             if (prepared.Frozen)
             {
+                // Authority is the one reported figure that is an outcome of the sizes rather than one
+                // of them, so it is the one thing a frozen solve still has to compute (C-121).
+                var (read, readBases, valves) = Readings(lowered.Graph, layout, solve.Solution, overlay, bases, posedness);
+
                 return Result.Success(
                     Report(
                         lowered.Graph,
                         Annotated(solve, raised, loopSaid, evaluationSaid, current, histories, failedPass: null, unsettled: [], closing: []),
-                        overlay,
-                        WithStated(current, bases),
+                        read,
+                        WithStated(current, readBases),
                         notes,
                         passes,
                         iterations,
                         perPass.ToImmutable(),
                         settled: true,
-                        hash));
+                        hash) with
+                    { Valves = valves });
             }
 
             var (next, chosen, said, raisedNow) = Apply(lowered.Graph, solve.Solution, overlay, posedness, layout);
@@ -1120,71 +1148,22 @@ public sealed class OuterLoop(
 
         foreach (var component in graph.Components)
         {
-            if (component is not ThreeWayValve { BypassConnected: true } valve
-                || Inlet(graph, layout, iterate, valve) is not { } state)
+            if (component is not ThreeWayValve { BypassConnected: true } valve)
             {
                 continue;
             }
 
-            var legs = graph.Branches
-                .Where(branch =>
-                    ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
-                .ToArray();
+            var (built, declined) = ThreeWayContext(graph, layout, iterate, valve);
 
-            if (legs.Length != 3)
+            if (declined is not null)
             {
-                continue;
-            }
-
-            var flows = Array.ConvertAll(
-                legs, leg => Math.Abs(iterate.Values[layout.BranchFlow(leg.Index)]));
-
-            var common = ValveLegs.Common(legs, flows, valve);
-            var variable = ValveLegs.Variable(graph, legs, common, valve);
-
-            if (variable < 0)
-            {
-                Declined(
-                    valve,
-                    overlay,
-                    bases,
-                    notes,
-                    "its connections name no ports, and its two switched legs are the same distance from "
-                    + "the leg they split -- so nothing says which of them recirculates and which varies "
-                    + "when the valve strokes. Name them: `a` is the leg it controls, `b` the bypass");
+                Declined(valve, overlay, bases, notes, declined);
 
                 continue;
             }
 
-            // Not `Driven(graph, valve)`: a three-way valve with its bypass connected is a junction
-            // element, so it sits in no branch's `Path`. The legs the drawn flow crosses answer instead --
-            // by their block (S-55): the pump-free mixing header's main valve has no pump on either leg
-            // and is driven by the consumer pumps that draw from its common port through the same block.
-            var blocks = HydraulicBlocks.ForFreePumps(graph);
-            var driven = blocks.Drives(legs[common]) || blocks.Drives(legs[variable]);
-
-            var flow = flows[variable];
-            var context = new SizingContext
+            if (built is not { } context)
             {
-                State = state,
-                MassFlow = flow,
-                BranchDrop = Resistance(graph, state, legs[variable], flow, valve),
-                LoopDrop = Circuit(graph, layout, iterate, valve, state),
-                AvailableDrop = driven ? null : Offered(graph),
-                CommonFlow = flows[common],
-            };
-
-            if (!driven && context.AvailableDrop is null)
-            {
-                Declined(
-                    valve,
-                    overlay,
-                    bases,
-                    notes,
-                    "no pump on its path carries a free head, so the boundary pressures determine its "
-                    + "drop — and the circuit does not state exactly two of them, so which pair drives "
-                    + "this valve is not decided");
-
                 continue;
             }
 
@@ -1210,6 +1189,163 @@ public sealed class OuterLoop(
 
             notes.AddRange(sized.Value.Notes);
         }
+    }
+
+    /// <summary>Builds a mixing valve's context from the leg that actually varies (<c>C-63</c>).</summary>
+    /// <param name="graph">The graph.</param>
+    /// <param name="layout">Where the iterate keeps each unknown.</param>
+    /// <param name="iterate">The current values.</param>
+    /// <param name="valve">A three-way valve with its bypass connected.</param>
+    /// <returns>
+    /// The context; or why the valve cannot have one, for the caller to report; or neither, when the
+    /// valve is not yet wired into three legs and there is nothing to say.
+    /// </returns>
+    /// <remarks>
+    /// Taken out of <see cref="ThreeWay"/> so that a plant whose Kv was given reads its authority off the
+    /// same context the rule chose it against (<c>C-121</c>). Two readers of one definition, rather than
+    /// two definitions that could drift apart.
+    /// </remarks>
+    private static (SizingContext? Context, string? Declined) ThreeWayContext(
+        CircuitGraph graph, SystemLayout layout, StateVector iterate, ThreeWayValve valve)
+    {
+        if (Inlet(graph, layout, iterate, valve) is not { } state)
+        {
+            return (null, null);
+        }
+
+        var legs = graph.Branches
+            .Where(branch =>
+                ReferenceEquals(branch.From.Element, valve) || ReferenceEquals(branch.To.Element, valve))
+            .ToArray();
+
+        if (legs.Length != 3)
+        {
+            return (null, null);
+        }
+
+        var flows = Array.ConvertAll(
+            legs, leg => Math.Abs(iterate.Values[layout.BranchFlow(leg.Index)]));
+
+        var common = ValveLegs.Common(legs, flows, valve);
+        var variable = ValveLegs.Variable(graph, legs, common, valve);
+
+        if (variable < 0)
+        {
+            return (null,
+                "its connections name no ports, and its two switched legs are the same distance from "
+                + "the leg they split -- so nothing says which of them recirculates and which varies "
+                + "when the valve strokes. Name them: `a` is the leg it controls, `b` the bypass");
+        }
+
+        // Not `Driven(graph, valve)`: a three-way valve with its bypass connected is a junction
+        // element, so it sits in no branch's `Path`. The legs the drawn flow crosses answer instead --
+        // by their block (S-55): the pump-free mixing header's main valve has no pump on either leg
+        // and is driven by the consumer pumps that draw from its common port through the same block.
+        var blocks = HydraulicBlocks.ForFreePumps(graph);
+        var driven = blocks.Drives(legs[common]) || blocks.Drives(legs[variable]);
+
+        var flow = flows[variable];
+        var context = new SizingContext
+        {
+            State = state,
+            MassFlow = flow,
+            BranchDrop = Resistance(graph, state, legs[variable], flow, valve),
+            LoopDrop = Circuit(graph, layout, iterate, valve, state),
+            AvailableDrop = driven ? null : Offered(graph),
+            CommonFlow = flows[common],
+        };
+
+        if (!driven && context.AvailableDrop is null)
+        {
+            return (null,
+                "no pump on its path carries a free head, so the boundary pressures determine its "
+                + "drop — and the circuit does not state exactly two of them, so which pair drives "
+                + "this valve is not decided");
+        }
+
+        return (context, null);
+    }
+
+    /// <summary>Reads every control valve's authority off a solve whose sizes were given (<c>C-121</c>).</summary>
+    /// <param name="graph">The graph, built from the given sizes.</param>
+    /// <param name="layout">Where the solution keeps each unknown.</param>
+    /// <param name="solution">The converged solution.</param>
+    /// <param name="overlay">The given sizes.</param>
+    /// <param name="bases">Their bases.</param>
+    /// <param name="posedness">The counting pass, for which parameters are the script's.</param>
+    /// <returns>The sizes and bases with each valve's <c>authority</c> added, and the readings behind them.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>A calculation over a solved graph, not a sizing pass.</strong> The Kv is the one given;
+    /// running <see cref="ValveSizer"/> here would choose it again for this case alone and undo the
+    /// merge the frozen solve exists to check. What is reused is the definition: the same context the
+    /// rule chose the Kv against, and <see cref="ValveSizer.Achieved"/>, so the figure a merged plant
+    /// reports is the figure a single run would have reported for the same valve.
+    /// </para>
+    /// <para>
+    /// The valves it skips are the ones the sizer skips: a balancing valve on a switched leg, whose Kv
+    /// <c>BypassValves</c> sets for a different job (<c>C-111</c>), and a valve that carries no flow in
+    /// this case, which has no operating point to read — a valve that is shut is not controlling.
+    /// A stated <c>authority</c> is the script's target and is not overwritten; its reading is still
+    /// returned, so the check against the minimum sees the valve as built.
+    /// </para>
+    /// </remarks>
+    private static (SizingOverlay Overlay, ImmutableDictionary<string, string> Bases, ImmutableArray<ValveReading> Readings) Readings(
+        CircuitGraph graph,
+        SystemLayout layout,
+        StateVector solution,
+        SizingOverlay overlay,
+        ImmutableDictionary<string, string> bases,
+        WellPosednessResult posedness)
+    {
+        var promoted = posedness.Counting.Promotions.Select(static promotion => promotion.Label).ToHashSet(StringComparer.Ordinal);
+        var written = bases.ToBuilder();
+        var readings = ImmutableArray.CreateBuilder<ValveReading>();
+
+        foreach (var component in graph.Components)
+        {
+            var (context, characteristic, kv) = component switch
+            {
+                Valve balancing when OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted)
+                    => (null, default, 0),
+                Valve valve => (Context(graph, layout, solution, valve), valve.Characteristic, valve.Kv),
+                ThreeWayValve { BypassConnected: true } mixing
+                    => (ThreeWayContext(graph, layout, solution, mixing).Context, mixing.Characteristic, mixing.Kv),
+                ThreeWayValve twoWay => (Context(graph, layout, solution, twoWay), twoWay.Characteristic, twoWay.Kv),
+                _ => ((SizingContext?)null, default(ValveCharacteristic), 0.0),
+            };
+
+            if (context is not { } at || Math.Abs(at.MassFlow) <= Tolerances.FlowZero)
+            {
+                continue;
+            }
+
+            var kvs = overlay.For(component.Name, "kv") ?? kv;
+            var (authority, valveDrop) = ValveSizer.Achieved(at, kvs);
+
+            if (!double.IsFinite(authority))
+            {
+                continue;
+            }
+
+            var flow = Math.Abs(at.MassFlow);
+            var rest = Math.Max(0, at.BranchDrop);
+
+            readings.Add(new ValveReading(component.Name, authority, flow, valveDrop, rest, characteristic));
+
+            if (Claimed(component, "authority", promoted))
+            {
+                continue;
+            }
+
+            overlay = overlay.With(component.Name, "authority", Quantity.FromSi(authority, Dimension.Dimensionless));
+            written[Ownership.Key(component.Name, "authority")] = string.Create(
+                CultureInfo.InvariantCulture,
+                $"{authority:0.##} on the plant as given — Kv {kvs:0.##} drops {valveDrop / 1000:0.##} kPa of the "
+                + $"branch's {(rest + valveDrop) / 1000:0.##} kPa at {SizingContext.LitresPerSecond(flow, at.State.Density.SiValue):0.###} l/s");
+        }
+
+        return (overlay, written.ToImmutable(), readings.ToImmutable());
     }
 
     /// <summary>Sets every two-way valve that sits on a three-way valve's switched leg so that the two legs see the same pressure (<c>24</c>, <c>C-111</c>).</summary>

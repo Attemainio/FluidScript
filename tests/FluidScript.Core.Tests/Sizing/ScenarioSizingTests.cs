@@ -263,6 +263,84 @@ public sealed class ScenarioSizingTests
         Assert.Empty(result.Value.Said);
     }
 
+    // `Seasons` with a control valve on the loop (`C-121`). HE1's line is the variable: the three
+    // tests below change only it, so each difference in the reports is that line's.
+    private static string Valved(string exchanger, string load = "power=[-50, 40]") =>
+        $"""
+        fluidscript 1
+        scenarios winter summer
+        design winter
+        circuit distribution
+        fluid water
+        HE1  heat_exchanger {exchanger}
+        LOAD heat_exchanger {load} dp=0
+        CV1  valve
+        PU1  pump
+        P1   pipe length=20
+        connections
+        N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+        """;
+
+    private const string SeasonsHe1 = "power=[50, -40] in.t=[35, 12] out.t=[45, 7]";
+
+    [Fact]
+    public async Task AMergedValveReportsTheAuthorityOfThePlantAsBuilt()
+    {
+        // Measured 2026-09-23. Summer governs the Kv (10) and the pipe (DN65), so the merged branch
+        // is summer's own and the merged figure is summer's single-run 0.69. Winter on that plant reads
+        // 0.693 against summer's 0.692: both drops go as ṁ², so a flow 37 % lower moves it 0.13 %.
+        var result = await SizeAsync(Valved(SeasonsHe1));
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var merged = result.Value.Sizes.For("CV1", "authority");
+        var readings = result.Value.Operating.Select(static s => Assert.Single(s.Result.Valves)).ToArray();
+
+        Assert.NotNull(merged);
+        Assert.Equal(readings.Min(static r => r.Authority), merged.Value, 12);
+        Assert.InRange(readings.Max(static r => r.Authority) - readings.Min(static r => r.Authority), 0, 0.01);
+        Assert.Equal(0.69, merged.Value, 2);
+        Assert.Equal("summer", result.Value.Governing["CV1.authority"]);
+        Assert.Contains("lowest in summer", ScenarioExplanation.Explain(result.Value, ["winter", "summer"]), StringComparison.Ordinal);
+        Assert.Empty(result.Value.Said);
+    }
+
+    [Fact]
+    public async Task FS4006_AStatedDropThatDiffersByCaseIsCaughtAtItsLowest()
+    {
+        // Why the minimum and not the governing case (measured 2026-09-23). Winter's 5 kPa exchanger
+        // leaves a light branch, so winter wants the larger valve (Kv 16) and governs it; summer's
+        // 60 kPa makes the heavy branch. On the merged plant winter reads 0.76 — above its own 0.53,
+        // the floor holding for the case that chose the valve — and summer reads 0.23, because its
+        // branch is its own stated one and the valve is winter's. Before C-121 this plant reported no
+        // authority and no FS4006, and would have hunted all summer.
+        var result = await SizeAsync(Valved(SeasonsHe1 + " dp=[5, 60]"));
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.Equal("winter", result.Value.Governing["CV1.kv"]);
+        Assert.Equal("summer", result.Value.Governing["CV1.authority"]);
+        Assert.InRange(result.Value.Sizes.For("CV1", "authority")!.Value, 0, SizingDefaults.ValveAuthorityMinimum);
+        Assert.Contains(result.Value.Notes, static note => note.StartsWith("CV1 has authority 0.23 in summer", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task FS4013_ALightCaseBeyondTheValvesTurnDownIsNamed()
+    {
+        // 1 kW over 10 K is 0.024 kg/s against summer's 1.906: 1.3 % of the heaviest flow. An
+        // equal-percentage valve at 0.66 controls down to 1 / (50 × √0.66) = 2.5 %, so winter is
+        // outside it — `24`'s "a valve sized on one case and asked for 3 % of its flow in another".
+        var result = await SizeAsync(Valved("power=[1, -40] in.t=[35, 12] out.t=[45, 7]", "power=[-1, 40]"));
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var said = Assert.Single(result.Value.Said);
+
+        Assert.Equal("FS4013", said.Code);
+        Assert.Equal("CV1", said.ComponentName);
+        Assert.Contains("1.3 % of its heaviest flow", said.Message, StringComparison.Ordinal);
+        Assert.Contains("An equal-percentage valve at authority 0.66 controls down to about 2.5 % (50:1 × √0.66)", said.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void EverySizerParameterHasAnEnvelopeRule()
     {

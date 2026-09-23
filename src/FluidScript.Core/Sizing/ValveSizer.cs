@@ -290,7 +290,7 @@ public sealed class ValveSizer(
                 + "enough for this flow.");
         }
 
-        Poor(valve, achieved, notes);
+        Poor(valve.Name, achieved, notes);
     }
 
     /// <summary>The Kv that takes a stated drop at the design flow, from the next larger catalogue row (<c>C-109</c>).</summary>
@@ -409,7 +409,7 @@ public sealed class ValveSizer(
                 + $"valve will control near its stops."));
         }
 
-        Poor(valve, achieved, notes);
+        Poor(valve.Name, achieved, notes);
 
         var kvBasis = string.Create(
             CultureInfo.InvariantCulture,
@@ -434,16 +434,46 @@ public sealed class ValveSizer(
         return Result.Success(new SizingResult { Values = values, Notes = notes.ToImmutable() });
     }
 
+    /// <summary>The authority a rated Kv achieves over its branch at one operating point (<c>24</c>, <c>C-121</c>).</summary>
+    /// <param name="context">The operating point: <see cref="SizingContext.MassFlow"/> through the controlled path and <see cref="SizingContext.BranchDrop"/> the rest of it.</param>
+    /// <param name="kvs">The rated coefficient, m³/h at 1 bar.</param>
+    /// <returns>
+    /// The authority, dimensionless, and the valve's own drop fully open, Pa. Both NaN when the state
+    /// has no density or no flow to take a drop at.
+    /// </returns>
+    /// <remarks>
+    /// The figure every rule here reports, taken out so that a plant whose Kv was given rather than
+    /// chosen reads the same number the same way. Both drops are at one flow and both go as ṁ², so
+    /// the flow cancels to first order: this is a property of the Kv against the branch's geometry,
+    /// which is why a merged plant has one per valve rather than one per case.
+    /// </remarks>
+    public static (double Authority, double ValveDrop) Achieved(in SizingContext context, double kvs)
+    {
+        var density = context.State.Density.SiValue;
+
+        if (!double.IsFinite(density) || density <= 0 || kvs <= 0)
+        {
+            return (double.NaN, double.NaN);
+        }
+
+        var drop = Drop(context.MassFlow, kvs, density);
+
+        return (drop / (Math.Max(0, context.BranchDrop) + drop), drop);
+    }
+
     /// <summary><c>FS4006</c>'s note: the valve will behave as a switch.</summary>
-    /// <param name="valve">The valve.</param>
+    /// <param name="name">The valve's name.</param>
     /// <param name="achieved">The authority it achieves, dimensionless.</param>
     /// <param name="notes">Where the note goes.</param>
-    private static void Poor(IFlowComponent valve, double achieved, ImmutableArray<string>.Builder notes)
+    /// <param name="scenario">The case the figure was read in, when a plant has several; otherwise <see langword="null"/>.</param>
+    internal static void Poor(string name, double achieved, ImmutableArray<string>.Builder notes, string? scenario = null)
     {
         if (achieved < SizingDefaults.ValveAuthorityMinimum)
         {
+            var where = scenario is null ? string.Empty : $" in {scenario}";
+
             notes.Add(
-                $"{valve.Name} has authority {achieved:0.##}, below {SizingDefaults.ValveAuthorityMinimum:0.##}. "
+                $"{name} has authority {achieved:0.##}{where}, below {SizingDefaults.ValveAuthorityMinimum:0.##}. "
                 + "It will behave as a switch rather than a control valve: the branch's own resistance "
                 + "dominates until the valve is nearly shut.");
         }

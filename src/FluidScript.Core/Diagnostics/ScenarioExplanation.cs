@@ -56,12 +56,15 @@ public static class ScenarioExplanation
                 foreach (var (parameter, value) in sizes.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
                 {
                     var key = Ownership.Key(component, parameter);
+                    var by = result.Governing.GetValueOrDefault(key, "—");
 
+                    // Authority is not a size the case chose but the lowest reading of the one plant, so
+                    // the column says which case read it lowest rather than which case decided it (C-121).
                     text.Append("    ")
                         .Append(key.PadRight(22))
                         .Append(value.ToString().PadLeft(14))
                         .Append("  ")
-                        .AppendLine(result.Governing.GetValueOrDefault(key, "—"));
+                        .AppendLine(parameter == "authority" ? $"lowest in {by}" : by);
                 }
             }
         }

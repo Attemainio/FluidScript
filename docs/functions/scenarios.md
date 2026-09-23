@@ -72,7 +72,7 @@ its own:
 | Pipe | the largest flow | — |
 | Heat exchanger | the largest UA | — |
 | Pump | the case needing the most head at its flow | every case: is it on the curve? |
-| Control valve | Kv from the largest-flow case | the **smallest**-flow case: does it still control? |
+| Control valve | Kv from the largest-flow case | every case: its authority, and whether the lightest case is within its turn-down |
 
 The reason is the flow trap. A chilled side running 7/12 °C carries 1.91 kg/s for 40 kW; a heating
 side at 45/35 °C carries 1.20 kg/s for 50 kW. **The smaller duty has the larger flow.** Size the pipe
@@ -146,6 +146,45 @@ depends on how one load relates to another and the model does not carry that. It
 than an error, because a plant may legitimately carry a standby component no stated case uses.
 
 So: name a shoulder case whenever two loads can be on at once.
+
+## How well a valve controls
+
+A control valve gets its Kv like any other size — the largest any case asked for. Its **authority**
+is different: it is not a size but a reading of how well that valve will control, the share of the
+branch's pressure drop the valve takes when fully open. So it is read off the merged plant, in every
+case, and the report shows the **lowest**, naming the case:
+
+```
+    CV1.authority               0.692107  lowest in summer
+    CV1.kv                       10 m3/h  summer
+```
+
+On one plant the cases normally agree to within a percent: both the valve's drop and the rest of the
+branch's grow with the square of the flow, so a lighter case lowers both by the same factor. They
+disagree when something you stated differs between cases. With `dp=[5, 60]` on the exchanger, winter's
+light branch wants the larger valve (Kv 16) and gets it; in summer that same valve sits in a branch
+dropping 60 kPa and reads 0.23 — and you get [`FS4006`](diagnostics.md):
+
+```
+note  CV1 has authority 0.23 in summer, below 0.25. It will behave as a switch rather than a
+      control valve: the branch's own resistance dominates until the valve is nearly shut.
+```
+
+**Turn-down.** A valve also has a smallest flow it can still control: its rangeability — 50:1 for
+equal percentage, 33:1 linear, 20:1 quick opening — reduced to `R·√a` once installed, because the
+valve sees more of the drop as it closes. When the lightest case asks for less than that, you get
+[`FS4013`](diagnostics.md):
+
+```
+FS4013  'CV1' must pass 0.024 kg/s in winter and 1.906 kg/s in summer, 1.3 % of its heaviest flow.
+        An equal-percentage valve at authority 0.66 controls down to about 2.5 % (50:1 × √0.66), so
+        in winter it will open and shut rather than modulate. Give the light case a smaller valve in
+        parallel, or split the duty.
+```
+
+The `√a` part is FluidScript's own reasoning from the Kv law, not a figure from a standard; the
+rangeabilities are manufacturers'. A case in which the valve carries no flow at all is left out of
+both checks — a shut valve is not controlling.
 
 ## See also
 

@@ -5952,6 +5952,24 @@
       ]
     },
     {
+      "code": "FS4013",
+      "severity": "warning",
+      "area": "DesignWarning",
+      "message": "'{name}' must pass {light} kg/s in {lightCase} and {heavy} kg/s in {heavyCase}, {ratio} % of its heaviest flow. {trim} valve at authority {authority} controls down to about {limit} % ({range}:1 × √{authority}), so in {lightCase} it will open and shut rather than modulate. Give the light case a smaller valve in parallel, or split the duty.",
+      "arguments": [
+        "name",
+        "light",
+        "lightCase",
+        "heavy",
+        "heavyCase",
+        "ratio",
+        "trim",
+        "authority",
+        "limit",
+        "range"
+      ]
+    },
+    {
       "code": "FS4601",
       "severity": "error",
       "area": "Request",

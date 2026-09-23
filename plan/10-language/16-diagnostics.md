@@ -123,13 +123,14 @@ but they are *about the design*, not about the script, and they are the ones the
 | `FS4003` | Absolute pressure at a node is below the fluid's saturation pressure — cavitation risk | Warning |
 | `FS4004` | Velocity in a pipe exceeds the noise threshold for its diameter | Warning |
 | `FS4005` | Velocity below the self-cleaning minimum — sedimentation risk | Info |
-| `FS4006` | Control-valve authority below 0.25 | Warning |
+| `FS4006` | Control-valve authority below 0.25 | Warning | A sizing note today (`C-74`). Across scenarios it is read at the lowest case on the merged plant (`C-121`). |
 | `FS4007` | Pump operating outside its curve's usable range | Warning |
 | `FS4008` | An extended heat exchanger's temperature approach is below the configured minimum | Error | **Live in M2b** for Rated and Coupled modes (`D-19`). Duty mode has no approach. |
 | `FS4009` | Reverse flow where the design assumed forward | Info |
 | `FS4010` | A branch carries no flow — a dead leg | Warning |
 | `FS4011` | A three-way valve's two legs sit at pressures further apart than its own full-open drop, so it throttles the easier leg instead of mixing | Warning | **Live since 2026-09-21** (`C-111`); raised after the solve, names the balancing valve for the easy leg. `24`. |
 | `FS4012` | A three-way valve written as `mixing_valve` or `diverting_valve` that the solve runs the other way | Warning | **Live since 2026-09-21** (`C-65`, `D-136`); raised after the solve; a bare `three_way_valve` claims nothing. |
+| `FS4013` | A control valve's lightest scenario asks for less flow than its installed turn-down, `R·√a`, reaches | Warning | **Live since 2026-09-23** (`C-121`); raised by scenario sizing once every case is solved on the merged plant. `24`. |
 
 Thresholds (5 K, 0.25 authority, the velocity limits) are engineering conventions, not physics. They
 belong in one configurable table, not scattered through the components that check them, and the table

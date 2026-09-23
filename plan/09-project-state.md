@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline). Next: `C-121`, which the valve turn-down check waits on, then P6.3; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). Next: `C-120`, then P6.3; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1235,6 +1235,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 
 | P6.8a | **The scenario language** (`D-143`, [`12`](10-language/12-grammar.md), [`15`](10-language/15-semantic-model.md)): `ReservedWord.Scenarios` and the `scenarios` directive; `ScenarioListSyntax` as a `parameter-value` admitted only after `=`; `design <name>` beside `D-58`'s `driver=value`; `FS1120`/`FS1121` in the parser and `FS1540`–`FS1544` in the binder; `ProjectSettings.Scenarios`/`DesignScenario`, `ParameterValue.Scenarios`, `ValueId.ScenarioParameter`; `ScenarioProjection.Project`; `docs/functions/scenarios.md` | `aa93675`, `99794e2` | Shipped 2026-09-22; `L-64` closed in the same change. Nothing consumes the list yet — that is P6.8b |
 | P6.8b | **The scenario sizing pipeline** (`D-143`, [`24`](20-core-domain/24-auto-sizing.md) §Sizing over scenarios): `OuterLoop.Freeze` and `PreparedModel.Frozen`, `Prepare(from:)`; `ScenarioEnvelope` with a closed per-parameter rule set; `ScenarioSizing.SizeAsync` — project, size, merge, re-size against the merge until it settles, then solve every case frozen; `ScenarioExplanation` and `diagnostics/scenario-sizing.md`; `samples/m5-scenarios.fluid` | `dbd53a0`, (this commit) | Shipped 2026-09-23; `C-120` and `C-121` opened. Not built: the valve turn-down check and the zero-envelope diagnostic, both waiting on `C-121` |
+| `C-121` | **Valve authority and turn-down across scenarios** ([`24`](20-core-domain/24-auto-sizing.md) §Sizing over scenarios): the frozen solve reads every control valve (`OuterLoop.Readings`, `ThreeWayContext` shared with the sizing pass, `ValveSizer.Achieved`) onto `OuterLoopResult.Valves`; `ScenarioSizing.Controllability` reports the lowest authority across cases with the case named, `FS4006` on it, and `FS4013` for a lightest case below `1/(R·√a)`; `SizingDefaults.ValveRangeability`; the scenarios and valve pages | (this commit) | Shipped 2026-09-23; `C-122` opened (a stated `dp` that differs by case is taken at the merged design flow) |
 | P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
 
 > **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
@@ -1363,6 +1364,17 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > twice: a Kv that is not the one that case reported against, and pipes that are not that case's
 > either. The row is smaller than filed — one authority per valve, computed once from the merged
 > sizes — and the fix is unchanged.
+>
+> **`C-121` closed the same day**, with the minimum across cases (the user's call). Measured on
+> `Seasons` with a valve: the merged plant reads 0.693 in winter and 0.692 in summer, equal to
+> summer's single run — the cancellation confirmed at 0.13 % for a flow 37 % lower. The floor the
+> register recorded that morning (merged ≥ the governing case's) holds only for the case that chose
+> the Kv: with `dp=[5, 60]` winter governs the Kv and reads 0.76 while summer reads 0.23, which is
+> `FS4006` in a case that before this fix reported nothing. That is why the report takes the lowest
+> reading and not the governing case's. The turn-down check shipped with it as `FS4013` — 1 kW
+> against 40 kW asks for 1.3 % where an equal-percentage valve at 0.66 reaches 2.5 %. Measuring the
+> per-case drop found `C-122`: winter's stated 5 kPa is taken at the merged 1.91 kg/s, so winter's
+> exchanger drops about 2 kPa on the merged plant, silently.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1453,16 +1465,13 @@ unassessed, not clean.
 the merge is measured to settle in two rounds, and `diagnostics/scenario-sizing.md` names the case
 that governed each size. What P6.8 still owes, and what comes after:
 
-- **`C-121` first, because two things wait on it.** A merged plant reports no valve `authority`, so
-  `FS4006` silently stops applying to any file with a `scenarios` line, and `24`'s minimum-flow row
-  — the turn-down check — is unimplementable. The figures are looked up and in `24`: rangeability
-  50:1 equal percentage, 33:1 linear, 20:1 quick opening; good authority 35–75 %, ideally 40–50 %,
-  which corroborates `ValveAuthorityTarget` 0.5 and `ValveAuthorityMinimum` 0.25. The check is
-  `Q_min/Q_max > 1/(R·√a)`, and the `√a` half is **this project's reasoning**, not a standard. The
-  fix computes `a` from step 3's frozen solve, which already holds the resistances and the frozen
-  Kv — a focused calculation, not a sizing pass, which would re-choose Kv and undo the merge.
-- **`C-120`**, every binder review seeing only the design case. Diagnostic quality on malformed
-  files, not correctness on good ones, so it follows `C-121`.
+- ~~`C-121`~~ **closed 2026-09-23**: a merged plant reports its lowest authority across cases,
+  `FS4006` applies to scenario files again, and the turn-down check is live as `FS4013`. The `√a`
+  half of that check is still **this project's reasoning**, not a standard.
+- **`C-120` next**, every binder review seeing only the design case. Diagnostic quality on
+  malformed files, not correctness on good ones.
+- **`C-122`** waits on a user's call, not on work: refuse a scenario list on `dp`, or hold each
+  case's stated drop at its own design flow.
 - ~~The zero-envelope diagnostic~~ **built 2026-09-23** as `FS2314`, the user's call between `24`'s
   two candidate mitigations. The range sugar is rejected: it would spell one candidate set two ways,
   and the second spelling is `D-138`'s driver sweep under another name.
@@ -1537,9 +1546,9 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2118 total, 0 failed, 3 skipped** (2026-09-22), ~71 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2198 total, 0 failed, 3 skipped** (2026-09-23), ~71 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
-| Frontend tests | **229 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
+| Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |
 | Render baseline (M3, `D-45`) | **4.8 ms** to prepare and render the 24-placement header to static markup in Node; the browser numbers (`07`: 50 fps p95 panning 200 components, 8 ms per commit) are unmeasured, `F-10` | `frontend/src/features/canvas/baseline.test.tsx` |

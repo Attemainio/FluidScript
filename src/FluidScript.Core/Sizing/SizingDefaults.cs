@@ -65,6 +65,29 @@ public static class SizingDefaults
     /// </remarks>
     public const double ValveAuthorityMinimum = 0.25;
 
+    /// <summary>A valve's bench rangeability by trim: the largest over the smallest flow it controls at constant drop.</summary>
+    /// <param name="characteristic">The trim.</param>
+    /// <returns>Dimensionless: 50 equal percentage, 33 linear, 20 quick opening.</returns>
+    /// <remarks>
+    /// <para>
+    /// Looked up 2026-09-22 (<c>24</c>): manufacturers quote 50:1 for equal percentage, 33:1 for linear
+    /// and 20:1 for quick opening — Flo Control, <em>Rangeability and Turndown Ratio</em>. Equal
+    /// percentage's 50 is also the <c>R</c> <see cref="Components.ValveLaw"/> already runs its curve on,
+    /// so the check and the solver agree about the same valve.
+    /// </para>
+    /// <para>
+    /// A bench figure, measured at constant drop across the valve. Installed, the valve's share of the
+    /// drop rises as it closes, so the turn-down it achieves is <c>R·√a</c> — which is this project's
+    /// reasoning rather than a standard's, and the part of the check most worth testing (<c>C-121</c>).
+    /// </para>
+    /// </remarks>
+    public static double ValveRangeability(Components.ValveCharacteristic characteristic) => characteristic switch
+    {
+        Components.ValveCharacteristic.EqualPercentage => 50,
+        Components.ValveCharacteristic.QuickOpen => 20,
+        _ => 33,
+    };
+
     /// <summary>The most a three-way valve is sized to drop at its common-port flow, fully open.</summary>
     /// <value>Pa. 15 kPa: the top of the band a mixing valve is selected in (<c>24</c>'s <c>three_way.dp_max</c>).</value>
     /// <remarks>

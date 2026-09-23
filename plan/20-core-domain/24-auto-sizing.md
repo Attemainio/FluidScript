@@ -183,15 +183,27 @@ case, which is the sequential-execution case in miniature.
 | Pipe | Maximum flow | — |
 | Heat exchanger | Maximum UA | — |
 | Pump | The case demanding the largest head at its flow; the curve must cover every other case | Every scenario: on the curve |
-| Control valve | Kv from the maximum-flow case | The **minimum-flow** case: authority and turn-down (`C-121`) |
+| Control valve | Kv from the maximum-flow case | Every scenario: authority, reported at its lowest; the minimum-flow case against the turn-down (`C-121`) |
 | Tank | Not sized here; a profile (`C-115`) | — |
 
 **A valve's `authority` is not merged at all**, and the rule set says so rather than leaving it to a
-default: it is `Δp_valve,open / Δp_circuit` at the case's own flow, so the merged valve has a
-different authority in every case and none of them is the figure any case's own sizer reported. A
-maximum, a minimum and the governing case's value would each report one that no case achieves. It is
-`EnvelopeRule.Solved` — left out, and owed to the re-solve, which is `C-121` and is what the
-minimum-flow row above waits on.
+default. It is `Δp_valve,open / (Δp_valve,open + Δp_rest)`, two drops at one flow that both go as
+`ṁ²`, so the flow cancels and authority is a property of the valve against its branch's geometry —
+and the merge changes that geometry twice, giving the valve a Kv and the branch pipes that are not
+any one case's. So no case's own figure describes the merged plant, and a maximum, a minimum or the
+governing case's value of those figures would each report one it does not have. It is
+`EnvelopeRule.Solved`: left out of the merge, and **read off step 3** instead (`C-121`). Each case's
+frozen solve computes it from the same context the rule chose the Kv against
+(`ValveSizer.Achieved`), and the merged plant reports the **lowest** across cases, naming the case —
+a minimum that is honest here because every reading is of the same plant. `FS4006` fires on it.
+
+Measured 2026-09-23 on `Seasons` with a valve: summer governs the Kv and the pipe, the merged figure
+is summer's single-run 0.69, and winter on that plant reads 0.693 against summer's 0.692 — a flow
+37 % lower moves it 0.13 %. The cases disagree only when a stated value differs between them: with
+the exchanger's `dp=[5, 60]`, winter's light branch governs the Kv (16), winter reads 0.76 on the
+merged plant and summer 0.23, which is `FS4006` in the case that did not choose the valve. That is
+why the report takes the minimum and not the governing case's reading: the governing case's own
+figure is a floor only for that case.
 
 **The rule set is closed.** A parameter no rule names stops the merge with an error rather than
 defaulting to a maximum, so a sizer that gains a parameter cannot quietly acquire an envelope nobody
@@ -222,8 +234,12 @@ At `R = 50` and `a = 0.5` that is 2.8 %: a valve sized on the winter case and as
 flow in summer fails it. **`R·√a` is not from a primary standard.** A secondary source states it
 (30:1 at authority 0.5 → 21:1, which is `30·√0.5`) and it derives cleanly from the Kv law as above,
 but the search did not confirm it in a standard — so it is this project's reasoning and the part
-most worth testing. `a_achieved` is already reported by `ValveSizer`, so the check needs no new
-input.
+most worth testing. `a` is the lowest reading across cases, and `R` is the valve's own trim's
+(`SizingDefaults.ValveRangeability`). **Live since 2026-09-23 as `FS4013`** (`C-121`): measured on
+1 kW against 40 kW, winter asks for 1.3 % of summer's flow where an equal-percentage valve at 0.66
+reaches 2.5 %. `Q_max` is the heaviest case's flow, which is the full-lift flow only as far as the Kv
+was chosen on it; a case in which the valve carries no flow is left out, since a shut valve is not
+controlling.
 
 **Load-case vocabulary, looked up the same day.** Structural engineering's terms map cleanly and are
 worth borrowing: a **load case** is one unfactored named condition — a scenario; an **envelope** takes,

@@ -14,7 +14,8 @@ namespace FluidScript.Core.Diagnostics;
 /// <para>
 /// <c>FS4004</c>-<c>FS4006</c> are today sizing <em>notes</em> rather than diagnostics, which is
 /// <c>C-74</c>'s subject and not repeated here. <c>FS4011</c> is the first code past <c>16</c>'s
-/// original ten, raised for <c>C-111</c>.
+/// original ten, raised for <c>C-111</c>; <c>FS4013</c> is the first raised across scenarios rather
+/// than within one solve (<c>C-121</c>).
 /// </para>
 /// </remarks>
 public static class DesignDiagnostics
@@ -59,11 +60,34 @@ public static class DesignDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' is written as a {declared} valve and the solve runs it {actual}: {detail}. A body built for one service must not be used for the other. Write it as three_way_valve if the arrangement is open, or wire the ports for {declared}.");
 
+    /// <summary>A control valve asked to control a lighter case than its installed rangeability reaches.</summary>
+    /// <value><c>FS4013</c>, a warning.</value>
+    /// <remarks>
+    /// <para>
+    /// <c>24</c>'s minimum-flow row, raised by <c>ScenarioSizing</c> once every case has been solved on
+    /// the merged plant (<c>C-121</c>). The check is <c>Q_min / Q_max &gt; 1 / (R·√a)</c>: <c>R</c> is the
+    /// trim's bench rangeability (<see cref="Sizing.SizingDefaults.ValveRangeability"/>), and the √a
+    /// accounts for the valve's share of the drop rising toward 1 as it closes, so it sees more drop
+    /// near its seat than on the bench. That correction is this project's reasoning rather than a
+    /// standard's, and the part most worth testing.
+    /// </para>
+    /// <para>
+    /// A plant with one case has no turn-down to check. <c>Q_max</c> is the heaviest case's flow, which
+    /// is the valve's full-lift flow only to the extent the Kv was chosen on that case; it is the flow
+    /// the valve must deliver, which is what the question is about.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor TurnDownBeyondRange { get; } = new(
+        "FS4013",
+        DiagnosticSeverity.Warning,
+        "'{name}' must pass {light} kg/s in {lightCase} and {heavy} kg/s in {heavyCase}, {ratio} % of its heaviest flow. {trim} valve at authority {authority} controls down to about {limit} % ({range}:1 × √{authority}), so in {lightCase} it will open and shut rather than modulate. Give the light case a smaller valve in parallel, or split the duty.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ApproachBelowMinimum,
         LegsUnbalanced,
         ArrangementContradictsKind,
+        TurnDownBeyondRange,
     ];
 }
