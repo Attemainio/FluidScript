@@ -231,82 +231,9 @@ internal sealed partial class LayoutEngine
         Anchors = p.Anchors.ToImmutableSortedDictionary(static a => a.Key, static a => Rounded(a.Value), StringComparer.Ordinal),
     };
 
-    // ---- helpers --------------------------------------------------------------------------------------------------
+    // ---- helpers ----------------------------------------------------------------------------------------------------
 
-    private static Dictionary<string, int> Index(CircuitGraph graph)
-    {
-        var index = new Dictionary<string, int>(StringComparer.Ordinal);
-
-        for (var i = 0; i < graph.Components.Length; i++)
-        {
-            index[graph.Components[i].Name] = i;
-        }
-
-        return index;
-    }
-
-    /// <summary>Each model connection as component and port indices, matched on the graph's adjacency, then the links between an expanded pipe's cells.</summary>
-    /// <remarks>
-    /// A written end naming a pipe with <c>nodes=</c> stands for the cell that meets the other end, and
-    /// its port is whichever meets it, since a cell's port names are the chain's and not the script's
-    /// (<c>C-124</c>).
-    /// </remarks>
-    private static List<Link> Links(CircuitGraph graph, SemanticModel model, Dictionary<string, int> index)
-    {
-        var links = new List<Link>();
-        var used = new HashSet<(int, int)>();
-
-        for (var i = 0; i < model.Connections.Length; i++)
-        {
-            var connection = model.Connections[i];
-            var fromName = ExpandedPipes.Drawn(graph, connection.From.Component, connection.To.Component);
-            var toName = ExpandedPipes.Drawn(graph, connection.To.Component, connection.From.Component);
-
-            if (fromName is null || toName is null || !index.TryGetValue(fromName, out var from) || !index.TryGetValue(toName, out var to))
-            {
-                continue;
-            }
-
-            var port = string.Equals(fromName, connection.From.Component, StringComparison.Ordinal) ? connection.From.Port : string.Empty;
-            var fromPort = PortTowards(graph, from, to, port, used);
-            if (fromPort < 0)
-            {
-                continue;
-            }
-
-            var peer = graph.Adjacency.Peer(from, fromPort);
-            used.Add((from, fromPort));
-            used.Add((peer.Component, peer.Port));
-            links.Add(new Link($"c{i.ToString(CultureInfo.InvariantCulture)}", from, fromPort, peer.Component, peer.Port));
-        }
-
-        foreach (var (id, from, fromPort, to, toPort) in ExpandedPipes.Internal(graph))
-        {
-            links.Add(new Link(id, from, fromPort, to, toPort));
-        }
-
-        return links;
-    }
-
-    private static int PortTowards(CircuitGraph graph, int from, int to, string port, HashSet<(int, int)> used)
-    {
-        var flow = graph.Components[from];
-
-        for (var p = 0; p < flow.Ports.Length; p++)
-        {
-            var peer = graph.Adjacency.Peer(from, p);
-
-            if (!peer.Exists || peer.Component != to || used.Contains((from, p)))
-            {
-                continue;
-            }
-
-            if (port.Length == 0 || string.Equals(flow.Ports[p].Name, port, StringComparison.Ordinal))
-            {
-                return p;
-            }
-        }
-
-        return -1;
-    }
+    /// <summary>The links the layout draws (<see cref="GraphLinks.Of"/>).</summary>
+    private static List<Link> Links(CircuitGraph graph, SemanticModel model, Dictionary<string, int> index) =>
+        [.. GraphLinks.Of(graph, model, index).Select(static l => new Link(l.Id, l.From, l.FromPort, l.To, l.ToPort))];
 }

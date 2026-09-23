@@ -1526,6 +1526,11 @@ that governed each size. What P6.8 still owes, and what comes after:
     step, the pending scripts (`Layout/Parity/*.fluid`: the three zones, `C-126`, and the zones with
     their instruments, `C-128`) and the samples with both engines, writing `diagnostics/layout-parity/`
     -- a report per case and `summary.txt`. The ladder engine on the pending scripts: hard 4 and hard 11.
+  - **R1 built 2026-09-23**: `Layout/Engine/CircuitView` -- ports and peers in one lookup, every port's
+    flow once, the runs between boxed elements (`Run`, `RunEnd`, `InlinePoint`) oriented with the flow,
+    the fragments; a cycle of inline elements alone keeps its first element boxed. `GraphLinks` is the one
+    link builder, the ladder engine's too. The composed engine traces fragments and runs (`E1`);
+    `CircuitViewTests` read them. Core 2272/0.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

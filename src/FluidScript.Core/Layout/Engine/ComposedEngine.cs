@@ -25,10 +25,22 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
     private readonly LayoutHints _hints = hints;
 
     /// <summary>Solves the layout.</summary>
-    /// <returns>The scene; empty of placements until the compose stage exists.</returns>
+    /// <returns>The scene; empty of placements until the compose stage exists, its trace listing what the stages so far found.</returns>
     public Scene Solve()
     {
-        _ = (_graph, _model, _hints);
+        var view = new CircuitView(_graph, _model, _hints);
+        var trace = new List<PlacementNote>();
+
+        for (var f = 0; f < view.Fragments.Length; f++)
+        {
+            trace.Add(new PlacementNote($"fragment {f + 1}", "E1", "members " + string.Join(", ", view.Fragments[f].Select(view.Name))));
+        }
+
+        foreach (var run in view.Runs)
+        {
+            var points = run.Inline.Select(i => view.Name(i.Element));
+            trace.Add(new PlacementNote($"run {run.Index + 1}", "E1", string.Join(" > ", [Port(view, run.Start), .. points, Port(view, run.End)])));
+        }
 
         return new Scene
         {
@@ -36,7 +48,14 @@ internal sealed class ComposedEngine(CircuitGraph graph, SemanticModel model, La
             Routes = [],
             Extent = new Box(0, 0, 0, 0),
             Margin = margin,
-            Provenance = [new PlacementNote("engine", "E", "the composed engine (D-153): no stage built yet")],
+            Provenance = [.. trace],
         };
+    }
+
+    /// <summary>A run end as the trace names it: <c>PU1.out</c>, or <c>N2.#1</c> for a node's unnamed port.</summary>
+    private static string Port(CircuitView view, RunEnd end)
+    {
+        var name = view.Graph.Components[end.Component].Ports[end.Port].Name;
+        return $"{view.Name(end.Component)}.{(name.Length == 0 ? "#" + end.Port.ToString(System.Globalization.CultureInfo.InvariantCulture) : name)}";
     }
 }

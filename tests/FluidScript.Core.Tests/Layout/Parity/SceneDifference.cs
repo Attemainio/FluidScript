@@ -107,6 +107,14 @@ internal sealed record SceneDifference(string Name, Scene Ladder, Scene Composed
             text.AppendLine(CultureInfo.InvariantCulture, $" {finding}");
         }
 
+        text.AppendLine();
+        text.AppendLine("COMPOSED TRACE");
+
+        foreach (var note in Composed.Provenance)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $" {note.Rule} -- {note.Subject}: {note.Reason}");
+        }
+
         return text.ToString();
     }
 

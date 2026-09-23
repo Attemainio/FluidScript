@@ -64,7 +64,7 @@ internal sealed partial class LayoutEngine
         _hints = hints;
         _margin = margin;
         _n = graph.Components.Length;
-        _index = Index(graph);
+        _index = GraphLinks.Index(graph);
         _links = Links(graph, model, _index);
         _symbol = graph.Components.Select(static c => SymbolCatalog.All.First(s => s.Id == SymbolCatalog.IdFor(c.Kind))).ToArray();
         _placed = new bool[_n];
