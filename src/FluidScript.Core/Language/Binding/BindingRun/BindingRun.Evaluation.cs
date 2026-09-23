@@ -316,22 +316,28 @@ internal sealed partial class BindingRun
 
                     for (var slot = 0; slot < elements.Count; slot++)
                     {
-                        var (element, at) = slot == design
-                            ? (bound.Value, pending)
-                            : (_pending.TryGetValue(
-                                   new ValueId.ScenarioParameter(component.Name, canonical, slot),
-                                   out var each)
-                                   ? each.Value
-                                   : null,
-                               null);
-
-                        if (element is { } settled)
+                        if (slot == design)
                         {
-                            elements[slot] = elements[slot] with
+                            if (bound.Value is { } designed)
                             {
-                                Value = settled,
-                                Basis = at is null ? elements[slot].Basis : SizingBasis(component.Name, at),
-                            };
+                                elements[slot] = elements[slot] with
+                                {
+                                    Value = designed,
+                                    Basis = pending is null ? elements[slot].Basis : SizingBasis(component.Name, pending),
+                                };
+                            }
+
+                            continue;
+                        }
+
+                        if (_pending.TryGetValue(new ValueId.ScenarioParameter(component.Name, canonical, slot), out var each)
+                            && each.Value is { } settled)
+                        {
+                            elements[slot] = elements[slot] with { Value = settled };
+
+                            // The design element was checked above under the parameter's own id; every
+                            // other case is checked here, on its own element's span (`C-120`).
+                            CheckRoleSign(component, canonical, settled, each.Span);
                         }
                     }
 

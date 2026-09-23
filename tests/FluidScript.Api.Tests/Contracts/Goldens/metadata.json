@@ -5293,7 +5293,7 @@
       "code": "FS2119",
       "severity": "error",
       "area": "Components",
-      "message": "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater.",
+      "message": "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.",
       "arguments": [
         "name",
         "power",
@@ -5303,7 +5303,8 @@
         "in",
         "outlet",
         "out",
-        "change"
+        "change",
+        "cases"
       ]
     },
     {

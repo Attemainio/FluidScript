@@ -50,57 +50,113 @@ internal sealed partial class BindingRun
     /// word carries the sign (<c>D-91</c>) and lowering applies it, so <c>load power=24 in.t=50 out.t=30</c>
     /// is consistent by construction. A stated <c>dt</c> is a magnitude and cannot contradict anything.
     /// Arithmetic on stated values, nothing more -- the fluid is not needed to compare two temperatures.
+    /// <para>
+    /// <strong>Every case is read, and the finding is one per side however many cases share it</strong>
+    /// (<c>C-120</c>). <see cref="ParameterValue.Value"/> holds the design case alone, so reading it let a
+    /// contradictory summer bind clean and fail two layers down as a non-finite residual. Each case is
+    /// checked whole — its own duty against its own terminals — so a reversible duty whose sign turns
+    /// with its temperatures is consistent in both. The message quotes the first failing case's numbers
+    /// and names the cases it fails in, and names none when no list touches the side, because then the
+    /// contradiction is the file's rather than a case's.
+    /// </para>
     /// </remarks>
     private void ReviewDutyDirection()
     {
+        // A file without scenarios is one case, read from `Value`, marked -1.
+        int[] cases = _scenarios.Count == 0 ? [-1] : [.. Enumerable.Range(0, _scenarios.Count)];
+
         foreach (var component in _components)
         {
             if (component.Kind is not { Keyword: "heat_exchanger" } kind
                 || NameResolution.Normalize(component.WrittenKind) is "load" or "cooler" or "radiator" or "chiller" or "heater" or "boiler"
-                || !component.Parameters.TryGetValue("power", out var duty)
-                || duty.Value is not { } power
-                || power.SiValue == 0)
+                || !component.Parameters.TryGetValue("power", out var duty))
             {
                 continue;
             }
 
-            var gains = power.SiValue > 0;
-
             foreach (var (inlet, outlet, side) in ((string, string, int)[])[("in", "out", 1), ("in2", "out2", 2)])
             {
-                if (!component.Parameters.TryGetValue(inlet, out var entering) || entering.Value is not { } a
-                    || !component.Parameters.TryGetValue(outlet, out var leaving) || leaving.Value is not { } b
-                    || a.SiValue == b.SiValue)
+                if (!component.Parameters.TryGetValue(inlet, out var entering)
+                    || !component.Parameters.TryGetValue(outlet, out var leaving))
                 {
                     continue;
                 }
 
-                // Side 1 gains what the duty says; side 2 gives it.
-                var warms = b.SiValue > a.SiValue;
-                var shouldWarm = side == 1 ? gains : !gains;
+                var failing = new List<int>();
+                (Quantity Power, Quantity In, Quantity Out)? first = null;
 
-                if (warms == shouldWarm)
+                foreach (var at in cases)
+                {
+                    if (ValueAt(duty, at) is not { SiValue: not 0 } power
+                        || ValueAt(entering, at) is not { } a
+                        || ValueAt(leaving, at) is not { } b
+                        || a.SiValue == b.SiValue)
+                    {
+                        continue;
+                    }
+
+                    // Side 1 gains what the duty says; side 2 gives it.
+                    var gains = power.SiValue > 0;
+
+                    if (b.SiValue > a.SiValue == (side == 1 ? gains : !gains))
+                    {
+                        continue;
+                    }
+
+                    failing.Add(at);
+                    first ??= (power, a, b);
+                }
+
+                if (first is not var (stated, a1, b1))
                 {
                     continue;
                 }
 
-                var unit = UnitTable.CanonicalUnitFor(power.Dimension);
-                var celsius = UnitTable.CanonicalUnitFor(a.Dimension);
+                var unit = UnitTable.CanonicalUnitFor(stated.Dimension);
+                var celsius = UnitTable.CanonicalUnitFor(a1.Dimension);
+                var losing = side == 1 ? stated.SiValue < 0 : stated.SiValue > 0;
+                var listed = !duty.Scenarios.IsEmpty || !entering.Scenarios.IsEmpty || !leaving.Scenarios.IsEmpty;
 
                 Report(
                     BinderDiagnostics.DutyContradictsTerminals,
                     duty.Span,
                     ("name", component.Name),
-                    ("power", Format(unit is null ? power.SiValue : power.ValueIn(unit), unit?.Text)),
+                    ("power", Format(unit is null ? stated.SiValue : stated.ValueIn(unit), unit?.Text)),
                     ("side", side.ToString(CultureInfo.InvariantCulture)),
-                    ("duty", (side == 1 ? gains : !gains) ? "gains heat" : "loses heat"),
+                    ("duty", losing ? "loses heat" : "gains heat"),
                     ("inlet", kind.ParameterName(inlet)),
-                    ("in", Format(celsius is null ? a.SiValue : a.ValueIn(celsius), celsius?.Text)),
+                    ("in", Format(celsius is null ? a1.SiValue : a1.ValueIn(celsius), celsius?.Text)),
                     ("outlet", kind.ParameterName(outlet)),
-                    ("out", Format(celsius is null ? b.SiValue : b.ValueIn(celsius), celsius?.Text)),
-                    ("change", warms ? "warms" : "cools"));
+                    ("out", Format(celsius is null ? b1.SiValue : b1.ValueIn(celsius), celsius?.Text)),
+                    ("change", b1.SiValue > a1.SiValue ? "warms" : "cools"),
+                    ("cases", listed ? CaseClause(failing) : string.Empty));
             }
         }
+    }
+
+    /// <summary>A parameter's value in one case: the element when the file wrote a list, the scalar otherwise.</summary>
+    /// <param name="value">The bound parameter.</param>
+    /// <param name="scenario">The case's position, or -1 for a file without scenarios.</param>
+    /// <returns>The evaluated value, or <see langword="null"/> when that case's expression was deferred.</returns>
+    private static Quantity? ValueAt(ParameterValue value, int scenario) =>
+        scenario < 0 || value.Scenarios.IsEmpty ? value.Value : value.Scenarios[scenario].Value;
+
+    /// <summary>Names the cases a review failed in: <c> in summer</c>, <c> in winter, and likewise in summer</c>.</summary>
+    /// <param name="cases">The failing cases' positions, in declared order; the first is the one the message quotes.</param>
+    /// <returns>The clause, with its leading space.</returns>
+    private string CaseClause(List<int> cases)
+    {
+        var clause = " in " + _scenarios[cases[0]];
+
+        if (cases.Count == 1)
+        {
+            return clause;
+        }
+
+        var rest = cases.Skip(1).Select(at => _scenarios[at]).ToArray();
+
+        return clause + ", and likewise in "
+            + (rest.Length == 1 ? rest[0] : string.Join(", ", rest[..^1]) + " and " + rest[^1]);
     }
 
     /// <summary>Reports the exchanger's mode codes: <c>FS2112</c>, <c>FS2110</c> and <c>FS2109</c>.</summary>

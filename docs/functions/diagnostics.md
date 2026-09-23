@@ -159,7 +159,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
 | `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
-| `FS2119` | Error | Components | '{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
+| `FS2119` | Error | Components | '{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
 | `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
 | `FS2202` | Warning | Topology | '{component}' port '{port}' is not connected; treating it as closed. |
 | `FS2203` | Error | Topology | '{circuit}' is closed and its heat does not balance: {power} with nowhere to go. Add a load, a source, or a boundary. |

@@ -620,7 +620,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor DutyContradictsTerminals { get; } = new(
         "FS2119",
         DiagnosticSeverity.Error,
-        "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
+        "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
 
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>

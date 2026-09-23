@@ -994,7 +994,7 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2116` | Tank substance is not a supported single-phase liquid | Error | `{name}: stratified tank supports a single-phase liquid; {substance} is outside that model.` |
 | `FS2117` | A required parameter is absent | Error | `'{name}': a {kind} must state {parameter}.` |
 | `FS2118` | A parameter group has too few of its members stated | Error | `'{name}': a {kind} must state {count} of {parameters}.` |
-| `FS2119` | A neutral exchanger's signed duty contradicts the direction its stated terminals give (`C-67`) | Error | `'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}. Flip the sign, swap the temperatures, or use a role word such as load or heater.` |
+| `FS2119` | A neutral exchanger's signed duty contradicts the direction its stated terminals give (`C-67`) | Error | `'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.` |
 
 `FS2101` covers both of this kind's relations, which is why its message names the group rather than
 spelling one of them out. **It does not name the implied value.** For `ua`/`area`/`u` it could —

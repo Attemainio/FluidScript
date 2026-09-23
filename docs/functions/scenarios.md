@@ -47,6 +47,17 @@ Each element is an ordinary value, so units, expressions and curve references al
 HX1 heat_exchanger power=[30 kW, 10 kW] in.t=[70, 55]
 ```
 
+**Every case is checked, not only the one on the canvas.** A case that contradicts itself is
+reported on its line, whichever case `design` names. `HX1 heat_exchanger power=[50, 40]
+in.t=[35, 12] out.t=[45, 7]` heats the water from 35 to 45 °C in `winter`, which is fine. In `summer`
+it puts 40 kW into water that cools from 12 to 7 °C, and you get one
+[`FS2119`](diagnostics.md) that quotes summer's numbers and ends *"…say the water cools in summer."*
+When more than one case fails, it is still one message, naming the first case's numbers and
+then the rest: *"…cools in winter, and likewise in summer."* A duty whose sign turns with its
+temperatures, such as `power=[50, -40]` for a heat pump that heats in winter and cools in summer, is
+consistent in both cases and reports nothing. A check on a single number, such as a negative capacity
+on a `load` ([`FS1308`](diagnostics.md)), goes on that number inside the brackets.
+
 ## Which case the drawing shows
 
 `design` picks it:

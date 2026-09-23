@@ -199,6 +199,80 @@ public sealed class ScenarioBindingTests
         Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1540");
     }
 
+    // ---- C-120: a review that reads values sees every case, and names the ones it fails in -----
+
+    /// <summary>The two-case circuit with the exchanger's line replaced.</summary>
+    private static string WithExchanger(string line) =>
+        Two.Replace("HX1 heat_exchanger power=[30, 10] out.t=[60, 45]", line, StringComparison.Ordinal);
+
+    private static Diagnostic[] Coded(BindResult result, string code) =>
+        [.. result.Diagnostics.Where(d => string.Equals(d.Code, code, StringComparison.Ordinal))];
+
+    [Fact]
+    public void FS2119_AContradictionInACaseOtherThanTheDesignOneIsCaughtAtTheLine()
+    {
+        // C-120's own fixture. Winter heats 35 -> 45 with 50 kW, which is consistent; summer states 40 kW
+        // *into* side 1 while it cools from 12 to 7 °C. The review read only the design case, so this bound
+        // clean and failed two layers down as a non-finite residual.
+        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, 40] in.t=[35, 12] out.t=[45, 7]"));
+
+        var diagnostic = Assert.Single(Coded(result, "FS2119"));
+
+        Assert.Contains("in.t=12 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("cools in summer.", diagnostic.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("winter", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2119_ContradictedInEveryCaseIsOneDiagnosticNamingThemAll()
+    {
+        // The user's call on C-120: one problem, one message, the cases named -- not one per case. The
+        // numbers quoted are the first failing case's, and the sentence names that case first.
+        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, 40] in.t=[45, 12] out.t=[35, 7]"));
+
+        var diagnostic = Assert.Single(Coded(result, "FS2119"));
+
+        Assert.Contains("in.t=45 °C", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("cools in winter, and likewise in summer.", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS2119_AReversibleDutyIsConsistentInBothCases()
+    {
+        // A heat pump heating in winter and cooling in summer: the sign turns with the terminals, and
+        // each case agrees with itself. Reading the design case's sign against summer's temperatures
+        // would call this a contradiction; reading each case whole does not.
+        var result = Bind(WithExchanger("HX1 heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]"));
+
+        Assert.Empty(Coded(result, "FS2119"));
+    }
+
+    [Fact]
+    public void FS2119_AContradictionNoListTouchesNamesNoCase()
+    {
+        // Scalars mean the same in every case, so the contradiction is the file's, not a case's, and
+        // the message stays exactly what it is in a file without scenarios. The list on `out.t` is
+        // side 1's and has no part in side 2's contradiction.
+        var result = Bind(WithExchanger("HX1 heat_exchanger power=40 out.t=[60, 45] in[2].t=40 out[2].t=60"));
+
+        var diagnostic = Assert.Single(Coded(result, "FS2119"));
+
+        Assert.EndsWith("say the water warms. Flip the sign, swap the temperatures, or use a role word such as load or heater.", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FS1308_ASignedCapacityInACaseOtherThanTheDesignOneIsReportedOnItsElement()
+    {
+        // The role-sign check ran at publication on the design element only. Each element carries its
+        // own span, so the warning goes on the number that is wrong rather than on the list.
+        var source = WithExchanger("HX1 load power=[24, -10] out.t=[60, 45]");
+        var result = Bind(source);
+
+        var diagnostic = Assert.Single(Coded(result, "FS1308"));
+
+        Assert.Equal("-10", source.Substring(diagnostic.Span!.Value.Start, diagnostic.Span.Value.Length));
+    }
+
     [Fact]
     public void AScalarIsNotAShortList()
     {
