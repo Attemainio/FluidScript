@@ -23,12 +23,23 @@ namespace FluidScript.Core.Layout.Routing;
 /// A route that finds no legal path widens its window twice and
 /// then takes the straight join, drawn beneath whatever it crosses (<c>53</c>'s error case).
 /// </para>
+/// <para>
+/// A signal (<paramref name="signal"/>, C16, <c>D-152</c>) keeps none of that clearance: only a box's inner outline stops
+/// it, and a margin is a small cost per unit of length run inside it. It never runs along a pipe, and crosses one only a
+/// quarter margin or more from the pipe's ends -- a port, a junction, an inline point, a bend. Bends cost most, then
+/// length; crossings and time in a margin only break ties, so a line takes the short way through the drawing rather than
+/// round it. Its stub is half a margin, and the grid adds the inner edges and the midpoints between its lines.
+/// </para>
 /// </remarks>
-internal sealed class OrthogonalRouter(double margin)
+/// <param name="margin">The clearance, world units.</param>
+/// <param name="signal">Whether the routes are signal lines, which cross the drawing rather than keep its clearance.</param>
+internal sealed class OrthogonalRouter(double margin, bool signal = false)
 {
-    private const double BendCost = 1.0;
-    private const double CrossingCost = 5.0;
     private const double Eps = 1e-9;
+    private readonly double _bendCost = signal ? 2.0 : 1.0;
+    private readonly double _crossingCost = signal ? 0.25 : 5.0;
+    private const double MarginCost = 0.25;
+    private readonly double _stub = signal ? margin / 2 : margin;
 
     private readonly List<(Box Inner, Box Outer, int Owner)> _boxes = [];
     private readonly List<Pipe> _pipes = [];
@@ -117,8 +128,8 @@ internal sealed class OrthogonalRouter(double margin)
             }
         }
 
-        var starts = Usable(from.Select(anchor => (Anchor: anchor, Stub: anchor.Along(margin))).ToList(), _pipes, fromOwner, toOwner);
-        var ends = Usable(to.Select(anchor => (Anchor: anchor, Stub: anchor.Along(margin))).ToList(), _pipes, fromOwner, toOwner);
+        var starts = Usable(from.Select(anchor => (Anchor: anchor, Stub: anchor.Along(_stub))).ToList(), _pipes, fromOwner, toOwner);
+        var ends = Usable(to.Select(anchor => (Anchor: anchor, Stub: anchor.Along(_stub))).ToList(), _pipes, fromOwner, toOwner);
 
         foreach (var window in new[] { 1.0, 3.0, 8.0, double.PositiveInfinity })
         {
@@ -132,8 +143,8 @@ internal sealed class OrthogonalRouter(double margin)
         // Nothing legal: the straight join, drawn beneath whatever it crosses.
         var a = from[0];
         var b = to[0];
-        var p = a.Along(margin);
-        var q = b.Along(margin);
+        var p = a.Along(_stub);
+        var q = b.Along(_stub);
         var elbow = new Point(q.X, p.Y);
         return new Result(Simplify([a.At, p, elbow, q, b.At]), [], a, b, false);
     }
@@ -168,6 +179,14 @@ internal sealed class OrthogonalRouter(double margin)
             AddCoordinate(xs, box.Outer.Right, minX, maxX);
             AddCoordinate(ys, box.Outer.Y, minY, maxY);
             AddCoordinate(ys, box.Outer.Top, minY, maxY);
+
+            if (signal)
+            {
+                AddCoordinate(xs, box.Inner.X, minX, maxX);
+                AddCoordinate(xs, box.Inner.Right, minX, maxX);
+                AddCoordinate(ys, box.Inner.Y, minY, maxY);
+                AddCoordinate(ys, box.Inner.Top, minY, maxY);
+            }
         }
 
         var pipes = new List<Pipe>();
@@ -189,6 +208,13 @@ internal sealed class OrthogonalRouter(double margin)
             AddCoordinate(axis, pipe.Line + margin, lo, hi);
         }
 
+        if (signal)
+        {
+            // A signal may take the middle of any gap, where it keeps furthest from both sides.
+            Midpoints(xs);
+            Midpoints(ys);
+        }
+
         var xv = xs.ToArray();
         var yv = ys.ToArray();
         var nx = xv.Length;
@@ -202,30 +228,31 @@ internal sealed class OrthogonalRouter(double margin)
         var crossV = new double[nx, Math.Max(ny - 1, 0)];
         var intervals = new List<(double From, double To)>();
         var crossings = new List<double>();
+        var soft = new List<(double From, double To)>();
 
         for (var j = 0; j < ny; j++)
         {
             var y = yv[j];
-            Reaching(boxes, pipes, fromOwner, toOwner, false, y, intervals, crossings);
+            Reaching(boxes, pipes, fromOwner, toOwner, false, y, intervals, crossings, soft);
 
             for (var i = 0; i + 1 < nx; i++)
             {
                 var (blocked, count) = Step(intervals, crossings, xv[i], xv[i + 1]);
                 blockedH[j, i] = blocked;
-                crossH[j, i] = count;
+                crossH[j, i] = (count * _crossingCost) + (Inside(soft, xv[i], xv[i + 1]) * MarginCost);
             }
         }
 
         for (var i = 0; i < nx; i++)
         {
             var x = xv[i];
-            Reaching(boxes, pipes, fromOwner, toOwner, true, x, intervals, crossings);
+            Reaching(boxes, pipes, fromOwner, toOwner, true, x, intervals, crossings, soft);
 
             for (var j = 0; j + 1 < ny; j++)
             {
                 var (blocked, count) = Step(intervals, crossings, yv[j], yv[j + 1]);
                 blockedV[i, j] = blocked;
-                crossV[i, j] = count;
+                crossV[i, j] = (count * _crossingCost) + (Inside(soft, yv[j], yv[j + 1]) * MarginCost);
             }
         }
 
@@ -287,7 +314,7 @@ internal sealed class OrthogonalRouter(double margin)
                     continue;
                 }
 
-                var total = cost + (arrival == heading ? 0 : BendCost);
+                var total = cost + (arrival == heading ? 0 : _bendCost);
 
                 if (total < goalCost)
                 {
@@ -317,7 +344,7 @@ internal sealed class OrthogonalRouter(double margin)
                 }
 
                 var next = ((ni + (nj * nx)) * 4) + h;
-                var candidate = cost + step + (h == heading ? 0 : BendCost) + (crossing * CrossingCost);
+                var candidate = cost + step + (h == heading ? 0 : _bendCost) + crossing;
 
                 if (candidate < best[next] - Eps)
                 {
@@ -370,10 +397,18 @@ internal sealed class OrthogonalRouter(double margin)
     }
 
     /// <summary>What reaches one grid line: the intervals along it a step may not enter (a box's interior, an owner's inner box, a parallel pipe's band) and the positions where a perpendicular pipe crosses it.</summary>
-    private void Reaching(List<(Box Inner, Box Outer, int Owner)> boxes, List<Pipe> pipes, int fromOwner, int toOwner, bool vertical, double line, List<(double From, double To)> intervals, List<double> crossings)
+    /// <remarks>For a signal, <paramref name="soft"/> collects the margins it may enter at a cost, and a pipe blocks only where the line runs along it or would cross it within a quarter margin of its ends.</remarks>
+    private void Reaching(List<(Box Inner, Box Outer, int Owner)> boxes, List<Pipe> pipes, int fromOwner, int toOwner, bool vertical, double line, List<(double From, double To)> intervals, List<double> crossings, List<(double From, double To)>? soft = null)
     {
         intervals.Clear();
         crossings.Clear();
+        soft?.Clear();
+
+        if (signal)
+        {
+            SignalReaching(boxes, pipes, fromOwner, toOwner, vertical, line, intervals, crossings, soft);
+            return;
+        }
 
         foreach (var (inner, outer, owner) in boxes)
         {
@@ -419,6 +454,82 @@ internal sealed class OrthogonalRouter(double margin)
         crossings.Sort();
     }
 
+    /// <summary><see cref="Reaching"/> for a signal: inner boxes block, margins cost, and a pipe blocks the line only along itself or within a quarter margin of its ends.</summary>
+    private void SignalReaching(List<(Box Inner, Box Outer, int Owner)> boxes, List<Pipe> pipes, int fromOwner, int toOwner, bool vertical, double line, List<(double From, double To)> intervals, List<double> crossings, List<(double From, double To)>? soft)
+    {
+        var quarter = margin / 4;
+
+        foreach (var (inner, outer, owner) in boxes)
+        {
+            if (vertical ? line > inner.X + Eps && line < inner.Right - Eps : line > inner.Y + Eps && line < inner.Top - Eps)
+            {
+                intervals.Add(vertical ? (inner.Y, inner.Top) : (inner.X, inner.Right));
+            }
+
+            // The margins of the two ends are the line's own way out and in.
+            if (soft is not null && owner != fromOwner && owner != toOwner
+                && (vertical ? line > outer.X + Eps && line < outer.Right - Eps : line > outer.Y + Eps && line < outer.Top - Eps))
+            {
+                soft.Add(vertical ? (outer.Y, outer.Top) : (outer.X, outer.Right));
+            }
+        }
+
+        foreach (var pipe in pipes)
+        {
+            if (pipe.Vertical == vertical)
+            {
+                if (Math.Abs(line - pipe.Line) < Eps)
+                {
+                    intervals.Add((pipe.From, pipe.To));
+                }
+                else if (Math.Abs(line - pipe.Line) < margin - Eps)
+                {
+                    soft?.Add((pipe.From, pipe.To));
+                }
+            }
+            else if (line > pipe.From - quarter - Eps && line < pipe.To + quarter + Eps)
+            {
+                // Clear of a pipe's ends by a quarter margin, the pipes of the two ends excepted where they meet the line's own end.
+                var nearEnd = line < pipe.From + quarter + Eps || line > pipe.To - quarter - Eps;
+
+                if (nearEnd && !Shares(pipe, fromOwner, toOwner))
+                {
+                    intervals.Add((pipe.Line - (quarter / 100), pipe.Line + (quarter / 100)));
+                }
+                else if (line > pipe.From + Eps && line < pipe.To - Eps)
+                {
+                    crossings.Add(pipe.Line);
+                }
+            }
+        }
+
+        crossings.Sort();
+    }
+
+    /// <summary>How much of a step lies inside the given intervals, overlaps counted once each.</summary>
+    private static double Inside(List<(double From, double To)> intervals, double from, double to)
+    {
+        var length = 0.0;
+
+        foreach (var (f, t) in intervals)
+        {
+            length += Math.Max(0, Math.Min(to, t) - Math.Max(from, f));
+        }
+
+        return length;
+    }
+
+    /// <summary>Adds the midpoint of every pair of neighbouring coordinates.</summary>
+    private static void Midpoints(SortedSet<double> axis)
+    {
+        var values = axis.ToArray();
+
+        for (var k = 1; k < values.Length; k++)
+        {
+            axis.Add(Math.Round((values[k - 1] + values[k]) / 2, 9));
+        }
+    }
+
     /// <summary>Whether a step is blocked, and otherwise how many pipes it crosses.</summary>
     private static (bool Blocked, double Crossings) Step(List<(double From, double To)> intervals, List<double> crossings, double from, double to)
     {
@@ -452,7 +563,7 @@ internal sealed class OrthogonalRouter(double margin)
             var (from, to) = vertical
                 ? (Math.Min(a.Anchor.At.Y, a.Stub.Y), Math.Max(a.Anchor.At.Y, a.Stub.Y))
                 : (Math.Min(a.Anchor.At.X, a.Stub.X), Math.Max(a.Anchor.At.X, a.Stub.X));
-            return !ParallelBand(pipes, fromOwner, toOwner, vertical, line, from, to);
+            return signal ? !Collinear(pipes, vertical, line, from, to) : !ParallelBand(pipes, fromOwner, toOwner, vertical, line, from, to);
         }).ToList();
 
         return clear.Count > 0 ? clear : anchors;
@@ -518,6 +629,10 @@ internal sealed class OrthogonalRouter(double margin)
 
         return false;
     }
+
+    /// <summary>Whether a stretch runs along a drawn pipe.</summary>
+    private static bool Collinear(List<Pipe> pipes, bool vertical, double line, double from, double to) =>
+        pipes.Any(pipe => pipe.Vertical == vertical && Math.Abs(line - pipe.Line) < Eps && Math.Max(from, pipe.From) < Math.Min(to, pipe.To) - Eps);
 
     private static bool Shares(Pipe pipe, int fromOwner, int toOwner) =>
         (pipe.Owner >= 0 && (pipe.Owner == fromOwner || pipe.Owner == toOwner)) || (pipe.OwnerB >= 0 && (pipe.OwnerB == fromOwner || pipe.OwnerB == toOwner));

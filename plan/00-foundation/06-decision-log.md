@@ -194,6 +194,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-149` | Accepted | 2026-09-23 | A run's t = 0 is the instant the project line states, and a curve of time is read there plus t |
 | `D-150` | Accepted | 2026-09-23 | A measurement reads a node with at most two connections; a junction is refused |
 | `D-151` | Accepted | 2026-09-23 | An instrument is drawn on its host as one footprint, on the host's first free side |
+| `D-152` | Accepted | 2026-09-23 | A signal line crosses the drawing by the fewest bends, then the shortest way; only an inner box stops it |
 <!-- index:end -->
 
 ---
@@ -7082,3 +7083,54 @@ of item 4 -- an edit in one branch moves that branch, a value change moves nothi
   same room without touching the forms.
 - *Every side in a fixed order, no stem first.* A vertical valve's controller would stand on the side
   away from its actuator.
+
+---
+
+## D-152 · A signal line crosses the drawing by the fewest bends, then the shortest way; only an inner box stops it
+
+**Accepted · 2026-09-23** (the user's design) · amends `28` C15's routed-signal clause and C16 · `29` step 10 ·
+builds on `D-151`
+
+**What was wrong.** A controller's measurement signal was drawn level first with one bend, and when that
+path crossed a box the router took over with the rules of a *pipe*: every margin a wall, every pipe band a
+wall, crossings dear. A signal therefore went round the outside of the drawing. On the demand-step loop
+`TC1`'s line from `NS__TE` left the sensor's right, ran out past `N1`, up the drawing's right edge and back
+into the controller -- 7.8 long, two bends, no crossing. The user drew the line they expected: from the
+controller's left, down through the loop, crossing the supply and the return, into the sensor's left side.
+"The components do not move aside when signal lines are drawn."
+
+**The rule.**
+
+1. **Only a box's inner outline stops a signal.** A margin is a cost per unit of length run inside it,
+   not a wall; a signal is a thin line with no clearance of its own to protect.
+2. **It never runs along a pipe**, and it crosses one only a quarter margin or more from the pipe's ends
+   -- a port, a junction, an inline point, a bend -- so a crossing never reads as a connection. A pipe
+   of the line's own two ends is exempt where the line meets it. Crossing itself is ordinary drafting:
+   one line breaks or humps where it passes the other
+   ([Just Measure it, *Drafting guidelines for P&ID*](https://zeroinstrument.com/documentation-requirements-and-drafting-guidelines-for-pid-piping-and-instrumentation-diagram/);
+   [Piping Technology System, *P&ID line symbols*](https://pipingtechs.com/pid-line-symbols-explained/));
+   C16 already breaks the signal, which is drawn behind.
+3. **Cost order: bends, then length.** A bend costs 2 units of length, crossings 0.25 each and time in a
+   margin 0.25 per unit: the last two only break ties. The user's first reading put crossings before
+   length; measured on `m4-demand-step`, that order keeps the outside route (0 crossings) over the
+   sketch (2 crossings), so length comes first. The weights are this project's reasoning.
+4. **A signal leaves an instrument by any edge but its stalk's**, the line one margin long to its host
+   (`D-151`); its stub is half a margin, so it keeps visibly off its bubble. A quarter-margin stub was
+   measured and rejected: shortest-first then pulls every line tight against its bubble (0.125 off
+   `NS__TE` on m4).
+5. The one-bend shortcut is gone: the search finds a one-bend path whenever one exists, and the
+   shortcut had drawn two faults the audit cannot see -- step 10's line doubled back inside `TE1`'s
+   bubble, step 11c's met `PID5` at a corner.
+
+Measured: m4's `TC1` line `(2.25, −1.8) → (2, −1.8) → (2, 2.3) → (3.15, 2.3)`, 5.5 long, two bends,
+crossing the rails 0.25 from `PU1`'s outlet and 0.45 from `HE1__3WV`; steps 10, 11b, 11c and the syntax
+tour hard 0, soft 0.
+
+**Known weakness.** Running *beside* a pipe inside its margin costs as little as crossing a box's margin,
+so on a crowded plant a line can shadow a pipe for several units (the three-zone plant of `C-126`,
+`TC2`'s line). The layout rewrite (`D-153`) prices it.
+
+### Rejected
+
+- *Crossings before length* -- keeps the route round the outside, the picture the user rejected.
+- *The pipe router's clearances for signals* -- the cause.

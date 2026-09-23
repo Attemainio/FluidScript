@@ -74,11 +74,11 @@ internal sealed partial class LayoutEngine
 
             if (SensorOf(placed, element) is { } sensor)
             {
-                Signal(element.ComponentId + ":measures", boxes[sensor.Element.ComponentId], owners[sensor.Element.ComponentId], inner, owner, toCentre: false);
+                Signal(element.ComponentId + ":measures", boxes[sensor.Element.ComponentId], owners[sensor.Element.ComponentId], _hatSide[sensor.Element.ComponentId].Side.Opposite, inner, owner, side.Opposite, toCentre: false);
             }
             else
             {
-                Signal(element.ComponentId + ":measures", inner, owner, element.MeasurementTargetId);
+                Signal(element.ComponentId + ":measures", inner, owner, side.Opposite, element.MeasurementTargetId);
             }
         }
     }
@@ -106,122 +106,64 @@ internal sealed partial class LayoutEngine
         return null;
     }
 
-    /// <summary>A signal line from an instrument's box to a component: to the point of an inline one, to the facing edge of a boxed one.</summary>
-    private void Signal(string id, Box from, int fromOwner, string targetId)
+    /// <summary>A signal line from an instrument's box to a component: to the point of an inline one, to an edge of a boxed one.</summary>
+    private void Signal(string id, Box from, int fromOwner, Direction fromStalk, string targetId)
     {
         if (!_index.TryGetValue(targetId, out var target) || !_placed[target])
         {
             return;
         }
 
-        Signal(id, from, fromOwner, InnerOf(target), target, toCentre: _inline[target]);
+        Signal(id, from, fromOwner, fromStalk, InnerOf(target), target, null, toCentre: _inline[target]);
     }
 
-    /// <summary>A signal line between two boxes: one bend, level first, into the facing edge (C15) -- unless that path crosses a box, when the router takes it round every placed box instead, pipes free to cross (C-94).</summary>
+    /// <summary>
+    /// A signal line between two boxes, routed straight through the drawing (C16, <c>D-152</c>): it goes round inner boxes
+    /// only, crosses pipes clear of their ends, and takes the fewest bends and then the shortest way -- nothing moves aside
+    /// for it. It leaves an instrument by any edge but the one its stalk takes.
+    /// </summary>
     /// <param name="id">The route's id.</param>
     /// <param name="from">The instrument's box the line leaves.</param>
     /// <param name="fromOwner">That box's owner: an instrument's is <c>_n</c> plus its index.</param>
+    /// <param name="fromStalk">The edge of <paramref name="from"/> its stalk leaves by.</param>
     /// <param name="to">The box the line reaches.</param>
     /// <param name="toOwner">That box's owner, a component index or an instrument's.</param>
+    /// <param name="toStalk">The edge of <paramref name="to"/> its stalk leaves by, when it is an instrument.</param>
     /// <param name="toCentre">Whether the line ends at the box's centre, as it does on an inline node's point.</param>
-    private void Signal(string id, Box from, int fromOwner, Box to, int toOwner, bool toCentre)
+    private void Signal(string id, Box from, int fromOwner, Direction fromStalk, Box to, int toOwner, Direction? toStalk, bool toCentre)
     {
-        var plumb = Math.Abs(from.Centre.X - to.Centre.X) < Eps;
-        var level = Math.Abs(from.Centre.Y - to.Centre.Y) < Eps;
-        var right = from.Centre.X < to.Centre.X;
-        var down = from.Centre.Y > to.Centre.Y;
-        var points = new List<Point>();
+        var router = new OrthogonalRouter(_margin, signal: true);
 
-        if (plumb)
+        for (var i = 0; i < _n; i++)
         {
-            points.Add(new Point(from.Centre.X, down ? from.Y : from.Top));
-            points.Add(toCentre ? to.Centre : new Point(to.Centre.X, down ? to.Top : to.Y));
-        }
-        else if (level)
-        {
-            points.Add(new Point(right ? from.Right : from.X, from.Centre.Y));
-            points.Add(toCentre ? to.Centre : new Point(right ? to.X : to.Right, to.Centre.Y));
-        }
-        else
-        {
-            points.Add(new Point(right ? from.Right : from.X, from.Centre.Y));
-            points.Add(new Point(to.Centre.X, from.Centre.Y));
-            points.Add(toCentre ? to.Centre : new Point(to.Centre.X, down ? to.Top : to.Y));
-        }
-
-        if (SignalCrosses(points, fromOwner, toOwner))
-        {
-            var router = new OrthogonalRouter(_margin);
-
-            for (var i = 0; i < _n; i++)
+            if (_placed[i] && !_inline[i])
             {
-                if (_placed[i] && !_inline[i])
-                {
-                    router.AddBox(InnerOf(i), i);
-                }
-            }
-
-            for (var k = 0; k < _instrumentBoxes.Count; k++)
-            {
-                router.AddBox(_instrumentBoxes[k], _n + k);
-            }
-
-            // Every line drawn so far keeps the signal a margin off it along its length; crossing is free (C16).
-            foreach (var (link, route) in _routes)
-            {
-                var (ownerA, ownerB) = link >= 0 ? (_links[link].From, _links[link].To) : (-1, -1);
-
-                for (var s = 1; s < route.Points.Length; s++)
-                {
-                    router.AddPipe(route.Points[s - 1], route.Points[s], link, ownerA, ownerB);
-                }
-            }
-
-            if (router.Route(Edges(from, false), fromOwner, Edges(to, toCentre), toOwner) is { } routed)
-            {
-                points = [.. routed.Points];
+                router.AddBox(InnerOf(i), i);
             }
         }
 
-        _routes.Add((-1, new Route(id, "signal", "signal", Normalise(points), [])));
-    }
-
-    /// <summary>Whether a signal path passes through the inside of any placed box other than the two it joins, or runs along a line already drawn (C-94).</summary>
-    private bool SignalCrosses(List<Point> points, int fromOwner, int toOwner)
-    {
-        for (var s = 1; s < points.Count; s++)
+        for (var k = 0; k < _instrumentBoxes.Count; k++)
         {
-            var (a, b) = (points[s - 1], points[s]);
+            router.AddBox(_instrumentBoxes[k], _n + k);
+        }
 
-            foreach (var (_, route) in _routes)
-            {
-                for (var t = 1; t < route.Points.Length; t++)
-                {
-                    if (Segments.Shared(a, b, route.Points[t - 1], route.Points[t], Eps) is not null)
-                    {
-                        return true;
-                    }
-                }
-            }
+        foreach (var (link, route) in _routes)
+        {
+            var (ownerA, ownerB) = link >= 0 ? (_links[link].From, _links[link].To) : (-1, -1);
 
-            for (var i = 0; i < _n; i++)
+            for (var s = 1; s < route.Points.Length; s++)
             {
-                if (i != fromOwner && i != toOwner && _placed[i] && !_inline[i] && Passes(InnerOf(i), points[s - 1], points[s]))
-                {
-                    return true;
-                }
-            }
-
-            for (var k = 0; k < _instrumentBoxes.Count; k++)
-            {
-                if (_n + k != fromOwner && _n + k != toOwner && Passes(_instrumentBoxes[k], points[s - 1], points[s]))
-                {
-                    return true;
-                }
+                router.AddPipe(route.Points[s - 1], route.Points[s], link, ownerA, ownerB);
             }
         }
 
-        return false;
+        var starts = Edges(from, false).Where(a => a.Outward != fromStalk).ToList();
+        var ends = Edges(to, toCentre).Where(a => toStalk is null || a.Outward != toStalk).ToList();
+
+        if (router.Route(starts, fromOwner, ends, toOwner) is { } routed)
+        {
+            _routes.Add((-1, new Route(id, "signal", "signal", Normalise(routed.Points), [])));
+        }
     }
 
     /// <summary>The four anchors a signal may leave or reach a box by: the middle of each edge facing out, or the centre point facing every way for an inline node.</summary>

@@ -231,6 +231,55 @@ public sealed class LayoutPredicateTests
     }
 
     [Fact]
+    public void C15ASignalCrossesTheDrawingByTheFewestBendsThenTheShortestWay()
+    {
+        // D-152, the user's sketch: TC1 on 3WV's stem reads NS__TE under NS, and its line drops through the loop,
+        // crossing the supply and the return, rather than round the drawing's right side (7.8 long, also two bends).
+        // It never runs along a pipe and crosses each a quarter margin or more from the pipe's ends.
+        var (scene, input) = Solve(ContractFixture.Sample("m4-demand-step.fluid"));
+        var margin = LayoutSolver.MarginOf(input.Model);
+        var line = Assert.Single(scene.Routes, static r => r.ConnectionId == "TC1:measures");
+        var controller = Assert.Single(scene.Placements, static p => p.ComponentId == "TC1").Inner;
+
+        Assert.Equal(4, line.Points.Length);
+        Assert.Equal(5.5, line.Length, 9);
+        Assert.Contains(line.Points, p => Math.Abs(p.X - controller.X) < 1e-9 && Math.Abs(p.Y - controller.Centre.Y) < 1e-9);
+
+        Assert.DoesNotContain(SceneAudit.Findings(scene, input.Model), static f => f.First == "TC1:measures");
+
+        foreach (var pipe in scene.Routes.Where(static r => r.Kind == "pipe"))
+        {
+            for (var s = 1; s < line.Points.Length; s++)
+            {
+                for (var t = 1; t < pipe.Points.Length; t++)
+                {
+                    if (Crossing(line.Points[s - 1], line.Points[s], pipe.Points[t - 1], pipe.Points[t]) is { } at)
+                    {
+                        Assert.True(Math.Min(at.ManhattanTo(pipe.Points[t - 1]), at.ManhattanTo(pipe.Points[t])) >= (margin / 4) - 1e-9, $"{pipe.ConnectionId} crossed at {at}, near its end");
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>Where a vertical and a level segment cross strictly inside both, or nothing.</summary>
+    private static Point? Crossing(Point a, Point b, Point c, Point d)
+    {
+        if (Math.Abs(a.X - b.X) > 1e-9)
+        {
+            (a, b, c, d) = (c, d, a, b);
+        }
+
+        if (Math.Abs(a.X - b.X) > 1e-9 || Math.Abs(c.Y - d.Y) > 1e-9)
+        {
+            return null;
+        }
+
+        var inside = a.X > Math.Min(c.X, d.X) + 1e-9 && a.X < Math.Max(c.X, d.X) - 1e-9 && c.Y > Math.Min(a.Y, b.Y) + 1e-9 && c.Y < Math.Max(a.Y, b.Y) - 1e-9;
+        return inside ? new Point(a.X, c.Y) : null;
+    }
+
+    [Fact]
     public void L19AddingAComponentToOneBranchMovesOnlyThatBranchAndWhatItPushes()
     {
         var source = ContractFixture.Sample("m2-distribution-header.fluid");

@@ -455,11 +455,13 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   of pipe out of a port -- keeps out of every bubble's clearance, and a run carrying a sensor's node
   (`Reserve`) is laid at least long enough that, cut evenly by A5, each bubble on it keeps a margin
   from the boxes at both ends and from the next bubble. A fragment's extent includes its bubbles, so
-  the next circuit stacks under them (C17). The only signal routed is a controller's measurement: from
-  the sensor it reads through, level first, one bend, into the controller's facing edge -- or round
-  every box when that path crosses one (step 11d, `C-94`). A control line that measures a node directly
-  reads it through the sensor the binder puts there (I8), so a controller is never joined to a node. A
-  signal may cross a pipe (C16); it never runs along one. Not built: a host
+  the next circuit stacks under them (C17). The only signal routed is a controller's measurement, from
+  the sensor it reads through, and it crosses the drawing (`D-152`): only an inner box stops it, a
+  margin is a cost, it never runs along a pipe and crosses one only a quarter margin or more from the
+  pipe's ends; it takes the fewest bends, then the shortest way, crossings and time in margins breaking
+  ties; it leaves a bubble by any edge but its stalk's, on a stub of half a margin. A control line that
+  measures a node directly reads it through the sensor the binder puts there (I8), so a controller is
+  never joined to a node. Not built: a host
   with no free side (a four-way junction, which `D-150` refuses to measure).
 - **C16** *(step 10, provisional)* -- **At a crossing the route in front runs through and the one
   behind breaks.** Every route carries a layer -- `inlet`, `outlet`, `signal` -- and the picture is
@@ -586,7 +588,8 @@ proved; a candidate no step ever needs is deleted.
   ring (C14); the open form is not yet needed.*
 - **The router**: for whatever connection the rules leave, an orthogonal path over the placed boxes
   and pipes, bends before length, crossings dear but not forbidden. It is never asked to discover a
-  layout.
+  layout. *Admitted for signals by `D-152`* in a mode of its own: inner boxes block, margins cost, a bend
+  is worth 2 units of length, crossings and margins 0.25.
 
 ## Worked example
 

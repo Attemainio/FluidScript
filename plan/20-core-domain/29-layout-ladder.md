@@ -769,6 +769,15 @@ findings its line straight to the node carried are gone (its 5 soft are `PB`'s c
 3WV–N2 column, `C-125`). Every reached sample and step: hard 0, soft 0. `L19`'s instrument clause is retired with `D-100`'s; the
 `C15` predicates take its place.
 
+**Redrawn (2026-09-23, `D-152`):** the user's sketch -- a signal crosses the drawing; nothing moves aside
+for it. The demand-step loop's `TC1` line leaves the controller's left and drops through the loop into
+`NS__TE`'s left, `(2.25, −1.8) → (2, −1.8) → (2, 2.3) → (3.15, 2.3)`, 5.5 long where it had been 7.8
+round the right side, two bends both times. The one-bend shortcut went with it: step 10's
+measurement now leaves `TE1`'s right and enters `PID1`'s right, `(2.8, 1.8) → (3.3, 1.8) → (3.3, 0.1) →
+(3.05, 0.1)`, where the shortcut had doubled back 0.05 inside `TE1`'s bubble; step 11c's `PID5` line is
+a jog of 0.3 between the two bubbles rather than a line meeting `PID5` at its corner; the tour's `PID3`
+enters `NS3__TE`'s side. Hard 0, soft 0 on every step and sample but m4's five of `C-125`.
+
 ### Step 11 · several circuits in one script
 
 The plan's ten rungs are climbed and one layout sample is not reached: the syntax tour, five

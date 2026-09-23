@@ -98,9 +98,10 @@ top, its return along the bottom, and its branches hanging between them in the o
 declared, each under the junction that feeds it and over the one it returns to; branches in series
 step down from one block's outlet to the next block's inlet. A sensor stands on the node it reads
 and a controller on the component it drives, joined to it by a short straight line; the controller's
-signal comes from the sensor, level and then round into the controller. Where lines cross, the one in front runs through and the one behind is broken around it:
-signal lines run behind pipes, and return pipes behind supply pipes; a signal line whose one bend
-would cross a symbol or lie along a pipe goes round them instead. An inlet whose junction feeds two
+signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
+signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a
+symbol but never along a pipe, and it crosses a pipe away from its ends, so a crossing never looks
+like a connection. An inlet whose junction feeds two
 paths to one outlet is drawn with that junction at the top left, the inlet beside it, and the outlet's
 junction straight under it: the path
 with no loop hangs down between them, and the path with a loop -- an injection branch, say --
@@ -170,8 +171,9 @@ on three sides has one place left for its controller. The pipes around make room
 sensor's node sits on is drawn long enough for the circle and a margin either side, and nothing else
 comes within a margin of it. The one signal line is the controller's measurement, and it always comes from a sensor: one you
 placed, or the one FluidScript adds when a `control` line measures a node directly
-([`control`](../functions/control.md)). It leaves the sensor level first and goes round into the
-controller.
+([`control`](../functions/control.md)). Nothing moves aside for it: it leaves the sensor by any side
+but the one its short line takes, crosses whatever pipes lie between, and takes the fewest bends and
+then the shortest way into the controller.
 
 **What you wrote and what was inferred.** The nodes the language adds to close a loop have two
 connections each and are therefore not drawn, so the picture reads as the circuit you have in mind and
