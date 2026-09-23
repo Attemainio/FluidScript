@@ -3,6 +3,7 @@ using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
 namespace FluidScript.Core.Sizing.Flows;
 
@@ -266,7 +267,14 @@ public static partial class BranchFlows
     private static bool MeetsThreeWay(Branch branch) =>
         branch.From.Element is ThreeWayValveComponent || branch.To.Element is ThreeWayValveComponent;
 
-    /// <summary>Finds the one return temperature all opposing loads state.</summary>
+    /// <summary>Finds the one return temperature all opposing loads its water can reach state.</summary>
+    /// <remarks>
+    /// Loads its water can reach, not the model's: a cooling coil warms its water, so it reads as a
+    /// source, and reading every load in the file handed it the heating loop's 40 °C return as the inlet
+    /// of a 7/12 chilled stream -- 0.85 kg/s seeded where 100 kW needs 4.77 (<c>S-83</c>). The hydraulic
+    /// partition, not the circuit: a subcircuit's loads share their parent's water under another circuit
+    /// name, and the distribution header seeds its source from them.
+    /// </remarks>
     private static Quantity? CommonReturn(CircuitGraph graph, HeatExchangerComponent source)
     {
         if (source.Power <= 0)
@@ -274,9 +282,14 @@ public static partial class BranchFlows
             return null;
         }
 
+        var reachable = HydraulicPartition.Of(graph)
+            .Where(partition => partition.Elements.Contains(source))
+            .SelectMany(static partition => partition.Elements)
+            .ToHashSet();
+
         var returns = graph.Components
             .OfType<HeatExchangerComponent>()
-            .Where(candidate => candidate.Power < 0)
+            .Where(candidate => candidate.Power < 0 && reachable.Contains(candidate))
             .Select(candidate => candidate.StatedParameters.TryGetValue("out", out var outlet)
                 ? (Quantity?)outlet
                 : null)

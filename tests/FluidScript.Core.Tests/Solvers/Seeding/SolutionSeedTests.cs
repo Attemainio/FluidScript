@@ -151,6 +151,93 @@ public sealed class SolutionSeedTests
         }
     }
 
+    private const string MachineHoldingItsLeavingTemperature = """
+        fluidscript 1
+
+        circuit heating
+        fluid water
+
+        HPC  heater out.t=45 dp=30
+        HL   load power=120 out.t=40 dp=20
+        TVH  three_way_valve position=1
+        PUH  pump
+        PR   pipe length=5 dn=65
+
+        connections
+        NB_in - NM
+        NM - PUH - HPC - TVH.ab
+        TVH.a - HL - PR - NM
+        TVH.b - NB_out
+
+        NB_in  inlet t=10 p=200
+        NB_out outlet p=200
+        """;
+
+    [Fact]
+    public void ALoadFedByAMachineHoldingItsLeavingTemperatureIsRatedFromIt()
+    {
+        // `S-83`. The machine states its 45 C and not its duty, which is how leaving-water control is
+        // written; the load states 120 kW and its 40 C return. The load's inlet is the machine's outlet
+        // through the diverting valve, so its stream is 120 kW over 45/40, 5.736 kg/s at the estimate's
+        // reference pressure. Without the walk
+        // the load had no inlet to rate against, every branch started at the nominal 0.1 kg/s, and the
+        // first Newton step drove the machine's duty negative.
+        var graph = GraphFixture.Lower(MachineHoldingItsLeavingTemperature).Graph;
+        var estimates = BranchFlows.Estimate(graph);
+
+        var load = estimates[graph.Branches.Single(branch => branch.Path.Any(part => part.Name == "HL")).Index];
+
+        Assert.Equal(FlowBasis.Duty, load.Basis);
+        Assert.Equal("HL", load.Source);
+        Assert.Equal(5.736, load.Magnitude, 3);
+    }
+
+    [Fact]
+    public void ASourceReadsItsReturnOnlyFromLoadsItsWaterReaches()
+    {
+        // `S-83`'s second half. BLR's inlet meets a junction, so the upstream walk stops and the common
+        // return of the opposing loads decides: R1 and R2 both return at 50 C. The chilled loop in the
+        // same file returns at 12 C; read too, the returns disagreed and BLR was left at the nominal flow.
+        var graph = GraphFixture.Lower("""
+            fluidscript 1
+
+            circuit heating
+            fluid water
+
+            BLR  heater power=40 out.t=70
+            R1   load power=20 out.t=50
+            R2   load power=20 out.t=50
+            PU1  pump
+
+            connections
+            N2 - PU1 - BLR - N1
+            N1 - R1 - N2
+            N1 - R2 - N2
+            N2 p=200
+
+            circuit cooling
+            fluid water
+
+            CH   chiller power=30 out.t=7
+            CL   load power=30 out.t=12
+            PU2  pump
+
+            connections
+            N4 - PU2 - CH - N3
+            N3 - CL - N4
+            N4 p=200
+            """).Graph;
+        var estimates = BranchFlows.Estimate(graph);
+
+        var source = estimates[graph.Branches.Single(branch => branch.Path.Any(part => part.Name == "BLR")).Index];
+
+        Assert.Equal(FlowBasis.Duty, source.Basis);
+        Assert.Equal("BLR", source.Source);
+
+        // 40 kW over 50 -> 70 C.
+        Assert.Equal(0.4775, source.Magnitude, 3);
+    }
+
     [Fact]
     public void AStatedDutyFixesItsBranchFlowDirectly()
     {

@@ -106,6 +106,21 @@ no other flow constraint — no `flow` on a node, no `dt` on a load — the exch
 `LOAD` says `dt=20`; where both would pin the same side, the load's wins and the exchanger's is
 treated as design information only.
 
+**A machine that holds its leaving temperature.** A heat pump, chiller or boiler controlled on its
+leaving water is written that way: its `out.t`, and no `power`. The duty is then whatever holding
+that temperature takes, and the solve reports it.
+
+```fluidscript
+HPC  heater out.t=45 dp=30
+HL   load power=120 out.t=40 dp=20
+```
+
+`HL` has no `in.t` of its own, and needs none: the water reaching it is `HPC`'s 45 °C, carried
+through any pump, pipe or valve between them, so its stream is 120 kW over 45/40, about 5.7 kg/s.
+If something else also feeds the water on the way, a bypass or a leaking three-way valve, `HPC`'s
+duty covers that too. A diverting valve shut to a 10 °C ground loop still passes its leakage, so
+the machine delivers the 120 kW plus what the leak carries away.
+
 **What fixes the temperature.** In the extended modes the duty is `ε · Cmin · (T_in2 − T_in1)`, read
 from the temperatures the circuit actually delivers. Warm the inlet and less crosses; cool it and
 more does. That is what lets a closed loop find its own temperature level: a loop with a rated

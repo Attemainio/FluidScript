@@ -260,10 +260,13 @@ public static partial class BranchFlows
     /// <returns>kg/s, or <see langword="null"/> when the rule does not apply here.</returns>
     /// <remarks>
     /// <para>
-    /// An automatically closed duty lives in <c>SizedParameters</c>, not <c>StatedParameters</c>. For a
-    /// positive source with only its outlet stated, a common outlet temperature on every opposing load is
-    /// the return design temperature. Using it here seeds a flow; it does not add a constraint to the solve.
-    /// If the returns disagree, the estimate declines rather than inventing a mixed temperature.
+    /// An automatically closed duty lives in <c>SizedParameters</c>, not <c>StatedParameters</c>. With only
+    /// the outlet stated, the inlet is first the outlet stated upstream, across elements that leave the
+    /// temperature alone (<see cref="UpstreamOutlet"/>, <c>S-83</c>): a load fed by a machine that holds
+    /// its leaving temperature. Failing that, for a positive source, a common outlet temperature on every
+    /// opposing load of its own circuit is the return design temperature. Using either here seeds a flow;
+    /// it does not add a constraint to the solve. If the returns disagree, the estimate declines rather
+    /// than inventing a mixed temperature.
     /// </para>
     /// <para>
     /// The arithmetic is <see cref="RatedFlow"/>'s; this decides which inlet to hand it. A side stated as
@@ -295,7 +298,7 @@ public static partial class BranchFlows
 
         var inlet = component.StatedParameters.TryGetValue("in", out var statedInlet)
             ? statedInlet
-            : CommonReturn(graph, exchanger);
+            : UpstreamOutlet(graph, exchanger) ?? CommonReturn(graph, exchanger);
 
         return inlet is null ? null : RatedFlow(graph.Substance, exchanger.Power, inlet.Value, outlet);
     }

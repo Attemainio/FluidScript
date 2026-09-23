@@ -967,6 +967,60 @@ public sealed class OuterLoopTests
         Assert.Equal(40_000.0, result.Value.Sizes.For("SOURCE", "power"));
     }
 
+    private const string MachineHoldingItsLeavingTemperature = """
+        fluidscript 1
+
+        circuit heating
+        fluid water
+
+        HPC  heater out.t=45 dp=30
+        HL   load power=120 out.t=40 dp=20
+        TVH  three_way_valve position=1
+        PUH  pump
+        PR   pipe length=5 dn=65
+
+        connections
+        NB_in - NM
+        NM - PUH - HPC - TVH.ab
+        TVH.a - HL - PR - NM
+        TVH.b - NB_out
+
+        NB_in  inlet t=10 p=200
+        NB_out outlet p=200
+        """;
+
+    [Fact]
+    public async Task AMachineHoldingItsLeavingTemperatureMakesUpWhatItsShutValveLeaks()
+    {
+        // `S-83`: the heating side of a heat pump whose machine holds 45 C. Its bore valve is shut, and
+        // a three-way body is never tight (`D-135`), so the machine's duty is the load's 120 kW plus what
+        // the leak carries to the 10 C bores -- found by the solve, not stated. This was singular at
+        // iteration 1 from a seed with every branch at the nominal 0.1 kg/s.
+        var result = await Loop().RunAsync(
+            GraphFixture.Bind(MachineHoldingItsLeavingTemperature), Water.Instance, "machine", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var run = result.Value;
+        Assert.True(run.Solve.Converged, run.ToString());
+
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
+        var solved = run.Solve.Solution.Values;
+
+        double Flow(string name) =>
+            Math.Abs(solved[layout.BranchFlow(run.Graph.Branches.Single(branch => branch.Path.Any(part => part.Name == name)).Index)]);
+
+        double Enthalpy(string node) =>
+            solved[layout.NodeEnthalpy(Array.FindIndex([.. run.Graph.Nodes], candidate => candidate.Name == node))];
+
+        var power = solved[Enumerable.Range(0, layout.Count).Single(index => layout.Unknowns[index].Name == "HPC.power")];
+        var leak = Flow("HPC") - Flow("HL");
+
+        Assert.Equal(5.744, Flow("HL"), 0.01);
+        Assert.InRange(leak, 0.01, 1.0);
+        Assert.Equal(120_000 + (leak * (Enthalpy("NB_out") - Enthalpy("NB_in"))), power, 1.0);
+    }
+
     [Theory]
     [InlineData(OneUnstatedSourceAndOneLoad, 20_000.0)]
     [InlineData(OneUnstatedSourceAndTwoLoads, 40_000.0)]
