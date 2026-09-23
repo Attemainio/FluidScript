@@ -55,7 +55,7 @@ internal sealed partial class LayoutEngine
 
         foreach (var rule in symbol.IndexedPortAnchors ?? [])
         {
-            if (name.StartsWith(rule.Prefix, StringComparison.Ordinal) && flow is Tank tank)
+            if (name.StartsWith(rule.Prefix, StringComparison.Ordinal) && flow is TankComponent tank)
             {
                 var box = symbol.ViewBox;
                 var x = rule.Side == "west" ? box[0] : box[0] + box[2];
@@ -102,12 +102,12 @@ internal sealed partial class LayoutEngine
     {
         var flow = _graph.Components[i];
 
-        if (flow is CircuitNode { Boundary: BoundaryRole.Inlet })
+        if (flow is NodeComponent { Boundary: BoundaryRole.Inlet })
         {
             return false;
         }
 
-        if (flow is CircuitNode { Boundary: BoundaryRole.Outlet })
+        if (flow is NodeComponent { Boundary: BoundaryRole.Outlet })
         {
             return true;
         }
@@ -132,8 +132,8 @@ internal sealed partial class LayoutEngine
 
                     return _graph.Components[peer] switch
                     {
-                        CircuitNode { Boundary: BoundaryRole.Inlet } => true,
-                        CircuitNode { Boundary: BoundaryRole.Outlet } => false,
+                        NodeComponent { Boundary: BoundaryRole.Inlet } => true,
+                        NodeComponent { Boundary: BoundaryRole.Outlet } => false,
                         _ => _graph.Components[peer].Ports[peerPort].Role switch
                         {
                             PortRole.Inlet => false,

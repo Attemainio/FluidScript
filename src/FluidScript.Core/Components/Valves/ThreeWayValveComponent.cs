@@ -22,10 +22,8 @@ namespace FluidScript.Core.Components.Valves;
 /// the only element in the graph where a flow divides without a node.
 /// </para>
 /// </remarks>
-public sealed class ThreeWayValve : IFlowComponent
+public sealed class ThreeWayValveComponent : ValveComponentBase
 {
-    private readonly ImmutableArray<EquationDeclaration> _equations;
-
     /// <summary>Initializes a three-way valve.</summary>
     /// <param name="name">The user's identifier.</param>
     /// <param name="kv">The rated flow coefficient, m³/h at 1 bar.</param>
@@ -38,7 +36,7 @@ public sealed class ThreeWayValve : IFlowComponent
     /// </param>
     /// <param name="leakage">The fraction of <paramref name="kv"/> a leg passes at its stop, 0 to 1. The registry's default is 2 %, Belimo's B–AB leakage class I (<c>D-135</c>).</param>
     /// <param name="arrangement">The service the script declares the body for, from its spelling; <see cref="ValveArrangement.Unspecified"/> for a bare <c>three_way_valve</c> (<c>D-136</c>).</param>
-    public ThreeWayValve(
+    public ThreeWayValveComponent(
         string name,
         double kv,
         double position = 1,
@@ -46,16 +44,11 @@ public sealed class ThreeWayValve : IFlowComponent
         bool bypassConnected = true,
         double leakage = ValveLaw.LegLeakage,
         ValveArrangement arrangement = ValveArrangement.Unspecified)
+        : base(name, kv, position, characteristic)
     {
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kv);
         ArgumentOutOfRangeException.ThrowIfNegative(leakage);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(leakage, 1);
 
-        Name = name;
-        Kv = kv;
-        Position = position;
-        Characteristic = characteristic;
         BypassConnected = bypassConnected;
         Leakage = leakage;
         Arrangement = arrangement;
@@ -83,7 +76,7 @@ public sealed class ThreeWayValve : IFlowComponent
         // keeping one that would be zeros.
         FlowGroups = bypassConnected ? [0, 0, 0] : [0, 0];
 
-        _equations = bypassConnected
+        Equations = bypassConnected
             ?
             [
                 new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
@@ -94,10 +87,7 @@ public sealed class ThreeWayValve : IFlowComponent
     }
 
     /// <inheritdoc/>
-    public string Name { get; }
-
-    /// <inheritdoc/>
-    public string Kind => "three_way_valve";
+    public override string Kind => "three_way_valve";
 
     /// <inheritdoc/>
     /// <value>
@@ -105,33 +95,7 @@ public sealed class ThreeWayValve : IFlowComponent
     /// same way an exchanger's mode is. A user who leaves <c>c</c> open has written a two-way valve,
     /// and this is where the tool says so.
     /// </value>
-    public string? Mode => BypassConnected ? "three_way" : "two_way";
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <summary>Gets the rated flow coefficient.</summary>
-    /// <value>m³/h of water at 1 bar differential.</value>
-    public double Kv { get; }
-
-    /// <summary>Gets the opening between <c>a</c> and <c>b</c>.</summary>
-    /// <value>
-    /// 0 to 1. <strong>1 is fully open between <c>a</c> and <c>b</c></strong>, whichever way the fluid
-    /// moves through them — the meaning does not change between a mixing and a diverting arrangement.
-    /// </value>
-    public double Position { get; init; }
-
-    /// <summary>Gets which characteristic the controlled path follows.</summary>
-    public ValveCharacteristic Characteristic { get; }
+    public override string? Mode => BypassConnected ? "three_way" : "two_way";
 
     /// <summary>Gets whether anything is connected to the bypass port.</summary>
     /// <value>
@@ -142,7 +106,7 @@ public sealed class ThreeWayValve : IFlowComponent
     /// </value>
     public bool BypassConnected { get; }
 
-    /// <summary>Gets the fraction of <see cref="Kv"/> a switched leg passes at its stop.</summary>
+    /// <summary>Gets the fraction of <see cref="ValveComponentBase.Kv"/> a switched leg passes at its stop.</summary>
     /// <value>Dimensionless, 0 to 1. The body's rated leakage, not the characteristic's: <c>D-135</c>.</value>
     public double Leakage { get; }
 
@@ -151,7 +115,7 @@ public sealed class ThreeWayValve : IFlowComponent
     public ValveArrangement Arrangement { get; }
 
     /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; }
+    public override ImmutableArray<Port> Ports { get; }
 
     /// <inheritdoc/>
     /// <value>
@@ -159,38 +123,11 @@ public sealed class ThreeWayValve : IFlowComponent
     /// junction element: the flow divides here, so its three ports carry three different flows and no
     /// branch may pass through it. Wired as a two-way it is one group of two, and a branch does.
     /// </value>
-    public ImmutableArray<int> FlowGroups { get; }
+    public override ImmutableArray<int> FlowGroups { get; }
 
     /// <inheritdoc/>
     /// <value>Three: a mass balance and one Kv relation per path. One when wired as a two-way.</value>
-    public int EquationCount => BypassConnected ? 3 : 1;
-
-    /// <inheritdoc/>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
-
-    /// <summary>The index of <c>kv</c> among this kind's resolvable parameters.</summary>
-    public const int KvIndex = 0;
-
-    /// <summary>The index of <c>position</c> among this kind's resolvable parameters.</summary>
-    public const int PositionIndex = 1;
-
-    /// <inheritdoc/>
-    /// <value>
-    /// The same two a two-way valve offers, in the same order. <c>position</c> is the one a mixed
-    /// inlet temperature promotes (<c>23</c>): only the split can move it, and the bypass path reads
-    /// <c>1 - position</c> from the same number, so one unknown moves both legs.
-    /// </value>
-    public ImmutableArray<ResolvedParameter> Resolvable =>
-    [
-        new ResolvedParameter("kv", Kv, "m3/h", Minimum: 0),
-
-        // Bounded on both sides, and the bypass is why the upper one matters as much as the lower:
-        // the a-c leg reads `1 - position`, so a split above 1 is a bypass opening past fully shut.
-        new ResolvedParameter("position", Position, "1", Minimum: 0, Maximum: 1),
-    ];
+    public override int EquationCount => BypassConnected ? 3 : 1;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -198,7 +135,7 @@ public sealed class ThreeWayValve : IFlowComponent
     /// closes. With signed flows the single balance <c>ṁ_a + ṁ_b + ṁ_c = 0</c> covers mixing and
     /// diverting alike, which is why the arrangement is read from the topology rather than declared.
     /// </remarks>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var common = context.Ports[0];
         var controlled = context.Ports[1];

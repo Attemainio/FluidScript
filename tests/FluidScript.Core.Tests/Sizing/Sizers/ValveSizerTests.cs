@@ -60,7 +60,7 @@ public sealed class ValveSizerTests
 
     private static SizingResult Size(SizingContext context, double? authority = null, double target = 0.5)
     {
-        var valve = new Valve("CV1", kv: 630)
+        var valve = new ValveComponent("CV1", kv: 630)
         {
             StatedParameters = authority is { } stated
                 ? ImmutableDictionary<string, Quantity>.Empty.Add(
@@ -193,8 +193,8 @@ public sealed class ValveSizerTests
         var sizer = new ValveSizer(ValveKvR5.Instance);
 
         Assert.Equal(["kv", "authority"], sizer.Parameters);
-        Assert.True(sizer.CanSize(new Valve("CV1", 1.6)));
-        Assert.False(sizer.CanSize(new Pipe("P1", 25, 0.0273)));
+        Assert.True(sizer.CanSize(new ValveComponent("CV1", 1.6)));
+        Assert.False(sizer.CanSize(new PipeComponent("P1", 25, 0.0273)));
     }
 
     [Fact]
@@ -211,7 +211,7 @@ public sealed class ValveSizerTests
 
     private static SizingResult SizeThreeWay(double common, double variable, double branchDrop, double? authority = null)
     {
-        var valve = new ThreeWayValve("TV1", kv: 630)
+        var valve = new ThreeWayValveComponent("TV1", kv: 630)
         {
             StatedParameters = authority is { } stated
                 ? ImmutableDictionary<string, Quantity>.Empty.Add(
@@ -272,7 +272,7 @@ public sealed class ValveSizerTests
     public void TheRuleRefusesAComponentThatIsNotAValve()
     {
         var result = new ValveSizer(ValveKvR5.Instance)
-            .Size(new Pipe("P1", 25, 0.0273), At(WorkedExampleBranchDrop));
+            .Size(new PipeComponent("P1", 25, 0.0273), At(WorkedExampleBranchDrop));
 
         Assert.False(result.IsSuccess);
         Assert.Contains("two-way valve", result.Error!.Message, StringComparison.Ordinal);
@@ -285,7 +285,7 @@ public sealed class ValveSizerTests
         // topology says so: measured on `m2-distribution-header`, `TV_AHU` is not a junction element and
         // sits inside a branch's `Path`, so it gets the same single-branch context a `valve` gets.
         // Excluding it by type left it holding the bootstrap Kv 630 for the whole run.
-        var valve = new ThreeWayValve("TV1", 630, bypassConnected: false);
+        var valve = new ThreeWayValveComponent("TV1", 630, bypassConnected: false);
         var result = new ValveSizer(ValveKvR5.Instance).Size(valve, At(WorkedExampleBranchDrop));
 
         Assert.True(result.IsSuccess, result.Error?.Message);
@@ -301,7 +301,7 @@ public sealed class ValveSizerTests
         // valve out of the ordinary sizing loop is that `OuterLoop.Context` finds a junction element no
         // branch at all, so refusing it by type here as well would only force the Kv law, the authority
         // definition and the catalogue selection to be written twice.
-        var valve = new ThreeWayValve("3WV", 630, bypassConnected: true);
+        var valve = new ThreeWayValveComponent("3WV", 630, bypassConnected: true);
         var rule = new ValveSizer(ValveKvR5.Instance);
 
         Assert.True(rule.CanSize(valve));
@@ -320,8 +320,8 @@ public sealed class ValveSizerTests
         // circuit offers 100 kPa and the branch takes 22.35, so the valve must take 77.65 -- far more than
         // the target's 22.35 -- and the Kv that passes design flow through it is correspondingly smaller.
         var context = At(WorkedExampleBranchDrop) with { AvailableDrop = 100_000 };
-        var bounded = new ValveSizer(ValveKvR5.Instance).Size(new Valve("CV1", 630), context);
-        var chosen = new ValveSizer(ValveKvR5.Instance).Size(new Valve("CV1", 630), At(WorkedExampleBranchDrop));
+        var bounded = new ValveSizer(ValveKvR5.Instance).Size(new ValveComponent("CV1", 630), context);
+        var chosen = new ValveSizer(ValveKvR5.Instance).Size(new ValveComponent("CV1", 630), At(WorkedExampleBranchDrop));
 
         Assert.True(bounded.IsSuccess, bounded.Error?.Message);
 
@@ -346,7 +346,7 @@ public sealed class ValveSizerTests
         foreach (var target in new[] { 0.0, 1.0, 1.5, -0.2 })
         {
             var result = new ValveSizer(ValveKvR5.Instance, target)
-                .Size(new Valve("CV1", 630), At(WorkedExampleBranchDrop));
+                .Size(new ValveComponent("CV1", 630), At(WorkedExampleBranchDrop));
 
             Assert.False(result.IsSuccess);
         }

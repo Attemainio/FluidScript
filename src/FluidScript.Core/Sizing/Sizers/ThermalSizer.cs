@@ -54,14 +54,14 @@ public sealed class ThermalSizer : ISizer
     public ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is HeatExchanger { Rating: not null };
+    public bool CanSize(IFlowComponent component) => component is HeatExchangerComponent { Rating: not null };
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
     {
         ArgumentNullException.ThrowIfNull(component);
 
-        if (component is not HeatExchanger { Rating: { } rating } exchanger)
+        if (component is not HeatExchangerComponent { Rating: { } rating } exchanger)
         {
             return Result.Failure<SizingResult>(ResultError.From(
                 FluidDiagnostics.PropertyNotEvaluable,

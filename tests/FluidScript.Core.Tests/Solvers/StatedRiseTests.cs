@@ -67,7 +67,7 @@ public sealed class StatedRiseTests
     {
         // 0.2392 kg/s at 30 kPa asks Kv 1.57; the next R5 row is 1.6, which drops 29 kPa there.
         var run = await Solve(Loop.Replace("CV1  valve", "CV1  valve dp=30", StringComparison.Ordinal), "valve-drop");
-        var valve = Assert.IsType<Valve>(run.Graph.Components.Single(static c => c.Name == "CV1"));
+        var valve = Assert.IsType<ValveComponent>(run.Graph.Components.Single(static c => c.Name == "CV1"));
 
         Assert.Equal(1.6, valve.SizedParameters["kv"].SiValue, 6);
         Assert.Contains("the stated 30 kPa at 0.24 l/s asks Kv 1.57; the next larger row drops 29 kPa", run.Bases["CV1.kv"], StringComparison.Ordinal);

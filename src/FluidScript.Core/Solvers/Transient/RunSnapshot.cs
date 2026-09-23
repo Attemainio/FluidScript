@@ -174,7 +174,7 @@ public sealed record RunSnapshot
     /// <summary>A tank layer's initial enthalpy: the stated profile, else the design solve's mixed value.</summary>
     private static Result<double> LayerInitial(CircuitGraph graph, SystemLayout layout, StateVector design, DifferentialState state)
     {
-        if (graph.Components[state.Element] is not Tank tank)
+        if (graph.Components[state.Element] is not TankComponent tank)
         {
             return Result.Success(0.0);
         }

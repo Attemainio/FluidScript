@@ -12,7 +12,7 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// <remarks>
 /// <para>
 /// <strong>A pressure drop is not a resistance until something says at what flow.</strong>
-/// <see cref="HeatExchanger"/> holds <c>Δp = dp·(ṁ/ṁ_design)²</c>, so a stated or defaulted <c>dp</c>
+/// <see cref="HeatExchangerComponent"/> holds <c>Δp = dp·(ṁ/ṁ_design)²</c>, so a stated or defaulted <c>dp</c>
 /// is only half a law — the other half is the design flow, and a script never writes it. It is the
 /// flow the circuit runs at, which is what the outer loop already knows.
 /// </para>
@@ -44,14 +44,14 @@ public sealed class ExchangerSizer : ISizer
     public ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is HeatExchanger;
+    public bool CanSize(IFlowComponent component) => component is HeatExchangerComponent;
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
     {
         ArgumentNullException.ThrowIfNull(component);
 
-        if (component is not HeatExchanger exchanger)
+        if (component is not HeatExchangerComponent exchanger)
         {
             return Result.Failure<SizingResult>(ResultError.From(
                 FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
@@ -123,5 +123,5 @@ public sealed class ExchangerSizer : ISizer
     /// <c>ComponentFactory</c> from the same three maps, so this cannot disagree with it without the
     /// maps disagreeing first.
     /// </remarks>
-    private static double Drop(HeatExchanger exchanger) => Ownership.Decided(exchanger, "dp") ?? 0;
+    private static double Drop(HeatExchangerComponent exchanger) => Ownership.Decided(exchanger, "dp") ?? 0;
 }

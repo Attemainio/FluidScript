@@ -42,12 +42,12 @@ public sealed class EnergyInjectionTests
         // The interface default, and the reason it is a default: a valve throttles isenthalpically, a
         // pump's shaft work is not modelled as heat, and a node is a control volume that balances
         // rather than a path that adds. Each would otherwise need a method saying it does nothing.
-        Assert.False(Injects(new Valve("V1", kv: 6.3)));
-        Assert.False(Injects(new Pump("PU1", shutOffHead: 8, curvature: 20)));
-        Assert.False(Injects(new CircuitNode("N1", portCount: 2, carriesMassBalance: false)));
+        Assert.False(Injects(new ValveComponent("V1", kv: 6.3)));
+        Assert.False(Injects(new PumpComponent("PU1", shutOffHead: 8, curvature: 20)));
+        Assert.False(Injects(new NodeComponent("N1", portCount: 2, carriesMassBalance: false)));
         Assert.False(Injects(Level));
 
-        Assert.True(Injects(new HeatExchanger("HX1", power: 30_000)));
+        Assert.True(Injects(new HeatExchangerComponent("HX1", power: 30_000)));
         Assert.True(Injects(Riser));
 
         // Reached through the interface, which is where a default member lives -- and where the
@@ -72,7 +72,7 @@ public sealed class EnergyInjectionTests
 
             offenders.AddRange(
                 graph.Components
-                    .Where(static component => component is not (CircuitNode or Tank))
+                    .Where(static component => component is not (NodeComponent or TankComponent))
                     .Where(static component =>
                         component.DeclareEquations().Any(static row => row.Kind == EquationKind.Energy))
                     .Select(component => $"{Path.GetFileName(path)}: {component.Name} ({component.Kind})"));
@@ -181,11 +181,11 @@ public sealed class EnergyInjectionTests
             Riser.EvaluateEnergyInjection(new SolveContext(Water, ports, flows), injection);
     }
 
-    private static Pipe Level { get; } = new("P1", length: 10, insideDiameter: 0.0273);
+    private static PipeComponent Level { get; } = new("P1", length: 10, insideDiameter: 0.0273);
 
-    private static Pipe Riser { get; } = new("P2", length: 10, insideDiameter: 0.0273, rise: 10);
+    private static PipeComponent Riser { get; } = new("P2", length: 10, insideDiameter: 0.0273, rise: 10);
 
-    private static (double Inlet, double Outlet) Injection(Pipe pipe, double flow)
+    private static (double Inlet, double Outlet) Injection(PipeComponent pipe, double flow)
     {
         Span<double> injection = stackalloc double[pipe.Ports.Length];
         pipe.EvaluateEnergyInjection(
@@ -226,7 +226,7 @@ public sealed class EnergyInjectionTests
         // and nothing on side 2 **creates energy from nothing**. On `m2-substation` that showed as a
         // district primary sitting at 85 C from end to end instead of returning at 45, because nothing
         // ever took its heat away.
-        var coupled = new HeatExchanger(
+        var coupled = new HeatExchangerComponent(
             "HX1", power: 150_000, secondarySideConnected: true);
 
         Span<double> injection = stackalloc double[4];
@@ -249,7 +249,7 @@ public sealed class EnergyInjectionTests
         // The other half of `S-31`: a one-sided exchanger is a source or a sink and is *meant* to be
         // unbalanced -- the heat comes from a boiler or goes to a room, neither of which is modelled.
         // Only a component the script wired on both sides makes the crossing claim.
-        var duty = new HeatExchanger("HE1", power: 30_000);
+        var duty = new HeatExchangerComponent("HE1", power: 30_000);
 
         Span<double> injection = stackalloc double[4];
         duty.EvaluateEnergyInjection(
@@ -266,7 +266,7 @@ public sealed class EnergyInjectionTests
         // Counter-current is the usual arrangement, so the two sides' `ForwardShare` differ by design.
         // A shared share would put side 2's heat on the wrong port exactly when the streams are
         // counter-current, which is most of the time.
-        var coupled = new HeatExchanger("HX1", power: 100_000, secondarySideConnected: true);
+        var coupled = new HeatExchangerComponent("HX1", power: 100_000, secondarySideConnected: true);
 
         Span<double> injection = stackalloc double[4];
         coupled.EvaluateEnergyInjection(

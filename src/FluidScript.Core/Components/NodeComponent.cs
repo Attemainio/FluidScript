@@ -19,11 +19,8 @@ namespace FluidScript.Core.Components;
 /// is the whole design. See <see cref="EquationCount"/>.
 /// </para>
 /// </remarks>
-public sealed class CircuitNode : IFlowComponent
+public sealed class NodeComponent : ComponentBase
 {
-    private readonly ImmutableArray<UnknownDeclaration> _unknowns;
-    private readonly ImmutableArray<EquationDeclaration> _equations;
-
     /// <summary>Initializes a node of a given degree.</summary>
     /// <param name="name">The user's identifier, or the generated name of an inferred node.</param>
     /// <param name="portCount">How many connections attach here.</param>
@@ -31,12 +28,11 @@ public sealed class CircuitNode : IFlowComponent
     /// Whether this node is a junction element or a terminal, which <c>23</c> decides.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="portCount"/> is negative.</exception>
-    public CircuitNode(string name, int portCount, bool carriesMassBalance)
+    public NodeComponent(string name, int portCount, bool carriesMassBalance)
+        : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegative(portCount);
 
-        Name = name;
         CarriesMassBalance = carriesMassBalance;
 
         Ports =
@@ -51,13 +47,13 @@ public sealed class CircuitNode : IFlowComponent
 
         FlowGroups = [.. Enumerable.Repeat(0, portCount)];
 
-        _unknowns =
+        Unknowns =
         [
             new UnknownDeclaration(0, UnknownKind.NodePressure, name, $"{name}.p", "Pa"),
             new UnknownDeclaration(0, UnknownKind.NodeEnthalpy, name, $"{name}.h", "J/kg"),
         ];
 
-        _equations = carriesMassBalance
+        Equations = carriesMassBalance
             ? [
                 new EquationDeclaration(0, EquationKind.Mass, name, $"{name} mass balance", "kg/s"),
                 new EquationDeclaration(0, EquationKind.Energy, name, $"{name} energy balance", "W"),
@@ -72,18 +68,7 @@ public sealed class CircuitNode : IFlowComponent
     public const int EnthalpyIndex = 1;
 
     /// <inheritdoc/>
-    public string Name { get; }
-
-    /// <inheritdoc/>
-    public string Kind => "node";
-
-    /// <inheritdoc/>
-    /// <value>Always <see langword="null"/>: a node has no modes.</value>
-    public string? Mode => null;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
+    public override string Kind => "node";
 
     /// <summary>Gets how the script spelled this node's stated pressure when it wrote it on a port: <c>PU1 out.p</c> (<c>D-124</c>).</summary>
     /// <value>
@@ -93,15 +78,7 @@ public sealed class CircuitNode : IFlowComponent
     public string? PressureStatedAs { get; init; }
 
     /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; }
+    public override ImmutableArray<Port> Ports { get; }
 
     /// <inheritdoc/>
     /// <value>
@@ -109,7 +86,7 @@ public sealed class CircuitNode : IFlowComponent
     /// there are — which is what makes a node with three or more connections a junction element and
     /// one with two interior to a branch.
     /// </value>
-    public ImmutableArray<int> FlowGroups { get; }
+    public override ImmutableArray<int> FlowGroups { get; }
 
     /// <summary>Gets whether this node contributes a mass balance.</summary>
     /// <value>
@@ -163,13 +140,7 @@ public sealed class CircuitNode : IFlowComponent
     /// a node has, which is fixed at lowering and never changes during a solve.
     /// </para>
     /// </value>
-    public int EquationCount => CarriesMassBalance ? 2 : 1;
-
-    /// <inheritdoc/>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => _unknowns;
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    public override int EquationCount => CarriesMassBalance ? 2 : 1;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -182,7 +153,7 @@ public sealed class CircuitNode : IFlowComponent
     /// where <c>h(ṁᵢ)</c> is the arriving enthalpy for an inflow and this node's own for an outflow,
     /// blended across zero by <see cref="Smoothing.Upwind"/> so the Jacobian survives a reversal.
     /// </remarks>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var own = context.Unknowns[EnthalpyIndex];
         var mass = 0.0;

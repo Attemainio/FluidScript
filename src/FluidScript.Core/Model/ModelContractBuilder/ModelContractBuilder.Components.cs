@@ -120,7 +120,7 @@ public static partial class ModelContractBuilder
         for (var port = 0; port < flow.Ports.Length; port++)
         {
             var peer = graph.Adjacency.Peer(index, port);
-            var tank = component as Tank;
+            var tank = component as TankComponent;
 
             ports.Add(new PortWire
             {
@@ -148,14 +148,14 @@ public static partial class ModelContractBuilder
         var name = component.Name;
         QuantityWire Q(double si, Dimension dimension, string field) => Wire(si, dimension, name, field, raised);
 
-        if (component is CircuitNode)
+        if (component is NodeComponent)
         {
             return ports.Length > 0 && ports[0] is { } own
                 ? new ComponentStateWire { T = Q(own.Temperature, Dimension.Temperature, "t"), P = Q(own.Pressure, Dimension.Pressure, "p") }
                 : null;
         }
 
-        if (component is Tank tank)
+        if (component is TankComponent tank)
         {
             var enthalpy = layout.Unknowns.FirstOrDefault(unknown =>
                 unknown.Kind == UnknownKind.NodeEnthalpy && string.Equals(unknown.OwnerComponentId, name, StringComparison.Ordinal));
@@ -199,7 +199,7 @@ public static partial class ModelContractBuilder
 
         switch (component)
         {
-            case HeatExchanger exchanger:
+            case HeatExchangerComponent exchanger:
                 state = state with { Power = Q(massFlow * (outlet.Enthalpy - inlet.Enthalpy), Dimension.Power, "power") };
 
                 if (exchanger.SecondarySideConnected && ports.Length >= 4 && ports[2] is { } third && ports[3] is { } fourth)
@@ -216,7 +216,7 @@ public static partial class ModelContractBuilder
 
                 break;
 
-            case Pump pump:
+            case PumpComponent pump:
                 if (SolvedStates.Pump(layout, solution, pump, ports) is { } at)
                 {
                     state = state with { Head = Q(at.Head, Dimension.Head, "head") };
@@ -224,7 +224,7 @@ public static partial class ModelContractBuilder
 
                 break;
 
-            case Pipe pipe:
+            case PipeComponent pipe:
             {
                 // The same mean properties the pipe's own residual used (Pipe.EvaluateResiduals), so
                 // the velocity reported is the one its pressure drop was computed at (A-6).

@@ -105,7 +105,7 @@ public static partial class WellPosedness
     {
         ArgumentNullException.ThrowIfNull(element);
 
-        return element is HeatExchanger
+        return element is HeatExchangerComponent
             && HydraulicPartition.Stated(element, "power") is { } power
             && Math.Abs(power) <= Solvers.Tolerances.PowerZero;
     }

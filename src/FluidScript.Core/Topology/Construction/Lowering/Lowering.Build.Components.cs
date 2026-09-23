@@ -102,7 +102,7 @@ public static partial class Lowering
                     // Degree 3+ is a junction and degree 1 a terminal; at degree 2 the branch's own
                     // flow already makes the balance an identity.
                     Add(
-                        new CircuitNode(symbol.Name, degree, degree >= 3 || degree == 1)
+                        new NodeComponent(symbol.Name, degree, degree >= 3 || degree == 1)
                         {
                             // A setpoint on this node's temperature is stated here as the design point
                             // (D-141): the row and the promotion it raises are a node temperature's.
@@ -130,7 +130,7 @@ public static partial class Lowering
 
                 // A pipe's rise is what it connects, not a number of its own (D-70): the binder has
                 // already propagated every stated height to the pipe's two ports.
-                if (component is Pipe pipe)
+                if (component is PipeComponent pipe)
                 {
                     component = pipe.WithRise(model.Heights.Rise(symbol.Name));
                 }

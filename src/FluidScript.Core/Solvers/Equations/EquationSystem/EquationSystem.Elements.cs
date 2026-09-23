@@ -65,8 +65,8 @@ public sealed partial class EquationSystem
 
         if (node >= 0)
         {
-            _ownScratch[CircuitNode.PressureIndex] = x[Unknowns.NodePressure(node)];
-            _ownScratch[CircuitNode.EnthalpyIndex] = x[Unknowns.NodeEnthalpy(node)];
+            _ownScratch[NodeComponent.PressureIndex] = x[Unknowns.NodePressure(node)];
+            _ownScratch[NodeComponent.EnthalpyIndex] = x[Unknowns.NodeEnthalpy(node)];
         }
 
         return component.Ports.Length;

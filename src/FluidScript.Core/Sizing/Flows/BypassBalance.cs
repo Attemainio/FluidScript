@@ -58,7 +58,7 @@ public static class BypassBalance
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
-            if (graph.Components[index] is not ThreeWayValve three
+            if (graph.Components[index] is not ThreeWayValveComponent three
                 || Read(graph, ports, layout, solution.Values.AsSpan(), index) is not { } legs)
             {
                 continue;
@@ -134,7 +134,7 @@ public static class BypassBalance
         ArgumentNullException.ThrowIfNull(ports);
         ArgumentNullException.ThrowIfNull(layout);
 
-        if (graph.Components[index] is not ThreeWayValve { BypassConnected: true })
+        if (graph.Components[index] is not ThreeWayValveComponent { BypassConnected: true })
         {
             return null;
         }

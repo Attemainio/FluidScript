@@ -206,7 +206,7 @@ apart, from the same script text. `PipeSpec.DesignationBasis` is `NominalSize` o
 
 **Metres as `double`, not `Quantity`.** These were written as `Quantity` and the derivation above does
 not compile: `Quantity` has no arithmetic operators, only `TryAdd`/`TrySubtract`, because unit
-arithmetic can fail and a silent operator would hide it. Plain metres also matches `Pipe`, which is the
+arithmetic can fail and a silent operator would hide it. Plain metres also matches `PipeComponent`, which is the
 only consumer of a bore (`C-33`).
 
 **`InsideDiameter` is computed, never stored.** A catalogue with all three as independent fields will,

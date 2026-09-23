@@ -23,7 +23,7 @@ public static partial class WellPosedness
 
         foreach (var vertex in graph.JunctionElements)
         {
-            if (vertex is not CircuitNode node || node.CarriesMassBalance)
+            if (vertex is not NodeComponent node || node.CarriesMassBalance)
             {
                 balances++;
             }
@@ -103,7 +103,7 @@ public static partial class WellPosedness
         // carries -- there is no independent count of a tank's mixed enthalpy to check this against.
         foreach (var element in graph.Components)
         {
-            if (element is CircuitNode)
+            if (element is NodeComponent)
             {
                 continue;
             }
@@ -152,7 +152,7 @@ public static partial class WellPosedness
     /// <param name="links">Receives the bare node-to-node adjacencies, in the order the walk meets them.</param>
     private static int Relations(CircuitGraph graph, out ImmutableArray<IdealLink> links)
     {
-        // Keyed by object with a reference comparer: a branch path carries the CircuitNode, and an
+        // Keyed by object with a reference comparer: a branch path carries the NodeComponent, and an
         // assembler writing the link's row needs the GraphNode wrapped around it to reach the unknowns.
         var nodes = new Dictionary<object, GraphNode>(graph.Nodes.Length, ReferenceEqualityComparer.Instance);
 
@@ -170,9 +170,9 @@ public static partial class WellPosedness
 
             foreach (var part in branch.Path)
             {
-                if (part is CircuitNode)
+                if (part is NodeComponent)
                 {
-                    if (previous is CircuitNode)
+                    if (previous is NodeComponent)
                     {
                         relations++;
                         Link(nodes, ideal, previous, part);
@@ -186,7 +186,7 @@ public static partial class WellPosedness
                 previous = part;
             }
 
-            if (previous is CircuitNode && branch.To.Element is CircuitNode)
+            if (previous is NodeComponent && branch.To.Element is NodeComponent)
             {
                 relations++;
                 Link(nodes, ideal, previous, branch.To.Element);
@@ -195,7 +195,7 @@ public static partial class WellPosedness
 
         foreach (var vertex in graph.JunctionElements)
         {
-            if (vertex is CircuitNode)
+            if (vertex is NodeComponent)
             {
                 continue;
             }
@@ -261,7 +261,7 @@ public static partial class WellPosedness
                 continue;
             }
 
-            if (element is not CircuitNode node || node.CarriesMassBalance)
+            if (element is not NodeComponent node || node.CarriesMassBalance)
             {
                 balances++;
             }
@@ -282,7 +282,7 @@ public static partial class WellPosedness
     /// or a profile that does not fix its second side, delivers its stated duty and is not this.
     /// </remarks>
     private static bool Rates(ImmutableArray<HydraulicComponent> hydraulics, IFlowComponent element) =>
-        IsCoupled(hydraulics, element) || element is HeatExchanger { Rating.CanRate: true };
+        IsCoupled(hydraulics, element) || element is HeatExchangerComponent { Rating.CanRate: true };
 
     /// <summary>Whether a component's energy block leaves its own temperature level free.</summary>
     /// <param name="graph">The graph, which is what says whether time is being integrated.</param>

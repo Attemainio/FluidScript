@@ -552,17 +552,17 @@ public sealed class OuterLoopTests
         Assert.Equal("3WV", contradiction.ComponentName);
         Assert.Contains("written as a mixing valve and the solve runs it diverting", contradiction.Message, StringComparison.Ordinal);
         Assert.Contains("leaves 0.076 kg/s by a and 0.163 kg/s by b", contradiction.Message, StringComparison.Ordinal);
-        Assert.Equal(ValveArrangement.Mixing, Assert.IsType<ThreeWayValve>(mixing.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+        Assert.Equal(ValveArrangement.Mixing, Assert.IsType<ThreeWayValveComponent>(mixing.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
 
         var diverting = await Solve(source.Replace("3WV three_way_valve", "3WV diverting_valve", StringComparison.Ordinal), "diverting");
 
         Assert.DoesNotContain(diverting.Solve.Diagnostics, static d => d.Code == "FS4012");
-        Assert.Equal(ValveArrangement.Diverting, Assert.IsType<ThreeWayValve>(diverting.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+        Assert.Equal(ValveArrangement.Diverting, Assert.IsType<ThreeWayValveComponent>(diverting.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
 
         var bare = await Solve(source, "bare");
 
         Assert.DoesNotContain(bare.Solve.Diagnostics, static d => d.Code == "FS4012");
-        Assert.Equal(ValveArrangement.Unspecified, Assert.IsType<ThreeWayValve>(bare.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+        Assert.Equal(ValveArrangement.Unspecified, Assert.IsType<ThreeWayValveComponent>(bare.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
     }
 
     [Fact]
@@ -1424,7 +1424,7 @@ public sealed class OuterLoopTests
 
         Assert.Equal(5 * velocity * velocity / (2 * 9.80665), Head(fitted) - Head(plain), 0.002);
 
-        var pipe = Assert.IsType<Pipe>(plain.Graph.Components.Single(static c => c.Name == "P1"));
+        var pipe = Assert.IsType<PipeComponent>(plain.Graph.Components.Single(static c => c.Name == "P1"));
         Assert.Equal(0, pipe.MinorLoss);
         Assert.True(pipe.DefaultParameters.ContainsKey("minor_loss"), "an omitted K is a visible default, not a sized value");
     }
@@ -1480,7 +1480,7 @@ public sealed class OuterLoopTests
         Assert.Equal("CV1.kv", Assert.Single(layout.Unknowns.Where(static u => u.Kind == UnknownKind.Parameter)).Name);
         Assert.Equal(0.773, solved[layout.PromotionOffset], 0.005);
 
-        var pump = Assert.IsType<Pump>(run.Graph.Components.Single(static c => c.Name == "PU1"));
+        var pump = Assert.IsType<PumpComponent>(run.Graph.Components.Single(static c => c.Name == "PU1"));
         Assert.Equal(15, pump.StatedParameters["head"].SiValue, 1e-9);
 
         Assert.DoesNotContain("CV1.kv", run.Bases.Keys);

@@ -213,18 +213,18 @@ internal sealed partial class LayoutEngine
     /// <summary>A consumer's duty, negative (W): its stated power, or a nominal amount for an exchanger whose power is sized but which is written as a load or states an inlet above its outlet; <see langword="null"/> for anything else.</summary>
     private double? Duty(int component) => _graph.Components[component] switch
     {
-        HeatExchanger { Power: < 0 } h => h.Power,
-        HeatExchanger { Power: 0 } when Written(component) is "load" or "radiator" or "cooler" or "chiller" => -double.Epsilon,
-        HeatExchanger { Power: 0 } h when h.StatedParameters.TryGetValue("in", out var inlet) && h.StatedParameters.TryGetValue("out", out var outlet) && inlet.SiValue > outlet.SiValue => -double.Epsilon,
+        HeatExchangerComponent { Power: < 0 } h => h.Power,
+        HeatExchangerComponent { Power: 0 } when Written(component) is "load" or "radiator" or "cooler" or "chiller" => -double.Epsilon,
+        HeatExchangerComponent { Power: 0 } h when h.StatedParameters.TryGetValue("in", out var inlet) && h.StatedParameters.TryGetValue("out", out var outlet) && inlet.SiValue > outlet.SiValue => -double.Epsilon,
         _ => null,
     };
 
     /// <summary>Whether an exchanger is a heat source: its stated power positive, or its power sized but written as a heater or boiler, or stating an outlet above its inlet.</summary>
     private bool IsSource(int component) => _graph.Components[component] switch
     {
-        HeatExchanger { Power: > 0 } => true,
-        HeatExchanger { Power: 0 } when Written(component) is "heater" or "boiler" => true,
-        HeatExchanger { Power: 0 } h when h.StatedParameters.TryGetValue("in", out var inlet) && h.StatedParameters.TryGetValue("out", out var outlet) && outlet.SiValue > inlet.SiValue => true,
+        HeatExchangerComponent { Power: > 0 } => true,
+        HeatExchangerComponent { Power: 0 } when Written(component) is "heater" or "boiler" => true,
+        HeatExchangerComponent { Power: 0 } h when h.StatedParameters.TryGetValue("in", out var inlet) && h.StatedParameters.TryGetValue("out", out var outlet) && outlet.SiValue > inlet.SiValue => true,
         _ => false,
     };
 

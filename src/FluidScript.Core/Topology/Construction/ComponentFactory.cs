@@ -91,7 +91,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
     /// parameter to be sized or to carry a visible decided default and allows nothing else, so this now
     /// follows <see cref="Pipe"/>'s rule: no bore, no pipe; no Kv, no valve.
     /// </remarks>
-    private Valve? Valve(
+    private ValveComponent? Valve(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         ImmutableDictionary<string, Quantity> stated,
@@ -99,7 +99,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         ImmutableDictionary<string, Quantity> defaults) =>
         Value(symbol, kind, "kv") is not { } kv
             ? null
-            : new Valve(symbol.Name, kv, Value(symbol, kind, "position") ?? 1, Characteristic(symbol, kind))
+            : new ValveComponent(symbol.Name, kv, Value(symbol, kind, "position") ?? 1, Characteristic(symbol, kind))
             {
                 StatedParameters = stated,
                 SizedParameters = sized,
@@ -123,7 +123,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
     /// <param name="defaults">What the registry decided.</param>
     /// <returns>The component, or <see langword="null"/> to leave it unresolved.</returns>
     /// <remarks><c>C-58</c>, for the same reason as <see cref="Valve"/>.</remarks>
-    private ThreeWayValve? ThreeWay(
+    private ThreeWayValveComponent? ThreeWay(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         PortWiring wiring,
@@ -132,7 +132,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         ImmutableDictionary<string, Quantity> defaults) =>
         Value(symbol, kind, "kv") is not { } kv
             ? null
-            : new ThreeWayValve(
+            : new ThreeWayValveComponent(
                 symbol.Name,
                 kv,
                 Value(symbol, kind, "position") ?? 1,
@@ -358,7 +358,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         };
     }
 
-    private Pipe? Pipe(
+    private PipeComponent? Pipe(
         ComponentSymbol symbol,
         ImmutableDictionary<string, Quantity> stated,
         ImmutableDictionary<string, Quantity> sized,
@@ -376,7 +376,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
             return null;
         }
 
-        return new Pipe(
+        return new PipeComponent(
             symbol.Name,
             metres,
             bore,
@@ -390,7 +390,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         };
     }
 
-    private Pump Pump(
+    private PumpComponent Pump(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         ImmutableDictionary<string, Quantity> stated,
@@ -410,10 +410,10 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         // A duty point gives the default quadratic its curvature; a head with no flow beside it is a
         // shut-off head and nothing more, which is the flat curve a pump with one stated number has.
         var (shutOff, curvature) = head is { } metres && flow is { } duty and > 0
-            ? Components.Pump.CurveThrough(metres, duty)
+            ? Components.PumpComponent.CurveThrough(metres, duty)
             : (head ?? 0, 0d);
 
-        return new Pump(symbol.Name, shutOff, curvature, efficiency: efficiency)
+        return new PumpComponent(symbol.Name, shutOff, curvature, efficiency: efficiency)
         {
             StatedRise = rise,
             StatedParameters = stated,
@@ -422,20 +422,20 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
         };
     }
 
-    private Tank Tank(
+    private TankComponent Tank(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         ImmutableDictionary<string, Quantity> stated,
         ImmutableDictionary<string, Quantity> sized,
         ImmutableDictionary<string, Quantity> defaults)
     {
-        var layers = Value(symbol, kind, "layers") ?? Components.Tank.DefaultLayers;
+        var layers = Value(symbol, kind, "layers") ?? Components.TankComponent.DefaultLayers;
 
-        return new Tank(
+        return new TankComponent(
             symbol.Name,
             Levels(symbol, kind, "in"),
             Levels(symbol, kind, "out"),
-            Value(symbol, kind, "volume") ?? Components.Tank.DefaultVolume,
+            Value(symbol, kind, "volume") ?? Components.TankComponent.DefaultVolume,
             (int)layers)
         {
             StatedParameters = stated,
@@ -468,7 +468,7 @@ public sealed partial class ComponentFactory(IBoreLookup bores, SizingOverlay? s
                 break;
             }
 
-            heights.Add(Value(symbol, kind, $"{port}_level") ?? Components.Tank.DefaultLevel);
+            heights.Add(Value(symbol, kind, $"{port}_level") ?? Components.TankComponent.DefaultLevel);
         }
 
         return heights.ToImmutable();

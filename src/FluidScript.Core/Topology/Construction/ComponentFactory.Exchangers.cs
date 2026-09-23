@@ -18,7 +18,7 @@ public sealed partial class ComponentFactory
     /// <remarks>
     /// <para>
     /// <strong>The drop and the flow arrive from different places and neither is sufficient alone.</strong>
-    /// <see cref="HeatExchanger"/> holds <c>Δp = dp·(ṁ/ṁ_design)²</c>, so a <c>dp</c> with no design flow
+    /// <see cref="HeatExchangerComponent"/> holds <c>Δp = dp·(ṁ/ṁ_design)²</c>, so a <c>dp</c> with no design flow
     /// is half a law. <c>dp</c> is stated or carries the registry's decided 20 kPa; the design flow is
     /// sized by <c>ExchangerSizer</c> from the flow the circuit actually runs at.
     /// </para>
@@ -36,7 +36,7 @@ public sealed partial class ComponentFactory
     /// </para>
     /// </remarks>
     /// <param name="wiring">How many ports the script connected, and by what names.</param>
-    private HeatExchanger Exchanger(
+    private HeatExchangerComponent Exchanger(
         ComponentSymbol symbol,
         ComponentKindInfo kind,
         PortWiring wiring,
@@ -64,7 +64,7 @@ public sealed partial class ComponentFactory
         var secondaryFlow = Value(symbol, kind, "flow2") ?? 0;
         var secondaryDrop = secondaryFlow > 0 ? Value(symbol, kind, "dp2") ?? 0 : 0;
 
-        return new HeatExchanger(
+        return new HeatExchangerComponent(
             symbol.Name,
             power,
             drop,

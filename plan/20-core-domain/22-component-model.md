@@ -703,7 +703,7 @@ no temperature (`C-71`). The two-way linear law is `S-26`'s, shut at 0.
 (`D-136`, closing `C-65`). The arrangement a valve *runs* in comes from the solved flow directions:
 both switched legs entering is mixing, both leaving is diverting, and the ports stay bidirectional
 so either can be written. `mixing_valve` and `diverting_valve` are no longer inert aliases: the
-factory reads the kind as written into `ThreeWayValve.Arrangement`, and after the solve `FS4012`
+factory reads the kind as written into `ThreeWayValveComponent.Arrangement`, and after the solve `FS4012`
 names a valve whose spelling claims one service and whose flows run the other, because a seat body
 is built for one (Siemens VXG44: "to be used only as a mixing valve"; ESBE's rotary bodies serve
 both and are written bare). A bare `three_way_valve` claims nothing and is never reported, so no

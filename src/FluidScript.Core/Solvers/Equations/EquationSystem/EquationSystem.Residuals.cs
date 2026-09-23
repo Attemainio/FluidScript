@@ -309,7 +309,7 @@ public sealed partial class EquationSystem
 
                 if (row >= 0)
                 {
-                    var column = Unknowns.ComponentUnknownOffset + _owned[element].Offset + Tank.EnthalpyIndex;
+                    var column = Unknowns.ComponentUnknownOffset + _owned[element].Offset + TankComponent.EnthalpyIndex;
 
                     residuals[row] = FluidScript.Core.Sizing.Flows.BranchFlows.Nominal * (x[column] - _ownPin[element]);
                 }

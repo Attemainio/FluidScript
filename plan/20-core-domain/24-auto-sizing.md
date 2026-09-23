@@ -61,7 +61,7 @@ sizing rules need flows and most flows need sizes.
 ```
 
 **A sized value is applied by lowering again, not by setting anything.** A pipe's bore is a
-constructor argument, so the pass that uses a new diameter is the pass that built a new `Pipe`; the
+constructor argument, so the pass that uses a new diameter is the pass that built a new `PipeComponent`; the
 loop carries a `SizingOverlay` — component name to parameter to value — and hands it to the component
 factory, which puts it in `SizedParameters` and nowhere else. Three consequences worth stating.
 A stated value and a chosen one stay distinguishable, which `D-02` depends on and which merging into

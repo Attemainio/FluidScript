@@ -142,7 +142,7 @@ public sealed partial class OuterLoop
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
-            if (graph.Components[index] is not ThreeWayValve { BypassConnected: true, Arrangement: not ValveArrangement.Unspecified } three)
+            if (graph.Components[index] is not ThreeWayValveComponent { BypassConnected: true, Arrangement: not ValveArrangement.Unspecified } three)
             {
                 continue;
             }
@@ -259,7 +259,7 @@ public sealed partial class OuterLoop
         {
             var component = graph.Components[element];
 
-            if (component is not (Pump or HeatExchanger))
+            if (component is not (PumpComponent or HeatExchangerComponent))
             {
                 continue;
             }

@@ -187,7 +187,7 @@ internal sealed partial class LayoutEngine
 
         for (var i = 0; i < _n; i++)
         {
-            if (IsSource(i) || _graph.Components[i] is CircuitNode { Boundary: BoundaryRole.Inlet })
+            if (IsSource(i) || _graph.Components[i] is NodeComponent { Boundary: BoundaryRole.Inlet })
             {
                 Leaving(i, -1, queue);
             }
@@ -217,7 +217,7 @@ internal sealed partial class LayoutEngine
     /// <summary>Whether the stream entering <paramref name="i"/> at <paramref name="port"/> leaves its heat there: a consumer's first side, or a source's second.</summary>
     private bool Loses(int i, int port)
     {
-        if (_graph.Components[i] is not HeatExchanger h)
+        if (_graph.Components[i] is not HeatExchangerComponent h)
         {
             return false;
         }
@@ -229,7 +229,7 @@ internal sealed partial class LayoutEngine
     private void Leaving(int i, int except, Queue<(int Component, int Port)> queue)
     {
         var ports = _graph.Components[i].Ports;
-        var exchanger = _graph.Components[i] is HeatExchanger;
+        var exchanger = _graph.Components[i] is HeatExchangerComponent;
         var second = except >= 0 && ports[except].Name.EndsWith('2');
 
         for (var q = 0; q < ports.Length; q++)

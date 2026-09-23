@@ -79,14 +79,14 @@ public sealed class ThermalSizerTests
         return stated;
     }
 
-    private static HeatExchanger Coupled(ImmutableDictionary<string, Quantity> stated, double power = 150_000) =>
+    private static HeatExchangerComponent Coupled(ImmutableDictionary<string, Quantity> stated, double power = 150_000) =>
         new("HX1", power, secondarySideConnected: true)
         {
             Rating = new ExchangerRating { Mode = ExchangerMode.Coupled },
             StatedParameters = stated,
         };
 
-    private static SizingResult Size(HeatExchanger exchanger, SizingContext context)
+    private static SizingResult Size(HeatExchangerComponent exchanger, SizingContext context)
     {
         var result = new ThermalSizer().Size(exchanger, context);
 
@@ -268,7 +268,7 @@ public sealed class ThermalSizerTests
             .Add("in", Celsius(40))
             .Add("in2", Celsius(85))
             .Add("out2", Celsius(45));
-        var rated = new HeatExchanger("HX1", 150_000)
+        var rated = new HeatExchangerComponent("HX1", 150_000)
         {
             Rating = new ExchangerRating
             {
@@ -300,7 +300,7 @@ public sealed class ThermalSizerTests
     [Fact]
     public void OnlyAnExtendedModeExchangerIsSizable()
     {
-        var duty = new HeatExchanger("HE1", 30_000);
+        var duty = new HeatExchangerComponent("HE1", 30_000);
 
         Assert.False(new ThermalSizer().CanSize(duty));
         Assert.True(new ThermalSizer().CanSize(Coupled(DesignPoint())));

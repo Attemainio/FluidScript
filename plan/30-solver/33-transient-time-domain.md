@@ -120,7 +120,7 @@ flow the exchanger was sized for*, not a thermostat.
 `schedule` target that is also a binding's actuator is `FS3109` at bind time.
 
 **No pump heating in v1.** A pump's shaft work ends up as heat in the water, a fraction of a kelvin
-per pass, and `Pump` writes no energy term (`C-47`). A run therefore shows a closed loop that never
+per pass, and `PumpComponent` writes no energy term (`C-47`). A run therefore shows a closed loop that never
 warms of itself, where a real one drifts up slowly; the static solve ignores it too, so invariant 3
 and invariant 8 both hold with it absent. Stated here so that the first plant comparison that asks
 why the loop does not warm finds the answer, not a defect.

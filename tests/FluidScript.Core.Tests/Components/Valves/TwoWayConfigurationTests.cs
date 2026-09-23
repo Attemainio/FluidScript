@@ -25,7 +25,7 @@ public sealed class TwoWayConfigurationTests
     [Fact]
     public void WiredAsATwoWayItIsAPassThroughWithOneKvLaw()
     {
-        var valve = new ThreeWayValve("TV1", kv: 6.3, bypassConnected: false);
+        var valve = new ThreeWayValveComponent("TV1", kv: 6.3, bypassConnected: false);
 
         Assert.Equal(["ab", "a"], valve.Ports.Select(static port => port.Name));
         Assert.Equal([0, 0], valve.FlowGroups);
@@ -41,7 +41,7 @@ public sealed class TwoWayConfigurationTests
     [Fact]
     public void WiredAsAThreeWayNothingChanges()
     {
-        var valve = new ThreeWayValve("TV1", kv: 6.3);
+        var valve = new ThreeWayValveComponent("TV1", kv: 6.3);
 
         Assert.Equal(["ab", "a", "b"], valve.Ports.Select(static port => port.Name));
         Assert.Equal([0, 0, 0], valve.FlowGroups);
@@ -56,8 +56,8 @@ public sealed class TwoWayConfigurationTests
         // Not a new law: the row a two-way valve keeps is the a-b Kv relation the three-way already
         // had, at the same opening and the same drop. A different number here would mean the two-way
         // form had quietly become a different component.
-        var threeWay = new ThreeWayValve("TV1", kv: 6.3, position: 0.4);
-        var twoWay = new ThreeWayValve("TV1", kv: 6.3, position: 0.4, bypassConnected: false);
+        var threeWay = new ThreeWayValveComponent("TV1", kv: 6.3, position: 0.4);
+        var twoWay = new ThreeWayValveComponent("TV1", kv: 6.3, position: 0.4, bypassConnected: false);
 
         Span<double> full = stackalloc double[threeWay.EquationCount];
         threeWay.EvaluateResiduals(
@@ -135,8 +135,8 @@ public sealed class TwoWayConfigurationTests
         Assert.DoesNotContain("PU1", legs["b"]);
     }
 
-    private static ThreeWayValve Valve(CircuitGraph graph) =>
-        graph.Components.OfType<ThreeWayValve>().Single();
+    private static ThreeWayValveComponent Valve(CircuitGraph graph) =>
+        graph.Components.OfType<ThreeWayValveComponent>().Single();
 
     private static PortState At(double pressure)
     {

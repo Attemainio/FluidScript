@@ -46,7 +46,7 @@ public static class SteelEn10255
         ]);
 
     /// <summary>Absolute roughness of commercial steel.</summary>
-    /// <value>m. 0.045 mm, matching <see cref="Components.Pipe"/>'s default.</value>
+    /// <value>m. 0.045 mm, matching <see cref="Components.PipeComponent"/>'s default.</value>
     public static double Roughness => RoughnessBasis.Value;
 
     private const string Series = "steel, EN 10255 medium";

@@ -48,7 +48,7 @@ public sealed class HeatExchangerTests
     /// <param name="exchanger">The exchanger.</param>
     /// <param name="flow">kg/s at port 0, positive into the exchanger.</param>
     /// <returns>Watts into the node at <c>in</c>, and watts into the node at <c>out</c>.</returns>
-    private static (double Inlet, double Outlet) Injection(HeatExchanger exchanger, double flow)
+    private static (double Inlet, double Outlet) Injection(HeatExchangerComponent exchanger, double flow)
     {
         Span<double> injection = stackalloc double[exchanger.Ports.Length];
         exchanger.EvaluateEnergyInjection(
@@ -65,12 +65,12 @@ public sealed class HeatExchangerTests
     /// <param name="outlet">The outlet node's temperature, °C.</param>
     /// <returns>Watts. Zero when the duty and the enthalpy rise agree.</returns>
     /// <remarks>
-    /// A real <see cref="CircuitNode"/> rather than the arithmetic written out, because what is being
+    /// A real <see cref="NodeComponent"/> rather than the arithmetic written out, because what is being
     /// checked is that the two halves <em>compose</em>: the node carries the transport and the
     /// exchanger carries the heat, and neither is a whole equation on its own (<c>D-69</c>).
     /// </remarks>
     private static double DownstreamNodeEnergy(
-        HeatExchanger exchanger, double flow, double inlet, double outlet)
+        HeatExchangerComponent exchanger, double flow, double inlet, double outlet)
     {
         Span<double> injection = stackalloc double[exchanger.Ports.Length];
         exchanger.EvaluateEnergyInjection(
@@ -79,7 +79,7 @@ public sealed class HeatExchangerTests
 
         // Two ports: the stream arrives through the exchanger carrying the inlet node's enthalpy, and
         // leaves through the other one at this node's own.
-        var node = new CircuitNode("N", portCount: 2, carriesMassBalance: false);
+        var node = new NodeComponent("N", portCount: 2, carriesMassBalance: false);
 
         Span<double> residuals = stackalloc double[node.EquationCount];
         node.EvaluateResiduals(
@@ -102,7 +102,7 @@ public sealed class HeatExchangerTests
         //
         // 62 states 0.23912 against a cp of 4182; ConstantPropertyWater declares 4184, and the two
         // figures are both right for their own fluid. They must not be reconciled.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
         var implied = exchanger.ImpliedFlow(SpecificHeat, temperatureRise: 30);
 
         Assert.Equal(0.239006, implied, tolerance: 1e-6);
@@ -119,7 +119,7 @@ public sealed class HeatExchangerTests
     {
         // One kind covers source and consumer; the sign of power is the whole difference. -70 kW at
         // 0.5578 kg/s drops 30 K, so the outlet is below the inlet and the node balances there.
-        var radiator = new HeatExchanger("RAD1", power: -70_000);
+        var radiator = new HeatExchangerComponent("RAD1", power: -70_000);
         var flow = radiator.ImpliedFlow(SpecificHeat, temperatureRise: 30);
 
         Assert.Equal(0, DownstreamNodeEnergy(radiator, flow, inlet: 50, outlet: 20), tolerance: 1e-6);
@@ -132,7 +132,7 @@ public sealed class HeatExchangerTests
         // The number this used to assert as the exchanger's own residual, now landing where D-69 puts
         // it. 0.1 kg/s across 4184 x 30 = 12 552 W carried against 30 000 injected: the node's energy
         // row is 17 448 W short, in watts, which is what "HX1 is 17.4 kW short" is built from.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
 
         Assert.Equal(17_448, DownstreamNodeEnergy(exchanger, 0.1, inlet: 20, outlet: 50), tolerance: 1.0);
     }
@@ -143,7 +143,7 @@ public sealed class HeatExchangerTests
         // The invariant that replaces the duty row: however the fluid runs, the two entries sum to the
         // stated power -- the exchanger moves a fixed amount of heat into the circuit -- and all of it
         // is on the downstream side. Nailing it to a port instead is what made a reversal unsolvable.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
 
         var forward = Injection(exchanger, 0.5);
         var reverse = Injection(exchanger, -0.5);
@@ -164,7 +164,7 @@ public sealed class HeatExchangerTests
         // S-5's lesson: C-1 is a claim about the one-sided derivatives agreeing at the join, not about
         // the derivative being small near it. Probed at the band edge with a shrinking step, the two
         // sides have to meet -- the smoothstep's own slope is zero there, so both are zero.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
 
         foreach (var step in new[] { 1e-6, 1e-7, 1e-8 })
         {
@@ -190,7 +190,7 @@ public sealed class HeatExchangerTests
     {
         // Duty mode makes no area, effectiveness or approach claim, and with no stated dp it makes no
         // hydraulic claim either -- rather than inventing a plausible resistance.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
 
         Span<double> residuals = stackalloc double[exchanger.EquationCount];
         exchanger.EvaluateResiduals(
@@ -204,7 +204,7 @@ public sealed class HeatExchangerTests
     public void TheDropFollowsTheSquareOfTheFlowRatio()
     {
         // dp = dp_design x (mdot / mdot_design)^2. At twice the design flow, four times the drop.
-        var exchanger = new HeatExchanger("HX1", power: 30_000, designPressureDrop: 25_000, designFlow: 0.5);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000, designPressureDrop: 25_000, designFlow: 0.5);
 
         Assert.Equal(25_000, Drop(0.5), 1e-9);
         Assert.Equal(100_000, Drop(1.0), 1e-9);
@@ -225,7 +225,7 @@ public sealed class HeatExchangerTests
     [Fact]
     public void AReversedFlowLosesPressureInTheDirectionItIsGoing()
     {
-        var exchanger = new HeatExchanger("HX1", power: 0, designPressureDrop: 25_000, designFlow: 0.5);
+        var exchanger = new HeatExchangerComponent("HX1", power: 0, designPressureDrop: 25_000, designFlow: 0.5);
 
         Span<double> forward = stackalloc double[exchanger.EquationCount];
         exchanger.EvaluateResiduals(
@@ -243,7 +243,7 @@ public sealed class HeatExchangerTests
     {
         // Inference rule I3 skips optional ports, which is what lets a Duty exchanger be written with
         // two connections and no fabricated nodes for a side that is not modelled.
-        var exchanger = new HeatExchanger("HX1", power: 30_000);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000);
 
         Assert.Equal(["in", "out", "in2", "out2"], exchanger.Ports.Select(static port => port.Name));
         Assert.Equal([false, false, true, true], exchanger.Ports.Select(static port => port.IsOptional));
@@ -254,13 +254,13 @@ public sealed class HeatExchangerTests
     {
         // There is no mode= in the language: lowering computes exactly one mode from what was connected
         // and stated, so that adding real connections to an external-profile design has one meaning.
-        Assert.Equal("duty", new HeatExchanger("HX1", power: 1000).Mode);
+        Assert.Equal("duty", new HeatExchangerComponent("HX1", power: 1000).Mode);
     }
 
     [Fact]
     public void EvaluateResidualsAllocatesNothing()
     {
-        var exchanger = new HeatExchanger("HX1", power: 30_000, designPressureDrop: 25_000, designFlow: 0.5);
+        var exchanger = new HeatExchangerComponent("HX1", power: 30_000, designPressureDrop: 25_000, designFlow: 0.5);
         var ports = new[] { At(20, 300_000), At(50, 275_000) };
         var flows = new[] { 0.5, -0.5 };
         var residuals = new double[2];
@@ -284,7 +284,7 @@ public sealed class HeatExchangerTests
     // ---- the rated relation (P4.1) ----------------------------------------------------------------
 
     /// <summary>The substation's HX1 as a Rated exchanger: UA 12 071 W/K against the 85/45 profile.</summary>
-    private static HeatExchanger Rated(double power = 150_000) =>
+    private static HeatExchangerComponent Rated(double power = 150_000) =>
         new("HX1", power)
         {
             Rating = new ExchangerRating
@@ -302,7 +302,7 @@ public sealed class HeatExchangerTests
         // 7500 W/K entering at 40 C against 3750 W/K at 85 C through UA 12 071: NTU 3.219 on Cmin, Cr 0.5,
         // ε 0.8889, and 0.8889 * 3750 * 45 = 150 kW. The number 01 sized the exchanger for, recovered
         // from the rating rather than read from `power`.
-        var duty = HeatExchanger.Duty(Rated().Rating!, capacity1: 7500, inlet1: 40 + 273.15, capacity2: 3750, inlet2: 85 + 273.15);
+        var duty = HeatExchangerComponent.Duty(Rated().Rating!, capacity1: 7500, inlet1: 40 + 273.15, capacity2: 3750, inlet2: 85 + 273.15);
 
         Assert.Equal(150_000, duty, 150.0);
     }
@@ -314,12 +314,12 @@ public sealed class HeatExchangerTests
         // and it transfers less, cool it and it transfers more. A constant `power` could not do that.
         var rating = Rated().Rating!;
 
-        var cold = HeatExchanger.Duty(rating, 7500, 35 + 273.15, 3750, 85 + 273.15);
-        var design = HeatExchanger.Duty(rating, 7500, 40 + 273.15, 3750, 85 + 273.15);
-        var warm = HeatExchanger.Duty(rating, 7500, 45 + 273.15, 3750, 85 + 273.15);
+        var cold = HeatExchangerComponent.Duty(rating, 7500, 35 + 273.15, 3750, 85 + 273.15);
+        var design = HeatExchangerComponent.Duty(rating, 7500, 40 + 273.15, 3750, 85 + 273.15);
+        var warm = HeatExchangerComponent.Duty(rating, 7500, 45 + 273.15, 3750, 85 + 273.15);
 
         Assert.True(cold > design && design > warm, $"{cold} / {design} / {warm}");
-        Assert.Equal(0, HeatExchanger.Duty(rating, 7500, 85 + 273.15, 3750, 85 + 273.15), 1e-9);
+        Assert.Equal(0, HeatExchangerComponent.Duty(rating, 7500, 85 + 273.15, 3750, 85 + 273.15), 1e-9);
     }
 
     [Fact]
@@ -330,9 +330,9 @@ public sealed class HeatExchangerTests
         // the duty by no more than the step deserves: no jump for Newton to fall into.
         var rating = Rated().Rating!;
 
-        var below = HeatExchanger.Duty(rating, 3750 * (1 - 1e-5), 40 + 273.15, 3750, 85 + 273.15);
-        var at = HeatExchanger.Duty(rating, 3750, 40 + 273.15, 3750, 85 + 273.15);
-        var above = HeatExchanger.Duty(rating, 3750 * (1 + 1e-5), 40 + 273.15, 3750, 85 + 273.15);
+        var below = HeatExchangerComponent.Duty(rating, 3750 * (1 - 1e-5), 40 + 273.15, 3750, 85 + 273.15);
+        var at = HeatExchangerComponent.Duty(rating, 3750, 40 + 273.15, 3750, 85 + 273.15);
+        var above = HeatExchangerComponent.Duty(rating, 3750 * (1 + 1e-5), 40 + 273.15, 3750, 85 + 273.15);
 
         Assert.Equal(at, below, at * 1e-4);
         Assert.Equal(at, above, at * 1e-4);

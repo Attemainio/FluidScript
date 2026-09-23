@@ -151,7 +151,7 @@ public static partial class SolveExplanation
 
         for (var index = 0; index < graph.Components.Length; index++)
         {
-            if (graph.Components[index] is not HeatExchanger exchanger
+            if (graph.Components[index] is not HeatExchangerComponent exchanger
                 || SolvedStates.Exchanger(graph, layout, solve.Solution, index) is not { } at)
             {
                 continue;

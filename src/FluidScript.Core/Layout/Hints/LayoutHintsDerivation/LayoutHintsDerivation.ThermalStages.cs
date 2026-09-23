@@ -192,7 +192,7 @@ public static partial class LayoutHintsDerivation
 
             switch (component)
             {
-                case HeatExchanger exchanger when exchanger.SecondarySideConnected || exchanger.Rating is { CanRate: true }:
+                case HeatExchangerComponent exchanger when exchanger.SecondarySideConnected || exchanger.Rating is { CanRate: true }:
                     stages.Role[v] = ThermalStageRole.Conversion;
 
                     for (var port = 0; port < exchanger.Ports.Length; port++)
@@ -210,7 +210,7 @@ public static partial class LayoutHintsDerivation
 
                     break;
 
-                case Tank tank:
+                case TankComponent tank:
                     stages.Role[v] = ThermalStageRole.Storage;
 
                     for (var port = 0; port < tank.Ports.Length; port++)
@@ -289,7 +289,7 @@ public static partial class LayoutHintsDerivation
 
             var duty = stages.Vertices[v]
                 .Select(i => graph.Components[i])
-                .OfType<HeatExchanger>()
+                .OfType<HeatExchangerComponent>()
                 .Sum(static exchanger => exchanger.Power);
 
             var physics = duty > 0 ? ThermalStageRole.Source : duty < 0 ? ThermalStageRole.Consumer : evidence.Stage;

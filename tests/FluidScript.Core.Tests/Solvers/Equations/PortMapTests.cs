@@ -117,7 +117,7 @@ public sealed class PortMapTests
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            if (graph.Components[element] is CircuitNode)
+            if (graph.Components[element] is NodeComponent)
             {
                 continue;
             }

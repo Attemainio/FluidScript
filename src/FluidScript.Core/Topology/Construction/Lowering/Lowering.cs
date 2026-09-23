@@ -18,7 +18,7 @@ namespace FluidScript.Core.Topology.Construction;
 /// </para>
 /// <para>
 /// <strong>Nodes are built after adjacency, not before it</strong>, which reverses <c>23</c>'s step
-/// order for one kind. A <see cref="CircuitNode"/> is constructed with its port count and whether it
+/// order for one kind. A <see cref="NodeComponent"/> is constructed with its port count and whether it
 /// carries a mass balance, and both are properties of the graph rather than of the symbol — a node
 /// with two connections is interior to a branch and contributes no balance, and nothing in the
 /// semantic model says how many connections it has. Flow components are instantiated first, as the

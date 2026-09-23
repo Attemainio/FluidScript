@@ -133,7 +133,7 @@ public static partial class WellPosedness
         }
 
         return hydraulic.Elements
-            .OfType<ThreeWayValve>()
+            .OfType<ThreeWayValveComponent>()
             .Where(split => IsFree(graph, split, "position"))
             .Select(split => (Split: split, Depth: Reach.Stream(graph, split).TryGetValue(owner, out var depth) ? depth : -1))
             .Where(static ranked => ranked.Depth >= 0)
@@ -156,7 +156,7 @@ public static partial class WellPosedness
         var local = Reach.Local(graph, owner);
         var branches = hydraulic.Branches.Where(branch => owner is not null && branch.Path.Contains(owner)).ToArray();
         var pumps = hydraulic.Elements
-            .Where(element => element is Pump { StatedRise: null }
+            .Where(element => element is PumpComponent { StatedRise: null }
                 && IsFree(graph, element, "head")
                 && hydraulic.Branches.Any(branch => branch.Path.Contains(element)
                     && branches.Any(own => loops.Share(own, branch))))
@@ -178,7 +178,7 @@ public static partial class WellPosedness
         {
             foreach (var element in branch.Path)
             {
-                if (element is Valve or ThreeWayValve
+                if (element is ValveComponent or ThreeWayValveComponent
                     && IsFree(graph, element, "kv")
                     && hydraulic.Elements.Contains(element))
                 {

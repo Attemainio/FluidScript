@@ -5,7 +5,7 @@ namespace FluidScript.Core.Solvers.Results;
 /// <param name="Rise">Pa, the outlet port's pressure minus the inlet port's.</param>
 /// <param name="Head">
 /// m of the pumped fluid: <see cref="Rise"/> over the mean of the inlet and outlet densities and g, which
-/// is the convention <see cref="Components.Pump.EvaluateResiduals"/> solves with, so this is the head
+/// is the convention <see cref="Components.PumpComponent.EvaluateResiduals"/> solves with, so this is the head
 /// the equations were satisfied at whether a curve, a promotion or a stated rise set it.
 /// </param>
 /// <param name="Basis">What set the head.</param>

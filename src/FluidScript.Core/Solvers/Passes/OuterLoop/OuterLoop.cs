@@ -33,7 +33,7 @@ namespace FluidScript.Core.Solvers.Passes;
 /// <para>
 /// <strong>Sizing is applied by lowering again, not by mutating a component.</strong> A pipe's bore is
 /// not promotable and not settable — it is a constructor argument — so the pass that uses a new
-/// diameter is a pass that built a new <see cref="Pipe"/>. That keeps a solve a pure function of its
+/// diameter is a pass that built a new <see cref="PipeComponent"/>. That keeps a solve a pure function of its
 /// graph (<c>31</c>'s invariant 6) and is what <c>08</c> means by lowering having to be re-runnable
 /// against changing geometry.
 /// </para>

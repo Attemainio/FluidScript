@@ -44,7 +44,7 @@ public sealed partial class EquationSystem
                 continue;
             }
 
-            if (_graph.Components[state.Element] is not Tank tank)
+            if (_graph.Components[state.Element] is not TankComponent tank)
             {
                 continue;
             }
@@ -174,7 +174,7 @@ public sealed partial class EquationSystem
                 continue;
             }
 
-            if (_graph.Components[state.Element] is not Tank tank)
+            if (_graph.Components[state.Element] is not TankComponent tank)
             {
                 balances[index] = 0;
                 inflows[index] = 0;
@@ -225,7 +225,7 @@ public sealed partial class EquationSystem
     /// <param name="layer">The layer below the interface, 1-based; 0 or the top layer is a wall.</param>
     /// <param name="ports">How many ports the tank has.</param>
     /// <returns>kg/s.</returns>
-    private double Interface(Tank tank, int layer, int ports)
+    private double Interface(TankComponent tank, int layer, int ports)
     {
         if (layer <= 0 || layer >= tank.Layers)
         {
@@ -267,7 +267,7 @@ public sealed partial class EquationSystem
 
         while (index < differential.Length)
         {
-            if (differential[index].Column >= 0 || _graph.Components[differential[index].Element] is not Tank tank)
+            if (differential[index].Column >= 0 || _graph.Components[differential[index].Element] is not TankComponent tank)
             {
                 index++;
                 continue;

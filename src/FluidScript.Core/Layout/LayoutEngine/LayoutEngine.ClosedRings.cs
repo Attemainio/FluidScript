@@ -24,7 +24,7 @@ internal sealed partial class LayoutEngine
 
         if (consumer < 0)
         {
-            consumer = fragment.Where(i => _graph.Components[i] is HeatExchanger).Order().FirstOrDefault(-1);
+            consumer = fragment.Where(i => _graph.Components[i] is HeatExchangerComponent).Order().FirstOrDefault(-1);
         }
 
         // A ring with no duty and no exchanger -- two pumps, a pump and a valve -- is still a ring (C-102):
@@ -33,7 +33,7 @@ internal sealed partial class LayoutEngine
         if (consumer < 0)
         {
             var seats = fragment.Where(i => i != head && !Inline(i) && !Wildcard(i)).Order().ToList();
-            consumer = seats.FirstOrDefault(i => _graph.Components[i] is not Pump, seats.FirstOrDefault(-1));
+            consumer = seats.FirstOrDefault(i => _graph.Components[i] is not PumpComponent, seats.FirstOrDefault(-1));
         }
 
         if (consumer < 0)

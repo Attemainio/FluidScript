@@ -46,14 +46,14 @@ public sealed class PumpSizer : ISizer
     public ImmutableDictionary<string, Quantity> Provisional => [];
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is Pump;
+    public bool CanSize(IFlowComponent component) => component is PumpComponent;
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
     {
         ArgumentNullException.ThrowIfNull(component);
 
-        if (component is not Pump pump)
+        if (component is not PumpComponent pump)
         {
             return Result.Failure<SizingResult>(ResultError.From(
                 FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,

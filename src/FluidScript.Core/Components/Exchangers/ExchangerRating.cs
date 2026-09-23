@@ -7,7 +7,7 @@ namespace FluidScript.Core.Components.Exchangers;
 /// has none. Everything here is SI and fixed for one lowering -- the size is a sized or stated value,
 /// and a Rated profile is a boundary condition -- so nothing in it is recomputed per iteration. What
 /// <em>is</em> recomputed per iteration is the capacity rate of every solved side and therefore
-/// <c>Cmin</c>, which is <see cref="HeatExchanger"/>'s business (<c>22</c>).
+/// <c>Cmin</c>, which is <see cref="HeatExchangerComponent"/>'s business (<c>22</c>).
 /// </para>
 /// <para>
 /// A conductance of zero means the size is not yet known: the bootstrap pass, or a design point too thin

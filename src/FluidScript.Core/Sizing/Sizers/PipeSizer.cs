@@ -16,8 +16,8 @@ namespace FluidScript.Core.Sizing.Sizers;
 /// <remarks>
 /// <para>
 /// <strong>The gradient is computed by the same code the residual uses, never transcribed.</strong>
-/// Each candidate is a one-metre <see cref="Pipe"/> of that bore with no minor losses, and its
-/// <see cref="Pipe.PressureDrop"/> is the gradient — so the sizer and the solver cannot drift apart
+/// Each candidate is a one-metre <see cref="PipeComponent"/> of that bore with no minor losses, and its
+/// <see cref="PipeComponent.PressureDrop"/> is the gradient — so the sizer and the solver cannot drift apart
 /// about friction, which is what <c>24</c>'s acceptance criterion asks for. It also means Serghide's
 /// approximation, the laminar blend and the roughness all arrive automatically rather than being
 /// re-derived here.
@@ -57,14 +57,14 @@ public sealed class PipeSizer(
                 Dimension.NominalDiameter));
 
     /// <inheritdoc/>
-    public bool CanSize(IFlowComponent component) => component is Pipe;
+    public bool CanSize(IFlowComponent component) => component is PipeComponent;
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
     {
         ArgumentNullException.ThrowIfNull(component);
 
-        if (component is not Pipe pipe)
+        if (component is not PipeComponent pipe)
         {
             return Result.Failure<SizingResult>(ResultError.From(
                 FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
@@ -194,6 +194,6 @@ public sealed class PipeSizer(
     /// <returns>Pa/m, from the component's own friction model over a one-metre length.</returns>
     private static double Gradient(
         CatalogEntry<PipeSpec> entry, double volumeFlow, double density, double viscosity) =>
-        new Pipe("probe", 1, entry.Spec.InsideDiameter, entry.Spec.Roughness)
+        new PipeComponent("probe", 1, entry.Spec.InsideDiameter, entry.Spec.Roughness)
             .PressureDrop(Velocity(entry, volumeFlow), density, viscosity);
 }

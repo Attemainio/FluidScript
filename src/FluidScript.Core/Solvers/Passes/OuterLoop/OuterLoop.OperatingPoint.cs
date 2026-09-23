@@ -86,7 +86,7 @@ public sealed partial class OuterLoop
         // means side 1's -- the side the unsuffixed parameters describe.
         var branch = graph.Branches.FirstOrDefault(candidate =>
             candidate.Path.Contains(component)
-            && (component is not HeatExchanger exchanger || BranchFlows.Side(graph, candidate, exchanger) == 1));
+            && (component is not HeatExchangerComponent exchanger || BranchFlows.Side(graph, candidate, exchanger) == 1));
 
         if (branch is null || Inlet(graph, layout, iterate, component) is not { } state)
         {
@@ -189,9 +189,9 @@ public sealed partial class OuterLoop
 
             onALoop = true;
 
-            if (component is Pump
+            if (component is PumpComponent
                 && loop.Branches.Any(branch => branch.Path.Any(
-                    element => element is Pump && !ReferenceEquals(element, component))))
+                    element => element is PumpComponent && !ReferenceEquals(element, component))))
             {
                 continue;
             }

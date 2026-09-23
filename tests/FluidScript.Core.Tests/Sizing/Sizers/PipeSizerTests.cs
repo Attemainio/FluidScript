@@ -16,7 +16,7 @@ namespace FluidScript.Core.Tests.Sizing.Sizers;
 /// The reference case is the simple loop's <c>P1</c>: 0.2392 kg/s of water at the loop's 35 °C mean,
 /// which <c>24</c> sizes to <strong>DN25 at 94.1 Pa/m and 0.411 m/s</strong> after DN15 (1299 Pa/m) and
 /// DN20 (292 Pa/m) miss the 150 Pa/m target. Nothing here transcribes a gradient: the sizer builds a
-/// one-metre candidate and asks <see cref="Pipe.PressureDrop"/>, so this test compares the document
+/// one-metre candidate and asks <see cref="PipeComponent.PressureDrop"/>, so this test compares the document
 /// against the solver's own friction model rather than against a table someone typed twice.
 /// </remarks>
 [Trait("Category", "Unit")]
@@ -46,7 +46,7 @@ public sealed class PipeSizerTests
     private static SizingResult Size(double massFlow, double celsius, double target = 150)
     {
         var result = new PipeSizer(Steel, target)
-            .Size(new Pipe("P1", 25, 0.0273), At(massFlow, celsius));
+            .Size(new PipeComponent("P1", 25, 0.0273), At(massFlow, celsius));
 
         Assert.True(result.IsSuccess, result.Error?.Message);
 
@@ -98,7 +98,7 @@ public sealed class PipeSizerTests
         var bore = 0.0273;
         var velocity = 0.2392 / state.Density.SiValue / (Math.PI * bore * bore / 4);
 
-        var gradient = new Pipe("check", 1, bore, SteelEn10255.Roughness)
+        var gradient = new PipeComponent("check", 1, bore, SteelEn10255.Roughness)
             .PressureDrop(velocity, state.Density.SiValue, state.DynamicViscosity.SiValue);
 
         Assert.Equal(0.411, velocity, 0.01);
@@ -116,7 +116,7 @@ public sealed class PipeSizerTests
         var velocity = 0.2392 / state.Density.SiValue
             / (Math.PI * below.Spec.InsideDiameter * below.Spec.InsideDiameter / 4);
 
-        var gradient = new Pipe("check", 1, below.Spec.InsideDiameter, below.Spec.Roughness)
+        var gradient = new PipeComponent("check", 1, below.Spec.InsideDiameter, below.Spec.Roughness)
             .PressureDrop(velocity, state.Density.SiValue, state.DynamicViscosity.SiValue);
 
         Assert.True(gradient > 150, $"DN{below.Spec.NominalDiameter} at {gradient:F1} Pa/m already met the target.");
@@ -213,7 +213,7 @@ public sealed class PipeSizerTests
     [Fact]
     public void AFlowOfZeroIsRefusedRatherThanSizedFromNothing()
     {
-        var result = new PipeSizer(Steel).Size(new Pipe("P1", 25, 0.0273), At(0, 35));
+        var result = new PipeSizer(Steel).Size(new PipeComponent("P1", 25, 0.0273), At(0, 35));
 
         Assert.False(result.IsSuccess);
     }

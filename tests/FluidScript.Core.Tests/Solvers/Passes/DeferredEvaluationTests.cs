@@ -67,7 +67,7 @@ public sealed class DeferredEvaluationTests
         // `in[2].t=HE1.out[2].t` is that number, written in on the first pass that could rate HE1 and
         // settled on the next. The bootstrap's ideal exchanger has no rating, so pass 0 cannot supply it.
         var run = await Solve(Chained, "chained");
-        var he2 = Assert.IsType<HeatExchanger>(run.Graph.Components.Single(static c => c.Name == "HE2"));
+        var he2 = Assert.IsType<HeatExchangerComponent>(run.Graph.Components.Single(static c => c.Name == "HE2"));
 
         Assert.True(run.Settled);
         Assert.Equal(2, run.Passes);
@@ -84,7 +84,7 @@ public sealed class DeferredEvaluationTests
         var source = Chained
             .Replace("HE2  heat_exchanger power=20 in[2].t=HE1.out[2].t", "let tprim = HE1.out[2].t\nHE2  heat_exchanger power=20 in[2].t=tprim - 2 dK", StringComparison.Ordinal);
         var run = await Solve(source, "let-chain");
-        var he2 = Assert.IsType<HeatExchanger>(run.Graph.Components.Single(static c => c.Name == "HE2"));
+        var he2 = Assert.IsType<HeatExchangerComponent>(run.Graph.Components.Single(static c => c.Name == "HE2"));
 
         Assert.True(run.Settled);
         Assert.Equal(65.15, he2.StatedParameters["in2"].SiValue - 273.15, 0.05);

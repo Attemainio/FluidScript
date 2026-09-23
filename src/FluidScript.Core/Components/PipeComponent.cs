@@ -24,7 +24,7 @@ namespace FluidScript.Core.Components;
 /// <c>23</c> builds them. A component that also knew about its own subdivision would be two models.
 /// </para>
 /// </remarks>
-public sealed class Pipe : IFlowComponent
+public sealed class PipeComponent : ComponentBase
 {
     /// <summary>Standard gravity, m/s².</summary>
 
@@ -33,8 +33,6 @@ public sealed class Pipe : IFlowComponent
 
     /// <summary>Above this Reynolds number the flow is fully turbulent.</summary>
     private const double TurbulentLimit = 4000;
-
-    private readonly ImmutableArray<EquationDeclaration> _equations;
 
     /// <summary>Initializes a pipe from its resolved geometry.</summary>
     /// <param name="name">The user's identifier, or the generated name of an inferred pipe.</param>
@@ -48,21 +46,20 @@ public sealed class Pipe : IFlowComponent
     /// <paramref name="insideDiameter"/> is not positive. A zero length is an implicit pipe with no length
     /// stated (<c>D-110</c>): no friction, no volume, a designation on the drawing.
     /// </exception>
-    public Pipe(
+    public PipeComponent(
         string name,
         double length,
         double insideDiameter,
         double roughness = 0.045e-3,
         double minorLoss = 0,
         double rise = 0)
+        : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegative(length);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(insideDiameter);
         ArgumentOutOfRangeException.ThrowIfNegative(roughness);
         ArgumentOutOfRangeException.ThrowIfNegative(minorLoss);
 
-        Name = name;
         Length = length;
         InsideDiameter = insideDiameter;
         Roughness = roughness;
@@ -70,35 +67,16 @@ public sealed class Pipe : IFlowComponent
         Rise = rise;
         FlowArea = Math.PI * insideDiameter * insideDiameter / 4;
 
-        _equations =
+        Equations =
             [new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} momentum", "Pa")];
     }
-
-    /// <inheritdoc/>
-    public string Name { get; }
 
     /// <summary>Gets the catalogue the pipe's series comes from, or <see langword="null"/> for the script's catalogue (<c>C-36</c>).</summary>
     /// <value>A catalogue id such as <c>steel_en10255</c>, as the script's <c>material=</c> wrote it.</value>
     public string? Material { get; init; }
 
     /// <inheritdoc/>
-    public string Kind => "pipe";
-
-    /// <inheritdoc/>
-    /// <value>Always <see langword="null"/>: a pipe has no modes.</value>
-    public string? Mode => null;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
+    public override string Kind => "pipe";
 
     /// <summary>Gets the pipe's length.</summary>
     /// <value>m.</value>
@@ -134,7 +112,7 @@ public sealed class Pipe : IFlowComponent
     /// A copy rather than a setter because a component is immutable once the graph holds it; lowering
     /// calls this before the graph exists, when the heights the rise depends on have just been read.
     /// </remarks>
-    public Pipe WithRise(double rise) =>
+    public PipeComponent WithRise(double rise) =>
         new(Name, Length, InsideDiameter, Roughness, MinorLoss, rise)
         {
             Material = Material,
@@ -148,7 +126,7 @@ public sealed class Pipe : IFlowComponent
     public double FlowArea { get; }
 
     /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; } =
+    public override ImmutableArray<Port> Ports { get; } =
     [
         new Port { Name = "in", Role = PortRole.Inlet, IsOptional = false },
         new Port { Name = "out", Role = PortRole.Outlet, IsOptional = false },
@@ -156,25 +134,18 @@ public sealed class Pipe : IFlowComponent
 
     /// <inheritdoc/>
     /// <value>One group of two: everything entering a pipe leaves it.</value>
-    public ImmutableArray<int> FlowGroups { get; } = [0, 0];
+    public override ImmutableArray<int> FlowGroups { get; } = [0, 0];
 
     /// <inheritdoc/>
     /// <value>One: the momentum equation.</value>
-    public int EquationCount => 1;
-
-    /// <inheritdoc/>
-    /// <returns>Empty. A pipe's flow belongs to its branch and its pressures to its nodes.</returns>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    public override int EquationCount => 1;
 
     /// <inheritdoc/>
     /// <remarks>
     /// <c>(p_in − p_out) − Δp_friction − ρgΔz = 0</c>, with the friction term written in <c>v·|v|</c>
     /// so that a reversed flow opposes itself rather than driving itself.
     /// </remarks>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var inlet = context.Ports[0];
         var outlet = context.Ports[1];
@@ -201,7 +172,7 @@ public sealed class Pipe : IFlowComponent
     /// It depends on a stated parameter and not on a solved value, so it is fixed for the whole solve.
     /// </para>
     /// </value>
-    public bool InjectsEnergy => Rise != 0;
+    public override bool InjectsEnergy => Rise != 0;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -225,7 +196,7 @@ public sealed class Pipe : IFlowComponent
     /// enthalpy sees none of it.
     /// </para>
     /// </remarks>
-    public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
+    public override void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
     {
         var flow = context.Flows[0];
         var carried = -Hydrostatic.Power(flow, Rise);

@@ -171,7 +171,7 @@ public sealed class EquationSystemTests
 
         Assert.True(system.TryEvaluateResiduals(seed.Values.AsSpan(), residuals));
 
-        var exchanger = (HeatExchanger)graph.Components.Single(static c => c.Name == "HE1");
+        var exchanger = (HeatExchangerComponent)graph.Components.Single(static c => c.Name == "HE1");
         var touched = new[] { "PU1__HE1", "HE1__3WV" };
         var total = 0.0;
 

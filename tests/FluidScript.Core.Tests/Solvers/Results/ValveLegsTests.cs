@@ -118,7 +118,7 @@ public sealed class ValveLegsTests
     {
         // `D-88`. `m2-distribution-header` writes `TV_AHU.a - PA2 - N5` and `TV_AHU.b - NM_AHU`, so the
         // script has said which leg the valve modulates -- and it is the same thing the residuals say,
-        // since `ThreeWayValve` gives port `a` the opening `position` and `b` its complement. Sizing has
+        // since `ThreeWayValveComponent` gives port `a` the opening `position` and `b` its complement. Sizing has
         // to read the legs the way the equations do or it sizes a coefficient for the other path.
         var (graph, legs, valve) = Legs("m2-distribution-header.fluid", "TV_AHU");
 
@@ -201,7 +201,7 @@ public sealed class ValveLegsTests
             """;
 
         var graph = GraphFixture.Lower(source).Graph;
-        var valve = graph.Components.OfType<ThreeWayValve>().Single(
+        var valve = graph.Components.OfType<ThreeWayValveComponent>().Single(
             static v => string.Equals(v.Name, "TV_AHU", StringComparison.Ordinal));
         var legs = graph.Branches
             .Where(branch =>
@@ -223,7 +223,7 @@ public sealed class ValveLegsTests
     {
         var graph = GraphFixture.Lower(
             File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
-        var valve = graph.Components.OfType<ThreeWayValve>().Single(
+        var valve = graph.Components.OfType<ThreeWayValveComponent>().Single(
             v => v.BypassConnected
                 && (name is null || string.Equals(v.Name, name, StringComparison.Ordinal)));
         var legs = graph.Branches

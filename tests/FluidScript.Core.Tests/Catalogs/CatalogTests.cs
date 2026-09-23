@@ -397,7 +397,7 @@ public sealed class CatalogTests
         var velocity = flow / (Math.PI * bore * bore / 4);
 
         // One metre, so the drop is the gradient.
-        var gradient = new Pipe("P", length: 1, insideDiameter: bore, roughness: SteelEn10255.Roughness)
+        var gradient = new PipeComponent("P", length: 1, insideDiameter: bore, roughness: SteelEn10255.Roughness)
             .PressureDrop(velocity, density, viscosity);
 
         Assert.Equal(expectedVelocity, velocity, expectedVelocity * 0.01);

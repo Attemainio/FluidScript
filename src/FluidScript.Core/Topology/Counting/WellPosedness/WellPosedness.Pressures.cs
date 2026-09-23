@@ -80,7 +80,7 @@ public static partial class WellPosedness
         {
             var datum = hydraulic.Nodes.FirstOrDefault(node => node.Name == hydraulic.Datum);
 
-            if (datum?.Component is not CircuitNode anchor)
+            if (datum?.Component is not NodeComponent anchor)
             {
                 continue;
             }
@@ -102,7 +102,7 @@ public static partial class WellPosedness
 
             foreach (var node in hydraulic.Nodes)
             {
-                if (node.Component is CircuitNode placed && placed.Elevation - anchor.Elevation > rise)
+                if (node.Component is NodeComponent placed && placed.Elevation - anchor.Elevation > rise)
                 {
                     rise = placed.Elevation - anchor.Elevation;
                     highest = node;

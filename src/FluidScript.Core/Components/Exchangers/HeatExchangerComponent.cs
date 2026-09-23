@@ -28,9 +28,8 @@ namespace FluidScript.Core.Components.Exchangers;
 /// <c>hot_in=40</c> when the solve makes it the cold side is worse than one that says nothing.
 /// </para>
 /// </remarks>
-public sealed class HeatExchanger : IFlowComponent
+public sealed class HeatExchangerComponent : ComponentBase
 {
-    private readonly ImmutableArray<EquationDeclaration> _equations;
     private readonly double _resistance;
     private readonly double _secondaryResistance;
 
@@ -55,7 +54,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// could not be solved at all. A real second stream has a real pressure drop, and even an ideal one
     /// has the relation <c>p_in2 = p_out2</c> -- which is a statement, where declaring nothing is a hole.
     /// </remarks>
-    public HeatExchanger(
+    public HeatExchangerComponent(
         string name,
         double power,
         double designPressureDrop = 0,
@@ -63,8 +62,8 @@ public sealed class HeatExchanger : IFlowComponent
         double secondaryPressureDrop = 0,
         double secondaryFlow = 0,
         bool secondarySideConnected = false)
+        : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegative(designPressureDrop);
         ArgumentOutOfRangeException.ThrowIfNegative(secondaryPressureDrop);
 
@@ -78,7 +77,6 @@ public sealed class HeatExchanger : IFlowComponent
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(secondaryFlow);
         }
 
-        Name = name;
         Power = power;
         DesignPressureDrop = designPressureDrop;
         DesignFlow = designFlow;
@@ -92,7 +90,7 @@ public sealed class HeatExchanger : IFlowComponent
         _secondaryResistance =
             secondaryPressureDrop > 0 ? secondaryPressureDrop / (secondaryFlow * secondaryFlow) : 0;
 
-        _equations = secondarySideConnected
+        Equations = secondarySideConnected
             ?
             [
                 new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} side-1 drop", "Pa"),
@@ -137,14 +135,11 @@ public sealed class HeatExchanger : IFlowComponent
     public double HoldUp2 { get; init; }
 
     /// <inheritdoc/>
-    public string Name { get; }
-
-    /// <inheritdoc/>
-    public string Kind => "heat_exchanger";
+    public override string Kind => "heat_exchanger";
 
     /// <inheritdoc/>
     /// <value>The canonical mode name, lower-case: <c>duty</c>, <c>rated</c> or <c>coupled</c>.</value>
-    public string? Mode => ResolvedMode.ToString().ToLowerInvariant();
+    public override string? Mode => ResolvedMode.ToString().ToLowerInvariant();
 
     /// <summary>Gets the mode lowering resolved (<c>D-19</c>).</summary>
     /// <value>
@@ -160,18 +155,6 @@ public sealed class HeatExchanger : IFlowComponent
     /// <see cref="ExchangerRating.CanRate"/> is true the duty is ε-NTU's; without, it is <see cref="Power"/>.
     /// </value>
     public ExchangerRating? Rating { get; init; }
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
 
     /// <summary>Gets the duty transferred.</summary>
     /// <value>W, positive when side 1 gains heat. A negative value is a consumer.</value>
@@ -203,10 +186,10 @@ public sealed class HeatExchanger : IFlowComponent
     /// difference is in what is <em>connected</em>, not in how the ports partition, and a component
     /// that had to know its own mode to answer would need lowering to tell it (<c>D-63</c>).
     /// </remarks>
-    public ImmutableArray<int> FlowGroups { get; } = [0, 0, 1, 1];
+    public override ImmutableArray<int> FlowGroups { get; } = [0, 0, 1, 1];
 
     /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; } =
+    public override ImmutableArray<Port> Ports { get; } =
     [
         new Port { Name = "in", Role = PortRole.Inlet, IsOptional = false },
         new Port { Name = "out", Role = PortRole.Outlet, IsOptional = false },
@@ -232,14 +215,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// into the node's own balance (<c>D-69</c>, <see cref="EvaluateEnergyInjection"/>).
     /// </para>
     /// </value>
-    public int EquationCount => SecondarySideConnected ? 2 : 1;
-
-    /// <inheritdoc/>
-    /// <returns>Empty. Its flow belongs to its branch and its pressures to its nodes.</returns>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    public override int EquationCount => SecondarySideConnected ? 2 : 1;
 
     /// <summary>The index of <c>power</c> among this kind's resolvable parameters.</summary>
     public const int PowerIndex = 0;
@@ -250,7 +226,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// exchanger whose <c>power</c> the script left free, which is the duty-follows-temperature reading
     /// of a radiator sized to a room rather than to a number.
     /// </value>
-    public ImmutableArray<ResolvedParameter> Resolvable => [new ResolvedParameter("power", Power, "W")];
+    public override ImmutableArray<ResolvedParameter> Resolvable => [new ResolvedParameter("power", Power, "W")];
 
     /// <inheritdoc/>
     /// <remarks>
@@ -271,7 +247,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// (<c>C-19</c>).
     /// </para>
     /// </remarks>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var flow = context.Flows[0];
 
@@ -293,7 +269,7 @@ public sealed class HeatExchanger : IFlowComponent
 
     /// <inheritdoc/>
     /// <value>Always. Injecting heat is what the kind is for, and a zero duty injects zero.</value>
-    public bool InjectsEnergy => true;
+    public override bool InjectsEnergy => true;
 
     /// <inheritdoc/>
     /// <remarks>
@@ -320,7 +296,7 @@ public sealed class HeatExchanger : IFlowComponent
     /// moment they were.
     /// </para>
     /// </remarks>
-    public void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
+    public override void EvaluateEnergyInjection(in SolveContext context, Span<double> injection)
     {
         injection.Clear();
 

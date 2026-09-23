@@ -45,7 +45,7 @@ public static partial class SolutionSeed
 
             for (var vertex = 0; vertex < _vertices.Count; vertex++)
             {
-                if (_vertices[vertex] is not CircuitNode node)
+                if (_vertices[vertex] is not NodeComponent node)
                 {
                     continue;
                 }
@@ -74,7 +74,7 @@ public static partial class SolutionSeed
 
                 foreach (var vertex in free[component])
                 {
-                    var node = (CircuitNode)_vertices[vertex];
+                    var node = (NodeComponent)_vertices[vertex];
                     var flux = node.Boundary is BoundaryRole.Outlet ? -scale[component] : scale[component];
 
                     _injection[node] = flux;
@@ -105,7 +105,7 @@ public static partial class SolutionSeed
         /// divergence-free claim was false (<c>S-39</c>).
         /// </para>
         /// </remarks>
-        private static bool Free(CircuitNode node) =>
+        private static bool Free(NodeComponent node) =>
             node.CarriesMassBalance
             && node.Boundary is not BoundaryRole.Interior;
     }

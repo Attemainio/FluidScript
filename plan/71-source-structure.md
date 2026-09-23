@@ -14,7 +14,7 @@ last_review_pass: 0
 
 ## Purpose
 
-**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S3 shipped; S4–S5 follow. Runs before
+**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0–S4 shipped; S5 follows. Runs before
 P6.3, the user's call.
 
 `FluidScript.Core` is 204 files and 58 400 lines in **sixteen flat folders**. Only `Syntax/Ast` has a
@@ -131,10 +131,10 @@ FluidScript.Core/
 │   ├── Fluids/       FluidState, ISubstance, PropertyBackend, SubstanceRegistry, If97Saturation
 │   │   └── Substances/ Water, HumidAirSubstance, Refrigerant, RefrigerantKind, TestSubstances
 │   └── Cycles/       VapourCompressionCycle
-├── Components/       IComponent, IFlowComponent, Pipe, Pump, Tank, CircuitNode, ParameterOwnership,
-│   │                 Smoothing, SolveContext                      (ComponentBase and the renames, S4)
-│   ├── Valves/       Valve (+ ThreeWayValve until S2), ValveLaw
-│   ├── Exchangers/   HeatExchanger, Effectiveness, LogMeanTemperatureDifference, ExchangerRating,
+├── Components/       IComponent, IFlowComponent, ComponentBase, PipeComponent, PumpComponent,
+│   │                 TankComponent, NodeComponent, ParameterOwnership, Smoothing, SolveContext   (S4)
+│   ├── Valves/       ValveComponentBase, ValveComponent, ThreeWayValveComponent, ValveLaw
+│   ├── Exchangers/   HeatExchangerComponent, Effectiveness, LogMeanTemperatureDifference, ExchangerRating,
 │   │                 ExchangerArrangement
 │   └── Observation/  Observers, ModelObservers, PlacedSensor
 ├── Catalogs/         Catalog, CatalogEntry
@@ -190,10 +190,13 @@ Every `IFlowComponent` implementer declares `Name`, `Mode`, `StatedParameters`, 
 plus the constructor's `ThrowIfNull(name)` and `Name = name`. Measured per member with its XML doc
 and trailing blank: **150 lines across the seven**.
 
+As shipped in S4 (the shape first written here took the equations as a constructor argument; see
+the S4 row for why it does not):
+
 ```csharp
 public abstract class ComponentBase : IFlowComponent
 {
-    protected ComponentBase(string name, ImmutableArray<EquationDeclaration> equations);
+    protected ComponentBase(string name);
 
     public string Name { get; }
     public abstract string Kind { get; }
@@ -204,10 +207,14 @@ public abstract class ComponentBase : IFlowComponent
     public abstract ImmutableArray<Port> Ports { get; }
     public abstract ImmutableArray<int> FlowGroups { get; }
     public abstract int EquationCount { get; }
-    public virtual ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    protected ImmutableArray<EquationDeclaration> Equations { get; init; } = [];
+    protected ImmutableArray<UnknownDeclaration> Unknowns { get; init; } = [];
+    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => Unknowns;
+    public ImmutableArray<EquationDeclaration> DeclareEquations() => Equations;
     public abstract void EvaluateResiduals(in SolveContext context, Span<double> residuals);
-    // InjectsEnergy, EvaluateEnergyInjection, Resolvable: the interface's defaults, unchanged
+    public virtual bool InjectsEnergy => false;                                   // the interface's
+    public virtual void EvaluateEnergyInjection(in SolveContext c, Span<double> i) => i.Clear(); // defaults,
+    public virtual ImmutableArray<ResolvedParameter> Resolvable => [];            // restated
 }
 ```
 
@@ -275,6 +282,7 @@ by the file headers that one type per file and the partial splits create.
 | S2 one type per file | **≈ +1 500 estimated; +748 measured** (Core +696, Api +52) | 279 types left 69 files. The estimate assumed each new file kept its source's `using`s; pruning to what each file needs halved it |
 | S3 partial splits | **≈ +400 estimated; +678 measured** (Core only) | 22 classes split into 63 new partial files. Each new file carries its source's `using`s until pruned, the namespace, and one class header — two for a nested class, which is wrapped in its outer class |
 | S4 `ComponentBase` | **−150**, base +60 | counted per member with docs, across the seven components |
+| S4 measured | **−98** (Core; tests renamed, net 0) | both bases and the renames together, against −100 estimated for the two S4 rows |
 | S4 `ValveComponentBase` | ≈ −10 | shared members less the base's own |
 | S5 `SizerBase<T>` | ≈ 0 | `CanSize` and guards removed, the base added |
 | S5 pipe-catalogue builder | ≈ −30 | three builders of 23, 23 and 32 lines to calls of ~6, plus a ~30-line builder |
@@ -297,7 +305,7 @@ suites green, the build at zero warnings, and the plan checker at its baseline.
 | S1 | **Moves only**, shipped 2026-09-23 as two commits rather than one per domain: every `git mv` in one commit with no content edit, which compiles as it stands because no file's text changed and keeps `git log --follow` intact; then the namespaces, the `using`s (rebuilt from a type map — a file gains a `using` for a type only if it could already see that type's old namespace), 149 unused `using`s removed, and three test literals that named a folder or a namespace. Tests moved with their code | medium | low — the compiler finds every missed `using` |
 | S2 | One type per file, shipped 2026-09-23: 279 types out of 69 files (Core and Api), nine files named for no type removed; `Ast/Statements/`, `Ast/Expressions/` and `Components/Declarations/` created; a type split out of a class folder goes to its parent so the folder stays one class's. A doc comment attaches across a blank line, and the splitter follows it | medium | low |
 | S3 | Concern partials, shipped 2026-09-23: every Core file over 600 lines split by concern, members moved whole and unedited — 22 classes, 63 new files, eight new class folders. Fields and initialised auto-properties stay in the core file, because C# does not order static initialisers across partial files. A nested class splits as a nested partial inside its outer partial (`Lowering.Build.*`, `SolutionSeed.Field.*`); primary-constructor parameters are visible in every part. Two static `char[]`/`string[]` fields moved beside their only readers, because `CA1870`'s analyzer crashes (`AD0001`, "Syntax node is not within syntax tree") when the array and its use sit in different files. `70`'s R6 was **not** taken: it changes how the binder and the equation system are built, and a package whose evidence is "members moved, nothing edited" is the wrong carrier for it | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
-| S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol` | medium | **med** — the only package that touches the hot path |
+| S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol`, shipped 2026-09-23. Three departures from the sketch above, each for a reason found while writing it. **The equations are a protected `init` property, not a constructor argument**: the tank and the exchanger build theirs from validated state over several statements, and a base-constructor argument would have forced each into a static helper. **The interface's default members are restated as virtuals** (`InjectsEnergy`, `EvaluateEnergyInjection`, `Resolvable`): a derived member the base did not declare would not implement the interface — the base's mapping to the interface default would win, and the pipe's rise would drop out of the energy balance with nothing failing to compile. **`CircuitNode` became `NodeComponent`**, which `71` had not named: the kind is `node`, and the glossary derives the type from the keyword. `EquationCount` stays abstract, because the node's and the exchanger's explain why their count is what it is. Solver-scale timing at 861 unknowns, two runs each, debug build: 5.50 and 5.63 s before, 5.58 and 5.52 s after; 1 597 MB allocated both times | medium | **med** — the only package that touches the hot path |
 | S5 | `SizerBase<TComponent>` and `PipeCatalogBuilder` | small | low |
 
 S1 before S2 before S3 so a file moves once and splits in its final folder. S4 after S3 so the
@@ -346,8 +354,8 @@ the tier registers of whatever it found.
 - **S2** — `ThreeWayValve` leaves for `Components/Valves/ThreeWayValve.cs`; `ValveCharacteristic` and
   `ValveArrangement` leave `ValveLaw.cs` for files of their own in the same folder.
 - **S4** — `ValveComponentBase.cs` added, holding `Kv`, `Position`, `Characteristic` and the indices;
-  `rename_symbol` turns `Valve` into `ValveComponent` and `ThreeWayValve` into
-  `ThreeWayValveComponent`; `git mv` renames the files to match.
+  `rename_symbol` turns `Valve` into `ValveComponent` (28 sites in 17 files) and `ThreeWayValve`
+  into `ThreeWayValveComponent` (69 in 26); `git mv` renames the files to match.
 - **S5** — `ValveSizer : SizerBase<ValveComponentBase>`; its `CanSize` line and its wrong-type refusal
   block are deleted.
 

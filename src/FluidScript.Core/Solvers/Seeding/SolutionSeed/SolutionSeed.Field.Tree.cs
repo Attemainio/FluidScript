@@ -69,7 +69,7 @@ public static partial class SolutionSeed
                 {
                     for (var step = 0; step < candidate.Path.Length; step++)
                     {
-                        if (candidate.Path[step] is Pump pump)
+                        if (candidate.Path[step] is PumpComponent pump)
                         {
                             var direction = PortDirection(candidate, step, pump, sideOneOnly: false);
                             if (direction.HasValue)
@@ -86,7 +86,7 @@ public static partial class SolutionSeed
                 {
                     for (var step = 0; step < candidate.Path.Length; step++)
                     {
-                        if (candidate.Path[step] is HeatExchanger exchanger
+                        if (candidate.Path[step] is HeatExchangerComponent exchanger
                             && (Ownership.Of(exchanger, "in") is ParameterState.Stated
                                 || Ownership.Of(exchanger, "out") is ParameterState.Stated))
                         {
@@ -304,7 +304,7 @@ public static partial class SolutionSeed
             /// </remarks>
             private int CommonBranch(int vertex)
             {
-                if (_vertices[vertex] is not ThreeWayValve { BypassConnected: true } valve)
+                if (_vertices[vertex] is not ThreeWayValveComponent { BypassConnected: true } valve)
                 {
                     return -1;
                 }

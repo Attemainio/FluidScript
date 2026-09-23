@@ -5,7 +5,7 @@ namespace FluidScript.Core.Topology.Graph;
 /// <summary>A point in the graph carrying pressure and enthalpy.</summary>
 /// <remarks>
 /// <para>
-/// A wrapper around the <see cref="CircuitNode"/> that writes the equations, holding what the graph
+/// A wrapper around the <see cref="NodeComponent"/> that writes the equations, holding what the graph
 /// knows and the component does not: where the node came from, and how much of a pipe's thermal
 /// volume it owns. The component is kept rather than duplicated because the solver indexes residuals
 /// through it.
@@ -25,7 +25,7 @@ public sealed record GraphNode
     public required string Name { get; init; }
 
     /// <summary>Gets the component that carries this node's unknowns and equations.</summary>
-    public required CircuitNode Component { get; init; }
+    public required NodeComponent Component { get; init; }
 
     /// <summary>Gets how this node came to exist.</summary>
     public required NodeOrigin Origin { get; init; }

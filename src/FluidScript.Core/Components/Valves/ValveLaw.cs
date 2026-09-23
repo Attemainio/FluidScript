@@ -5,7 +5,7 @@ namespace FluidScript.Core.Components.Valves;
 /// <summary>The Kv relation, in SI, regularised so a closed valve is differentiable.</summary>
 /// <remarks>
 /// <para>
-/// Shared by <see cref="Valve"/> and <see cref="ThreeWayValve"/>, which are two kinds over one
+/// Shared by <see cref="ValveComponent"/> and <see cref="ThreeWayValveComponent"/>, which are two kinds over one
 /// equation.
 /// </para>
 /// <para>

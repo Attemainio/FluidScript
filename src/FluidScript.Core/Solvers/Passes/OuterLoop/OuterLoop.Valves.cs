@@ -72,7 +72,7 @@ public sealed partial class OuterLoop
 
         foreach (var component in graph.Components)
         {
-            if (component is not ThreeWayValve { BypassConnected: true } valve)
+            if (component is not ThreeWayValveComponent { BypassConnected: true } valve)
             {
                 continue;
             }
@@ -130,7 +130,7 @@ public sealed partial class OuterLoop
     /// two definitions that could drift apart.
     /// </remarks>
     private static (SizingContext? Context, string? Declined) ThreeWayContext(
-        CircuitGraph graph, SystemLayout layout, StateVector iterate, ThreeWayValve valve)
+        CircuitGraph graph, SystemLayout layout, StateVector iterate, ThreeWayValveComponent valve)
     {
         if (Inlet(graph, layout, iterate, valve) is not { } state)
         {
@@ -230,12 +230,12 @@ public sealed partial class OuterLoop
         {
             var (context, characteristic, kv) = component switch
             {
-                Valve balancing when OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted)
+                ValveComponent balancing when OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted)
                     => (null, default, 0),
-                Valve valve => (Context(graph, layout, solution, valve), valve.Characteristic, valve.Kv),
-                ThreeWayValve { BypassConnected: true } mixing
+                ValveComponent valve => (Context(graph, layout, solution, valve), valve.Characteristic, valve.Kv),
+                ThreeWayValveComponent { BypassConnected: true } mixing
                     => (ThreeWayContext(graph, layout, solution, mixing).Context, mixing.Characteristic, mixing.Kv),
-                ThreeWayValve twoWay => (Context(graph, layout, solution, twoWay), twoWay.Characteristic, twoWay.Kv),
+                ThreeWayValveComponent twoWay => (Context(graph, layout, solution, twoWay), twoWay.Characteristic, twoWay.Kv),
                 _ => ((SizingContext?)null, default(ValveCharacteristic), 0.0),
             };
 
@@ -320,7 +320,7 @@ public sealed partial class OuterLoop
 
         foreach (var component in graph.Components)
         {
-            if (component is not Valve valve
+            if (component is not ValveComponent valve
                 || Claimed(valve, "kv", promoted)
                 || OnSwitchedLeg(graph, valve) is not { } leg)
             {
@@ -420,7 +420,7 @@ public sealed partial class OuterLoop
     /// <param name="graph">The lowered circuit.</param>
     /// <param name="valve">The two-way valve.</param>
     /// <returns>The three-way valve, the leg's port name (<c>a</c> or <c>b</c>) and the branch, when the valve's branch ends at a three-way valve's switched port.</returns>
-    private static (ThreeWayValve Valve, string Port, Branch Branch)? OnSwitchedLeg(CircuitGraph graph, Valve valve)
+    private static (ThreeWayValveComponent Valve, string Port, Branch Branch)? OnSwitchedLeg(CircuitGraph graph, ValveComponent valve)
     {
         foreach (var branch in graph.Branches)
         {
@@ -431,7 +431,7 @@ public sealed partial class OuterLoop
 
             foreach (var end in new[] { branch.From, branch.To })
             {
-                if (end.Element is ThreeWayValve { BypassConnected: true } three && end.PortName is "a" or "b")
+                if (end.Element is ThreeWayValveComponent { BypassConnected: true } three && end.PortName is "a" or "b")
                 {
                     return (three, end.PortName, branch);
                 }

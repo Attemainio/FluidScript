@@ -58,7 +58,7 @@ public sealed class PumpSizerTests
 
     private static SizingResult Size(SizingContext context, double? margin = null)
     {
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 1)
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 1)
         {
             StatedParameters = margin is { } stated
                 ? ImmutableDictionary<string, Quantity>.Empty.Add(
@@ -180,7 +180,7 @@ public sealed class PumpSizerTests
     [Fact]
     public void ADropThatIsNotANumberIsAFailureRatherThanAHeadOfNaN()
     {
-        var result = new PumpSizer().Size(new Pump("PU1", 10, 1), At(double.NaN));
+        var result = new PumpSizer().Size(new PumpComponent("PU1", 10, 1), At(double.NaN));
 
         Assert.False(result.IsSuccess);
         Assert.Contains("resistance is not yet known", result.Error!.Message, StringComparison.Ordinal);
@@ -193,8 +193,8 @@ public sealed class PumpSizerTests
 
         Assert.Equal("head", Assert.Single(sizer.Parameters));
         Assert.Empty(sizer.Provisional);
-        Assert.True(sizer.CanSize(new Pump("PU1", 10, 1)));
-        Assert.False(sizer.CanSize(new Pipe("P1", 25, 0.0273)));
+        Assert.True(sizer.CanSize(new PumpComponent("PU1", 10, 1)));
+        Assert.False(sizer.CanSize(new PipeComponent("P1", 25, 0.0273)));
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public sealed class PumpSizerTests
     {
         // `CanSize` is the gate, but a rule that trusted it and cast anyway would throw on the day a
         // caller skipped the gate. A pipeline stage returns its refusal instead.
-        var result = new PumpSizer().Size(new Pipe("P1", 25, 0.0273), At(WorkedExampleDrop));
+        var result = new PumpSizer().Size(new PipeComponent("P1", 25, 0.0273), At(WorkedExampleDrop));
 
         Assert.False(result.IsSuccess);
         Assert.Contains("not a pump", result.Error!.Message, StringComparison.Ordinal);

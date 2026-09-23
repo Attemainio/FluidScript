@@ -95,7 +95,7 @@ public sealed partial class OuterLoop
         {
             // A two-way valve on a three-way valve's switched leg with nothing deciding its `kv` is a
             // balancing valve, and the authority rule is the wrong rule for it: `BypassValves` sets it.
-            if (component is Valve balancing && OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted))
+            if (component is ValveComponent balancing && OnSwitchedLeg(graph, balancing) is not null && !Claimed(balancing, "kv", promoted))
             {
                 continue;
             }
@@ -149,7 +149,7 @@ public sealed partial class OuterLoop
 
     /// <summary>Says a balancing valve kept its bootstrap value, and why.</summary>
     private static void Kept(
-        Valve valve,
+        ValveComponent valve,
         SizingOverlay overlay,
         ImmutableDictionary<string, string>.Builder bases,
         ImmutableArray<string>.Builder notes,
@@ -186,7 +186,7 @@ public sealed partial class OuterLoop
     /// <c>C-60</c> recorded. The pass that declined is the only thing that knows why, so it says so.
     /// </remarks>
     private static void Declined(
-        ThreeWayValve valve,
+        ThreeWayValveComponent valve,
         SizingOverlay overlay,
         ImmutableDictionary<string, string>.Builder bases,
         ImmutableArray<string>.Builder notes,
@@ -297,7 +297,7 @@ public sealed partial class OuterLoop
             }
 
             var duties = hydraulic.Elements
-                .OfType<HeatExchanger>()
+                .OfType<HeatExchangerComponent>()
                 .DistinctBy(static exchanger => exchanger.Name)
                 .ToArray();
 

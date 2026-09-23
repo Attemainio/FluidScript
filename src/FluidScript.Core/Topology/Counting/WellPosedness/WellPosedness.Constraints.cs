@@ -67,7 +67,7 @@ public static partial class WellPosedness
         {
             var hydraulic = Owner(hydraulics, element);
 
-            if (element is CircuitNode)
+            if (element is NodeComponent)
             {
                 if (HydraulicPartition.Stated(element, HydraulicPartition.Temperature) is not null
                     && HydraulicPartition.Stated(element, HydraulicPartition.Pressure) is null
@@ -84,7 +84,7 @@ public static partial class WellPosedness
                 continue;
             }
 
-            if (element is not HeatExchanger || Rates(hydraulics, element))
+            if (element is not HeatExchangerComponent || Rates(hydraulics, element))
             {
                 continue;
             }
@@ -163,13 +163,13 @@ public static partial class WellPosedness
 
                 var pins = element switch
                 {
-                    HeatExchanger => true,
-                    Pump pump => HydraulicPartition.Stated(pump, "head") is null && pump.StatedRise is null,
+                    HeatExchangerComponent => true,
+                    PumpComponent pump => HydraulicPartition.Stated(pump, "head") is null && pump.StatedRise is null,
                     _ => false,
                 };
 
                 // Side 2 runs in its own hydraulic when the exchanger couples two.
-                var side = parameter.EndsWith('2') && element is HeatExchanger
+                var side = parameter.EndsWith('2') && element is HeatExchangerComponent
                     ? SideHydraulic(graph, hydraulics, element, 2)
                     : hydraulic;
 
@@ -197,7 +197,7 @@ public static partial class WellPosedness
     {
         foreach (var element in graph.Components)
         {
-            if (element is not HeatExchanger || !Rates(hydraulics, element))
+            if (element is not HeatExchangerComponent || !Rates(hydraulics, element))
             {
                 continue;
             }

@@ -7,7 +7,7 @@ namespace FluidScript.Core.Catalogs.Pipes;
 /// <c>Quantity</c> and derives the bore as <c>OutsideDiameter - 2 * WallThickness</c>, which does not
 /// compile: <c>Quantity</c> has no arithmetic operators, only <c>TryAdd</c>/<c>TrySubtract</c>, because
 /// unit arithmetic can fail and a silent operator would hide it. Plain metres also matches
-/// <see cref="Components.Pipe"/>, which is the only consumer.
+/// <see cref="Components.PipeComponent"/>, which is the only consumer.
 /// </para>
 /// <para>
 /// <strong><see cref="InsideDiameter"/> is computed, never stored.</strong> A record carrying all

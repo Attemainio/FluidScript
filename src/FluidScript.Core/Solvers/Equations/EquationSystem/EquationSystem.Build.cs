@@ -50,7 +50,7 @@ public sealed partial class EquationSystem
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            if (graph.Components[element] is not CircuitNode node)
+            if (graph.Components[element] is not NodeComponent node)
             {
                 arriving[element] = [];
                 continue;
@@ -100,7 +100,7 @@ public sealed partial class EquationSystem
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            if (graph.Components[element] is CircuitNode)
+            if (graph.Components[element] is NodeComponent)
             {
                 continue;
             }
@@ -258,7 +258,7 @@ public sealed partial class EquationSystem
     /// <param name="exchanger">The exchanger.</param>
     /// <param name="parameter">The pinning parameter: <c>out</c>, <c>out2</c>, <c>dt</c> or <c>dt2</c>.</param>
     /// <returns>K, a magnitude; zero when the pair is not both stated.</returns>
-    private static double SideSpan(HeatExchanger exchanger, string parameter)
+    private static double SideSpan(HeatExchangerComponent exchanger, string parameter)
     {
         if (parameter is "dt" or "dt2")
         {
@@ -321,7 +321,7 @@ public sealed partial class EquationSystem
         {
             // A node wired straight to a node: the ideal link, which carries gravity's share of the
             // enthalpy itself because there is no component between them to inject it (D-70).
-            var lift = graph.Components[element] is CircuitNode here && attached is CircuitNode there
+            var lift = graph.Components[element] is NodeComponent here && attached is NodeComponent there
                 ? Hydrostatic.Lift(here.Elevation - there.Elevation)
                 : 0;
 
@@ -351,7 +351,7 @@ public sealed partial class EquationSystem
 
     /// <summary>A node's height above the project datum, for the links between nodes.</summary>
     /// <param name="component">The node's component.</param>
-    /// <returns>m; 0 for anything that is not a <see cref="CircuitNode"/>.</returns>
+    /// <returns>m; 0 for anything that is not a <see cref="NodeComponent"/>.</returns>
     private static double Height(IFlowComponent component) =>
-        component is CircuitNode node ? node.Elevation : 0;
+        component is NodeComponent node ? node.Elevation : 0;
 }

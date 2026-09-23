@@ -40,7 +40,7 @@ public sealed class ModelContractBuilderTests
         var input = await ContractFixture.SolveAsync(ContractFixture.Sample("m2-simple-loop.fluid"));
         var contract = ModelContractBuilder.Build(input);
         var wire = contract.Components.Single(static c => c.Id == "N5__N1");
-        var pipe = (Pipe)input.Graph.Components.Single(static c => c.Name == "N5__N1");
+        var pipe = (PipeComponent)input.Graph.Components.Single(static c => c.Name == "N5__N1");
 
         var velocity = wire.State!.Velocity!.Value!.Value;
         var flow = Math.Abs(wire.State.Flow!.Value!.Value);

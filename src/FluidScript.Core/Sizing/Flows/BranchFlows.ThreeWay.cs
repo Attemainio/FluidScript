@@ -16,7 +16,7 @@ public static partial class BranchFlows
     private static bool PropagateThreeWay(
         CircuitGraph graph,
         BranchFlow[] estimates,
-        ThreeWayValve valve)
+        ThreeWayValveComponent valve)
     {
         var common = -1;
         var first = -1;
@@ -116,7 +116,7 @@ public static partial class BranchFlows
     /// <param name="branch">The branch, a mixing valve's common leg.</param>
     /// <returns>The first exchanger's name, or an empty string when the branch holds none.</returns>
     private static string LoadOn(CircuitGraph graph, Branch branch) =>
-        branch.Path.OfType<HeatExchanger>().FirstOrDefault()?.Name ?? string.Empty;
+        branch.Path.OfType<HeatExchangerComponent>().FirstOrDefault()?.Name ?? string.Empty;
 
     /// <summary>Returns the hot-leg fraction implied by a load's design temperatures and the temperature that feeds its valve's <c>a</c> port.</summary>
     /// <param name="graph">The lowered circuit.</param>
@@ -131,10 +131,10 @@ public static partial class BranchFlows
     /// where it is half. <see cref="FeedTemperature"/> walks the feed branch for the exchanger that
     /// last touched the water; the hottest source is the fallback when the walk finds nothing.
     /// </remarks>
-    private static double? MixingFraction(CircuitGraph graph, string loadName, Branch feed, ThreeWayValve valve)
+    private static double? MixingFraction(CircuitGraph graph, string loadName, Branch feed, ThreeWayValveComponent valve)
     {
         var load = graph.Components
-            .OfType<HeatExchanger>()
+            .OfType<HeatExchangerComponent>()
             .SingleOrDefault(component => string.Equals(component.Name, loadName, StringComparison.Ordinal));
 
         if (load is null
@@ -148,7 +148,7 @@ public static partial class BranchFlows
 
         if (hot is null)
         {
-            foreach (var source in graph.Components.OfType<HeatExchanger>())
+            foreach (var source in graph.Components.OfType<HeatExchangerComponent>())
             {
                 if (source.Power > 0
                     && source.StatedParameters.TryGetValue("out", out var outlet)
@@ -190,7 +190,7 @@ public static partial class BranchFlows
     /// what discharges there -- the first block's load on the series header. A stated temperature on
     /// the junction node itself wins over both.
     /// </remarks>
-    private static Quantity? FeedTemperature(CircuitGraph graph, Branch feed, ThreeWayValve valve)
+    private static Quantity? FeedTemperature(CircuitGraph graph, Branch feed, ThreeWayValveComponent valve)
     {
         var forward = ReferenceEquals(feed.To.Element, valve);
         IEnumerable<IFlowComponent> path = feed.Path;
@@ -202,7 +202,7 @@ public static partial class BranchFlows
 
         foreach (var element in path)
         {
-            if (element is HeatExchanger { Power: > 0 } source
+            if (element is HeatExchangerComponent { Power: > 0 } source
                 && source.StatedParameters.TryGetValue("out", out var outlet))
             {
                 return outlet;
@@ -211,7 +211,7 @@ public static partial class BranchFlows
 
         var far = forward ? feed.From.Element : feed.To.Element;
 
-        if (far is CircuitNode node && node.StatedParameters.TryGetValue("t", out var stated))
+        if (far is NodeComponent node && node.StatedParameters.TryGetValue("t", out var stated))
         {
             return stated;
         }
@@ -236,7 +236,7 @@ public static partial class BranchFlows
                     continue;
                 }
 
-                var exchanger = branch.Path.OfType<HeatExchanger>().FirstOrDefault();
+                var exchanger = branch.Path.OfType<HeatExchangerComponent>().FirstOrDefault();
 
                 if (exchanger is not null)
                 {
@@ -250,7 +250,7 @@ public static partial class BranchFlows
 
                 var beyond = ReferenceEquals(branch.From.Element, junction) ? branch.To.Element : branch.From.Element;
 
-                if (beyond is CircuitNode && seen.Add(beyond))
+                if (beyond is NodeComponent && seen.Add(beyond))
                 {
                     pending.Enqueue(beyond);
                 }
@@ -264,10 +264,10 @@ public static partial class BranchFlows
     /// <param name="branch">The branch.</param>
     /// <returns><see langword="true"/> when either end is a three-way valve.</returns>
     private static bool MeetsThreeWay(Branch branch) =>
-        branch.From.Element is ThreeWayValve || branch.To.Element is ThreeWayValve;
+        branch.From.Element is ThreeWayValveComponent || branch.To.Element is ThreeWayValveComponent;
 
     /// <summary>Finds the one return temperature all opposing loads state.</summary>
-    private static Quantity? CommonReturn(CircuitGraph graph, HeatExchanger source)
+    private static Quantity? CommonReturn(CircuitGraph graph, HeatExchangerComponent source)
     {
         if (source.Power <= 0)
         {
@@ -275,7 +275,7 @@ public static partial class BranchFlows
         }
 
         var returns = graph.Components
-            .OfType<HeatExchanger>()
+            .OfType<HeatExchangerComponent>()
             .Where(candidate => candidate.Power < 0)
             .Select(candidate => candidate.StatedParameters.TryGetValue("out", out var outlet)
                 ? (Quantity?)outlet

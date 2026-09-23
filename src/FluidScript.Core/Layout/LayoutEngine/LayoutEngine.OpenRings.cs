@@ -14,7 +14,7 @@ internal sealed partial class LayoutEngine
     private bool Open(int supply, List<int> fragment)
     {
         var attempt = new Attempt(this);
-        if (_graph.Components[supply] is not CircuitNode { Boundary: BoundaryRole.Inlet } || !Wildcard(supply))
+        if (_graph.Components[supply] is not NodeComponent { Boundary: BoundaryRole.Inlet } || !Wildcard(supply))
         {
             return attempt.Decline("the head is not a supply boundary");
         }
@@ -29,7 +29,7 @@ internal sealed partial class LayoutEngine
         {
             var (junction, back) = Follow(supply, linked[0]);
 
-            if (junction < 0 || !Wildcard(junction) || _inline[junction] || _graph.Components[junction] is not CircuitNode { Boundary: BoundaryRole.Interior })
+            if (junction < 0 || !Wildcard(junction) || _inline[junction] || _graph.Components[junction] is not NodeComponent { Boundary: BoundaryRole.Interior })
             {
                 return attempt.Decline("the supply does not feed an interior junction node");
             }
@@ -45,7 +45,7 @@ internal sealed partial class LayoutEngine
         var ret = -1;
         var outletPort = -1;
 
-        foreach (var candidate in Ordered(fragment).Where(i => i != supply && i != inlet && _graph.Components[i] is CircuitNode { Boundary: BoundaryRole.Outlet }))
+        foreach (var candidate in Ordered(fragment).Where(i => i != supply && i != inlet && _graph.Components[i] is NodeComponent { Boundary: BoundaryRole.Outlet }))
         {
             var found = new List<List<Member>>();
 

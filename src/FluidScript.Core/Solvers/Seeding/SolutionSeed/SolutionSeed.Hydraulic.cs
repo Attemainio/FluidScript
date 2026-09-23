@@ -240,12 +240,12 @@ public static partial class SolutionSeed
 
                     foreach (var part in path)
                     {
-                        if (part is CircuitNode)
+                        if (part is NodeComponent)
                         {
                             running = Place(part, 0, running);
                             continue;
                         }
-                        var drop = part is Pump { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
+                        var drop = part is PumpComponent { ShutOffHead: 0 } pump && PromotesHead(layout, pump)
                             ? -Hydrostatic.Pressure(state.Density.SiValue, NominalPumpHead)
                             : BranchResistance.Of(
                                 graph, state, part, flow, Parameters(graph, layout, values, part), Tolerances.SeedValveExcursion);
@@ -273,7 +273,7 @@ public static partial class SolutionSeed
     /// <param name="branch">The branch's index.</param>
     /// <returns><see langword="true"/> when it does, which the pressure walk uses to walk it last.</returns>
     private static bool CarriesPromotedPump(CircuitGraph graph, SystemLayout layout, int branch) =>
-        graph.Branches[branch].Path.Any(part => part is Pump pump && PromotesHead(layout, pump));
+        graph.Branches[branch].Path.Any(part => part is PumpComponent pump && PromotesHead(layout, pump));
 
     /// <summary>The flow buffer an element accumulates its ports' flows into.</summary>
     /// <param name="carried">The map being built.</param>

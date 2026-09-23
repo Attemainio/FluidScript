@@ -128,11 +128,11 @@ public sealed class ValveKvR5Tests
         // `S-74`. The Jacobian reads a pressure column twice: at a step that clears the flash's noise for
         // every row, and at sqrt(eps) for the rows a valve marks steep, whose sqrt(dp) law may sit at a
         // sub-pascal drop. Both valve kinds mark their Kv laws and nothing else; a pipe marks nothing.
-        Assert.All(new FluidScript.Core.Components.Valves.Valve("CV", 4).DeclareEquations(), static row => Assert.True(row.SteepInPressure));
+        Assert.All(new FluidScript.Core.Components.Valves.ValveComponent("CV", 4).DeclareEquations(), static row => Assert.True(row.SteepInPressure));
         Assert.All(
-            new FluidScript.Core.Components.Valves.ThreeWayValve("TV", 6.3).DeclareEquations(),
+            new FluidScript.Core.Components.Valves.ThreeWayValveComponent("TV", 6.3).DeclareEquations(),
             static row => Assert.Equal(row.Name.Contains("Kv law", StringComparison.Ordinal), row.SteepInPressure));
-        Assert.All(new Core.Components.Pipe("P1", 10, 0.0273).DeclareEquations(), static row => Assert.False(row.SteepInPressure));
+        Assert.All(new Core.Components.PipeComponent("P1", 10, 0.0273).DeclareEquations(), static row => Assert.False(row.SteepInPressure));
     }
 
     [Fact]

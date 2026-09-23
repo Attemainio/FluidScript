@@ -45,7 +45,7 @@ public sealed class ExchangerSizerTests
             LoopDrop = null,
         };
 
-    private static HeatExchanger Exchanger(double? statedDrop = null) =>
+    private static HeatExchangerComponent Exchanger(double? statedDrop = null) =>
         new("HE1", power: 30_000)
         {
             StatedParameters = statedDrop is { } stated
@@ -55,7 +55,7 @@ public sealed class ExchangerSizerTests
                 "dp", Quantity.FromSi(20_000, Dimension.Pressure)),
         };
 
-    private static SizingResult Size(HeatExchanger exchanger, SizingContext context)
+    private static SizingResult Size(HeatExchangerComponent exchanger, SizingContext context)
     {
         var result = new ExchangerSizer().Size(exchanger, context);
 
@@ -119,7 +119,7 @@ public sealed class ExchangerSizerTests
     [Fact]
     public void SomethingThatIsNotAnExchangerIsRefusedNotThrownAt()
     {
-        var result = new ExchangerSizer().Size(new Pump("PU1", shutOffHead: 10, curvature: 1), At(WorkedExampleFlow));
+        var result = new ExchangerSizer().Size(new PumpComponent("PU1", shutOffHead: 10, curvature: 1), At(WorkedExampleFlow));
 
         Assert.False(result.IsSuccess);
     }
@@ -132,6 +132,6 @@ public sealed class ExchangerSizerTests
         Assert.Equal(["flow"], sizer.Parameters);
         Assert.Empty(sizer.Provisional);
         Assert.True(sizer.CanSize(Exchanger()));
-        Assert.False(sizer.CanSize(new Pump("PU1", shutOffHead: 10, curvature: 1)));
+        Assert.False(sizer.CanSize(new PumpComponent("PU1", shutOffHead: 10, curvature: 1)));
     }
 }

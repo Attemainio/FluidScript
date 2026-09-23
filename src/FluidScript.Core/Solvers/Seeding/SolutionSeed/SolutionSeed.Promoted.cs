@@ -140,11 +140,11 @@ public static partial class SolutionSeed
                     continue;
                 }
 
-                values[index] = owner is Pump && resolvable.Name is "head" && resolvable.Value == 0
+                values[index] = owner is PumpComponent && resolvable.Name is "head" && resolvable.Value == 0
                             ? NominalPumpHead
-                            : owner is Valve && resolvable.Name is "kv" && PromotedKv(graph, layout, values, owner) is { } kv
+                            : owner is ValveComponent && resolvable.Name is "kv" && PromotedKv(graph, layout, values, owner) is { } kv
                             ? kv
-                            : owner is HeatExchanger exchanger && resolvable.Name is "power" && PromotedPower(graph, layout, values, exchanger) is { } power
+                            : owner is HeatExchangerComponent exchanger && resolvable.Name is "power" && PromotedPower(graph, layout, values, exchanger) is { } power
                             ? power
                             : Interior(resolvable);
             }
@@ -152,7 +152,7 @@ public static partial class SolutionSeed
     }
 
     /// <summary>Whether a bare pump's head is an unknown this solve is expected to choose.</summary>
-    private static bool PromotesHead(SystemLayout layout, Pump pump) =>
+    private static bool PromotesHead(SystemLayout layout, PumpComponent pump) =>
         PromotedColumns(layout, pump.Name).Any(static column => column.Parameter is "head");
 
     /// <summary>The Kv a promoted valve is seeded at: the Kv law at the seeded flow, taking half of what the circuit offers.</summary>
@@ -193,13 +193,13 @@ public static partial class SolutionSeed
             {
                 // A stated rise is the drop the loop has to spend; a stated head is that rise at the
                 // reference density (C-109).
-                if (element is Pump { StatedRise: { } rise })
+                if (element is PumpComponent { StatedRise: { } rise })
                 {
                     offered = rise;
                     break;
                 }
 
-                if (element is Pump && HydraulicPartition.Stated(element, "head") is { } head)
+                if (element is PumpComponent && HydraulicPartition.Stated(element, "head") is { } head)
                 {
                     offered = Hydrostatic.Pressure(ReferenceDensity, head);
                     break;
@@ -288,7 +288,7 @@ public static partial class SolutionSeed
     /// flow puts the whole duty into the first Newton step (<c>S-69</c>). The stated <c>in</c> and
     /// <c>out</c> with the seeded flow are the duty's own definition.
     /// </remarks>
-    private static double? PromotedPower(CircuitGraph graph, SystemLayout layout, double[] values, HeatExchanger exchanger)
+    private static double? PromotedPower(CircuitGraph graph, SystemLayout layout, double[] values, HeatExchangerComponent exchanger)
     {
         var branch = graph.Branches.FirstOrDefault(candidate => candidate.Path.Contains(exchanger));
 

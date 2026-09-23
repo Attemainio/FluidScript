@@ -37,11 +37,11 @@ public sealed class ComponentsMatchTheRegistryTests
     /// </value>
     private static ImmutableArray<(string Keyword, IFlowComponent Component)> FixedPort =>
     [
-        ("pipe", new Pipe("P1", length: 10, insideDiameter: 0.0273)),
-        ("heat_exchanger", new HeatExchanger("HX1", power: 1000)),
-        ("valve", new Valve("TV1", kv: 6.3)),
-        ("three_way_valve", new ThreeWayValve("TV2", kv: 6.3)),
-        ("pump", new Pump("PU1", shutOffHead: 10, curvature: 2)),
+        ("pipe", new PipeComponent("P1", length: 10, insideDiameter: 0.0273)),
+        ("heat_exchanger", new HeatExchangerComponent("HX1", power: 1000)),
+        ("valve", new ValveComponent("TV1", kv: 6.3)),
+        ("three_way_valve", new ThreeWayValveComponent("TV2", kv: 6.3)),
+        ("pump", new PumpComponent("PU1", shutOffHead: 10, curvature: 2)),
     ];
 
     public static TheoryData<string, IFlowComponent> FixedPortKinds()
@@ -84,7 +84,7 @@ public sealed class ComponentsMatchTheRegistryTests
         // is whatever the script connected. So there is nothing to compare name-for-name; what must
         // hold is that the component agrees a node's ports are all bidirectional.
         var registry = Kind("node");
-        var node = new CircuitNode("N1", portCount: 4, carriesMassBalance: true);
+        var node = new NodeComponent("N1", portCount: 4, carriesMassBalance: true);
 
         Assert.True(registry.HasUnlimitedPorts);
         Assert.Empty(registry.Ports);
@@ -98,13 +98,13 @@ public sealed class ComponentsMatchTheRegistryTests
         // `in` and `out` (keyed in1 and out1) always exist and are in the registry's fixed list; in[2]
         // onwards materialize only when named, which is what PortFamilies describes.
         var registry = Kind("tank");
-        var minimal = new Tank("T1");
+        var minimal = new TankComponent("T1");
 
         Assert.Equal(
             registry.Ports.Select(static port => port.Key),
             minimal.Ports.Select(static port => port.Name));
 
-        var extended = new Tank("T2", inletElevations: [0.0, 0.9], outletElevations: [0.3, 1.0]);
+        var extended = new TankComponent("T2", inletElevations: [0.0, 0.9], outletElevations: [0.3, 1.0]);
 
         Assert.Equal(["in1", "in2", "out1", "out2"], extended.Ports.Select(static port => port.Name));
         Assert.NotEmpty(registry.PortFamilies);
@@ -120,10 +120,10 @@ public sealed class ComponentsMatchTheRegistryTests
             .Select(static entry => entry.Component)
             .Concat<IFlowComponent>(
             [
-                new CircuitNode("N1", 3, carriesMassBalance: true),
-                new CircuitNode("N2", 2, carriesMassBalance: false),
-                new Tank("T1"),
-                new Tank("T2", inletElevations: [0.0, 0.9], outletElevations: [0.3, 1.0]),
+                new NodeComponent("N1", 3, carriesMassBalance: true),
+                new NodeComponent("N2", 2, carriesMassBalance: false),
+                new TankComponent("T1"),
+                new TankComponent("T2", inletElevations: [0.0, 0.9], outletElevations: [0.3, 1.0]),
             ])
             .ToImmutableArray();
 

@@ -200,8 +200,8 @@ public sealed partial class EquationSystem
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            _layerPin[element] = graph.Components[element] is Tank tank ? new double[tank.Layers] : [];
-            _layerMass[element] = graph.Components[element] is Tank vessel ? new double[vessel.Layers] : [];
+            _layerPin[element] = graph.Components[element] is TankComponent tank ? new double[tank.Layers] : [];
+            _layerMass[element] = graph.Components[element] is TankComponent vessel ? new double[vessel.Layers] : [];
 
             Array.Fill(_layerMass[element], 1.0);
         }

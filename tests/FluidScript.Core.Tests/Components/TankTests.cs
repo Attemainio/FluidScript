@@ -29,7 +29,7 @@ public sealed class TankTests
         ThermalConductivity = ConstantPropertyWater.ThermalConductivityValue,
     };
 
-    private static Tank FourPort() => new(
+    private static TankComponent FourPort() => new(
         "T1",
         inletElevations: [0.0, 0.9],
         outletElevations: [0.3, 1.0]);
@@ -44,7 +44,7 @@ public sealed class TankTests
         // 22's acceptance criterion, and the reason the rule is written out rather than left to
         // rounding: a port exactly on a layer boundary must not land in different layers in two
         // implementations. 1.0 maps to the top layer, not to a sixth that does not exist.
-        Assert.Equal(expected, Tank.LayerFor(elevation, layers: 5));
+        Assert.Equal(expected, TankComponent.LayerFor(elevation, layers: 5));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class TankTests
     {
         foreach (var elevation in new[] { 0.0, 0.25, 0.5, 0.75, 1.0 })
         {
-            Assert.Equal(1, Tank.LayerFor(elevation, layers: 1));
+            Assert.Equal(1, TankComponent.LayerFor(elevation, layers: 1));
         }
     }
 
@@ -76,7 +76,7 @@ public sealed class TankTests
     {
         // The same reasoning as a node interior to a branch: one flow in and the same flow out, so the
         // row is an identity for every iterate and the Jacobian is singular by construction.
-        var tank = new Tank("T1");
+        var tank = new TankComponent("T1");
 
         Assert.Equal(2, tank.Ports.Length);
         Assert.False(tank.CarriesMassBalance);
@@ -131,7 +131,7 @@ public sealed class TankTests
         // 22's acceptance criterion. 0.3 kg/s in at 200 kJ/kg and 0.1 at 100 leave together at 0.4, so
         // the mixed enthalpy is (0.3 x 200 + 0.1 x 100) / 0.4 = 175 kJ/kg, and the energy residual is
         // zero exactly there.
-        var tank = new Tank("T1", inletElevations: [0.2, 0.8], outletElevations: [0.5]);
+        var tank = new TankComponent("T1", inletElevations: [0.2, 0.8], outletElevations: [0.5]);
 
         Span<double> residuals = stackalloc double[tank.EquationCount];
         tank.EvaluateResiduals(
@@ -161,7 +161,7 @@ public sealed class TankTests
 
         foreach (var layers in new[] { 1, 2, 5, 100 })
         {
-            var tank = new Tank("T1", inletElevations: [0.2], outletElevations: [0.5], layers: layers);
+            var tank = new TankComponent("T1", inletElevations: [0.2], outletElevations: [0.5], layers: layers);
 
             Assert.Equal(residuals.Length, tank.EquationCount);
             tank.EvaluateResiduals(
@@ -183,7 +183,7 @@ public sealed class TankTests
     {
         // Every port is bidirectional at solve time whatever it is called: the solved sign decides. An
         // "inlet" running backwards carries the tank's own enthalpy out, not the arriving one.
-        var tank = new Tank("T1", inletElevations: [0.2], outletElevations: [0.5]);
+        var tank = new TankComponent("T1", inletElevations: [0.2], outletElevations: [0.5]);
 
         Span<double> residuals = stackalloc double[tank.EquationCount];
         tank.EvaluateResiduals(
@@ -204,7 +204,7 @@ public sealed class TankTests
     {
         // D-32 makes these visible decided defaults rather than sized values, because the graph cannot
         // infer any of them. 300 dm3 is held as 0.3 m3.
-        var tank = new Tank("T1");
+        var tank = new TankComponent("T1");
 
         Assert.Equal(0.3, tank.Volume, tolerance: 1e-12);
         Assert.Equal(5, tank.Layers);

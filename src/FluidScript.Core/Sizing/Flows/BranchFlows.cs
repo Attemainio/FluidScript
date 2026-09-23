@@ -97,7 +97,7 @@ public static partial class BranchFlows
     /// <returns>kg/s, or <see langword="null"/> when no volume flow is stated on this side.</returns>
     private static double? VolumeFlow(CircuitGraph graph, Branch branch, IFlowComponent part)
     {
-        var side = part is HeatExchanger exchanger ? Side(graph, branch, exchanger) : 1;
+        var side = part is HeatExchangerComponent exchanger ? Side(graph, branch, exchanger) : 1;
         var suffix = side == 2 ? "2" : string.Empty;
 
         if (HydraulicPartition.Stated(part, "vflow" + suffix) is not { } volume)
@@ -150,7 +150,7 @@ public static partial class BranchFlows
 
             foreach (var junction in graph.JunctionElements)
             {
-                if (junction is ThreeWayValve { BypassConnected: true } valve)
+                if (junction is ThreeWayValveComponent { BypassConnected: true } valve)
                 {
                     moved |= PropagateThreeWay(graph, estimates, valve);
                     continue;
@@ -216,14 +216,14 @@ public static partial class BranchFlows
         var refined = estimates.ToArray();
         var moved = false;
 
-        foreach (var valve in graph.JunctionElements.OfType<ThreeWayValve>())
+        foreach (var valve in graph.JunctionElements.OfType<ThreeWayValveComponent>())
         {
             // A coil switched off asks nothing of its split and its `in` is documentation, not a demand
             // (`S-56`); partitioning its legs from those temperatures would seed a stopped branch running.
             var off = graph.Branches.Any(branch =>
                 Meets(branch, valve)
                 && FluidScript.Core.Solvers.Results.ValveLegs.PortName(branch, valve) == "ab"
-                && branch.Path.OfType<HeatExchanger>().Any(FluidScript.Core.Topology.Counting.WellPosedness.ZeroDuty));
+                && branch.Path.OfType<HeatExchangerComponent>().Any(FluidScript.Core.Topology.Counting.WellPosedness.ZeroDuty));
 
             if (!valve.BypassConnected || off)
             {
@@ -273,7 +273,7 @@ public static partial class BranchFlows
     /// </remarks>
     private static double? Duty(CircuitGraph graph, Branch branch, IFlowComponent component)
     {
-        if (component is not HeatExchanger exchanger || Ownership.Of(component, "power") is ParameterState.Free)
+        if (component is not HeatExchangerComponent exchanger || Ownership.Of(component, "power") is ParameterState.Free)
         {
             return null;
         }
@@ -308,7 +308,7 @@ public static partial class BranchFlows
     /// <param name="change">The side's difference parameter name.</param>
     /// <returns>kg/s, or <see langword="null"/> when no difference is stated or <c>cp</c> cannot be read.</returns>
     private static double? DifferenceFlow(
-        ISubstance substance, HeatExchanger exchanger, string inlet, string outlet, string change)
+        ISubstance substance, HeatExchangerComponent exchanger, string inlet, string outlet, string change)
     {
         if (!exchanger.StatedParameters.TryGetValue(change, out var difference))
         {
@@ -334,7 +334,7 @@ public static partial class BranchFlows
     /// <param name="branch">The branch, which holds the exchanger in its path.</param>
     /// <param name="exchanger">The exchanger.</param>
     /// <returns>1 or 2. Read from the port the branch arrives by; 1 when it cannot be told.</returns>
-    public static int Side(CircuitGraph graph, Branch branch, HeatExchanger exchanger)
+    public static int Side(CircuitGraph graph, Branch branch, HeatExchangerComponent exchanger)
     {
         var position = branch.Path.IndexOf(exchanger);
         var index = graph.Components.IndexOf(exchanger);

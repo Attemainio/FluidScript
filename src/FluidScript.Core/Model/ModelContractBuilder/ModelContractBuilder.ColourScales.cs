@@ -237,7 +237,7 @@ public static partial class ModelContractBuilder
                 {
                     at = solved.Max(static p => p.Density > 0 ? Math.Abs(p.Flow) / p.Density : 0);
                 }
-                else if (component is CircuitNode)
+                else if (component is NodeComponent)
                 {
                     at = Read(property, solved[0]);
                 }

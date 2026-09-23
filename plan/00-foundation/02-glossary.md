@@ -35,13 +35,13 @@ and points at the document that defines it. Component behaviour is
 |---|---|---|
 | Script keyword | `lower_snake_case` | `three_way_valve`, `heat_exchanger` |
 | Script identifier (user-chosen) | any of `[A-Za-z0-9_]`, may start with a digit | `3WV`, `HE1`, `N_supply` |
-| C# type | `PascalCase`, no abbreviations | `ThreeWayValve`, `HeatExchanger` |
+| C# type | `PascalCase`, no abbreviations; a flow component adds its family noun (`D-147`) | `ThreeWayValveComponent`, `HeatExchangerComponent` |
 | C# property for a dimensioned value | `PascalCase`, unit-free name | `Power`, `MassFlow`, `PressureDrop` |
 | REST/WebSocket JSON field | `camelCase` | `pressureDrop`, `massFlow` |
 | Diagnostic code | `FS` + four digits | `FS1004` |
 | `/docs` page filename | `kebab-case` matching the script keyword | `three-way-valve.md` |
 
-The script keyword is the source of truth for the other two: `three_way_valve` → `ThreeWayValve` →
+The script keyword is the source of truth for the other two: `three_way_valve` → `ThreeWayValveComponent` →
 `three-way-valve.md`. A component whose three names cannot be derived from each other mechanically is
 a naming bug.
 
@@ -84,7 +84,7 @@ names.
 | **Run snapshot** | — | `RunSnapshot` | Immutable compiled model, initial state, versions, settings, schedule, and limits used by one transient. Edits create a separate draft and cannot mutate it (`D-22`). |
 | **Draft revision** | — | `DraftRevision` | Current editable source and its compile result. It may be invalid without affecting an active run snapshot. |
 | **Symbol definition** | — | `SymbolDefinition` | Core-owned declarative primitives, port anchors, and label anchor selected by a component's `SymbolId`; placement and SVG rendering stay in the frontend. |
-| **Tank** | `tank` | `Tank` | A finite-volume liquid storage component with indexed inlet/outlet ports. `container` is an input alias, never the canonical name (`D-32`). |
+| **Tank** | `tank` | `TankComponent` | A finite-volume liquid storage component with indexed inlet/outlet ports. `container` is an input alias, never the canonical name (`D-32`). |
 | **Tank layer** | — | `TankLayer` | One equal-volume, perfectly mixed and isothermal control volume in a tank. Layers are indexed bottom to top; their stack represents stratification. |
 | **Elevation** | `elevation` | `Elevation` | The absolute height of a component above the project datum, in metres (`D-70`). A property of position: a component has one and every port of it sits there. Only a **pipe** and a bare connection span two, and a pipe's **rise** is `z(out) − z(in)` from what it connects — a pipe states no elevation of its own. Omitted, it is inherited from whatever the component is wired to without a pipe in between, and 0 only where nothing states one (`D-95`); never sized. |
 | **Rise** | — | `Rise` | A pipe's outlet height minus its inlet height, derived from the elevations of its two ends. Carries `ρgΔz` in the pipe's momentum row and `−ṁgΔz` in its energy injection. Was `pipe.elevation` before `D-70`; the word moved because a rise is not a position. |
@@ -210,7 +210,7 @@ Applying the mapping to the brief's `3WV three_way_valve` line:
 |---|---|
 | Script keyword | `three_way_valve` |
 | Script identifier | `3WV` (legal: identifiers may start with a digit) |
-| C# type | `ThreeWayValve` |
+| C# type | `ThreeWayValveComponent` |
 | C# instance name in the graph | `"3WV"` — user identifiers are data, never C# symbols |
 | JSON `kind` field | `"three_way_valve"` — the script keyword crosses the wire unchanged |
 | `/docs` page | `docs/functions/three-way-valve.md` |

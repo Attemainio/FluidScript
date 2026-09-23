@@ -66,7 +66,7 @@ public sealed partial class EquationSystem
             // temperature scale, so convergence on the row is convergence on the flow.
             if (constraint.Kind is ConstraintKind.FixedFlow
                 && WellPosedness.IsStatedFlow(constraint.Parameter)
-                && graph.Components[element] is HeatExchanger or Pump)
+                && graph.Components[element] is HeatExchangerComponent or PumpComponent)
             {
                 var side = ports[element, constraint.Parameter.EndsWith('2') ? 2 : 0];
 
@@ -101,7 +101,7 @@ public sealed partial class EquationSystem
             // nominal seed flow: 0.1 kg/s of leakage reads as the coil's whole design span.
             if (constraint.Kind is ConstraintKind.FixedFlow
                 && !WellPosedness.IsStatedFlow(constraint.Parameter)
-                && graph.Components[element] is HeatExchanger stopped
+                && graph.Components[element] is HeatExchangerComponent stopped
                 && WellPosedness.ZeroDuty(stopped))
             {
                 var side = ports[element, constraint.Parameter.EndsWith('2') ? 2 : 0];
@@ -119,7 +119,7 @@ public sealed partial class EquationSystem
             // 2's through port 2 (`D-97`).
             if (constraint.Kind is ConstraintKind.FixedFlow
                 && constraint.Parameter is "out" or "out2"
-                && graph.Components[element] is HeatExchanger exchanger
+                && graph.Components[element] is HeatExchangerComponent exchanger
                 && exchanger.StatedParameters.TryGetValue(constraint.Parameter is "out" ? "in" : "in2", out var inlet)
                 && exchanger.StatedParameters.TryGetValue(constraint.Parameter, out var outlet))
             {
@@ -144,7 +144,7 @@ public sealed partial class EquationSystem
                 }
             }
 
-            if (graph.Components[element] is CircuitNode node)
+            if (graph.Components[element] is NodeComponent node)
             {
                 resolved[index] = new Constraint(row, byComponent[node], -1, target, 1);
                 continue;
@@ -165,7 +165,7 @@ public sealed partial class EquationSystem
             // negative (`ComponentFactory`), and reading the statement made the row demand that the load
             // heat its stream by 20 K. Only `power=-150` on a bare `heat_exchanger` had ever met this row,
             // which is why it held (`S-73`).
-            var duty = (graph.Components[element] as HeatExchanger)?.Power ?? 0;
+            var duty = (graph.Components[element] as HeatExchangerComponent)?.Power ?? 0;
 
             resolved[index] = new Constraint(
                 row,
@@ -227,7 +227,7 @@ public sealed partial class EquationSystem
 
             var branch = graph.Branches[constraint.FlowBranch];
             var ends = new[] { branch.To.Element, branch.From.Element }
-                .Where(end => end is CircuitNode)
+                .Where(end => end is NodeComponent)
                 .Select(end => byComponent[end])
                 .ToArray();
 
@@ -277,7 +277,7 @@ public sealed partial class EquationSystem
 
             var live = ReferenceEquals(deadEnd, branch.To) ? branch.From : branch.To;
 
-            if (live.Element is not CircuitNode || DeadEnd(live))
+            if (live.Element is not NodeComponent || DeadEnd(live))
             {
                 continue;
             }
@@ -315,6 +315,6 @@ public sealed partial class EquationSystem
         // A terminal node with nothing stated: one connection, no boundary role. A supply or a return
         // with one connection is a boundary whose flux is an unknown, not a dead end (D-64).
         static bool DeadEnd(BranchEnd end) =>
-            end.Element is CircuitNode { Boundary: BoundaryRole.Interior, Ports.Length: 1 };
+            end.Element is NodeComponent { Boundary: BoundaryRole.Interior, Ports.Length: 1 };
     }
 }

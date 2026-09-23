@@ -128,8 +128,8 @@ solve (stage 10). `FS12xx` to `FS15xx` are the binder's codes.
 through `Topology/ComponentFactory`; the component classes are in `Components/`.
 
 This is where the physics objects are made. For each declaration the factory builds the class that
-carries its equations: `Pump`, `Pipe`, `Valve`, `ThreeWayValve`, `HeatExchanger`, `Tank`, and
-`CircuitNode` for a node. Each takes its stated parameters and the registry's defaults, in SI.
+carries its equations: `PumpComponent`, `PipeComponent`, `ValveComponent`, `ThreeWayValveComponent`,
+`HeatExchangerComponent`, `TankComponent`, and `NodeComponent` for a node. Each takes its stated parameters and the registry's defaults, in SI.
 
 Then the connections are walked. Two rules produce a graph that is larger than the script:
 
@@ -137,7 +137,7 @@ Then the connections are walked. Two rules produce a graph that is larger than t
   between them, because the temperature and pressure between the pump and the exchanger have to
   live somewhere. The cooling loop names three nodes, `N1`, `N2` and `N3`, and the graph has six:
   `PU1__HE1`, `HE1__3WV` and `3WV__N3__in` are inferred.
-- **A connection with pipe parameters is a pipe.** `3WV - N3 length=25 dn=25` becomes a `Pipe`
+- **A connection with pipe parameters is a pipe.** `3WV - N3 length=25 dn=25` becomes a `PipeComponent`
   named `3WV__N3` with a node in front of it.
 - **A run of components between two junctions is a branch.** Branches are what carry a flow. The
   cooling loop has four: the primary supply, the coil run from the mixing node through the pump and

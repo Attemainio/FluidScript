@@ -52,7 +52,7 @@ public static class Reach
     /// it takes, and before <c>D-133</c> it was offered and taken (<c>S-45</c>).
     /// </para>
     /// </remarks>
-    public static IReadOnlyDictionary<IFlowComponent, int> Stream(CircuitGraph graph, ThreeWayValve split)
+    public static IReadOnlyDictionary<IFlowComponent, int> Stream(CircuitGraph graph, ThreeWayValveComponent split)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(split);
@@ -92,7 +92,7 @@ public static class Reach
             {
                 reached.TryAdd(element, depth);
 
-                if (element is HeatExchanger)
+                if (element is HeatExchangerComponent)
                 {
                     return;
                 }
@@ -103,7 +103,7 @@ public static class Reach
 
             switch (far.Element)
             {
-                case CircuitNode { Boundary: BoundaryRole.Interior } node:
+                case NodeComponent { Boundary: BoundaryRole.Interior } node:
                     foreach (var (next, atFrom) in flow.Attached(node))
                     {
                         Walk(next, atFrom, depth + 1);
@@ -111,7 +111,7 @@ public static class Reach
 
                     break;
 
-                case ThreeWayValve valve when flow.Mixes(valve) && far.Port != CommonPort:
+                case ThreeWayValveComponent valve when flow.Mixes(valve) && far.Port != CommonPort:
                     foreach (var (next, atFrom) in flow.Attached(valve, CommonPort))
                     {
                         Walk(next, atFrom, depth + 1);
@@ -119,7 +119,7 @@ public static class Reach
 
                     break;
 
-                case ThreeWayValve valve when !flow.Mixes(valve) && far.Port == CommonPort:
+                case ThreeWayValveComponent valve when !flow.Mixes(valve) && far.Port == CommonPort:
                     foreach (var leg in Legs(valve))
                     {
                         foreach (var (next, atFrom) in flow.Attached(valve, leg))
@@ -189,7 +189,7 @@ public static class Reach
     /// outlet with the return is set by nothing else. The common port carries the sum, which the position
     /// does not move.
     /// </remarks>
-    public static IEnumerable<ThreeWayValve> LegSplits(CircuitGraph graph, IFlowComponent? component)
+    public static IEnumerable<ThreeWayValveComponent> LegSplits(CircuitGraph graph, IFlowComponent? component)
     {
         ArgumentNullException.ThrowIfNull(graph);
 
@@ -205,19 +205,19 @@ public static class Reach
                 continue;
             }
 
-            if (branch.From is { Element: ThreeWayValve fromSplit, Port: not CommonPort })
+            if (branch.From is { Element: ThreeWayValveComponent fromSplit, Port: not CommonPort })
             {
                 yield return fromSplit;
             }
 
-            if (branch.To is { Element: ThreeWayValve toSplit, Port: not CommonPort })
+            if (branch.To is { Element: ThreeWayValveComponent toSplit, Port: not CommonPort })
             {
                 yield return toSplit;
             }
         }
     }
 
-    private static int[] Legs(ThreeWayValve split) =>
+    private static int[] Legs(ThreeWayValveComponent split) =>
         split.Ports.Length > 2 ? [1, 2] : [1];
 
     /// <summary>The written flow direction of every branch, as far as the components state it.</summary>
@@ -226,7 +226,7 @@ public static class Reach
         private readonly CircuitGraph _graph;
         private readonly Dictionary<IFlowComponent, int> _index;
         private readonly Dictionary<Branch, int> _direction = new(ReferenceEqualityComparer.Instance);
-        private readonly Dictionary<ThreeWayValve, bool> _mixes = new(ReferenceEqualityComparer.Instance);
+        private readonly Dictionary<ThreeWayValveComponent, bool> _mixes = new(ReferenceEqualityComparer.Instance);
 
         public NominalFlow(CircuitGraph graph)
         {
@@ -240,7 +240,7 @@ public static class Reach
         }
 
         /// <summary>Whether the valve mixes (its stream leaves the common port) rather than diverts.</summary>
-        public bool Mixes(ThreeWayValve split)
+        public bool Mixes(ThreeWayValveComponent split)
         {
             if (_mixes.TryGetValue(split, out var mixes))
             {
@@ -283,12 +283,12 @@ public static class Reach
 
             // A bare link at a split's port takes the split's mode: a mixing valve's common port sends, its
             // legs receive.
-            if (direction == 0 && branch.From.Element is ThreeWayValve from)
+            if (direction == 0 && branch.From.Element is ThreeWayValveComponent from)
             {
                 direction = (Mixes(from) == (branch.From.Port == CommonPort)) ? 1 : -1;
             }
 
-            if (direction == 0 && branch.To.Element is ThreeWayValve to)
+            if (direction == 0 && branch.To.Element is ThreeWayValveComponent to)
             {
                 direction = (Mixes(to) == (branch.To.Port == CommonPort)) ? -1 : 1;
             }
@@ -315,7 +315,7 @@ public static class Reach
         }
 
         /// <summary>Every branch at a node, whichever port.</summary>
-        public IEnumerable<(Branch Branch, bool AtFrom)> Attached(CircuitNode node)
+        public IEnumerable<(Branch Branch, bool AtFrom)> Attached(NodeComponent node)
         {
             foreach (var branch in _graph.Branches)
             {
@@ -350,10 +350,10 @@ public static class Reach
 
             return (branch.From.Element, branch.To.Element) switch
             {
-                (CircuitNode { Boundary: BoundaryRole.Inlet }, _) => 1,
-                (CircuitNode { Boundary: BoundaryRole.Outlet }, _) => -1,
-                (_, CircuitNode { Boundary: BoundaryRole.Inlet }) => -1,
-                (_, CircuitNode { Boundary: BoundaryRole.Outlet }) => 1,
+                (NodeComponent { Boundary: BoundaryRole.Inlet }, _) => 1,
+                (NodeComponent { Boundary: BoundaryRole.Outlet }, _) => -1,
+                (_, NodeComponent { Boundary: BoundaryRole.Inlet }) => -1,
+                (_, NodeComponent { Boundary: BoundaryRole.Outlet }) => 1,
                 _ => 0,
             };
         }

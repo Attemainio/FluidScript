@@ -180,8 +180,8 @@ The brief's script, annotated with which stage produces what:
 |---|---|---|---|---|
 | `circuit coolingLoop` | `kw(circuit)`, `ident(coolingLoop)` | `CircuitHeader` | circuit symbol `coolingLoop` | `Circuit` |
 | `fluid dynamic water` | `kw(fluid)`, `kw(dynamic)`, `ident(water)` | `FluidDirective(dynamic: true)` | substance `Water`, mode `Transient` | circuit's `Substance` |
-| `HE1 heat_exchanger power=30 …` | `ident(HE1)`, `ident(heat_exchanger)`, … | `ComponentDeclaration` | kind `HeatExchanger`, `Power = 30 kW → 30000 W` | `HeatExchanger` with 2 ports |
-| `3WV three_way_valve` | `ident(3WV)`, `ident(three_way_valve)` | `ComponentDeclaration`, 0 params | kind `ThreeWayValve`, all params **absent** | `ThreeWayValve`, 3 ports, all resolved by registry policy |
+| `HE1 heat_exchanger power=30 …` | `ident(HE1)`, `ident(heat_exchanger)`, … | `ComponentDeclaration` | kind `HeatExchanger`, `Power = 30 kW → 30000 W` | `HeatExchangerComponent` with 2 ports |
+| `3WV three_way_valve` | `ident(3WV)`, `ident(three_way_valve)` | `ComponentDeclaration`, 0 params | kind `ThreeWayValve`, all params **absent** | `ThreeWayValveComponent`, 3 ports, all resolved by registry policy |
 | `N1 - N2` | `ident(N1)`, `dash`, `ident(N2)` | `Connection` | two unresolved symbols | **I1** creates both as `Node` |
 | `HE1 - 3WV` | … | `Connection` | both resolve to declared components | **I2** inserts node `HE1__3WV` |
 | `3WV - N3` | … | `Connection` | resolves | **I3** fires on `3WV`'s third port |

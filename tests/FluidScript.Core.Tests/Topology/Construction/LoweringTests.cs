@@ -101,7 +101,7 @@ public sealed class LoweringTests
         var graph = GraphFixture.Lower(GraphFixture.CoolingLoop).Graph;
 
         Assert.Equal(10, graph.Components.Length);
-        Assert.Equal(4, graph.Components.Count(static c => c is not CircuitNode));
+        Assert.Equal(4, graph.Components.Count(static c => c is not NodeComponent));
     }
 
     [Fact]
@@ -172,11 +172,11 @@ public sealed class LoweringTests
     {
         // The case D-63 exists for. Both have "more than two ports"; the valve has one group of three
         // and the exchanger two groups of two, and no count separates them.
-        Assert.True(CircuitGraph.IsJunctionElement(new ThreeWayValve("TV1", kv: 6.3)));
-        Assert.False(CircuitGraph.IsJunctionElement(new HeatExchanger("HX1", power: 1000)));
+        Assert.True(CircuitGraph.IsJunctionElement(new ThreeWayValveComponent("TV1", kv: 6.3)));
+        Assert.False(CircuitGraph.IsJunctionElement(new HeatExchangerComponent("HX1", power: 1000)));
 
-        Assert.Equal(3, new ThreeWayValve("TV1", kv: 6.3).Ports.Length);
-        Assert.Equal(4, new HeatExchanger("HX1", power: 1000).Ports.Length);
+        Assert.Equal(3, new ThreeWayValveComponent("TV1", kv: 6.3).Ports.Length);
+        Assert.Equal(4, new HeatExchangerComponent("HX1", power: 1000).Ports.Length);
     }
 
     [Theory]
@@ -187,7 +187,7 @@ public sealed class LoweringTests
     public void ANodeIsAJunctionUnlessItHasExactlyTwoConnections(int connections, bool expected) =>
         Assert.Equal(
             expected,
-            CircuitGraph.IsJunctionElement(new CircuitNode("N", connections, carriesMassBalance: true)));
+            CircuitGraph.IsJunctionElement(new NodeComponent("N", connections, carriesMassBalance: true)));
 
     [Theory]
     [InlineData(1, true)]
@@ -205,7 +205,7 @@ public sealed class LoweringTests
             """;
 
         var node = GraphFixture.Lower(source).Graph.Components
-            .OfType<CircuitNode>().Single(static n => n.Name == "N1");
+            .OfType<NodeComponent>().Single(static n => n.Name == "N1");
 
         Assert.Equal(expected, node.CarriesMassBalance);
     }
@@ -264,7 +264,7 @@ public sealed class LoweringTests
             HX1 - N2
             """;
 
-        var exchanger = Assert.Single(GraphFixture.Lower(source).Graph.Components.OfType<HeatExchanger>());
+        var exchanger = Assert.Single(GraphFixture.Lower(source).Graph.Components.OfType<HeatExchangerComponent>());
 
         Assert.Equal(expectedPower, exchanger.Power);
         Assert.Equal(writtenPower * 1_000, exchanger.StatedParameters["power"].SiValue);
@@ -304,7 +304,7 @@ public sealed class LoweringTests
 
         var graph = GraphFixture.Lower(source).Graph;
         var cells = graph.Nodes.Where(static node => node.Origin == NodeOrigin.PipeInternal).ToArray();
-        var pipes = graph.Components.OfType<Pipe>().ToArray();
+        var pipes = graph.Components.OfType<PipeComponent>().ToArray();
 
         Assert.Equal(4, cells.Length);
         Assert.Equal(5, pipes.Length);
@@ -368,7 +368,7 @@ public sealed class LoweringTests
         var graph = GraphFixture.Lower(GraphFixture.CoolingLoop).Graph;
 
         Assert.Empty(graph.Groups);
-        Assert.Single(graph.Components.OfType<Pipe>());
+        Assert.Single(graph.Components.OfType<PipeComponent>());
     }
 
     // ---- what lowering cannot build -------------------------------------------------------------

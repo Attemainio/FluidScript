@@ -272,7 +272,7 @@ public sealed class WellPosednessTests
         // each side, appears in both paths, and carries no mass balance -- the substation's two balances
         // are NPS's and NPR's, the primary's boundaries.
         var graph = GraphFixture.Lower(Substation).Graph;
-        var exchanger = graph.Components.OfType<HeatExchanger>().Single(static x => x.Name == "HX1");
+        var exchanger = graph.Components.OfType<HeatExchangerComponent>().Single(static x => x.Name == "HX1");
 
         Assert.DoesNotContain(exchanger, graph.JunctionElements);
         Assert.Equal(2, graph.Branches.Count(branch => branch.Path.Contains(exchanger)));
@@ -521,7 +521,7 @@ public sealed class WellPosednessTests
     private static GraphNode Dummy(string name) => new()
     {
         Name = name,
-        Component = new CircuitNode(name, portCount: 1, carriesMassBalance: true),
+        Component = new NodeComponent(name, portCount: 1, carriesMassBalance: true),
         Origin = NodeOrigin.Declared,
         ThermalVolume = 0,
     };

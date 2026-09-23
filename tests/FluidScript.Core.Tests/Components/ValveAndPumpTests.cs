@@ -108,7 +108,7 @@ public sealed class ValveAndPumpTests
         // 22's acceptance criterion. sqrt(dp) has infinite slope at zero, which is exactly where a
         // closed valve sits -- so without the regularisation the first circuit that closes one fails to
         // converge, and the failure looks like a solver bug.
-        var valve = new Valve("TV1", kv: 6.3);
+        var valve = new ValveComponent("TV1", kv: 6.3);
 
         Span<double> residuals = stackalloc double[1];
         valve.EvaluateResiduals(new SolveContext(Water, [State(0), State(0)], [0.0, 0.0]), residuals);
@@ -183,10 +183,10 @@ public sealed class ValveAndPumpTests
             ValveLaw.LegOpening(0, ValveCharacteristic.EqualPercentage, 0.0005),
             tolerance: 1e-12);
 
-        var rotary = new ThreeWayValve("TV1", kv: 6.3, position: 1, leakage: 0.0005);
+        var rotary = new ThreeWayValveComponent("TV1", kv: 6.3, position: 1, leakage: 0.0005);
 
         Assert.Equal(0.0005, rotary.Leakage);
-        Assert.Equal(ValveLaw.LegLeakage, new ThreeWayValve("TV2", kv: 6.3).Leakage);
+        Assert.Equal(ValveLaw.LegLeakage, new ThreeWayValveComponent("TV2", kv: 6.3).Leakage);
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class ValveAndPumpTests
     {
         // Mixing: two inflows at b and c, one outflow at a. The arrangement is read from the topology,
         // not declared, and one signed balance covers both it and the diverting case.
-        var valve = new ThreeWayValve("TV1", kv: 6.3, position: 0.5);
+        var valve = new ThreeWayValveComponent("TV1", kv: 6.3, position: 0.5);
 
         Span<double> residuals = stackalloc double[3];
         valve.EvaluateResiduals(
@@ -208,7 +208,7 @@ public sealed class ValveAndPumpTests
     public void AThreeWayValvesBypassTakesTheComplementaryOpening()
     {
         // As a-b opens, a-c closes. At half travel with a linear characteristic the two paths are equal.
-        var half = new ThreeWayValve("TV1", kv: 6.3, position: 0.5);
+        var half = new ThreeWayValveComponent("TV1", kv: 6.3, position: 0.5);
 
         Span<double> residuals = stackalloc double[3];
         half.EvaluateResiduals(
@@ -217,7 +217,7 @@ public sealed class ValveAndPumpTests
 
         Assert.Equal(residuals[1], residuals[2], tolerance: 1e-12);
 
-        var open = new ThreeWayValve("TV2", kv: 6.3, position: 1.0);
+        var open = new ThreeWayValveComponent("TV2", kv: 6.3, position: 1.0);
 
         Span<double> wideOpen = stackalloc double[3];
         open.EvaluateResiduals(
@@ -242,7 +242,7 @@ public sealed class ValveAndPumpTests
         //   n = 0.5  ->  2.5 - 2     =  0.5      the WRONG form gives 2.5 - 4x2 = -5.5
         //   n = 0    ->  0 - 2       = -2        the WRONG form divides by zero
         // The error is silent at n = 1, which is where every test gets written.
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 2, speed: speed);
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 2, speed: speed);
 
         Assert.Equal(expectedHead, pump.Head(1.0), tolerance: 1e-12);
     }
@@ -252,7 +252,7 @@ public sealed class ValveAndPumpTests
     {
         // 22's invariant 7. A stopped pump must evaluate, and what it evaluates to is a resistance:
         // -rho g (-k mdot^2), a pressure that falls in the direction of flow.
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 2, speed: 0);
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 2, speed: 0);
 
         Span<double> residuals = stackalloc double[1];
         pump.EvaluateResiduals(new SolveContext(Water, [State(0), State(0)], [0.5, -0.5]), residuals);
@@ -269,7 +269,7 @@ public sealed class ValveAndPumpTests
     {
         // Convention 1: a pressure drop is positive when pressure falls in the nominal direction, and a
         // pump reports a negative one. The residual is zero where the outlet is above the inlet.
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 2);
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 2);
         var head = pump.Head(0.5);
         var rise = Density * 9.80665 * head;
 
@@ -285,9 +285,9 @@ public sealed class ValveAndPumpTests
     {
         // Shut-off is 1.2 x the duty head, which is typical for a centrifugal pump and wrong for
         // anything else -- so it is documented and reported rather than assumed.
-        var pump = Pump.FromDutyPoint("PU1", dutyHead: 5.28, dutyFlow: 0.2392);
+        var pump = PumpComponent.FromDutyPoint("PU1", dutyHead: 5.28, dutyFlow: 0.2392);
 
-        Assert.Equal(5.28 * Pump.DefaultShutOffFactor, pump.ShutOffHead, tolerance: 1e-12);
+        Assert.Equal(5.28 * PumpComponent.DefaultShutOffFactor, pump.ShutOffHead, tolerance: 1e-12);
         Assert.Equal(5.28, pump.Head(0.2392), tolerance: 1e-9);
         // The curve reaches zero head at sqrt(H0/k) x mdot_duty. With H0 = 1.2 H_duty and
         // k = 0.2 H_duty / mdot_duty^2 that is sqrt(1.2 / 0.2) = sqrt(6) times the duty flow, not
@@ -298,7 +298,7 @@ public sealed class ValveAndPumpTests
     [Fact]
     public void ShaftPowerIsPositiveDespiteTheNegativeDrop()
     {
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 2, efficiency: 0.7);
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 2, efficiency: 0.7);
         var power = pump.ShaftPower(0.5, -48_900, Density);
 
         Assert.True(power > 0, $"Shaft power came out {power}.");
@@ -308,9 +308,9 @@ public sealed class ValveAndPumpTests
     [Fact]
     public void ValveAndPumpResidualsAllocateNothing()
     {
-        var valve = new Valve("TV1", kv: 6.3, position: 0.4, characteristic: ValveCharacteristic.EqualPercentage);
-        var threeWay = new ThreeWayValve("TV2", kv: 6.3, position: 0.4);
-        var pump = new Pump("PU1", shutOffHead: 10, curvature: 2, speed: 0.8);
+        var valve = new ValveComponent("TV1", kv: 6.3, position: 0.4, characteristic: ValveCharacteristic.EqualPercentage);
+        var threeWay = new ThreeWayValveComponent("TV2", kv: 6.3, position: 0.4);
+        var pump = new PumpComponent("PU1", shutOffHead: 10, curvature: 2, speed: 0.8);
 
         var two = new[] { State(50_000), State(0) };
         var three = new[] { State(50_000), State(0), State(0) };

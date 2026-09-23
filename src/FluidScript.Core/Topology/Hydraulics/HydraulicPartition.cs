@@ -127,7 +127,7 @@ public static class HydraulicPartition
         {
             var component = graph.Components[index];
 
-            if (component is not Pump || !elements.Contains(component) || index >= graph.Adjacency.ComponentCount)
+            if (component is not PumpComponent || !elements.Contains(component) || index >= graph.Adjacency.ComponentCount)
             {
                 continue;
             }

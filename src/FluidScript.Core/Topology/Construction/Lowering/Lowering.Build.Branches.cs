@@ -102,7 +102,7 @@ public static partial class Lowering
                     Spread(element, port, visited, members);
                     members.Sort();
 
-                    var cut = members.FirstOrDefault(member => _elements[member] is CircuitNode, -1);
+                    var cut = members.FirstOrDefault(member => _elements[member] is NodeComponent, -1);
                     isVertex[cut < 0 ? members[0] : cut] = true;
                 }
             }
@@ -308,7 +308,7 @@ public static partial class Lowering
 
                 // A node's ports are unnamed and interchangeable, so there is nothing to report but the
                 // node; a three-way valve's `a`, `b` and `c` are the whole content of a branch row.
-                PortName = component is CircuitNode ? null : component.Ports[port].Name,
+                PortName = component is NodeComponent ? null : component.Ports[port].Name,
             };
         }
 
@@ -316,7 +316,7 @@ public static partial class Lowering
         // resolving the links quadratic in the script. Every node exists by the time links resolve, and
         // an expansion's own nodes carry a generated name no endpoint can spell.
         private bool IsNode(string component) =>
-            _byName.TryGetValue(component, out var element) && _elements[element] is CircuitNode;
+            _byName.TryGetValue(component, out var element) && _elements[element] is NodeComponent;
 
         private void Add(IFlowComponent component, string circuit, NodeOrigin? origin)
         {
@@ -324,7 +324,7 @@ public static partial class Lowering
             _elements.Add(component);
             _circuits[component.Name] = circuit;
 
-            if (origin is { } kind && component is CircuitNode node)
+            if (origin is { } kind && component is NodeComponent node)
             {
                 _nodes.Add(new GraphNode { Name = node.Name, Component = node, Origin = kind });
             }

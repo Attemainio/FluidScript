@@ -44,7 +44,7 @@ public static partial class LayoutHintsDerivation
         {
             if (!index.TryGetValue(member, out var at)
                 || !index.TryGetValue(other, out var peer)
-                || graph.Components[peer] is not CircuitNode
+                || graph.Components[peer] is not NodeComponent
                 || !graph.CircuitOf.TryGetValue(member, out var circuit)
                 || !graph.CircuitOf.TryGetValue(other, out var parent)
                 || string.Equals(circuit, parent, StringComparison.Ordinal)

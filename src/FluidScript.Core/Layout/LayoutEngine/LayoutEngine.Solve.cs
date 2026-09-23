@@ -202,17 +202,17 @@ internal sealed partial class LayoutEngine
             return null;
         }
 
-        var sources = declared.Where(IsSource).OrderByDescending(i => ((HeatExchanger)_graph.Components[i]).Power).ToList();
+        var sources = declared.Where(IsSource).OrderByDescending(i => ((HeatExchangerComponent)_graph.Components[i]).Power).ToList();
 
         if (sources.Count > 0)
         {
-            Note(_graph.Components[sources[0]].Name, "head", $"the largest positive duty ({((HeatExchanger)_graph.Components[sources[0]]).Power / 1000:0.##} kW) among {sources.Count} source(s) (C1, D-108)");
+            Note(_graph.Components[sources[0]].Name, "head", $"the largest positive duty ({((HeatExchangerComponent)_graph.Components[sources[0]]).Power / 1000:0.##} kW) among {sources.Count} source(s) (C1, D-108)");
             return sources[0];
         }
 
         foreach (var i in declared)
         {
-            if (_graph.Components[i] is CircuitNode { Boundary: BoundaryRole.Inlet })
+            if (_graph.Components[i] is NodeComponent { Boundary: BoundaryRole.Inlet })
             {
                 Note(_graph.Components[i].Name, "head", "no positive duty; the first inlet boundary (C1)");
                 return i;
@@ -409,7 +409,7 @@ internal sealed partial class LayoutEngine
 
     /// <summary>Whether an element is inline (A5, <c>D-114</c>): a pipe or a node with exactly two connections -- never a boundary, which is an end of the plant and keeps its box whatever meets it there.</summary>
     private bool Inline(int j) =>
-        (_graph.Components[j] is Pipe || (Wildcard(j) && _graph.Components[j] is not CircuitNode { Boundary: BoundaryRole.Inlet or BoundaryRole.Outlet })) && _links.Count(l => l.From == j || l.To == j) == 2;
+        (_graph.Components[j] is PipeComponent || (Wildcard(j) && _graph.Components[j] is not NodeComponent { Boundary: BoundaryRole.Inlet or BoundaryRole.Outlet })) && _links.Count(l => l.From == j || l.To == j) == 2;
 
     /// <summary>Places an inline element at the cut of its run and turns its two ports along the run (A5).</summary>
     /// <param name="n">The inline element.</param>
@@ -434,7 +434,7 @@ internal sealed partial class LayoutEngine
     /// <returns>The anchor to place from, and the pipe up to it.</returns>
     private (PlacedAnchor Start, ImmutableArray<Point> Lead) Lead(int i, PlacedAnchor anchor, int next)
     {
-        if (!_loop[i] || _graph.Components[i] is not HeatExchanger || anchor.Outward.Horizontal)
+        if (!_loop[i] || _graph.Components[i] is not HeatExchangerComponent || anchor.Outward.Horizontal)
         {
             return (anchor, []);
         }
@@ -475,7 +475,7 @@ internal sealed partial class LayoutEngine
             if (walk.Far >= 0 && Direction.Of(end.Offset(-before.X, -before.Y)) is { Horizontal: true } approach)
             {
                 // C7: the fragment's inlets and outlets line up with one another wherever they hang (the user's correction on the tour: SB1, NB1 and NB2 on one vertical); inferred open ends pair by their root.
-                var root = _graph.Components[b] is CircuitNode { Boundary: not BoundaryRole.Interior } ? -3 : Root(walk);
+                var root = _graph.Components[b] is NodeComponent { Boundary: not BoundaryRole.Interior } ? -3 : Root(walk);
                 ends.Add((b, walk, approach, root));
             }
         }

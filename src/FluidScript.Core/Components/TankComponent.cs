@@ -27,7 +27,7 @@ namespace FluidScript.Core.Components;
 /// of every larger count, and it gives the steady solve a unique equilibrium.
 /// </para>
 /// </remarks>
-public sealed class Tank : IFlowComponent
+public sealed class TankComponent : ComponentBase
 {
     /// <summary>The volume a tank gets when the script states none.</summary>
     /// <value>0.3 m³, which is 300 dm³ — a visible decided default under <c>D-32</c>, not a sized value.</value>
@@ -39,9 +39,6 @@ public sealed class Tank : IFlowComponent
     /// <summary>The normalized height a port gets when the script states none.</summary>
     /// <value>0.5, mid-height.</value>
     public const double DefaultLevel = 0.5;
-
-    private readonly ImmutableArray<UnknownDeclaration> _unknowns;
-    private readonly ImmutableArray<EquationDeclaration> _equations;
 
     /// <summary>Initializes a tank from its materialized ports.</summary>
     /// <param name="name">The user's identifier.</param>
@@ -55,21 +52,20 @@ public sealed class Tank : IFlowComponent
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="volume"/> is not positive, or <paramref name="layers"/> is below one.
     /// </exception>
-    public Tank(
+    public TankComponent(
         string name,
         ImmutableArray<double> inletElevations = default,
         ImmutableArray<double> outletElevations = default,
         double volume = DefaultVolume,
         int layers = DefaultLayers)
+        : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(volume);
         ArgumentOutOfRangeException.ThrowIfLessThan(layers, 1);
 
         var inlets = inletElevations.IsDefaultOrEmpty ? [DefaultLevel] : inletElevations;
         var outlets = outletElevations.IsDefaultOrEmpty ? [DefaultLevel] : outletElevations;
 
-        Name = name;
         Volume = volume;
         Layers = layers;
         PortLevels = [.. inlets, .. outlets];
@@ -86,7 +82,7 @@ public sealed class Tank : IFlowComponent
         // row an identity, exactly as for a node interior to a branch.
         CarriesMassBalance = Ports.Length >= 3 || Ports.Length == 1;
 
-        _unknowns = [new UnknownDeclaration(0, UnknownKind.NodeEnthalpy, name, $"{name}.h", "J/kg")];
+        Unknowns = [new UnknownDeclaration(0, UnknownKind.NodeEnthalpy, name, $"{name}.h", "J/kg")];
 
         var equations = ImmutableArray.CreateBuilder<EquationDeclaration>();
         equations.Add(new EquationDeclaration(0, EquationKind.Energy, name, $"{name} energy balance", "W"));
@@ -102,7 +98,7 @@ public sealed class Tank : IFlowComponent
                 0, EquationKind.Pressure, name, $"{name} {Ports[port].Name} equal to {Ports[0].Name}", "Pa"));
         }
 
-        _equations = equations.ToImmutable();
+        Equations = equations.ToImmutable();
 
         static Port Indexed(string prefix, int index, double elevation) => new()
         {
@@ -117,27 +113,8 @@ public sealed class Tank : IFlowComponent
     public const int EnthalpyIndex = 0;
 
     /// <inheritdoc/>
-    public string Name { get; }
-
-    /// <inheritdoc/>
     /// <value><c>tank</c>. The alias <c>container</c> resolves to it and is never emitted (<c>D-32</c>).</value>
-    public string Kind => "tank";
-
-    /// <inheritdoc/>
-    /// <value>Always <see langword="null"/>: a tank has no modes.</value>
-    public string? Mode => null;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
+    public override string Kind => "tank";
 
     /// <summary>Gets the liquid volume.</summary>
     /// <value>
@@ -163,28 +140,21 @@ public sealed class Tank : IFlowComponent
     /// <c>in1</c> and <c>out1</c> always exist; higher ports materialize only when a qualified
     /// connection or a level parameter names them.
     /// </remarks>
-    public ImmutableArray<Port> Ports { get; }
+    public override ImmutableArray<Port> Ports { get; }
 
     /// <inheritdoc/>
     /// <value>
     /// One group holding every materialized port. A vessel is a mixed junction: what enters at one
     /// port may leave at any other, so no two of them are tied to a single shared flow.
     /// </value>
-    public ImmutableArray<int> FlowGroups { get; }
+    public override ImmutableArray<int> FlowGroups { get; }
 
     /// <inheritdoc/>
     /// <value>
     /// One energy balance, a mass balance when this tank is a junction or a terminal, and K−1 pressure
     /// equalities against the first port.
     /// </value>
-    public int EquationCount => _equations.Length;
-
-    /// <inheritdoc/>
-    /// <returns>The tank's mixed enthalpy. Its pressure is its first port's, not a separate unknown.</returns>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => _unknowns;
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    public override int EquationCount => Equations.Length;
 
     /// <summary>The layer a normalized level selects.</summary>
     /// <param name="level">0 at the bottom, 1 at the top.</param>
@@ -223,7 +193,7 @@ public sealed class Tank : IFlowComponent
     /// it, which the same upwinding a node uses produces without a special case.
     /// </para>
     /// </remarks>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var mixed = context.Unknowns[EnthalpyIndex];
         var mass = 0.0;

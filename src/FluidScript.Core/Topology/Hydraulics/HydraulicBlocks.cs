@@ -77,7 +77,7 @@ public sealed class HydraulicBlocks
         {
             foreach (var (element, vertex) in index)
             {
-                if (element is CircuitNode { Boundary: not BoundaryRole.Interior })
+                if (element is NodeComponent { Boundary: not BoundaryRole.Interior })
                 {
                     edges.Add((ground, vertex, -1, Drives: true));
                 }
@@ -205,7 +205,7 @@ public sealed class HydraulicBlocks
     /// <param name="graph">The graph.</param>
     /// <returns>The blocks.</returns>
     public static HydraulicBlocks ForFreePumps(CircuitGraph graph) =>
-        Build(graph, groundBoundaries: false, static part => part is Pump { StatedRise: null } pump && Ownership.Of(pump, "head") is not ParameterState.Stated);
+        Build(graph, groundBoundaries: false, static part => part is PumpComponent { StatedRise: null } pump && Ownership.Of(pump, "head") is not ParameterState.Stated);
 
     /// <summary>Whether the block a branch lies in has a driver.</summary>
     /// <param name="branch">The branch.</param>

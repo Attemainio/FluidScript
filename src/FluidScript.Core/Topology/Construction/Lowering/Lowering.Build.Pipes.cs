@@ -38,7 +38,7 @@ public static partial class Lowering
             {
                 if (symbol.Kind?.Keyword != "pipe"
                     || !_byName.TryGetValue(symbol.Name, out var index)
-                    || _elements[index] is not Pipe pipe
+                    || _elements[index] is not PipeComponent pipe
                     || Cells(symbol) is not { } cells)
                 {
                     continue;
@@ -85,7 +85,7 @@ public static partial class Lowering
                 ? (int)value
                 : null;
 
-        private void Expand(int index, Pipe pipe, int cells, string circuit, double inletHeight)
+        private void Expand(int index, PipeComponent pipe, int cells, string circuit, double inletHeight)
         {
             var members = ImmutableArray.CreateBuilder<string>();
             var segments = new int[cells + 1];
@@ -96,7 +96,7 @@ public static partial class Lowering
 
                 segments[segment] = _elements.Count;
                 Add(
-                    new Pipe(
+                    new PipeComponent(
                         name,
                         pipe.Length / (cells + 1),
                         pipe.InsideDiameter,
@@ -130,7 +130,7 @@ public static partial class Lowering
                 var name = $"{pipe.Name}{Generated}n{(cell + 1).ToString(CultureInfo.InvariantCulture)}";
                 // Evenly up the run: the rise is shared between the sub-pipes, so each internal node
                 // sits one share above the last.
-                var node = new CircuitNode(name, portCount: 2, carriesMassBalance: false)
+                var node = new NodeComponent(name, portCount: 2, carriesMassBalance: false)
                 {
                     Elevation = inletHeight + (pipe.Rise * (cell + 1) / (cells + 1)),
                 };
@@ -201,7 +201,7 @@ public static partial class Lowering
         {
             for (var element = 0; element < _elements.Count; element++)
             {
-                if (_elements[element] is not HeatExchanger exchanger)
+                if (_elements[element] is not HeatExchangerComponent exchanger)
                 {
                     continue;
                 }
@@ -228,7 +228,7 @@ public static partial class Lowering
 
             var peer = _peerElement[element][port];
 
-            if (peer < 0 || _elements[peer] is not CircuitNode node)
+            if (peer < 0 || _elements[peer] is not NodeComponent node)
             {
                 return;
             }

@@ -194,7 +194,7 @@ public sealed class SystemLayout
 
             for (var element = 0; element < graph.Components.Length; element++)
             {
-                if (graph.Components[element] is not Tank tank)
+                if (graph.Components[element] is not TankComponent tank)
                 {
                     continue;
                 }

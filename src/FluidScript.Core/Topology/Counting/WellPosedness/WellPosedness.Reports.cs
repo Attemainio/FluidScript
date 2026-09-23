@@ -322,7 +322,7 @@ public static partial class WellPosedness
 
         void Link(IFlowComponent left, IFlowComponent right)
         {
-            if (left is not CircuitNode || right is not CircuitNode)
+            if (left is not NodeComponent || right is not NodeComponent)
             {
                 return;
             }

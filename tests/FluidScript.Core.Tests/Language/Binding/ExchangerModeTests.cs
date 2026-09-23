@@ -67,8 +67,8 @@ public sealed class ExchangerModeTests
         return matching[0];
     }
 
-    private static HeatExchanger Exchanger(string source) =>
-        GraphFixture.Lower(source).Graph.Components.OfType<HeatExchanger>().Single(static x => x.Name == "HX1");
+    private static HeatExchangerComponent Exchanger(string source) =>
+        GraphFixture.Lower(source).Graph.Components.OfType<HeatExchangerComponent>().Single(static x => x.Name == "HX1");
 
     // ---- which mode a declaration lands in -----------------------------------------------------
 

@@ -324,7 +324,7 @@ public static partial class SolutionSeed
                 .Concat(branch.Path)
                 .Append(branch.To.Element))
             {
-                if (part is CircuitNode && index.TryGetValue(part, out var node))
+                if (part is NodeComponent && index.TryGetValue(part, out var node))
                 {
                     if (nodes.Count > 0)
                     {
@@ -336,7 +336,7 @@ public static partial class SolutionSeed
                     continue;
                 }
 
-                if (part is HeatExchanger exchanger && capacity > 0
+                if (part is HeatExchangerComponent exchanger && capacity > 0
                     && Ownership.Of(exchanger, "power") is ParameterState.Stated or ParameterState.SizedFinal)
                 {
                     var sign = FluidScript.Core.Sizing.Flows.BranchFlows.Side(graph, branch, exchanger) == 2 ? -1 : 1;
@@ -370,12 +370,12 @@ public static partial class SolutionSeed
             var upstream = forward ? branch.From.Element : branch.To.Element;
             var downstream = forward ? branch.To.Element : branch.From.Element;
 
-            if (upstream is not CircuitNode)
+            if (upstream is not NodeComponent)
             {
                 Attach(outOf, upstream, forward ? nodes[0] : nodes[^1]);
             }
 
-            if (downstream is not CircuitNode)
+            if (downstream is not NodeComponent)
             {
                 Attach(into, downstream, forward ? nodes[^1] : nodes[0]);
             }
@@ -478,7 +478,7 @@ public static partial class SolutionSeed
 
             foreach (var part in branch.Path)
             {
-                if (part is not CircuitNode || !index.TryGetValue(part, out var node))
+                if (part is not NodeComponent || !index.TryGetValue(part, out var node))
                 {
                     continue;
                 }

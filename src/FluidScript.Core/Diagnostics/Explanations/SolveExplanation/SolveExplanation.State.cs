@@ -111,7 +111,7 @@ public static partial class SolveExplanation
 
             foreach (var element in hydraulic.Elements)
             {
-                if (element is not HeatExchanger exchanger || exchanger.Power == 0)
+                if (element is not HeatExchangerComponent exchanger || exchanger.Power == 0)
                 {
                     continue;
                 }
@@ -204,7 +204,7 @@ public static partial class SolveExplanation
         {
             var component = graph.Components[index];
 
-            if (component is Pump pump)
+            if (component is PumpComponent pump)
             {
                 if (!ports[index, 0].CarriesFlow)
                 {
@@ -229,7 +229,7 @@ public static partial class SolveExplanation
                 report.AppendLine(CultureInfo.InvariantCulture,
                     $"    {pump.Name,-12} pump   {at.Flow,9:0.0000} kg/s  head {at.Head,7:0.00} m  rise {at.Rise / 1000,8:0.00} kPa  {origin}");
             }
-            else if (component is Valve valve)
+            else if (component is ValveComponent valve)
             {
                 var inlet = ports[index, 0];
                 var outlet = ports[index, 1];
@@ -249,7 +249,7 @@ public static partial class SolveExplanation
                     $"    {valve.Name,-12} valve  {flow,9:0.0000} kg/s  Kv {Resolved(valve.Name, "kv", valve.Kv),7:0.##}"
                     + $"  position {Resolved(valve.Name, "position", valve.Position),5:0.###}  drop {drop / 1000,8:0.00} kPa");
             }
-            else if (component is ThreeWayValve three)
+            else if (component is ThreeWayValveComponent three)
             {
                 var common = ports[index, 0];
 

@@ -32,8 +32,8 @@ public sealed class FlowComponentTests
     {
         // The asymmetry 22 insists on. A degree-two node inside a branch has one flow in and the same
         // flow out, so its mass balance would be a row of zeros — singular by construction.
-        Assert.Equal(1, new CircuitNode("N1", 2, carriesMassBalance: false).EquationCount);
-        Assert.Equal(2, new CircuitNode("N2", 3, carriesMassBalance: true).EquationCount);
+        Assert.Equal(1, new NodeComponent("N1", 2, carriesMassBalance: false).EquationCount);
+        Assert.Equal(2, new NodeComponent("N2", 3, carriesMassBalance: true).EquationCount);
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public sealed class FlowComponentTests
         // 22's acceptance criterion, and the reason the energy balance is written over every port with
         // signed flows rather than only over ports that carry flow: a count that moved with a solved
         // direction would change the system's size between Newton iterations.
-        var node = new CircuitNode("N1", 2, carriesMassBalance: false);
+        var node = new NodeComponent("N1", 2, carriesMassBalance: false);
         var before = node.EquationCount;
 
         Span<double> residuals = stackalloc double[node.EquationCount];
@@ -62,7 +62,7 @@ public sealed class FlowComponentTests
         // 0.3 kg/s at 200 kJ/kg and 0.1 kg/s at 100 kJ/kg leave together at 0.4 kg/s, so the mixed
         // enthalpy is (0.3 x 200 + 0.1 x 100) / 0.4 = 70/0.4 = 175 kJ/kg. The energy residual is zero
         // there and nowhere else.
-        var node = new CircuitNode("N1", 3, carriesMassBalance: true);
+        var node = new NodeComponent("N1", 3, carriesMassBalance: true);
 
         Span<double> residuals = stackalloc double[2];
         node.EvaluateResiduals(
@@ -80,7 +80,7 @@ public sealed class FlowComponentTests
     [Fact]
     public void ANodesMassResidualIsTheSumOfItsFlows()
     {
-        var node = new CircuitNode("N1", 3, carriesMassBalance: true);
+        var node = new NodeComponent("N1", 3, carriesMassBalance: true);
 
         Span<double> residuals = stackalloc double[2];
         node.EvaluateResiduals(
@@ -136,7 +136,7 @@ public sealed class FlowComponentTests
 
         static double Enthalpy(double flow)
         {
-            var node = new CircuitNode("N1", 1, carriesMassBalance: false);
+            var node = new NodeComponent("N1", 1, carriesMassBalance: false);
 
             Span<double> residuals = stackalloc double[1];
             node.EvaluateResiduals(
@@ -163,7 +163,7 @@ public sealed class FlowComponentTests
         // shares no code with Serghide's explicit approximation of it.
         const double diameter = 0.1;
 
-        var pipe = new Pipe("P1", length: 1, insideDiameter: diameter,
+        var pipe = new PipeComponent("P1", length: 1, insideDiameter: diameter,
             roughness: relativeRoughness * diameter);
 
         var serghide = pipe.FrictionFactor(reynolds);
@@ -208,7 +208,7 @@ public sealed class FlowComponentTests
         //   Re = 998.2 x 0.8557 x 0.0273 / 1.002e-3 = 23 271        -> turbulent
         //   f (Serghide, eps = 0.045 mm) = 0.028445
         //   dp = f x (L/D) x rho v^2 / 2 = 0.028445 x 366.30 x 365.45 = 3 807 Pa
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
         var velocity = 0.5 / (ConstantPropertyWater.DensityValue * pipe.FlowArea);
 
         var drop = pipe.PressureDrop(
@@ -222,7 +222,7 @@ public sealed class FlowComponentTests
     {
         // The case f = 64/Re cannot evaluate: the factor diverges as the term it multiplies vanishes.
         // Written as 32 mu L v / D^2 the laminar branch is linear, exactly zero here, and has a slope.
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
 
         var atRest = pipe.PressureDrop(0, ConstantPropertyWater.DensityValue, ConstantPropertyWater.DynamicViscosityValue);
         var nudged = pipe.PressureDrop(1e-9, ConstantPropertyWater.DensityValue, ConstantPropertyWater.DynamicViscosityValue);
@@ -237,7 +237,7 @@ public sealed class FlowComponentTests
     {
         // v|v| rather than v^2: a reversed flow must lose pressure in the direction it is going, not
         // gain it. The magnitudes match and the signs do not.
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
 
         var forward = pipe.PressureDrop(0.9, ConstantPropertyWater.DensityValue, ConstantPropertyWater.DynamicViscosityValue);
         var reverse = pipe.PressureDrop(-0.9, ConstantPropertyWater.DensityValue, ConstantPropertyWater.DynamicViscosityValue);
@@ -251,7 +251,7 @@ public sealed class FlowComponentTests
     {
         // 22's acceptance criterion. Blended rather than switched, because a discontinuity in the
         // residual is a discontinuity in the Jacobian and Newton does not survive one.
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
         var step = 1e-5;
         var previous = double.NaN;
 
@@ -276,7 +276,7 @@ public sealed class FlowComponentTests
     [Fact]
     public void APipesResidualIsTheStatedDropMinusTheComputedOne()
     {
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
         var velocity = 0.5 / (ConstantPropertyWater.DensityValue * pipe.FlowArea);
         var expected = pipe.PressureDrop(
             velocity, ConstantPropertyWater.DensityValue, ConstantPropertyWater.DynamicViscosityValue);
@@ -294,7 +294,7 @@ public sealed class FlowComponentTests
     {
         // 10 m up, 998.2 kg/m3: 998.2 x 9.80665 x 10 = 97 890 Pa, and the residual carries it whether
         // or not anything is flowing.
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273, rise: 10);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273, rise: 10);
 
         Span<double> residuals = stackalloc double[1];
         pipe.EvaluateResiduals(
@@ -309,8 +309,8 @@ public sealed class FlowComponentTests
     {
         // 22's acceptance criterion, and the reason SolveContext carries evaluated properties instead
         // of a substance to ask: this runs N+1 times per Newton iteration.
-        var node = new CircuitNode("N1", 3, carriesMassBalance: true);
-        var pipe = new Pipe("P1", length: 10, insideDiameter: 0.0273);
+        var node = new NodeComponent("N1", 3, carriesMassBalance: true);
+        var pipe = new PipeComponent("P1", length: 10, insideDiameter: 0.0273);
 
         // Every buffer is built once, outside the measured region. The first version of this test
         // allocated its own argument arrays inside the loop and reported 21 600 bytes -- all of them the

@@ -88,7 +88,7 @@ public sealed class PortMap
         // node keeps -1, which is a fact the assembler can report rather than a silent zero.
         for (var index = 0; index < graph.Components.Length; index++)
         {
-            if (graph.Components[index] is CircuitNode)
+            if (graph.Components[index] is NodeComponent)
             {
                 continue;
             }

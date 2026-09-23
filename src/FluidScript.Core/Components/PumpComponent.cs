@@ -19,15 +19,13 @@ namespace FluidScript.Core.Components;
 /// needs to be told, so it is stated in <c>/docs</c> and reported in hover rather than assumed.
 /// </para>
 /// </remarks>
-public sealed class Pump : IFlowComponent
+public sealed class PumpComponent : ComponentBase
 {
     /// <summary>Standard gravity, m/s².</summary>
 
     /// <summary>The shut-off head of the default curve, as a multiple of the duty head.</summary>
     /// <value>1.2, typical for a centrifugal pump.</value>
     public const double DefaultShutOffFactor = 1.2;
-
-    private readonly ImmutableArray<EquationDeclaration> _equations;
 
     /// <summary>Initializes a pump from its curve coefficients at full speed.</summary>
     /// <param name="name">The user's identifier.</param>
@@ -39,25 +37,24 @@ public sealed class Pump : IFlowComponent
     /// <paramref name="shutOffHead"/> or <paramref name="curvature"/> is negative, or
     /// <paramref name="efficiency"/> is not positive.
     /// </exception>
-    public Pump(
+    public PumpComponent(
         string name,
         double shutOffHead,
         double curvature,
         double speed = 1,
         double efficiency = 0.7)
+        : base(name)
     {
-        ArgumentNullException.ThrowIfNull(name);
         ArgumentOutOfRangeException.ThrowIfNegative(shutOffHead);
         ArgumentOutOfRangeException.ThrowIfNegative(curvature);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(efficiency);
 
-        Name = name;
         ShutOffHead = shutOffHead;
         Curvature = curvature;
         Speed = speed;
         Efficiency = efficiency;
 
-        _equations = [new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} curve", "Pa")];
+        Equations = [new EquationDeclaration(0, EquationKind.Pressure, name, $"{name} curve", "Pa")];
     }
 
     /// <summary>The default quadratic through a duty point: its shut-off head and its curvature.</summary>
@@ -91,23 +88,16 @@ public sealed class Pump : IFlowComponent
     /// <param name="speed">The relative speed n.</param>
     /// <param name="efficiency">The hydraulic efficiency.</param>
     /// <returns>A pump whose curve passes through the duty point.</returns>
-    public static Pump FromDutyPoint(
+    public static PumpComponent FromDutyPoint(
         string name, double dutyHead, double dutyFlow, double speed = 1, double efficiency = 0.7)
     {
         var (shutOff, curvature) = CurveThrough(dutyHead, dutyFlow);
 
-        return new Pump(name, shutOff, curvature, speed, efficiency);
+        return new PumpComponent(name, shutOff, curvature, speed, efficiency);
     }
 
     /// <inheritdoc/>
-    public string Name { get; }
-
-    /// <inheritdoc/>
-    public string Kind => "pump";
-
-    /// <inheritdoc/>
-    /// <value>Always <see langword="null"/>: a pump has no modes.</value>
-    public string? Mode => null;
+    public override string Kind => "pump";
 
     /// <summary>Gets the pressure rise the script stated, Pa, positive from inlet to outlet, or <see langword="null"/> when the pump runs on its curve.</summary>
     /// <remarks>
@@ -119,18 +109,6 @@ public sealed class Pump : IFlowComponent
     /// curve's shape only.
     /// </remarks>
     public double? StatedRise { get; init; }
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> StatedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> SizedParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
-
-    /// <inheritdoc/>
-    public ImmutableDictionary<string, Quantity> DefaultParameters { get; init; }
-        = ImmutableDictionary<string, Quantity>.Empty;
 
     /// <summary>Gets the head at zero flow and full speed.</summary>
     /// <value>m of the pumped fluid.</value>
@@ -151,7 +129,7 @@ public sealed class Pump : IFlowComponent
     public double Efficiency { get; }
 
     /// <inheritdoc/>
-    public ImmutableArray<Port> Ports { get; } =
+    public override ImmutableArray<Port> Ports { get; } =
     [
         new Port { Name = "in", Role = PortRole.Inlet, IsOptional = false },
         new Port { Name = "out", Role = PortRole.Outlet, IsOptional = false },
@@ -159,18 +137,11 @@ public sealed class Pump : IFlowComponent
 
     /// <inheritdoc/>
     /// <value>One group of two.</value>
-    public ImmutableArray<int> FlowGroups { get; } = [0, 0];
+    public override ImmutableArray<int> FlowGroups { get; } = [0, 0];
 
     /// <inheritdoc/>
     /// <value>One: the curve.</value>
-    public int EquationCount => 1;
-
-    /// <inheritdoc/>
-    /// <returns>Empty. Its flow belongs to its branch and its pressures to its nodes.</returns>
-    public ImmutableArray<UnknownDeclaration> DeclareUnknowns() => [];
-
-    /// <inheritdoc/>
-    public ImmutableArray<EquationDeclaration> DeclareEquations() => _equations;
+    public override int EquationCount => 1;
 
     /// <summary>The index of the shut-off head among this kind's resolvable parameters.</summary>
     public const int HeadIndex = 0;
@@ -181,7 +152,7 @@ public sealed class Pump : IFlowComponent
     /// reports. A bare <c>head=</c> with no <c>flow=</c> beside it <em>is</em> the shut-off head
     /// (<c>ComponentFactory</c>), so the two readings agree wherever both exist.
     /// </value>
-    public ImmutableArray<ResolvedParameter> Resolvable =>
+    public override ImmutableArray<ResolvedParameter> Resolvable =>
         [new ResolvedParameter("head", ShutOffHead, "m", Minimum: 0)];
 
     /// <summary>The head this pump develops at a flow and its current speed.</summary>
@@ -232,7 +203,7 @@ public sealed class Pump : IFlowComponent
         Math.Abs(massFlow) * Math.Abs(pressureRise) / (density * Efficiency);
 
     /// <inheritdoc/>
-    public void EvaluateResiduals(in SolveContext context, Span<double> residuals)
+    public override void EvaluateResiduals(in SolveContext context, Span<double> residuals)
     {
         var drop = context.Ports[0].Pressure - context.Ports[1].Pressure;
 

@@ -98,7 +98,7 @@ public static class SolvedStates
             // A node's own ports read the node's own state; the map points them at what is attached.
             var own = -1;
 
-            if (graph.Components[component] is CircuitNode)
+            if (graph.Components[component] is NodeComponent)
             {
                 for (var node = 0; node < graph.Nodes.Length; node++)
                 {
@@ -253,7 +253,7 @@ public static class SolvedStates
     /// rise over the inlet density), so the two could print different heads for one solve. The one
     /// definition is the residual's: the rise over the mean density and g.
     /// </remarks>
-    public static SolvedPump? Pump(SystemLayout layout, StateVector solution, Pump pump, ImmutableArray<SolvedPort?> ports)
+    public static SolvedPump? Pump(SystemLayout layout, StateVector solution, PumpComponent pump, ImmutableArray<SolvedPort?> ports)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(solution);
@@ -319,7 +319,7 @@ public static class SolvedStates
         ArgumentNullException.ThrowIfNull(solution);
 
         if (index < 0 || index >= graph.Components.Length
-            || graph.Components[index] is not HeatExchanger { Rating: { CanRate: true } rating } exchanger
+            || graph.Components[index] is not HeatExchangerComponent { Rating: { CanRate: true } rating } exchanger
             || Side(graph, layout, solution, index, exchanger, side: 1) is not { } one)
         {
             return null;
@@ -346,7 +346,7 @@ public static class SolvedStates
             return null;
         }
 
-        var duty = HeatExchanger.Duty(rating, one.Capacity, one.Inlet, capacity2, inlet2);
+        var duty = HeatExchangerComponent.Duty(rating, one.Capacity, one.Inlet, capacity2, inlet2);
         var minimum = Math.Min(one.Capacity, capacity2);
         var ratio = minimum / Math.Max(one.Capacity, capacity2);
         var ntu = rating.Conductance / minimum;
@@ -376,7 +376,7 @@ public static class SolvedStates
     /// direction and its solved sign together say which end the stream enters at.
     /// </remarks>
     private static (double Inlet, double Capacity)? Side(
-        CircuitGraph graph, SystemLayout layout, StateVector solution, int index, HeatExchanger exchanger, int side)
+        CircuitGraph graph, SystemLayout layout, StateVector solution, int index, HeatExchangerComponent exchanger, int side)
     {
         var branch = graph.Branches.FirstOrDefault(
             candidate => candidate.Path.Contains(exchanger) && BranchFlows.Side(graph, candidate, exchanger) == side);

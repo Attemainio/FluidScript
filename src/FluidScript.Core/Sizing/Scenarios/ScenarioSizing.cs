@@ -318,7 +318,7 @@ public static class ScenarioSizing
         {
             foreach (var component in solve.Result.Graph.Components)
             {
-                if (component is not HeatExchanger exchanger)
+                if (component is not HeatExchangerComponent exchanger)
                 {
                     continue;
                 }

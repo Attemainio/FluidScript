@@ -29,7 +29,7 @@ public sealed class BranchResistanceTests
     public void TheSeedCapsAValveAtTheSelectionBandAndSizingReadsItInFull()
     {
         var graph = GraphFixture.Lower(Loop).Graph;
-        var valve = Assert.Single(graph.Components.OfType<Valve>());
+        var valve = Assert.Single(graph.Components.OfType<ValveComponent>());
         var state = graph.Substance.FromPressureTemperature(
             Quantity.FromSi(1.5e5, Dimension.Pressure),
             Quantity.FromSi(343.15, Dimension.Temperature)).Value;

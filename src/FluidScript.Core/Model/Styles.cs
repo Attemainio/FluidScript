@@ -118,7 +118,7 @@ public sealed class Styles
                     return true;
                 }
 
-                if (graph.Components[peer.Component] is CircuitNode)
+                if (graph.Components[peer.Component] is NodeComponent)
                 {
                     queue.Enqueue(peer.Component);
                 }

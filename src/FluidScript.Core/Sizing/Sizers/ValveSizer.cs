@@ -87,7 +87,7 @@ public sealed class ValveSizer(
     /// duplicating all of it to change which two numbers go in.
     /// </para>
     /// </remarks>
-    public bool CanSize(IFlowComponent component) => component is Valve or ThreeWayValve;
+    public bool CanSize(IFlowComponent component) => component is ValveComponent or ThreeWayValveComponent;
 
     /// <inheritdoc/>
     public Result<SizingResult> Size(IFlowComponent component, in SizingContext context)
@@ -148,7 +148,7 @@ public sealed class ValveSizer(
         // `D-122`. A three-way valve with its bypass connected is a mixing valve and is sized on its
         // common-port flow to a drop band -- unless the script states an authority, which asks for the
         // control-valve rule by name.
-        if (valve is ThreeWayValve { BypassConnected: true }
+        if (valve is ThreeWayValveComponent { BypassConnected: true }
             && context.CommonFlow is { } common
             && double.IsFinite(common)
             && common > 0

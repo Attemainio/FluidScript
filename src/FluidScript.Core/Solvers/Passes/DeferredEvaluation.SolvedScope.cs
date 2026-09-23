@@ -157,7 +157,7 @@ public static partial class DeferredEvaluation
 
             // A rated exchanger's second side is not wired, so its leaving temperature, its duty and
             // its rating figures exist only through the rating -- the same arithmetic the report prints.
-            if (element is HeatExchanger exchanger && ExchangerProperty(exchanger, index, key) is { } rated)
+            if (element is HeatExchangerComponent exchanger && ExchangerProperty(exchanger, index, key) is { } rated)
             {
                 return rated;
             }
@@ -175,7 +175,7 @@ public static partial class DeferredEvaluation
             return element.DefaultParameters.TryGetValue(key, out var fallback) ? fallback.SiValue : null;
         }
 
-        private double? ExchangerProperty(HeatExchanger exchanger, int index, string key)
+        private double? ExchangerProperty(HeatExchangerComponent exchanger, int index, string key)
         {
             if (key is not ("t_in2" or "t_out2" or "dt2" or "flow2" or "ua" or "ntu" or "effectiveness" or "lmtd" or "approach" or "power")
                 || (exchanger.SecondarySideConnected && key is "t_in2" or "t_out2" or "dt2" or "flow2")
@@ -257,7 +257,7 @@ public static partial class DeferredEvaluation
                 "t_out" => outlet.Temperature,
                 "p_in" => inlet.Pressure,
                 "p_out" => outlet.Pressure,
-                "power" when element is HeatExchanger => flow * (outlet.Enthalpy - inlet.Enthalpy),
+                "power" when element is HeatExchangerComponent => flow * (outlet.Enthalpy - inlet.Enthalpy),
                 _ => null,
             };
         }

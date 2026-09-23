@@ -67,7 +67,7 @@ public sealed class SolutionSeedTests
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            if (graph.Components[element] is not CircuitNode { CarriesMassBalance: true } node)
+            if (graph.Components[element] is not NodeComponent { CarriesMassBalance: true } node)
             {
                 continue;
             }
@@ -130,7 +130,7 @@ public sealed class SolutionSeedTests
 
         for (var element = 0; element < graph.Components.Length; element++)
         {
-            if (graph.Components[element] is not CircuitNode node)
+            if (graph.Components[element] is not NodeComponent node)
             {
                 continue;
             }
@@ -188,7 +188,7 @@ public sealed class SolutionSeedTests
 
             N1 node p=250
             """).Graph;
-        var valve = Assert.Single(graph.Components.OfType<ThreeWayValve>());
+        var valve = Assert.Single(graph.Components.OfType<ThreeWayValveComponent>());
         var estimates = BranchFlows.Estimate(graph);
 
         var legs = graph.Branches
@@ -264,7 +264,7 @@ public sealed class SolutionSeedTests
         // its 0.4785 kg/s circulation. Reading the graph's hottest source there made it a sixth,
         // 0.0797 kg/s, and the seeded field was three times wrong on the ring's whole stream.
         var graph = GraphFixture.Lower(SeriesHeader).Graph;
-        var valve = Assert.Single(graph.Components.OfType<ThreeWayValve>(), v => v.Name == "TV_AHU");
+        var valve = Assert.Single(graph.Components.OfType<ThreeWayValveComponent>(), v => v.Name == "TV_AHU");
         var estimates = BranchFlows.Estimate(graph);
 
         var legs = graph.Branches
@@ -359,7 +359,7 @@ public sealed class SolutionSeedTests
 
     /// <summary>The signed flow of every branch meeting one node, in its own sign convention.</summary>
     private static IEnumerable<double> Streams(
-        SystemLayout layout, PortMap ports, StateVector seed, int element, CircuitNode node)
+        SystemLayout layout, PortMap ports, StateVector seed, int element, NodeComponent node)
     {
         for (var port = 0; port < node.Ports.Length; port++)
         {
@@ -373,7 +373,7 @@ public sealed class SolutionSeedTests
     }
 
     /// <summary>The external flux at one node, whether the seed chose it or the script stated it.</summary>
-    private static double Flux(CircuitGraph graph, SystemLayout layout, StateVector seed, CircuitNode node)
+    private static double Flux(CircuitGraph graph, SystemLayout layout, StateVector seed, NodeComponent node)
     {
         var index = layout.FluxNodes.IndexOf(
             graph.Nodes.First(candidate => ReferenceEquals(candidate.Component, node)));
@@ -390,7 +390,7 @@ public sealed class SolutionSeedTests
 
     /// <summary>Whether a branch end is a terminal nothing enters or leaves the model at.</summary>
     private static bool DeadLeg(SystemLayout layout, BranchEnd end) =>
-        end.Element is CircuitNode { Ports.Length: 1 } node
+        end.Element is NodeComponent { Ports.Length: 1 } node
         && HydraulicPartition.Stated(node, HydraulicPartition.Flow) is null
         && !layout.FluxNodes.Any(flux => ReferenceEquals(flux.Component, node));
 

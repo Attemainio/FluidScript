@@ -81,7 +81,7 @@ public static class FillPressure
         {
             var datum = hydraulic.Nodes.FirstOrDefault(node => node.Name == hydraulic.Datum);
 
-            if (datum?.Component is not CircuitNode anchor)
+            if (datum?.Component is not NodeComponent anchor)
             {
                 continue;
             }
