@@ -95,7 +95,7 @@ internal sealed partial class LayoutEngine
                 router.AddPipe(points[s - 1], points[s], k, link.From, link.To);
             }
 
-            _routes.Add((k, new Route($"c{link.Connection}", "pipe", LayerOf(k), points, [])));
+            _routes.Add((k, new Route(link.Id, "pipe", LayerOf(k), points, [])));
         }
     }
 

@@ -266,25 +266,32 @@ public static partial class LayoutHintsDerivation
 
         var flow = ImmutableDictionary.CreateBuilder<string, FlowDirection>(StringComparer.Ordinal);
 
+        FlowDirection Direction(string from, string to) =>
+            branchFlows is { } flows
+            && along.TryGetValue((from, to), out var carried)
+            && carried.Branch < flows.Length
+                ? Math.Abs(flows[carried.Branch] * carried.Sign) <= Tolerances.FlowZero ? FlowDirection.None
+                    : flows[carried.Branch] * carried.Sign > 0 ? FlowDirection.Forward
+                    : FlowDirection.Reverse
+                : FlowDirection.None;
+
         for (var i = 0; i < model.Connections.Length; i++)
         {
             var connection = model.Connections[i];
-            var direction = FlowDirection.None;
 
-            if (branchFlows is { } flows
-                && index.ContainsKey(connection.From.Component)
-                && index.ContainsKey(connection.To.Component)
-                && along.TryGetValue((connection.From.Component, connection.To.Component), out var carried)
-                && carried.Branch < flows.Length)
-            {
-                var signed = flows[carried.Branch] * carried.Sign;
+            // An end naming a pipe with `nodes=` is read at the cell that meets the other end (`C-124`).
+            var from = ExpandedPipes.Drawn(graph, connection.From.Component, connection.To.Component);
+            var to = ExpandedPipes.Drawn(graph, connection.To.Component, connection.From.Component);
 
-                direction = Math.Abs(signed) <= Tolerances.FlowZero ? FlowDirection.None
-                    : signed > 0 ? FlowDirection.Forward
-                    : FlowDirection.Reverse;
-            }
+            flow[$"c{i}"] = from is not null && to is not null && index.ContainsKey(from) && index.ContainsKey(to)
+                ? Direction(from, to)
+                : FlowDirection.None;
+        }
 
-            flow[$"c{i}"] = direction;
+        // The links between an expanded pipe's cells, which the diagram draws as routes of their own.
+        foreach (var (id, from, _, to, _) in ExpandedPipes.Internal(graph))
+        {
+            flow[id] = Direction(graph.Components[from].Name, graph.Components[to].Name);
         }
 
         return flow.ToImmutable();

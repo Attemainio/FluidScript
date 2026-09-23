@@ -81,8 +81,8 @@ internal sealed partial class LayoutEngine
         }
     }
 
-    /// <summary>One model connection between two graph components, as the script wrote it.</summary>
-    private readonly record struct Link(int Connection, int From, int FromPort, int To, int ToPort);
+    /// <summary>One connection between two graph components: one the script wrote (<c>c{n}</c>, by position in the model's list), or one between an expanded pipe's cells (<c>{pipe}#c{k}</c>).</summary>
+    private readonly record struct Link(string Id, int From, int FromPort, int To, int ToPort);
 
     /// <summary>A form's attempt on the engine: the placement state as it stood, restored if the form declines (C2, C18, C19, C20).</summary>
     /// <remarks>

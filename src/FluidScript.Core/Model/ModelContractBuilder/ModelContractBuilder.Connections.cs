@@ -98,6 +98,10 @@ public static partial class ModelContractBuilder
 
     // ---- layout ------------------------------------------------------------------------------------------
 
+    /// <summary>The number of a written connection's id, <c>c{n}</c>, or <see langword="null"/> for any other route id.</summary>
+    private static int? WrittenNumber(string id) =>
+        id.Length > 1 && id[0] == 'c' && int.TryParse(id.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : null;
+
     private static LayoutWire Layout(LayoutHints hints, Scene scene, Styles styles, ColourScales scales) => new()
     {
         Margin = scene.Margin,
@@ -139,8 +143,10 @@ public static partial class ModelContractBuilder
         Order = hints.Order,
 
         ThermalStages = [.. hints.ThermalStages.Select(static stage => new ThermalStageWire(stage.Rank, stage.Role.ToString().ToLowerInvariant(), stage.Components))],
+        // The written connections by their number, then the links along expanded pipes by id (`C-124`).
         Flow = hints.Flow
-            .OrderBy(static pair => int.Parse(pair.Key[1..], CultureInfo.InvariantCulture))
+            .OrderBy(static pair => WrittenNumber(pair.Key) ?? int.MaxValue)
+            .ThenBy(static pair => pair.Key, StringComparer.Ordinal)
             .ToDictionary(static pair => pair.Key, static pair => pair.Value.ToString().ToLowerInvariant(), StringComparer.Ordinal),
 
         Groups = [.. hints.Groups.Select(static group => new ComponentGroupWire(group.ParentComponentId, group.Children))],

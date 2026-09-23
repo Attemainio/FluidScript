@@ -5,7 +5,7 @@ namespace FluidScript.Core.Model.Contract;
 /// <summary>One connection's path.</summary>
 public sealed record RouteWire
 {
-    /// <summary><c>c{n}</c> for a connection; <c>{instrument}:measures</c> or <c>{controller}:actuates</c> for a signal line.</summary>
+    /// <summary><c>c{n}</c> for a written connection; <c>{pipe}#c{k}</c> for the k-th link along a pipe with <c>nodes=</c>, from its inlet (<c>C-124</c>); <c>{instrument}:measures</c> or <c>{controller}:actuates</c> for a signal line.</summary>
     public required string Id { get; init; }
 
     /// <summary><c>pipe</c> or <c>signal</c>.</summary>

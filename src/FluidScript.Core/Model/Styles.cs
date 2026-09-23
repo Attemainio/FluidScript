@@ -52,9 +52,18 @@ public sealed class Styles
             _resolved[component.Name] = component.Style is { } style ? Resolve(model.Style.Default.Merge(style)) : fallback;
         }
 
+        // A written end naming a pipe with `nodes=` is the cell that meets the other end, and the links
+        // between cells end at the cells, so a route's gradient reads the values the solve gave the
+        // places it is drawn between (`C-124`, `57`).
         for (var i = 0; i < model.Connections.Length; i++)
         {
-            _ends[$"c{i}"] = (model.Connections[i].From.Component, model.Connections[i].To.Component);
+            var (from, to) = (model.Connections[i].From.Component, model.Connections[i].To.Component);
+            _ends[$"c{i}"] = (Layout.ExpandedPipes.Drawn(graph, from, to) ?? from, Layout.ExpandedPipes.Drawn(graph, to, from) ?? to);
+        }
+
+        foreach (var (id, from, _, to, _) in Layout.ExpandedPipes.Internal(graph))
+        {
+            _ends[id] = (graph.Components[from].Name, graph.Components[to].Name);
         }
     }
 

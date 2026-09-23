@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 namespace FluidScript.Core.Layout.Drawing;
 
 /// <summary>One connection's path, in world units.</summary>
-/// <param name="ConnectionId"><c>c{n}</c>, or a non-flow element's id for a signal line.</param>
+/// <param name="ConnectionId"><c>c{n}</c> for the n-th written connection; <c>{pipe}#c{k}</c> for the k-th link along a pipe with <c>nodes=</c>, which the script never wrote (<c>C-124</c>); or a non-flow element's id for a signal line.</param>
 /// <param name="Kind"><c>pipe</c> for a flow connection, <c>signal</c> for an instrument's leader line.</param>
 /// <param name="Points">The polyline, orthogonal segment by segment and normalised (<c>28</c> §20); the first and last points are the inner anchors.</param>
 /// <param name="Layer">The draw order (<c>28</c> C16): <c>supply</c> in front, <c>return</c> behind it, <c>signal</c> behind everything.</param>

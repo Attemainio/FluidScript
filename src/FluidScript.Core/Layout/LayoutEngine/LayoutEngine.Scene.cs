@@ -245,7 +245,12 @@ internal sealed partial class LayoutEngine
         return index;
     }
 
-    /// <summary>Each model connection as component and port indices, matched on the graph's adjacency.</summary>
+    /// <summary>Each model connection as component and port indices, matched on the graph's adjacency, then the links between an expanded pipe's cells.</summary>
+    /// <remarks>
+    /// A written end naming a pipe with <c>nodes=</c> stands for the cell that meets the other end, and
+    /// its port is whichever meets it, since a cell's port names are the chain's and not the script's
+    /// (<c>C-124</c>).
+    /// </remarks>
     private static List<Link> Links(CircuitGraph graph, SemanticModel model, Dictionary<string, int> index)
     {
         var links = new List<Link>();
@@ -254,13 +259,16 @@ internal sealed partial class LayoutEngine
         for (var i = 0; i < model.Connections.Length; i++)
         {
             var connection = model.Connections[i];
+            var fromName = ExpandedPipes.Drawn(graph, connection.From.Component, connection.To.Component);
+            var toName = ExpandedPipes.Drawn(graph, connection.To.Component, connection.From.Component);
 
-            if (!index.TryGetValue(connection.From.Component, out var from) || !index.TryGetValue(connection.To.Component, out var to))
+            if (fromName is null || toName is null || !index.TryGetValue(fromName, out var from) || !index.TryGetValue(toName, out var to))
             {
                 continue;
             }
 
-            var fromPort = PortTowards(graph, from, to, connection.From.Port, used);
+            var port = string.Equals(fromName, connection.From.Component, StringComparison.Ordinal) ? connection.From.Port : string.Empty;
+            var fromPort = PortTowards(graph, from, to, port, used);
             if (fromPort < 0)
             {
                 continue;
@@ -269,7 +277,12 @@ internal sealed partial class LayoutEngine
             var peer = graph.Adjacency.Peer(from, fromPort);
             used.Add((from, fromPort));
             used.Add((peer.Component, peer.Port));
-            links.Add(new Link(i, from, fromPort, peer.Component, peer.Port));
+            links.Add(new Link($"c{i.ToString(CultureInfo.InvariantCulture)}", from, fromPort, peer.Component, peer.Port));
+        }
+
+        foreach (var (id, from, fromPort, to, toPort) in ExpandedPipes.Internal(graph))
+        {
+            links.Add(new Link(id, from, fromPort, to, toPort));
         }
 
         return links;

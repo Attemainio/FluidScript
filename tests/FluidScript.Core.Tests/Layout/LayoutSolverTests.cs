@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 using FluidScript.Core.Layout;
 using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Layout.Hints;
@@ -13,7 +15,7 @@ public sealed class LayoutSolverTests
 {
     public static TheoryData<string> Samples =>
     [
-        "m2-cooling-loop", "m2-simple-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "m1-syntax-tour", "header-200",
+        "m2-cooling-loop", "m2-simple-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "m1-syntax-tour", "m4-demand-step", "header-200",
     ];
 
     /// <summary>The samples the layout ladder (29) has reached, whose routing and audit gates are live: the simple loop (step 4), the substation (step 5), the cooling loop (step 6), the distribution header (step 8), the storage header (step 9). The rest join as their steps land.</summary>
@@ -156,5 +158,46 @@ public sealed class LayoutSolverTests
         var scene = Solve(name);
         var findings = SceneAudit.Findings(scene, input.Model);
         Assert.True(findings.Length == 0, $"{name}:\n{string.Join("\n", findings)}");
+    }
+
+    [Fact]
+    public void APipeWithNodesIsDrawnAsTheChainOfItsCells()
+    {
+        // C-124. `PB pipe ... nodes=4` lowers to five sub-pipes and four internal nodes, and the script's
+        // connections still name `PB`. Both written connections to it are drawn -- at the cell that meets
+        // the other end -- and the eight links between the cells the script never wrote get routes of
+        // their own, so the recirculation branch is one run from 3WV to N2 and the cells sit inline on it.
+        // Before, both were dropped: the branch was not drawn and the cells stacked below the diagram.
+        var input = ContractFixture.Compile(Source("m4-demand-step"));
+        var scene = Solve("m4-demand-step");
+        var pipes = scene.Routes.Where(static r => r.Kind == "pipe").Select(static r => r.ConnectionId).ToList();
+
+        Assert.Equal(input.Model.Connections.Length + 8, pipes.Count);
+        Assert.Equal(["PB#c1", "PB#c2", "PB#c3", "PB#c4", "PB#c5", "PB#c6", "PB#c7", "PB#c8"], pipes.Where(static id => id.StartsWith("PB#", StringComparison.Ordinal)));
+        Assert.All(
+            scene.Placements.Where(static p => p.ComponentId.StartsWith("PB#", StringComparison.Ordinal)),
+            static cell => Assert.True(cell.IsInline, $"{cell.ComponentId} is not inline"));
+
+        // N2 is where the primary supply, the recirculation and the pump's pipe meet: a junction, boxed.
+        Assert.False(Assert.Single(scene.Placements, static p => p.ComponentId == "N2").IsInline);
+    }
+
+    [Fact]
+    public void APipeWithNodesCarriesTheSolvedDirectionOnEveryLink()
+    {
+        // The hints key each route's direction by its id: the written connections to `PB` read it at their
+        // end cell, and each link between cells at its own pair. All branches forward at 1 kg/s: nothing
+        // on the recirculation may be left without a direction.
+        var input = ContractFixture.Compile(Source("m4-demand-step"));
+        var flows = Enumerable.Repeat(1.0, input.Graph.Branches.Length).ToImmutableArray();
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, flows);
+
+        var toPb = Enumerable.Range(0, input.Model.Connections.Length)
+            .Where(i => input.Model.Connections[i].From.Component == "PB" || input.Model.Connections[i].To.Component == "PB")
+            .Select(static i => $"c{i}")
+            .ToList();
+
+        Assert.Equal(2, toPb.Count);
+        Assert.All(toPb.Concat(Enumerable.Range(1, 8).Select(static k => $"PB#c{k}")), id => Assert.NotEqual(FlowDirection.None, hints.Flow[id]));
     }
 }

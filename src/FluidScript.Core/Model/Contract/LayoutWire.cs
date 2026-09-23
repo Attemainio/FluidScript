@@ -12,7 +12,7 @@ public sealed record LayoutWire
     /// <summary>The heat-progression bands, left to right.</summary>
     public required ImmutableArray<ThermalStageWire> ThermalStages { get; init; }
 
-    /// <summary>Solved direction per connection id.</summary>
+    /// <summary>Solved direction per pipe route id: every written connection's <c>c{n}</c>, then each <c>{pipe}#c{k}</c> link along a pipe with <c>nodes=</c>.</summary>
     public required IReadOnlyDictionary<string, string> Flow { get; init; }
 
 

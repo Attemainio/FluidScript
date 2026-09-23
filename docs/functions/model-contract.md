@@ -219,7 +219,7 @@ One adjacency.
 |---|---|---|
 | `order` | array of string | Depth-first order from each pressure datum. |
 | `thermalStages` | array of [`ThermalStage`](#thermalstage) | The heat-progression bands, left to right. |
-| `flow` | object of string | Solved direction per connection id. |
+| `flow` | object of string | Solved direction per pipe route id: every written connection's `c{n}`, then each `{pipe}#c{k}` link along a pipe with `nodes=`. |
 | `groups` | array of [`ComponentGroup`](#componentgroup) | Pipe expansions. |
 | `nonFlowElements` | array of [`NonFlowElement`](#nonflowelement) | Instruments and controllers. |
 | `circuitOf` | object of string | Owning circuit per component. |
@@ -491,7 +491,7 @@ One connection's path.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `id` | string | `c{n}` for a connection; `{instrument}:measures` or `{controller}:actuates` for a signal line. |
+| `id` | string | `c{n}` for a written connection; `{pipe}#c{k}` for the k-th link along a pipe with `nodes=`, from its inlet (`C-124`); `{instrument}:measures` or `{controller}:actuates` for a signal line. |
 | `kind` | string | `pipe` or `signal`. |
 | `layer` | string | The draw order (`28` C16): `supply` in front, `return` behind it, `signal` behind everything. A pipe is supply until the flow from a heat source has passed a losing side. |
 | `points` | array of number | The orthogonal polyline, flattened `[x0, y0, x1, y1, …]`; the first and last points are the anchors. |

@@ -146,9 +146,9 @@ internal sealed partial class LayoutEngine
 
         for (var guard = 0; guard <= _n; guard++)
         {
-            var link = _links.FirstOrDefault(l => (l.From == n && l.FromPort == q) || (l.To == n && l.ToPort == q), new Link(-1, -1, -1, -1, -1));
+            var link = _links.FirstOrDefault(l => (l.From == n && l.FromPort == q) || (l.To == n && l.ToPort == q), new Link(string.Empty, -1, -1, -1, -1));
 
-            if (link.Connection < 0)
+            if (link.Id.Length == 0)
             {
                 return (-1, -1);
             }

@@ -68,6 +68,11 @@ holds 800 times less mass and its residence time is a fraction of a second. A hi
 buys almost nothing visible — a front crosses 8 m of duct in under two seconds — and costs twenty
 times the steps. Keep ducts coarse.
 
+**On the diagram, the pipe is drawn as its cells**, in line along the pipe it replaces: each stretch
+between two internal nodes is coloured from their own values, so the profile along the pipe is a
+gradient of real states rather than a line interpolated between its ends, and a front travelling down
+it during a run is visible as it moves.
+
 ## The schedule
 
 A run has to be disturbed. The [`schedule`](../functions/schedule.md) section is where:

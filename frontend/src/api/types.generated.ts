@@ -595,7 +595,7 @@ export interface Layout {
    */
   thermalStages: ThermalStage[];
   /**
-   * Solved direction per connection id.
+   * Solved direction per pipe route id: every written connection's c{n}, then each {pipe}#c{k} link along a pipe with nodes=.
    */
   flow: {
     [k: string]: string | undefined;
@@ -805,7 +805,7 @@ export interface ScalePosition {
 
 export interface Route {
   /**
-   * c{n} for a connection; {instrument}:measures or {controller}:actuates for a signal line.
+   * c{n} for a written connection; {pipe}#c{k} for the k-th link along a pipe with nodes=, from its inlet (C-124); {instrument}:measures or {controller}:actuates for a signal line.
    */
   id: string;
   /**
