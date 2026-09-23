@@ -24,12 +24,29 @@ public sealed class LayoutLadderTests
 {
     private static string Ladder => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder");
 
+    private static string Pending => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Parity");
+
     public static TheoryData<string> Steps
     {
         get
         {
             var data = new TheoryData<string>();
             foreach (var file in Directory.GetFiles(Ladder, "step-*.fluid").Order(StringComparer.Ordinal))
+            {
+                data.Add(Path.GetFileNameWithoutExtension(file));
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>The scripts waiting for the composed engine (P6.10): each becomes a ladder step at the switch, and is held to a step's gates now.</summary>
+    public static TheoryData<string> PendingSteps
+    {
+        get
+        {
+            var data = new TheoryData<string>();
+            foreach (var file in Directory.GetFiles(Pending, "*.fluid").Order(StringComparer.Ordinal))
             {
                 data.Add(Path.GetFileNameWithoutExtension(file));
             }
@@ -96,14 +113,33 @@ public sealed class LayoutLadderTests
     /// </summary>
     [Theory]
     [MemberData(nameof(Steps))]
-    public async Task EveryStepSolvesAndSettles(string step)
+    public Task EveryStepSolvesAndSettles(string step) => SolvesAndSettles(Ladder, step);
+
+    /// <summary>A pending script is a step in waiting: the composed engine draws it with no hard finding (the old engine is not asked), and it solves.</summary>
+    [Theory]
+    [MemberData(nameof(PendingSteps))]
+    public void EveryPendingStepIsDrawnByTheComposedEngineWithNoHardFinding(string step)
+    {
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(Pending, step + ".fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var hard = SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).ToList();
+
+        Assert.True(hard.Count == 0, step + ":\n" + string.Join("\n", hard));
+    }
+
+    [Theory]
+    [MemberData(nameof(PendingSteps))]
+    public Task EveryPendingStepSolvesAndSettles(string step) => SolvesAndSettles(Pending, step);
+
+    private static async Task SolvesAndSettles(string directoryOfSteps, string step)
     {
         var resolved = PipeCatalogs.Resolve(pin: null);
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog));
 
-        var source = File.ReadAllText(Path.Combine(Ladder, step + ".fluid"));
+        var source = File.ReadAllText(Path.Combine(directoryOfSteps, step + ".fluid"));
 
         if (source.StartsWith("# fragment", StringComparison.Ordinal) || source.StartsWith("# unsolved on purpose", StringComparison.Ordinal))
         {

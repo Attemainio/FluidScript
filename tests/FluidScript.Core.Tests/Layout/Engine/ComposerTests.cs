@@ -26,8 +26,8 @@ public sealed class ComposerTests
     private static double X(Scene scene, string id) => scene.Placements.Single(p => p.ComponentId == id).Inner.Centre.X;
 
     [Theory]
-    [InlineData("zones.fluid")]
-    [InlineData("zones-instruments.fluid")]
+    [InlineData("step-12-zones.fluid")]
+    [InlineData("step-12-zones-controls.fluid")]
     public void PlainZonesHangAsColumnsWithTheirMergesStraightUnderTheirSplits(string file)
     {
         // C-126: zones 1 and 2 are branches with no loop. Each hangs straight down from its split -- valve, load, the
@@ -49,7 +49,7 @@ public sealed class ComposerTests
         // own supply clear the header by a margin (D-151); the radiators, the ring's right side, slide on until their
         // pipes clear the hanging block's boxes and its pipes theirs; and the merge N5 stands under the split N3 even
         // though the primary return's sensor asks for a longer run (C14, one more pass).
-        var (scene, findings) = Solve("header-instruments.fluid");
+        var (scene, findings) = Solve("step-08a-header-parallel-controls.fluid");
 
         Assert.Empty(findings);
         Assert.Equal(X(scene, "N3"), X(scene, "N5"), 6);
@@ -60,7 +60,7 @@ public sealed class ComposerTests
     {
         // Step 8b with its controls: both blocks stand on the ring -- the radiators on the top rail, the AHU as its
         // right side -- so nothing hangs between the rails, and every bubble finds a free side.
-        var (_, findings) = Solve("series-instruments.fluid");
+        var (_, findings) = Solve("step-08b-header-series-controls.fluid");
 
         Assert.Empty(findings);
     }

@@ -47,7 +47,7 @@ public sealed class CircuitViewTests
     {
         // The three-zone plant (C-126): LD3 drains through the two-connection node NR3 into the return header's
         // junction NB2, so NR3 is a point on one run from LD3's outlet to NB2 -- never a boxed element of its own.
-        var runs = Runs(Solve(File.ReadAllText(Path.Combine(Pending, "zones.fluid"))));
+        var runs = Runs(Solve(File.ReadAllText(Path.Combine(Pending, "step-12-zones.fluid"))));
 
         Assert.Equal(14, runs.Count);
         Assert.Contains("LD3.out > NR3 > NB2.1", runs);

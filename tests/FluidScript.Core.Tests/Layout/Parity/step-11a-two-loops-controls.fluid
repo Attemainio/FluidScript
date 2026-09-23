@@ -1,0 +1,47 @@
+# does not settle: S-86 -- the flow seed never reads the setpoint, so the loop seeds at the nominal flow.
+# Step 11a with its controls (P6.10; a ladder step at the switch): the heating valve holds the
+# heating supply in place of the source's stated outlet, as step 10 does, and the cooling loop's
+# three-way valve holds the mixed supply into its exchanger in place of its stated inlet.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+PU_H  pump
+HS_H  heat_exchanger power=30 in.t=20
+TE_H  t_sensor at NH
+TC_H  pid kp=2
+LOAD  heat_exchanger power=-30
+CV_H  valve kv=6.3
+
+connections
+PU_H - HS_H
+HS_H - NH - LOAD
+LOAD - CV_H
+CV_H - PU_H
+
+control CV_H with TE_H by TC_H setpoint=50
+
+circuit cooling 101
+fluid water
+
+HE_C  heat_exchanger power=30 out.t=50
+TE_C  t_sensor at NC
+TC_C  pid kp=2
+TV_C  three_way_valve
+PU_C  pump
+
+connections
+N1 - N2
+N2 - NC - PU_C
+PU_C - HE_C
+HE_C - TV_C
+TV_C - N2
+TV_C - N3 length=25 dn=25
+
+N1 inlet t=6 p=300
+N3 outlet p=280
+
+control TV_C with TE_C by TC_C setpoint=20

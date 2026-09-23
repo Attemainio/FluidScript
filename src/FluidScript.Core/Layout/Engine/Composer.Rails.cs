@@ -413,6 +413,10 @@ internal sealed partial class Composer
             }
         }
 
+        // The sensors on pipes the form has drawn are part of what is placed; the unit's own, of what it occupies.
+        theirs.AddRange(InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)));
+        mine.AddRange(InlineBubbles(unit.Runs, dx, dy).Select(b => b.Grow(_margin)));
+
         foreach (var (_, points) in unit.Runs)
         {
             for (var s = 1; s < points.Count; s++)
@@ -447,8 +451,7 @@ internal sealed partial class Composer
 
     /// <summary>
     /// The top of what a unit's instruments occupy, provisional units: its devices' bubbles (on their preferred free
-    /// sides), and for each sensor on an inline point of its own runs, a bubble over the point where the run is level --
-    /// the side C15 tries first -- or beside it where the run is vertical. Minus infinity when it carries none.
+    /// sides) and its own runs' sensor bubbles (<see cref="InlineBubbles"/>). Minus infinity when it carries none.
     /// </summary>
     private double BubbleTop(Unit unit)
     {
@@ -462,9 +465,28 @@ internal sealed partial class Composer
             }
         }
 
+        foreach (var bubble in InlineBubbles(unit.Runs, 0, 0))
+        {
+            top = Math.Max(top, bubble.Top);
+        }
+
+        return top;
+    }
+
+    /// <summary>
+    /// Where the sensors on the inline points of runs a form has drawn will stand, before C15 chooses their sides
+    /// (<c>D-151</c>): a bubble over a point where its run is level -- the side tried first -- and to the left of one
+    /// where it is vertical, each one margin off the point. What placement keeps clear of, so the side C15 then tries
+    /// first is free.
+    /// </summary>
+    /// <param name="runs">The runs, each from the member and port it leaves by, in provisional units.</param>
+    /// <param name="dx">How far the runs are about to move right.</param>
+    /// <param name="dy">How far the runs are about to move up.</param>
+    private IEnumerable<Box> InlineBubbles(IEnumerable<(Member From, List<Point> Points)> runs, double dx, double dy)
+    {
         var hats = _sheet.Hats();
 
-        foreach (var (from, points) in unit.Runs)
+        foreach (var (from, points) in runs)
         {
             if (_view.RunAt(from.Component, from.OutPort) is not { } run || run.Inline.Length == 0 || points.Count < 2)
             {
@@ -472,6 +494,12 @@ internal sealed partial class Composer
             }
 
             var line = Sheet.Normalise(run.Start.Component == from.Component && run.Start.Port == from.OutPort ? points : [.. Enumerable.Reverse(points)]);
+
+            if (line.Length < 2)
+            {
+                continue;
+            }
+
             var pieces = Sheet.Pieces(line, run.Inline.Length);
 
             for (var t = 0; t < run.Inline.Length; t++)
@@ -481,14 +509,13 @@ internal sealed partial class Composer
                     continue;
                 }
 
-                var at = pieces[t][^1];
-                var level = Math.Abs(pieces[t][^2].Y - at.Y) < Eps;
+                var at = pieces[t][^1].Offset(dx, dy);
+                var level = Math.Abs(pieces[t][^2].Y - pieces[t][^1].Y) < Eps;
                 var size = on.Max(static h => h.Size);
-                top = Math.Max(top, level ? at.Y + _margin + size : at.Y + (size / 2));
+                var centre = level ? at.Towards(Direction.Up, _margin + (size / 2)) : at.Towards(Direction.Left, _margin + (size / 2));
+                yield return Box.Around(centre, size, size);
             }
         }
-
-        return top;
     }
 
     /// <summary>
@@ -602,9 +629,16 @@ internal sealed partial class Composer
             origin = Math.Max(topEnd.At.X, _sheet.Centre[j0.Component].X - (unit.Out.Along(_margin).X - unit.In.At.X) - _margin);
         }
 
-        // A left-facing outlet descends to the bottom rail one margin out; the descent must clear the boxes too.
+        // A left-facing outlet descends to the bottom rail one margin out; the descent must clear the boxes too, and the
+        // sensors on the pipes the form has drawn (D-151).
+        var sensors = InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)).ToList();
         Func<double, double, bool>? clear = rightJunction is null && unit.Out.Outward == Direction.Left
-            ? (dx, dy) => _sheet.Free(unit.Out.Along(_margin).X + dx, yBottom, unit.Out.At.Y + dy, unit.Members)
+            ? (dx, dy) =>
+            {
+                var x = unit.Out.Along(_margin).X + dx;
+                var (low, high) = (new Point(x, yBottom), new Point(x, unit.Out.At.Y + dy));
+                return _sheet.Free(x, yBottom, unit.Out.At.Y + dy, unit.Members) && !sensors.Any(o => Sheet.Passes(o, low, high));
+            }
             : null;
         var (uIn, uOut) = Slide(unit, origin, topEnd.At.Y - drop, runs, clear);
 

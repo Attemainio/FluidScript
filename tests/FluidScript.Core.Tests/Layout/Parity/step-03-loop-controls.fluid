@@ -1,0 +1,22 @@
+# does not settle: S-87 -- a pump named to hold a temperature makes the design solve singular.
+# Step 3 with its controls (P6.10; a ladder step at the switch): the supply and return are measured,
+# and the pump holds the return temperature -- its constant-temperature mode -- in place of the
+# exchanger's stated inlet.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+PU1  pump
+HE1  heat_exchanger power=30 out.t=50
+TE_S t_sensor at NS
+TE_R t_sensor at NR
+TC1  pid kp=2
+LOAD heat_exchanger power=-30
+
+connections
+PU1 - HE1
+HE1 - NS - LOAD
+LOAD - NR - PU1
+
+control PU1 with TE_R by TC1 setpoint=20

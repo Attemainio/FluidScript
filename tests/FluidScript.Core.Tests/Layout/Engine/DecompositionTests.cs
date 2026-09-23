@@ -56,7 +56,7 @@ public sealed class DecompositionTests
         // C-126: NA1 splits to zone 1 and on to NA2, which splits to zones 2 and 3; the return collects at NB2, then NB1.
         // Every branch flows from its split to its merge, so both groups are headers. The spine -- the branch the ring
         // runs on through -- is the one declared last: at NA1 the way on to NA2, at NA2 zone 3.
-        var plan = Plan(Solve(File.ReadAllText(Path.Combine(Pending, "zones.fluid"))));
+        var plan = Plan(Solve(File.ReadAllText(Path.Combine(Pending, "step-12-zones.fluid"))));
 
         Assert.Equal("sourced ring (C2), head HE1, cut at HE1", plan[0]);
         Assert.Contains("    header NA1 to NB1, 2 branches", plan);

@@ -1551,11 +1551,22 @@ that governed each size. What P6.8 still owes, and what comes after:
     (`28` E3): a header's plain branch hangs as a column under its split, its merge straight under it; the
     pending three-zone scripts draw hard 0 soft 0 (the ladder engine: hard 4 soft 7, hard 11 soft 12) --
     `ComposerTests`. The user accepted the zones pictures (2026-09-23; ladder steps 12 and 12b at the
-    switch). Drawn next at the user's request, step 8a with its controls (`Parity/header-instruments.fluid`,
-    step 8f at the switch): a hanging block now keeps its bubbles a margin under its rail, a block's merge is
+    switch). Drawn next at the user's request, step 8a with its controls (`Parity/step-08a-header-parallel-controls.fluid`): a hanging block now keeps its bubbles a margin under its rail, a block's merge is
     held under its split by the re-lay pass, and a sliding unit clears pipes as well as boxes -- hard 0 soft
     0 (the ladder engine: hard 5 soft 4); every accepted picture unchanged. Step 8b with its controls
-    (`Parity/series-instruments.fluid`, step 8g at the switch) draws clean and identically in both engines.
+    (`Parity/step-08b-header-series-controls.fluid`) draws clean and identically in both engines.
+  - **Every step with and without its controls (2026-09-23, the user's call):** each working circuit gets a
+    controlled twin as a pending script, `Layout/Parity/step-XX-...-controls.fluid` -- 03, 05, 06, 06c, 07,
+    8a-8e, 09, 11a and the zones (`step-12-zones`, `-controls`); 04's twin is the existing step 10. They
+    move into the ladder at the switch. A twin is a working control scheme: its setpoint *replaces* the
+    stated temperature it holds (with both, the controller is a passenger, `FS3210` -- as step 10's still
+    is). Pending scripts are held to a step's gates now (`LayoutLadderTests`: drawn by the composed engine
+    with no hard finding, solves and settles). All pass; 03, 05, 8c and 11a carry `# does not settle:`
+    markers naming `S-87` (a pump named to hold a temperature makes the design solve singular) and `S-86`
+    (the flow seed never reads a setpoint), and both zone scripts `S-85` (a plain split seeds every branch
+    with the whole flow, running zone 1 backwards). Layout found on the way: a node's instruments now count
+    in its footprint (09's terminal sensors), and a unit's pipes, its descent and its headroom keep clear of
+    the bubbles estimated on the sensor points of pipes already drawn (8e); every accepted picture unchanged.
     Next: R5 (pipe bands in the occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 

@@ -1,0 +1,25 @@
+# Step 6c with its controls (P6.10; a ladder step at the switch): the three-way valve holds the
+# mixed supply into the exchanger in place of its stated inlet.
+
+fluidscript 1
+circuit coolingLoop
+fluid water
+
+HE1 heat_exchanger power=-30 out.t=30
+TE1 t_sensor at NM
+TC1 pid kp=2
+3WV three_way_valve
+PU1 pump
+
+connections
+N1 - N2
+N2 - NM - PU1
+PU1 - HE1
+HE1 - 3WV
+3WV - N2
+3WV - N3 length=25 dn=25
+
+N1 inlet t=60 p=300
+N3 outlet p=280
+
+control 3WV with TE1 by TC1 setpoint=50

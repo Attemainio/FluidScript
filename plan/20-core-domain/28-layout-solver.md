@@ -676,7 +676,10 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
   the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every
   placed box and bubble and the pipes the form has laid clear its own -- the first of E3's pipe bands,
-  within one form; across forms it is R5's.
+  within one form; across forms it is R5's. A sensor on a pipe's point has no side until C15 chooses
+  it, so placement keeps clear of where it will stand: a bubble over the point where its run is level
+  (the side tried first) or to its left where the run is vertical; the right side's descent keeps
+  clear of those too. A node's instruments count in its footprint as a device's do.
 - **Chains** grow from their port along its axis, a standing member entered by C3's turn, a pump kept
   level (C13), and a chain off a loop member's flank leaving by two margins (C6).
 - **Fragments** stack under one another, left edges aligned (C17); then open ends align (C7), which is

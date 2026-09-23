@@ -241,11 +241,12 @@ internal sealed partial class Sheet
     /// <remarks>What placement tests for clearance while a device's place is still being chosen; <see cref="ChooseHats"/> settles the sides once its structure is drawn.</remarks>
     private IEnumerable<Box> Bubbles(int c, Transform t, Point centre)
     {
-        if (View.Wildcard(c) || !Hats().TryGetValue(c, out var hats))
+        if (View.IsInline(c) || !Hats().TryGetValue(c, out var hats))
         {
             yield break;
         }
 
+        // A device's connections leave by its symbol's anchors; a node's by the sides its ports have taken so far.
         var taken = new HashSet<Direction>();
 
         foreach (var p in View.Connected(c))
@@ -253,6 +254,10 @@ internal sealed partial class Sheet
             if (AnchorOffset(c, p, t) is { } anchor)
             {
                 taken.Add(anchor.Outward);
+            }
+            else if (Side.TryGetValue((c, p), out var side))
+            {
+                taken.Add(side);
             }
         }
 

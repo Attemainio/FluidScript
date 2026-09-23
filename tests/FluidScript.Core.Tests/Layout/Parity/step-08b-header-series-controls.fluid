@@ -1,6 +1,6 @@
-# The series header of step 8b with its instruments (P6.10 R4), the ladder's step 8g once the composed
-# engine draws it: each mixing loop holds its secondary supply temperature by driving its three-way
-# valve; the primary supply, the stream between the two loops and the return are measured.
+# Step 8b with its controls (P6.10; a ladder step at the switch): each mixing loop holds its secondary
+# supply temperature by driving its three-way valve; the primary supply, the stream between the two
+# loops and the return are measured.
 
 fluidscript 1
 project static plant_01
@@ -20,7 +20,7 @@ N1 node p=250
 
 circuit radiators 102
 
-HE_RAD  load in.t=50 out.t=40 power=20 kW
+HE_RAD  load out.t=40 power=20 kW
 TV_RAD  three_way_valve
 PU_RAD  pump
 TE_RAD  t_sensor at NT_RAD
@@ -37,7 +37,7 @@ control TV_RAD with TE_RAD by TC_RAD setpoint=50
 
 circuit AHU 101
 
-HE_AHU  load in.t=35 out.t=30
+HE_AHU  load out.t=30
 TV_AHU  three_way_valve
 PU_AHU  pump
 TE_AHU  t_sensor at NT_AHU

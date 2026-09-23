@@ -1,0 +1,32 @@
+# does not settle: S-86 -- the flow seed never reads the setpoint, so the loop seeds at the nominal flow.
+# Step 5 with its controls (P6.10; a ladder step at the switch): the secondary valve holds the
+# secondary supply in place of the exchanger's stated outlet, as step 10 does, and the primary return
+# is measured at its terminal.
+
+fluidscript 1
+circuit ladder
+fluid water
+
+NPS  inlet t=85 p=600
+NPR  outlet p=350
+PCV  valve
+
+PU1  pump
+HE1  heat_exchanger power=30 in.t=20 in[2].t=85 out[2].t=45
+TE_S t_sensor at NS
+TE_P t_sensor at NPR
+TC1  pid kp=2
+LOAD heat_exchanger power=-30
+CV1  valve
+
+connections
+NPS - PCV
+PCV - HE1.in[2] length=12 dn=25
+HE1.out[2] - NPR
+
+PU1 - HE1.in
+HE1.out - NS - LOAD
+LOAD - CV1
+CV1 - PU1
+
+control CV1 with TE_S by TC1 setpoint=50
