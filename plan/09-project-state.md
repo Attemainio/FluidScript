@@ -1480,6 +1480,9 @@ that governed each size. What P6.8 still owes, and what comes after:
   was not taken and is still deferred.
 - ~~`C-120`~~ **closed 2026-09-23**: a check that reads values reads every scenario, and names
   the cases it fails in, once per finding.
+- **`S-82`** waits on the user's call: a promoted valve position held at its stop keeps the stated
+  target that promoted it, so a plant whose valve really saturates in one case is singular. It blocks
+  the simultaneous heating-and-cooling heat pump the user asked for as a scenario file.
 - **`C-122`** waits on a user's call, not on work: refuse a scenario list on `dp`, or hold each
   case's stated drop at its own design flow.
 - ~~The zero-envelope diagnostic~~ **built 2026-09-23** as `FS2314`, the user's call between `24`'s
