@@ -1521,6 +1521,11 @@ that governed each size. What P6.8 still owes, and what comes after:
 - **Next: P6.10**, the layout engine rebuilt beside the old one (`08`, `28` part E), R0 first: the
   parity harness. Decided with the user 2026-09-23: built beside the old engine, changed pictures shown
   before commit, H11 (no pipe beside a pipe within a margin) hard at the switch.
+  - **R0 built 2026-09-23**: `LayoutSolver.Solve(…, LayoutEngineKind)` selects the engine (the ladder's
+    by default); `Layout/Engine/ComposedEngine` is the skeleton; `LayoutParityTests` draws every ladder
+    step, the pending scripts (`Layout/Parity/*.fluid`: the three zones, `C-126`, and the zones with
+    their instruments, `C-128`) and the samples with both engines, writing `diagnostics/layout-parity/`
+    -- a report per case and `summary.txt`. The ladder engine on the pending scripts: hard 4 and hard 11.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

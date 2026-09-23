@@ -20,14 +20,19 @@ public static class LayoutSolver
     /// <param name="model">The bound model, for the connections as written and the non-flow elements.</param>
     /// <param name="hints">The hints derived from the same graph.</param>
     /// <param name="margin">The clearance, world units; <see cref="DefaultMargin"/> when the script states none.</param>
+    /// <param name="engine">Which engine draws it (<c>D-153</c>): the ladder engine until the rebuilt one reaches parity.</param>
     /// <returns>The scene.</returns>
-    public static Scene Solve(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin = DefaultMargin)
+    public static Scene Solve(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin = DefaultMargin, LayoutEngineKind engine = LayoutEngineKind.Ladder)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(hints);
 
-        return new LayoutEngine(graph, model, hints, Math.Max(margin, 0.05)).Solve();
+        var clearance = Math.Max(margin, 0.05);
+
+        return engine == LayoutEngineKind.Composed
+            ? new Engine.ComposedEngine(graph, model, hints, clearance).Solve()
+            : new LayoutEngine(graph, model, hints, clearance).Solve();
     }
 
     /// <summary>The margin the script asked for, or the default.</summary>
