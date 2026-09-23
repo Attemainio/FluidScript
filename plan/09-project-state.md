@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). Next: `C-120`, then P6.3; the live-curve half waits on `S-79` | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). Next: P6.9 (the source structure, `D-147`, S0 written), then `C-120`, then P6.3; the live-curve half waits on `S-79` | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1236,6 +1236,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 | P6.8a | **The scenario language** (`D-143`, [`12`](10-language/12-grammar.md), [`15`](10-language/15-semantic-model.md)): `ReservedWord.Scenarios` and the `scenarios` directive; `ScenarioListSyntax` as a `parameter-value` admitted only after `=`; `design <name>` beside `D-58`'s `driver=value`; `FS1120`/`FS1121` in the parser and `FS1540`–`FS1544` in the binder; `ProjectSettings.Scenarios`/`DesignScenario`, `ParameterValue.Scenarios`, `ValueId.ScenarioParameter`; `ScenarioProjection.Project`; `docs/functions/scenarios.md` | `aa93675`, `99794e2` | Shipped 2026-09-22; `L-64` closed in the same change. Nothing consumes the list yet — that is P6.8b |
 | P6.8b | **The scenario sizing pipeline** (`D-143`, [`24`](20-core-domain/24-auto-sizing.md) §Sizing over scenarios): `OuterLoop.Freeze` and `PreparedModel.Frozen`, `Prepare(from:)`; `ScenarioEnvelope` with a closed per-parameter rule set; `ScenarioSizing.SizeAsync` — project, size, merge, re-size against the merge until it settles, then solve every case frozen; `ScenarioExplanation` and `diagnostics/scenario-sizing.md`; `samples/m5-scenarios.fluid` | `dbd53a0`, (this commit) | Shipped 2026-09-23; `C-120` and `C-121` opened. Not built: the valve turn-down check and the zero-envelope diagnostic, both waiting on `C-121` |
 | `C-121` | **Valve authority and turn-down across scenarios** ([`24`](20-core-domain/24-auto-sizing.md) §Sizing over scenarios): the frozen solve reads every control valve (`OuterLoop.Readings`, `ThreeWayContext` shared with the sizing pass, `ValveSizer.Achieved`) onto `OuterLoopResult.Valves`; `ScenarioSizing.Controllability` reports the lowest authority across cases with the case named, `FS4006` on it, and `FS4013` for a lightest case below `1/(R·√a)`; `SizingDefaults.ValveRangeability`; the scenarios and valve pages | (this commit) | Shipped 2026-09-23; `C-122` opened (a stated `dp` that differs by case is taken at the merged design flow) |
+| P6.9 S0 | **The source structure, decided and written down** (`D-147`, [`71`](71-source-structure.md)): PandaAI's `folder-structure-guidelines-core.md` and tree read as the model; the four choices the user made — namespaces mirror folders, a class folder at three partials, `…Base` suffix with family-noun derived types, a builder rather than a base for the pipe catalogues; Framework Design Guidelines looked up for the naming; the target tree for every current folder; the line budget measured; `04`'s rules, `03`'s tree, `08`'s P6.9 row | (this commit) | Written 2026-09-23; S1–S5 not started |
 | P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
 
 > **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
@@ -1468,7 +1469,12 @@ that governed each size. What P6.8 still owes, and what comes after:
 - ~~`C-121`~~ **closed 2026-09-23**: a merged plant reports its lowest authority across cases,
   `FS4006` applies to scenario files again, and the turn-down check is live as `FS4013`. The `√a`
   half of that check is still **this project's reasoning**, not a standard.
-- **`C-120` next**, every binder review seeing only the design case. Diagnostic quality on
+- **P6.9 next, the source structure** ([`71`](71-source-structure.md), `D-147`), before the
+  transient, the user's call. S0 is written: the decision, `71`, the rules in `04`, `03`'s tree. S1
+  is the moves — one commit per domain, `git mv` with no content edit so history follows, then the
+  namespaces. Measured before starting: the whole restructure adds about 1 700 lines net (+3 %); the
+  bases remove ~190, the file headers from one type per file and the splits add ~1 900.
+- **`C-120`**, every binder review seeing only the design case. Diagnostic quality on
   malformed files, not correctness on good ones.
 - **`C-122`** waits on a user's call, not on work: refuse a scenario list on `dp`, or hold each
   case's stated drop at its own design flow.

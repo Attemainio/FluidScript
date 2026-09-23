@@ -56,6 +56,7 @@ rating and coupled circuits), the demand-step loop (transient and control), and 
 | [08-implementation-sequence](08-implementation-sequence.md) | work-package decomposition and order inside each milestone | draft |
 | [09-project-state](09-project-state.md) | which phase we are in, what has shipped, what is next | living |
 | [70-core-refactoring](70-core-refactoring.md) | which Core sections are rewritten wholesale, in what order, and the parameter-ownership and solved-view shapes they are rewritten to | draft |
+| [71-source-structure](71-source-structure.md) | the folder and namespace layout of Core, partial files and one type per file, base and derived naming, and the component and sizer bases (`D-147`) | draft |
 
 All three sit above the tiers because all three are about the whole project; `70` takes the number the future tier's folder leaves unused, so its short reference clashes with no document. `08` moved here from
 `00-foundation/` on 2026-09-09; it had always been a whole-plan document filed as a foundation one.

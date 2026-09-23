@@ -44,16 +44,19 @@ FluidScript/
 │
 ├── src/
 │   ├── FluidScript.Core/            the language + physics library. No UI, no ASP.NET.
-│   │   ├── Language/                lexer, parser, AST, binder, printer      (tier 10)
-│   │   ├── Units/                   dimensions, quantities, unit parsing     (tier 10)
-│   │   ├── Diagnostics/             codes, severities, spans                 (tier 10)
-│   │   ├── Fluids/                  ISubstance and the SharpProp adapter     (tier 20)
-│   │   ├── Components/              Node, Pipe, HeatExchanger, Valve, Pump   (tier 20)
-│   │   ├── Topology/                graph construction and validation        (tier 20)
-│   │   ├── Catalogs/                shipped dimension tables and provenance  (tier 20)
-│   │   ├── Sizing/                  auto-sizing rules and constraints        (tier 20)
-│   │   ├── Solvers/                 ISolver, Newton, transient, controllers  (tier 30)
-│   │   └── Model/                   the serialized model contract            (tier 20)
+│   │   │                            Domain folders, namespaces mirroring them (`D-147`);
+│   │   │                            the full tree and its conventions are `71`
+│   │   ├── Primitives/              Result, Unit — used everywhere
+│   │   ├── Language/                Syntax/, Binding/, Registry/, Compatibility/  (tier 10)
+│   │   ├── Physics/                 Units/, Fluids/ (Substances/), Cycles/   (tier 10/20)
+│   │   ├── Components/              ComponentBase and its seven; Valves/, Exchangers/ (tier 20)
+│   │   ├── Catalogs/                Pipes/, Valves/ — tables and provenance   (tier 20)
+│   │   ├── Topology/                Graph/, Lowering/, WellPosedness/, Hydraulics/ (tier 20)
+│   │   ├── Sizing/                  SizerBase; Sizers/, Flows/, Scenarios/    (tier 20)
+│   │   ├── Solvers/                 Equations/, Steady/, Seeding/, OuterLoop/, Transient/ (tier 30)
+│   │   ├── Layout/                  Engine/, Routing/, Hints/, Scene/         (tier 20)
+│   │   ├── Model/                   Contract/, Builder/ — the model contract  (tier 20)
+│   │   └── Diagnostics/             Descriptors/, Explanations/               (tier 10)
 │   │
 │   ├── FluidScript.Api/             ASP.NET Core host. References Core.      (tier 40)
 │   │   ├── Endpoints/

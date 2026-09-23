@@ -189,6 +189,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-144` | Accepted | 2026-09-22 | A heat exchanger's hold-up is its plate area times the channel gap, and it is one mixed volume per side |
 | `D-145` | Accepted | 2026-09-22 | Exchanger hold-up is two stated per-side volumes first, and the area rule is only the fallback |
 | `D-146` | Accepted | 2026-09-22 | An exchanger's hold-up is a volume given to the node it discharges into, not an unknown of its own |
+| `D-147` | Accepted | 2026-09-23 | Core is organised by domain folders whose namespaces mirror them, with shared bases for components and sizers |
 <!-- index:end -->
 
 ---
@@ -6846,3 +6847,43 @@ agrees. Whole suite: 2120 green, one token golden and the sample's own line the 
 - *Splitting the hold-up between the two ports.* Symmetric under reversal. Cost: halves the lag in
   the forward case and puts water upstream of the heat, which is the wrong answer twice over to fix a
   case that is already degenerate.
+
+## D-147 · Core is organised by domain folders whose namespaces mirror them, with shared bases for components and sizers
+
+**Accepted · 2026-09-23** (the user's four calls on [`71`](../71-source-structure.md)) · supersedes
+`70`'s "`Valve`/`ThreeWayValve`: two similar shapes, a judgment call left until a third appears" ·
+constrains [`03`](03-repository-layout.md), [`04`](04-engineering-standards.md),
+[`22`](../20-core-domain/22-component-model.md), [`24`](../20-core-domain/24-auto-sizing.md),
+[`27`](../20-core-domain/27-component-catalog.md)
+
+`FluidScript.Core` grew as sixteen flat folders with one abstract class in 58 400 lines. The user's
+PandaAI repository is the model to restructure against: domain folders recursively, a large class as
+dot-named partials, layered abstraction where implementations share behaviour, and derived types
+carrying the family's name. Where PandaAI's guideline and its code disagree, the user chose:
+
+1. **Namespaces mirror folders to any depth**, as the `dotnet-toolkit` naming standard says and as
+   FluidScript already does one level deep — enforced by `IDE0130` once the move lands. Rejected:
+   PandaAI's one namespace per domain root, which the standard flags and nothing can enforce.
+2. **A class with three or more partials gets a folder of its own**, as PandaAI's code does
+   (`ValueIndicator/`, `SolverBase/`); fewer stay siblings. Rejected: siblings always, which is
+   PandaAI's written guideline and not its practice.
+3. **Base classes are abstract and suffixed `…Base`** — `ComponentBase`, as PandaAI's `SolverBase` and
+   this repository's `SubstanceBase`; **derived types carry the family noun** — `PipeComponent`,
+   `ThreeWayValveComponent`. Microsoft's Framework Design Guidelines were looked up: "CONSIDER ending
+   the name of derived classes with the name of the base class", and "AVOID naming base classes with
+   a 'Base' suffix if the class is intended for use in public APIs" — Core's only consumer is this
+   repository's Api, so consistency with the existing suffix wins. Rejected: `BaseComponent`.
+4. **The three pipe catalogues share one builder, not a base class.** What differs between them is
+   data; a base class would express a hierarchy with no behaviour in it, which PandaAI's own
+   guideline lists as an anti-pattern.
+
+And the bases themselves: **`ComponentBase`** under all seven `IFlowComponent` implementers (150
+lines of re-declared members, measured), **`ValveComponentBase`** under the two valves — taken now
+rather than at a third implementer, because `ValveSizer` and every "is this a control valve" test
+name the pair and nothing names the set — and **`SizerBase<TComponent>`** under the five sizers, for
+a typed `Size`. The diagnostics families, the explanation writers and `ISubstance` get none; `71`
+says why for each.
+
+**What it costs.** Measured before starting: the restructure adds about 1 700 lines net (+3 %),
+because one type per file and the partial splits add headers faster than the bases remove members.
+It is taken for navigation, not for size, and `71` says where a real reduction would come from.

@@ -52,6 +52,25 @@ dispatch, counts comment and string matches as hits, and under-reports silently 
 remains correct for a known file and region; `Grep`/`Glob` remain correct for non-C# files —
 TypeScript, CSS, Markdown, `.fluid` scripts, config.
 
+## Core folder structure
+
+Decided in `D-147`; the target tree, the abstractions and the package order are
+[`71`](../71-source-structure.md). The rules a new file follows:
+
+- **Domain folders, recursively**, never type buckets (`Interfaces/`, `Enums/`, `BaseClasses/`).
+- **Namespace = folder path**, enforced by `IDE0130`.
+- **One top-level type per file**, named for the type.
+- **Split a class at about 500 lines** into `Class.Concern.cs` partials; at three or more partials
+  they move into `Class/`. Never `#region` instead.
+- **The smallest template that fits**: an interface only for real polymorphism, an abstract `…Base`
+  only for several implementations sharing behaviour, a `Models/` or `Primitives/` subfolder only for
+  three or more supporting types. No folder for one file.
+- **Derived types carry the family noun** — `PipeComponent : ComponentBase`, `ValveSizer :
+  SizerBase<ValveComponentBase>`.
+- **Abstraction is priced by path temperature**: inside a Newton iteration it must be dispatch- and
+  allocation-neutral, and measured.
+- **Tests mirror the tree folder for folder** and move in the same commit as their code.
+
 ## XML documentation policy
 
 `GenerateDocumentationFile` + `TreatWarningsAsErrors` makes CS1591 a build failure, so **every public
