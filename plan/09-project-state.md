@@ -1567,6 +1567,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     with the whole flow, running zone 1 backwards). Layout found on the way: a node's instruments now count
     in its footprint (09's terminal sensors), and a unit's pipes, its descent and its headroom keep clear of
     the bubbles estimated on the sensor points of pipes already drawn (8e); every accepted picture unchanged.
+    Measured the same day (`C-92`): `header-200` 3.7 ms Release / 16.2 ms Debug (ladder engine 9.7 / 50.6),
+    the composed engine ~n^2 against the ladder engine's ~n^3 -- 234 ms against 13.3 s at 1762 components.
+    Code: the composed engine is 3550 code lines against the ladder engine's 2811 (+26%); the rail geometry
+    (`Composer.Rails`, 693) is the old engine's, ported for parity.
     Next: R5 (pipe bands in the occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
