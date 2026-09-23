@@ -254,7 +254,8 @@ internal sealed partial class Sheet
     /// <summary>The pieces of a laid run, one per link from start to end, consecutive ones sharing their cut.</summary>
     public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, View.Runs[run].Inline.Length);
 
-    private static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, int count)
+    /// <summary>A polyline cut into one more piece than <paramref name="count"/>, at even fractions of its longest segment (A5).</summary>
+    public static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, int count)
     {
         var longest = 1;
 

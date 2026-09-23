@@ -41,4 +41,17 @@ public sealed class ComposerTests
         Assert.Equal(X(scene, "NA1"), X(scene, "CV1"), 6);
         Assert.Equal(X(scene, "NA2"), X(scene, "CV2"), 6);
     }
+
+    [Fact]
+    public void AHangingBlockKeepsItsBubblesUnderTheRailAndTheRightSideClearsItsPipes()
+    {
+        // Step 8a with its controls: the AHU block hangs low enough that its valve's controller and the sensor on its
+        // own supply clear the header by a margin (D-151); the radiators, the ring's right side, slide on until their
+        // pipes clear the hanging block's boxes and its pipes theirs; and the merge N5 stands under the split N3 even
+        // though the primary return's sensor asks for a longer run (C14, one more pass).
+        var (scene, findings) = Solve("header-instruments.fluid");
+
+        Assert.Empty(findings);
+        Assert.Equal(X(scene, "N3"), X(scene, "N5"), 6);
+    }
 }

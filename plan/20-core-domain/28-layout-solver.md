@@ -670,7 +670,13 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   whole return's run length under the column (bubbles included). Where the bottom rail still cannot
   put the merge under its column -- a pump on the rail before it, a long reserved run -- the ring is laid
   again from the state it started in with that split held over the merge; three passes at most. A merge
-  a column returns to never takes C10's corner under the right side's outlet.
+  a column returns to never takes C10's corner under the right side's outlet. A block's merge is held the
+  same way, a margin short of its outlet.
+- **Room for what a unit carries** *(built P6.10 R4)*. A hanging block hangs low enough that its devices'
+  bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
+  the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every
+  placed box and bubble and the pipes the form has laid clear its own -- the first of E3's pipe bands,
+  within one form; across forms it is R5's.
 - **Chains** grow from their port along its axis, a standing member entered by C3's turn, a pump kept
   level (C13), and a chain off a loop member's flank leaving by two margins (C6).
 - **Fragments** stack under one another, left edges aligned (C17); then open ends align (C7), which is

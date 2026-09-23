@@ -1,0 +1,53 @@
+# The distribution header of step 8a with its instruments (P6.10 R4), the ladder's step 8f once the
+# composed engine draws it: each mixing loop holds its secondary supply temperature by driving its
+# three-way valve, and the primary supply and return are measured.
+
+fluidscript 1
+project static plant_01
+
+circuit heating 100
+fluid water
+
+HS1     heat_exchanger power=54 kW out.t=60
+TE_S    t_sensor at NS
+TE_R    t_sensor at NR
+
+connections
+N1 - HS1 - NS - N3
+N3 - N4
+N6 - N5
+N5 - NR - N1
+
+N1 node p=250
+
+circuit AHU 101
+
+HE_AHU  load in.t=50 out.t=30 power=24 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+TE_AHU  t_sensor at NT_AHU
+TC_AHU  pid kp=2
+
+connections
+N3 - TV_AHU.a length=12 dn=25
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - NT_AHU - HE_AHU - NM_AHU
+NM_AHU - N5 length=12 dn=25
+
+control TV_AHU with TE_AHU by TC_AHU setpoint=50
+
+circuit radiators 102
+
+HE_RAD  load in.t=50 out.t=30 power=30 kW
+TV_RAD  three_way_valve
+PU_RAD  pump
+TE_RAD  t_sensor at NT_RAD
+TC_RAD  pid kp=2
+
+connections
+N4 - TV_RAD.a length=18 dn=25
+NM_RAD - TV_RAD.b
+TV_RAD.ab - PU_RAD - NT_RAD - HE_RAD - NM_RAD
+NM_RAD - N6 length=18 dn=25
+
+control TV_RAD with TE_RAD by TC_RAD setpoint=50

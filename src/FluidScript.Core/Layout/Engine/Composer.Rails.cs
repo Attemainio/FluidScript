@@ -283,7 +283,11 @@ internal sealed partial class Composer
         var feed = runs.Count - 1;
         var rise = first.Members.Max(i => _sheet.InnerOf(i).Top) - first.In.At.Y;
         var half = Transform.Identity.Size(_view.Symbols[j.Component]).Height / 2;
-        var (uIn, uOut) = Slide(first, _sheet.Centre[j.Component].X, yTop - half - _margin - rise, runs);
+
+        // The block hangs under the split's box by a margin, and its bubbles under the rail by a margin (D-151).
+        var yIn = Math.Min(yTop - half - _margin - rise, yTop - _margin - (BubbleTop(first) - first.In.At.Y));
+        var origin = Math.Max(_sheet.Centre[j.Component].X, _hangFloor.GetValueOrDefault(j.Component, double.NegativeInfinity));
+        var (uIn, uOut) = Slide(first, origin, yIn, runs);
         var jx = uIn.At.X - _margin;
 
         if (jx > _sheet.Centre[j.Component].X)
@@ -350,7 +354,7 @@ internal sealed partial class Composer
         placed.CopyTo(_sheet.Placed, 0);
         _sheet.Placed[j.Component] = false;
         var boxed = members.Select(static m => m.Component).ToList();
-        var dx = Math.Max(0, _columnFloor.GetValueOrDefault(j.Component, double.NegativeInfinity) - _sheet.Centre[j.Component].X);
+        var dx = Math.Max(0, _hangFloor.GetValueOrDefault(j.Component, double.NegativeInfinity) - _sheet.Centre[j.Component].X);
 
         if (boxed.Count > 0)
         {
@@ -386,6 +390,105 @@ internal sealed partial class Composer
         _sheet.Note(_view.Name(j.Component), "C14", $"a plain branch hangs as a column under the split, {members.Count} member(s), its merge {_view.Name(branch.Merge)} to stand under it");
         hangers.Add(new Hanger(_sheet.AnchorOf(previous.Component, previous.OutPort), previous, j.Component, branch.Merge, branch.MergePort, true));
         return _sheet.AnchorOf(j.Component, j.OutPort);
+    }
+
+    /// <summary>
+    /// Whether a unit moved by (dx, dy) keeps its pipes and the form's pipes apart from each other's boxes (H2 with the
+    /// pipes in it, P6.10 R5): none of its own runs through the clearance of a placed box or bubble, and none of the
+    /// runs the form has laid so far through the clearance of its boxes or bubbles, a run that ends on it aside.
+    /// </summary>
+    private bool PipesClear(Unit unit, double dx, double dy, List<(Member From, List<Point> Points)> runs)
+    {
+        var mine = unit.Members.Where(i => !_view.IsInline(i))
+            .SelectMany(i => _sheet.FootprintOf(i, _sheet.Transform[i], _sheet.Centre[i].Offset(dx, dy)).Boxes)
+            .Select(b => b.Grow(_margin))
+            .ToList();
+        var theirs = new List<Box>();
+
+        for (var i = 0; i < _view.Count; i++)
+        {
+            if (_sheet.Placed[i] && !_view.IsInline(i) && !unit.Members.Contains(i))
+            {
+                theirs.AddRange(_sheet.FootprintOf(i, _sheet.Transform[i], _sheet.Centre[i]).Boxes.Select(b => b.Grow(_margin)));
+            }
+        }
+
+        foreach (var (_, points) in unit.Runs)
+        {
+            for (var s = 1; s < points.Count; s++)
+            {
+                var (a, b) = (points[s - 1].Offset(dx, dy), points[s].Offset(dx, dy));
+
+                if (theirs.Any(o => Sheet.Passes(o, a, b)))
+                {
+                    return false;
+                }
+            }
+        }
+
+        foreach (var (_, points) in runs)
+        {
+            if (points.Count < 2 || mine.Any(o => o.ContainsInterior(points[0]) || o.ContainsInterior(points[^1])))
+            {
+                continue;
+            }
+
+            for (var s = 1; s < points.Count; s++)
+            {
+                if (mine.Any(o => Sheet.Passes(o, points[s - 1], points[s])))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The top of what a unit's instruments occupy, provisional units: its devices' bubbles (on their preferred free
+    /// sides), and for each sensor on an inline point of its own runs, a bubble over the point where the run is level --
+    /// the side C15 tries first -- or beside it where the run is vertical. Minus infinity when it carries none.
+    /// </summary>
+    private double BubbleTop(Unit unit)
+    {
+        var top = double.NegativeInfinity;
+
+        foreach (var i in unit.Members)
+        {
+            foreach (var bubble in _sheet.FootprintOf(i, _sheet.Transform[i], _sheet.Centre[i]).Boxes.Skip(1))
+            {
+                top = Math.Max(top, bubble.Top);
+            }
+        }
+
+        var hats = _sheet.Hats();
+
+        foreach (var (from, points) in unit.Runs)
+        {
+            if (_view.RunAt(from.Component, from.OutPort) is not { } run || run.Inline.Length == 0 || points.Count < 2)
+            {
+                continue;
+            }
+
+            var line = Sheet.Normalise(run.Start.Component == from.Component && run.Start.Port == from.OutPort ? points : [.. Enumerable.Reverse(points)]);
+            var pieces = Sheet.Pieces(line, run.Inline.Length);
+
+            for (var t = 0; t < run.Inline.Length; t++)
+            {
+                if (!hats.TryGetValue(run.Inline[t].Element, out var on) || on.Count == 0)
+                {
+                    continue;
+                }
+
+                var at = pieces[t][^1];
+                var level = Math.Abs(pieces[t][^2].Y - at.Y) < Eps;
+                var size = on.Max(static h => h.Size);
+                top = Math.Max(top, level ? at.Y + _margin + size : at.Y + (size / 2));
+            }
+        }
+
+        return top;
     }
 
     /// <summary>
@@ -474,11 +577,18 @@ internal sealed partial class Composer
             cursor = _sheet.AnchorOf(m.Component, m.InPort);
             pending = [cursor.At];
 
-            if (hangers.Find(h => h.Bottom == m.Component && h.Straight) is { } column && _sheet.Centre[m.Component].X > column.Out.At.X + Eps)
+            if (hangers.Find(h => h.Bottom == m.Component) is { } hanger)
             {
-                // The rail could not put the merge under its column: the next pass holds the split over it.
-                _columnFloor[column.Top] = Math.Max(_columnFloor.GetValueOrDefault(column.Top, double.NegativeInfinity), _sheet.Centre[m.Component].X);
-                _floorRaised = true;
+                // Where the rail could not put the merge under its split -- and, for a block, a margin short of its
+                // outlet -- the next pass holds the split that much further right.
+                var wanted = hanger.Straight ? hanger.Out.At.X : Math.Min(_sheet.Centre[hanger.Top].X, hanger.Out.At.X - _margin);
+                var deficit = _sheet.Centre[m.Component].X - wanted;
+
+                if (deficit > Eps)
+                {
+                    _hangFloor[hanger.Top] = Math.Max(_hangFloor.GetValueOrDefault(hanger.Top, double.NegativeInfinity), _sheet.Centre[hanger.Top].X + deficit);
+                    _floorRaised = true;
+                }
             }
         }
 
@@ -816,7 +926,7 @@ internal sealed partial class Composer
                 continue;
             }
 
-            if (clear is not null && !clear(dx, dy))
+            if ((clear is not null && !clear(dx, dy)) || !PipesClear(unit, dx, dy, runs))
             {
                 dx += 0.1;
                 continue;

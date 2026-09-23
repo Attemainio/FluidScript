@@ -1550,7 +1550,12 @@ that governed each size. What P6.8 still owes, and what comes after:
     by both engines**, and `LayoutParityTests` now asserts it for every case but the pending ones. New
     (`28` E3): a header's plain branch hangs as a column under its split, its merge straight under it; the
     pending three-zone scripts draw hard 0 soft 0 (the ladder engine: hard 4 soft 7, hard 11 soft 12) --
-    `ComposerTests`. Next: show the user the zones pictures, then R5 (pipe bands in the occupancy, H11).
+    `ComposerTests`. The user accepted the zones pictures (2026-09-23; ladder steps 12 and 12b at the
+    switch). Drawn next at the user's request, step 8a with its controls (`Parity/header-instruments.fluid`,
+    step 8f at the switch): a hanging block now keeps its bubbles a margin under its rail, a block's merge is
+    held under its split by the re-lay pass, and a sliding unit clears pipes as well as boxes -- hard 0 soft
+    0 (the ladder engine: hard 5 soft 4); every accepted picture unchanged. Next: R5 (pipe bands in the
+    occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

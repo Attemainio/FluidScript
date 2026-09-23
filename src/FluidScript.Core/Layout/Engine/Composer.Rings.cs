@@ -10,7 +10,7 @@ namespace FluidScript.Core.Layout.Engine;
 
 internal sealed partial class Composer
 {
-    private readonly Dictionary<int, double> _columnFloor = [];
+    private readonly Dictionary<int, double> _hangFloor = [];
     private string? _declined;
     private bool _floorRaised;
 
@@ -42,7 +42,7 @@ internal sealed partial class Composer
     /// </summary>
     private bool Settled(Func<bool> form)
     {
-        _columnFloor.Clear();
+        _hangFloor.Clear();
 
         for (var pass = 0; ; pass++)
         {
