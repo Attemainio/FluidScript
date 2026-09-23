@@ -1,12 +1,13 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Model;
 

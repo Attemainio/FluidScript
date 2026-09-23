@@ -1,6 +1,6 @@
 using FluidScript.Core.Components;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Graph;
 
 /// <summary>A point in the graph carrying pressure and enthalpy.</summary>
 /// <remarks>

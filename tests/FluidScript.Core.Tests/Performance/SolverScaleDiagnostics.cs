@@ -1,13 +1,12 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Performance;
@@ -154,7 +153,7 @@ public sealed class SolverScaleDiagnostics
 
         return new Row(
             consumers,
-            model.Components.Count(static c => c.Origin is FluidScript.Core.Binding.Origin.Declared),
+            model.Components.Count(static c => c.Origin is FluidScript.Core.Language.Binding.Origin.Declared),
             counting.Unknowns,
             counting.Equations,
             prepare,

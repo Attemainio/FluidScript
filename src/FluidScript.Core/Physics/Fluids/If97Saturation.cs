@@ -1,4 +1,6 @@
-namespace FluidScript.Core.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+
+namespace FluidScript.Core.Physics.Fluids;
 
 /// <summary>Water's saturation line, IAPWS-IF97 Region 4: the closed-form <c>p_s(T)</c> and its exact inverse <c>T_s(p)</c>.</summary>
 /// <remarks>

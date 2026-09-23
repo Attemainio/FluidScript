@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>Welded steel tube on EN 10220's Series 1 diameters, the walls a Finnish wholesaler stocks for heating pipe.</summary>
 /// <remarks>

@@ -2,10 +2,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Solvers.Equations;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Steady;
 
 /// <summary>Finds the state where every residual is zero.</summary>
 /// <remarks>

@@ -3,9 +3,10 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Compatibility;
+namespace FluidScript.Core.Language.Compatibility;
 
 /// <summary>One major version of the FluidScript language.</summary>
 /// <param name="Value">The unsigned decimal the <c>fluidscript</c> directive states.</param>

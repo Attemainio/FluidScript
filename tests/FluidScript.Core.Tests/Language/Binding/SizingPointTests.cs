@@ -1,9 +1,10 @@
-using FluidScript.Core.Binding;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>A component's own sizing point (<c>D-94</c>): a curve read where the component says.</summary>
 /// <remarks>

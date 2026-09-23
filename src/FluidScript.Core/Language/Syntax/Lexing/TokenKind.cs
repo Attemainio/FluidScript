@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>What one token is.</summary>
 /// <remarks>

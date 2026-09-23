@@ -2,10 +2,10 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Sizers;
 
 /// <summary>Chooses a pump's head from the resistance of the circuit it drives (<c>24</c>).</summary>
 /// <remarks>
@@ -56,7 +56,7 @@ public sealed class PumpSizer : ISizer
         if (component is not Pump pump)
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a head"),
                 ("name", component.Name),
                 ("state", "a component that is not a pump")));
@@ -74,7 +74,7 @@ public sealed class PumpSizer : ISizer
         if (!double.IsFinite(density) || density <= 0 || (drop is { } pascals && !double.IsFinite(pascals)))
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a head"),
                 ("name", pump.Name),
                 ("state", "the circuit's resistance is not yet known")));
@@ -109,11 +109,11 @@ public sealed class PumpSizer : ISizer
         {
             if (context.MassFlow == 0)
             {
-                Say(Diagnostics.SizingDiagnostics.NothingToSizeAgainst);
+                Say(FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.NothingToSizeAgainst);
             }
             else
             {
-                Say(Diagnostics.SizingDiagnostics.NoModelledResistance);
+                Say(FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.NoModelledResistance);
             }
         }
 

@@ -1,10 +1,11 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Steady;
 
 /// <summary>What a singular system leaves undetermined, and how <c>FS3009</c> says it.</summary>
 public sealed class NullDirectionTests

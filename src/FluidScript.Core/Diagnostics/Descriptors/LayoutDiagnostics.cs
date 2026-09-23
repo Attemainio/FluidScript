@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>What deriving layout hints has to say: the <c>FS24xx</c> range (<c>25</c>).</summary>
 /// <remarks>

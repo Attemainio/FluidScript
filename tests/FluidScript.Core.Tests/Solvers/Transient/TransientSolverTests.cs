@@ -1,7 +1,10 @@
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Steady;
+using FluidScript.Core.Solvers.Transient;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Transient;
 
 /// <summary>The integrator on the demand-step loop, at rest, and on the storage header (P6.1, <c>33</c>).</summary>
 /// <remarks>

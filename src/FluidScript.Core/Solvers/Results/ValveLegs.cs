@@ -1,7 +1,7 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Results;
 
 /// <summary>Tells a three-way valve's bypass leg from the leg it exchanges flow with the plant through.</summary>
 /// <remarks>
@@ -9,7 +9,7 @@ namespace FluidScript.Core.Solvers;
 /// <strong>A port name the script <em>wrote</em> settles it, because the residuals have already settled
 /// it</strong> (<c>D-85</c>, <c>D-88</c>). <c>ab</c> is the common port, <c>a</c> the controlled one and
 /// <c>b</c> the bypass, which is how valve bodies are labelled and what
-/// <see cref="Components.ThreeWayValve"/> assumes: it gives <c>a</c> the opening <c>position</c> and <c>b</c>
+/// <see cref="FluidScript.Core.Components.Valves.ThreeWayValve"/> assumes: it gives <c>a</c> the opening <c>position</c> and <c>b</c>
 /// the complement. A sizing rule that named the legs some other way would size a coefficient against one
 /// leg's flow and hand it to the equation governing the other.
 /// </para>
@@ -19,7 +19,7 @@ namespace FluidScript.Core.Solvers;
 /// <c>m2-cooling-loop</c>, whose valve is wired without ports, the inferred <c>a</c> lands on the
 /// recirculation leg and <c>b</c> on the control leg -- exactly backwards. Sizing the recirculation leg
 /// measures authority against a branch with almost no resistance behind it, which asks for a large Kv and
-/// yields a valve with no authority over the path it controls. <see cref="Topology.CircuitGraph.StatedPorts"/>
+/// yields a valve with no authority over the path it controls. <see cref="FluidScript.Core.Topology.Graph.CircuitGraph.StatedPorts"/>
 /// is what separates the two, and it is consulted before any letter is read.
 /// </para>
 /// <para>
@@ -111,7 +111,7 @@ public static class ValveLegs
     /// <remarks>
     /// <para>
     /// <strong>A written <c>a</c> ends it</strong> (<c>D-88</c>): that is the A-AB control path every valve
-    /// body is labelled for, and the one <see cref="Components.ThreeWayValve"/> gives the opening
+    /// body is labelled for, and the one <see cref="FluidScript.Core.Components.Valves.ThreeWayValve"/> gives the opening
     /// <c>position</c> to. A written <c>b</c> ends it the other way, which is not the same test -- a script
     /// may name one switched port and leave the other to positional binding, and either word is enough.
     /// </para>

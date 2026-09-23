@@ -1,11 +1,15 @@
 using FluidScript.Fixtures;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing;
+using FluidScript.Core.Topology.Construction;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Counting;
 
 /// <summary>
 /// Well-posedness, from the second half of <c>plan/20-core-domain/23-topology-and-graph.md</c>: the
@@ -994,8 +998,8 @@ public sealed class WellPosednessTests
     /// <summary>How far one script's counting table is from square, or why it could not be counted.</summary>
     private static string Excess(string source)
     {
-        var bound = new FluidScript.Core.Binding.Binder(FluidScript.Core.Language.ComponentRegistry.Default)
-            .Bind(FluidScript.Core.Syntax.FluidScriptParser.Parse(new FluidScript.Core.Syntax.SourceText(source)), "sample");
+        var bound = new FluidScript.Core.Language.Binding.Binder(FluidScript.Core.Language.Registry.ComponentRegistry.Default)
+            .Bind(FluidScript.Core.Language.Syntax.Parsing.FluidScriptParser.Parse(new FluidScript.Core.Language.Syntax.Text.SourceText(source)), "sample");
 
         if (bound.Diagnostics.Any(static d => d.Severity == DiagnosticSeverity.Error))
         {

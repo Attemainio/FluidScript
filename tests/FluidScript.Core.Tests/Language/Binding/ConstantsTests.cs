@@ -1,10 +1,11 @@
-using FluidScript.Core.Binding;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// <c>D-126</c>: <c>pi</c> and <c>g</c> are reserved names an expression reads anywhere, a

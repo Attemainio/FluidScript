@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+
+namespace FluidScript.Core.Layout.Routing;
 
 /// <summary>
 /// Routes one connection at a time through the boxes already placed and the pipes already drawn, on a

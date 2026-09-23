@@ -2,12 +2,14 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>Everything one run of the binder produced.</summary>
 /// <param name="Model">The bound model, always present. A model with errors is still a model.</param>

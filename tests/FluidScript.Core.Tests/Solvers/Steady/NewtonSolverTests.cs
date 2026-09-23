@@ -1,13 +1,13 @@
 using System.Collections.Immutable;
-using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Seeding;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Counting;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Steady;
 
 /// <summary>The Newton iteration, and every way it is allowed to stop.</summary>
 /// <remarks>

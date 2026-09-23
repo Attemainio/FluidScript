@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing.Flows;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Results;
 
 /// <summary>One port's solved condition, in SI.</summary>
 /// <param name="Node">The graph node the port reads its state from.</param>

@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>What evaluating an expression produced.</summary>
 public abstract record EvaluationResult

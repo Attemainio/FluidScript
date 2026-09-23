@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Observation;
 
 /// <summary>An instrument placed on a node, reading one property of it.</summary>
 /// <remarks>

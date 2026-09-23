@@ -1,10 +1,13 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Transient;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>One node whose enthalpy can reach a node port, and the port it arrives through.</summary>
 /// <param name="Node">The node the enthalpy is read from.</param>
@@ -692,8 +695,8 @@ public sealed class EquationSystem
         var unknowns = SystemLayout.Build(graph, posedness.Counting);
         var equations = EquationLayout.Build(graph, posedness);
         var ports = PortMap.Build(graph);
-        var unknownScales = FluidScript.Core.Solvers.UnknownScales.Build(unknowns, seed);
-        var residualScales = FluidScript.Core.Solvers.ResidualScales.Build(
+        var unknownScales = FluidScript.Core.Solvers.Equations.UnknownScales.Build(unknowns, seed);
+        var residualScales = FluidScript.Core.Solvers.Equations.ResidualScales.Build(
             graph, equations, ports, unknownScales, unknowns);
 
         var nodeOf = new int[graph.Components.Length];
@@ -914,7 +917,7 @@ public sealed class EquationSystem
     /// This is algebraically equivalent to the outlet-temperature form away from zero, but it does not
     /// admit the artificial near-zero-flow root created when duty upwinding blends a finite duty across
     /// both ports. The target is the duty ratio from the three stated constants —
-    /// <see cref="Sizing.BranchFlows.RatedFlow"/>, the same arithmetic the seed uses, and not the seed's
+    /// <see cref="FluidScript.Core.Sizing.Flows.BranchFlows.RatedFlow"/>, the same arithmetic the seed uses, and not the seed's
     /// estimate for the branch (<c>S-57</c>). The flow residual is multiplied by ΔT/ṁ so the existing
     /// kelvin scale and diagnostics remain valid. Other absolute and difference constraints continue to
     /// read node temperatures directly.
@@ -1001,7 +1004,7 @@ public sealed class EquationSystem
                 if (side.CarriesFlow && span > 0)
                 {
                     resolved[index] = new Constraint(
-                        row, -1, -1, 0, side.Sign, side.Branch, 0, span / Sizing.BranchFlows.Nominal);
+                        row, -1, -1, 0, side.Sign, side.Branch, 0, span / FluidScript.Core.Sizing.Flows.BranchFlows.Nominal);
                     continue;
                 }
             }
@@ -1016,7 +1019,7 @@ public sealed class EquationSystem
             {
                 var binding = ports[element, constraint.Parameter is "out" ? 0 : 2];
                 var rated = binding.CarriesFlow
-                    ? Sizing.BranchFlows.RatedFlow(graph.Substance, exchanger.Power, inlet, outlet)
+                    ? FluidScript.Core.Sizing.Flows.BranchFlows.RatedFlow(graph.Substance, exchanger.Power, inlet, outlet)
                     : null;
                 var temperatureSpan = Math.Abs(outlet.SiValue - inlet.SiValue);
 
@@ -1086,8 +1089,8 @@ public sealed class EquationSystem
         }
 
         var state = graph.Substance.FromPressureEnthalpy(
-            Units.Quantity.FromSi(seed.Values[pressure], Units.Dimension.Pressure),
-            Units.Quantity.FromSi(seed.Values[enthalpy], Units.Dimension.Enthalpy));
+            FluidScript.Core.Physics.Units.Quantity.FromSi(seed.Values[pressure], FluidScript.Core.Physics.Units.Dimension.Pressure),
+            FluidScript.Core.Physics.Units.Quantity.FromSi(seed.Values[enthalpy], FluidScript.Core.Physics.Units.Dimension.Enthalpy));
 
         return state.IsSuccess ? state.Value.Density.SiValue : double.NaN;
     }
@@ -1631,7 +1634,7 @@ public sealed class EquationSystem
         {
             if (_energyRow[node] >= 0)
             {
-                residuals[_energyRow[node]] = Sizing.BranchFlows.Nominal
+                residuals[_energyRow[node]] = FluidScript.Core.Sizing.Flows.BranchFlows.Nominal
                     * (x[Unknowns.NodeEnthalpy(node)] - x[Unknowns.NodeEnthalpy(anchor)]);
             }
         }
@@ -1644,7 +1647,7 @@ public sealed class EquationSystem
             {
                 if (!double.IsNaN(_nodePin[node]) && _energyRow[node] >= 0)
                 {
-                    residuals[_energyRow[node]] = Sizing.BranchFlows.Nominal
+                    residuals[_energyRow[node]] = FluidScript.Core.Sizing.Flows.BranchFlows.Nominal
                         * (x[Unknowns.NodeEnthalpy(node)] - _nodePin[node]);
                 }
             }
@@ -1658,7 +1661,7 @@ public sealed class EquationSystem
                 {
                     var column = Unknowns.ComponentUnknownOffset + _owned[element].Offset + Tank.EnthalpyIndex;
 
-                    residuals[row] = Sizing.BranchFlows.Nominal * (x[column] - _ownPin[element]);
+                    residuals[row] = FluidScript.Core.Sizing.Flows.BranchFlows.Nominal * (x[column] - _ownPin[element]);
                 }
             }
         }

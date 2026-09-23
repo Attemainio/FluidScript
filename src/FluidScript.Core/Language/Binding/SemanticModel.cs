@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>A bound script: every name resolved, every value typed, ready for lowering.</summary>
 /// <remarks>

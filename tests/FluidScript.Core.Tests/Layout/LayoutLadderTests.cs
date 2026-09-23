@@ -1,9 +1,13 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Diagnostics.Explanations;
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Model;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
+using FluidScript.Core.Tests.Layout.Drawing;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;

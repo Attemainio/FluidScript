@@ -1,9 +1,8 @@
 using System.Text;
-
-using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Tests.Model;
 
-namespace FluidScript.Core.Tests.Layout;
+namespace FluidScript.Core.Tests.Layout.Hints;
 
 /// <summary>Prints the hints of every sample, for a session designing against real data.</summary>
 public sealed class HintDumpTests

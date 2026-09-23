@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>One token, with the trivia attached to it.</summary>
 /// <remarks>

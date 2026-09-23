@@ -1,13 +1,13 @@
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Units;
 using FluidScript.Fixtures;
 
-using CoreTopology = FluidScript.Core.Topology;
 
 namespace FluidScript.Core.Tests.Solvers;
 
@@ -85,7 +85,7 @@ public sealed class RatedExchangerSolveTests
     private sealed class Solved(OuterLoopResult run)
     {
         private readonly SystemLayout _layout =
-            SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+            SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
 
         private readonly double[] _values = [.. run.Solve.Solution.Values];
 
@@ -211,7 +211,7 @@ public sealed class RatedExchangerSolveTests
 
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}: {run}");
 
-        var posedness = CoreTopology.WellPosedness.Check(run.Graph);
+        var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph);
 
         Assert.Equal(["HX1.dt"], posedness.Counting.Constraints.Select(static c => c.Label).ToArray());
         Assert.Equal(1.794, Read(run).Flow("NSUP->NSUP"), 0.005);
@@ -222,7 +222,7 @@ public sealed class RatedExchangerSolveTests
     {
         // In Duty mode `in.t=40 out.t=60` would be a mixed-inlet demand and a flow pin, and with LOAD's `dt`
         // the loop would be over-specified by two. Rated, they are what sizes UA, and the count is square.
-        var posedness = CoreTopology.WellPosedness.Check(GraphFixture.Lower(RatedLoop).Graph);
+        var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(GraphFixture.Lower(RatedLoop).Graph);
 
         Assert.Equal(0, posedness.Counting.Excess);
         Assert.Equal(["LOAD.dt"], posedness.Counting.Constraints.Select(static c => c.Label).ToArray());

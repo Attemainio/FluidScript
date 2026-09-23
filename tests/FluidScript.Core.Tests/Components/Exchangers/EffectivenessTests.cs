@@ -1,7 +1,7 @@
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Components;
+namespace FluidScript.Core.Tests.Components.Exchangers;
 
 /// <summary>
 /// The ε-NTU relations of <c>22</c>, held against the substation's figures in <c>01</c> and against

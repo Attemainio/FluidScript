@@ -3,8 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-
-using FluidScript.Core.Model;
+using FluidScript.Core.Model.Contract;
 
 namespace FluidScript.Core.Tests.Documentation;
 

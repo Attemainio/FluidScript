@@ -1,6 +1,7 @@
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>One run of characters that carries no meaning to the binder.</summary>
 /// <param name="Kind">What the run is.</param>

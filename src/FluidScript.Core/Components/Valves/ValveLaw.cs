@@ -1,6 +1,6 @@
 using FluidScript.Core.Solvers;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Valves;
 
 /// <summary>How a valve's effective flow coefficient follows its opening.</summary>
 public enum ValveCharacteristic
@@ -90,7 +90,7 @@ public static class ValveLaw
     /// <para>
     /// <strong>Nothing is clamped, and `S-26` is why.</strong> This used to open with
     /// <c>Math.Clamp(position, 0, 1)</c>, which looks like defensive hygiene and is a numerical trap:
-    /// <see cref="Solvers.NewtonSolver"/> builds its Jacobian by <em>forward</em> differences, so at
+    /// <see cref="FluidScript.Core.Solvers.Steady.NewtonSolver"/> builds its Jacobian by <em>forward</em> differences, so at
     /// <c>position = 1</c> the perturbation clamped straight back to 1, every entry in that column came
     /// out <c>0 − 0</c>, and the system was singular naming the valve. The same happened anywhere below
     /// 0. <strong>A bound is not somewhere the iterate may not go; it is somewhere the derivative stops

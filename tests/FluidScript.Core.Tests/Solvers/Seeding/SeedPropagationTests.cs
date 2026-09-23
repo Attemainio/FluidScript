@@ -1,11 +1,15 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Seeding;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Seeding;
 
 /// <summary>Where the seed places each node's temperature, and why it matters (<c>S-30b</c>).</summary>
 public sealed class SeedPropagationTests

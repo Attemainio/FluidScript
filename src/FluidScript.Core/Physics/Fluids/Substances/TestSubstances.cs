@@ -1,6 +1,7 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids.Substances;
 
 /// <summary>Water with properties that never change, for tests that are not about properties.</summary>
 /// <remarks>

@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Model.Contract;
+using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Model;
 
@@ -90,7 +91,7 @@ public sealed class Styles
     /// <summary>A box as <c>[x, y, width, height]</c>, rounded.</summary>
     /// <param name="box">The box.</param>
     /// <returns>Four numbers.</returns>
-    public static ImmutableArray<double> BoxOf(Layout.Box box) =>
+    public static ImmutableArray<double> BoxOf(FluidScript.Core.Layout.Drawing.Box box) =>
         [Math.Round(box.X, 4), Math.Round(box.Y, 4), Math.Round(box.Width, 4), Math.Round(box.Height, 4)];
 
     private static bool Inherited(CircuitGraph graph, int start, Dictionary<string, StyleSpec> declared, out StyleSpec spec)

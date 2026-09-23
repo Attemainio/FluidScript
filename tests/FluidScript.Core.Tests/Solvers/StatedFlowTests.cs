@@ -1,9 +1,11 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Counting;
 
 namespace FluidScript.Core.Tests.Solvers;
 

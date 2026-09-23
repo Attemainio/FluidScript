@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Counting;
 
 /// <summary>Which actuator answers which constraint: first come in <c>D-130</c>'s order, then augmented (<c>D-133</c>).</summary>
 /// <remarks>

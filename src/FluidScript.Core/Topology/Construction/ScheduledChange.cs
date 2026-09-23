@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Construction;
 
 /// <summary>One scheduled change of a component parameter, as the run applies it (<c>33</c>).</summary>
 /// <param name="Component">The component whose parameter changes.</param>

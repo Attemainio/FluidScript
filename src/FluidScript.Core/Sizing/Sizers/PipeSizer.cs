@@ -2,11 +2,12 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Sizers;
 
 /// <summary>Chooses a pipe's nominal diameter from a catalogue (<c>24</c>).</summary>
 /// <param name="catalog">The series to select from.</param>
@@ -66,7 +67,7 @@ public sealed class PipeSizer(
         if (component is not Pipe pipe)
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a diameter"),
                 ("name", component.Name),
                 ("state", "a component that is not a pipe")));
@@ -81,7 +82,7 @@ public sealed class PipeSizer(
             || Math.Abs(context.MassFlow) <= 0)
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a diameter"),
                 ("name", pipe.Name),
                 ("state", "no flow is determined in this branch")));
@@ -120,7 +121,7 @@ public sealed class PipeSizer(
         if (Gradient(entries[index], volumeFlow, density, viscosity) > gradientTarget)
         {
             Say(
-                Diagnostics.SizingDiagnostics.OutsideCatalogue,
+                FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.OutsideCatalogue,
                 new Diagnostics.DiagnosticArgument("name", pipe.Name),
                 new Diagnostics.DiagnosticArgument("max", entries[index].Spec.NominalDiameter.ToString(CultureInfo.InvariantCulture)),
                 new Diagnostics.DiagnosticArgument("catalog", series.Name));
@@ -131,7 +132,7 @@ public sealed class PipeSizer(
         {
             index++;
             Say(
-                Diagnostics.SizingDiagnostics.SteppedUpForVelocity,
+                FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.SteppedUpForVelocity,
                 new Diagnostics.DiagnosticArgument("name", pipe.Name),
                 new Diagnostics.DiagnosticArgument("n", entries[index].Spec.NominalDiameter.ToString(CultureInfo.InvariantCulture)));
         }

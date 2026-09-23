@@ -2,12 +2,13 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>The per-component sizing point (<c>D-94</c>): a curve read where the component says, not where the file does.</summary>
 /// <remarks>

@@ -3,16 +3,26 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
+using FluidScript.Core.Model.Contract;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
 namespace FluidScript.Core.Model;
 
@@ -37,7 +47,7 @@ public static class ModelContractBuilder
     public const string ContractVersion = "2.2";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
-    public static VersionedId PropertyBackend { get; } = new("sharp-prop", Fluids.PropertyBackend.PackageVersion);
+    public static VersionedId PropertyBackend { get; } = new("sharp-prop", FluidScript.Core.Physics.Fluids.PropertyBackend.PackageVersion);
 
     private const int SignificantDigits = 6;
 
@@ -246,8 +256,8 @@ public static class ModelContractBuilder
 
     private static string OriginOf(ComponentSymbol? symbol, bool expanded) => symbol?.Origin switch
     {
-        FluidScript.Core.Binding.Origin.Declared => "declared",
-        FluidScript.Core.Binding.Origin.Inferred inferred => "inferred:" + inferred.Rule,
+        FluidScript.Core.Language.Binding.Origin.Declared => "declared",
+        FluidScript.Core.Language.Binding.Origin.Inferred inferred => "inferred:" + inferred.Rule,
         _ => expanded ? "expanded" : "inferred",
     };
 

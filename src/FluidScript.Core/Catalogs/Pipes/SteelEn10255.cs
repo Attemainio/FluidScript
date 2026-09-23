@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>Medium-series non-alloy steel tube, the common European hydronic default.</summary>
 /// <remarks>

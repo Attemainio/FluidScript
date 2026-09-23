@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Scenarios;
 
 /// <summary>How one parameter's value is taken across every scenario (<c>D-143</c>, <c>24</c>'s envelope table).</summary>
 public enum EnvelopeRule

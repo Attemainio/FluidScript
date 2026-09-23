@@ -1,9 +1,10 @@
-using FluidScript.Core.Binding;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// A file may declare named operating cases and state one value per case (<c>D-143</c>).

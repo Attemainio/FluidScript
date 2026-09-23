@@ -1,8 +1,10 @@
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>The three forms of <c>style</c> (<c>D-104</c>): definition, application, and the anonymous token list.</summary>
 [Trait("Category", "Unit")]
@@ -54,7 +56,7 @@ public sealed class StyleDirectiveTests
     public void TheBinderResolvesDefinitionsApplicationsAndOverrides()
     {
         var parse = FluidScriptParser.Parse(new SourceText(Script));
-        var bind = new FluidScript.Core.Binding.Binder(ComponentRegistry.Default).Bind(parse, "styles");
+        var bind = new FluidScript.Core.Language.Binding.Binder(ComponentRegistry.Default).Bind(parse, "styles");
         var components = bind.Model.Components.ToDictionary(static c => c.Name);
 
         Assert.DoesNotContain(bind.Diagnostics, static d => d.Code.StartsWith("FS12", StringComparison.Ordinal));
@@ -80,7 +82,7 @@ public sealed class StyleDirectiveTests
     public void TheStyleDiagnosticsFire(string line, string code)
     {
         var parse = FluidScriptParser.Parse(new SourceText("fluidscript 1\n" + line + "\n"));
-        var bind = new FluidScript.Core.Binding.Binder(ComponentRegistry.Default).Bind(parse, "styles");
+        var bind = new FluidScript.Core.Language.Binding.Binder(ComponentRegistry.Default).Bind(parse, "styles");
 
         Assert.Contains(bind.Diagnostics, d => d.Code == code);
     }

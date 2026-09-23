@@ -2,8 +2,10 @@ using System.Collections.Immutable;
 using System.Text;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Printing;
 
 /// <summary>The formatter (<c>17</c>): the canonical layout, on request, as edits.</summary>
 /// <remarks>

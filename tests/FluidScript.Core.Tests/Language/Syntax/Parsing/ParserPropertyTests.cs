@@ -1,12 +1,11 @@
 using System.Collections.Immutable;
 using System.Text;
-
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
 /// The parser's structural invariants: it keeps every token, it never throws, and one token of

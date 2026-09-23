@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>What reading a <c>style</c> or a <c>show</c> directive has to say: <c>FS1201</c>, <c>FS1202</c>, <c>FS1204</c>, <c>FS1205</c> (<c>12</c>, <c>D-104</c>) and <c>FS1210</c>, <c>FS1213</c>, <c>FS1214</c> (<c>57</c>).</summary>
 /// <remarks>

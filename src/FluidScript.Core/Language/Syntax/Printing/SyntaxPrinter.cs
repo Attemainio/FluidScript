@@ -1,9 +1,12 @@
 using System.Collections.Immutable;
 using System.Text;
 
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Printing;
 
 /// <summary>Turns a syntax tree back into the exact text it was parsed from.</summary>
 /// <remarks>

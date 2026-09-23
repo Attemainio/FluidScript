@@ -2,7 +2,7 @@ using SharpProp;
 
 using UnitsNet;
 
-namespace FluidScript.Core.Tests.Fluids;
+namespace FluidScript.Core.Tests.Physics.Fluids;
 
 /// <summary>
 /// The M0 risk gate for the property backend: what SharpProp 9.0.0 actually is, measured rather than

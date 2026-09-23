@@ -1,12 +1,12 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Diagnostics.Explanations;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Diagnostics;
+namespace FluidScript.Core.Tests.Diagnostics.Explanations;
 
 /// <summary>What the solve report has to say to be worth reading.</summary>
 public sealed class SolveExplanationTests

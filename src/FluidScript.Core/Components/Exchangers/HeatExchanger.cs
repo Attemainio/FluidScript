@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Exchangers;
 
 /// <summary>Which of the three exchanger modes lowering resolved.</summary>
 /// <remarks>

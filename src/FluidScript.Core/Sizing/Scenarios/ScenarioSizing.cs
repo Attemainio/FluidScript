@@ -2,12 +2,16 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Sizing.Sizers;
+using FluidScript.Core.Solvers.Passes;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Scenarios;
 
 /// <summary>One scenario's solve, with what it cost.</summary>
 /// <param name="Name">The scenario's name.</param>
@@ -146,7 +150,7 @@ public static class ScenarioSizing
                 // guessed: a maximum is right for a capacity and wrong for anything else, and the
                 // wrong one produces a plant that looks sized.
                 return Result.Failure<ScenarioSizingResult>(ResultError.From(
-                    Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                    FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                     ("property", "a merged size"),
                     ("name", name),
                     ("state", $"no envelope rule names {string.Join(", ", envelope.Unruled)}")));
@@ -254,7 +258,7 @@ public static class ScenarioSizing
 
             if (lowest.Given.For(valve.Key, "authority") is not null)
             {
-                merged = merged.With(valve.Key, "authority", Units.Quantity.FromSi(authority, Units.Dimension.Dimensionless));
+                merged = merged.With(valve.Key, "authority", FluidScript.Core.Physics.Units.Quantity.FromSi(authority, FluidScript.Core.Physics.Units.Dimension.Dimensionless));
                 governing = governing.SetItem(Ownership.Key(valve.Key, "authority"), lowest.Case);
             }
 
@@ -278,7 +282,7 @@ public static class ScenarioSizing
             }
 
             said.Add(Diagnostics.Diagnostic.Create(
-                Diagnostics.DesignDiagnostics.TurnDownBeyondRange,
+                FluidScript.Core.Diagnostics.Descriptors.DesignDiagnostics.TurnDownBeyondRange,
                 span: null,
                 new Diagnostics.DiagnosticArgument("name", valve.Key),
                 new Diagnostics.DiagnosticArgument("light", Format(light.Reading.MassFlow, "0.###")),
@@ -373,7 +377,7 @@ public static class ScenarioSizing
             }
 
             said.Add(Diagnostics.Diagnostic.Create(
-                Diagnostics.SizingDiagnostics.InertInEveryScenario,
+                FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.InertInEveryScenario,
                 span: null,
                 new Diagnostics.DiagnosticArgument("name", component),
                 new Diagnostics.DiagnosticArgument("count", scenarios.Length.ToString(CultureInfo.InvariantCulture)),

@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Valves;
 
 /// <summary>A two-port throttling valve.</summary>
 /// <remarks>

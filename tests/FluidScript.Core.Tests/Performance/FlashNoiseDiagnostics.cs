@@ -1,7 +1,8 @@
 using System.Globalization;
 using System.Text;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Performance;

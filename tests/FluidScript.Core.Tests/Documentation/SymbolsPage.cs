@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 
 using FluidScript.Core.Model;
+using FluidScript.Core.Model.Contract;
 
 namespace FluidScript.Core.Tests.Documentation;
 

@@ -1,9 +1,10 @@
 using System.Collections.Immutable;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Primitives;
 
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids;
 
 /// <summary>The substances a script's <c>fluid</c> line can name.</summary>
 /// <remarks>

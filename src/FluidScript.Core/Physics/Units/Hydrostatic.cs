@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>The hydrostatic identities at standard gravity: a column's pressure, a pressure's head, a lift's energy.</summary>
 /// <remarks>

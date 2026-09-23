@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Hydraulics;
 
 /// <summary>One set of graph elements that fluid can flow between.</summary>
 /// <remarks>

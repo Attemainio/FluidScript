@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>What sizing has to say as a code rather than a sentence: the <c>FS23xx</c> range.</summary>
 /// <remarks>

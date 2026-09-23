@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Api.Contracts;
 
@@ -29,7 +28,7 @@ public sealed record LexiconWire(
 {
     /// <summary>The lexicon of the deployed build.</summary>
     public static LexiconWire Current { get; } = new(
-        Core.Syntax.ReservedWords.All,
+        FluidScript.Core.Language.Syntax.Lexing.ReservedWords.All,
         [.. UnitTable.All.Select(static u => u.Text).Distinct(StringComparer.Ordinal).OrderByDescending(static t => t.Length).ThenBy(static t => t, StringComparer.Ordinal)],
         NameResolution.ResolveThreshold,
         NameResolution.AmbiguityMargin,

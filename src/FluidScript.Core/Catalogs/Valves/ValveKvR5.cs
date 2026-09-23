@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Valves;
 
 /// <summary>The R5 preferred-number series, which is what valve Kvs values step on.</summary>
 /// <remarks>

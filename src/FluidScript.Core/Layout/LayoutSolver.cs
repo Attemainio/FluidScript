@@ -1,5 +1,7 @@
-using FluidScript.Core.Binding;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
+using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Layout;
 

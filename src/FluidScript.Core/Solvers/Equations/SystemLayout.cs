@@ -1,9 +1,10 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>
 /// Which unknown each position in the state vector is, and who owns it.

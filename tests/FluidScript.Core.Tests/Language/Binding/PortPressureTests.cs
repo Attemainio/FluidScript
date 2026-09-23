@@ -1,17 +1,18 @@
-using FluidScript.Core.Binding;
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Units;
 
-using CoreTopology = FluidScript.Core.Topology;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// A port's pressure is the pressure of the node the port touches, and stating it states that node
@@ -63,7 +64,7 @@ public sealed class PortPressureTests
 
         // And the lowered node carries it as a stated pressure like any other, so it is the datum.
         var lowered = GraphFixture.Lower(Loop.Replace("PU1 pump", "PU1 pump out.p=250", StringComparison.Ordinal));
-        var posedness = CoreTopology.WellPosedness.Check(lowered.Graph);
+        var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(lowered.Graph);
 
         Assert.Equal(0, posedness.Counting.Excess);
         Assert.Contains(posedness.Hydraulics, block => block.Datum == "N2" && block.DatumWasStated);
@@ -202,7 +203,7 @@ public sealed class PortPressureTests
         // `PU1 pump in.p=100 out.p=250` states two levels of one loop. The redundant row is one of the
         // two stated pressures, and the message said "remove HE1.in.t" -- the inlet the dropped
         // enthalpy level had already paid for (found by P5.13b, fixed with it).
-        var posedness = CoreTopology.WellPosedness.Check(
+        var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(
             GraphFixture.Lower(Loop.Replace("PU1 pump", "PU1 pump in.p=100 out.p=250", StringComparison.Ordinal)).Graph);
         var over = Assert.Single(posedness.Diagnostics, static d => d.Code == "FS2210");
 
@@ -228,7 +229,7 @@ public sealed class PortPressureTests
 
     private static double Pressure(OuterLoopResult run, string node)
     {
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var unknown = layout.Unknowns.Single(u => u.Kind == UnknownKind.NodePressure && u.OwnerComponentId == node);
 
         return run.Solve.Solution.Values[unknown.Index];

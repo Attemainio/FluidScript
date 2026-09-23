@@ -1,5 +1,7 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
 
 namespace FluidScript.Core.Tests.Components;
 

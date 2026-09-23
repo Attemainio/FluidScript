@@ -1,6 +1,6 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Units;
+namespace FluidScript.Core.Tests.Physics.Units;
 
 public sealed class UnitTableTests
 {

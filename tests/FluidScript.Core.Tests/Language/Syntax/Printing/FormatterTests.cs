@@ -1,7 +1,9 @@
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Printing;
 
 /// <summary>
 /// The formatter's layout (<c>17</c>): what it aligns, what it never touches, and that formatting

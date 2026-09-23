@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Steady;
 
 /// <summary>The combination of unknowns a singular Jacobian leaves undetermined.</summary>
 /// <remarks>

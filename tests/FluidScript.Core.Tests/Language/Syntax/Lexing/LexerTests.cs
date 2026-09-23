@@ -1,8 +1,9 @@
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Lexing;
 
 /// <summary>
 /// How the lexer classifies each shape, one test per acceptance criterion in

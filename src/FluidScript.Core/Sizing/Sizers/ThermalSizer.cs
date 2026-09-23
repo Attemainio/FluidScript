@@ -2,11 +2,14 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Sizers;
 
 /// <summary>Sizes an extended exchanger's thermal size from its design point (<c>24</c>, the extended-mode rule).</summary>
 /// <remarks>

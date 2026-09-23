@@ -2,9 +2,9 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>Describes a component kind to the binder: its keyword, ports, and parameters.</summary>
 /// <remarks>

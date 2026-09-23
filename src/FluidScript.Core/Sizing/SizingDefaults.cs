@@ -72,7 +72,7 @@ public static class SizingDefaults
     /// <para>
     /// Looked up 2026-09-22 (<c>24</c>): manufacturers quote 50:1 for equal percentage, 33:1 for linear
     /// and 20:1 for quick opening — Flo Control, <em>Rangeability and Turndown Ratio</em>. Equal
-    /// percentage's 50 is also the <c>R</c> <see cref="Components.ValveLaw"/> already runs its curve on,
+    /// percentage's 50 is also the <c>R</c> <see cref="FluidScript.Core.Components.Valves.ValveLaw"/> already runs its curve on,
     /// so the check and the solver agree about the same valve.
     /// </para>
     /// <para>
@@ -81,10 +81,10 @@ public static class SizingDefaults
     /// reasoning rather than a standard's, and the part of the check most worth testing (<c>C-121</c>).
     /// </para>
     /// </remarks>
-    public static double ValveRangeability(Components.ValveCharacteristic characteristic) => characteristic switch
+    public static double ValveRangeability(FluidScript.Core.Components.Valves.ValveCharacteristic characteristic) => characteristic switch
     {
-        Components.ValveCharacteristic.EqualPercentage => 50,
-        Components.ValveCharacteristic.QuickOpen => 20,
+        FluidScript.Core.Components.Valves.ValveCharacteristic.EqualPercentage => 50,
+        FluidScript.Core.Components.Valves.ValveCharacteristic.QuickOpen => 20,
         _ => 33,
     };
 
@@ -122,7 +122,7 @@ public static class SizingDefaults
     /// setting only: the first solved pass replaces it with the drop that levels the three-way valve's
     /// legs. It is also what keeps the valve out of the Kv law's regularised band, where a
     /// fully-open provisional sits (measured: Kv 630 at 0.239 kg/s drops 0.19 Pa, below
-    /// <see cref="Components.ValveLaw.RegularizationDrop"/>, and the first solve creeps to its cap on that row).
+    /// <see cref="FluidScript.Core.Components.Valves.ValveLaw.RegularizationDrop"/>, and the first solve creeps to its cap on that row).
     /// </remarks>
     public const double BalancingDropMinimum = 3_000;
 

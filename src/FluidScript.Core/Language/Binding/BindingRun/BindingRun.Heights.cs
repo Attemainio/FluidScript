@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding.Symbols;
 
-using FluidScript.Core.Diagnostics;
-
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <content>Binding step 8b: propagate heights (<c>D-70</c>, <c>D-95</c>).</content>
 /// <remarks>

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Model;
+namespace FluidScript.Core.Model.Contract;
 
 /// <summary>Marks a wire field that is left out entirely, rather than written as <see langword="null"/>, when it has no value.</summary>
 /// <remarks>

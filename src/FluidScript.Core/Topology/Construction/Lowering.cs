@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Construction;
 
 /// <summary>What lowering produced, and what it could not build.</summary>
 /// <param name="Graph">The graph.</param>

@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Solvers.Equations;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>One solved instant of a run (<c>33</c> §Frame production).</summary>
 /// <remarks>

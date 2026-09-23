@@ -1,10 +1,12 @@
-using FluidScript.Core.Binding;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// Binding step 0b and the curve half of step 5: <c>D-57</c>'s tables, <c>D-58</c>'s design point,

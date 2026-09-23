@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// How a dimension behaves under arithmetic.

@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-namespace FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+
+namespace FluidScript.Core.Language.Syntax.Ast;
 
 /// <summary>A whole script: one ordered list of statements, and the end token that closes it.</summary>
 /// <param name="Statements">Every statement in source order, malformed lines included.</param>

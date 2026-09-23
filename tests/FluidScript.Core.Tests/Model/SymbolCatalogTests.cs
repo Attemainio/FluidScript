@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Model;
+using FluidScript.Core.Model.Contract;
 
 namespace FluidScript.Core.Tests.Model;
 

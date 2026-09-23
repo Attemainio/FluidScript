@@ -2,11 +2,12 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 
-using FluidScript.Core.Binding;
-using FluidScript.Core.Language;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Layout.Routing;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Layout;
+namespace FluidScript.Core.Layout.Drawing;
 
 /// <summary>
 /// The layout report (<c>28</c> A10, <c>D-100</c>, <c>D-108</c>): a scene as text, so that a layout is read and checked

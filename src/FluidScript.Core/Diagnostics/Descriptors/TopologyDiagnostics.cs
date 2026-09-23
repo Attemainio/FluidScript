@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>Everything graph construction and well-posedness can report.</summary>
 /// <remarks>

@@ -1,17 +1,18 @@
 using System.Globalization;
 using System.Text;
-
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
+using FluidScript.Core.Solvers.Transient;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Counting;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Transient;
 
 /// <summary>Runs a script in time and writes the whole run as a report, which is what a transient claim is measured on.</summary>
 internal static class TransientRunFixture

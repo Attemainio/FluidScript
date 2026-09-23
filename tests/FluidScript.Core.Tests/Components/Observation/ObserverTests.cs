@@ -1,14 +1,14 @@
 using System.Collections.Immutable;
-
-using FluidScript.Core.Binding;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Observation;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Components;
+namespace FluidScript.Core.Tests.Components.Observation;
 
 /// <summary>The observer family: what an instrument reads, and how a model gets one.</summary>
 /// <remarks>

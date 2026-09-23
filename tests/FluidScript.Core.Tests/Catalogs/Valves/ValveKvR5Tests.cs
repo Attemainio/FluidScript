@@ -1,8 +1,10 @@
 using System.Globalization;
 
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Catalogs.Valves;
 
-namespace FluidScript.Core.Tests.Catalogs;
+namespace FluidScript.Core.Tests.Catalogs.Valves;
 
 /// <summary>
 /// The R5 valve catalogue, and the regeneration that <c>D-84</c> puts in place of a second source.
@@ -126,9 +128,9 @@ public sealed class ValveKvR5Tests
         // `S-74`. The Jacobian reads a pressure column twice: at a step that clears the flash's noise for
         // every row, and at sqrt(eps) for the rows a valve marks steep, whose sqrt(dp) law may sit at a
         // sub-pascal drop. Both valve kinds mark their Kv laws and nothing else; a pipe marks nothing.
-        Assert.All(new Core.Components.Valve("CV", 4).DeclareEquations(), static row => Assert.True(row.SteepInPressure));
+        Assert.All(new FluidScript.Core.Components.Valves.Valve("CV", 4).DeclareEquations(), static row => Assert.True(row.SteepInPressure));
         Assert.All(
-            new Core.Components.ThreeWayValve("TV", 6.3).DeclareEquations(),
+            new FluidScript.Core.Components.Valves.ThreeWayValve("TV", 6.3).DeclareEquations(),
             static row => Assert.Equal(row.Name.Contains("Kv law", StringComparison.Ordinal), row.SteepInPressure));
         Assert.All(new Core.Components.Pipe("P1", 10, 0.0273).DeclareEquations(), static row => Assert.False(row.SteepInPressure));
     }
@@ -142,11 +144,11 @@ public sealed class ValveKvR5Tests
         {
             foreach (var drop in new[] { 500.0, 13_300.0, 100_000.0 })
             {
-                var flow = Core.Components.ValveLaw.MassFlow(kv, drop, 998.2);
-                var recovered = Core.Components.ValveLaw.RequiredKv(flow, drop, 998.2);
+                var flow = FluidScript.Core.Components.Valves.ValveLaw.MassFlow(kv, drop, 998.2);
+                var recovered = FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(flow, drop, 998.2);
 
                 Assert.Equal(kv, recovered, 9);
-                Assert.Equal(drop, Core.Components.ValveLaw.PressureDrop(kv, flow, 998.2), 6);
+                Assert.Equal(drop, FluidScript.Core.Components.Valves.ValveLaw.PressureDrop(kv, flow, 998.2), 6);
             }
         }
     }
@@ -157,9 +159,9 @@ public sealed class ValveKvR5Tests
         // Below 100 Pa the law is a quadratic that exists to keep a closed valve differentiable, and no
         // valve is ever sized to sit there. Inverting it would put a sized valve inside the smoothing
         // band, where its authority is not what the arithmetic says.
-        Assert.True(double.IsNaN(Core.Components.ValveLaw.RequiredKv(0.24, 50, 998.2)));
-        Assert.True(double.IsNaN(Core.Components.ValveLaw.RequiredKv(0.24, 0, 998.2)));
-        Assert.True(double.IsNaN(Core.Components.ValveLaw.RequiredKv(0.24, 13_300, 0)));
+        Assert.True(double.IsNaN(FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(0.24, 50, 998.2)));
+        Assert.True(double.IsNaN(FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(0.24, 0, 998.2)));
+        Assert.True(double.IsNaN(FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(0.24, 13_300, 0)));
     }
 
     [Fact]
@@ -170,8 +172,8 @@ public sealed class ValveKvR5Tests
         // at the valve's 998.2 inlet two lines later. At the inlet the required Kv is 1.823. It is the
         // document's own inlet-versus-mean trap, and it went unnoticed because the row is Kv 1.6 from
         // either number: the R5 step is coarse enough to swallow a half-percent disagreement.
-        var atInlet = Core.Components.ValveLaw.RequiredKv(0.2392, 22_350, 998.2);
-        var atLoopMean = Core.Components.ValveLaw.RequiredKv(0.2392, 22_350, 993.9);
+        var atInlet = FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(0.2392, 22_350, 998.2);
+        var atLoopMean = FluidScript.Core.Components.Valves.ValveLaw.RequiredKv(0.2392, 22_350, 993.9);
 
         Assert.Equal(1.823, atInlet, 2);
         Assert.Equal(1.833, atLoopMean, 2);

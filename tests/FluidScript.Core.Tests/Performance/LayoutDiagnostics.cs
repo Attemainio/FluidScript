@@ -1,5 +1,7 @@
 using FluidScript.Core.Layout;
-using FluidScript.Core.Tests.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
+using FluidScript.Core.Tests.Layout.Drawing;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Fixtures;
 

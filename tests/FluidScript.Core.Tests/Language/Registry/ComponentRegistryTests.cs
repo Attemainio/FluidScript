@@ -1,8 +1,9 @@
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Language;
+namespace FluidScript.Core.Tests.Language.Registry;
 
 /// <summary>
 /// The registry and kind resolution from <c>plan/10-language/15-semantic-model.md</c>: what resolves

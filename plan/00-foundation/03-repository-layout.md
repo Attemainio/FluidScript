@@ -44,18 +44,18 @@ FluidScript/
 │
 ├── src/
 │   ├── FluidScript.Core/            the language + physics library. No UI, no ASP.NET.
-│   │   │                            Domain folders, namespaces mirroring them (`D-147`);
+│   │   │                            Domain folders, namespaces mirroring them (`D-147`, `D-148`);
 │   │   │                            the full tree and its conventions are `71`
 │   │   ├── Primitives/              Result, Unit — used everywhere
 │   │   ├── Language/                Syntax/, Binding/, Registry/, Compatibility/  (tier 10)
 │   │   ├── Physics/                 Units/, Fluids/ (Substances/), Cycles/   (tier 10/20)
 │   │   ├── Components/              ComponentBase and its seven; Valves/, Exchangers/ (tier 20)
 │   │   ├── Catalogs/                Pipes/, Valves/ — tables and provenance   (tier 20)
-│   │   ├── Topology/                Graph/, Lowering/, WellPosedness/, Hydraulics/ (tier 20)
+│   │   ├── Topology/                Graph/, Construction/, Counting/, Hydraulics/ (tier 20)
 │   │   ├── Sizing/                  SizerBase; Sizers/, Flows/, Scenarios/    (tier 20)
-│   │   ├── Solvers/                 Equations/, Steady/, Seeding/, OuterLoop/, Transient/ (tier 30)
-│   │   ├── Layout/                  Engine/, Routing/, Hints/, Scene/         (tier 20)
-│   │   ├── Model/                   Contract/, Builder/ — the model contract  (tier 20)
+│   │   ├── Solvers/                 Equations/, Steady/, Seeding/, Passes/, Transient/, Results/ (tier 30)
+│   │   ├── Layout/                  LayoutEngine/, Routing/, Hints/, Drawing/ (tier 20)
+│   │   ├── Model/                   Contract/ — the model contract             (tier 20)
 │   │   └── Diagnostics/             Descriptors/, Explanations/               (tier 10)
 │   │
 │   ├── FluidScript.Api/             ASP.NET Core host. References Core.      (tier 40)

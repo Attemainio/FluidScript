@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// Why an operation on two quantities could not produce a value.

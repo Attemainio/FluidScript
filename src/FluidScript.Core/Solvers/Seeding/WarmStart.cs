@@ -1,4 +1,7 @@
-namespace FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+
+namespace FluidScript.Core.Solvers.Seeding;
 
 /// <summary>A previous solution offered as the first iterate of the next solve (<c>41</c>).</summary>
 /// <param name="Solution">The converged iterate of an earlier run, in SI, laid out by that run's <see cref="SystemLayout"/>.</param>

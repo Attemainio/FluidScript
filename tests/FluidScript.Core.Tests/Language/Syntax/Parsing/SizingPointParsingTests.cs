@@ -1,7 +1,9 @@
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>The <c>sized_at</c> clause on a component declaration (<c>D-94</c>).</summary>
 public sealed class SizingPointParsingTests

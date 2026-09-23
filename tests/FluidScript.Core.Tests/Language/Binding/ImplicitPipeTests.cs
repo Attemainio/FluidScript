@@ -1,11 +1,14 @@
-using FluidScript.Core.Binding;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Core.Tests.Topology;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>
 /// Pipe properties on a connection line (<c>D-110</c>, P5.1e): the line parses and prints byte for byte, each

@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Model.Contract;
+
 namespace FluidScript.Core.Model;
 
 /// <summary>The symbol definition every kind is drawn with (<c>D-20</c>, <c>D-24</c>, <c>D-102</c>).</summary>

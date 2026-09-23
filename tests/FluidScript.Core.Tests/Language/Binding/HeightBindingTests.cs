@@ -1,9 +1,10 @@
-using FluidScript.Core.Binding;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Binding;
+namespace FluidScript.Core.Tests.Language.Binding;
 
 /// <summary>Binding step 8b: heights propagate through everything but a pipe (<c>D-70</c>, <c>D-95</c>).</summary>
 public sealed class HeightBindingTests

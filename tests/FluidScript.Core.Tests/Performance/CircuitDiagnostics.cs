@@ -1,9 +1,9 @@
 using System.Text;
-
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Diagnostics.Explanations;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 

@@ -1,13 +1,17 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Observation;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Layout;
+namespace FluidScript.Core.Layout.Hints;
 
 /// <summary>Derives <see cref="LayoutHints"/> from a lowered graph, its model, and the solved branch flows (<c>25</c>).</summary>
 /// <remarks>

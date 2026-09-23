@@ -1,7 +1,6 @@
-using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Graph;
 
 /// <summary>The canonical direction a branch is written in (<c>C-25</c>).</summary>
 public sealed class BranchOrientationTests

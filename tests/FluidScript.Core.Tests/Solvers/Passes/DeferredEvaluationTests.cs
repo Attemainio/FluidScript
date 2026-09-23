@@ -1,12 +1,13 @@
-using FluidScript.Core.Binding;
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Units;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Passes;
 
 /// <summary>
 /// <c>14</c>'s Phase B: a deferred expression is evaluated against each pass and written in as the

@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>Everything the binder and the expression evaluator can report.</summary>
 /// <remarks>

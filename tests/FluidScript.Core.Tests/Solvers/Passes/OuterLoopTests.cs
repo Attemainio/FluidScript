@@ -1,17 +1,21 @@
 using System.Collections.Immutable;
-
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Sizing;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Solvers.Seeding;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
-using FluidScript.Core.Units;
 
-using CoreTopology = FluidScript.Core.Topology;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Passes;
 
 /// <summary>
 /// The single outer fixed-point loop from <c>plan/30-solver/31-solver-architecture.md</c>, run against
@@ -80,7 +84,7 @@ public sealed class OuterLoopTests
     public async Task TheFlowIsTheOneTheDutyFixesWhateverTheLoopChoseForThePipe()
     {
         var run = await RunAsync("m2-simple-loop.fluid");
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
 
         // 22's worked energy balance: 30 kW over the enthalpy rise from 20 to 50 C is 0.2392 kg/s. The
         // pipe's size cannot move it -- HE1's three stated parameters pin it -- which is exactly why the
@@ -94,7 +98,7 @@ public sealed class OuterLoopTests
     public async Task ASizedParameterIsNeverAlsoPromoted()
     {
         var run = await RunAsync("m2-simple-loop.fluid");
-        var promoted = CoreTopology.WellPosedness.Check(run.Graph).Counting.Promotions
+        var promoted = FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting.Promotions
             .Select(static promotion => promotion.Label)
             .ToImmutableHashSet(StringComparer.Ordinal);
 
@@ -260,7 +264,7 @@ public sealed class OuterLoopTests
         var run = result.Value;
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination} after {run.Solve.Iterations}.");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var kv = Enumerable.Range(0, layout.Count).Single(index => layout.Unknowns[index].Name == "CV1.kv");
         Assert.Equal(4.1, run.Solve.Solution.Values[kv], 0.1);
 
@@ -312,7 +316,7 @@ public sealed class OuterLoopTests
 
         Assert.True(result.IsSuccess, result.Error?.Message);
 
-        var counting = CoreTopology.WellPosedness.Check(result.Value.Graph).Counting;
+        var counting = FluidScript.Core.Topology.Counting.WellPosedness.Check(result.Value.Graph).Counting;
 
         Assert.Equal(counting.Unknowns, counting.Equations);
         Assert.Equal(0, counting.Excess);
@@ -353,7 +357,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal(0.0, solved[Index(layout, UnknownKind.NodePressure, "N1")], 1.0);
@@ -406,7 +410,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Settled, $"not settled after {result.Value.Passes} passes");
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Stream(string owner) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, owner)]);
@@ -478,7 +482,7 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Settled, $"not settled after {run.Passes} passes");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
         var ports = SolvedStates.Ports(run.Graph, layout, run.Solve.Solution);
         var valve = run.Graph.Components.IndexOf(run.Graph.Components.Single(static c => c.Name == "TV_AHU"));
@@ -522,7 +526,7 @@ public sealed class OuterLoopTests
         // is that the valve is set and the legs come out level.
         Assert.InRange(run.Sizes.For("BV_RAD", "kv")!.Value, 1.4, 2.0);
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal(0.50, solved[Index(layout, UnknownKind.Parameter, "TV_RAD", "TV_RAD.position")], 0.01);
@@ -605,7 +609,7 @@ public sealed class OuterLoopTests
         Assert.Equal(1.4, run.Sizes.For("BV1", "kv")!.Value, 0.05);
         Assert.Contains("set to level 3WV's legs", run.Bases["BV1.kv"], StringComparison.Ordinal);
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
 
         Assert.Equal(0.32, run.Solve.Solution.Values[Index(layout, UnknownKind.Parameter, "3WV", "3WV.position")], 0.02);
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
@@ -631,7 +635,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Settled, $"not settled after {result.Value.Passes} passes");
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Flow(string owner) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, owner)]);
@@ -698,7 +702,7 @@ public sealed class OuterLoopTests
 
         // The head is promoted rather than sized, so it is the solver's answer to the same question the
         // pump rule would have answered -- and it lands on the document's number either way.
-        var posedness = CoreTopology.WellPosedness.Check(run.Graph);
+        var posedness = FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph);
         var layout = SystemLayout.Build(run.Graph, posedness.Counting);
         var head = run.Solve.Solution.Values[layout.PromotionOffset];
 
@@ -724,7 +728,7 @@ public sealed class OuterLoopTests
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
         Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Flow(string branch) =>
@@ -769,7 +773,7 @@ public sealed class OuterLoopTests
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
         Assert.True(run.Settled, $"sizes were still moving after {run.Passes} passes.");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Flow(string branch) =>
@@ -803,7 +807,7 @@ public sealed class OuterLoopTests
 
         Assert.True(run.Solve.Converged, $"stopped at {run.Solve.Termination}.");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Flow(string branch) => Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
@@ -948,7 +952,7 @@ public sealed class OuterLoopTests
             Water.Instance,
             "automatic-distribution-header",
             TestContext.Current.CancellationToken);
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(
             result,
             GraphFixture.Lower(DistributedHeaderWithAutomaticSourceDuty).Graph,
             "automatic-distribution-header");
@@ -1060,7 +1064,7 @@ public sealed class OuterLoopTests
         var model = GraphFixture.Bind(TwoPumpedSourcesThreePumpedConsumers);
         var result = await Loop().RunAsync(
             model, Water.Instance, "two-pumped-sources", TestContext.Current.CancellationToken);
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(
             result, GraphFixture.Lower(TwoPumpedSourcesThreePumpedConsumers).Graph, "two-pumped-sources");
 
         Assert.True(result.IsSuccess, report);
@@ -1073,7 +1077,7 @@ public sealed class OuterLoopTests
 
         // Each constraint on the pump that drives the flow it pins -- the cascade `S-59` produced put
         // `HS_B.out` on `PU_AHU.head` and left `HE_DHW.out` with nothing.
-        var promoted = CoreTopology.WellPosedness.Check(run.Graph).Counting.Promotions
+        var promoted = FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting.Promotions
             .ToDictionary(static p => $"{p.Constraint.Component}.{p.Constraint.Parameter}", static p => p.Label, StringComparer.Ordinal);
 
         Assert.Equal("PU_B.head", promoted["HS_B.out"]);
@@ -1081,7 +1085,7 @@ public sealed class OuterLoopTests
         Assert.Equal("PU_RAD.head", promoted["HE_RAD.out"]);
         Assert.Equal("PU_DHW.head", promoted["HE_DHW.out"]);
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         double Flow(string branch) =>
@@ -1203,7 +1207,7 @@ public sealed class OuterLoopTests
             "27.174 kW at tout=-5, 0.54 of the 50 kW the design day asks", run.Bases["HP1.power"]);
         Assert.Null(run.Sizes.For("HP1", "power"));
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal(0.3984, Math.Abs(solved[layout.BranchFlow(0)]), 0.001);
@@ -1246,7 +1250,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Solve.Converged);
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.InRange(run.Sizes.For("PU1", "head") ?? solved[layout.PromotionOffset], 5.0, 5.6);
@@ -1280,7 +1284,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Solve.Converged);
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.InRange(solved[layout.PromotionOffset], 5.0, 5.6);
@@ -1323,7 +1327,7 @@ public sealed class OuterLoopTests
         Assert.True(result.Value.Solve.Converged);
 
         var run = result.Value;
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal(2.0, Math.Abs(solved[layout.BranchFlow(0)]), 0.05);
@@ -1371,7 +1375,7 @@ public sealed class OuterLoopTests
         // the sign the Joule-Thomson coefficient of liquid water gives, and the one a model carrying h
         // constant across a falling pressure would get wrong (`D-70`'s remark on friction).
         var run = await Solve(SimpleLoop.Replace("P1   pipe length=25", "P1   pipe length=25 nodes=4", StringComparison.Ordinal), "cells");
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         string[] along = ["N5", "P1#n1", "P1#n2", "P1#n3", "P1#n4", "N1"];
@@ -1411,7 +1415,7 @@ public sealed class OuterLoopTests
 
         static double Head(OuterLoopResult run)
         {
-            var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+            var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
             return run.Solve.Solution.Values[layout.PromotionOffset];
         }
 
@@ -1447,7 +1451,7 @@ public sealed class OuterLoopTests
             N1 - PU1 - N2 - HE1 - N3 - LOAD - N1
             """, "no-resistance");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
 
         Assert.Equal(0, run.Solve.Solution.Values[layout.PromotionOffset], 1e-6);
         var floor = Assert.Single(run.Solve.Diagnostics, static d => d.Code == "FS3008");
@@ -1469,7 +1473,7 @@ public sealed class OuterLoopTests
         // (`S-61`).
         var run = await Solve(SimpleLoop.Replace("PU1  pump", "PU1  pump head=15", StringComparison.Ordinal), "head15");
 
-        var layout = SystemLayout.Build(run.Graph, CoreTopology.WellPosedness.Check(run.Graph).Counting);
+        var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var solved = run.Solve.Solution.Values;
 
         Assert.Equal("CV1.kv", Assert.Single(layout.Unknowns.Where(static u => u.Kind == UnknownKind.Parameter)).Name);

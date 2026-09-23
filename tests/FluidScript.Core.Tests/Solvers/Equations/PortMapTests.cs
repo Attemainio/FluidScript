@@ -1,11 +1,10 @@
-using System.Collections.Immutable;
 using FluidScript.Core.Components;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Equations;
 
 /// <summary>Which branch's flow and which node's state each port sees.</summary>
 /// <remarks>

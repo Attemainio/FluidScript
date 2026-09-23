@@ -1,8 +1,11 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax.Ast;
+namespace FluidScript.Core.Language.Syntax.Ast;
 
 /// <summary>One node of a parsed script.</summary>
 /// <remarks>

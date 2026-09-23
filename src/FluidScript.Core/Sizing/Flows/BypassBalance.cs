@@ -1,11 +1,14 @@
 using System.Collections.Immutable;
 using System.Globalization;
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Flows;
 
 /// <summary>Reads a solved three-way valve's two legs against each other and names the balancing valve practice puts on the easier one (<c>FS4011</c>, <c>C-111</c>).</summary>
 /// <remarks>

@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Primitives;
 
 /// <summary>The one value of a type that carries no information.</summary>
 /// <remarks>

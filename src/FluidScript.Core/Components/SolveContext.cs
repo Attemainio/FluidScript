@@ -1,4 +1,5 @@
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Observation;
+using FluidScript.Core.Physics.Fluids;
 
 namespace FluidScript.Core.Components;
 

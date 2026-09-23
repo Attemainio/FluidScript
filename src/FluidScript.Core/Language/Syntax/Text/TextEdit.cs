@@ -1,6 +1,6 @@
 using FluidScript.Core.Diagnostics;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Text;
 
 /// <summary>One replacement in a script: the span to replace and the text to put there (<c>17</c>).</summary>
 /// <remarks>

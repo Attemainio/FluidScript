@@ -1,14 +1,17 @@
-using FluidScript.Core.Binding;
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Diagnostics.Explanations;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Primitives;
 using FluidScript.Core.Sizing;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Sizing.Scenarios;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Sizing;
+namespace FluidScript.Core.Tests.Sizing.Scenarios;
 
 /// <summary>
 /// One plant, sized for every case it must work in (<c>D-143</c>, <c>24</c>'s four steps).

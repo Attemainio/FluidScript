@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// The exponents of the SI base dimensions that make up a physical quantity.

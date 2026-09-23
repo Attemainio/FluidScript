@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Exchangers;
 
 /// <summary>What an extended-mode exchanger transfers heat with: its size, its arrangement and, in Rated mode, the second side it works against.</summary>
 /// <remarks>

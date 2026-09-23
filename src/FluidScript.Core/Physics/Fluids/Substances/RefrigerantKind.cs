@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids.Substances;
 
 /// <summary>The refrigerants a vapour-compression cycle can be built on.</summary>
 /// <remarks>

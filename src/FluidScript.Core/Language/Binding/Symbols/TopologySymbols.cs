@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding.Symbols;
 
 /// <summary>One join between two components' ports.</summary>
 /// <param name="From">The endpoint on the left of the dash.</param>

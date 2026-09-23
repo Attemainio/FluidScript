@@ -1,6 +1,6 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Construction;
 
 /// <summary>A <c>control</c> line's setpoint as the design solve sees it (<c>D-141</c>).</summary>
 /// <param name="Controller">The controller the line names with <c>by=</c>.</param>

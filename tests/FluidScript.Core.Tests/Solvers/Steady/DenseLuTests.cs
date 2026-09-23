@@ -1,6 +1,6 @@
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Steady;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Steady;
 
 /// <summary>The linear solve, and the singularity diagnosis that is the point of writing it here.</summary>
 /// <remarks>

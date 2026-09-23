@@ -2,10 +2,12 @@ using System.Collections.Immutable;
 using System.Globalization;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Hydraulics;
 
 /// <summary>The fill pressure a closed plant needs, and the check that asks for it once the pressures are solved.</summary>
 /// <remarks>

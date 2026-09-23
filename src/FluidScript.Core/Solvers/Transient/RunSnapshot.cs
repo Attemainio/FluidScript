@@ -5,11 +5,15 @@ using System.Text;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Topology.Construction;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>Everything a run reads, frozen before its first step (<c>D-22</c>, <c>33</c>).</summary>
 /// <remarks>

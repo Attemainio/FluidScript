@@ -2,7 +2,7 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// Every unit spelling the language accepts, and the dimension each denotes.

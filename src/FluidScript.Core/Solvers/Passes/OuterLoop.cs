@@ -3,14 +3,25 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 using FluidScript.Core.Sizing;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Sizing.Flows;
+using FluidScript.Core.Sizing.Sizers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Solvers.Seeding;
+using FluidScript.Core.Topology.Construction;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Passes;
 
 /// <summary>What the outer loop settled on.</summary>
 public sealed record OuterLoopResult
@@ -77,9 +88,9 @@ public sealed record OuterLoopResult
     /// On the record so that anywhere holding a result can print one without assembling the call ---
     /// including a debugger watch window, which is where an unexpected termination is usually first met.
     /// A run that never produced a result explains itself through
-    /// <see cref="Diagnostics.SolveExplanation.Render(CircuitGraph, string)"/> instead.
+    /// <see cref="FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(CircuitGraph, string)"/> instead.
     /// </remarks>
-    public override string ToString() => Diagnostics.SolveExplanation.Render(this);
+    public override string ToString() => FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(this);
 }
 
 /// <summary>One control valve at one operating point of a plant whose Kv is already chosen (<c>C-121</c>).</summary>
@@ -198,12 +209,12 @@ public sealed class OuterLoop(
     /// </para>
     /// </remarks>
     public static ImmutableArray<ISizer> Rules(
-        Catalogs.ICatalog<Catalogs.PipeSpec> pipes,
-        Catalogs.ICatalog<Catalogs.ValveSpec>? valves = null,
-        IReadOnlyDictionary<string, Catalogs.ICatalog<Catalogs.PipeSpec>>? available = null) =>
+        Catalogs.ICatalog<FluidScript.Core.Catalogs.Pipes.PipeSpec> pipes,
+        Catalogs.ICatalog<FluidScript.Core.Catalogs.Valves.ValveSpec>? valves = null,
+        IReadOnlyDictionary<string, Catalogs.ICatalog<FluidScript.Core.Catalogs.Pipes.PipeSpec>>? available = null) =>
     [
         new PipeSizer(pipes, available: available),
-        new ValveSizer(valves ?? Catalogs.ValveKvR5.Instance),
+        new ValveSizer(valves ?? FluidScript.Core.Catalogs.Valves.ValveKvR5.Instance),
         new ExchangerSizer(),
         new ThermalSizer(),
         new PumpSizer(),
@@ -525,7 +536,7 @@ public sealed class OuterLoop(
                 if (fromWarm)
                 {
                     warmStart = null;
-                    loopSaid.Add(Diagnostics.Diagnostic.Create(Diagnostics.SolverDiagnostics.RestartedFromSeed, span: null));
+                    loopSaid.Add(Diagnostics.Diagnostic.Create(FluidScript.Core.Diagnostics.Descriptors.SolverDiagnostics.RestartedFromSeed, span: null));
                     continue;
                 }
 
@@ -648,7 +659,7 @@ public sealed class OuterLoop(
         string property, string name, string state, ImmutableArray<Diagnostics.Diagnostic>? diagnostics = null)
     {
         var error = ResultError.From(
-            Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+            FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
             ("property", property),
             ("name", name),
             ("state", state));
@@ -791,7 +802,7 @@ public sealed class OuterLoop(
                     $"{legs.FlowA + legs.FlowB:0.###} kg/s enters at {three.Ports[0].Name} and leaves {legs.FlowA:0.###} kg/s by {three.Ports[1].Name} and {legs.FlowB:0.###} kg/s by {three.Ports[2].Name}");
 
             said.Add(Diagnostics.Diagnostic.Create(
-                Diagnostics.DesignDiagnostics.ArrangementContradictsKind,
+                FluidScript.Core.Diagnostics.Descriptors.DesignDiagnostics.ArrangementContradictsKind,
                 span: null,
                 new Diagnostics.DiagnosticArgument("name", three.Name),
                 new Diagnostics.DiagnosticArgument("declared", three.Arrangement == ValveArrangement.Mixing ? "mixing" : "diverting"),
@@ -825,7 +836,7 @@ public sealed class OuterLoop(
         }
 
         return Diagnostics.Diagnostic.Create(
-            Diagnostics.SizingDiagnostics.NotSettled,
+            FluidScript.Core.Diagnostics.Descriptors.SizingDiagnostics.NotSettled,
             span: null,
             new Diagnostics.DiagnosticArgument("list", moving.Count == 0 ? "the sized values" : string.Join(", ", moving)));
     }
@@ -935,7 +946,7 @@ public sealed class OuterLoop(
                 : $"; its stated {string.Join(" and ", terminals)} {(terminals.Length == 1 ? "is" : "are")} on the port the water leaves by";
 
             reversed.Add(Diagnostics.Diagnostic.Create(
-                Diagnostics.SolverDiagnostics.ReversedFlow,
+                FluidScript.Core.Diagnostics.Descriptors.SolverDiagnostics.ReversedFlow,
                 span: null,
                 new Diagnostics.DiagnosticArgument("component", component.Name),
                 new Diagnostics.DiagnosticArgument("flow", Math.Abs(entering).ToString("0.###", CultureInfo.InvariantCulture)),
@@ -990,7 +1001,7 @@ public sealed class OuterLoop(
                 {
                     if (!symbol.Parameters.ContainsKey(parameter)
                         && kind.Parameters.TryGetValue(parameter, out var info)
-                        && info.OmissionBehavior == Language.ParameterOmissionBehavior.Size)
+                        && info.OmissionBehavior == FluidScript.Core.Language.Registry.ParameterOmissionBehavior.Size)
                     {
                         overlay = overlay.With(symbol.Name, parameter, value, provisional: true);
                     }

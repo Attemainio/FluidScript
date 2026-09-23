@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Graph;
 
 /// <summary>One end of a branch: the junction element it meets, and the port it meets it at.</summary>
 /// <remarks>

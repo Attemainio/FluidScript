@@ -1,10 +1,11 @@
-using FluidScript.Core.Components;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Results;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Units;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Results;
 
 /// <summary>What a component's own law says it resists, read for the seed and read for sizing (<c>S-46</c>, <c>S-47</c>).</summary>
 public sealed class BranchResistanceTests

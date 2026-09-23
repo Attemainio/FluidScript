@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Language;
+using FluidScript.Core.Components.Observation;
+using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Core.Components;
 
@@ -109,7 +110,7 @@ public sealed record EquationDeclaration(
 /// promoted <c>position</c> on the cooling loop walks to 5.5 chasing a mixed inlet temperature the
 /// field cannot deliver. Carrying the range here rather than in the solver keeps `D-30`'s rule that a
 /// parameter's meaning belongs to its component, and it is the same reason
-/// <see cref="Solvers.SystemLayout"/> reads the unit off this record instead of off the registry.
+/// <see cref="FluidScript.Core.Solvers.Equations.SystemLayout"/> reads the unit off this record instead of off the registry.
 /// </remarks>
 public readonly record struct ResolvedParameter(
     string Name, double Value, string SiUnit, double? Minimum = null, double? Maximum = null);

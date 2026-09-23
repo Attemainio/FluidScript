@@ -1,8 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
-
-using FluidScript.Core.Model;
+using FluidScript.Core.Model.Contract;
 
 namespace FluidScript.Api.Contracts;
 

@@ -1,12 +1,14 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Equations;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Equations;
 
 /// <summary>The assembled residual function, evaluated at states whose answers are known by hand.</summary>
 /// <remarks>

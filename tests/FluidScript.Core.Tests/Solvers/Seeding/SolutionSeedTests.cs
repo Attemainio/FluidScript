@@ -1,13 +1,19 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Language;
-using FluidScript.Core.Sizing;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing.Flows;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Solvers.Seeding;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Seeding;
 
 /// <summary>
 /// The properties the starting iterate has to have, held against the whole sample corpus.
@@ -424,7 +430,7 @@ public sealed class SolutionSeedTests
             var index = Enumerable.Range(0, layout.Count)
                 .Single(i => layout.Unknowns[i].Kind == UnknownKind.NodeEnthalpy && layout.Unknowns[i].OwnerComponentId == node);
 
-            return seed.Values[index] / FluidScript.Core.Fluids.ConstantPropertyWater.SpecificHeatValue;
+            return seed.Values[index] / FluidScript.Core.Physics.Fluids.Substances.ConstantPropertyWater.SpecificHeatValue;
         }
 
         Assert.InRange(Celsius("NPR"), 35, 55);

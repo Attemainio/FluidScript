@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>Where every component sits, once the script's heights have been propagated (<c>D-70</c>, <c>D-95</c>).</summary>
 /// <remarks>

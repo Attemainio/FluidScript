@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Routing;
+
+namespace FluidScript.Core.Layout.Drawing;
 
 /// <summary>Lays out the labels: every tag gets a box of its own that no symbol, no other label and no line runs through (<c>53</c> label geometry, <c>C-84</c>).</summary>
 /// <remarks>

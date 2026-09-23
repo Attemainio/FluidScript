@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>One iterate: a value for every unknown, in the layout's order.</summary>
 /// <param name="Values">The values, in SI unless the caller says otherwise.</param>

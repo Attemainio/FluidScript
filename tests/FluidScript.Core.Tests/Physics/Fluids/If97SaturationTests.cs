@@ -1,6 +1,6 @@
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Physics.Fluids;
 
-namespace FluidScript.Core.Tests.Fluids;
+namespace FluidScript.Core.Tests.Physics.Fluids;
 
 /// <summary>Region 4 against the verification values IAPWS publishes with the formulation (R7-97(2012), tables 35 and 36).</summary>
 public sealed class If97SaturationTests

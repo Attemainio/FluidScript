@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Components;
 

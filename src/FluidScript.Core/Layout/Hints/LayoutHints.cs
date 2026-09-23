@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
+using FluidScript.Core.Language.Binding;
 
-namespace FluidScript.Core.Layout;
+namespace FluidScript.Core.Layout.Hints;
 
 /// <summary>The classification of the graph the layout engine (<c>28</c>) starts from: an order, the circuits and how they attach, the distribution groups, the non-flow elements, what was inferred, and the solved flow direction per connection for the arrows.</summary>
 /// <remarks>

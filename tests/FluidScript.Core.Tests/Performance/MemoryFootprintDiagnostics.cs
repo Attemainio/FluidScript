@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Text;
-
-using FluidScript.Core.Binding;
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Performance;
@@ -90,7 +91,7 @@ public sealed class MemoryFootprintDiagnostics
             new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(text), sample).Model);
 
         var (prepared, prepareAllocated) = Allocated(() => loop.Prepare(model, Water.Instance, sample));
-        var unknowns = Core.Topology.WellPosedness.Check(prepared.Lowered.Graph).Counting.Unknowns;
+        var unknowns = FluidScript.Core.Topology.Counting.WellPosedness.Check(prepared.Lowered.Graph).Counting.Unknowns;
 
         // The first solve pays for everything lazily built -- JIT, the catalogue, the native fluid -- and
         // is measured on its own so that the repeated solves measure only what a solve keeps.

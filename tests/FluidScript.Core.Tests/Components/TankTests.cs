@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Fluids.Substances;
 
 namespace FluidScript.Core.Tests.Components;
 

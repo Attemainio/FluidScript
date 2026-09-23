@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>An inclusive range of plausible values.</summary>
 /// <typeparam name="T">The value type being bounded.</typeparam>

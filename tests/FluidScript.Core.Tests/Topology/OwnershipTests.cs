@@ -1,7 +1,9 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing;
+using FluidScript.Core.Topology.Construction;
+using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Tests.Topology;
 

@@ -2,9 +2,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Text;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>Turns script text into tokens, keeping every character.</summary>
 /// <remarks>

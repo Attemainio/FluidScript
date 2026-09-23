@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// What a quantity measures: a named dimension such as power, or an unnamed one produced by arithmetic.

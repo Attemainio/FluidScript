@@ -1,8 +1,10 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Units;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Components;

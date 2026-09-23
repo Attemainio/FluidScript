@@ -1,12 +1,15 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Construction;
 
 /// <summary>Turns a nominal diameter designation into the bore a hydraulic calculation uses.</summary>
 /// <remarks>

@@ -1,6 +1,6 @@
 using System.Text;
 
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Core.Tests.Documentation;
 

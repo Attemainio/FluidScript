@@ -1,4 +1,6 @@
-namespace FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+
+namespace FluidScript.Core.Layout.Routing;
 
 /// <summary>Orthogonal segment geometry the engine and the audit share: where two segments cross, what two collinear ones share, whether three points are in line.</summary>
 /// <remarks>

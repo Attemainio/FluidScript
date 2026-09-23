@@ -2,10 +2,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>What a <c>style</c> directive stated, category by category; a field is <see langword="null"/> where it said nothing.</summary>
 /// <param name="Stroke">The stroke colour as <c>#rrggbb</c>.</param>

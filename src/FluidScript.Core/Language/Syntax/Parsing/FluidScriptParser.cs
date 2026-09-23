@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Parsing;
 
 /// <summary>Turns script text into a syntax tree, keeping every line.</summary>
 /// <remarks>

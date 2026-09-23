@@ -2,7 +2,7 @@ using System.Globalization;
 
 using FluidScript.Core.Solvers;
 
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// A number with a dimension: the only representation of a dimensioned value that crosses a public

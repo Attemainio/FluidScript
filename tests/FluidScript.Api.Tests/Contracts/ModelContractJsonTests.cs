@@ -1,5 +1,4 @@
 using FluidScript.Api.Contracts;
-using FluidScript.Core.Model;
 
 namespace FluidScript.Api.Tests.Contracts;
 

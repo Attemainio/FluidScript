@@ -1,8 +1,7 @@
-using System.Collections.Immutable;
-
 using FluidScript.Core.Components;
 using FluidScript.Core.Model;
-using FluidScript.Core.Units;
+using FluidScript.Core.Model.Contract;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Tests.Model;
 
@@ -348,9 +347,9 @@ public sealed class ModelContractBuilderTests
         // does the wire says so rather than writing "NaN" into a number field.
         var input = await ContractFixture.SolveAsync(ContractFixture.Sample("m2-cooling-loop.fluid"));
         var run = input.Run!;
-        var layout = Core.Solvers.SystemLayout.Build(run.Graph, Core.Topology.WellPosedness.Check(run.Graph).Counting);
+        var layout = FluidScript.Core.Solvers.Equations.SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
         var poisoned = run.Solve.Solution.Values.SetItem(layout.BranchFlow(0), double.NaN);
-        var contract = ModelContractBuilder.Build(input with { Run = run with { Solve = run.Solve with { Solution = new Core.Solvers.StateVector(poisoned) } } });
+        var contract = ModelContractBuilder.Build(input with { Run = run with { Solve = run.Solve with { Solution = new FluidScript.Core.Solvers.Equations.StateVector(poisoned) } } });
 
         var raised = contract.Diagnostics.Where(static d => d.Code == "FS2501").ToArray();
         Assert.NotEmpty(raised);
@@ -504,7 +503,7 @@ public sealed class ModelContractBuilderTests
     public void NoCoreTypeIsOnTheWire()
     {
         var wire = typeof(ModelContract).Assembly.GetTypes()
-            .Where(static t => t.Namespace == "FluidScript.Core.Model" && t.IsPublic && !t.IsAbstract && t.Name.EndsWith("Wire", StringComparison.Ordinal) || t == typeof(ModelContract) || t == typeof(Provenance));
+            .Where(static t => t.Namespace == typeof(ModelContract).Namespace && t.IsPublic && !t.IsAbstract && t.Name.EndsWith("Wire", StringComparison.Ordinal) || t == typeof(ModelContract) || t == typeof(Provenance));
 
         foreach (var type in wire)
         {
@@ -512,7 +511,7 @@ public sealed class ModelContractBuilderTests
             {
                 var leaf = Leaf(property.PropertyType);
                 Assert.True(
-                    leaf.Namespace is null || leaf.Namespace.StartsWith("System", StringComparison.Ordinal) || leaf.Namespace == "FluidScript.Core.Model",
+                    leaf.Namespace is null || leaf.Namespace.StartsWith("System", StringComparison.Ordinal) || leaf.Namespace == typeof(ModelContract).Namespace,
                     $"{type.Name}.{property.Name} exposes {leaf.FullName}.");
             }
         }

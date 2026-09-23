@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Compatibility;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Compatibility;
+namespace FluidScript.Core.Tests.Language.Compatibility;
 
 /// <summary>
 /// The compatibility gate from <c>plan/10-language/18-script-compatibility.md</c>, which implements

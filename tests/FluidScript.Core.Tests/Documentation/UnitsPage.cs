@@ -1,6 +1,6 @@
 using System.Text;
 
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Tests.Documentation;
 

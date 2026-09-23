@@ -1,7 +1,7 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Graph;
 
 /// <summary>
 /// The port-to-port table the graph now publishes, and the question it answers that nothing else can.

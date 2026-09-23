@@ -1,9 +1,10 @@
 using FluidScript.Core.Components;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Equations;
 
 /// <summary>
 /// The rows the components declare, held against the rows the counting table counts.

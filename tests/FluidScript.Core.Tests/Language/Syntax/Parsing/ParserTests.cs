@@ -1,9 +1,13 @@
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
 /// What the parser makes of each shape, one test per acceptance criterion in

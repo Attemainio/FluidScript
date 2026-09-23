@@ -1,4 +1,4 @@
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Seeding;
 
 namespace FluidScript.Api.Sessions;
 

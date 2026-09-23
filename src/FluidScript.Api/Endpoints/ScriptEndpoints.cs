@@ -3,9 +3,11 @@ using System.Text;
 using FluidScript.Api.Contracts;
 using FluidScript.Api.Pipeline;
 using FluidScript.Api.Sessions;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Model.Contract;
+using FluidScript.Core.Solvers.Seeding;
 
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;

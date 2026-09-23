@@ -1,7 +1,8 @@
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids.Substances;
 
 /// <summary>Humid air, measured by the property backend.</summary>
 /// <remarks>

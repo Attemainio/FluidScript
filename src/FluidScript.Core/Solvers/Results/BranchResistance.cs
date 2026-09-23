@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Results;
 
 /// <summary>What a component or a run of them resists at a flow, by their own laws.</summary>
 /// <remarks>

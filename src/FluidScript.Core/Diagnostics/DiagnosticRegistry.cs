@@ -2,6 +2,8 @@ using System.Collections.Frozen;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
+using FluidScript.Core.Diagnostics.Descriptors;
+
 namespace FluidScript.Core.Diagnostics;
 
 /// <summary>

@@ -1,10 +1,9 @@
 using System.Globalization;
 using System.Text;
-
-using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Model;
 
-namespace FluidScript.Core.Tests.Layout;
+namespace FluidScript.Core.Tests.Layout.Drawing;
 
 /// <summary>Draws a scene as SVG the way the renderer will: strokes inside each inner box, routes as polylines.</summary>
 /// <remarks>A test instrument (<c>D-100</c>): a session cannot see a canvas, so it looks at this.</remarks>

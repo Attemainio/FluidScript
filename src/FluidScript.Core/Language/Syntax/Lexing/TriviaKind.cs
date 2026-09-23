@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>What a run of non-token characters is.</summary>
 /// <remarks>

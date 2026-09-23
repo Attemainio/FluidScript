@@ -1,6 +1,4 @@
-using System.Globalization;
-
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>Copper tube for water, heating and gas -- EN 1057, the Table X wall series.</summary>
 /// <remarks>

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Graph;
 
 /// <summary>One end of a connection: a component, and one of its ports.</summary>
 /// <param name="Component">The component's index in <see cref="CircuitGraph.Components"/>.</param>

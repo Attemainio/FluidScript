@@ -1,12 +1,12 @@
-using System.Collections.Immutable;
-
-using FluidScript.Core.Binding;
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Model;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Api.Tests.Contracts;

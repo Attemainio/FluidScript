@@ -1,7 +1,7 @@
 using System.Collections.Frozen;
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>The spelling of each reserved word, and the lookup from spelling to word.</summary>
 /// <remarks>

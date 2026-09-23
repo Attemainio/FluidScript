@@ -3,14 +3,21 @@ using System.Globalization;
 using System.Text;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Sizing;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Sizing.Flows;
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Solvers.Seeding;
+using FluidScript.Core.Solvers.Steady;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Explanations;
 
 /// <summary>Everything the engine knows about one circuit's solve, rendered as text.</summary>
 /// <remarks>
@@ -482,8 +489,8 @@ public static class SolveExplanation
             }
 
             var state = graph.Substance.FromPressureEnthalpy(
-                Units.Quantity.FromSi(at.Values[pressure], Units.Dimension.Pressure),
-                Units.Quantity.FromSi(at.Values[enthalpy], Units.Dimension.Enthalpy));
+                FluidScript.Core.Physics.Units.Quantity.FromSi(at.Values[pressure], FluidScript.Core.Physics.Units.Dimension.Pressure),
+                FluidScript.Core.Physics.Units.Quantity.FromSi(at.Values[enthalpy], FluidScript.Core.Physics.Units.Dimension.Enthalpy));
             var temperature = state.IsSuccess
                 ? (state.Value.Temperature.SiValue - 273.15).ToString("0.00", CultureInfo.InvariantCulture)
                 : "(out of range)";

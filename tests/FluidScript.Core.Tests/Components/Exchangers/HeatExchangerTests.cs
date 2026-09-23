@@ -1,9 +1,10 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers;
-using FluidScript.Core.Units;
 
-namespace FluidScript.Core.Tests.Components;
+namespace FluidScript.Core.Tests.Components.Exchangers;
 
 /// <summary>The exchanger: its energy relation, its drop, the flow a duty implies, and the rated relation.</summary>
 /// <remarks>

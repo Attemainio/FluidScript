@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>Where one port reads its state and its flow from in the solved system.</summary>
 /// <param name="Node">

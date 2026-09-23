@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-using FluidScript.Core.Binding;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Layout.Routing;
 
-namespace FluidScript.Core.Layout;
+namespace FluidScript.Core.Layout.Drawing;
 
 /// <summary>
 /// Checks a solved scene against the clearance rules of <c>D-103</c> and <c>D-105</c>: margins may overlap one
@@ -456,7 +458,7 @@ public static class SceneAudit
                 continue;
             }
 
-            var signed = FluidScript.Core.Language.NameResolution.Normalize(component.WrittenKind) switch
+            var signed = FluidScript.Core.Language.Registry.NameResolution.Normalize(component.WrittenKind) switch
             {
                 "load" or "cooler" or "radiator" or "chiller" => -Math.Abs(power.SiValue),
                 "heater" or "boiler" => Math.Abs(power.SiValue),

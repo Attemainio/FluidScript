@@ -2,7 +2,9 @@ using SharpProp;
 
 using UnitsNet;
 
-namespace FluidScript.Core.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+
+namespace FluidScript.Core.Physics.Fluids;
 
 /// <summary>Raw property measurements, in SI, from the property backend.</summary>
 /// <param name="Temperature">K.</param>
@@ -518,10 +520,10 @@ internal static class PropertyBackend
 
     private static Phase PhaseOf(Phases phase) => phase switch
     {
-        Phases.Liquid or Phases.SupercriticalLiquid => Fluids.Phase.Liquid,
-        Phases.Gas or Phases.SupercriticalGas => Fluids.Phase.Gas,
-        Phases.TwoPhase => Fluids.Phase.TwoPhase,
-        Phases.Supercritical => Fluids.Phase.Supercritical,
-        _ => Fluids.Phase.Unknown,
+        Phases.Liquid or Phases.SupercriticalLiquid => FluidScript.Core.Physics.Fluids.Phase.Liquid,
+        Phases.Gas or Phases.SupercriticalGas => FluidScript.Core.Physics.Fluids.Phase.Gas,
+        Phases.TwoPhase => FluidScript.Core.Physics.Fluids.Phase.TwoPhase,
+        Phases.Supercritical => FluidScript.Core.Physics.Fluids.Phase.Supercritical,
+        _ => FluidScript.Core.Physics.Fluids.Phase.Unknown,
     };
 }

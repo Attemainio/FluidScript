@@ -1,11 +1,10 @@
 using System.Collections.Immutable;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Primitives;
+using FluidScript.Core.Topology.Construction;
 
-using FluidScript.Core.Compatibility;
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>A resolved catalogue and whatever the resolution had to say about it.</summary>
 /// <typeparam name="TSpec">The dimensional record the catalogue holds.</typeparam>

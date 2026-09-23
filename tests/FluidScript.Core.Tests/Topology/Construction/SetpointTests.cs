@@ -1,8 +1,7 @@
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Topology;
-using FluidScript.Fixtures;
+using FluidScript.Core.Topology.Counting;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Construction;
 
 /// <summary>A control line's setpoint is the design point of its loop (<c>D-141</c>, <c>S-75</c>).</summary>
 public sealed class SetpointTests

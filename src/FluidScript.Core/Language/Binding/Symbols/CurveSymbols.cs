@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding.Symbols;
 
 /// <summary>One driver a curve can depend on by name (<c>D-59</c>).</summary>
 /// <param name="CanonicalName">The registered name, such as <c>tout</c>.</param>

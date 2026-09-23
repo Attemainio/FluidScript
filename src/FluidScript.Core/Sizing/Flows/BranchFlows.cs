@@ -1,11 +1,14 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Flows;
 
 /// <summary>What determined a branch's flow estimate.</summary>
 /// <remarks>
@@ -34,7 +37,7 @@ public enum FlowBasis
 /// <summary>One branch's flow estimate, and what determined it.</summary>
 /// <param name="Magnitude">
 /// kg/s, unsigned. Orientation is the branch decomposition's choice and means nothing to a sizing
-/// rule, all of which are written on <c>|ṁ|</c>; <see cref="Solvers.SolutionSeed"/> is what turns
+/// rule, all of which are written on <c>|ṁ|</c>; <see cref="FluidScript.Core.Solvers.Seeding.SolutionSeed"/> is what turns
 /// magnitudes into a signed, mass-consistent field.
 /// </param>
 /// <param name="Basis">What determined it.</param>
@@ -250,7 +253,7 @@ public static class BranchFlows
                 continue;
             }
 
-            switch (FluidScript.Core.Solvers.ValveLegs.PortName(branch, valve))
+            switch (FluidScript.Core.Solvers.Results.ValveLegs.PortName(branch, valve))
             {
                 case "ab":
                     common = branch.Index;
@@ -358,8 +361,8 @@ public static class BranchFlows
             // (`S-56`); partitioning its legs from those temperatures would seed a stopped branch running.
             var off = graph.Branches.Any(branch =>
                 Meets(branch, valve)
-                && Solvers.ValveLegs.PortName(branch, valve) == "ab"
-                && branch.Path.OfType<HeatExchanger>().Any(Topology.WellPosedness.ZeroDuty));
+                && FluidScript.Core.Solvers.Results.ValveLegs.PortName(branch, valve) == "ab"
+                && branch.Path.OfType<HeatExchanger>().Any(FluidScript.Core.Topology.Counting.WellPosedness.ZeroDuty));
 
             if (!valve.BypassConnected || off)
             {
@@ -369,7 +372,7 @@ public static class BranchFlows
             foreach (var branch in graph.Branches)
             {
                 if (Meets(branch, valve)
-                    && Solvers.ValveLegs.PortName(branch, valve) == "a"
+                    && FluidScript.Core.Solvers.Results.ValveLegs.PortName(branch, valve) == "a"
                     && refined[branch.Index].Basis == FlowBasis.Nominal
                     && Math.Abs(flows[branch.Index]) > Solvers.Tolerances.FlowZero)
                 {

@@ -1,6 +1,7 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids.Substances;
 
 /// <summary>A pure refrigerant, measured by the property backend across every phase it has.</summary>
 /// <remarks>
@@ -22,7 +23,7 @@ namespace FluidScript.Core.Fluids;
 /// </para>
 /// <para>
 /// <strong>Both saturation offsets must be positive, and a cycle depends on it</strong>
-/// (<see cref="Cycles.VapourCompressionCycle"/>). On the saturation line a pressure and a temperature are one
+/// (<see cref="FluidScript.Core.Physics.Cycles.VapourCompressionCycle"/>). On the saturation line a pressure and a temperature are one
 /// constraint rather than two, so the backend refuses the pair — which is correct, and is why a cycle
 /// states a superheat and a subcooling rather than sitting on the boundary. Real machines carry both
 /// for the same reason in hardware: liquid must not reach the compressor and vapour must not reach the
@@ -118,7 +119,7 @@ public sealed class Refrigerant : SubstanceBase
         if (measured is null && OnTheSaturationLine(kelvin, absolute))
         {
             return Result.Failure<FluidState>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PairDoesNotFixAState,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PairDoesNotFixAState,
                 ("a", "pressure"),
                 ("b", "temperature")));
         }

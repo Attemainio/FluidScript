@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// The closed set of dimensions the language names.

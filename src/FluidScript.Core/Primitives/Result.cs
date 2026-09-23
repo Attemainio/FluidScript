@@ -2,8 +2,9 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Physics.Fluids;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Primitives;
 
 /// <summary>Why a property request could not be answered.</summary>
 /// <param name="Descriptor">The code this would be reported under, if anything reports it.</param>

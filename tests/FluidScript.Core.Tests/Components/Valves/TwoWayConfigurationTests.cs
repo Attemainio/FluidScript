@@ -1,10 +1,11 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Tests.Components;
+namespace FluidScript.Core.Tests.Components.Valves;
 
 /// <summary>
 /// A three-way valve whose optional bypass nothing connects is a two-way valve (<c>S-14a</c>).

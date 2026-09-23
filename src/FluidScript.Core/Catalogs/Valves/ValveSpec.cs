@@ -1,12 +1,12 @@
 using System.Globalization;
 
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Valves;
 
 /// <summary>The rated flow coefficient of one valve size in one series.</summary>
 /// <remarks>
 /// <para>
 /// <strong>Kv is not an SI quantity and this record does not pretend otherwise.</strong> It is defined
-/// as m³/h of water at 1 bar differential, and <see cref="Components.ValveLaw"/> holds the conversion
+/// as m³/h of water at 1 bar differential, and <see cref="FluidScript.Core.Components.Valves.ValveLaw"/> holds the conversion
 /// into the kg/s a residual needs. Storing a "converted" Kv here would put that conversion in two
 /// places, and the factor it carries is a √10⁵ — an error of two and a half orders of magnitude that
 /// looks entirely plausible at every step.
@@ -22,7 +22,7 @@ public sealed record ValveSpec
     /// <summary>The rated flow coefficient at full travel.</summary>
     /// <value>
     /// m³/h of water at 1 bar differential — Kv's own definition, not SI. The rated value, so a rule
-    /// that sizes at part travel divides by <see cref="Components.ValveLaw.Opening"/>.
+    /// that sizes at part travel divides by <see cref="FluidScript.Core.Components.Valves.ValveLaw.Opening"/>.
     /// </value>
     public required double Kvs { get; init; }
 

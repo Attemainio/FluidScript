@@ -1,7 +1,9 @@
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Cycles;
+namespace FluidScript.Core.Physics.Cycles;
 
 /// <summary>How much of a compressor's electrical input reaches the shaft, and where the rest goes.</summary>
 /// <param name="Efficiency">Shaft power divided by electrical input, from 0 to 1.</param>

@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
 using System.Text.RegularExpressions;
 
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Language;
+namespace FluidScript.Core.Tests.Language.Registry;
 
 /// <summary>
 /// <c>plan/20-core-domain/22-component-model.md</c>'s parameter registry section asks for exactly this

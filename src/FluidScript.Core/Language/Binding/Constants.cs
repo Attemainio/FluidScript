@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>The language's built-in constants, readable by name in any expression (<c>D-126</c>).</summary>
 /// <remarks>

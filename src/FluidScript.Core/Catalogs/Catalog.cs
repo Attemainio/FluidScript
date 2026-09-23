@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
-
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Primitives;
 
 namespace FluidScript.Core.Catalogs;
 

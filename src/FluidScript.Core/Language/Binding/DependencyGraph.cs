@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>A stable identity for any value that may participate in evaluation.</summary>
 public abstract record ValueId
@@ -106,7 +106,7 @@ public sealed record DeferredExpression(
 {
     /// <summary>Gets the text the expression was parsed from, so the outer loop can evaluate it and quote it (<c>L-59</c>).</summary>
     /// <value><see langword="null"/> only for a deferral built without one, which nothing in Core does.</value>
-    public Syntax.SourceText? Source { get; init; }
+    public FluidScript.Core.Language.Syntax.Text.SourceText? Source { get; init; }
 }
 
 /// <summary>The order values may be evaluated in, or the cycle that prevents one.</summary>

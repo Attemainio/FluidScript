@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding.Symbols;
 
 /// <summary>Maps source positions to the symbols that own them, built once per bind.</summary>
 /// <remarks>

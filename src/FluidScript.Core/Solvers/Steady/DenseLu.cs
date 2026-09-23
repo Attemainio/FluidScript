@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Steady;
 
 /// <summary>An LU factorisation with partial pivoting, and what it found if it could not finish.</summary>
 /// <remarks>

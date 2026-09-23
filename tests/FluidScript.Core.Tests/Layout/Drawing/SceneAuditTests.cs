@@ -1,11 +1,14 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
+using FluidScript.Core.Layout.Routing;
 using FluidScript.Core.Model;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Layout;
+namespace FluidScript.Core.Tests.Layout.Drawing;
 
 /// <summary>
 /// The audit measures what <c>28</c> B says it measures, shown on scenes bent to break one constraint at a time

@@ -1,6 +1,7 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids;
 
 /// <summary>The two dimensions a fluid property has that the language never names.</summary>
 /// <remarks>

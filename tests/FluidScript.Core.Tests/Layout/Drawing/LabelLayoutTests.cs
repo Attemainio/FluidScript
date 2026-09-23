@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Model;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Layout;
+namespace FluidScript.Core.Tests.Layout.Drawing;
 
 /// <summary>
 /// A label is laid out with a box, not a point (<c>53</c> label geometry, <c>C-84</c>): the box is the canvas's own

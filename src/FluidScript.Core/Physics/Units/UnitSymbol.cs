@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Units;
+namespace FluidScript.Core.Physics.Units;
 
 /// <summary>
 /// One accepted unit spelling, and how it converts to its dimension's SI base unit.

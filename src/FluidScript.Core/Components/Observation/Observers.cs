@@ -1,11 +1,10 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Observation;
 
 /// <summary>A node's solved state, as an instrument attached to it sees it.</summary>
 /// <remarks>

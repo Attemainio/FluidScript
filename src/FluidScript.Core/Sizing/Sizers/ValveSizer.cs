@@ -2,11 +2,13 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Valves;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Sizers;
 
 /// <summary>Chooses a control valve's <c>kv</c> from the authority it needs over its branch (<c>24</c>).</summary>
 /// <param name="catalog">The Kv series to select from.</param>
@@ -95,7 +97,7 @@ public sealed class ValveSizer(
         if (!CanSize(component))
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a Kv"),
                 ("name", component.Name),
                 ("state", "a two-way valve, or a three-way valve with its bypass unconnected")));
@@ -109,7 +111,7 @@ public sealed class ValveSizer(
         if (!double.IsFinite(density) || density <= 0 || target is <= 0 or >= 1)
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a Kv"),
                 ("name", valve.Name),
                 ("state", "the branch's resistance and a target authority between 0 and 1")));

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>
 /// How a written name is matched against a closed set the registry owns — a kind, a parameter, a

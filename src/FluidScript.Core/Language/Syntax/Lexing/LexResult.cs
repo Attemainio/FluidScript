@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>Everything one run of the lexer produced.</summary>
 /// <param name="Source">The text that was lexed.</param>

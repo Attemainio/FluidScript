@@ -1,7 +1,8 @@
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Fluids;
+namespace FluidScript.Core.Tests.Physics.Fluids;
 
 /// <summary>
 /// <c>V4</c> and <c>V5</c> from <c>plan/60-docs-and-devex/62-testing-strategy.md</c>: water and

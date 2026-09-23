@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Lexing;
+
+namespace FluidScript.Core.Language.Syntax.Ast;
 
 /// <summary>A bare identifier: a component name, a kind name, a parameter name, a circuit name.</summary>
 /// <param name="Token">The word as written.</param>

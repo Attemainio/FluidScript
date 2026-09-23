@@ -1,11 +1,13 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing;
-using FluidScript.Core.Units;
+using FluidScript.Core.Sizing.Sizers;
 
-namespace FluidScript.Core.Tests.Sizing;
+namespace FluidScript.Core.Tests.Sizing.Sizers;
 
 /// <summary>
 /// The pump rule from <c>plan/20-core-domain/24-auto-sizing.md</c>, held against that document's own
@@ -21,7 +23,7 @@ namespace FluidScript.Core.Tests.Sizing;
 /// <para>
 /// The contexts are built by hand rather than lowered from a script, and <see cref="SizingContext"/>
 /// says why: a rule sees the flow through its component and the fluid state there, so it is testable
-/// without a graph. What the graph feeds it is <see cref="Core.Solvers.OuterLoop"/>'s business.
+/// without a graph. What the graph feeds it is <see cref="FluidScript.Core.Solvers.Passes.OuterLoop"/>'s business.
 /// </para>
 /// </remarks>
 [Trait("Category", "Unit")]

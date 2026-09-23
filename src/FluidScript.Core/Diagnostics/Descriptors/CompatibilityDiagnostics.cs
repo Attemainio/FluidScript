@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>Everything the compatibility gate can report.</summary>
 /// <remarks>
@@ -23,7 +23,7 @@ public static class CompatibilityDiagnostics
     /// <remarks>
     /// Info, because a draft under editing is the normal state of unsaved text and the script compiles
     /// and solves exactly as it would with the line present. What it withholds is
-    /// <see cref="Compatibility.CompatibilityAction.Save"/>: a durable file with no major cannot be
+    /// <see cref="FluidScript.Core.Language.Compatibility.CompatibilityAction.Save"/>: a durable file with no major cannot be
     /// reopened under known semantics once the language has moved on, which is the whole of
     /// <c>D-27</c>.
     /// </remarks>

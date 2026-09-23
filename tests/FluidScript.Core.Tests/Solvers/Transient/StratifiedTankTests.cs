@@ -1,6 +1,6 @@
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Transient;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Transient;
 
 /// <summary>The tank in time (P6.2): V15, V16 and V17 of <c>62</c>.</summary>
 /// <remarks>

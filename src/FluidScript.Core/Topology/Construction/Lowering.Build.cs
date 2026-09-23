@@ -1,11 +1,15 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Construction;
 
 public static partial class Lowering
 {
@@ -127,7 +131,7 @@ public static partial class Lowering
                 Count(connection.To);
             }
 
-            void Count(Binding.EndpointSymbol endpoint)
+            void Count(FluidScript.Core.Language.Binding.Symbols.EndpointSymbol endpoint)
             {
                 _degree[endpoint.Component] = _degree.GetValueOrDefault(endpoint.Component) + 1;
 
@@ -365,7 +369,7 @@ public static partial class Lowering
         /// is the one point where lowering reads a kind's spelling, and it reads it from the registry
         /// entry rather than from the script, so an alias resolves before it gets here.
         /// </remarks>
-        private static BoundaryRole Role(Language.ComponentKindInfo kind) => kind.Keyword switch
+        private static BoundaryRole Role(FluidScript.Core.Language.Registry.ComponentKindInfo kind) => kind.Keyword switch
         {
             "inlet" => BoundaryRole.Inlet,
             "outlet" => BoundaryRole.Outlet,

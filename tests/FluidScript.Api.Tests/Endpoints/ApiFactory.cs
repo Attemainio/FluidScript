@@ -4,8 +4,10 @@ using System.Text.Json;
 
 using FluidScript.Api.Contracts;
 using FluidScript.Api.Pipeline;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Primitives;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Fixtures;
 
 using Microsoft.AspNetCore.Hosting;

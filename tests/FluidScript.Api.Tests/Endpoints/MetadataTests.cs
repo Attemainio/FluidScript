@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 
 using FluidScript.Api.Contracts;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Api.Tests.Endpoints;
 

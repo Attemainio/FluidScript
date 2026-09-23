@@ -1,11 +1,12 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Compatibility;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 
-namespace FluidScript.Core.Tests.Sizing;
+namespace FluidScript.Core.Tests.Sizing.Sizers;
 
 /// <summary>
 /// <c>C-36</c>: a pipe's <c>material</c> names the catalogue its <c>dn</c> is read in, so a copper run

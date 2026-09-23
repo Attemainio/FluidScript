@@ -1,8 +1,10 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>Where one component's residuals land in the system's residual vector.</summary>
 /// <param name="Component">The component's index in <see cref="CircuitGraph.Components"/>.</param>

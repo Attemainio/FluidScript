@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Routing;
+
+namespace FluidScript.Core.Layout.Drawing;
 
 /// <summary>An axis-aligned box in world units, <c>y</c> up (<c>28</c> §1).</summary>
 /// <param name="X">The left edge.</param>
@@ -125,8 +127,8 @@ public readonly record struct PlacedAnchor(Point At, Point Direction, Direction 
     /// <returns>The point.</returns>
     public Point Along(double distance) => At.Offset(Direction.X * distance, Direction.Y * distance);
 
-    /// <summary>Gets the outward direction as a <see cref="Layout.Direction"/>.</summary>
-    public Direction Outward => Layout.Direction.Of(Direction) ?? Layout.Direction.Right;
+    /// <summary>Gets the outward direction as a <see cref="FluidScript.Core.Layout.Routing.Direction"/>.</summary>
+    public Direction Outward => FluidScript.Core.Layout.Routing.Direction.Of(Direction) ?? FluidScript.Core.Layout.Routing.Direction.Right;
 }
 
 /// <summary>One component's place in the diagram (<c>D-103</c>).</summary>

@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 
-using FluidScript.Core;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Architecture;
@@ -40,6 +39,49 @@ public sealed class ArchitectureTests
         "System.Runtime.Serialization",
         "Microsoft.AspNetCore",
     ];
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void EveryCoreNamespaceIsItsFolder()
+    {
+        // D-147 and D-148, and `71`'s first convention. The namespace is the folder path from the
+        // project root, with one exception IDE0130 cannot express, which is why this is a test rather
+        // than an analyzer setting: a folder holding only one class's partials (`LayoutEngine/`,
+        // `BindingRun/`) is transparent, so the class is not declared inside a namespace of its own
+        // name -- which C# would then read as the namespace wherever the parent is imported.
+        var core = Path.Combine(RepositoryLayout.Source, "FluidScript.Core");
+        var declared = new Regex(@"^namespace ([\w.]+);", RegexOptions.Multiline, TimeSpan.FromSeconds(1));
+
+        var breaches = RepositoryLayout.EnumerateSourceFiles()
+            .Where(path => path.StartsWith(core + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+            .Select(path => (
+                Path: RepositoryLayout.ToRelative(path),
+                Expected: ExpectedNamespace(core, path),
+                Actual: declared.Match(File.ReadAllText(path)).Groups[1].Value))
+            .Where(static file => !string.Equals(file.Expected, file.Actual, StringComparison.Ordinal))
+            .Select(static file => $"{file.Path} declares '{file.Actual}', its folder says '{file.Expected}'")
+            .ToArray();
+
+        Assert.True(
+            breaches.Length == 0,
+            "D-148: every Core file's namespace is its folder, a class folder being transparent. "
+            + string.Join("; ", breaches));
+
+        static string ExpectedNamespace(string root, string path)
+        {
+            var folder = Path.GetDirectoryName(path)!;
+            var name = Path.GetFileName(folder);
+            var classFolder = Directory.EnumerateFiles(folder, "*.cs")
+                .Select(Path.GetFileName)
+                .All(file => file!.StartsWith(name + ".", StringComparison.Ordinal));
+
+            var relative = Path.GetRelativePath(root, classFolder ? Path.GetDirectoryName(folder)! : folder);
+
+            return relative == "."
+                ? "FluidScript.Core"
+                : "FluidScript.Core." + relative.Replace(Path.DirectorySeparatorChar, '.');
+        }
+    }
 
     [Fact]
     [Trait("Category", "Unit")]
@@ -202,7 +244,7 @@ public sealed class ArchitectureTests
 
         var offenders = RepositoryLayout.EnumerateSourceFiles()
             .Where(static path => RepositoryLayout.ToRelative(path)
-                .StartsWith("src/FluidScript.Core/Binding/", StringComparison.Ordinal))
+                .StartsWith("src/FluidScript.Core/Language/Binding/", StringComparison.Ordinal))
             .Where(path => read.IsMatch(File.ReadAllText(path)))
             .Select(RepositoryLayout.ToRelative)
             .ToArray();

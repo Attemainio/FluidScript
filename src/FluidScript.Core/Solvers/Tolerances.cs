@@ -1,3 +1,5 @@
+using FluidScript.Core.Solvers.Results;
+
 namespace FluidScript.Core.Solvers;
 
 /// <summary>
@@ -16,7 +18,7 @@ namespace FluidScript.Core.Solvers;
 /// <c>valve.dp_regularization</c> and <c>upwind.smoothing_band</c> were hand-copied into two unrelated
 /// component files, and a change to the table reached neither (<c>S-6</c>). They are numerical-method
 /// parameters that happen to be evaluated inside a component, which is why
-/// <see cref="Components.ValveLaw.RegularizationDrop"/> and
+/// <see cref="FluidScript.Core.Components.Valves.ValveLaw.RegularizationDrop"/> and
 /// <see cref="Components.Smoothing.UpwindBand"/> now read from here rather than the other way round:
 /// the table is the source, and a component is one of its consumers.
 /// </para>

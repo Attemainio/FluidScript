@@ -1,9 +1,9 @@
 using System.Globalization;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Units;
-
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids.Substances;
 
 /// <summary>Shared plumbing every substance needs: the atmosphere, the range check, the failures.</summary>
 /// <remarks>

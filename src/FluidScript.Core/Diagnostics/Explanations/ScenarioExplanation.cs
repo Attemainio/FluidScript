@@ -4,8 +4,9 @@ using System.Text;
 
 using FluidScript.Core.Components;
 using FluidScript.Core.Sizing;
+using FluidScript.Core.Sizing.Scenarios;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Explanations;
 
 /// <summary>Writes what sizing a plant over its scenarios did, and what it cost (<c>D-143</c>, <c>24</c>).</summary>
 /// <remarks>
@@ -118,7 +119,7 @@ public static class ScenarioExplanation
     /// <summary>Orders the merged sizes by component so two runs of one plant read the same.</summary>
     /// <param name="sizes">The merged overlay.</param>
     /// <returns>Its components in name order.</returns>
-    private static IEnumerable<KeyValuePair<string, ImmutableDictionary<string, Units.Quantity>>> Ordered(
+    private static IEnumerable<KeyValuePair<string, ImmutableDictionary<string, FluidScript.Core.Physics.Units.Quantity>>> Ordered(
         SizingOverlay sizes) =>
         sizes.Values.OrderBy(static pair => pair.Key, StringComparer.Ordinal);
 }

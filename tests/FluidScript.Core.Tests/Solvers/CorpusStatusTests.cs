@@ -1,6 +1,8 @@
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
 using FluidScript.Fixtures;
 

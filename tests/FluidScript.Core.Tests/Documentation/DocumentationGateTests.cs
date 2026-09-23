@@ -1,5 +1,5 @@
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Documentation;

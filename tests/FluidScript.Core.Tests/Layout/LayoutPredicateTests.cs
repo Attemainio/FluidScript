@@ -1,7 +1,8 @@
-using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Diagnostics.Explanations;
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Model;
-using FluidScript.Core.Solvers;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Fixtures;
 

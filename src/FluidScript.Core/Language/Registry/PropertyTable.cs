@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>The quantities of a fluid state the language names, by symbol and by name (<c>D-120</c>).</summary>
 /// <remarks>

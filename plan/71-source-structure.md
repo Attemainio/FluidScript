@@ -14,8 +14,8 @@ last_review_pass: 0
 
 ## Purpose
 
-**Status (2026-09-23).** Decided (`D-147`), S0 written, S1–S5 not started. Runs before P6.3, the
-user's call.
+**Status (2026-09-23).** Decided (`D-147`, `D-148`). S0 and S1 shipped; S2–S5 follow. Runs before
+P6.3, the user's call.
 
 `FluidScript.Core` is 204 files and 58 400 lines in **sixteen flat folders**. Only `Syntax/Ast` has a
 subfolder; `Diagnostics/` holds 28 files and `Solvers/` 27 side by side, so a folder listing says what
@@ -83,8 +83,10 @@ it separates the solver's `PipeComponent` from the script's `pipe` and the catal
 ## Conventions
 
 1. **Namespace = folder path** from the project root. `Solvers/Transient/TransientSolver.cs` is
-   `FluidScript.Core.Solvers.Transient`. Enforced once S1 lands by `IDE0130` at warning severity,
-   which `TreatWarningsAsErrors` makes a build failure.
+   `FluidScript.Core.Solvers.Transient`. **A class folder is transparent** (`D-148`): the partials in
+   `Layout/LayoutEngine/` declare `FluidScript.Core.Layout`. Enforced by
+   `ArchitectureTests.EveryCoreNamespaceIsItsFolder` rather than `IDE0130`, which cannot express the
+   exception.
 2. **One top-level type per file**, the file named for the type (the plugin's `styling.md`). A nested
    private type stays with its owner.
 3. **Split a class at about 500 lines**, by concern, into `Class.Concern.cs` partials. At three or more
@@ -114,66 +116,67 @@ FluidScript.Core/
 │   ├── Syntax/
 │   │   ├── Text/     SourceText, LinePosition, TextEdit
 │   │   ├── Lexing/   Lexer, LexResult, Token, TokenKind, Trivia, TriviaKind, ReservedWord, ReservedWords
-│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser/ (split)
+│   │   ├── Parsing/  FluidScriptParser, ParseResult, LineParser (class folder after S3)
 │   │   ├── Printing/ Formatter, SyntaxPrinter
-│   │   └── Ast/      SyntaxNode · Statements/ · Expressions/           (one node per file)
-│   ├── Binding/      Binder/ (split), BindingRun/ (5 partials today), SemanticModel (split),
-│   │                 DependencyGraph, ExpressionEvaluator, ScenarioProjection, HeightMap, StyleSpec,
-│   │                 NamedColours, Constants · Symbols/ (SymbolMap, CurveSymbols, TopologySymbols)
-│   ├── Registry/     ComponentRegistry/, ComponentKindInfo (split), CircuitRoleRegistry,
-│   │                 ScheduleRoleRegistry, PropertyTable, NameResolution, InputLimits, Range
-│   └── Compatibility/ ScriptCompatibility (split)
+│   │   └── Ast/      SyntaxNode · Statements/ · Expressions/           (one node per file, S2)
+│   ├── Binding/      Binder, SemanticModel, DependencyGraph, ExpressionEvaluator, ScenarioProjection,
+│   │   │             HeightMap, StyleSpec, NamedColours, Constants
+│   │   ├── BindingRun/  the five BindingRun partials            (class folder: namespace …Binding)
+│   │   └── Symbols/  SymbolMap, CurveSymbols, TopologySymbols
+│   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, ScheduleRoleRegistry,
+│   │                 PropertyTable, NameResolution, InputLimits, Range
+│   └── Compatibility/ ScriptCompatibility
 ├── Physics/
 │   ├── Units/        unchanged contents
 │   ├── Fluids/       FluidState, ISubstance, PropertyBackend, SubstanceRegistry, If97Saturation
-│   │   └── Substances/ SubstanceBase, Water, HumidAirSubstance, Refrigerant, RefrigerantKind,
-│   │                   ConstantPropertyWater, LinearPropertyWater
-│   └── Cycles/       VapourCompressionCycle (split)
-├── Components/       IComponent, IFlowComponent, ComponentBase, Port, SolveContext, Smoothing,
-│   │                 ParameterOwnership, PipeComponent, PumpComponent, TankComponent,
-│   │                 CircuitNodeComponent
-│   ├── Declarations/ UnknownKind, UnknownDeclaration, EquationKind, EquationDeclaration, ResolvedParameter
-│   ├── Valves/       ValveComponentBase, ValveComponent, ThreeWayValveComponent, ValveLaw,
-│   │                 ValveCharacteristic, ValveArrangement
-│   ├── Exchangers/   HeatExchangerComponent, Effectiveness, LogMeanTemperatureDifference,
-│   │                 ExchangerRating, ExchangerArrangement
-│   └── Observers/    Observers, ModelObservers, PlacedSensor
-├── Catalogs/         ICatalog, Catalog, CatalogEntry, CatalogFit, CatalogSelection
-│   ├── Pipes/        PipeSpec, MaterialRoughness, PipeCatalogs, PipeCatalogBuilder,
-│   │                 SteelEn10220, SteelEn10255, CopperEn1057
+│   │   └── Substances/ Water, HumidAirSubstance, Refrigerant, RefrigerantKind, TestSubstances
+│   └── Cycles/       VapourCompressionCycle
+├── Components/       IComponent, IFlowComponent, Pipe, Pump, Tank, CircuitNode, ParameterOwnership,
+│   │                 Smoothing, SolveContext                      (ComponentBase and the renames, S4)
+│   ├── Valves/       Valve (+ ThreeWayValve until S2), ValveLaw
+│   ├── Exchangers/   HeatExchanger, Effectiveness, LogMeanTemperatureDifference, ExchangerRating,
+│   │                 ExchangerArrangement
+│   └── Observation/  Observers, ModelObservers, PlacedSensor
+├── Catalogs/         Catalog, CatalogEntry
+│   ├── Pipes/        PipeSpec, MaterialRoughness, PipeCatalogs, SteelEn10220, SteelEn10255, CopperEn1057
 │   └── Valves/       ValveSpec, ValveKvR5
 ├── Topology/
-│   ├── Graph/        CircuitGraph, Branch (split), GraphNode, PortAdjacency
-│   ├── Lowering/     Lowering, Lowering.Build (split further), ComponentFactory, ScheduledChange, Setpoint
-│   ├── WellPosedness/ WellPosedness/ (split), CountingTable (split), Assignment, Reach
+│   ├── Graph/        CircuitGraph, Branch, GraphNode, PortAdjacency
+│   ├── Construction/ Lowering, Lowering.Build, ComponentFactory, ScheduledChange, Setpoint
+│   ├── Counting/     WellPosedness, CountingTable, Assignment, Reach
 │   └── Hydraulics/   HydraulicBlocks, HydraulicComponent, FillPressure
-├── Solvers/          ISolver (split: SolveResult, SolveTermination, …), Tolerances
-│   ├── Equations/    EquationSystem/ (split), EquationLayout, SystemLayout, PortMap, ResidualScales,
+├── Solvers/          ISolver, Tolerances
+│   ├── Equations/    EquationSystem, EquationLayout, SystemLayout, PortMap, ResidualScales,
 │   │                 UnknownScales, StateVector
-│   ├── Steady/       NewtonSolver/ (split), NewtonSettings, DenseLu, NullDirection
-│   ├── Seeding/      SolutionSeed/ (SolutionSeed, .Field, further splits), WarmStart
-│   ├── OuterLoop/    OuterLoop/ (split), OuterLoopResult, PreparedModel, ValveReading, DeferredEvaluation
+│   ├── Steady/       NewtonSolver, NewtonSettings, DenseLu, NullDirection
+│   ├── Seeding/      SolutionSeed, SolutionSeed.Field, WarmStart
+│   ├── Passes/       OuterLoop, DeferredEvaluation
 │   ├── Transient/    ITransientSolver, TransientSolver, TransientSettings, TransientFrame, RunSnapshot,
 │   │                 Stratification
-│   └── Results/      SolvedStates (split), BranchResistance, ValveLegs
-├── Sizing/           ISizer, SizerBase, SizingContext, SizingResult, SizedValue, SizingDefaults, SizingOverlay
+│   └── Results/      SolvedStates, BranchResistance, ValveLegs
+├── Sizing/           ISizer, SizingDefaults, SizingOverlay               (SizerBase, S5)
 │   ├── Sizers/       PipeSizer, PumpSizer, ValveSizer, ThermalSizer, ExchangerSizer
 │   ├── Flows/        BranchFlows, BypassBalance
-│   └── Scenarios/    ScenarioSizing, ScenarioEnvelope, ScenarioSolve, ScenarioSizingResult
+│   └── Scenarios/    ScenarioSizing, ScenarioEnvelope
 ├── Layout/           LayoutSolver
-│   ├── Engine/       LayoutEngine/ (the eight partials today)
+│   ├── LayoutEngine/ the eight LayoutEngine partials              (class folder: namespace …Layout)
 │   ├── Routing/      OrthogonalRouter, Segments, Direction
-│   ├── Hints/        LayoutHints (split), LayoutHintsDerivation (split)
-│   └── Scene/        Scene (split), SceneAudit, SceneText, LabelLayout
-├── Model/            ModelContractInput, ScaleDomain, Styles, SymbolCatalog
-│   ├── Contract/     the forty-one ModelContract types, one per file
-│   └── Builder/      ModelContractBuilder/ (split)
+│   ├── Hints/        LayoutHints, LayoutHintsDerivation
+│   └── Drawing/      Scene, SceneAudit, SceneText, LabelLayout
+├── Model/            ModelContractBuilder, ModelContractInput, ScaleDomain, Styles, SymbolCatalog
+│   └── Contract/     ModelContract and its forty types                (one per file, S2)
 └── Diagnostics/      Diagnostic, DiagnosticDescriptor, DiagnosticSeverity, DiagnosticArea,
     │                 DiagnosticArgument, DiagnosticRegistry, RelatedLocation, RetiredDiagnostic,
     │                 Suggestion, TextSpan
     ├── Descriptors/  the sixteen *Diagnostics families
-    └── Explanations/ SolveExplanation/ (split), ScenarioExplanation
+    └── Explanations/ SolveExplanation, ScenarioExplanation
 ```
+
+**Folder names were chosen so no namespace segment is also the name of a type in it** (`D-148`):
+`Topology/Construction/` rather than `Lowering/`, `Counting/` rather than `WellPosedness/`,
+`Solvers/Passes/` rather than `OuterLoop/`, `Layout/Drawing/` rather than `Scene/`,
+`Components/Observation/` rather than `Observers/`. A namespace `…Topology.Lowering` holding
+`class Lowering` makes the compiler read `Lowering` as the namespace wherever the parent is imported.
 
 `FluidScript.Api` is 19 files in five folders and already reads by domain; it takes S2's one-type-per-
 file rule (`MetadataWire.cs` holds sixteen) and nothing else.
@@ -291,7 +294,7 @@ suites green, the build at zero warnings, and the plan checker at its baseline.
 | # | What | Effort | Risk |
 |---|---|---|---|
 | S0 | `D-147`; this document; the conventions in [`04`](00-foundation/04-engineering-standards.md); `03`'s tree | small | low |
-| S1 | **Moves only**, one commit per top-level domain: `git mv` with no content edit in the same commit, so `git log --follow` keeps each file's history; then a second commit per domain for the namespace and `using` edits. Tests move with their code. `IDE0130` switched on at the end | medium | low — the compiler finds every missed `using` |
+| S1 | **Moves only**, shipped 2026-09-23 as two commits rather than one per domain: every `git mv` in one commit with no content edit, which compiles as it stands because no file's text changed and keeps `git log --follow` intact; then the namespaces, the `using`s (rebuilt from a type map — a file gains a `using` for a type only if it could already see that type's old namespace), 149 unused `using`s removed, and three test literals that named a folder or a namespace. Tests moved with their code | medium | low — the compiler finds every missed `using` |
 | S2 | One type per file, 270 types out of 68 files; `SubstanceBase` out of `Water.cs`; `Result`/`Unit` into `Primitives/` | medium | low |
 | S3 | Concern partials for the 25 files over 600 lines, largest first (`EquationSystem`, `WellPosedness`, `OuterLoop`, `Binder`, `BindingRun.Topology`); takes `70`'s R6 where it touches the same files | big | low–med: moving members between partials cannot change behaviour, but a private helper's accessibility can |
 | S4 | `ComponentBase`, `ValveComponentBase`, and the `…Component` renames through `rename_symbol` | medium | **med** — the only package that touches the hot path |
@@ -314,7 +317,7 @@ the tier registers of whatever it found.
 ## Invariants
 
 1. Every package leaves every golden byte-identical.
-2. After S1, every file's namespace equals its folder path, and the build enforces it.
+2. After S1, every file's namespace equals its folder path, a class folder being transparent, and a test enforces it.
 3. After S2, no file under `src/` declares more than one top-level type.
 4. After S3, no Core class file is over ~800 lines without a register row saying why.
 5. The test tree mirrors the source tree folder for folder at every commit.
@@ -350,7 +353,7 @@ Goldens unchanged at every step: the kind string is `"valve"` in the registry, n
 ## Acceptance criteria
 
 1. The tree matches *The target tree*, and a file not named there sits by the conventions.
-2. `IDE0130` is on and the build is clean.
+2. `EveryCoreNamespaceIsItsFolder` passes and the build is clean.
 3. No `src/` file declares two top-level types.
 4. `ComponentBase`, `ValveComponentBase`, `SizerBase<TComponent>` and `PipeCatalogBuilder` exist and
    every family member uses them.

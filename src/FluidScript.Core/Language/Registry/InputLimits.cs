@@ -2,9 +2,10 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax.Ast;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Ast;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>The ceilings one request may reach (<c>07</c>'s input limits), and the checks against them.</summary>
 /// <param name="SourceBytes">The largest source text accepted, bytes of UTF-8. Default 1 MiB.</param>

@@ -1,9 +1,11 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Topology.Construction;
+using FluidScript.Core.Topology.Counting;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Graph;
 
 /// <summary>How the graph is to be solved.</summary>
 /// <remarks>
@@ -116,7 +118,7 @@ public sealed record CircuitGraph
     /// means something.</strong> Lowering resolves an unqualified endpoint to a real port and records
     /// its name like any other, so the graph alone cannot say whether <c>3WV.a</c> is what the user
     /// wrote or what connection order produced. This set is that difference, and the only thing that
-    /// currently needs it is <see cref="Solvers.ValveLegs"/> — <c>a</c> is a three-way valve's control
+    /// currently needs it is <see cref="FluidScript.Core.Solvers.Results.ValveLegs"/> — <c>a</c> is a three-way valve's control
     /// path and <c>b</c> its bypass, so a script naming them has said which leg the valve modulates,
     /// while positional binding has said nothing at all.
     /// </para>

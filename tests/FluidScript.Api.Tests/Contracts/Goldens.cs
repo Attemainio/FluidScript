@@ -1,5 +1,5 @@
 using FluidScript.Api.Contracts;
-using FluidScript.Core.Model;
+using FluidScript.Core.Model.Contract;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Api.Tests.Contracts;

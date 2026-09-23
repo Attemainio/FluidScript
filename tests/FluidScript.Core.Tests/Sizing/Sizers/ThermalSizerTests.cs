@@ -1,12 +1,13 @@
 using System.Collections.Immutable;
-
-using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Sizing;
-using FluidScript.Core.Units;
+using FluidScript.Core.Sizing.Sizers;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Sizing;
+namespace FluidScript.Core.Tests.Sizing.Sizers;
 
 /// <summary>
 /// The extended-mode exchanger rule from <c>plan/20-core-domain/24-auto-sizing.md</c>: a design point

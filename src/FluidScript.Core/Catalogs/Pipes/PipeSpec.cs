@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>The dimensions of one nominal pipe size in one series.</summary>
 /// <remarks>

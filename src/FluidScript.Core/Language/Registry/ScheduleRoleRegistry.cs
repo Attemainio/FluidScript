@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
-using FluidScript.Core.Units;
+using FluidScript.Core.Language.Binding.Symbols;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>The drivers a curve can depend on by name (<c>D-59</c>).</summary>
 /// <remarks>

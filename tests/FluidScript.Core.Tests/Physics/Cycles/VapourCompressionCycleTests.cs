@@ -1,8 +1,9 @@
-using FluidScript.Core.Cycles;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Cycles;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Cycles;
+namespace FluidScript.Core.Tests.Physics.Cycles;
 
 /// <summary>
 /// One refrigeration cycle, evaluated against real fluid properties, and the identities that hold for

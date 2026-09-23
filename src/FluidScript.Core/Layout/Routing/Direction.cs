@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Drawing;
+
+namespace FluidScript.Core.Layout.Routing;
 
 /// <summary>One of the four axis directions of the layout plane (<c>28</c> §1): <c>y</c> grows upward.</summary>
 /// <param name="X">−1, 0 or 1.</param>

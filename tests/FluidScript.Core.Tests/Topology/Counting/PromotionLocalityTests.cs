@@ -1,7 +1,7 @@
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Counting;
 
 /// <summary>Which parameter a constraint reaches for, and how far (<c>S-45</c>).</summary>
 public sealed class PromotionLocalityTests

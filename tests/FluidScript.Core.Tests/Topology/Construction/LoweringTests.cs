@@ -1,9 +1,11 @@
 using System.Text;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Tests.Topology;
+namespace FluidScript.Core.Tests.Topology.Construction;
 
 /// <summary>
 /// Lowering, from <c>plan/20-core-domain/23-topology-and-graph.md</c>: the graph structure, the branch

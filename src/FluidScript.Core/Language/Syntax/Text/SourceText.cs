@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Diagnostics;
 
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Text;
 
 /// <summary>
 /// The text of one script, together with the line boundaries a diagnostic needs to be shown against.

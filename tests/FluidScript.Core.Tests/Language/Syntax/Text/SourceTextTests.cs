@@ -1,7 +1,7 @@
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Syntax.Text;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Text;
 
 /// <summary>The line index every diagnostic is eventually shown against.</summary>
 /// <remarks>

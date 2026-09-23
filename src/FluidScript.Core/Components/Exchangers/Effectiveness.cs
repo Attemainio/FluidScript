@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Exchangers;
 
 /// <summary>The ε-NTU relations: what fraction of the most heat two streams could exchange they do.</summary>
 /// <remarks>

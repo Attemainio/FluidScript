@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>Runs a transient, yielding frames as they are computed (<c>33</c> §Contracts).</summary>
 /// <remarks>

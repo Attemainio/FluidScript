@@ -1,15 +1,13 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-
-using FluidScript.Core.Catalogs;
-using FluidScript.Core.Compatibility;
+using FluidScript.Core.Catalogs.Pipes;
+using FluidScript.Core.Catalogs.Valves;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Model;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
 using Microsoft.Extensions.Options;
 

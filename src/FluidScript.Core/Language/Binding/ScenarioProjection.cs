@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>Turns one bound model carrying per-scenario lists into the model of a single case (<c>D-143</c>).</summary>
 /// <remarks>

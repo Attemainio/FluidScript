@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Binding;
+namespace FluidScript.Core.Language.Binding;
 
 /// <summary>The CSS named colours (W3C CSS Color Module Level 4, section 6.1), the words a <c>style</c> directive accepts as a colour.</summary>
 /// <remarks>

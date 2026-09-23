@@ -190,6 +190,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-145` | Accepted | 2026-09-22 | Exchanger hold-up is two stated per-side volumes first, and the area rule is only the fallback |
 | `D-146` | Accepted | 2026-09-22 | An exchanger's hold-up is a volume given to the node it discharges into, not an unknown of its own |
 | `D-147` | Accepted | 2026-09-23 | Core is organised by domain folders whose namespaces mirror them, with shared bases for components and sizers |
+| `D-148` | Accepted | 2026-09-23 | A folder holding one class's partials is transparent to the namespace, and no namespace segment names a type in it |
 <!-- index:end -->
 
 ---
@@ -6887,3 +6888,38 @@ says why for each.
 **What it costs.** Measured before starting: the restructure adds about 1 700 lines net (+3 %),
 because one type per file and the partial splits add headers faster than the bases remove members.
 It is taken for navigation, not for size, and `71` says where a real reduction would come from.
+
+## D-148 · A folder holding one class's partials is transparent to the namespace, and no namespace segment names a type in it
+
+**Accepted · 2026-09-23** (found building `71`'s S1) · amends `D-147` point 1, whose rule stands for
+every other folder · constrains [`71`](../71-source-structure.md),
+[`04`](04-engineering-standards.md)
+
+`D-147` took two of the user's choices together: namespaces mirror folders to any depth, and a class
+with three or more partials gets a folder named after itself. **Together they declare a class inside
+a namespace of its own name** — `Layout/LayoutEngine/LayoutEngine.cs` would be
+`namespace FluidScript.Core.Layout.LayoutEngine; class LayoutEngine`, and C# then resolves
+`LayoutEngine` to the namespace in any file that imports `FluidScript.Core.Layout`. PandaAI, where
+both choices come from, never meets this because its namespaces stop at the domain root.
+
+**The class folder does not add a namespace segment.** The eight `LayoutEngine` partials in
+`Layout/LayoutEngine/` declare `FluidScript.Core.Layout`; the five `BindingRun` partials in
+`Language/Binding/BindingRun/` declare `FluidScript.Core.Language.Binding`. A folder is a class folder
+when every file in it is `<Folder>.cs` or `<Folder>.<Concern>.cs`, which is a rule a test can read off
+the disk.
+
+**And a domain folder is never named after a type it holds**, for the same reason: `Topology/Lowering/`
+holding `class Lowering`, `Solvers/OuterLoop/` holding `class OuterLoop`. S1 named them
+`Construction/`, `Counting/`, `Passes/`, `Drawing/` and `Observation/` instead.
+
+**Enforcement moves from `IDE0130` to a test.** The analyzer compares a namespace to the folder path
+and has no way to express a transparent folder short of a per-folder `.editorconfig` list that every
+new class folder would have to extend. `ArchitectureTests.EveryCoreNamespaceIsItsFolder` reads the
+rule off the files instead and names each breach.
+
+### Rejected
+
+- *Class folders keep their segment and the class is referenced fully qualified.* Every file that
+  names the class pays for the folder, which inverts the point of the folder.
+- *No class folders; partials as siblings* — PandaAI's written guideline. The user chose the folder;
+  this keeps it and removes the collision.

@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Text;
 
 /// <summary>A position in a script expressed as a line and an offset within that line.</summary>
 /// <param name="Line">The zero-based line index.</param>

@@ -1,7 +1,7 @@
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>Keeps a tank's layers in density order after a step (<c>33</c> §Stratified tank).</summary>
 /// <remarks>

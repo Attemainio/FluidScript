@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Equations;
 
 /// <summary>
 /// The reference magnitude every unknown is divided by before the solver sees it.

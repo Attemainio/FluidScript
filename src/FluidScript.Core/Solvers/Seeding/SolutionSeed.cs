@@ -1,13 +1,17 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Sizing.Flows;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Seeding;
 
 /// <summary>The iterate a solve starts from: <c>31</c>'s <c>seedFromStatedDuties</c>.</summary>
 /// <remarks>
@@ -559,7 +563,7 @@ public static partial class SolutionSeed
     /// <remarks>
     /// <para>
     /// <strong>Zero is not a neutral starting point for a promoted parameter; for two of the three
-    /// promotable kinds it is a <em>bound</em>.</strong> <see cref="Components.ValveLaw.Opening"/>
+    /// promotable kinds it is a <em>bound</em>.</strong> <see cref="FluidScript.Core.Components.Valves.ValveLaw.Opening"/>
     /// clamps position into <c>[0, 1]</c>, so a column seeded at 0 has a one-sided derivative at best
     /// and a dead one at worst -- and <c>m2-distribution-header</c> came out <c>Singular</c> at
     /// <em>iteration zero</em> with both its promoted positions sitting exactly there. A pump seeded at
@@ -794,7 +798,7 @@ public static partial class SolutionSeed
     /// </returns>
     /// <remarks>
     /// <strong>A bound is not somewhere the iterate may not go; it is somewhere the derivative stops
-    /// existing</strong> --- <see cref="Components.ValveLaw.Opening"/> makes that argument for the clamp
+    /// existing</strong> --- <see cref="FluidScript.Core.Components.Valves.ValveLaw.Opening"/> makes that argument for the clamp
     /// it had to remove, and starting on one is the same mistake made a step earlier. Only a parameter
     /// bounded on <em>both</em> sides has a middle to fall back to; one bounded on one side has no
     /// non-arbitrary interior point, so its own value stands.
@@ -1051,7 +1055,7 @@ public static partial class SolutionSeed
                 if (part is HeatExchanger exchanger && capacity > 0
                     && Ownership.Of(exchanger, "power") is ParameterState.Stated or ParameterState.SizedFinal)
                 {
-                    var sign = Sizing.BranchFlows.Side(graph, branch, exchanger) == 2 ? -1 : 1;
+                    var sign = FluidScript.Core.Sizing.Flows.BranchFlows.Side(graph, branch, exchanger) == 2 ? -1 : 1;
 
                     pending += sign * exchanger.Power / capacity;
                 }

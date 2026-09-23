@@ -1,7 +1,8 @@
 using FluidScript.Core.Catalogs;
-using FluidScript.Core.Language;
-using FluidScript.Core.Compatibility;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Core.Tests.Catalogs;
 

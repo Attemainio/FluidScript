@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
+using FluidScript.Core.Language.Binding;
 
-namespace FluidScript.Core.Language;
+namespace FluidScript.Core.Language.Registry;
 
 /// <summary>The circuit roles a header name can resolve to (<c>D-35</c>).</summary>
 /// <remarks>

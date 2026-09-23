@@ -1,8 +1,8 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Binding;
+using FluidScript.Core.Language.Binding;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Observation;
 
 /// <summary>Builds the instruments a bound model declares, and resolves what they read.</summary>
 /// <remarks>

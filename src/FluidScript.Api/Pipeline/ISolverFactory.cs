@@ -1,4 +1,5 @@
 using FluidScript.Core.Solvers;
+using FluidScript.Core.Solvers.Steady;
 
 namespace FluidScript.Api.Pipeline;
 

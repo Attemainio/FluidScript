@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Exchangers;
 
 /// <summary>The log-mean temperature difference: the second, independent route to an exchanger's conductance.</summary>
 /// <remarks>

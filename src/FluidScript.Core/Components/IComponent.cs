@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
 namespace FluidScript.Core.Components;
 

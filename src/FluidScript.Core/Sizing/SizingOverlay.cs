@@ -1,8 +1,9 @@
 using System.Collections.Immutable;
 
-using FluidScript.Core.Units;
+using FluidScript.Core.Components;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Sizing;
 
 /// <summary>The values sizing chose, keyed by component and parameter.</summary>
 /// <remarks>

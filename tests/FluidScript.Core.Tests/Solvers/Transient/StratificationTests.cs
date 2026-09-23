@@ -1,8 +1,8 @@
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Solvers;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Transient;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Transient;
 
 /// <summary>The density-inversion remix on its own (P6.2, <c>33</c> §Stratified tank, invariant 12).</summary>
 /// <remarks>

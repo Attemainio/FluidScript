@@ -1,8 +1,11 @@
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Tests.Fluids;
+namespace FluidScript.Core.Tests.Physics.Fluids.Substances;
 
 /// <summary>
 /// The substance abstraction from <c>plan/20-core-domain/21-fluid-and-state.md</c>: the interface's

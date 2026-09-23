@@ -1,10 +1,11 @@
 using FluidScript.Core.Components;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Solvers.Results;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Graph;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Results;
 
 /// <summary>How a three-way valve's bypass leg is told from the leg it exchanges flow through (<c>C-66</c>).</summary>
 public sealed class ValveLegsTests

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
 using FluidScript.Core.Layout;
+using FluidScript.Core.Layout.Hints;
 using FluidScript.Core.Tests.Model;
 using FluidScript.Fixtures;
 

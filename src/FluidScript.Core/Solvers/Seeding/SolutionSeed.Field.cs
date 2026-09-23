@@ -1,12 +1,15 @@
 using System.Collections.Immutable;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Language;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Sizing.Flows;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Seeding;
 
 public static partial class SolutionSeed
 {

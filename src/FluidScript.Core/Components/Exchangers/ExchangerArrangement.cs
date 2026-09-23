@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Components;
+namespace FluidScript.Core.Components.Exchangers;
 
 /// <summary>How the two streams of an exchanger run relative to each other.</summary>
 /// <remarks>

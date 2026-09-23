@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>Warnings about the design rather than the script: the <c>FS40xx</c> range.</summary>
 /// <remarks>

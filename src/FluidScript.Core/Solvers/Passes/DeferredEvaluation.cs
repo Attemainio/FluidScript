@@ -1,15 +1,19 @@
 using System.Collections.Immutable;
 using System.Globalization;
 
-using FluidScript.Core.Binding;
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Syntax.Ast;
-using FluidScript.Core.Topology;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Results;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Passes;
 
 /// <summary>Phase B of <c>14</c>'s two-phase evaluation: the deferred expressions, read against a solved pass (<c>L-59</c>).</summary>
 /// <remarks>

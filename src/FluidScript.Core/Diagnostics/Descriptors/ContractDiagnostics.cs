@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>What serializing the model contract has to say: the <c>FS25xx</c> range (<c>26</c>).</summary>
 /// <remarks>

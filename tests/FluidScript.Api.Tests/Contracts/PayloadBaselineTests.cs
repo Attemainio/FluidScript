@@ -3,8 +3,6 @@ using System.Diagnostics;
 using FluidScript.Api.Contracts;
 using FluidScript.Fixtures;
 
-using Xunit;
-
 namespace FluidScript.Api.Tests.Contracts;
 
 /// <summary>
@@ -54,7 +52,7 @@ public sealed class PayloadBaselineTests
         Assert.All(contract.Circuits, static c => Assert.False(c.StatesOmitted));
     }
 
-    private static double Time(FluidScript.Core.Model.ModelContract contract)
+    private static double Time(FluidScript.Core.Model.Contract.ModelContract contract)
     {
         var clock = Stopwatch.StartNew();
         ModelContractJson.MeasureBytes(contract);

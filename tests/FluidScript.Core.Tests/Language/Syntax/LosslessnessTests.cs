@@ -1,11 +1,11 @@
-using System.Collections.Immutable;
 using System.Text;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax;
 
 /// <summary>
 /// The lexer's two structural invariants: it keeps every character, and it terminates on anything.

@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Diagnostics;
+namespace FluidScript.Core.Diagnostics.Descriptors;
 
 /// <summary>What exceeding an input limit has to say: the <c>FS46xx</c> range (<c>42</c>, <c>07</c>).</summary>
 /// <remarks>

@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>What a run is asked for: how long, how often a frame, and the integrator's bounds (<c>33</c>).</summary>
 /// <remarks>

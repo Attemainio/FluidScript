@@ -58,7 +58,8 @@ Decided in `D-147`; the target tree, the abstractions and the package order are
 [`71`](../71-source-structure.md). The rules a new file follows:
 
 - **Domain folders, recursively**, never type buckets (`Interfaces/`, `Enums/`, `BaseClasses/`).
-- **Namespace = folder path**, enforced by `IDE0130`.
+- **Namespace = folder path**, a class folder being transparent and no folder named after a type it
+  holds (`D-148`); enforced by `ArchitectureTests.EveryCoreNamespaceIsItsFolder`.
 - **One top-level type per file**, named for the type.
 - **Split a class at about 500 lines** into `Class.Concern.cs` partials; at three or more partials
   they move into `Class/`. Never `#region` instead.

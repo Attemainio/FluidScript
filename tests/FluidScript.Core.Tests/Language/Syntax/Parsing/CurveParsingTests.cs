@@ -1,10 +1,10 @@
 using System.Collections.Immutable;
+using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Syntax.Parsing;
+using FluidScript.Core.Language.Syntax.Printing;
+using FluidScript.Core.Language.Syntax.Text;
 
-using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Syntax;
-using FluidScript.Core.Syntax.Ast;
-
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Parsing;
 
 /// <summary>
 /// The grammar half of <c>D-57</c> and <c>D-58</c>: the <c>curve</c> section, its rows, the

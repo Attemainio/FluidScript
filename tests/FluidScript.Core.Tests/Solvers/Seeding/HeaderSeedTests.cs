@@ -1,12 +1,14 @@
-using FluidScript.Core.Catalogs;
+using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Sizing;
-using FluidScript.Core.Solvers;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Solvers.Passes;
+using FluidScript.Core.Solvers.Steady;
 using FluidScript.Core.Tests.Topology;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Topology.Counting;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Tests.Solvers;
+namespace FluidScript.Core.Tests.Solvers.Seeding;
 
 /// <summary>
 /// <c>S-53</c>'s acceptance: the header seed once copied a consumer's whole circulation onto both
@@ -72,7 +74,7 @@ public sealed class HeaderSeedTests
         Assert.True(result.IsSuccess, result.Error?.Message);
 
         var run = result.Value;
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s53");
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(result, run.Graph, "s53");
 
         Assert.True(run.Solve.Converged, report);
         Assert.True(run.Settled, report);
@@ -167,7 +169,7 @@ public sealed class HeaderSeedTests
         Assert.True(result.IsSuccess, result.Error?.Message);
 
         var run = result.Value;
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s55");
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(result, run.Graph, "s55");
 
         Assert.True(run.Solve.Converged, report);
         Assert.True(run.Settled, report);
@@ -232,7 +234,7 @@ public sealed class HeaderSeedTests
         Assert.True(result.IsSuccess, result.Error?.Message);
 
         var run = result.Value;
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s56");
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(result, run.Graph, "s56");
 
         Assert.True(run.Solve.Converged, report);
         Assert.True(run.Settled, report);
@@ -269,7 +271,7 @@ public sealed class HeaderSeedTests
         Assert.True(result.IsSuccess, result.Error?.Message);
 
         var run = result.Value;
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s56-main");
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(result, run.Graph, "s56-main");
 
         Assert.True(run.Solve.Converged, report);
         Assert.Contains(run.Solve.Diagnostics, static d => d.Code == "FS3014" && d.Message.Contains("PU_AHU.head", StringComparison.Ordinal));
@@ -308,7 +310,7 @@ public sealed class HeaderSeedTests
         Assert.True(result.IsSuccess, result.Error?.Message);
 
         var run = result.Value;
-        var report = FluidScript.Core.Diagnostics.SolveExplanation.Render(result, run.Graph, "s23");
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(result, run.Graph, "s23");
 
         Assert.True(run.Solve.Converged, report);
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code is "FS3002" or "FS3009" or "FS3010");

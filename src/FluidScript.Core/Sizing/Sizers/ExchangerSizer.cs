@@ -2,10 +2,11 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Primitives;
 
-namespace FluidScript.Core.Sizing;
+namespace FluidScript.Core.Sizing.Sizers;
 
 /// <summary>Pairs an exchanger's design pressure drop with the flow it is measured at (<c>24</c>).</summary>
 /// <remarks>
@@ -53,7 +54,7 @@ public sealed class ExchangerSizer : ISizer
         if (component is not HeatExchanger exchanger)
         {
             return Result.Failure<SizingResult>(ResultError.From(
-                Diagnostics.FluidDiagnostics.PropertyNotEvaluable,
+                FluidScript.Core.Diagnostics.Descriptors.FluidDiagnostics.PropertyNotEvaluable,
                 ("property", "a design flow"),
                 ("name", component.Name),
                 ("state", "a component that is not a heat exchanger")));
@@ -62,7 +63,7 @@ public sealed class ExchangerSizer : ISizer
         var flow = Math.Abs(context.MassFlow);
         var density = context.State.Density.SiValue;
 
-        var off = Topology.WellPosedness.ZeroDuty(exchanger);
+        var off = FluidScript.Core.Topology.Counting.WellPosedness.ZeroDuty(exchanger);
 
         if (off || !double.IsFinite(flow) || flow <= Solvers.Tolerances.FlowZero)
         {

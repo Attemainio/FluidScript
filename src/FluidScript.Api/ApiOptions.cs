@@ -1,4 +1,4 @@
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
 
 namespace FluidScript.Api;
 

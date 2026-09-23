@@ -3,9 +3,11 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Topology;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Solvers.Equations;
+using FluidScript.Core.Topology.Construction;
 
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>Heun's method on the differential states, the steady Newton on everything else (<c>33</c>).</summary>
 /// <param name="solver">The algebraic solver every step calls, warm-started from the step before.</param>

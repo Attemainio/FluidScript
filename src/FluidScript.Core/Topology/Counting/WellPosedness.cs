@@ -2,11 +2,16 @@ using System.Collections.Immutable;
 using System.Globalization;
 
 using FluidScript.Core.Components;
+using FluidScript.Core.Components.Exchangers;
+using FluidScript.Core.Components.Valves;
 using FluidScript.Core.Diagnostics;
-using FluidScript.Core.Language;
-using FluidScript.Core.Units;
+using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Topology.Graph;
+using FluidScript.Core.Topology.Hydraulics;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Counting;
 
 /// <summary>What the well-posedness pass found.</summary>
 /// <param name="Counting">The counting argument, term by term.</param>

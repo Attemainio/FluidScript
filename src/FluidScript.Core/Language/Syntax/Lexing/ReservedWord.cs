@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Syntax;
+namespace FluidScript.Core.Language.Syntax.Lexing;
 
 /// <summary>The words that may not be used as an identifier.</summary>
 /// <remarks>

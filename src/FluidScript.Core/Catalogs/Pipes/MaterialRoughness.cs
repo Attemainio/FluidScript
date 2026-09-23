@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 
-namespace FluidScript.Core.Catalogs;
+namespace FluidScript.Core.Catalogs.Pipes;
 
 /// <summary>The absolute wall roughness of a material, and the condition it applies to.</summary>
 /// <param name="Value">m. Absolute roughness, the epsilon in Colebrook-White.</param>

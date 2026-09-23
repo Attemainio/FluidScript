@@ -1,6 +1,6 @@
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Fluids;
+namespace FluidScript.Core.Physics.Fluids;
 
 /// <summary>What phase a substance is in at a state.</summary>
 public enum Phase

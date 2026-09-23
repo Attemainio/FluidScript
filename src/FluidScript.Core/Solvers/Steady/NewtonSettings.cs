@@ -1,4 +1,4 @@
-namespace FluidScript.Core.Solvers;
+namespace FluidScript.Core.Solvers.Steady;
 
 /// <summary>Tuning for <see cref="NewtonSolver"/>.</summary>
 /// <remarks>

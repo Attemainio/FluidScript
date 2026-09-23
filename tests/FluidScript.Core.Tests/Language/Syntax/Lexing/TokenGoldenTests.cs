@@ -1,9 +1,10 @@
 using System.Text;
 
-using FluidScript.Core.Syntax;
+using FluidScript.Core.Language.Syntax.Lexing;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Fixtures;
 
-namespace FluidScript.Core.Tests.Syntax;
+namespace FluidScript.Core.Tests.Language.Syntax.Lexing;
 
 /// <summary>
 /// The lexer's classification of every sample, committed so the editor's tokenizer can be held to it
@@ -21,7 +22,7 @@ public sealed class TokenGoldenTests
     private const string UpdateVariable = "FLUIDSCRIPT_UPDATE_GOLDENS";
 
     public static string Directory { get; } =
-        Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Syntax", "TokenGoldens");
+        Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Language", "Syntax", "Lexing", "TokenGoldens");
 
     public static TheoryData<string> Samples =>
         [.. ScriptCorpus.EnumerateSampleFiles().Select(static path => Path.GetFileNameWithoutExtension(path))];

@@ -1,7 +1,8 @@
-using FluidScript.Core.Fluids;
-using FluidScript.Core.Units;
+using FluidScript.Core.Physics.Fluids;
+using FluidScript.Core.Physics.Fluids.Substances;
+using FluidScript.Core.Physics.Units;
 
-namespace FluidScript.Core.Tests.Fluids;
+namespace FluidScript.Core.Tests.Physics.Fluids;
 
 /// <summary>A property read must not keep native memory: the guard that would have caught <c>C-76</c>.</summary>
 /// <remarks>

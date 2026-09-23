@@ -1,9 +1,10 @@
 using System.Collections.Immutable;
 
 using FluidScript.Core.Components;
-using FluidScript.Core.Language;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Topology.Graph;
 
-namespace FluidScript.Core.Topology;
+namespace FluidScript.Core.Topology.Hydraulics;
 
 /// <summary>
 /// The biconnected blocks of a graph's branch structure, and which of them something drives (<c>S-55</c>).
