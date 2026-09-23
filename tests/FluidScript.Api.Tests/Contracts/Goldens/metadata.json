@@ -5538,6 +5538,17 @@
       ]
     },
     {
+      "code": "FS2314",
+      "severity": "warning",
+      "area": "Sizing",
+      "message": "'{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.",
+      "arguments": [
+        "name",
+        "count",
+        "names"
+      ]
+    },
+    {
       "code": "FS2401",
       "severity": "info",
       "area": "LayoutHints",

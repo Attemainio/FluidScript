@@ -104,6 +104,11 @@ public static class ScenarioExplanation
             text.Append("    note  ").AppendLine(note);
         }
 
+        foreach (var said in result.Said)
+        {
+            text.Append("    ").Append(said.Code).Append("  ").AppendLine(said.Message);
+        }
+
         return text.ToString();
     }
 

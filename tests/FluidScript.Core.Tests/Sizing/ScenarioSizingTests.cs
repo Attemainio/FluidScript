@@ -221,6 +221,49 @@ public sealed class ScenarioSizingTests
     }
 
     [Fact]
+    public async Task FS2314_AComponentEveryCaseLeavesInertIsNamed()
+    {
+        // `24`'s own example, built. `REC` recovers between a heating load and a cooling load that
+        // peak in different cases, so it takes min(Q_heat, Q_cool) — which is **zero in winter and
+        // zero in summer**, and governed by a shoulder case nobody wrote. It does not come out small;
+        // it disappears. That is the honest limit of a hand-written list, and it gets a sentence.
+        var result = await SizeAsync(
+            """
+            fluidscript 1
+            scenarios winter summer
+            design winter
+            circuit distribution
+            fluid water
+            HE1  heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]
+            LOAD heat_exchanger power=[-50, 40] dp=0
+            REC  heat_exchanger power=[0, 0] dp=0
+            PU1  pump
+            P1   pipe length=20
+            connections
+            N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - REC - N5 - P1 - N1
+            """);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+
+        var said = Assert.Single(result.Value.Said, static d => d.Code == "FS2314");
+
+        Assert.Equal("REC", said.ComponentName);
+        Assert.Contains("winter, summer", said.Message, StringComparison.Ordinal);
+        Assert.Contains("the case where both are on is not in the list", said.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AComponentActiveInOneCaseIsNotReportedInert()
+    {
+        // The guard that stops it firing on every plant: `HE1` is off in one case and on in the
+        // other, which is exactly what a scenario list is for and must not be a warning.
+        var result = await SizeAsync(Seasons);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.Empty(result.Value.Said);
+    }
+
+    [Fact]
     public void EverySizerParameterHasAnEnvelopeRule()
     {
         // The closed-set guard. A sizer that gains a parameter without a rule stops the merge rather

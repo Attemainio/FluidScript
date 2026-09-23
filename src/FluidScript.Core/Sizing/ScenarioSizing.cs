@@ -37,6 +37,13 @@ public sealed record ScenarioSizingResult(
 
     /// <summary>Gets the design scenario's position in <see cref="Operating"/>.</summary>
     public int DesignIndex { get; init; }
+
+    /// <summary>Gets what the merge itself has to report as a code rather than a sentence.</summary>
+    /// <value>
+    /// <c>FS2314</c> per component every declared case leaves inert. Empty for a file with one case:
+    /// a single case cannot be missing an interior one.
+    /// </value>
+    public ImmutableArray<Diagnostics.Diagnostic> Said { get; init; } = [];
 }
 
 /// <summary>Sizes one plant for every scenario it must work in (<c>D-143</c>, <c>24</c>'s four steps).</summary>
@@ -191,8 +198,10 @@ public static class ScenarioSizing
             operating.Add(new ScenarioSolve(scenarios[index], index, solved.Value, clock.Elapsed));
         }
 
+        var solves = operating.MoveToImmutable();
+
         return Result.Success(new ScenarioSizingResult(
-            operating.MoveToImmutable(),
+            solves,
             merged,
             governing,
             rounds,
@@ -200,7 +209,80 @@ public static class ScenarioSizing
             notes.ToImmutable())
         {
             DesignIndex = Math.Max(0, model.Project.DesignScenarioIndex),
+            Said = Inert(solves, scenarios),
         });
+    }
+
+    /// <summary>Finds the components every declared case leaves with nothing to do (<c>FS2314</c>).</summary>
+    /// <param name="solves">Each case against the merged plant.</param>
+    /// <param name="scenarios">The declared case names.</param>
+    /// <returns>One warning per inert component, in component-name order.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>This is the honest limit of a hand-written list, made visible.</strong> A list only
+    /// checks what someone thought to name, and what that misses is not a component sized too small —
+    /// it is one sized to nothing. `24`'s example: a recovery exchanger taking
+    /// <c>min(Q_heat, Q_cool)</c> between a heating load that peaks in winter and a cooling load that
+    /// peaks in summer is zero in both, and governed by a shoulder case nobody wrote.
+    /// </para>
+    /// <para>
+    /// <strong>Scoped to duty-carrying components, deliberately.</strong> A zero duty is unambiguous
+    /// and is the failure the case describes. A pipe or a valve that carries no flow in any case is a
+    /// different observation — it still sizes, to the smallest row — and conflating the two would make
+    /// this fire on every standby leg. The wider sweep is worth having and is not this.
+    /// </para>
+    /// <para>
+    /// The other reason a component reads inert is that it is not needed at all, and the message does
+    /// not pretend to tell the two apart: it reports the shape and names the likelier cause.
+    /// </para>
+    /// </remarks>
+    private static ImmutableArray<Diagnostics.Diagnostic> Inert(
+        ImmutableArray<ScenarioSolve> solves, ImmutableArray<string> scenarios)
+    {
+        if (solves.Length < 2)
+        {
+            // One case cannot be missing an interior one. A lone inert component is an observation
+            // about the script rather than about the case list, and belongs to whatever reports that.
+            return [];
+        }
+
+        var carried = new Dictionary<string, bool>(StringComparer.Ordinal);
+
+        foreach (var solve in solves)
+        {
+            foreach (var component in solve.Result.Graph.Components)
+            {
+                if (component is not HeatExchanger exchanger)
+                {
+                    continue;
+                }
+
+                var active = Math.Abs(exchanger.Power) > Solvers.Tolerances.FlowZero;
+
+                carried[exchanger.Name] = carried.TryGetValue(exchanger.Name, out var before) ? before || active : active;
+            }
+        }
+
+        var said = ImmutableArray.CreateBuilder<Diagnostics.Diagnostic>();
+
+        foreach (var (component, active) in carried.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (active)
+            {
+                continue;
+            }
+
+            said.Add(Diagnostics.Diagnostic.Create(
+                Diagnostics.SizingDiagnostics.InertInEveryScenario,
+                span: null,
+                new Diagnostics.DiagnosticArgument("name", component),
+                new Diagnostics.DiagnosticArgument("count", scenarios.Length.ToString(CultureInfo.InvariantCulture)),
+                new Diagnostics.DiagnosticArgument("names", string.Join(", ", scenarios)))
+                with
+            { ComponentName = component });
+        }
+
+        return said.ToImmutable();
     }
 
     /// <summary>Runs a file that declares no scenarios, reported as one case so a caller needs no branch.</summary>

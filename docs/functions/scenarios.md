@@ -132,8 +132,20 @@ exchanger passing whatever the two have in common:
 Write only `winter` and `summer` and that exchanger is sized at zero in both. It does not come out
 small — it disappears, and the case that governs it is the one in the middle that nobody named.
 
-So: name a shoulder case whenever two loads can be on at once. If something you expect to exist comes
-back at zero in every case, that is the shape to look for.
+**FluidScript tells you when this happens.** A component that carries no duty in *any* case gets
+[`FS2314`](diagnostics.md):
+
+```
+FS2314  'REC' carries no duty and no flow in any of the 2 scenarios (winter, summer), so nothing
+        sizes it. If it exists to serve two demands that peak in different cases, the case where
+        both are on is not in the list.
+```
+
+It reports the shape, not a diagnosis — it cannot know *which* case you are missing, because that
+depends on how one load relates to another and the model does not carry that. It is a warning rather
+than an error, because a plant may legitimately carry a standby component no stated case uses.
+
+So: name a shoulder case whenever two loads can be on at once.
 
 ## See also
 

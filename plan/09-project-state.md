@@ -1344,6 +1344,25 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 > fixture I wrote had exactly that mistake in its summer element and `FS2119` stayed silent. That is
 > the standing cost of the scalar-`Value` design, worth paying for the thirty-three readers it left
 > untouched, but a review is not a reader. 51 open.
+>
+> **`FS2314` added 2026-09-23**, the user's call on `24`'s two candidate mitigations for the case
+> nobody writes. It names any duty-carrying component every declared case leaves inert — `24`'s
+> recovery exchanger, zero in winter and zero in summer and governed by a shoulder case that is not
+> in the list. It reports the *pattern* and claims no diagnosis: knowing which case is missing needs
+> the dependency between one component's duty and another's, which the model does not carry. Scoped
+> to duty-carrying components deliberately, since a pipe with no flow still sizes to the smallest row
+> and conflating the two would fire on every standby leg. The range sugar is rejected — one candidate
+> set with two spellings, the second of which is `D-138`'s sweep returning under another name.
+>
+> **`C-121`'s reasoning was corrected the same day it was filed.** The first entry said authority
+> differs per case because it is taken at that case's own flow. It is not:
+> `achieved = achievedDrop / (rest + achievedDrop)` is a ratio of two drops at *one* flow and both
+> scale as `ṁ²`, so the flow cancels — what is left is the friction factor's Reynolds dependence and
+> the density's, a percent or two. **Authority is a property of the built geometry, not of the
+> operating point.** No case's figure survives the merge because the merge changes that geometry
+> twice: a Kv that is not the one that case reported against, and pipes that are not that case's
+> either. The row is smaller than filed — one authority per valve, computed once from the merged
+> sizes — and the fix is unchanged.
 
 ### R — Core refactoring ([`70`](70-core-refactoring.md)) · R0–R5 shipped 2026-09-21, R6 deferred
 
@@ -1444,9 +1463,9 @@ that governed each size. What P6.8 still owes, and what comes after:
   Kv — a focused calculation, not a sizing pass, which would re-choose Kv and undo the merge.
 - **`C-120`**, every binder review seeing only the design case. Diagnostic quality on malformed
   files, not correctness on good ones, so it follows `C-121`.
-- **The zero-envelope diagnostic** `24` §What this gives up leaves unsettled. Of its two candidate
-  mitigations the diagnostic is the one to build; range-sugar that generates scenarios would
-  re-introduce `D-138`'s driver sweep under another spelling.
+- ~~The zero-envelope diagnostic~~ **built 2026-09-23** as `FS2314`, the user's call between `24`'s
+  two candidate mitigations. The range sugar is rejected: it would spell one candidate set two ways,
+  and the second spelling is `D-138`'s driver sweep under another name.
 - **Then P6.3**, which needs `S-79` first: where a run's t = 0 sits on a time curve's timestamp
   axis, which `D-143` did not resolve and which a setpoint following a curve reaches immediately.
 

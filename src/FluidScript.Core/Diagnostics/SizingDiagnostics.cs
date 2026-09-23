@@ -85,9 +85,39 @@ public static class SizingDiagnostics
         DiagnosticSeverity.Info,
         "'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.");
 
+    /// <summary>A component every declared scenario leaves inert (<c>D-143</c>).</summary>
+    /// <value><c>FS2314</c>, a warning naming the cases and what is usually missing.</value>
+    /// <remarks>
+    /// <para>
+    /// <strong>The honest limit of a hand-written case list, made visible.</strong> A scenario list
+    /// only checks what someone thought to name, and the failure that produces is not a component
+    /// sized too small — it is a component sized to <em>nothing</em>. A recovery exchanger passing
+    /// <c>min(Q_heat, Q_cool)</c> between a heating load that peaks in winter and a cooling load that
+    /// peaks in summer is zero in both of those cases and governed by the shoulder case in between,
+    /// which nobody wrote. It does not come out small; it disappears.
+    /// </para>
+    /// <para>
+    /// <strong>A pattern, not a diagnosis.</strong> This does not claim to know which case is missing
+    /// — that would need the dependency between one component's duty and another's, which the model
+    /// does not carry. It reports the shape and names the likeliest cause, because a component that is
+    /// inert in every case is worth a sentence whatever the reason: the other reason is that it is not
+    /// needed at all, and that is also worth knowing.
+    /// </para>
+    /// <para>
+    /// A warning rather than an error: the file is consistent, and a plant may legitimately carry a
+    /// standby component that no stated case uses.
+    /// </para>
+    /// </remarks>
+    public static DiagnosticDescriptor InertInEveryScenario { get; } = new(
+        "FS2314",
+        DiagnosticSeverity.Warning,
+        "'{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. "
+        + "If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.");
+
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
+        InertInEveryScenario,
         NotSettled,
         NothingToSizeAgainst,
         OutsideCatalogue,

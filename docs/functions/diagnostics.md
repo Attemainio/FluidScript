@@ -182,6 +182,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2307` | Info | Sizing | '{name}' stepped up to DN{n} for velocity. |
 | `FS2310` | Info | Sizing | '{name}' sized to {plates} plates ({area} m²); {required} m² was needed, so it delivers {actual} kW against {stated} kW. |
 | `FS2312` | Info | Sizing | '{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended. |
+| `FS2314` | Warning | Sizing | '{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list. |
 | `FS2401` | Info | Layout hints | The circuit closes on itself, so components are ordered by a depth-first walk from the pressure datum. |
 | `FS2402` | Info | Layout hints | '{group}' has {count} members and will start collapsed; expand it on the canvas to see them. |
 | `FS2403` | Info | Layout hints | '{circuit}' is named as a {role} circuit but its stated duties make it a {stage}; the duties decide where it is drawn. |

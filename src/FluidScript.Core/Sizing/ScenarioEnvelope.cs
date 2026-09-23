@@ -15,12 +15,20 @@ public enum EnvelopeRule
     /// </remarks>
     Largest = 1,
 
-    /// <summary>Not merged: the value is an outcome of another size and only a solve can produce it.</summary>
+    /// <summary>Not merged: the value is an outcome of the sizes rather than one of them.</summary>
     /// <remarks>
-    /// A valve's achieved <c>authority</c> is <c>Δp_valve / Δp_circuit</c> at the case's own flow, so
-    /// the merged valve's authority is not any single case's reported figure — it is a different number
-    /// in every case, and taking a maximum, a minimum or a governing case's value would all report one
-    /// that no case achieves. Left out, and produced by the re-solve instead (<c>C-121</c>).
+    /// <para>
+    /// A valve's achieved <c>authority</c> is <c>Δp_valve / (Δp_valve + Δp_rest)</c>, two drops at one
+    /// flow — so the flow cancels to first order and authority is a property of the built geometry,
+    /// not of the operating point. What the merge changes is that geometry, twice: the valve takes a
+    /// Kv that is not the one a case's sizer reported against, and the rest of the branch takes pipes
+    /// that are not that case's either.
+    /// </para>
+    /// <para>
+    /// So every case's reported figure is stale the moment the envelope is taken, and a maximum, a
+    /// minimum or a governing case's value would each report one the built plant does not have. Left
+    /// out, and owed to a calculation over the re-solve (<c>C-121</c>).
+    /// </para>
     /// </remarks>
     Solved,
 }

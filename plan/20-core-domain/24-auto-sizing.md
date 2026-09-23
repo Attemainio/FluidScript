@@ -251,10 +251,26 @@ disappears:
 | A case between them | 5 kW | 5 kW | **5.0 kW** — the exchanger's real governing point |
 | `summer` | 0 | 40 kW | 0 |
 
-Two mitigations, neither settled, both P6.8's to decide with measurement: a driver range kept as
-**sugar that generates scenarios into the same list**, so one candidate list has two spellings that
-cannot disagree; and a diagnostic on the detectable pattern — a sized quantity at zero or a bound in
-every scenario while the inputs feeding it are active in different ones.
+Two mitigations were open. **The diagnostic is built and the sugar is rejected** (the user's call,
+2026-09-23).
+
+`FS2314` names any duty-carrying component that every declared case leaves inert: *"'REC' carries no
+duty and no flow in any of the 2 scenarios (winter, summer), so nothing sizes it. If it exists to
+serve two demands that peak in different cases, the case where both are on is not in the list."* A
+warning, not an error — the file is consistent, and a plant may legitimately carry a standby
+component.
+
+**It reports a pattern and does not claim a diagnosis.** Knowing *which* case is missing would need
+the dependency between one component's duty and another's, which the model does not carry. It is
+scoped to duty-carrying components on purpose: a zero duty is unambiguous and is the failure this
+section describes, whereas a pipe or valve carrying no flow in any case still sizes — to the smallest
+row — and conflating the two would fire on every standby leg. It needs two cases; one case cannot be
+missing an interior one.
+
+**The range sugar is rejected.** A driver range that generated scenarios into the same list would
+spell one candidate set two ways, and the second spelling is `D-138`'s driver sweep returning under
+another name — the thing `D-143` removed because it made `design` mean two jobs and derived duties
+from a driver nobody wrote.
 
 The flow trap `D-138` recorded outlives it and is worth stating in its new form: a chilled side at
 7/12 °C carries 1.91 kg/s for 40 kW where a heating side at 45/35 °C carries 1.20 kg/s for 50 kW.
@@ -1094,6 +1110,7 @@ public sealed record SizingResult
 | `FS2311` | Rated boundary profile cannot determine a second inlet state and capacity rate | Error | `'{name}' needs enough side-2 data to rate: provide an inlet plus flow2, or two temperatures with a duty; alternatively connect both secondary ports.` |
 | `FS2312` | Auto-sized pump circuit has no explicit resistance | Info | `'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.` |
 | `FS2313` | Parallel-set index branch has no valve | Info | `'{branch}' is the fixed index at {dp} kPa and has no valve; other branches are balanced to it, but no valve-authority target applies here.` |
+| `FS2314` | A duty-carrying component every declared scenario leaves inert (`D-143`) | Warning | `'{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.` |
 
 **Registered as of 2026-09-19 (`C-74`):** `FS2301`, `FS2304`, `FS2305`, `FS2307`, `FS2310` and
 `FS2312` -- the six a rule detects. Each is raised beside the note that carried it before, with the
