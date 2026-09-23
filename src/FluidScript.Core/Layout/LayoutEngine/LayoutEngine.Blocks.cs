@@ -222,6 +222,28 @@ internal sealed partial class LayoutEngine
     private double Under(List<Hanger> hangers) =>
         hangers.Count == 0 ? double.MaxValue : hangers.Min(h => h.Out.At.Y - _margin - Transform.Identity.Size(_symbol[h.Bottom]).Height / 2 - _margin / 5);
 
+    /// <summary>What <see cref="Reserve"/> asks of the level run from the origin to a unit's inlet -- entered from the left, or turning down or up into it at the end; zero for an inlet facing away.</summary>
+    private double InletReserve(Unit unit)
+    {
+        if (unit.In.Outward == Direction.Right)
+        {
+            return 0;
+        }
+
+        foreach (var i in unit.Members)
+        {
+            for (var p = 0; p < _graph.Components[i].Ports.Length; p++)
+            {
+                if (AnchorOffset(i, p, _transform[i]) is { } anchor && _centre[i].Offset(anchor.Offset.X, anchor.Offset.Y).ManhattanTo(unit.In.At) < Eps)
+                {
+                    return Reserve(i, p);
+                }
+            }
+        }
+
+        return 0;
+    }
+
     /// <summary>
     /// Slides a unit from its provisional place into the layout: its inlet level with <paramref name="yIn"/>, one
     /// margin right of <paramref name="originX"/> and further right until every member clears what is placed (H2)
@@ -231,7 +253,8 @@ internal sealed partial class LayoutEngine
     /// <returns>The unit's inlet and outlet where they landed.</returns>
     private (PlacedAnchor In, PlacedAnchor Out) Slide(Unit unit, double originX, double yIn, List<(Member From, List<Point> Points)> runs, Func<double, double, bool>? clear = null)
     {
-        var dx = originX + _margin - Math.Min(unit.In.At.X, unit.Out.At.X);
+        // The run into the unit is laid long enough for any sensor's bubble on it (C15, D-151).
+        var dx = originX + Math.Max(_margin, InletReserve(unit)) - Math.Min(unit.In.At.X, unit.Out.At.X);
         var dy = yIn - unit.In.At.Y;
 
         foreach (var i in unit.Members)

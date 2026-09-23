@@ -184,17 +184,50 @@ public sealed class LayoutPredicateTests
     }
 
     [Fact]
-    public void L19AddingAnInstrumentMovesNoProcessSymbol()
+    public void C15AnInstrumentStandsOnItsHostOneMarginOutAndItsRunMakesRoom()
     {
-        // Step 10 is step 4 with a sensor, a controller and the node the sensor observes written out: every process box stands where it stood.
-        var (before, _) = Solve(Source("step-04-valve"));
-        var (after, _) = Solve(Source("step-10-instruments"));
+        // D-151, which retires L19's "adding an instrument moves no process symbol": a sensor and the node it reads, a
+        // controller and the device it drives, are one footprint. In 11c TE5 reads NR2, an inline point on the level
+        // rail from TV5 to PU5, and stands above it; PID5 drives TV5 and stands on its stem, up. Each is joined to its
+        // host by a line one margin long, and no process box comes within a margin of either bubble -- the rail was
+        // lengthened to hold TE5, where one clearance had laid its bubble over both TV5 and PU5.
+        var (scene, input) = Solve(Source("step-11c-tour-loops"));
+        var margin = LayoutSolver.MarginOf(input.Model);
+        Placement Of(string id) => Assert.Single(scene.Placements, p => p.ComponentId == id);
+        Route Line(string id) => Assert.Single(scene.Routes, r => r.ConnectionId == id);
 
-        foreach (var placement in before.Placements.Where(static p => !p.IsInline))
+        var (node, sensor) = (Of("NR2").Inner.Centre, Of("TE5").Inner);
+        Assert.Equal(node.X, sensor.Centre.X, 9);
+        Assert.Equal(node.Y + margin, sensor.Y, 9);
+        Assert.Equal(margin, Line("TE5:measures").Length, 9);
+
+        var (valve, controller) = (Of("TV5").Inner, Of("PID5").Inner);
+        Assert.Equal(valve.Centre.X, controller.Centre.X, 9);
+        Assert.Equal(valve.Top + margin, controller.Y, 9);
+        Assert.Equal(margin, Line("PID5:actuates").Length, 9);
+
+        foreach (var bubble in new[] { sensor, controller })
         {
-            var moved = Assert.Single(after.Placements, p => p.ComponentId == placement.ComponentId);
-            Assert.True(placement.Inner == moved.Inner, $"{placement.ComponentId} moved from {placement.Inner} to {moved.Inner}");
+            foreach (var process in scene.Placements.Where(p => !p.IsInline && p.ComponentId is not ("TE5" or "PID5")))
+            {
+                Assert.False(process.Inner.Intersects(bubble.Grow(margin)), $"{process.ComponentId} {process.Inner} is within a margin of {bubble}");
+            }
         }
+    }
+
+    [Fact]
+    public void C15AThreeWayValvesControllerStandsOnItsOnlyFreeSide()
+    {
+        // The user's example: a three-way valve whose connections leave left, right and down has one place for its
+        // controller -- up, where its stem is. m4-demand-step's 3WV takes HE1 from the left, P1 to the right and the
+        // recirculation from below.
+        var (scene, input) = Solve(ContractFixture.Sample("m4-demand-step.fluid"));
+        var margin = LayoutSolver.MarginOf(input.Model);
+        var valve = Assert.Single(scene.Placements, static p => p.ComponentId == "3WV").Inner;
+        var controller = Assert.Single(scene.Placements, static p => p.ComponentId == "TC1").Inner;
+
+        Assert.Equal(valve.Centre.X, controller.Centre.X, 9);
+        Assert.Equal(valve.Top + margin, controller.Y, 9);
     }
 
     [Fact]

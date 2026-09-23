@@ -193,6 +193,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-148` | Accepted | 2026-09-23 | A folder holding one class's partials is transparent to the namespace, and no namespace segment names a type in it |
 | `D-149` | Accepted | 2026-09-23 | A run's t = 0 is the instant the project line states, and a curve of time is read there plus t |
 | `D-150` | Accepted | 2026-09-23 | A measurement reads a node with at most two connections; a junction is refused |
+| `D-151` | Accepted | 2026-09-23 | An instrument is drawn on its host as one footprint, on the host's first free side |
 <!-- index:end -->
 
 ---
@@ -7020,3 +7021,64 @@ designer's sensor would read. The two nodes share an ideal link (`D-25`), so eve
 - *Read the junction as the outgoing stream when exactly one pipe leaves it.* Flow direction is a
   solved quantity; a binder rule that depended on it would change verdict when a valve moved.
 - *Sensors only; leave `measure=` alone.* Two spellings of the same reading with different rules.
+
+## D-151 · An instrument is drawn on its host as one footprint, on the host's first free side
+
+**Accepted · 2026-09-23** (the user's design) · supersedes `D-100` item 4's "adding an observer moves no
+process symbol" and the "instrumentation placed after the process graph" in its already-in-the-plan
+list · amends `28` C15, `29` step 10 · builds on `D-150`
+
+**What was wrong.** An instrument was placed after everything else, in whatever free space was left:
+the four sides of its anchor one margin out, then shifted right past anything in the way. Nothing
+reserved room for it, so on the ladder's step 11c the sensor `TE5` ended up well to the right of the
+node it reads, joined to it by a long line, and the controller `PID5` hung under its valve, opposite
+the stem, with its measurement signal wandering round the loop. The user's reading: sensors and
+actuators are real physical components, drawn perpendicular to the thing they measure or drive, and a
+pump with inverter control is *one* thing on the drawing -- the pump with its controller circle on top.
+
+**The rule.**
+
+1. **One footprint.** A sensor and the node it reads (`D-150`: a point on one pipe, or a terminal), and
+   a controller and the device it actuates, are laid out as one object: the host, a straight line one
+   margin long, and the bubble. The node stays a point on its pipe (`D-114` stands); what joins it is
+   the space the bubble needs.
+2. **Its side is the host's first free side** -- a side no connection leaves by -- tried in the order:
+   the device's actuator stem, then up, down, left, right. The first whose bubble keeps the clearance
+   from every box, bubble and drawn pipe is taken; if none does, the first free side is, and the audit
+   says what it hits. On a level pipe a sensor goes up, on a vertical one left (the user's order); a
+   pump's controller goes on top; a three-way valve with connections left, up and right has one free
+   side, and its controller stands there. The stem comes first because it is where the actuator is --
+   "the actuator symbol on the stem tells you how the valve is driven"
+   ([HMI Library, *P&ID valve symbols*, after ANSI/ISA-5.1](https://hmilibrary.com/learn/valve-symbols)).
+   The order after the stem, and the one-margin line, are the user's rule, not a quoted standard.
+3. **The layout makes room.** While the forms place components, a device's bubble counts in the
+   clearance exactly as its box does, and so does every stub, the first margin of pipe out of a port,
+   against every bubble. A run carrying a sensor's node is laid at least as long as its evenly spaced
+   cuts need to keep each bubble a margin from the boxes at both ends and from the next bubble:
+   `L · min(t, c+1−t)/(c+1) ≥ m + s/2` for the t-th of c inline points, and `L · (t2−t1)/(c+1) ≥ s + m`
+   between two. Measured on step 11c: `TV5 → NR2 → NR1 → PU5` grew from one clearance, 0.75, to 3.15,
+   and `TE5` stands over `NR2` with 0.75 to both boxes.
+4. **Signals, and a sensor always.** The line to the host replaces the sensor's own drop and the
+   controller's actuation line; the one routed signal left is a controller's measurement, and it always
+   comes from a sensor. The user's refinement: a sensor is always visible, and a controller that
+   measures a pipe's temperature against its setpoint is joined to the sensor, not to the node. So a
+   `control` line whose `measure=` names a node reads it through a sensor the binder infers there --
+   rule I8, `measure=NS.t` placing `NS__TE` at `NS` unless a temperature sensor already stands on it --
+   chosen over refusing a node in `measure=` (which reverses `D-61`'s "`measure=N2.t` still works" and
+   makes every script declare its sensors) and over a bubble drawn with no component behind it. On the
+   demand-step loop `TC1` now reads `NS__TE`, below `NS`, and its signal goes round the loop's right
+   side: the two hard findings its line to the node had carried since `C-124` are gone.
+
+**What it gives up.** `D-100` item 4's first clause: adding an instrument now moves process symbols when
+they stood where its bubble needs to be. On the syntax tour `TV2` stands 1.25 higher so its outlet
+passes over `PID3` on `TV3`'s stem; step 10 moves nothing, since its bubbles already had room. The rest
+of item 4 -- an edit in one branch moves that branch, a value change moves nothing -- stands.
+
+### Rejected
+
+- *The old placement, searched free space.* No reservation, so the bubble lands wherever is left.
+- *A sensor's node as a boxed element.* `D-114` makes a two-connection node a point on its run; boxing
+  it adds a member to every ring and loop form the node sits in. The reservation on the run gives the
+  same room without touching the forms.
+- *Every side in a fixed order, no stem first.* A vertical valve's controller would stand on the side
+  away from its actuator.

@@ -10,61 +10,28 @@ internal sealed partial class LayoutEngine
 {
     // ---- instruments and labels -----------------------------------------------------------------------------------
 
+    /// <summary>
+    /// C15 (<c>D-151</c>): every instrument stands on its host's chosen side (<see cref="ChooseHats"/>), joined to it by a
+    /// straight line one margin long -- a sensor to the point of the node it reads, a controller to the edge of the device it
+    /// drives -- and a controller that reads through a sensor is joined to that sensor by the one routed signal.
+    /// </summary>
     private void PlaceInstruments()
     {
         var boxes = new Dictionary<string, Box>(StringComparer.Ordinal);
         var placed = new List<(NonFlowElementHint Element, int Anchor, string SymbolId)>();
+        var hatOf = Hats()
+            .SelectMany(static pair => pair.Value.Select(hat => (Host: pair.Key, Hat: hat)))
+            .ToDictionary(static entry => entry.Hat.Element.ComponentId, StringComparer.Ordinal);
 
         foreach (var element in _hints.NonFlowElements)
         {
-            if (!_index.TryGetValue(element.PlacementAnchorId, out var anchor) || !_placed[anchor])
+            if (!hatOf.TryGetValue(element.ComponentId, out var entry) || HatBox(entry.Hat) is not { } inner)
             {
                 continue;
-            }
-
-            var kind = _model.Components.FirstOrDefault(c => c.Name == element.ComponentId)?.Kind?.Keyword ?? "controller";
-            var symbol = SymbolCatalog.All.First(s => s.Id == SymbolCatalog.IdFor(kind));
-            var size = symbol.ViewBox;
-            var host = InnerOf(anchor);
-            var candidates = new[]
-            {
-                new Point(host.Centre.X, host.Top + _margin + (size[3] / 2)),
-                new Point(host.Centre.X, host.Y - _margin - (size[3] / 2)),
-                new Point(host.X - _margin - (size[2] / 2), host.Centre.Y),
-                new Point(host.Right + _margin + (size[2] / 2), host.Centre.Y),
-            };
-
-            var inner = candidates
-                .Select(at => Box.Around(at, size[2], size[3]))
-                .FirstOrDefault(box => !Collides(box, boxes.Values), Box.Around(candidates[0], size[2], size[3]));
-
-            while (Collides(inner, boxes.Values))
-            {
-                inner = inner.Offset(size[2] + _margin, 0);
             }
 
             boxes[element.ComponentId] = inner;
-            placed.Add((element, anchor, symbol.Id));
-        }
-
-        // C15: a controller reads its node through the sensor standing on it. The signal leaves the sensor level, by the side facing the controller, and turns once into it; when that level stub would be shorter than a margin, the sensor and its inline node slide along the rail to make room.
-        foreach (var (element, _, _) in placed)
-        {
-            if (element.ActuationTargetId is null || SensorOf(placed, element) is not { } sensor)
-            {
-                continue;
-            }
-
-            var s = boxes[sensor.Element.ComponentId];
-            var c = boxes[element.ComponentId];
-            var toward = c.Centre.X >= s.Centre.X ? 1 : -1;
-            var stub = toward > 0 ? c.Centre.X - s.Right : s.X - c.Centre.X;
-            var shift = -toward * (_margin - stub);
-
-            if (stub < _margin - Eps && _inline[sensor.Anchor] && Nudge(sensor.Anchor, shift))
-            {
-                boxes[sensor.Element.ComponentId] = s.Offset(shift, 0);
-            }
+            placed.Add((element, entry.Host, entry.Hat.SymbolId));
         }
 
         var owners = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -75,10 +42,11 @@ internal sealed partial class LayoutEngine
             _instrumentBoxes.Add(boxes[element.ComponentId]);
         }
 
-        foreach (var (element, _, symbolId) in placed)
+        foreach (var (element, host, symbolId) in placed)
         {
             var inner = boxes[element.ComponentId];
             var owner = owners[element.ComponentId];
+            var side = _hatSide[element.ComponentId].Side;
 
             _instruments.Add(new Placement
             {
@@ -89,34 +57,39 @@ internal sealed partial class LayoutEngine
                 Rotation = 0,
                 Mirrored = false,
                 Arrangement = "default",
-                Anchors = ImmutableSortedDictionary<string, PlacedAnchor>.Empty.Add("*", Anchor(inner.Centre, Direction.Down, Direction.Down)),
+                Anchors = ImmutableSortedDictionary<string, PlacedAnchor>.Empty.Add("*", Anchor(inner.Centre.Towards(side.Opposite, inner.Width / 2), side.Opposite, side.Opposite)),
                 LabelAt = inner.Centre,
                 LabelBox = LabelLayout.BoxFor(TextOf(element.ComponentId), inner.Centre),
                 LabelClear = true,
                 Source = "computed",
             });
 
-            if (element.ActuationTargetId is { } actuated)
-            {
-                if (SensorOf(placed, element) is { } sensor)
-                {
-                    Signal(element.ComponentId + ":measures", boxes[sensor.Element.ComponentId], owners[sensor.Element.ComponentId], inner, owner, toCentre: false);
-                }
-                else
-                {
-                    Signal(element.ComponentId + ":measures", inner, owner, element.MeasurementTargetId);
-                }
+            // The line to the host: a sensor's to its node, a controller's to its actuator.
+            Stalk(element.ComponentId + (element.ActuationTargetId is null ? ":measures" : ":actuates"), host, side, inner);
 
-                if (actuated != element.MeasurementTargetId)
-                {
-                    Signal(element.ComponentId + ":actuates", inner, owner, actuated);
-                }
+            if (element.ActuationTargetId is null || element.MeasurementTargetId == element.PlacementAnchorId)
+            {
+                continue;
+            }
+
+            if (SensorOf(placed, element) is { } sensor)
+            {
+                Signal(element.ComponentId + ":measures", boxes[sensor.Element.ComponentId], owners[sensor.Element.ComponentId], inner, owner, toCentre: false);
             }
             else
             {
                 Signal(element.ComponentId + ":measures", inner, owner, element.MeasurementTargetId);
             }
         }
+    }
+
+    /// <summary>The straight line one margin long from a host -- the point of an inline node, else the middle of its box's edge -- to the near edge of its instrument's bubble.</summary>
+    private void Stalk(string id, int host, Direction side, Box bubble)
+    {
+        var box = InnerOf(host);
+        var from = box.Centre.Towards(side, side.Horizontal ? box.Width / 2 : box.Height / 2);
+        var to = bubble.Centre.Towards(side.Opposite, side.Horizontal ? bubble.Width / 2 : bubble.Height / 2);
+        _routes.Add((-1, new Route(id, "signal", "signal", [from, to], [])));
     }
 
     /// <summary>The sensor standing on the node a controller reads, when the script placed one (C15).</summary>
@@ -131,90 +104,6 @@ internal sealed partial class LayoutEngine
         }
 
         return null;
-    }
-
-    /// <summary>Moves an inline node along its level run by <paramref name="dx"/> (C15) when every route ending on it stays level and keeps a margin to its next point; the routes follow.</summary>
-    private bool Nudge(int node, double dx)
-    {
-        var from = _centre[node];
-        var to = from.Offset(dx, 0);
-        var ends = new List<(int Index, bool AtStart)>();
-
-        for (var k = 0; k < _routes.Count; k++)
-        {
-            var points = _routes[k].Route.Points;
-
-            if (points.Length < 2)
-            {
-                continue;
-            }
-
-            foreach (var atStart in new[] { true, false })
-            {
-                var end = atStart ? points[0] : points[^1];
-                var next = atStart ? points[1] : points[^2];
-
-                if (end.ManhattanTo(from) > Eps)
-                {
-                    continue;
-                }
-
-                if (Math.Abs(next.Y - from.Y) > Eps || Math.Sign(next.X - to.X) != Math.Sign(next.X - from.X) || Math.Abs(next.X - to.X) < _margin - Eps)
-                {
-                    return false;
-                }
-
-                ends.Add((k, atStart));
-            }
-        }
-
-        if (ends.Count == 0)
-        {
-            return false;
-        }
-
-        foreach (var (k, atStart) in ends)
-        {
-            var points = _routes[k].Route.Points;
-            var moved = points.SetItem(atStart ? 0 : points.Length - 1, to);
-            _routes[k] = (_routes[k].Link, _routes[k].Route with { Points = moved });
-
-            if (_routes[k].Link >= 0)
-            {
-                _routeOf[_routes[k].Link] = moved;
-            }
-        }
-
-        _centre[node] = to;
-        Note(_graph.Components[node].Name, "C15", $"an inline node nudged along its level run by {dx:0.##} to ({to.X:0.##}, {to.Y:0.##})");
-        return true;
-    }
-
-    /// <summary>Whether an instrument at a candidate box would sit within a margin of a placed symbol, another instrument, or a pipe.</summary>
-    private bool Collides(Box candidate, IEnumerable<Box> instruments)
-    {
-        var outer = candidate.Grow(_margin);
-
-        for (var i = 0; i < _n; i++)
-        {
-            if (_placed[i] && InnerOf(i).Intersects(outer))
-            {
-                return true;
-            }
-        }
-
-        foreach (var (_, route) in _routes)
-        {
-            for (var k = 1; k < route.Points.Length; k++)
-            {
-                if (Passes(outer, route.Points[k - 1], route.Points[k]))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return instruments.Any(other => other.Intersects(outer));
     }
 
     /// <summary>A signal line from an instrument's box to a component: to the point of an inline one, to the facing edge of a boxed one.</summary>

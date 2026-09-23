@@ -60,9 +60,10 @@ prefers, in this strict order: the fewest bends (a straight pipe beats a shorter
 and four short bends never beat one slightly longer one); then the fewest crossings and the fewest
 overlapping margins; then the reading conventions -- the first path flows left to right, supply
 sits above return, what stands stands; then congruence, so that two branches built the same way
-are drawn the same way; and only last, compactness. An edit moves only what it must: adding an
-instrument moves no process symbol, adding a component to one branch moves only that branch, and
-changing a value moves nothing.
+are drawn the same way; and only last, compactness. An edit moves only what it must: adding a
+component to one branch moves only that branch, and changing a value moves nothing. Adding an
+instrument is the exception: it is part of the thing it stands on, so what stood where it needs to be
+moves to make room.
 
 **A pipe is a line, not a box.** A declared `pipe` and the pieces a pipe is split into have no box:
 they are points on the run between the two elements either side of them, and the line through them
@@ -95,10 +96,9 @@ is laid out first as a block of its own, its inlet and outlet side by side facin
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
 declared, each under the junction that feeds it and over the one it returns to; branches in series
-step down from one block's outlet to the next block's inlet. A sensor stands just off the node it
-reads and a controller just off the component it drives, on its centre line; the controller's
-signal comes from the sensor, level and then down, and its own line goes straight into the
-actuator. Where lines cross, the one in front runs through and the one behind is broken around it:
+step down from one block's outlet to the next block's inlet. A sensor stands on the node it reads
+and a controller on the component it drives, joined to it by a short straight line; the controller's
+signal comes from the sensor, level and then round into the controller. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes; a signal line whose one bend
 would cross a symbol or lie along a pipe goes round them instead. An inlet whose junction feeds two
 paths to one outlet is drawn with that junction at the top left, the inlet beside it, and the outlet's
@@ -161,10 +161,17 @@ parent are a distribution group, reported with the drawing so that branches buil
 the same kinds in the same sequence -- can be drawn the same way. Renaming every component in one
 branch changes nothing; inserting a valve in one of them does, and only that branch widens.
 
-**Instruments and controllers.** A sensor is drawn beside the node it is `at`. A controller is drawn
-beside the component it actuates, with a signal line back to what it measures, resolved through the
-sensor: `measure=TE1.t` draws the line to `TE1`'s node, as [`control`](../functions/control.md)
-explains.
+**Instruments and controllers.** An instrument is drawn as part of what it stands on. A sensor stands
+on the node it is `at`, and a controller on the component it actuates -- the pump with its controller
+circle on top, the valve with its controller on its stem -- each joined to it by a straight line one
+margin long, on the first side no pipe leaves by: the valve's stem first, then up, down, left, right.
+On a level pipe a sensor stands above it, on a vertical one to its left; a three-way valve with pipes
+on three sides has one place left for its controller. The pipes around make room for it: the run a
+sensor's node sits on is drawn long enough for the circle and a margin either side, and nothing else
+comes within a margin of it. The one signal line is the controller's measurement, and it always comes from a sensor: one you
+placed, or the one FluidScript adds when a `control` line measures a node directly
+([`control`](../functions/control.md)). It leaves the sensor level first and goes round into the
+controller.
 
 **What you wrote and what was inferred.** The nodes the language adds to close a loop have two
 connections each and are therefore not drawn, so the picture reads as the circuit you have in mind and

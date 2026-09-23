@@ -750,6 +750,25 @@ return and every recirculation `return`. The temperature rank between two circui
 solved state (`28` open question 3). Steps 1–9 unchanged; the Api goldens carry the layer.
 **Accepted (2026-09-17):** "Yes, perfect."
 
+**Redrawn (2026-09-23, `D-151`):** the user's design -- an instrument is part of its host's footprint,
+on the host's first free side, stem first, then up, down, left, right, joined by a line one margin
+long. Step 10 is the same picture less the nudge: `TE1` stands over `N1` at `[(1.7, 1.5), (2.3, 2.1)]`
+with its line `(2, 1) → (2, 1.5)`, `N1` back at its even cut `(2, 1)`; `PID1` on `CV1`'s stem at
+`[(2.45, −0.2), (3.05, 0.4)]`, its line `(2.75, −0.7) → (2.75, −0.2)`; the measurement signal
+`(2.3, 1.8) → (2.75, 1.8) → (2.75, 0.4)`. No process box moved. Step 11c is where it shows: `TE5` had
+stood off to the right of the lower loop with a long drop to `NR2`, and `PID5` under `TV5`, opposite its
+stem, its signal round the ring. Now the rail `TV5 → NR2 → NR1 → PU5` is laid 3.15 long, not one
+clearance of 0.75 (`Reserve`), `TE5` stands over `NR2` at `(2.8, −5.65)` with 0.75 to `TV5` and to `PU5`,
+`PID5` on `TV5`'s stem, and the signal is one level segment `(2.5, −4.6) → (1.25, −4.6)`. The syntax tour's
+`PID3` stands on `TV3`'s stem, its only free side; `TV2` stands 1.25 higher than before, since its
+outlet's stub would otherwise enter `PID3`'s clearance, and the pipe to `RB1` stays straight. Then the
+user's refinement, a sensor always: `PID3` measures `NS3.t` and now reads it through `NS3__TE`, which the
+binder puts on `NS3` (I8) and the run `PU3 → NS3 → HE3` is laid long enough to hold; the demand-step
+loop's `TC1` reads `NS__TE` under `NS`, its signal round the loop's right side, and the two hard
+findings its line straight to the node carried are gone (its 5 soft are `PB`'s cells crowding the
+3WV–N2 column, `C-125`). Every reached sample and step: hard 0, soft 0. `L19`'s instrument clause is retired with `D-100`'s; the
+`C15` predicates take its place.
+
 ### Step 11 · several circuits in one script
 
 The plan's ten rungs are climbed and one layout sample is not reached: the syntax tour, five

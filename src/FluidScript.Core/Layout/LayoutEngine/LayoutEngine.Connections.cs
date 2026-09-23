@@ -23,6 +23,14 @@ internal sealed partial class LayoutEngine
             }
         }
 
+        // A pipe goes round an instrument's bubble as it goes round any box (C15, D-151); no pipe is the bubble's own.
+        var bubbles = HatBoxes(Hats().Keys).ToList();
+
+        for (var b = 0; b < bubbles.Count; b++)
+        {
+            router.AddBox(bubbles[b], _n + b);
+        }
+
         for (var k = 0; k < _links.Count; k++)
         {
             var link = _links[k];

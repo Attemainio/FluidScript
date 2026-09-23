@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain). Next: the instrument layout, then P6.3 | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain), `D-151` 2026-09-23 (instruments on their hosts, I8). Next: P6.3 | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1505,6 +1505,13 @@ that governed each size. What P6.8 still owes, and what comes after:
   side, breaking `D-100`'s instrument edit-stability rule -- is the next package and takes its own
   `D-` (the user's call: a short signal line, one margin, between host and bubble). Mapping it found
   ~~`C-124`~~, closed the same day: a pipe with `nodes=` is now drawn as its chain.
+- **`D-151` built 2026-09-23**: an instrument is drawn on its host as one footprint -- a sensor on its
+  node, a controller on its device, on the host's first free side (stem, up, down, left, right), joined
+  by a line one margin long -- and the layout makes room for it (`Reserve` on a sensor's run, bubbles
+  and stubs in the forms' clearance). `D-100`'s instrument edit-stability clause is retired, L19's
+  instrument test replaced by the `C15` predicates. The user's refinement: a controller that measures a
+  node reads it through a sensor the binder infers there (I8, `NS__TE`). Every reached sample and step
+  hard 0, soft 0; `m4-demand-step` hard 0, its 5 soft filed as `C-125`. ~~`C-94`~~ closed.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

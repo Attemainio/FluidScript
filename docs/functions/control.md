@@ -47,8 +47,11 @@ transposing them is caught rather than obeyed.
   target follows the outdoor temperature.
 - A controller named by no `control` line drives nothing, and is reported. Two `control` lines naming
   one controller is an error: a controller holds one integral term and drives one actuator.
-- Measure a **sensor**, not a pipe. `measure=N2.t` still works, but a sensor is where the instrument
-  really is — see [`t_sensor`](t-sensor.md).
+- A controller always reads through a **sensor**. Measure one you placed (`measure=TE1.t`), or write
+  the node (`measure=NS.t`) and FluidScript puts a sensor there for you -- `NS__TE` for a temperature,
+  `NS__PE` for a pressure, `NS__FE` for a flow -- with an info message saying so. Either way the
+  diagram draws the sensor on its pipe and the controller's line comes from it. Write its name as a
+  declaration (`NS__TE t_sensor at NS`) to make it yours; see [`t_sensor`](t-sensor.md).
 - Measure **one stream**. A node read directly, like a sensor, must have one or two connections: at a
   junction where three pipes meet there is no single stream to read, and the line is
   [`FS1548`](diagnostics.md). Put a node on the pipe you mean.

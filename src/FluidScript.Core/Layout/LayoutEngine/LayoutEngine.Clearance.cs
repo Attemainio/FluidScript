@@ -20,7 +20,7 @@ internal sealed partial class LayoutEngine
         var (w, h) = Transform.Identity.Size(_symbol[j]);
         var half = d.Horizontal ? w / 2 : h / 2;
         var delta = new Point(d.X * half, d.Y * half);
-        var at = Clear(j, Transform.Identity, anchor.At, d, delta);
+        var at = Clear(j, Transform.Identity, anchor.At, d, delta, Reserve(j, q));
         Place(j, Transform.Identity, at.Offset(delta.X, delta.Y), "C4", $"a node one clearance out on the placed port's axis, {Name(d)}");
         _side[(j, q)] = d.Opposite;
         return [anchor.At, at];
@@ -50,7 +50,7 @@ internal sealed partial class LayoutEngine
             {
                 var turn = AnchorOffset(j, q, turned[0])!.Value.Offset;
                 var corner = anchor.At.Towards(d, _margin);
-                var inner = Clear(j, turned[0], corner, along, new Point(-turn.X, -turn.Y));
+                var inner = Clear(j, turned[0], corner, along, new Point(-turn.X, -turn.Y), Reserve(j, q));
                 Place(j, turned[0], inner.Offset(-turn.X, -turn.Y), "C3", $"the pipe turns {Name(along)} into a member that cannot face it");
                 return [anchor.At, corner, inner];
             }
@@ -64,7 +64,7 @@ internal sealed partial class LayoutEngine
         }
 
         var offset = AnchorOffset(j, q, facing[0])!.Value.Offset;
-        var end = Clear(j, facing[0], anchor.At, d, new Point(-offset.X, -offset.Y));
+        var end = Clear(j, facing[0], anchor.At, d, new Point(-offset.X, -offset.Y), Reserve(j, q));
         Place(j, facing[0], end.Offset(-offset.X, -offset.Y), "C5", $"facing the pipe arriving {Name(d)}, straight along the axis, the arrangement sending its outlet on to the right first (H10)");
         return [anchor.At, end];
     }
@@ -93,10 +93,11 @@ internal sealed partial class LayoutEngine
     /// <param name="origin">Where the pipe starts from.</param>
     /// <param name="along">The axis it runs along.</param>
     /// <param name="delta">The centre relative to the returned point.</param>
+    /// <param name="minimum">The shortest pipe the run needs for the instruments on its inline points (<see cref="Reserve"/>).</param>
     /// <returns>The point the pipe ends at: the component's inner anchor.</returns>
-    private Point Clear(int j, Transform t, Point origin, Direction along, Point delta)
+    private Point Clear(int j, Transform t, Point origin, Direction along, Point delta, double minimum = 0)
     {
-        var gap = _margin;
+        var gap = Math.Max(_margin, minimum);
         var at = origin.Towards(along, gap);
 
         while (Clashes(j, t, at.Offset(delta.X, delta.Y)))
@@ -137,8 +138,8 @@ internal sealed partial class LayoutEngine
     private bool Clashes(int j, Transform t, Point centre)
     {
         var (w, h) = t.Size(_symbol[j]);
-        var inner = Box.Around(centre, w, h);
-        var outer = inner.Grow(_margin);
+        var mine = new List<Box> { Box.Around(centre, w, h) };
+        mine.AddRange(Provisional(j, t, centre));
 
         for (var i = 0; i < _n; i++)
         {
@@ -147,14 +148,57 @@ internal sealed partial class LayoutEngine
                 continue;
             }
 
-            var other = InnerOf(i);
+            // A device's instruments are part of its footprint (C15, D-151): its bubbles keep the clearance as its box does.
+            var theirs = new List<Box> { InnerOf(i) };
 
-            if (other.Intersects(outer) || inner.Intersects(other.Grow(_margin)))
+            if (!_inline[i])
+            {
+                theirs.AddRange(Provisional(i, _transform[i], _centre[i]));
+            }
+
+            foreach (var a in mine)
+            {
+                foreach (var b in theirs)
+                {
+                    if (b.Intersects(a.Grow(_margin)) || a.Intersects(b.Grow(_margin)))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            // A stub is the first margin of a pipe, and a pipe keeps out of a bubble's clearance (C15, D-151): the syntax
+            // tour's TV2 otherwise stood with its outlet aimed at PID3 on TV3's stem, 1.3 off where a stub and a
+            // clearance need 1.5, and the pipe had to climb over the bubble with three bends.
+            if (!_inline[i] && (Crosses(Stubs(j, t, centre), theirs.Skip(1)) || Crosses(Stubs(i, _transform[i], _centre[i]), mine.Skip(1))))
             {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>The first margin of pipe out of every connected port of a component under a transform at a centre.</summary>
+    private IEnumerable<(Point From, Point To)> Stubs(int j, Transform t, Point centre)
+    {
+        foreach (var link in _links)
+        {
+            foreach (var (c, p) in new[] { (link.From, link.FromPort), (link.To, link.ToPort) })
+            {
+                if (c == j && AnchorOffset(j, p, t) is { } anchor)
+                {
+                    var at = centre.Offset(anchor.Offset.X, anchor.Offset.Y);
+                    yield return (at, at.Towards(anchor.Outward, _margin));
+                }
+            }
+        }
+    }
+
+    /// <summary>Whether any segment runs through the clearance of any of the bubbles.</summary>
+    private bool Crosses(IEnumerable<(Point From, Point To)> segments, IEnumerable<Box> bubbles)
+    {
+        var outers = bubbles.Select(b => b.Grow(_margin)).ToList();
+        return outers.Count > 0 && segments.Any(s => outers.Any(o => Passes(o, s.From, s.To)));
     }
 }

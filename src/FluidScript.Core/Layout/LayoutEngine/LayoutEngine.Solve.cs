@@ -45,6 +45,7 @@ internal sealed partial class LayoutEngine
 
             Sequential();
             AlignBoundaries();
+            ChooseHats(Ordered(fragment.Where(i => _placed[i])));
             var members = fragment.Where(i => _placed[i]).ToList();
             var links = Enumerable.Range(0, _links.Count).Where(k => _routeOf[k] is not null && !routed[k]).ToList();
 
@@ -84,6 +85,7 @@ internal sealed partial class LayoutEngine
         }
 
         Fallback(Ordered(Enumerable.Range(0, _n)).ToList());
+        ChooseHats(Ordered(Enumerable.Range(0, _n)));
         Connect();
         PlaceInstruments();
         ComputeHops();
@@ -186,6 +188,16 @@ internal sealed partial class LayoutEngine
                 xs.Add(p.X);
                 ys.Add(p.Y);
             }
+        }
+
+        // An instrument is part of its host's footprint (C15, D-151): the next fragment stacks under its bubble too.
+        foreach (var bubble in HatBoxes(members))
+        {
+            var outer = bubble.Grow(_margin);
+            xs.Add(outer.X);
+            xs.Add(outer.Right);
+            ys.Add(outer.Y);
+            ys.Add(outer.Top);
         }
 
         return new Box(xs.Min(), ys.Min(), xs.Max() - xs.Min(), ys.Max() - ys.Min());

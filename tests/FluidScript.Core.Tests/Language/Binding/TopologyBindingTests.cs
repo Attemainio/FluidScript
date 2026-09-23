@@ -418,6 +418,55 @@ public sealed class TopologyBindingTests
         Assert.DoesNotContain("FS1548", Codes(result));
     }
 
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("t", "NS__TE", "t_sensor")]
+    [InlineData("p", "NS__PE", "p_sensor")]
+    [InlineData("flow", "NS__FE", "flow_sensor")]
+    public void AControlLineReadingANodeReadsItThroughASensorTheBinderPutsThere(string property, string name, string kind)
+    {
+        // I8, D-151: a sensor is a physical component and is always drawn, so a controller that reads a node
+        // directly reads it through one the binder places on the node, named after it, and says so.
+        var result = Bind(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
+            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
+            + $"control actuate=TV1.position measure=NS.{property} by=PID1 setpoint=20\n");
+
+        var sensor = Assert.Single(result.Model.Components, c => c.Name == name);
+        Assert.Equal(kind, sensor.Kind?.Keyword);
+        Assert.Equal("NS", sensor.AttachedTo);
+        Assert.Equal(new Origin.Inferred("I8", name), sensor.Origin);
+        Assert.Null(sensor.Tag);
+        Assert.Contains(result.Diagnostics, d => d.Code == "FS1510" && d.Message.Contains($"'{name}' (I8)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AControlLineReadingANodeWithASensorOnItReadsThroughThatOne()
+    {
+        // The sensor the script placed is the one read; nothing is added beside it.
+        var model = Model(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nTE1 t_sensor at NS\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
+            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
+            + "control actuate=TV1.position measure=NS.t by=PID1 setpoint=20\n");
+
+        Assert.Single(model.Components, static c => c.AttachedTo == "NS");
+        Assert.DoesNotContain(model.Components, static c => c.Name == "NS__TE");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AJunctionIsRefusedAndGetsNoSensor()
+    {
+        var result = Bind(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
+            + "connections\nN1 - N2\nN2 - TV1.a\nN2 - N3\n"
+            + "control actuate=TV1.position measure=N2.t by=PID1 setpoint=20\n");
+
+        Assert.Contains("FS1548", Codes(result));
+        Assert.DoesNotContain(result.Model.Components, static c => c.Name == "N2__TE");
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void TheScheduleBindsBothItsForms()

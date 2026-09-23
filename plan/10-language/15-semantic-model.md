@@ -901,6 +901,15 @@ joins -- so `HE1 - PU1 dn=25` yields `HE1__PU1`, `HE1__PU1__in`, `HE1__PU1__out`
 does not state is zero, the pipe's decided default ([`22`](../20-core-domain/22-component-model.md)):
 `dn=25` alone marks the drawing and the bore and drops nothing. A bare line makes no pipe.
 
+**I8 — implicit sensor** (`D-151`). A `control` line whose `measure=` names a node's `t`, `p` or `flow`
+directly -- a node `D-150` admits, with one or two connections -- reads it through a sensor: the
+binder adds a `t_sensor`, `p_sensor` or `flow_sensor` named `{Node}__{TagCode}` (`NS__TE`, `NS__PE`,
+`NS__FE`) `at` the node, with `Origin = Inferred(I8, name)`, unless one of that kind already stands
+there, which is then the one read. It runs in the control binding step, after the observers the
+script placed are bound. The user's rule: a sensor is a physical component and is always drawn, and a
+controller is joined to a sensor, never to a node. Like every inferred component it is untagged
+(`D-34`) and the user promotes it by writing its name down.
+
 Every inferred component gets an info diagnostic (`FS1510`) so the user can see what was created.
 These are info-level and off by default in the log ([`56-console-log`](../50-frontend/56-console-log.md)),
 because on a large script they would drown everything else — but they must exist, or the inference is

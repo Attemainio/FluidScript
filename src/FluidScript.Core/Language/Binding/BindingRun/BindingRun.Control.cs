@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
@@ -63,18 +64,80 @@ internal sealed partial class BindingRun
         }
     }
 
-    /// <summary>Checks a <c>measure=</c> that reads a node directly (<c>D-150</c>).</summary>
+    /// <summary>Checks a <c>measure=</c> that reads a node directly (<c>D-150</c>), and puts the sensor the reading implies on it (I8, <c>D-151</c>).</summary>
     /// <param name="controller">The controller, for the message.</param>
-    /// <param name="component">The measured component.</param>
+    /// <param name="measurement">What the line measures.</param>
     /// <param name="span">The control line.</param>
     /// <remarks>A sensor was checked where it was placed, so only a node read directly is checked here.</remarks>
-    private void CheckMeasurement(string controller, string component, TextSpan span)
+    private void CheckMeasurement(string controller, PropertyReference measurement, TextSpan span)
     {
-        if (_componentsByName.TryGetValue(component, out var measured)
+        if (_componentsByName.TryGetValue(measurement.Component, out var measured)
             && _components[measured.Index].Kind?.Keyword is "node")
         {
-            CheckMeasuredNode(controller, component, span);
+            if (_degrees.GetValueOrDefault(measurement.Component) > 2)
+            {
+                CheckMeasuredNode(controller, measurement.Component, span);
+                return;
+            }
+
+            InferSensor(measurement.Component, measurement.Property, span);
         }
+    }
+
+    /// <summary>
+    /// I8 (<c>D-151</c>): a controller that reads a node's temperature, pressure or flow directly reads it through a sensor
+    /// the binder puts there -- <c>NS__TE</c> for <c>measure=NS.t</c> -- unless one of that kind already stands on the node,
+    /// which it then reads through.
+    /// </summary>
+    /// <remarks>
+    /// The user's rule: a sensor is a physical component and is always drawn, and a controller is joined to the sensor, never
+    /// to a node. Inferred like I1's nodes, so the script stays as short as it was and the sensor is a real component -- one
+    /// the layout stands on its node, the canvas can hover, and the user can promote by writing its name down. Untagged, as
+    /// every inferred component is (<c>D-34</c>).
+    /// </remarks>
+    private void InferSensor(string node, string property, TextSpan span)
+    {
+        var keyword = property switch
+        {
+            "t" => "t_sensor",
+            "p" => "p_sensor",
+            "flow" => "flow_sensor",
+            _ => null,
+        };
+
+        if (keyword is null || registry.Resolve(keyword) is not KindResolution.Exact { Kind: var kind })
+        {
+            return;
+        }
+
+        if (_components.Any(c => string.Equals(c.AttachedTo, node, StringComparison.Ordinal) && string.Equals(c.Kind?.Keyword, kind.Keyword, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        var name = $"{node}__{kind.TagCode}";
+
+        if (_componentsByName.ContainsKey(name))
+        {
+            return;
+        }
+
+        Register(
+            new ComponentSymbol
+            {
+                Name = name,
+                Origin = new Origin.Inferred("I8", name),
+                Kind = kind,
+                WrittenKind = keyword,
+                Parameters = ImmutableDictionary.Create<string, ParameterValue>(StringComparer.Ordinal),
+                DeclarationSpan = null,
+                CircuitName = CircuitOf(node),
+                Ports = [],
+                AttachedTo = node,
+            },
+            null);
+
+        Report(BinderDiagnostics.ComponentInferred, span, ("kind", keyword), ("name", name), ("rule", "I8"));
     }
 
     private void BindControl(ControlBindingSyntax statement)
@@ -152,7 +215,7 @@ internal sealed partial class BindingRun
             return;
         }
 
-        CheckMeasurement(controller.Name, measurement.Component, statement.Span);
+        CheckMeasurement(controller.Name, measurement, statement.Span);
 
         _controlBindings.Add(new ControlBindingSymbol
         {
@@ -204,7 +267,7 @@ internal sealed partial class BindingRun
             return;
         }
 
-        CheckMeasurement(controller.Name, measurement.Component, statement.Span);
+        CheckMeasurement(controller.Name, measurement, statement.Span);
 
         _controlBindings.Add(new ControlBindingSymbol
         {

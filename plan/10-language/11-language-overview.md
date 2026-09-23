@@ -120,6 +120,7 @@ These are `R-06` made precise. Each states its trigger, its result, and — crit
 | I5 | **Single-circuit membership** | A component is declared in a file with exactly one `circuit` header | It belongs to that circuit | The file declares more than one circuit (M6) |
 | I6 | **Chained connections** | `A - B - C` | Two connections, `A - B` and `B - C` | Never |
 | I7 | **Implicit pipe** (`D-110`) | A connection line ends in pipe properties: `N5 - N1 length=25` | Each connection on the line becomes a `pipe` named `<A>__<B>` carrying those properties, with I2's nodes beside it named `<A>__<B>__in` / `__out`; `length` unwritten is zero | The line carries no properties: it stays a lossless link |
+| I8 | **Implicit sensor** (`D-151`) | A `control` line measures a node's `t`, `p` or `flow` directly: `measure=NS.t` | A sensor of that kind named `<Node>__TE` / `__PE` / `__FE` is placed `at` the node, and the controller reads through it | A sensor of that kind already stands on the node, or the node is a junction (`FS1548`, `D-150`) |
 
 **I2's naming matters.** `HE1__3WV` is derived, stable, and visible in hover and diagnostics. It is
 also a legal identifier the user can reference, which lets them promote an inferred node to a declared

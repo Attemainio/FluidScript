@@ -178,7 +178,7 @@ two -- and for every scene it lists:
   of one, C19 open supply-to-return, C18 unsourced ring, then the C1 chain) as *drawn* or *declined*
   with the reason it declined; and every placement as `rule -- member: reason; centre, transform`
   (C2 the source, C9 the corner, C11 a unit and its slide, C14 a hanger's junction, C3/C4/C5 the
-  sequential rules, C7 an aligned open end, C15 a nudge, A5 an inline cut, `fallback`). The
+  sequential rules, C7 an aligned open end, C15 an instrument's side on its host, A5 an inline cut, `fallback`). The
   sections before it are the result; this is the reasoning. The cooling loop's up/down picture
   (`C-105`) took the engine's source to explain twice in one day; the trace answers it in five lines:
   head `N1` by the inlet fallback, C2 declined (no source), C20 declined (a boxed member besides the
@@ -249,7 +249,7 @@ path with no ring, `D-107`'s stacked branches remain the candidate (D).
 **Soft -- counted, and the fewer the better.** A pipe through a margin, *or exactly along its edge*
 -- the clearance is `≥ m` between inner boxes, and a pipe one margin from a box it does not serve
 satisfied a strict interior test and drew as a line brushing the clearance (`C-87`); a sensor's
-clearance touching the pipe it measures is the rule of §29 and not a finding; a *terminal node's*
+clearance touching the pipe it measures is C15's line one margin long and not a finding; a *terminal node's*
 clearance yields to a sibling run of the same symbol -- the tank's second supply at the symbol's
 0.96 port pitch under a margin of 1.0 (`C-96`), a node being a point and its outer box a
 convention, the same allowance the beside test makes for two runs of one symbol; a pipe running beside
@@ -269,9 +269,10 @@ busy the picture got.
 5. Alignment: equivalent assemblies -- the same kinds in the same order -- are drawn congruently.
 6. Compactness -- least pipe, least area -- **last**.
 
-**Edit stability.** Adding an instrument moves no process symbol; adding a component to one branch
-moves only that branch and what it pushes along; an edit inside one group leaves every other group
-identical up to translation; a change to a value moves nothing.
+**Edit stability.** Adding a component to one branch moves only that branch and what it pushes along;
+an edit inside one group leaves every other group identical up to translation; a change to a value
+moves nothing. Adding an instrument may move what stood where its bubble needs to be (`D-151`: it is
+part of its host's footprint, and the layout makes room for it).
 
 **The audit.** `SceneAudit` measures every hard constraint and every soft class on every scene; the
 tests assert hard = 0 on every ladder step and, when the ladder reaches them, on every sample. Since
@@ -442,23 +443,24 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   the series header does (step 8e). The ring's right unit is slid until its own descent to the
   bottom rail clears every box as well. Not built yet: a branch off the bottom rail, a branch whose
   bottom member is not a junction, and a boxed member on a branch before its first block.
-- **C15** *(step 10, corrected once, provisional)* -- **Instruments stand off their anchors, and a
-  controller reads through its sensor.** A sensor stands one margin off the node it observes --
-  above a level rail -- with its signal a straight drop to the node's point. A controller stands one
-  margin off the component it actuates, on that component's centre line (above first, then below,
-  left, right), and its actuation signal runs straight into the component's facing edge, the valve's
-  stem side. Its measurement signal comes from the sensor on the node it reads, not from the node:
-  it leaves the sensor level, by the side facing the controller -- never by the side the sensor's own
-  line leaves by -- turns once and enters the controller's facing edge. When that level stub would
-  be shorter than a margin, the sensor and its node slide along the rail to make room: the node is
-  inline (`D-114`) and free along its run, the valve is fixed by its loop, and the user left the
-  choice between moving either. A signal may cross a pipe (C16); it never runs along one. *Step
-  11d (`C-94`):* the one-bend line is kept only while it passes through no placed box and runs
-  along no drawn line; otherwise the router draws it round every placed box and instrument, one
-  margin off every line, crossing pipes freely -- it may leave the instrument by any edge and
-  reach the target by any edge. Not built: a controller directly under its sensor, through the
-  node; a sensor on a boxed junction; a controller placed on its sensor's side of a rail when the
-  side facing the sensor is within a margin of another circuit (the signal goes round instead).
+- **C15** *(step 10, corrected once, redrawn by `D-151`)* -- **An instrument is drawn on its host, as
+  one footprint.** A sensor stands on the node it reads -- a point on one pipe or a terminal (`D-150`)
+  -- and a controller on the device it actuates, each joined to its host by a straight line one margin
+  long: from the node's point, or from the middle of the device's edge. Its side is the host's first
+  free side, a side no connection leaves by, in the order: the device's actuator stem (a valve's is up
+  in its drawn default, a three-way valve's right, opposite its angle port), then up, down, left, right;
+  the first whose bubble keeps the clearance from every box, bubble and drawn pipe of its fragment, else
+  the first free side. The layout makes room rather than searching for it: while a form places a
+  component, a device's bubbles count in the clearance as its box does, every stub -- the first margin
+  of pipe out of a port -- keeps out of every bubble's clearance, and a run carrying a sensor's node
+  (`Reserve`) is laid at least long enough that, cut evenly by A5, each bubble on it keeps a margin
+  from the boxes at both ends and from the next bubble. A fragment's extent includes its bubbles, so
+  the next circuit stacks under them (C17). The only signal routed is a controller's measurement: from
+  the sensor it reads through, level first, one bend, into the controller's facing edge -- or round
+  every box when that path crosses one (step 11d, `C-94`). A control line that measures a node directly
+  reads it through the sensor the binder puts there (I8), so a controller is never joined to a node. A
+  signal may cross a pipe (C16); it never runs along one. Not built: a host
+  with no free side (a four-way junction, which `D-150` refuses to measure).
 - **C16** *(step 10, provisional)* -- **At a crossing the route in front runs through and the one
   behind breaks.** Every route carries a layer -- `inlet`, `outlet`, `signal` -- and the picture is
   drawn from the back: signals, then return pipes, then supply pipes. Where two routes cross, the

@@ -869,7 +869,9 @@ this kind, not a different one.
 Where three pipes meet, the node's one temperature is the perfect mix of streams no instrument on any
 of the three pipes reads, and "the flow at this node" names two or three different numbers; which pipe
 is meant is the script's to say, with a node on it. A `control` line's `measure=` naming a node
-directly is held to the same rule, because it reads the same number.
+directly is held to the same rule, because it reads the same number. Such a line reads the node
+through a sensor all the same: the binder puts one there (I8, `D-151`), so every measurement a
+controller makes is a sensor on the drawing.
 
 **What a flow sensor reads is the sum of the flows entering its node.** At the nodes `D-150` allows
 that is the through-flow of the one pipe, or at a terminal the flow crossing it, and the definition is
