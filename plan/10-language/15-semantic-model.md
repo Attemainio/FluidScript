@@ -1066,6 +1066,7 @@ nothing interpolates between them. It is not a solve mode either — a file with
 | `FS1545` | `start=` on the project line is not a time (`D-149`) | Error | `start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds.` |
 | `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value.` |
 | `FS1547` | `start=` in a file no circuit of which is solved in time (`D-149`) | Warning | `Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.` |
+| `FS1548` | A sensor's `at`, or a `measure=` naming a node, reads a node where more than two connections meet (`D-150`) | Error | `'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`

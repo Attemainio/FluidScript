@@ -865,12 +865,17 @@ exists so that the *script* can name a measurement point, and so that a diagram 
 not a filter, a lag, or a source of error. Instrument dynamics are post-v1 and would be parameters on
 this kind, not a different one.
 
-**What a flow sensor reads is the sum of the flows entering its node.** On a node with one inlet and
-one outlet that is the through-flow and the definition is invisible, which is why it went unstated
-until an implementation had to pick one (`C-14`). At a tee it is the only reading that is well
-defined: "the flow at this node" otherwise names two or three different numbers, and the plausible
-alternatives differ from each other by a factor of two at a mixing junction. A temperature or pressure
-sensor has no such ambiguity — a node carries one of each.
+**A sensor sits at a node with one or two connections, never at a junction** (`D-150`, `FS1548`).
+Where three pipes meet, the node's one temperature is the perfect mix of streams no instrument on any
+of the three pipes reads, and "the flow at this node" names two or three different numbers; which pipe
+is meant is the script's to say, with a node on it. A `control` line's `measure=` naming a node
+directly is held to the same rule, because it reads the same number.
+
+**What a flow sensor reads is the sum of the flows entering its node.** At the nodes `D-150` allows
+that is the through-flow of the one pipe, or at a terminal the flow crossing it, and the definition is
+invisible — which is why it went unstated until an implementation had to pick one (`C-14`). It was
+chosen when a flow sensor could still sit on a tee, where it was the only well-defined reading; it
+stays the implementation's definition and no longer has a case where it matters.
 
 **Its measured property is registry data (`MeasuredProperty`)**, which is what lets `control TV1 with
 TE1 by PID1` resolve without a `.t`. A kind naming exactly one measured property makes the bare form

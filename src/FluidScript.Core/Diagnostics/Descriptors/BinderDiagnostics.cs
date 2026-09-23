@@ -868,6 +868,20 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.");
 
+    /// <summary>A measurement read at a node where more than two pipes meet (<c>D-150</c>).</summary>
+    /// <value><c>FS1548</c>, an error.</value>
+    /// <remarks>
+    /// A node carries one state, the perfect mix of what arrives, so a junction's reading is never
+    /// ambiguous to the solver -- but it is to the engineer: the streams arriving are not yet mixed and a
+    /// real instrument sees the mix only some way downstream. Which pipe is meant is the script's to
+    /// say, by a node on it. One rule for a sensor's <c>at</c> and for <c>measure=</c>, which read the
+    /// same number.
+    /// </remarks>
+    public static DiagnosticDescriptor MeasuredJunction { get; } = new(
+        "FS1548",
+        DiagnosticSeverity.Error,
+        "'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.");
+
     /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
     /// <param name="dimension">The parameter's dimension.</param>
     /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
@@ -890,6 +904,7 @@ public static class BinderDiagnostics
         StartUnreadable,
         ClockWithoutStart,
         StartWithoutClock,
+        MeasuredJunction,
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,

@@ -970,7 +970,10 @@ public sealed class WellPosednessTests
                 // 5 since D-141: the tour's `control ... measure=NJ2.t ... setpoint=20` is a constraint on
                 // NJ2's temperature now, and its actuator TV3.position is already HE3.in.t's, so nothing
                 // is left to hold it -- the tour states both, which a plant would not.
-                ["m1-syntax-tour.fluid"] = "5",
+                // 4 again since D-150: NJ2 is a junction and no longer readable, so the tour measures NS3,
+                // the coil's supply, whose neighbour HE3 already states in.t=50; the setpoint is not
+                // applied twice, and nothing over-holds TV3.
+                ["m1-syntax-tour.fluid"] = "4",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",

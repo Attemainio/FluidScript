@@ -49,6 +49,9 @@ transposing them is caught rather than obeyed.
   one controller is an error: a controller holds one integral term and drives one actuator.
 - Measure a **sensor**, not a pipe. `measure=N2.t` still works, but a sensor is where the instrument
   really is — see [`t_sensor`](t-sensor.md).
+- Measure **one stream**. A node read directly, like a sensor, must have one or two connections: at a
+  junction where three pipes meet there is no single stream to read, and the line is
+  [`FS1548`](diagnostics.md). Put a node on the pipe you mean.
 
 ## See also
 

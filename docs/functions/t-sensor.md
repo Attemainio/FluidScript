@@ -21,6 +21,25 @@ TE1 t_sensor at N2                      # what the model produced
 The first is a **specification**. The second is a **measurement**. They are different claims about
 the plant, and a sensor is how you ask for the second.
 
+## Where it can sit
+
+On a node with **one or two connections** — the end of a line, or a point on one pipe. Never on a
+junction where three or more pipes meet: the streams arriving there are not yet mixed, an instrument on
+any one of the pipes reads only its own, and which pipe you mean is yours to say. A sensor on a
+junction is [`FS1548`](diagnostics.md), an error. Put a node on the pipe you mean and read
+that one:
+
+```fluidscript
+TE1 t_sensor at NS
+
+connections
+N2 - NS             # NS is a point on the mixed pipe past the junction N2
+NS - PU1
+```
+
+A mixing loop's supply sensor goes on the mixed pipe past the junction, where the streams have
+combined, which is where an installer puts it.
+
 ## What it does to the model
 
 Nothing. A sensor has no ports, no pressure drop and no heat transfer; it does not sit in the flow

@@ -1,3 +1,4 @@
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
@@ -25,8 +26,14 @@ internal sealed partial class BindingRun
     {
         foreach (var component in _components)
         {
-            if (component.AttachedTo is not { } node || _componentsByName.ContainsKey(node))
+            if (component.AttachedTo is not { } node)
             {
+                continue;
+            }
+
+            if (_componentsByName.ContainsKey(node))
+            {
+                CheckMeasuredNode(component.Name, node, component.DeclarationSpan ?? default);
                 continue;
             }
 
@@ -34,6 +41,39 @@ internal sealed partial class BindingRun
                 BinderDiagnostics.UnknownName,
                 component.DeclarationSpan ?? default,
                 ("name", node));
+        }
+    }
+
+    /// <summary>Refuses a measurement at a node where more than two pipes meet (<c>FS1548</c>, <c>D-150</c>).</summary>
+    /// <param name="reader">The sensor or controller doing the reading, for the message.</param>
+    /// <param name="node">The node read.</param>
+    /// <param name="span">Where to report it.</param>
+    /// <remarks>
+    /// Two connections is an inline point on one pipe and one is a terminal, and either has one
+    /// stream. Counted after inference, so a node rule I1 created is judged by the connections that
+    /// made it.
+    /// </remarks>
+    private void CheckMeasuredNode(string reader, string node, TextSpan span)
+    {
+        var count = _degrees.GetValueOrDefault(node);
+
+        if (count > 2)
+        {
+            Report(BinderDiagnostics.MeasuredJunction, span, ("name", reader), ("node", node), ("count", count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+    }
+
+    /// <summary>Checks a <c>measure=</c> that reads a node directly (<c>D-150</c>).</summary>
+    /// <param name="controller">The controller, for the message.</param>
+    /// <param name="component">The measured component.</param>
+    /// <param name="span">The control line.</param>
+    /// <remarks>A sensor was checked where it was placed, so only a node read directly is checked here.</remarks>
+    private void CheckMeasurement(string controller, string component, TextSpan span)
+    {
+        if (_componentsByName.TryGetValue(component, out var measured)
+            && _components[measured.Index].Kind?.Keyword is "node")
+        {
+            CheckMeasuredNode(controller, component, span);
         }
     }
 
@@ -112,6 +152,8 @@ internal sealed partial class BindingRun
             return;
         }
 
+        CheckMeasurement(controller.Name, measurement.Component, statement.Span);
+
         _controlBindings.Add(new ControlBindingSymbol
         {
             Controller = controller,
@@ -161,6 +203,8 @@ internal sealed partial class BindingRun
                 ("kind", controller?.Kind?.Keyword ?? controller?.WrittenKind ?? "value"));
             return;
         }
+
+        CheckMeasurement(controller.Name, measurement.Component, statement.Span);
 
         _controlBindings.Add(new ControlBindingSymbol
         {

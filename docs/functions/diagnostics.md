@@ -140,6 +140,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1545` | Error | Binder | start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds. |
 | `FS1546` | Warning | Binder | This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value. |
 | `FS1547` | Warning | Binder | Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here. |
+| `FS1548` | Error | Binder | '{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |

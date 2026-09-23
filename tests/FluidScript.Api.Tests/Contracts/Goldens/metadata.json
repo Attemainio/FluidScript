@@ -5093,6 +5093,17 @@
       "arguments": []
     },
     {
+      "code": "FS1548",
+      "severity": "error",
+      "area": "Binder",
+      "message": "'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.",
+      "arguments": [
+        "name",
+        "node",
+        "count"
+      ]
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",

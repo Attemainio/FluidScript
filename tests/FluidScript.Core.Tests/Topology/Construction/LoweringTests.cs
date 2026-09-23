@@ -229,7 +229,7 @@ public sealed class LoweringTests
 
             TE1 t_sensor at N1
             PE1 p_sensor at N3
-            FE1 flow_sensor at N2
+            FE1 flow_sensor at N1
             """;
 
         Assert.Equal(

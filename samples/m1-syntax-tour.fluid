@@ -117,11 +117,13 @@ outlet NJ2                                # inlet (TV3.a); and returns it at NJ2
                                           # position, where a name follows rather than precedes (D-64)
 
 connections
-TV3.ab - PU3 - HE3 - NM3                  # the injection loop: valve, pump, load, split
+TV3.ab - PU3 - NS3 - HE3 - NM3            # the injection loop: valve, pump, supply node, load, split
 NM3 - TV3.b                               # the recirculation back into the valve
 NM3 - PA3                                 # and the return pipe, open at its far end for `outlet`
 
-control actuate=TV3.position measure=NJ2.t by=PID3 setpoint=20
+control actuate=TV3.position measure=NS3.t by=PID3 setpoint=50
+                                          # a node on one pipe: NJ2, where three meet, has no single
+                                          # stream to read (FS1548, D-150)
 
 # ---------------------------------------------------------------------------------------------
 # A transient circuit, for the schedule section.

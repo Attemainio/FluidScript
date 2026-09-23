@@ -99,7 +99,7 @@ frozen-snapshot rule does not apply to them because the run has not started when
 
 `D-141`. A `control` binding whose actuator is **unstated** contributes its setpoint as a constraint on
 its measurement in the design solve, promoting the actuator: `control actuate=3WV.position
-measure=N2.t by=TC1 setpoint=20` holds `N2` at 20 °C at t = 0 and the solve chooses the valve
+measure=NS.t by=TC1 setpoint=20` holds `NS` at 20 °C at t = 0 and the solve chooses the valve
 position that does it — the demand-step loop's 0.501. The run then starts at the controlled
 equilibrium, `Initialize` receives that position, and the first step produces no increment. This is
 what a designer means by the design point of a controlled loop, and it is the only way the reference
@@ -266,12 +266,12 @@ period and an amplitude — which is a small amount of work and turns the most c
 ## Worked example
 
 M4's demo is the **demand-step loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)):
-`TC1` holds `N2.t` — the mixing-node temperature — at **20 °C** by modulating `3WV.position`, and the
+`TC1` holds `NS.t` — the mixed stream just past the mixing node `N2` — at **20 °C** by modulating `3WV.position`, and the
 load steps 30 → 45 kW at t = 60 s.
 
 ```fluidscript
 TC1 pi                                                    # definition: algorithm and gains
-control actuate=3WV.position measure=N2.t by=TC1 setpoint=20   # binding: what it drives, what it reads
+control actuate=3WV.position measure=NS.t by=TC1 setpoint=20   # binding: what it drives, what it reads
 ```
 
 `actuate=` names a qualified parameter — `3WV.position`, never `3WV` (`D-43`).
@@ -315,7 +315,7 @@ and the controller fighting for the same actuator, which is over-specification w
 system's clothes.
 
 **`PB`, the discretized recirculation pipe, is what makes any of this a control problem** (`D-16`).
-The measured node `N2` is fed by `3WV.b`; without volume on that leg a disturbance at `HE1` reaches the
+The mixing node `N2`, and the measured `NS` just past it, are fed by `3WV.a`; without volume on that leg a disturbance at `HE1` reaches the
 measurement within one timestep, there is no dead time, and every gain below is tuned against a process
 that does not exist. `P1` cannot supply that volume — it sits on the primary return, downstream of
 `N2`, and never returns to it.

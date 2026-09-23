@@ -489,11 +489,12 @@ P1  pipe length=25
 PB  pipe length=8 dn=20 nodes=4   # recirculation branch — the path the controller sees
 TC1 pi                            # definition: algorithm and gains (D-40)
 
-control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
+control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
 
 connections
 N1 - N2
-N2 - PU1
+N2 - NS
+NS - PU1                     # the mixed stream, where TC1 reads it
 PU1 - HE1
 HE1 - 3WV
 3WV - PB - N2                # recirculation, now with volume in it
@@ -508,14 +509,14 @@ at 60 s   HE1.power = 45
 ```
 
 **Its t = 0 state is the cooling loop's design state** (`D-141`): the `control` line's setpoint holds
-`N2` at 20 °C in the design solve and chooses the valve position, so the run starts at 0.2392 kg/s
+`NS` at 20 °C in the design solve and chooses the valve position, so the run starts at 0.2392 kg/s
 secondary, 0.0763 kg/s recirculating, the valve at 0.50 and `HE1` at 50 °C — the figures above.
 Without that rule the script does not solve (measured 2026-09-22, `S-75`).
 
 **Three changes from the cooling loop, and each is load-bearing** (`D-16`):
 
 **`PB` puts pipe volume on the recirculation branch.** This is the change the whole transient story
-rests on. In the cooling loop the path from `HE1` to the measured node `N2` is
+rests on. In the cooling loop the path from `HE1` to the mixing node `N2` is
 `HE1 → HE1__3WV → 3WV.ab → 3WV.a → N2` with no declared pipe on it, so a disturbance at `HE1` reaches
 `N2` within one timestep and there is no dead time to tune against. `P1` cannot supply it: `P1` sits on
 the primary *return*, downstream of `N2`, and discharges to `N3` without returning. 8 m at `nodes=4`
@@ -565,9 +566,14 @@ reference circuit that emits a real design warning is a better test of the warni
 does not.
 
 **Inference inventory:** 7 declared (`HE1`, `3WV`, `PU1`, `P1`, `PB`, `N1`, `N3` — `TC1` has no ports
-and is not in the flow graph), 1 from I1 (`N2`), 4 from I2 (`PU1__HE1`, `HE1__3WV`, `3WV__PB`,
-`3WV__P1`), none from I3. **Seven nodes, twelve flow components**, plus four internal nodes and five
+and is not in the flow graph), 2 from I1 (`N2`, `NS`), 4 from I2 (`PU1__HE1`, `HE1__3WV`, `3WV__PB`,
+`3WV__P1`), none from I3. **Eight nodes, thirteen flow components**, plus four internal nodes and five
 sub-pipes from `PB`'s discretization.
+
+**`TC1` reads `NS`, not `N2`** (`D-150`). `N2` is where the primary supply, the recirculation and the
+pump suction meet, and a junction has no single stream an instrument could read; `NS` is a point on
+the mixed pipe to the pump, where a designer puts the supply sensor. The two share an ideal link
+(`D-25`), so they carry one temperature and every figure above is unchanged.
 
 Keeping the syntax reference alongside the circuit references is deliberate. It shows what the
 language should feel like to write; the circuit references show what it takes to be solvable, and the
@@ -797,7 +803,7 @@ connected component (`D-33`).
       the solved-state figures above (`D-11`, `D-16`).
 - [ ] The cooling loop solves, and its recirculation flow is non-zero — the check that the pump is in
       the loop that needs it.
-- [ ] The demand-step loop's measured node `N2` does not move for at least 30 s after the `t = 60 s`
+- [ ] The demand-step loop's measured node `NS` does not move for at least 30 s after the `t = 60 s`
       step — the check that the transport path between the disturbance and the measurement is real
       (`D-16`). Deleting `PB` from the circuit must make this test fail.
 - [ ] No document counts three I1 nodes or six inferred components in the cooling loop; the boundary

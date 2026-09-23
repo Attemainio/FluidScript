@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). Next: P6.3 | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction). Next: the instrument layout (`C-124` first), then P6.3 | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1498,6 +1498,13 @@ that governed each size. What P6.8 still owes, and what comes after:
 - ~~`S-79`~~ **closed 2026-09-23 by `D-149`**: `start=` on the project line places t = 0 on the
   time axis, and a run follows every curve of time from there. Open in `33`: whether t = 0 is the
   design state (`D-141`, today) or the plant settled at the start's own conditions -- the user's call.
+- **`D-150` built 2026-09-23**: a sensor, or a `measure=` naming a node, reads a node with at most two
+  connections; a junction is `FS1548`. `01`'s demand-step loop reads `NS` on the mixed pipe past `N2`
+  (figures unchanged, measured). The layout half of the user's instrument redesign -- a sensor merged
+  with its node and a controller with its actuator as one layout box, on the first free perpendicular
+  side, breaking `D-100`'s instrument edit-stability rule -- is the next package and takes its own
+  `D-`. Mapping it found `C-124`: a pipe with `nodes=` is dropped from the diagram, so `m4-demand-step`
+  draws its recirculation as loose cells; fix it first, since the instrument work renders that file.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

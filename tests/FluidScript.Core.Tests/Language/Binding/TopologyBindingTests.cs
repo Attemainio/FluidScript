@@ -385,6 +385,39 @@ public sealed class TopologyBindingTests
         Assert.Contains("'TV1'", diagnostic.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("TE1 t_sensor at N2\n", "'TE1' reads 'N2', where 3 pipes meet")]
+    [InlineData("control actuate=TV1.position measure=N2.t by=PID1 setpoint=20\n", "'PID1' reads 'N2', where 3 pipes meet")]
+    public void AReadingAtAJunctionIsFs1548(string reader, string expected)
+    {
+        // `D-150`. Three streams meet at N2 and the node's one state is their mix, which no instrument
+        // on any of the three pipes reads; the script has to say which pipe it means. A sensor's `at`
+        // and a controller's `measure=` read the same number, so they are refused alike.
+        var result = Bind(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
+            + "connections\nN1 - N2\nN2 - TV1.a\nN2 - N3\n"
+            + reader);
+
+        var diagnostic = Assert.Single(result.Diagnostics, static d => d.Code == "FS1548");
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains(expected, diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AReadingOnOnePipeOrAtAnEndIsNotAJunction()
+    {
+        // Two connections is a point on one pipe, one is a terminal: each has a single stream.
+        var result = Bind(
+            "fluidscript 1\nTV1 three_way_valve\nPID1 pid kp=3\nN1 inlet t=6 p=300\nN3 outlet p=280\n"
+            + "TE1 t_sensor at N1\n"
+            + "connections\nN1 - NS\nNS - TV1.a\nTV1.ab - N3\n"
+            + "control actuate=TV1.position measure=NS.t by=PID1 setpoint=20\n");
+
+        Assert.DoesNotContain("FS1548", Codes(result));
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void TheScheduleBindsBothItsForms()

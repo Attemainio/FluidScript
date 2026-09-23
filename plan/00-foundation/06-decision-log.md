@@ -192,6 +192,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-147` | Accepted | 2026-09-23 | Core is organised by domain folders whose namespaces mirror them, with shared bases for components and sizers |
 | `D-148` | Accepted | 2026-09-23 | A folder holding one class's partials is transparent to the namespace, and no namespace segment names a type in it |
 | `D-149` | Accepted | 2026-09-23 | A run's t = 0 is the instant the project line states, and a curve of time is read there plus t |
+| `D-150` | Accepted | 2026-09-23 | A measurement reads a node with at most two connections; a junction is refused |
 <!-- index:end -->
 
 ---
@@ -6974,3 +6975,48 @@ start's own conditions is the user's question and is recorded as open in `33`.
   `design` to naming the operating case.
 - *The start as a run setting on the wire, like the horizon.* The user's reading is that the script
   states it; the same file then means the same run wherever it is opened.
+
+## D-150 · A measurement reads a node with at most two connections; a junction is refused
+
+**Accepted · 2026-09-23** (the user's call) · narrows `D-61`'s placement and `D-23`'s `measure=` ·
+constrains [`15`](../10-language/15-semantic-model.md), [`22`](../20-core-domain/22-component-model.md),
+[`34`](../30-solver/34-controllers.md) and `01`'s demand-step loop
+
+A node carries one state, the perfect mix of everything arriving at it. At a node where three pipes
+meet that number is well defined for the solver and undefined for the plant: the streams arriving are
+not yet mixed, and an instrument on any of the three pipes reads its own stream, not the mix. **Which
+pipe is measured is the question, and a junction cannot answer it.** So a temperature, pressure or flow
+sensor may be placed only at a node with **one or two connections** — a terminal, or a point on one
+pipe — and a `control` line's `measure=` that names a node directly is held to the same rule, because
+it reads the same number. A junction is `FS1548`, an error naming the node and its connection count.
+
+**The published guidance says the same thing from the other side.** A mixing loop's supply sensor
+goes downstream of the mixing point, on the mixed stream: *"Be sure the supply water temperature
+sensor for the valve controller is mounted downstream of the circulator. Doing so ensures complete
+mixing of the hot and return water streams prior to the flow passing the sensor location"*
+([Siegenthaler, *4-way versus 3-way motorized mixing valves*, PM Engineer 2021](https://www.pmmag.com/articles/103443-john-siegenthaler-4-way-versus-3-way-motorized-mixing-valves)).
+Taco's setpoint-valve manual draws the supply sensor on the pipe past the valve, never at the tee
+([Taco OM06](https://www.tacocomfort.com/documents/FileLibrary/Setpoint2w3w4w.pdf)). The distance
+downstream is not modelled — a node is a point — and the count "at most two connections" is this
+project's reading of that guidance, not a quoted rule.
+
+**A three-way valve is not a junction in this sense.** It is a component, not a node, and what is
+attached to it is its actuator, not a sensor: the controller of `3WV.position` belongs on the valve
+(the layout consequence is the next decision's).
+
+**The reference loop moves its measurement.** `01`'s demand-step loop measured `N2`, where the primary
+supply, the recirculation and the pump suction meet. It now reads `NS`, a node on the mixed pipe
+between `N2` and `PU1` (`N2 - NS`, `NS - PU1`): the stream the pump sends to `HE1`, which is what a
+designer's sensor would read. The two nodes share an ideal link (`D-25`), so every figure in `01` and
+`34` stands — measured 2026-09-23: 0.2393 kg/s secondary, 0.0763 recirculating, the valve at 0.501,
+`NS` at 20.00 °C. `m1-syntax-tour`'s `PID3` read the parent's return junction `NJ2` and now reads
+`NS3`, the coil's supply.
+
+### Rejected
+
+- *A warning, not an error.* The number read is the solver's, so the file would solve — and the
+  controller would be tuned against a temperature no instrument in the plant can see. An error that
+  says "put a node on the pipe you mean" costs one line.
+- *Read the junction as the outgoing stream when exactly one pipe leaves it.* Flow direction is a
+  solved quantity; a binder rule that depended on it would change verdict when a valve moved.
+- *Sensors only; leave `measure=` alone.* Two spellings of the same reading with different rules.

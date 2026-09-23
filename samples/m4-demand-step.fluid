@@ -1,11 +1,13 @@
 # The demand-step loop reference from plan/00-foundation/01-vision-and-scope.md (D-16).
 #
 # The cooling loop in time: `PB` puts 8 m of DN20 pipe in four cells on the recirculation branch,
-# so a change at `HE1` reaches the measured node `N2` 38 s later; `TC1` holds `N2` at 20 C through
-# the three-way valve; the schedule steps the load from 30 to 45 kW at t = 60 s.
+# so a change at `HE1` reaches the mixing node `N2` 38 s later; `TC1` holds `NS`, on the mixed pipe
+# just past it, at 20 C through the three-way valve; the schedule steps the load from 30 to 45 kW at
+# t = 60 s. The measurement is `NS` and not `N2` because `N2` is a junction of three pipes, and a
+# junction has no single stream to read (D-150, FS1548).
 #
 # Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
-# `N2` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
+# `NS` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
 # cells keep the pipe's stated dn (C-113). The run itself arrives with P6.1.
 #
 # `HE1` holds 0.5 dm3 a side (C-114): a 30 kW brazed plate unit is around 0.5 m2 of area, and the
@@ -24,11 +26,12 @@ P1  pipe length=25
 PB  pipe length=8 dn=20 nodes=4   # recirculation branch — the path the controller sees
 TC1 pi                            # definition: algorithm and gains (D-40)
 
-control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
+control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
 
 connections
 N1 - N2
-N2 - PU1
+N2 - NS
+NS - PU1                     # the mixed stream, where TC1 reads it
 PU1 - HE1
 HE1 - 3WV
 3WV - PB - N2                # recirculation, now with volume in it

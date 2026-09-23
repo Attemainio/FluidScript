@@ -40,11 +40,12 @@ public sealed class CurveClockTests
         PB  pipe length=8 dn=20 nodes=4
         TC1 pi
 
-        control actuate=3WV.position measure=N2.t by=TC1 setpoint=20
+        control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
 
         connections
         N1 - N2
-        N2 - PU1
+        N2 - NS
+        NS - PU1
         PU1 - HE1
         HE1 - 3WV
         3WV - PB - N2

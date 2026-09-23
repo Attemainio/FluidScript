@@ -21,6 +21,25 @@ FE1 flow_sensor at N2                      # what the model produced
 The first is a **specification**. The second is a **measurement**. They are different claims about
 the plant, and a sensor is how you ask for the second.
 
+## Where it can sit
+
+On a node with **one or two connections** — the end of a line, or a point on one pipe. Never on a
+junction where three or more pipes meet: the streams arriving there are not yet mixed, an instrument on
+any one of the pipes reads only its own, and which pipe you mean is yours to say. A sensor on a
+junction is [`FS1548`](diagnostics.md), an error. Put a node on the pipe you mean and read
+that one:
+
+```fluidscript
+FE1 flow_sensor at NS
+
+connections
+N2 - NS             # NS is a point on the mixed pipe past the junction N2
+NS - PU1
+```
+
+A mixing loop's supply sensor goes on the mixed pipe past the junction, where the streams have
+combined, which is where an installer puts it.
+
 ## What it does to the model
 
 Nothing. A sensor has no ports, no pressure drop and no heat transfer; it does not sit in the flow
@@ -39,10 +58,9 @@ Just `FE1`. A mass flow sensor measures one thing, so there is nothing to disamb
 
 Its reading is in kg/s, and it is the flow **entering** the node — everything arriving, added up.
 
-On a node with one pipe in and one out, that is simply the flow through it and there is nothing to
-think about. On a tee it matters: a node where two branches merge has no single "the flow", and the
-sum of what arrives is the one number that is well defined and matches what a meter in the combined
-line would show. If you want a branch flow, place the instrument on a node in that branch.
+On a node with one pipe in and one out, that is simply the flow through it; at the end of a line, the
+flow crossing it. Those are the only nodes a flow sensor sits on, so there is nothing more to think
+about. If you want a branch's flow, place the instrument on a node in that branch.
 
 ## Its tag
 

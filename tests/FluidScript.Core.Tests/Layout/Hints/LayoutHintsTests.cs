@@ -184,23 +184,27 @@ public sealed class LayoutHintsTests
     [Fact]
     public void AControllerIsAnchoredToItsActuatorAndReadsThroughItsSensor()
     {
-        var (hints, _) = Unsolved(GraphFixture.CoolingLoop.Replace(
-            "N3 outlet p=280",
-            """
-            N3 outlet p=280
-            TE1 t_sensor at N2
-            TC1 pid kp=2
-            control actuate=3WV.position measure=TE1.t by=TC1 setpoint=20
-            """));
+        // The sensor sits on the mixed stream past N2, not on N2: three pipes meet there (D-150).
+        var (hints, _) = Unsolved(GraphFixture.CoolingLoop
+            .Replace("N2 - PU1", "N2 - NS\nNS - PU1", StringComparison.Ordinal)
+            .Replace(
+                "N3 outlet p=280",
+                """
+                N3 outlet p=280
+                TE1 t_sensor at NS
+                TC1 pid kp=2
+                control actuate=3WV.position measure=TE1.t by=TC1 setpoint=20
+                """,
+                StringComparison.Ordinal));
 
         var sensor = Assert.Single(hints.NonFlowElements, static e => e.ComponentId == "TE1");
         var controller = Assert.Single(hints.NonFlowElements, static e => e.ComponentId == "TC1");
 
-        Assert.Equal(("N2", "N2", null), (sensor.PlacementAnchorId, sensor.MeasurementTargetId, sensor.ActuationTargetId));
-        Assert.Equal(("3WV", "N2", "3WV"), (controller.PlacementAnchorId, controller.MeasurementTargetId, controller.ActuationTargetId));
-        // One tab order: N2 is Order[1], the sensor follows it at 2, so 3WV (Order[6]) sits at 7 and
-        // its controller at 8.
-        Assert.Equal(2, sensor.NavigationOrder);
+        Assert.Equal(("NS", "NS", null), (sensor.PlacementAnchorId, sensor.MeasurementTargetId, sensor.ActuationTargetId));
+        Assert.Equal(("3WV", "NS", "3WV"), (controller.PlacementAnchorId, controller.MeasurementTargetId, controller.ActuationTargetId));
+        // One tab order: the sensor follows NS, and 3WV, later in the order, sits one further on for it
+        // and its controller one after that.
+        Assert.Equal(hints.Order.IndexOf("NS") + 1, sensor.NavigationOrder);
         Assert.Equal(hints.Order.IndexOf("3WV") + 2, controller.NavigationOrder);
     }
 
