@@ -173,6 +173,22 @@ internal sealed class CircuitView
         _ => null,
     };
 
+    /// <summary>
+    /// The duty a path entering <paramref name="c"/> by <paramref name="port"/> sees, negative (W), heat leaving that
+    /// path's fluid: <see cref="Duty"/>, except that a two-sided exchanger entered by its second side gives up there
+    /// what its first side gains -- a heat source's second side is a consumer of the path through it (H10's losing
+    /// side) -- and a consumer's second side gains, so it is none.
+    /// </summary>
+    public double? DutyOn(int c, int port)
+    {
+        if (port < 0 || Graph.Components[c] is not HeatExchangerComponent h || !h.Ports[port].Name.EndsWith('2'))
+        {
+            return Duty(c);
+        }
+
+        return IsSource(c) ? (h.Power > 0 ? -h.Power : -double.Epsilon) : null;
+    }
+
     /// <summary>The kind the script wrote for a component, lower-cased; null for one the language inferred.</summary>
     public string? Written(int c) => _declared[c] < 0 ? null : Model.Components[_declared[c]].WrittenKind.ToLowerInvariant();
 

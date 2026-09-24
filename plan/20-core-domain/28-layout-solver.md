@@ -668,7 +668,8 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
 - **Rails.** A ring or a block lays its members along a top rail and a bottom rail from its left
   side's two ports (C2), turns corners with the members that can (C9, C10), hangs its branches between
   the rails under the junctions that feed them and over the ones they return to (C14), and stands its
-  right side at the longer rail's end (C11). A member on a side with slack sits at its middle (C12). A
+  right side at the longer rail's end (C11) -- its consumer read by the side the ring passes, so a heat source's
+  second side is a consumer (`C-132`). A member on a side with slack sits at its middle (C12). A
   ring's members, its loops and its header branches are read from the decomposition, never searched
   for in the graph: the path runs through each header's spine and each loop's forward way, a loop past
   the ring's start is a block, and every other branch hangs from its split.

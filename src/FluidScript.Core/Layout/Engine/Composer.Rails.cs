@@ -134,14 +134,18 @@ internal sealed partial class Composer
         }
     }
 
-    /// <summary>The member that takes a ring's right side: the standing consumer of the largest duty from <paramref name="from"/> on, else the first member the flow leaves the ring by.</summary>
+    /// <summary>
+    /// The member that takes a ring's right side: the standing consumer of the largest duty from <paramref name="from"/>
+    /// on -- the duty the ring sees on the side it passes, so a heat source's second side is a consumer (C-132) -- else
+    /// the first member the flow leaves the ring by.
+    /// </summary>
     private int ConsumerOf(List<Member> cycle, int from)
     {
         var consumerAt = -1;
 
         for (var k = from; k < cycle.Count; k++)
         {
-            if (_view.Duty(cycle[k].Component) is { } duty && (consumerAt < 0 || duty < _view.Duty(cycle[consumerAt].Component)))
+            if (_view.DutyOn(cycle[k].Component, cycle[k].InPort) is { } duty && (consumerAt < 0 || duty < _view.DutyOn(cycle[consumerAt].Component, cycle[consumerAt].InPort)))
             {
                 consumerAt = k;
             }
@@ -652,15 +656,17 @@ internal sealed partial class Composer
             origin = Math.Max(topEnd.At.X, _sheet.Centre[j0.Component].X - (unit.Out.Along(_margin).X - unit.In.At.X) - _margin);
         }
 
-        // A left-facing outlet descends to the bottom rail one margin out; the descent must clear the boxes too, and the
+        // A left-facing outlet descends to the bottom rail one margin out -- to where the rail ends, which is lower than
+        // it began where a standing member turned it down (C3, C-133); the descent must clear the boxes too, and the
         // sensors on the pipes the form has drawn (D-151).
+        var yRail = cursor.At.Y;
         var sensors = InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)).ToList();
         Func<double, double, bool>? clear = rightJunction is null && unit.Out.Outward == Direction.Left
             ? (dx, dy) =>
             {
                 var x = unit.Out.Along(_margin).X + dx;
-                var (low, high) = (new Point(x, yBottom), new Point(x, unit.Out.At.Y + dy));
-                return _sheet.Free(x, yBottom, unit.Out.At.Y + dy, unit.Members) && !sensors.Any(o => Sheet.Passes(o, low, high));
+                var (low, high) = (new Point(x, yRail), new Point(x, unit.Out.At.Y + dy));
+                return _sheet.Free(x, yRail, unit.Out.At.Y + dy, unit.Members) && !sensors.Any(o => Sheet.Passes(o, low, high));
             }
             : null;
         var (uIn, uOut) = Slide(unit, origin, topEnd.At.Y - drop, runs, clear, topEnd.At.X, rightJunction is null ? cursor.At.X : null);
@@ -699,7 +705,7 @@ internal sealed partial class Composer
         }
         else
         {
-            pending.AddRange([new Point(outOuter.X, yBottom), outOuter, uOut.At]);
+            pending.AddRange([new Point(outOuter.X, yRail), outOuter, uOut.At]);
         }
 
         bottomRuns.Add(new RunDraft(unit.OutFrom, pending, rightJunction is null ? "C11" : "C10", rightJunction is null ? "the unit's outlet down to the bottom rail" : "the unit's outlet down to the corner junction under it"));
