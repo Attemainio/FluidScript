@@ -1,0 +1,13 @@
+# step-03-loop: hard 0, soft 0
+placement HE1 heat_exchanger.standard (0, 0) default rot 180 label (-0.25, 0.65)
+placement HE1__LOAD node.junction (1.25, 1) default rot 0 label (1.25, 1.15)
+placement LOAD heat_exchanger.standard (2.5, 0) default rot 0 label (2.75, 0.65)
+placement LOAD__PU1 node.junction (2.05, -1) default rot 0 label (2.05, -0.85)
+placement PU1 pump.standard (1.25, -1) default rot 0 mirrored label (1.25, -0.35)
+placement PU1__HE1 node.junction (0.45, -1) default rot 0 label (0.45, -0.85)
+route c0 pipe (0.75, -1) (0.45, -1)
+route c1 pipe (0.45, -1) (0.15, -1) (0.15, -0.5)
+route c2 pipe (0.15, 0.5) (0.15, 1) (1.25, 1)
+route c3 pipe (1.25, 1) (2.35, 1) (2.35, 0.5)
+route c4 pipe (2.35, -0.5) (2.35, -1) (2.05, -1)
+route c5 pipe (2.05, -1) (1.75, -1)

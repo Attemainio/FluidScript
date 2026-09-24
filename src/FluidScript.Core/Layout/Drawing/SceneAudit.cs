@@ -20,23 +20,25 @@ public static partial class SceneAudit
     private const double Eps = 1e-6;
 
     /// <summary>
-    /// The hard kinds, in the order the report prints them: <c>28</c> B H1–H10 and the drawing rules of A6 and A7 --
-    /// a pipe is an orthogonal polyline, a junction takes one pipe per side.
+    /// The hard kinds, in the order the report prints them: <c>28</c> B H1–H10, the drawing rules of A6 and A7 -- a
+    /// pipe is an orthogonal polyline, a junction takes one pipe per side -- and H11, two pipes a margin apart, hard
+    /// since the composed engine took over (<c>D-153</c>, P6.10 R6).
     /// </summary>
     public static readonly ImmutableArray<string> HardKinds =
     [
         "inner-in-inner", "clearance", "pipe-in-inner", "ends-off-port", "stub-short", "inline-on-corner", "pipes-overlap", "undrawn",
         "loop-counter-clockwise", "losing-side-right", "charging-side-right", "signal-in-inner", "diagonal", "junction-side",
+        "pipe-beside-pipe",
     ];
 
     /// <summary>The soft kinds, in the order the report prints them: counted, and the fewer the better (<c>28</c> B).</summary>
     public static readonly ImmutableArray<string> SoftKinds =
     [
-        "pipe-in-outer", "pipe-beside-pipe", "pipes-cross", "pipe-through-point", "signal-along-pipe", "label-in-inner", "label-in-label", "line-in-label",
+        "pipe-in-outer", "pipes-cross", "pipe-through-point", "signal-along-pipe", "label-in-inner", "label-in-label", "line-in-label",
     ];
 
     /// <summary>One breach of the clearance rules (<c>28</c> §22).</summary>
-    /// <param name="Kind">One of <see cref="HardKinds"/> (<c>28</c> B H1–H10, A6, A7) or <see cref="SoftKinds"/>, the label rules of <c>53</c> invariant 3a (<c>C-84</c>) among them.</param>
+    /// <param name="Kind">One of <see cref="HardKinds"/> (<c>28</c> B H1–H11, A6, A7) or <see cref="SoftKinds"/>, the label rules of <c>53</c> invariant 3a (<c>C-84</c>) among them.</param>
     /// <param name="First">The element that enters: a component id or a connection id.</param>
     /// <param name="Second">The element entered.</param>
     /// <param name="Detail">Where, in world units.</param>

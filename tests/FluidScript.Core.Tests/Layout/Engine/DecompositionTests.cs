@@ -15,7 +15,7 @@ public sealed class DecompositionTests
 {
     private static string Ladder => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder");
 
-    private static string Pending => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Parity");
+    private static string Variants => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Variants");
 
     public static TheoryData<string> Cases
     {
@@ -23,7 +23,7 @@ public sealed class DecompositionTests
         {
             var data = new TheoryData<string>();
 
-            foreach (var file in Directory.GetFiles(Ladder, "step-*.fluid").Concat(Directory.GetFiles(Pending, "*.fluid")).Order(StringComparer.Ordinal))
+            foreach (var file in Directory.GetFiles(Ladder, "step-*.fluid").Concat(Directory.GetFiles(Variants, "*.fluid")).Order(StringComparer.Ordinal))
             {
                 data.Add(file);
             }
@@ -43,7 +43,7 @@ public sealed class DecompositionTests
     {
         var input = ContractFixture.Compile(source);
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        return LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        return LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
     }
 
     /// <summary>The plan's lines for one fragment, their indentation kept.</summary>
@@ -56,7 +56,7 @@ public sealed class DecompositionTests
         // C-126: NA1 splits to zone 1 and on to NA2, which splits to zones 2 and 3; the return collects at NB2, then NB1.
         // Every branch flows from its split to its merge, so both groups are headers. The spine -- the branch the ring
         // runs on through -- is the one declared last: at NA1 the way on to NA2, at NA2 zone 3.
-        var plan = Plan(Solve(File.ReadAllText(Path.Combine(Pending, "step-12-zones.fluid"))));
+        var plan = Plan(Solve(File.ReadAllText(Path.Combine(Ladder, "step-12-zones.fluid"))));
 
         Assert.Equal("sourced ring (C2), head HE1, cut at HE1", plan[0]);
         Assert.Contains("    header NA1 to NB1, 2 branches", plan);

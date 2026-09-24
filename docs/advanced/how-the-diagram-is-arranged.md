@@ -215,13 +215,14 @@ Whatever rules place a circuit, the finished drawing is checked against one stan
 constraints are hard: a drawing that breaks one is wrong, not merely worse. No symbol enters
 another symbol's box or its clearance; no pipe and no signal line passes through a symbol it does
 not serve; every pipe and signal line runs level or plumb, never on a slant; a pipe starts and ends
-on the two ports its connection names and leaves each port straight for a whole margin; a junction
+on the two ports its connection names and leaves each port straight for a whole margin; no two pipes
+run side by side closer than a margin, except the two pipes at neighbouring ports of one symbol; a junction
 dot takes one pipe per side; no inline element sits on a corner; supply and return never share a
 segment; nothing is left undrawn; every flow loop runs clockwise; and heat progresses left to
 right -- through every exchanger, and into a tank by its charging ports on the left, unless the tank
-takes a loop on each side. Eight things
-are counted rather than forbidden, and fewer is better: a pipe through a margin, two pipes side by
-side closer than a margin, two pipes crossing, a pipe running through a point cut into another
+takes a loop on each side. Seven things
+are counted rather than forbidden, and fewer is better: a pipe through a margin, two pipes crossing,
+a pipe running through a point cut into another
 pipe (where a sensor on that point would read as measuring either), a signal line running along a
 pipe, and a label that overlaps a symbol, another label or a line.
 
@@ -240,7 +241,9 @@ declined first, the pipes that detour furthest past the distance between their e
 finding on its own line with the rules behind the two things it names. A pipe a rule would lay on a
 slant, or whose end a later move left off its port, is not drawn as laid: the router draws it, and
 the report says which rule laid it and why it was taken back. That report is how a change to the
-arrangement rules is judged.
+arrangement rules is judged. Every arrangement the project has accepted -- each step of the layout
+ladder, the sample plants, the large test plants -- is also kept as a checked-in copy of its geometry,
+so a change to the rules that moves an accepted drawing is caught even when it breaks no constraint.
 
 ## The messages
 

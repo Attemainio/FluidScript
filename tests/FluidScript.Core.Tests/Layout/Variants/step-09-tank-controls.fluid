@@ -1,0 +1,23 @@
+# Step 9 with its instruments (a variant beside the ladder, P6.10): nothing in the step can be
+# actuated, so the two supplies and the two draws are measured at their terminals.
+
+fluidscript 1
+circuit storageHeader
+fluid dynamic water
+show temperature
+
+S1 inlet t=60 flow=0.12
+S2 inlet t=45 flow=0.08
+T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
+RAD_NETWORK outlet flow=0.12
+AHU_NETWORK outlet flow=0.08
+TE_S1 t_sensor at S1
+TE_S2 t_sensor at S2
+TE_RAD t_sensor at RAD_NETWORK
+TE_AHU t_sensor at AHU_NETWORK
+
+connections
+S1 - T1.in
+S2 - T1.in[2]
+T1.out - RAD_NETWORK
+T1.out[2] - AHU_NETWORK

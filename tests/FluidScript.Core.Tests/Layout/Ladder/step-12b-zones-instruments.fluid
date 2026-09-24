@@ -1,0 +1,43 @@
+# does not settle: S-85 -- the seed runs zone 1 backwards (a plain split hands every branch the whole flow).
+# Layout ladder, step 12b (29, C-128): step 12 with its instruments.
+# Each zone valve holds its return temperature, the pump holds the pressure at the index point, and a
+# flow meter reads the supply.
+
+fluidscript 1
+circuit zones
+fluid water
+
+PU1 pump
+HE1 heat_exchanger power=60 out.t=70
+CV1 valve kv=4
+CV2 valve kv=4
+CV3 valve kv=4
+LD1 heat_exchanger power=-20
+LD2 heat_exchanger power=-20
+LD3 heat_exchanger power=-20
+TC1 pid kp=2
+TC2 pid kp=2
+TC3 pid kp=2
+PC1 pid kp=1
+TE1 t_sensor at NR1
+TE2 t_sensor at NR2
+TE3 t_sensor at NR3
+PE1 p_sensor at NP
+FE1 flow_sensor at NS
+
+connections
+PU1 - HE1
+HE1 - NS
+NS - NA1
+NA1 - CV1 - LD1 - NR1 - NB1
+NA1 - NA2
+NA2 - CV2 - LD2 - NR2 - NB2
+NA2 - CV3 - LD3 - NR3 - NB2
+NB2 - NB1
+NB1 - NP
+NP - PU1
+
+control CV1 with TE1 by TC1 setpoint=40
+control CV2 with TE2 by TC2 setpoint=40
+control CV3 with TE3 by TC3 setpoint=40
+control PU1 with PE1 by PC1 setpoint=150

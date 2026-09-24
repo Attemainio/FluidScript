@@ -204,6 +204,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-159` | Accepted | 2026-09-24 | Heat sources in parallel rise as columns, a pump standing in its riser |
 | `D-160` | Accepted | 2026-09-24 | A ring on an element a chain reaches is an attached ring too |
 | `D-161` | Accepted | 2026-09-24 | Room is kept for every instrument a chain or an attached ring carries |
+| `D-162` | Accepted | 2026-09-24 | Since the switch, every layout picture is pinned as a golden |
 <!-- index:end -->
 
 ---
@@ -7477,3 +7478,25 @@ rail, beside its sensor, and must not change).
 **Why.** `28` E3 already states the principle -- "the layout makes room rather than searching for it" -- and these are
 the places it had not reached. This project's reasoning; no drawing convention changes. Measured: the plant with its
 controls hard 5 → 0 (soft 6); no other script moved.
+
+## D-162 · Since the switch, every layout picture is pinned as a golden
+
+**Accepted · 2026-09-24** · amends `28` E5 (what guards a picture after the parity harness) and `62` · P6.10 R6 · the
+user's choice of three at the switch
+
+**What was lost.** Until the switch the parity harness drew every ladder step and sample with both engines and failed
+when an accepted picture differed; the first engine was the baseline. The switch deletes that engine, and what is left
+guards the audit, not the picture: `LayoutLadderTests` asserts hard 0, and only the four contract goldens (`m2-*`,
+`m4-storage-header`) pin geometry. A picture can rearrange with every finding unchanged -- step 10 drifted exactly so on
+the first engine, noticed only because the harness compared it with the other.
+
+**The rule.** Every step, variant, stress plant, sample and `header-200` has its placements (centre, symbol, transform,
+label), routes (points) and groups checked in as text under `tests/FluidScript.Core.Tests/Layout/Goldens/`, with its
+audit counts on the first line; `LayoutPictureTests` draws each, holds it to hard 0, and fails with the lines that
+changed when the text differs. A golden is rewritten only with `FLUIDSCRIPT_UPDATE_GOLDENS=1`, the variable the contract
+and token goldens already use, and a changed accepted picture is shown to the user before its commit (`D-153`).
+Coordinates are rounded to 1e-6 and the lines sorted by id, so only a change in the drawing changes the text.
+
+**Alternatives.** A table of audit counts that may not grow: cheaper, blind to a rearrangement that adds no finding.
+Nothing new: hard 0 alone, which is what let step 10 drift. **Cost:** 52 files, 288 KB; every intended picture change
+now arrives as a diff to review, which is the point.

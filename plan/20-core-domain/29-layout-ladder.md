@@ -33,12 +33,18 @@ never renders or opens the `.svg`.
 yet drawn (`D-108`); they are in `28` C marked *stated*, and the step that first draws each marks
 it *exercised*. The ladder does not wait to rediscover what the user has already said.
 
-**What the engine does with what no rule covers yet.** Nothing clever: the component goes in a
-column below everything placed (`group fallback` in the text), and its connections are drawn as the
-plainest L between the two anchors, without the router. A picture therefore shows exactly how far
-the rules reach and nothing invented past them. The seven layout samples and `header-200` run
-through the engine this way; their layout assertions are skipped until the ladder reaches them, and
-`LayoutLadderTests` is the gate meanwhile.
+**What the engine does with what no rule covers yet.** Until the switch (P6.10 R6, 2026-09-24): nothing
+clever -- the component went in a column below everything placed (`group fallback` in the text), and its
+connections were drawn as the plainest L between the two anchors, without the router, so a picture showed
+exactly how far the rules reached. A product's users see every such gap as a broken drawing (`C-127`), so the
+composed engine that replaced it has no fallback column: a fragment no form draws is grown as a chain (C1), and
+every run is laid by a rule or routed with both stubs (`28` E4).
+
+**Every picture is pinned since the switch.** `LayoutPictureTests` draws every step, every variant (a step with
+its controls, `Layout/Variants/`), the stress plants, the samples and `header-200`, holds each to hard 0, and
+compares its placements, routes and groups with the text checked in under `Layout/Goldens/`. A picture that
+moves fails there even when no audit finding changes; it is shown to the user and re-recorded with
+`FLUIDSCRIPT_UPDATE_GOLDENS=1` (`D-162`).
 
 **The engines before the ladder.** P5.1d-1's cell planner and P5.1d-2's first build (hanging, the
 four-side loop search, headers) are parked outside the repository at
@@ -983,6 +989,40 @@ second supply's level pipe runs 0.14 inside the first supply's clearance (soft 2
 rule that assumed the margin smaller than a port pitch. The tour's terminals stay on one vertical
 and its return straight; the pictures scale, the labels of an inline chain (`HE2__PB1`, `PB1`,
 `NJ2`) crowd the same at either margin. The scripts keep their own spacing; the default stays 0.5.
+
+### Step 12 · three zones on one pump
+
+`step-12-zones.fluid`: one pump, one source `HE1`, and three zones `CV1 - LD1`, `CV2 - LD2`, `CV3 - LD3` between
+the supply junctions `NA1`/`NA2` and the return junctions `NB1`/`NB2` -- the commonest shape in heating, and the
+one the first engine could not draw (`C-126`: a branch with no inner loop had no rule, zones 2 and 3 were grown
+as chains and `NR3` fell to the fallback column, hard 11). Drawn by the composed engine (`28` E3): each zone
+hangs as a column under its split -- valve, load standing (C3), the return's node -- into its merge straight
+under it, `NA1` and `NB1` both at `x = 2.25`, `NA2` and `NB2` at `3.35`, the zones 1.1 apart; zone 3 is the
+ring's right side and stands as a column like its siblings (`D-158`), `CV3` at `(4.45, −0.1)`. Hard 0, soft 0.
+The script does not settle (`S-85`: the seed runs zone 1 backwards) and says so on its first line.
+
+### Step 12b · the zones with their instruments
+
+`step-12b-zones-instruments.fluid`: step 12 with a return-temperature controller on each zone valve, the pump
+holding the pressure at the index point, and a flow meter on the supply. The first engine's clearance tests
+missed the runs `Close` laid, so `TE1` and `PE1` overlapped on the return rail (`C-128`, hard 11 soft 12); the
+composed engine asks one run length for every run a form lays. Each sensor stands on its zone's return node
+on its controller's side of the pipe (`D-158`) -- `TE1` at `(4.15, −2.9)` under `TC1` at `(4.45, −0.1)` --
+so no signal crosses a pipe. Hard 0, soft 0.
+
+### Step 13a · a buffer tank between two loops
+
+`step-13a-buffer-tank.fluid`: the boiler `B1` charges `T1` at its top and takes its bottom back through `PU_B1`;
+the secondary draws from the top through `PU_S1` to `LOAD` and returns to the bottom. The tank is the one
+component both loops share. The user chose one loop per flank from two mock-ups (`D-157`): the charging loop
+on the tank's left, the discharging loop on its right, the second read as an attached ring and laid by C2 with
+the tank as its fixed head -- `B1` at the origin, `T1` at `(3.25, 0.36)`, `LOAD` at `(6.5, 0)`. The smallest case
+of the whole plant the user accepted (`C-129`). Hard 0, soft 0; it solves.
+
+**The switch (P6.10 R6, 2026-09-24).** Steps 12, 12b and 13a were shown to the user and accepted as drawn, and
+joined the ladder with the composed engine as the only engine. Every step, variant, stress plant and sample is
+hard 0 with H11 hard (`28` B), and no case's soft count exceeds the first engine's; step 10 is drawn as this
+document records it, which the first engine had drifted from.
 
 ## What the ladder has not reached
 

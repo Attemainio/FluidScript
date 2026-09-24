@@ -5,9 +5,10 @@ using FluidScript.Core.Topology.Graph;
 
 namespace FluidScript.Core.Layout;
 
-/// <summary>Places every component and routes every connection (<c>D-103</c>) by the rule-based engine of <c>28</c> (<c>D-106</c>), built rule by rule against the ladder in <c>29</c>.</summary>
+/// <summary>Places every component and routes every connection (<c>D-103</c>) by the rule-based engine of <c>28</c> (<c>D-106</c>), held to the ladder in <c>29</c>.</summary>
 /// <remarks>
-/// The entry point only; <see cref="LayoutEngine"/> does the work. Coordinates are world units with
+/// The entry point only; the composed engine (<c>D-153</c>, <c>28</c> part E: decompose, compose, draw) does the work.
+/// It replaced the engine the ladder was first built on at the switch (P6.10 R6). Coordinates are world units with
 /// <c>y</c> growing upward; the result is deterministic for a given graph, model and hints (<c>D-72</c>).
 /// </remarks>
 public static class LayoutSolver
@@ -20,9 +21,8 @@ public static class LayoutSolver
     /// <param name="model">The bound model, for the connections as written and the non-flow elements.</param>
     /// <param name="hints">The hints derived from the same graph.</param>
     /// <param name="margin">The clearance, world units; <see cref="DefaultMargin"/> when the script states none.</param>
-    /// <param name="engine">Which engine draws it (<c>D-153</c>): the ladder engine until the rebuilt one reaches parity.</param>
     /// <returns>The scene.</returns>
-    public static Scene Solve(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin = DefaultMargin, LayoutEngineKind engine = LayoutEngineKind.Ladder)
+    public static Scene Solve(CircuitGraph graph, SemanticModel model, LayoutHints hints, double margin = DefaultMargin)
     {
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(model);
@@ -30,9 +30,7 @@ public static class LayoutSolver
 
         var clearance = Math.Max(margin, 0.05);
 
-        return engine == LayoutEngineKind.Composed
-            ? new Engine.ComposedEngine(graph, model, hints, clearance).Solve()
-            : new LayoutEngine(graph, model, hints, clearance).Solve();
+        return new Engine.ComposedEngine(graph, model, hints, clearance).Solve();
     }
 
     /// <summary>The margin the script asked for, or the default.</summary>

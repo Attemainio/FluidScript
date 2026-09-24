@@ -14,8 +14,8 @@ namespace FluidScript.Core.Layout.Engine;
 /// builder that keeps its stubs.
 /// </summary>
 /// <remarks>
-/// Built beside the ladder engine until every ladder step and sample reaches parity (<c>28</c> E5); until a stage
-/// exists the scene it returns is what the stages so far can say, and the parity report shows the rest as missing.
+/// Built beside the engine the ladder was first drawn by until every ladder step and sample reached parity
+/// (<c>28</c> E5), and the only engine since the switch (P6.10 R6).
 /// </remarks>
 /// <param name="graph">The lowered graph.</param>
 /// <param name="model">The bound model.</param>

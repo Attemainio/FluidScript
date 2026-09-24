@@ -84,7 +84,7 @@ it separates the solver's `PipeComponent` from the script's `pipe` and the catal
 
 1. **Namespace = folder path** from the project root. `Solvers/Transient/TransientSolver.cs` is
    `FluidScript.Core.Solvers.Transient`. **A class folder is transparent** (`D-148`): the partials in
-   `Layout/LayoutEngine/` declare `FluidScript.Core.Layout`. Enforced by
+   `Layout/Hints/LayoutHintsDerivation/` declare `FluidScript.Core.Layout.Hints`. Enforced by
    `ArchitectureTests.EveryCoreNamespaceIsItsFolder` rather than `IDE0130`, which cannot express the
    exception.
 2. **One top-level type per file**, the file named for the type (the plugin's `styling.md`). A nested
@@ -159,10 +159,9 @@ FluidScript.Core/
 │   ├── Flows/        BranchFlows, BypassBalance
 │   └── Scenarios/    ScenarioSizing, ScenarioEnvelope
 ├── Layout/           LayoutSolver
-│   ├── LayoutEngine/ the LayoutEngine partials                    (class folder: namespace …Layout)
-│   │                 -- deleted at P6.10's switch (`D-153`)
-│   ├── Engine/       the rebuilt engine, P6.10 (`D-153`, `28` part E): CircuitView, Decomposition and
-│   │                 its structures, Occupancy, Composer, RunBuilder       (namespace …Layout.Engine)
+│   ├── Engine/       the engine, P6.10 (`D-153`, `28` part E): CircuitView, Decomposition and its
+│   │                 Structures/, Composer, Sheet, Painter           (namespace …Layout.Engine)
+│   │                 -- the first engine's LayoutEngine/ deleted at the switch (P6.10 R6)
 │   ├── Routing/      OrthogonalRouter, Segments, Direction
 │   ├── Hints/        LayoutHints, LayoutHintsDerivation/ (class folder, S3)
 │   └── Drawing/      Scene, SceneAudit, SceneText, LabelLayout

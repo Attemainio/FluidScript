@@ -1,0 +1,5 @@
+# step-03c-self-loop: hard 0, soft 0
+placement PU1 pump.standard (0, 0) default rot 0 label (0, 0.65)
+placement PU1__PU1 node.junction (0, -1) default rot 0 label (0, -0.85)
+route c0 pipe (0.5, 0) (1, 0) (1, -1) (0, -1)
+route c1 pipe (0, -1) (-1, -1) (-1, 0) (-0.5, 0)

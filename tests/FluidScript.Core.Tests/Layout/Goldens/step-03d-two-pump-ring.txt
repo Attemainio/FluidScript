@@ -1,0 +1,9 @@
+# step-03d-two-pump-ring: hard 0, soft 0
+placement PU1 pump.standard (2.5, -1) default rot 90 label (3, -0.35)
+placement PU1__PU2 node.junction (1.25, -2) default rot 0 label (1.25, -1.85)
+placement PU2 pump.standard (1, 0) default rot 0 label (1, 0.65)
+placement PU2__PU1 node.junction (2, 0) default rot 0 label (2, 0.15)
+route c0 pipe (2.5, -1.5) (2.5, -2) (1.25, -2)
+route c1 pipe (1.25, -2) (0, -2) (0, 0) (0.5, 0)
+route c2 pipe (1.5, 0) (2, 0)
+route c3 pipe (2, 0) (2.5, 0) (2.5, -0.5)

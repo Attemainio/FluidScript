@@ -356,7 +356,7 @@ that test rather than quietly improving.
 | P3 | M2a | 10 | **Complete** — every package shipped and every `05` criterion ticked | 2026-09-14 |
 | P4 | M2b | 3 | **Complete** — every `05` criterion ticked but the heat-pump tag, whose kind does not exist until M4; M2b exited on that basis | 2026-09-15 |
 | P5 | M3 | 13 | **Closed by the user 2026-09-19** — P5.1–P5.11 shipped, P5.12 dropped, P5.13a shipped 2026-09-20 and P5.13b 2026-09-21, the spelling M4 will be specified in | 2026-09-19 |
-| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain), `D-151` 2026-09-23 (instruments on their hosts, I8), `D-152` 2026-09-23 (signals cross the drawing). Next: P6.10, the layout engine rebuilt (`D-153`), then P6.3 | — |
+| P6 | M4 | 9 | **In progress** — P6.0, P6.1, P6.2 and `C-114` shipped 2026-09-22; P6.8a and P6.8b 2026-09-22/23 (the scenario language and its sizing pipeline), `C-121` 2026-09-23 (valve authority and turn-down across scenarios). P6.9 2026-09-23 (the source structure, `D-147`/`D-148`, S0–S5), `C-120` 2026-09-23 (binder checks read every scenario). `S-79` 2026-09-23 (`D-149`, a run's start time). `D-150` 2026-09-23 (no measurement at a junction), `C-124` 2026-09-23 (a pipe with `nodes=` drawn as its chain), `D-151` 2026-09-23 (instruments on their hosts, I8), `D-152` 2026-09-23 (signals cross the drawing). P6.10 2026-09-24 (the layout engine rebuilt, `D-153`–`D-162`; the old engine deleted at the switch). Next: P6.3 | — |
 | P7 | M5 | 2 | Not started | — |
 | P8 | M6 | — | Evidence-gated; not decomposed | — |
 
@@ -1242,6 +1242,7 @@ page; the canvas and editor pages gained hover and selection. Frontend 134/0, Co
 | P6.9 S3 | **Concern partials**: every Core file over 600 lines split by concern with members moved whole — 22 classes, 63 new files, class folders for `OuterLoop`, `EquationSystem`, `WellPosedness`, `LineParser`, `SolutionSeed`, `SolveExplanation`, `ComponentRegistry`, `ModelContractBuilder`, `LayoutHintsDerivation` and `Lowering`; nested builders split as nested partials; unused `using`s pruned. `BinderDiagnostics` (933) stays whole, a descriptor table whose `All` cannot cross files — [`71`](71-source-structure.md) invariant 4. `70`'s R6 not taken | (this commit) | Shipped 2026-09-23. Core 446 → 509 files, 59 245 → 59 923 lines (+678, against `71`'s +400 estimate); largest class file now 591 lines. Core 2199/0/3, Api 60/0, no golden moved |
 | P6.9 S4 | **`ComponentBase` and `ValveComponentBase`**: the seven flow components on one base and the two control valves on a second; the `…Component` renames by `rename_symbol` (`CircuitNode` → `NodeComponent`), files moved to match; the living spec and docs follow the new names, the registers keep the names they were written with. Three departures from `71`'s sketch, recorded in its S4 row | (this commit) | Shipped 2026-09-23. Core −98 lines. Solver-scale at 861 unknowns 5.50/5.63 s before, 5.58/5.52 s after, allocations identical — inside run-to-run noise, so S4 ships. Core 2199/0/3, Api 60/0, no golden moved |
 | P6.9 S5 | **`SizerBase<TComponent>` and `PipeCatalogBuilder`**: five sizers on the typed base, refusal wording kept per sizer; the two control-valve rules name `ValveComponentBase`; three pipe catalogues build through one builder. The frontend's token-golden test had read S1's old folder since S1 — fixed, with `03`'s stale example paths | (this commit) | Shipped 2026-09-23; **P6.9 closed**. Core +53 lines; the whole restructure +1 491 (Core 58 387 → 59 878, 204 → 513 files). Core 2199/0/3, Api 60/0, frontend 230/230, no golden moved |
+| P6.10 | **The layout engine rebuilt** (`D-153`, [`28`](20-core-domain/28-layout-solver.md) part E): R0 the parity harness, R1 the circuit view, R2 the decomposition, R3 occupancy, R4 composition rule by rule (`D-154`–`D-161` from the user's reviews), R5 measured rather than built (no pipe beside a pipe on any case), R6 the switch -- H11 hard, steps 12, 12b and 13a accepted into the ladder, the first engine (`Layout/LayoutEngine/`, 3 885 lines) and `LayoutEngineKind` deleted, the parity harness replaced by picture goldens (`D-162`) | *(this commit)* for R6 | Shipped 2026-09-24. Closed `C-92`, `C-126`, `C-127`, `C-128`, `C-129`, `C-130`, `C-131`, `C-133`; `C-108` and `C-125` unchanged at the switch and put to the user. Every one of 52 pinned cases hard 0 with H11 hard; `header-200` p95 12.7–15.7 ms Release. Core 2429/0/3, Api 60/0 |
 | P6.2 | Stratified tank in time ([`33`](30-solver/33-transient-time-domain.md) §Stratified tank, `D-32`): `Stratification.Remix` as one pool-adjacent-violators pass on the backend's density, `EquationSystem.Remix` and `SetLayerMasses`, the run calling it after each accepted step; `FS3108` on a profile outside the property domain; V15, V16 and V17; `docs/advanced/stratified-storage.md` and `tank.md` | (this commit) | Shipped 2026-09-22; `S-80` (the interface-flow formula's zero branch is the only one exercised) and `S-81` (V17 has no independent reference table) opened |
 
 > **P6.2 shipped 2026-09-22.** What it meant to do: stop a tank from holding light water under heavy
@@ -1616,7 +1617,21 @@ that governed each size. What P6.8 still owes, and what comes after:
     The whole 61-component stress plant draws hard 0, soft 4; the user accepted it and `C-129` closed.
   - **The plant with its controls (2026-09-24, `D-161`):** room kept for instruments on chains and attached rings;
     `plant-controls.fluid` hard 0 soft 6. Next: R5 (pipe bands across forms, H11), then R6 (the switch).
-- **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
+  - **R5 and the switch (2026-09-24, R6):** R5 was measured, not built: across every case `pipe-beside-pipe` was
+    already 0, so H11 went hard at no cost. The switch: the composed engine is the only engine, the first one and
+    `LayoutEngineKind` deleted; the user accepted steps 12, 12b and 13a from their pictures and they joined the
+    ladder; the other pending scripts stay as variants (`Layout/Variants/`); and since nothing is left to compare
+    against, every picture is pinned as a golden (`D-162`, `LayoutPictureTests`, 52 cases). The `FS5002` guardrail
+    needed a new breaching script (`N1 - N2` joined four times): the composed engine draws the old one clean.
+    `C-92` closed on a real p95. **P6.10 is complete.** Still open from it: `C-108` and `C-125` (spacing-shaped
+    soft counts, the user's call), `C-132` (a duty edit can move a ring's right side, a `D-` for three rules).
+- **Next: P6.3**, controllers, actuator limits and anti-windup. Nothing blocks it formally, but four solver rows
+  sit in its path, because P6.3 is tested on controlled circuits and several do not settle today: `S-85` (a plain
+  split's seed runs a branch backwards -- steps 12 and 12b), `S-86` (the seed ignores a controller's setpoint --
+  steps 5, 8c and 11a with their controls), `S-87` (a pump holding a temperature makes the design solve singular
+  -- step 3 with its controls), and `S-82` (a saturated actuator keeps its target: a `D-` that is the steady-state
+  half of anti-windup, so decided with P6.3). Recommended order, not yet settled with the user: `S-85`–`S-87`,
+  then read `34` whole and decide `S-82`, then P6.3.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1686,7 +1701,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2199 total, 0 failed, 3 skipped** (2026-09-23), ~71 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2429 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

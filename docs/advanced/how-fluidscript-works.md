@@ -256,8 +256,9 @@ Everything the loop and the solver know about one circuit can be rendered as tex
 
 **In:** the graph, the model and the solved branch flows. **Out:** a `Scene`: a box and a rotation
 for every component, a polyline for every connection, a position for every label, all in world
-units. **Who:** `Layout/LayoutHintsDerivation`, then `Layout/LayoutSolver` driving `LayoutEngine`,
-with `OrthogonalRouter` for the pipes.
+units. **Who:** `Layout/Hints/LayoutHintsDerivation`, then `Layout/LayoutSolver` driving the engine in
+`Layout/Engine` -- the circuit view, the decomposition into rings, branches and chains, the composer
+that places them, the painter that draws the runs -- with `OrthogonalRouter` for the pipes no rule lays.
 
 The layout is solved in the library, not in the browser, so that every consumer draws the same
 picture and an edit to a value moves nothing. Hints derivation first classifies the graph: which

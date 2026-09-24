@@ -13,13 +13,15 @@ namespace FluidScript.Core.Tests.Layout.Engine;
 [Trait("Category", "Unit")]
 public sealed class ComposerTests
 {
-    private static string Pending => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Parity");
+    private static string Layout => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout");
 
+    /// <summary>A ladder step or a variant (a step with its controls), by its file name.</summary>
     private static (Scene Scene, List<string> Findings) Solve(string file)
     {
-        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(Pending, file)));
+        var path = Path.Combine(Layout, "Ladder", file);
+        var input = ContractFixture.Compile(File.ReadAllText(File.Exists(path) ? path : Path.Combine(Layout, "Variants", file)));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         return (scene, [.. SceneAudit.Findings(scene, input.Model).Select(static f => f.ToString())]);
     }
 
@@ -27,7 +29,7 @@ public sealed class ComposerTests
 
     [Theory]
     [InlineData("step-12-zones.fluid")]
-    [InlineData("step-12-zones-controls.fluid")]
+    [InlineData("step-12b-zones-instruments.fluid")]
     public void PlainZonesHangAsColumnsWithTheirMergesStraightUnderTheirSplits(string file)
     {
         // C-126: zones 1 and 2 are branches with no loop. Each hangs straight down from its split -- valve, load, the
@@ -70,10 +72,10 @@ public sealed class ComposerTests
     {
         // 28 A10: the trace names the rule behind every placement, and since D-155 every laid run too, under its
         // connections' ids. A run a rule laid skew is refused and left to the router (A7), so no drawn pipe is
-        // diagonal -- on the ladder, the pending scripts and the stress plant alike.
+        // diagonal -- on the ladder, its variants and the stress plant alike.
         var tests = Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout");
         var files = Directory.GetFiles(Path.Combine(tests, "Ladder"), "step-*.fluid")
-            .Concat(Directory.GetFiles(Pending, "*.fluid"))
+            .Concat(Directory.GetFiles(Path.Combine(tests, "Variants"), "*.fluid"))
             .Concat(Directory.GetFiles(Path.Combine(tests, "Stress"), "*.fluid"))
             .Order(StringComparer.Ordinal);
 
@@ -81,7 +83,7 @@ public sealed class ComposerTests
         {
             var input = ContractFixture.Compile(File.ReadAllText(file));
             var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-            var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+            var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
             var named = scene.Provenance
                 .Where(static n => n.Subject.EndsWith(']'))
                 .SelectMany(static n => n.Subject[(n.Subject.LastIndexOf(" [", StringComparison.Ordinal) + 2)..^1].Split(", "))
@@ -103,7 +105,7 @@ public sealed class ComposerTests
         // pair, each member square with its counterpart, the row dropping into NP_M -- out of the ring, in script order.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
         var findings = SceneAudit.Findings(scene, input.Model);
 
@@ -117,7 +119,7 @@ public sealed class ComposerTests
 
     [Theory]
     [InlineData("step-12-zones.fluid", "CV1", "CV3", "LD1", "LD3", "NR1", "NR3")]
-    [InlineData("step-12-zones-controls.fluid", "CV1", "CV3", "LD1", "LD3", "NR1", "NR3")]
+    [InlineData("step-12b-zones-instruments.fluid", "CV1", "CV3", "LD1", "LD3", "NR1", "NR3")]
     public void AHeadersSpineOnTheRightSideStandsAsAColumnLikeItsSiblings(string file, string valve, string spineValve, string load, string spineLoad, string point, string spinePoint)
     {
         // D-158: zone 3 is the header's spine and the ring's right side. It stands as zone 1 and zone 2 hang -- its valve
@@ -143,7 +145,7 @@ public sealed class ComposerTests
         // pump pair's controller over the row and its pressure sensor over the rail.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution-controls.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
 
         foreach (var (sensor, point, controller, valve) in new[] { ("TE_R1", "NR1", "TC_R1", "CV_R1"), ("TE_R2", "NR2", "TC_R2", "CV_R2"), ("TE_R3", "NR3", "TC_R3", "CV_R3") })
@@ -162,7 +164,7 @@ public sealed class ComposerTests
         // down on the left to the injection header's rail, whose blocks hang to the ring's bottom rail. Hard 0.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Point At(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner.Centre;
 
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
@@ -181,7 +183,7 @@ public sealed class ComposerTests
         // keeps clear of the sensor bubbles still to come, so HE_DHW stands past the whole block. Hard 0.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution-controls.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
 
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
@@ -196,7 +198,7 @@ public sealed class ComposerTests
         // riser -- level with each other, NB_S straight under NB_M; the tank takes the boiler loop on its west flank.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-production.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Placement At(string id) => scene.Placements.Single(p => p.ComponentId == id);
 
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
@@ -223,7 +225,7 @@ public sealed class ComposerTests
         // from HX_DHW enters its west. The whole stress plant draws with no hard finding.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", file)));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         var tank = scene.Placements.Single(static p => p.ComponentId == "T2");
 
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
@@ -242,7 +244,7 @@ public sealed class ComposerTests
         // the rails. No instrument collides with anything.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-controls.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
 
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));

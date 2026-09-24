@@ -296,6 +296,7 @@ what a user would call correct, which is looser than what the solver converges t
 | Model contract JSON | Large, and its shape is the contract with three consumers |
 | Diagnostic lists for broken samples | Codes, spans, and order all matter |
 | Layout hints | Ordering is an invariant that a diff shows clearly |
+| Layout pictures (`D-162`) | Placements, routes and groups of every ladder step, variant, stress plant and sample under `Layout/Goldens/`, with the audit counts on the first line; a picture that rearranges with no new finding is caught only here. Rewritten with `FLUIDSCRIPT_UPDATE_GOLDENS=1`, and a changed accepted picture is shown to the user first |
 
 Committed, reviewed on change. **A golden-file diff in a PR is a behaviour change and must be explained
 in the PR description** — an unexplained one is a silent contract change.
@@ -379,6 +380,11 @@ must settle -- a ladder script is a circuit the solver accepts before its pictur
 one whose first line begins `# does not seed: S-nn` is expected to seed a rated exchanger backwards
 in `SolutionSeedTests` until that defect closes, and the test fails the moment it seeds forwards
 with the marker still on (`S-64`, the syntax tour).
+
+**Since the switch (P6.10 R6, 2026-09-24).** One engine draws every scene, and the parity harness that compared it
+with the first engine is gone. `LayoutLadderTests` still gates the steps and, as `EveryVariantIsDrawnWithNoHardFinding`
+/ `EveryVariantSolvesAndSettles`, the variants in `Layout/Variants/` (a step with its controls); `LayoutPictureTests`
+pins every picture (`D-162`) and holds every case to hard 0 -- H11, two pipes a margin apart, is hard since the switch.
 
 **The target is the prepared scene, not the SVG (`D-71`).** A placement reaches the DOM as a transform
 string composed with the root Y-flip, a symbol's geometry lives inside a normalized unit box, and a

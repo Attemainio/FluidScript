@@ -32,11 +32,9 @@ public sealed class LayoutTimingTests
         var hints = Best(() => LayoutHintsDerivation.Derive(input.Graph, input.Model, null));
         var (derived, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
         var solve = Best(() => LayoutSolver.Solve(input.Graph, input.Model, derived));
-        var composed = Best(() => LayoutSolver.Solve(input.Graph, input.Model, derived, LayoutSolver.DefaultMargin, LayoutEngineKind.Composed));
 
-        // The composed engine (D-153) is timed beside the ladder engine while it is built, so a stage that costs too much shows before the switch.
-        TestContext.Current.TestOutputHelper?.WriteLine($"hints {hints:F1} ms, layout solve {solve:F1} ms, composed {composed:F1} ms (best of 5)");
-        File.WriteAllText(Path.Combine(RepositoryLayout.Diagnostics, "layout-timing.txt"), $"hints {hints:F1} ms, ladder {solve:F1} ms, composed {composed:F1} ms (best of 5)\n");
+        TestContext.Current.TestOutputHelper?.WriteLine($"hints {hints:F1} ms, layout solve {solve:F1} ms (best of 5)");
+        File.WriteAllText(Path.Combine(RepositoryLayout.Diagnostics, "layout-timing.txt"), $"hints {hints:F1} ms, layout solve {solve:F1} ms (best of 5)\n");
         Assert.True(solve < 250, $"layout solve took {solve:F0} ms");
     }
 }

@@ -241,7 +241,7 @@ stated as constraints (`D-108`).
 | H8 | Every component and every connection is drawn; nothing is dropped |
 | H9 | **Every flow loop runs clockwise**: each simple directed cycle of the flow-oriented graph (A3), walked in flow order through its members' centres, encloses negative signed area (y up) |
 | H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right (a tank shared by two loops takes a loop per flank, `D-157`) |
-| H11 | **Two pipes never run side by side closer than a margin**, except two runs of one symbol within that symbol's clearance, where the port pitch decides (`C-96`). *Stated 2026-09-23 (`D-153`); the audit enforces it when the new engine takes over (part E), since the old one never kept it -- until then it is the soft `pipe-beside-pipe`* |
+| H11 | **Two pipes never run side by side closer than a margin**, except two runs of one symbol within that symbol's clearance, where the port pitch decides (`C-96`). *Stated 2026-09-23 (`D-153`); hard since the switch (P6.10 R6, 2026-09-24), when the composed engine took over -- the first engine never kept it, and until then `pipe-beside-pipe` was soft. At the switch no case had one* |
 | H12 | **Every pipe and every signal line is an orthogonal polyline** (A7): each segment level or plumb. *Measured since `D-155` (2026-09-24); a run a rule lays skew is refused and left to the router (E4)* |
 | H13 | **A junction takes one pipe per side** (A6, `53`): no two pipes leave a junction's dot in the same direction. *Measured since `D-155`* |
 
@@ -455,7 +455,7 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   the series header does (step 8e). The ring's right unit is slid until its own descent to the
   bottom rail clears every box as well. Not built yet: a branch off the bottom rail, a branch whose
   bottom member is not a junction, and a boxed member on a branch before its first block. A branch
-  with no inner loop hangs as a column (E3, P6.10; the ladder engine has no rule for it, `C-126`).
+  with no inner loop hangs as a column (E3, P6.10, `C-126`).
 - **C15** *(step 10, corrected once, redrawn by `D-151`)* -- **An instrument is drawn on its host, as
   one footprint.** A sensor stands on the node it reads -- a point on one pipe or a terminal (`D-150`)
   -- and a controller on the device it actuates, each joined to its host by a straight line one margin
@@ -606,7 +606,7 @@ proved; a candidate no step ever needs is deleted.
   layout. *Admitted for signals by `D-152`* in a mode of its own: inner boxes block, margins cost, a bend
   is worth 2 units of length, crossings and margins 0.25.
 
-## E. The engine *(D-153, 2026-09-23; being built as package P6.10)*
+## E. The engine *(D-153, 2026-09-23; the only engine since the switch, P6.10 R6, 2026-09-24)*
 
 The engine that draws C's rules, restructured after the first one grew a form, a clearance test and a way
 of drawing a pipe per rule (`D-153`). Three stages, each its own type; nothing in a later stage changes
@@ -788,6 +788,13 @@ length and bends. The new engine takes over when every step and sample is hard 0
 worse than the old engine's; a step whose picture changed is shown to the user and judged before its
 commit (`D-153`). The old engine is then deleted.
 
+**The switch (2026-09-24).** Every one of the 23 ladder steps, 15 pending scripts, 7 samples and `header-200` drew hard 0 with H11
+hard, and no soft count exceeded the first engine's; the three pending scripts the user accepted became steps 12, 12b
+and 13a, the rest stay as variants (a step with its controls, `Layout/Variants/`), and the first engine
+(`Layout/LayoutEngine/`, 3 885 lines) and `LayoutEngineKind` were deleted. With the baseline gone, every picture is
+pinned as a golden (`D-162`). `header-200` lays out in 4.4 ms median, 12.7–15.7 ms p95 over four runs of 200 in
+Release -- inside `07`'s 30 ms (`C-92`).
+
 ## Worked example
 
 The injection branch of `m2-distribution-header`, under H9, H10, C2–C4 and the catalogue as
@@ -841,10 +848,10 @@ for it.
 
 | Part | Code |
 |---|---|
-| A1–A4, A7 | `Layout/Direction.cs`, `Layout/Scene.cs` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
-| A5, A6, C | `Layout/LayoutEngine.cs`; the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
-| A11 | `Layout/LabelLayout.cs`, called last from `LayoutEngine.ToScene`; `PlacementWire.LabelBox`/`LabelClear` and `LayoutWire.LabelMetric` on the wire; `LabelLayoutTests` |
-| A10, B | `Layout/SceneAudit.cs`; the text is `SceneText` in Core (`C-89`), its `PLACEMENT` trace from `Scene.Provenance` (`C-107`); `SceneSvg`, `LayoutLadderTests` in Core.Tests |
+| A1–A4, A7 | `Layout/Routing/Direction.cs`, `Layout/Drawing/` (`Box`, `Point`, `PlacedAnchor`, `Placement`, `Route`, `LayoutGroup`, `Scene`), `Layout/Transform.cs`, `Model/SymbolCatalog.cs` (`SymbolWire.TransformClass`) |
+| A5, A6, C | `Layout/Engine/` (part E); the run-time audit and `FS5002` in `Model/ModelContractBuilder.cs` |
+| A11 | `Layout/Drawing/LabelLayout.cs`, called last from `Painter`; `PlacementWire.LabelBox`/`LabelClear` and `LayoutWire.LabelMetric` on the wire; `LabelLayoutTests` |
+| A10, B | `Layout/Drawing/SceneAudit.cs`; the text is `SceneText` in Core (`C-89`), its `PLACEMENT` trace from `Scene.Provenance` (`C-107`); `SceneSvg`, `LayoutLadderTests`, `LayoutPictureTests` (`D-162`) in Core.Tests |
 | D (router) | `Layout/Routing/OrthogonalRouter.cs` |
-| E (being built, P6.10) | `Layout/Engine/` beside `Layout/LayoutEngine/` until the switch ([`71`](../71-source-structure.md)) |
-| the classification the engine starts from | `Layout/LayoutHints.cs` ([`25`](25-layout-hints.md)) |
+| E | `Layout/Engine/` (`ComposedEngine`, `CircuitView`, `Decomposition`, `Composer`, `Sheet`, `Painter`), entered through `LayoutSolver` ([`71`](../71-source-structure.md)) |
+| the classification the engine starts from | `Layout/Hints/LayoutHints.cs` ([`25`](25-layout-hints.md)) |

@@ -15,7 +15,7 @@ public sealed class CircuitViewTests
 {
     private static string Ladder => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder");
 
-    private static string Pending => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Parity");
+    private static string Variants => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Variants");
 
     public static TheoryData<string> Steps
     {
@@ -36,7 +36,7 @@ public sealed class CircuitViewTests
     {
         var input = ContractFixture.Compile(source);
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        return LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        return LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
     }
 
     private static List<string> Runs(Scene scene) =>
@@ -47,7 +47,7 @@ public sealed class CircuitViewTests
     {
         // The three-zone plant (C-126): LD3 drains through the two-connection node NR3 into the return header's
         // junction NB2, so NR3 is a point on one run from LD3's outlet to NB2 -- never a boxed element of its own.
-        var runs = Runs(Solve(File.ReadAllText(Path.Combine(Pending, "step-12-zones.fluid"))));
+        var runs = Runs(Solve(File.ReadAllText(Path.Combine(Ladder, "step-12-zones.fluid"))));
 
         Assert.Equal(14, runs.Count);
         Assert.Contains("LD3.out > NR3 > NB2.1", runs);

@@ -24,7 +24,7 @@ public sealed class LayoutLadderTests
 {
     private static string Ladder => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder");
 
-    private static string Pending => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Parity");
+    private static string Variants => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Variants");
 
     public static TheoryData<string> Steps
     {
@@ -40,13 +40,13 @@ public sealed class LayoutLadderTests
         }
     }
 
-    /// <summary>The scripts waiting for the composed engine (P6.10): each becomes a ladder step at the switch, and is held to a step's gates now.</summary>
-    public static TheoryData<string> PendingSteps
+    /// <summary>The variants: a ladder step with its controls (P6.10), held to a step's gates without an accepted picture of its own.</summary>
+    public static TheoryData<string> VariantSteps
     {
         get
         {
             var data = new TheoryData<string>();
-            foreach (var file in Directory.GetFiles(Pending, "*.fluid").Order(StringComparer.Ordinal))
+            foreach (var file in Directory.GetFiles(Variants, "*.fluid").Order(StringComparer.Ordinal))
             {
                 data.Add(Path.GetFileNameWithoutExtension(file));
             }
@@ -87,14 +87,14 @@ public sealed class LayoutLadderTests
     public void EveryDecisionIsTracedInTheOrderItWasMade()
     {
         // C-107: the cooling loop is the picture that took the engine's source to explain twice in one day.
-        // The trace says which form drew it, why each form before it declined, which rule placed each
-        // member and where each unit landed after its slide -- so a question about a picture is answered
-        // by reading the report, not the engine.
+        // The trace says how the fragment was decomposed and from which head (E2), which form drew it, why each
+        // form before it declined, which rule placed each member and where each unit landed after its slide -- so
+        // a question about a picture is answered by reading the report, not the engine.
         var scene = Solve("step-06c-cooling-load", out var input);
         var text = SceneText.Render(scene, input.Graph, input.Model);
 
-        Assert.Contains(scene.Provenance, n => n.Rule == "head" && n.Subject == "N1" && n.Reason.Contains("inlet boundary", StringComparison.Ordinal));
-        Assert.Contains(scene.Provenance, n => n.Rule == "form" && n.Reason.StartsWith("C2 sourced loop: declined", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "E2" && n.Reason.EndsWith("head N1", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "form" && n.Reason.StartsWith("C19 open supply-to-return: declined", StringComparison.Ordinal));
         Assert.Contains(scene.Provenance, n => n.Rule == "form" && n.Reason == "C18 unsourced ring: drawn");
         Assert.Contains(scene.Provenance, n => n.Rule == "C9" && n.Subject == "3WV" && n.Reason.Contains("bottom-left corner", StringComparison.Ordinal));
         Assert.Contains(scene.Provenance, n => n.Rule == "C11" && n.Subject == "HE1" && n.Reason.StartsWith("slid in", StringComparison.Ordinal));
@@ -115,22 +115,22 @@ public sealed class LayoutLadderTests
     [MemberData(nameof(Steps))]
     public Task EveryStepSolvesAndSettles(string step) => SolvesAndSettles(Ladder, step);
 
-    /// <summary>A pending script is a step in waiting: the composed engine draws it with no hard finding (the old engine is not asked), and it solves.</summary>
+    /// <summary>A variant is drawn with no hard finding, and it solves.</summary>
     [Theory]
-    [MemberData(nameof(PendingSteps))]
-    public void EveryPendingStepIsDrawnByTheComposedEngineWithNoHardFinding(string step)
+    [MemberData(nameof(VariantSteps))]
+    public void EveryVariantIsDrawnWithNoHardFinding(string step)
     {
-        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(Pending, step + ".fluid")));
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(Variants, step + ".fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
-        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model));
         var hard = SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).ToList();
 
         Assert.True(hard.Count == 0, step + ":\n" + string.Join("\n", hard));
     }
 
     [Theory]
-    [MemberData(nameof(PendingSteps))]
-    public Task EveryPendingStepSolvesAndSettles(string step) => SolvesAndSettles(Pending, step);
+    [MemberData(nameof(VariantSteps))]
+    public Task EveryVariantSolvesAndSettles(string step) => SolvesAndSettles(Variants, step);
 
     private static async Task SolvesAndSettles(string directoryOfSteps, string step)
     {
