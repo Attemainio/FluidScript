@@ -203,6 +203,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-158` | Accepted | 2026-09-24 | Branches built the same way are drawn the same way, and a sensor shares its controller's side |
 | `D-159` | Accepted | 2026-09-24 | Heat sources in parallel rise as columns, a pump standing in its riser |
 | `D-160` | Accepted | 2026-09-24 | A ring on an element a chain reaches is an attached ring too |
+| `D-161` | Accepted | 2026-09-24 | Room is kept for every instrument a chain or an attached ring carries |
 <!-- index:end -->
 
 ---
@@ -7446,3 +7447,33 @@ script moved.
 
 - *Leave the circulation to the chain rules and the router* -- the router draws the return through the pump and
   valve the chains grew along it (the seven hard findings).
+
+## D-161 · Room is kept for every instrument a chain or an attached ring carries
+
+**Accepted · 2026-09-24** · amends `28` E3 (room for what a unit carries) and C15 · `C-129` · the user's request to see
+the plant with its controls
+
+**What was wrong.** The stress plant with its controls (`plant-controls.fluid`) drew hard 5, all where rules made
+room only for what a ring's rails carry.
+1. The DHW heater stands in the distribution's right-side column (`D-158`) one margin under its heating valve; its
+   hot-water outlet faces up beside that inlet, and C6's lead -- two margins up, then away -- turned at the valve's own
+   height, through the valve controller's bubble.
+2. C15 chose a sensor's side before its controller's, against the bubbles chosen so far only, so the sensor took the
+   spot the controller's actuator side needs; placement had kept that spot (E3), C15 did not look.
+3. A run the chain rules grow was laid as long as its two end boxes need for its sensor's bubble, not long enough for
+   that bubble to clear what else is placed.
+4. An attached ring's rails are set by its element's port elevations alone -- a DHW tank's outlet and circulation
+   return a few tenths apart -- so the circulation valve's controller had no room between them.
+
+**The rule.** (1) In a right-side column, an exchanger whose other side has a port facing up the column stands low
+enough that C6's lead from that port turns a margin under the member above. (2) C15 counts, as occupied, the bubbles a
+placed device will carry where their sides are not chosen yet -- the same prediction placement keeps room for. (3) A
+run the chain rules grow that carries a sensor's point is laid long enough that the point's bubble, on the side C15
+tries first, clears every placed box and every bubble placed elements carry or will carry. (4) An attached ring's bottom
+rail drops until an instrument a bottom-rail member carries fits over it, a margin under the top rail; a ring whose
+rails other members set keeps C15's own choice of side (step 3 with its controls puts its pump's controller under the
+rail, beside its sensor, and must not change).
+
+**Why.** `28` E3 already states the principle -- "the layout makes room rather than searching for it" -- and these are
+the places it had not reached. This project's reasoning; no drawing convention changes. Measured: the plant with its
+controls hard 5 → 0 (soft 6); no other script moved.

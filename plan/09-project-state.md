@@ -1613,7 +1613,9 @@ that governed each size. What P6.8 still owes, and what comes after:
     riser. Piece A hard 7 → 0; the whole stress plant drawn by the forms for the first time, hard 25 → 7, all on the
     DHW circulation -- the last open part of `C-129`.
   - **The DHW circulation (2026-09-24, `D-160`):** a ring on an element a chain reaches is an attached ring too.
-    The whole 61-component stress plant draws hard 0, soft 4; `C-129` awaits the user's acceptance of that picture.
+    The whole 61-component stress plant draws hard 0, soft 4; the user accepted it and `C-129` closed.
+  - **The plant with its controls (2026-09-24, `D-161`):** room kept for instruments on chains and attached rings;
+    `plant-controls.fluid` hard 0 soft 6. Next: R5 (pipe bands across forms, H11), then R6 (the switch).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

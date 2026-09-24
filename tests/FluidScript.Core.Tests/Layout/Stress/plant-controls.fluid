@@ -1,0 +1,138 @@
+# Layout stress plant with its controls (2026-09-24): plant.fluid with every loop controlled the way the ladder's
+# control steps and piece B's controls do it. Each boiler's valve holds its flow temperature; the supply after
+# the buffer tank carries a temperature pair and a flow meter; the radiator valves hold their returns, the
+# injection valves their circuits' supply, the duty pump the pressure at the index junction; a valve on the DHW
+# heater's heating side holds the hot-water outlet, and the circulation valve the circulation return. Layout
+# only -- no gate reads this folder, and it is not claimed to solve.
+
+fluidscript 1
+project static plant_big
+
+circuit production 100
+fluid water
+
+B1     heat_exchanger power=150 kW out.t=75
+B2     heat_exchanger power=150 kW out.t=75
+PU_B1  pump
+PU_B2  pump
+CV_B1  valve kv=16
+CV_B2  valve kv=16
+T1     tank volume=2000 layers=5 in.level=90% in[2].level=10% out.level=90% out[2].level=10%
+TE_B1  t_sensor at NT_B1
+TE_B2  t_sensor at NT_B2
+TC_B1  pid kp=2
+TC_B2  pid kp=2
+
+connections
+T1.out[2] - NB_S
+NB_S - PU_B1 - B1 - NT_B1 - CV_B1 - NB_M
+NB_S - PU_B2 - B2 - NT_B2 - CV_B2 - NB_M
+NB_M - T1.in
+
+control CV_B1 with TE_B1 by TC_B1 setpoint=75
+control CV_B2 with TE_B2 by TC_B2 setpoint=75
+
+circuit distribution 101
+fluid water
+
+PU_S1  pump
+PU_S2  pump
+CV_S1  valve kv=25
+CV_S2  valve kv=25
+BV1    valve kv=40
+CV_R1  valve kv=4
+CV_R2  valve kv=4
+CV_R3  valve kv=4
+RAD1   load in.t=70 out.t=50 power=40 kW
+RAD2   load in.t=70 out.t=50 power=35 kW
+RAD3   load in.t=70 out.t=50 power=25 kW
+TE_S   t_sensor at NS
+FE_S   flow_sensor at NS
+TE_R   t_sensor at NR0
+TE_R1  t_sensor at NR1
+TE_R2  t_sensor at NR2
+TE_R3  t_sensor at NR3
+TC_R1  pid kp=2
+TC_R2  pid kp=2
+TC_R3  pid kp=2
+PE_A2  p_sensor at NA2
+PC_S1  pid kp=1
+
+connections
+T1.out - NS - NP_S
+NP_S - PU_S1 - CV_S1 - NP_M
+NP_S - PU_S2 - CV_S2 - NP_M
+NP_M - BV1 - NA1
+NA1 - CV_R1 - RAD1 - NR1 - NRB1
+NA1 - NA2
+NA2 - CV_R2 - RAD2 - NR2 - NRB2
+NA2 - CV_R3 - RAD3 - NR3 - NRB2
+NRB2 - NRB1
+NRB1 - NC1
+
+control CV_R1 with TE_R1 by TC_R1 setpoint=50
+control CV_R2 with TE_R2 by TC_R2 setpoint=50
+control CV_R3 with TE_R3 by TC_R3 setpoint=50
+control PU_S1 with PE_A2 by PC_S1 setpoint=150
+
+circuit AHU 102
+
+HE_AHU  load in.t=45 out.t=30 power=60 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+TE_AHU  t_sensor at NT_AHU
+TC_AHU  pid kp=2
+
+connections
+NC1 - TV_AHU.a length=12 dn=40
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - NT_AHU - HE_AHU - NM_AHU
+NM_AHU - ND1 length=12 dn=40
+
+control TV_AHU with TE_AHU by TC_AHU setpoint=45
+
+circuit floor 103
+
+HE_FLR  load in.t=35 out.t=28 power=40 kW
+TV_FLR  three_way_valve
+PU_FLR  pump
+TE_FLR  t_sensor at NT_FLR
+TC_FLR  pid kp=2
+
+connections
+NC1 - NC2
+NC2 - TV_FLR.a length=15 dn=32
+NM_FLR - TV_FLR.b
+TV_FLR.ab - PU_FLR - NT_FLR - HE_FLR - NM_FLR
+NM_FLR - ND2 length=15 dn=32
+
+control TV_FLR with TE_FLR by TC_FLR setpoint=35
+
+circuit dhw 104
+
+HX_DHW   heat_exchanger power=50 kW in.t=10 out.t=60 in[2].t=50 out[2].t=25
+T2       tank volume=500 layers=3 in.level=90% in[2].level=50% out.level=90%
+PU_DHW   pump
+PU_CIRC  pump
+CV_DHW   valve kv=4
+CV_CIRC  valve kv=1.6
+CW       inlet t=10 p=300
+TAP      outlet p=250
+TE_DHW   t_sensor at NT_DHW
+TE_CIRC  t_sensor at NT_CIRC
+TC_DHW   pid kp=2
+TC_CIRC  pid kp=2
+
+connections
+NC2 - CV_DHW - HX_DHW.in[2]
+HX_DHW.out[2] - ND2
+ND2 - ND1
+ND1 - NR0 - T1.in[2]
+CW - PU_DHW - HX_DHW.in
+HX_DHW.out - NT_DHW - T2.in
+T2.out - NDS
+NDS - TAP
+NDS - PU_CIRC - CV_CIRC - NT_CIRC - T2.in[2]
+
+control CV_DHW with TE_DHW by TC_DHW setpoint=60
+control CV_CIRC with TE_CIRC by TC_CIRC setpoint=55

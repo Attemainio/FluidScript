@@ -116,7 +116,9 @@ tank with a circulation loop is drawn the same way: the heater charges it from t
 circulation leaves its right side along the top, past the tap line, and returns through its pump and
 valve along the bottom into the tank's right side. A sensor stands on the node it reads
 and a controller on the component it drives, joined to it by a short straight line; a sensor takes
-the side of its pipe its controller stands on, so the line between them does not cross the pipe; the controller's
+the side of its pipe its controller stands on, so the line between them does not cross the pipe; room
+for each instrument is kept while the pipes are laid, so a pipe that leaves an exchanger beside a
+valve turns below the valve's controller, and a pipe carrying a sensor is drawn long enough for it; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a
 symbol but never along a pipe, and it crosses a pipe away from its ends, so a crossing never looks

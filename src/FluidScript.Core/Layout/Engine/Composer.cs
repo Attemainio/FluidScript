@@ -147,14 +147,30 @@ internal sealed partial class Composer
                 var anchor = _sheet.AnchorOf(from.Component, from.Port);
                 var (start, lead) = Lead(from.Component, anchor);
                 var length = _sheet.RunLength(run);
-                var points = _view.Wildcard(far.Component) ? PlaceNode(start, far.Component, far.Port, length) : PlaceFrom(start, far.Component, far.Port, length);
+                var mark = _sheet.Trace.Count;
+                ImmutableArray<Point>? points;
+                List<Point> line;
+
+                // A run carrying a sensor's point is laid long enough that the point's bubble, on the side C15 tries
+                // first, clears what is placed -- boxes and the bubbles placed devices will carry (E3's room, D-161).
+                for (var extra = 0.0; ; extra += 0.1)
+                {
+                    points = _view.Wildcard(far.Component) ? PlaceNode(start, far.Component, far.Port, length + extra) : PlaceFrom(start, far.Component, far.Port, length + extra);
+                    line = points is { } placedPoints ? [.. lead, .. placedPoints] : [];
+
+                    if (points is null || run.Inline.Length == 0 || extra > 6 - Eps || SensorRoom(new RunDraft(new Member(from.Component, -1, from.Port), line, string.Empty, string.Empty), far.Component))
+                    {
+                        break;
+                    }
+
+                    _sheet.Trace.RemoveRange(mark, _sheet.Trace.Count - mark);
+                    _sheet.Placed[far.Component] = false;
+                }
 
                 if (points is null)
                 {
                     continue;
                 }
-
-                List<Point> line = [.. lead, .. points];
 
                 // The run takes the rule that placed the member it grew to (C3, C4, C5), as the trace just named it.
                 var grown = _view.Name(far.Component);
@@ -173,6 +189,27 @@ internal sealed partial class Composer
                 changed = true;
             }
         }
+    }
+
+    /// <summary>Whether the bubbles on a drafted run's sensor points keep a margin from every placed box and every bubble a placed element carries or will carry.</summary>
+    private bool SensorRoom(RunDraft draft, int far)
+    {
+        var bubbles = InlineBubbles([draft], 0, 0).Select(b => b.Grow(_margin)).ToList();
+
+        for (var i = 0; i < _view.Count && bubbles.Count > 0; i++)
+        {
+            if (!_sheet.Placed[i] || _view.IsInline(i))
+            {
+                continue;
+            }
+
+            if (_sheet.FootprintOf(i, _sheet.Transform[i], _sheet.Centre[i]).Boxes.Concat(_sheet.HatBoxes([i])).Any(o => bubbles.Any(o.Intersects)))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>C4: a node on the placed port's axis, one run length out or as far as H2 needs.</summary>

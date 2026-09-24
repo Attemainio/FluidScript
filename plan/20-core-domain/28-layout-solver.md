@@ -746,7 +746,12 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
   the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every
   placed box and bubble and the pipes the form has laid clear its own -- the first of E3's pipe bands,
-  within one form; across forms it is R5's. The run length it needs is counted from the run's own
+  within one form; across forms it is R5's. The same room is kept beyond the rails (`D-161`): a right-side column lowers an
+  exchanger whose other side leaves up the column until C6's lead from that port turns a margin under the member
+  above; a run the chain rules grow that carries a sensor's point is laid long enough for that bubble to clear
+  everything placed, predicted device bubbles included; C15 counts those predictions as occupied; and an attached
+  ring's bottom rail -- whose rails only its element's port elevations set -- drops until a bottom member's instrument
+  fits between the rails. The run length it needs is counted from the run's own
   far end: the unit's inlet run from the top rail's end, its outlet run from the bottom rail's, so a
   sensor on the rail with more members pushes the unit no further than its own run needs. A sensor on a pipe's point has no side until C15 chooses
   it, so placement keeps clear of where it will stand: a bubble over the point where its run is level

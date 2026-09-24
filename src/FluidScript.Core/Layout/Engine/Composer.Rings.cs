@@ -357,7 +357,7 @@ internal sealed partial class Composer
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, fixedHead ? sIn.At.Y : sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
-        yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
+        yBottom = Math.Min(yBottom, Math.Min(Under(hangers), Math.Min(RowFloor(bottomMembers), fixedHead ? InstrumentFloor(bottomMembers, top.End.At.Y) : double.PositiveInfinity)));
 
         if (!fixedHead && !column)
         {
@@ -380,6 +380,28 @@ internal sealed partial class Composer
         _sheet.Groups.Insert(mark, (cycle.Select(static m => m.Component).ToList(), true));
         AssignRuns(runs);
         return true;
+    }
+
+    /// <summary>
+    /// Where an attached ring's bottom rail must lie so that an instrument a bottom-rail member carries fits between
+    /// the rails (<c>D-161</c>): its bubble one margin over the member's box and a margin under the top rail. Such a
+    /// ring's rails are otherwise set by its element's port elevations alone, a DHW tank's outlet and circulation
+    /// return a few tenths apart. The ring cannot know yet which side C15 will give the instrument, so it keeps the room
+    /// over the member, the side a valve's stem and a pump's bubble take first on a level rail; +inf where no bottom
+    /// member carries one.
+    /// </summary>
+    private double InstrumentFloor(List<Member> bottomMembers, double yTop)
+    {
+        var floor = double.PositiveInfinity;
+        var hats = _sheet.Hats();
+
+        foreach (var m in bottomMembers.Where(m => !_view.IsInline(m.Component) && hats.TryGetValue(m.Component, out var on) && on.Count > 0))
+        {
+            var half = HalfHeight([m]);
+            floor = Math.Min(floor, yTop - half - (2 * _margin) - hats[m.Component].Max(static h => h.Size));
+        }
+
+        return floor;
     }
 
     /// <summary>

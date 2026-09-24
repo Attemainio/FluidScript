@@ -215,6 +215,7 @@ public sealed class ComposerTests
     [Theory]
     [InlineData("plant-distribution-dhw.fluid")]
     [InlineData("plant.fluid")]
+    [InlineData("plant-controls.fluid")]
     public void ADhwTanksCirculationIsARingOnItsEastFlank(string file)
     {
         // D-160 (C-129): T2 is reached by a chain from HX_DHW's hot side, and its circulation -- out, NDS, PU_CIRC, CV_CIRC,
@@ -231,6 +232,22 @@ public sealed class ComposerTests
         Assert.Equal(tank.Inner.Right, tank.Anchors["in2"].At.X, 6);
         Assert.Contains(scene.Provenance, static n => n.Rule == "form" && n.Reason.Contains("attached ring at T2 (D-160): drawn", StringComparison.Ordinal));
         Assert.DoesNotContain(scene.Provenance, static n => n.Rule == "form" && n.Reason.Contains("chain (C1)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePlantWithItsControlsKeepsRoomForEveryInstrument()
+    {
+        // D-161: HX_DHW stands low enough in its column that its hot-water lead turns under CV_DHW; TE_DHW's pipe is long
+        // enough that its bubble clears TC_DHW's; T2's circulation ring drops its bottom rail until TC_CIRC fits between
+        // the rails. No instrument collides with anything.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-controls.fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
+        Assert.True(Inner("HX_DHW").Top + (3 * scene.Margin) <= Inner("CV_DHW").Y + 1e-9, "the lead from HX_DHW's hot-water outlet turns a margin under CV_DHW");
+        Assert.Contains(scene.Provenance, static n => n.Subject == "HX_DHW" && n.Reason.Contains("lowered", StringComparison.Ordinal));
     }
 
     [Fact]

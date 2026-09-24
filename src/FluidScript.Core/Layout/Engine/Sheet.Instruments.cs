@@ -193,14 +193,26 @@ internal sealed partial class Sheet
         }
     }
 
-    /// <summary>Whether a bubble on a host keeps the clearance from every other placed box, every bubble chosen so far and every run laid between placed elements.</summary>
+    /// <summary>
+    /// Whether a bubble on a host keeps the clearance from every other placed box, every bubble chosen so far, the
+    /// bubbles a placed device will carry where none is chosen yet -- the room placement kept for them (E3) -- and every
+    /// run laid between placed elements.
+    /// </summary>
     private bool BubbleClear(int host, Box bubble)
     {
         var outer = bubble.Grow(Margin);
 
         for (var i = 0; i < View.Count; i++)
         {
-            if (i != host && Placed[i] && !View.IsInline(i) && InnerOf(i).Intersects(outer))
+            if (i == host || !Placed[i] || View.IsInline(i))
+            {
+                continue;
+            }
+
+            var chosen = Hats().TryGetValue(i, out var hats) && hats.All(h => HatSide.ContainsKey(h.Element.ComponentId));
+            var boxes = chosen ? [InnerOf(i)] : FootprintOf(i, Transform[i], Centre[i]).Boxes;
+
+            if (boxes.Any(b => b.Intersects(outer)))
             {
                 return false;
             }

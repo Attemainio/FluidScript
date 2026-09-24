@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Components.Exchangers;
 using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Layout.Engine.Structures;
 using FluidScript.Core.Layout.Routing;
@@ -134,6 +135,26 @@ internal sealed partial class Composer
     }
 
     /// <summary>
+    /// How far an exchanger standing in a column must drop so that a port of its other side facing up the column --
+    /// the start of C6's lead, two margins long -- turns a margin under the member above it; zero for anything else.
+    /// </summary>
+    private double RoomAbove(Member m, Member above)
+    {
+        if (_view.Graph.Components[m.Component] is not HeatExchangerComponent)
+        {
+            return 0;
+        }
+
+        var up = _view.Connected(m.Component)
+            .Where(p => p != m.InPort && p != m.OutPort)
+            .Select(p => _sheet.AnchorOf(m.Component, p))
+            .Where(static a => a.Outward == Direction.Up)
+            .ToList();
+
+        return up.Count == 0 ? 0 : Math.Max(0, up.Max(static a => a.At.Y) + (3 * _margin) - _sheet.InnerOf(above.Component).Y);
+    }
+
+    /// <summary>
     /// A header's spine as the right side's column (<c>D-158</c>): its members one under the other, each facing down the
     /// drop as a hanging column's do (C14), laid on a canvas of their own with the first inlet at the local origin
     /// facing up and the last outlet facing down -- so two branches built the same way are drawn the same way.
@@ -152,16 +173,26 @@ internal sealed partial class Composer
 
         foreach (var m in members)
         {
-            if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
+            if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } placedAt)
             {
                 placed.CopyTo(_sheet.Placed, 0);
                 return null;
             }
 
-            if (previous is { } before)
+            var points = placedAt;
+
+            if (previous is { } before && RoomAbove(m, before) is var down and > Eps)
+            {
+                // An exchanger's other side leaving up the column (C6's lead) turns under the member above, a margin clear.
+                _sheet.Centre[m.Component] = _sheet.Centre[m.Component].Offset(0, -down);
+                points = [.. placedAt.Take(placedAt.Length - 1), placedAt[^1].Offset(0, -down)];
+                _sheet.Note(_view.Name(m.Component), "C11", $"lowered {down:0.##} in the column so the lead from its port facing up turns a margin under {_view.Name(before.Component)} (C6)");
+            }
+
+            if (previous is { } prior)
             {
                 pending.AddRange(points.Skip(1));
-                own.Add(new RunDraft(before, pending, "C11", "down the right side's column (D-158)"));
+                own.Add(new RunDraft(prior, pending, "C11", "down the right side's column (D-158)"));
             }
 
             cursor = _sheet.AnchorOf(m.Component, m.OutPort);
