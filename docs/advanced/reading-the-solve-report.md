@@ -200,7 +200,11 @@ start from, and the line search walks it up.
 
 **Where the seed's flows come from.** Each branch is first given a magnitude: from a duty and two
 temperatures where a component states them, from a stated flow where one is stated, and from a nominal
-0.1 kg/s where nothing does. Those magnitudes do not add up — nothing made them agree at a tee — so the
+0.1 kg/s where nothing does. A load that states only its duty -- `LD1 heat_exchanger power=-20` -- is
+rated at the temperatures its heat sources state, the way an emitter is designed to its system's flow
+and return: 20 kW on a 70/40 plant starts at 0.159 kg/s. When the sources disagree (a 70/40 boiler and
+an 80/60 one on the same water) there is no one design difference, and the load starts from its
+neighbours instead. Those magnitudes do not add up — nothing made them agree at a tee — so the
 circuit is spanned by a tree, the branches outside the tree keep their magnitude, and each remaining
 branch is *solved* as whatever closes the balance at its node.
 

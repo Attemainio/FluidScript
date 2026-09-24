@@ -1632,6 +1632,11 @@ that governed each size. What P6.8 still owes, and what comes after:
   -- step 3 with its controls), and `S-82` (a saturated actuator keeps its target: a `D-` that is the steady-state
   half of anti-windup, so decided with P6.3). Recommended order, not yet settled with the user: `S-85`–`S-87`,
   then read `34` whole and decide `S-82`, then P6.3.
+  - **`S-85` worked (2026-09-24):** a load stating only its duty is rated at its sources' design temperatures
+    (`32`, `BranchFlows.DesignFlow`); step 12 settles in 2 passes and lost its marker. Step 12b now stops at
+    `S-86` (its returns are setpoints). `S-85` stays open, narrowed and risk low: the copy rule at a split whose
+    legs have nothing to rate, which no script hits now; a direction-aware share was measured and broke the
+    two-source plant. Next: `S-86`, which step 12b and the controlled steps 5, 8c and 11a all wait on.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1701,7 +1706,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2429 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2430 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

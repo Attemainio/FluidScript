@@ -251,6 +251,48 @@ public sealed class SolutionSeedTests
         Assert.Equal("HE1", duty.Source);
         Assert.Equal(0.2392, duty.Magnitude, 3);
     }
+
+    /// <summary>A load stating only its duty is rated at its sources' design temperatures, and not when two sources disagree (<c>S-85</c>).</summary>
+    [Fact]
+    public void ALoadWithOnlyADutyIsRatedAtItsSourcesDesignTemperatures()
+    {
+        // Three zones on one 70/40 plant: 20 kW over 70 -> 40 C is 0.1594 kg/s, the split the zones settle at. Before,
+        // a zone had no rating, took the plant's whole 0.478 kg/s from the copy rule, and zone 1 seeded backwards.
+        const string Zones = """
+            fluidscript 1
+            circuit zones
+            fluid water
+
+            PU1 pump
+            HE1 heat_exchanger power=60 in.t=40 out.t=70
+            HE2 heat_exchanger power=0.001 in.t=40 out.t=70
+            LD1 heat_exchanger power=-20
+            LD2 heat_exchanger power=-20
+            LD3 heat_exchanger power=-20
+
+            connections
+            PU1 - HE1 - HE2 - NA1
+            NA1 - LD1 - NB1
+            NA1 - NA2
+            NA2 - LD2 - NB2
+            NA2 - LD3 - NB2
+            NB2 - NB1
+            NB1 - PU1
+            """;
+
+        var graph = GraphFixture.Lower(Zones).Graph;
+        var zone = BranchFlows.Estimate(graph)[graph.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
+
+        Assert.Equal(FlowBasis.Duty, zone.Basis);
+        Assert.Equal("LD1", zone.Source);
+        Assert.Equal(0.1594, zone.Magnitude, 3);
+
+        // A second source at 80/60 leaves no one design difference, and none is invented.
+        var disagreeing = GraphFixture.Lower(Zones.Replace("HE2 heat_exchanger power=0.001 in.t=40 out.t=70", "HE2 heat_exchanger power=0.001 in.t=60 out.t=80", StringComparison.Ordinal)).Graph;
+        var unrated = BranchFlows.Estimate(disagreeing)[disagreeing.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
+
+        Assert.NotEqual(FlowBasis.Duty, unrated.Basis);
+    }
     /// <summary>The legs a valve partitions from a rated coil carry the coil's own basis one rank down, so the forest keeps them ahead of anything merely propagated (<c>S-68</c>).</summary>
     [Fact]
     public void AThreeWayValvePartitionsTheCommonDutyFlowAcrossItsInletLegs()

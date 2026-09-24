@@ -69,6 +69,19 @@ public static partial class BranchFlows
                 Offer(ref estimates[branch.Index], VolumeFlow(graph, branch, part), FlowBasis.Stated, part.Name);
             }
 
+            // A load with a duty and no temperature of its own borrows its sources' design temperatures, and
+            // yields to any rating the branch has from temperatures stated on it (S-85).
+            if (estimates[branch.Index].Basis < FlowBasis.Duty)
+            {
+                foreach (var load in branch.Path.OfType<HeatExchangerComponent>())
+                {
+                    if (Ownership.Of(load, "power") is not ParameterState.Free && Side(graph, branch, load) == 1)
+                    {
+                        Offer(ref estimates[branch.Index], DesignFlow(graph, load), FlowBasis.Duty, load.Name);
+                    }
+                }
+            }
+
             // A terminal states the flux crossing the model boundary, and a terminal has one branch, so
             // that flux *is* the branch's flow. An interior junction's stated flow is not: it splits
             // among several branches and none of them carries it alone.
@@ -271,7 +284,8 @@ public static partial class BranchFlows
     /// <para>
     /// The arithmetic is <see cref="RatedFlow"/>'s; this decides which inlet to hand it. A side stated as
     /// a difference (<c>dt</c>, <c>dt2</c>) rather than two terminals is <c>Q / (cp · dt)</c> with <c>cp</c> at
-    /// whichever terminal it did state, and at 50 °C when it stated none -- a seed, not a rating.
+    /// whichever terminal it did state, and at 50 °C when it stated none -- a seed, not a rating. A load that
+    /// states its duty and no terminal at all is rated afterwards, at its sources' design temperatures (<see cref="DesignFlow"/>).
     /// </para>
     /// </remarks>
     private static double? Duty(CircuitGraph graph, Branch branch, IFlowComponent component)

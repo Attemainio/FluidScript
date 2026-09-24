@@ -304,4 +304,52 @@ public static partial class BranchFlows
 
         return returns[0];
     }
+
+    /// <summary>The flow a load that states its duty and no terminal temperature carries at its sources' design temperatures.</summary>
+    /// <param name="graph">The lowered circuit.</param>
+    /// <param name="load">The exchanger; applies only to a load (negative duty) stating neither <c>in</c> nor <c>out</c>.</param>
+    /// <returns>kg/s, or <see langword="null"/> when the sources its water can reach do not all state one supply and one return temperature.</returns>
+    /// <remarks>
+    /// <para>
+    /// <see cref="CommonReturn"/> read the other way (<c>S-85</c>). A zone written <c>LD1 heat_exchanger power=-20</c>
+    /// has a duty and no temperature, so it had no rating, and its branch took whatever the copy rule handed a split:
+    /// on the three-zone plant, the plant's whole 0.478 kg/s on every zone, with zone 1 then run backwards to balance
+    /// the header. An emitter left without its own temperatures is designed to the system's -- the plant's 70/40 --
+    /// so 20 kW is 0.159 kg/s, which is where the zones settle.
+    /// </para>
+    /// <para>
+    /// A seed, not a rating: nothing here enters the equations, and the zones' flows are still their hydraulics'. It
+    /// matters because a load's design flow is sized from the flow the previous pass found, a fixed point the sizing
+    /// loop approaches by about 20 / (20 + the valve's 2 kPa) per pass; started 15 % off it needs some fifty passes. The
+    /// sources must agree: a plant with a 70/40 and an 80/60 source has no one design difference, and none is invented.
+    /// </para>
+    /// </remarks>
+    private static double? DesignFlow(CircuitGraph graph, HeatExchangerComponent load)
+    {
+        if (load.Power >= 0 || load.StatedParameters.ContainsKey("in") || load.StatedParameters.ContainsKey("out") || load.StatedParameters.ContainsKey("dt"))
+        {
+            return null;
+        }
+
+        var reachable = HydraulicPartition.Of(graph)
+            .Where(partition => partition.Elements.Contains(load))
+            .SelectMany(static partition => partition.Elements)
+            .ToHashSet();
+
+        var sources = graph.Components
+            .OfType<HeatExchangerComponent>()
+            .Where(candidate => candidate.Power > 0 && reachable.Contains(candidate))
+            .ToArray();
+
+        if (sources.Length == 0
+            || !sources[0].StatedParameters.TryGetValue("in", out var back)
+            || !sources[0].StatedParameters.TryGetValue("out", out var supply)
+            || sources.Any(source => !source.StatedParameters.TryGetValue("in", out var i) || !i.IsCloseTo(back)
+                || !source.StatedParameters.TryGetValue("out", out var o) || !o.IsCloseTo(supply)))
+        {
+            return null;
+        }
+
+        return RatedFlow(graph.Substance, load.Power, supply, back);
+    }
 }
