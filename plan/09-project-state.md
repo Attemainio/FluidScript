@@ -1637,6 +1637,11 @@ that governed each size. What P6.8 still owes, and what comes after:
     `S-86` (its returns are setpoints). `S-85` stays open, narrowed and risk low: the copy rule at a split whose
     legs have nothing to rate, which no script hits now; a direction-aware share was measured and broke the
     two-source plant. Next: `S-86`, which step 12b and the controlled steps 5, 8c and 11a all wait on.
+  - **The quick fixes (2026-09-24, the user's ask: every small row needing no decision):** `L-52` moved to Closed
+    (closed by `D-115` in September, left in the Open table); `S-84` closed (the heat balance reads a solved duty);
+    `S-80` closed (both interface-flow branches tested by hand); `S-17` narrowed to its guard (`33` already carries
+    the corrected argument). `S-87` was tried and reverted: setting a pump's setpoint aside leaves step 3's loop
+    with no design return, so it is a decision about what a `control` line on a pump means at the design point.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1706,7 +1711,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2430 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2432 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

@@ -238,6 +238,21 @@ error Newton exists to close, and it is normal to see a large residual on exactl
 loop in a report taken at the seed. What is *not* normal is a large residual on many of them at once —
 that usually means the flows themselves are far from the answer, not the pressures.
 
+## Heat balance
+
+One line per hydraulic circuit, the first thing to check on a converged solve:
+
+```
+--- heat balance
+    [0] sources +149.105 kW (HPC +149.105 solved), loads -120 kW (HL -120), boundary streams -29.105 kW — net +0 kW
+```
+
+Sources are every exchanger that gains heat, loads every one that gives it up, and a boundary stream is the
+enthalpy carried in or out where the circuit is open. The duties are the ones you stated or the energy balance
+sized; a duty the solver was asked to find -- a heater holding its leaving temperature with its power unstated --
+is read from the solution and marked `solved`. A converged circuit's net is zero to the last digit shown. A net
+that is not zero on a converged solve is a finding worth reporting, not rounding.
+
 ## Equations, and how far each is from satisfied
 
 ```

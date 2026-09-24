@@ -1019,6 +1019,15 @@ public sealed class OuterLoopTests
         Assert.Equal(5.744, Flow("HL"), 0.01);
         Assert.InRange(leak, 0.01, 1.0);
         Assert.Equal(120_000 + (leak * (Enthalpy("NB_out") - Enthalpy("NB_in"))), power, 1.0);
+
+        // `S-84`: the report's balance reads the solved duty, marked so, and closes -- it summed the lowered duty,
+        // which is zero for a promoted one, and showed a net of -149.105 kW on a circuit exact to 1e-11 W.
+        var report = FluidScript.Core.Diagnostics.Explanations.SolveExplanation.Render(
+            result, GraphFixture.Lower(MachineHoldingItsLeavingTemperature).Graph, "machine");
+        var balance = report.Split('\n').Single(line => line.Contains("] sources ", StringComparison.Ordinal));
+
+        Assert.Contains($"HPC +{(power / 1000).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} solved", balance, StringComparison.Ordinal);
+        Assert.EndsWith("net +0 kW", balance.TrimEnd(), StringComparison.Ordinal);
     }
 
     [Theory]

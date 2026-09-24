@@ -184,4 +184,73 @@ public sealed class PinnedViewTests
         var mixed = layout.Unknowns.Single(static u => u.Name == "T1.h");
         Assert.Equal((Enthalpy(25) + Enthalpy(30) + Enthalpy(40) + Enthalpy(50) + Enthalpy(60)) / 5, pinned.Solution.Values[mixed.Index], 1.0);
     }
+
+    /// <summary>
+    /// The interface flows between layers (<c>33</c> §Stratified tank, <c>S-80</c>): the cumulative port flow below each
+    /// interface, carrying the layer below's water up when it is positive and the layer above's down when it is negative.
+    /// </summary>
+    /// <remarks>
+    /// The storage header matches every layer's inflow with an outflow, so every interface there carries zero and neither
+    /// branch ran. Here one stream crosses a three-layer tank at 30/40/50 C, 0.1 kg/s of 60 C water: entering the bottom
+    /// by <c>in</c> it pushes each layer's water into the one above; entering the top by the <c>out</c> port -- the
+    /// nominal outlet, run backwards -- it pushes each layer's water into the one below. Every rate is one product.
+    /// </remarks>
+    [Theory]
+    [InlineData("S1 - T1.in\nT1.out - LD", new[] { 60.0, 30.0, 30.0, 40.0, 40.0, 50.0 })]
+    [InlineData("S1 - T1.out\nT1.in - LD", new[] { 40.0, 30.0, 50.0, 40.0, 60.0, 50.0 })]
+    public async Task EachInterfaceCarriesTheLayerItsFlowLeavesIntoTheNext(string connections, double[] pairs)
+    {
+        var source = $"""
+            fluidscript 1
+            circuit tank
+            fluid dynamic water
+
+            S1 inlet t=60 flow=0.1
+            T1 tank volume=300 layers=3 layer[1].t=30 layer[2].t=40 layer[3].t=50 in.level=10% out.level=90%
+            LD outlet flow=0.1
+
+            connections
+            {connections}
+            """;
+        var result = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, "tank", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());
+
+        var run = result.Value;
+        var system = EquationSystem.Build(run.Graph, WellPosedness.Check(run.Graph), run.Solve.Solution);
+        var pressure = run.Solve.Solution.Values[system.Unknowns.NodePressure(0)];
+
+        double Enthalpy(double celsius)
+        {
+            var state = Water.Instance.FromPressureTemperature(
+                Quantity.FromSi(pressure, Dimension.Pressure), Quantity.FromSi(celsius + 273.15, Dimension.Temperature));
+
+            Assert.True(state.TryGetValue(out var fluid));
+
+            return fluid.Enthalpy.SiValue;
+        }
+
+        system.Pin([Enthalpy(30), Enthalpy(40), Enthalpy(50)]);
+
+        var pinned = await new NewtonSolver().SolveAsync(system, run.Solve.Solution, null, TestContext.Current.CancellationToken);
+
+        Assert.True(pinned.Converged, pinned.Termination.ToString());
+
+        var balances = new double[3];
+        var inflows = new double[3];
+
+        Assert.True(system.TryEvaluateRates(pinned.Solution.Values.AsSpan(), balances, inflows, out _, out _));
+
+        // The water arriving at a port is the boundary's node's, which the solve holds at 60 C at its own pressure.
+        var arriving = pinned.Solution.Values[system.Unknowns.NodeEnthalpy(run.Graph.Nodes.ToList().FindIndex(static node => node.Name == "S1"))];
+
+        double H(double celsius) => celsius == 60 ? arriving : Enthalpy(celsius);
+
+        for (var layer = 0; layer < 3; layer++)
+        {
+            Assert.Equal(0.1 * (H(pairs[2 * layer]) - H(pairs[(2 * layer) + 1])), balances[layer], 0.5);
+            Assert.Equal(0.1, inflows[layer], 1e-9);
+        }
+    }
 }

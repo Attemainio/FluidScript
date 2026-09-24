@@ -96,7 +96,9 @@ public static partial class SolveExplanation
         // The first line an engineer checks (`S-71`): what goes in, what comes out, per hydraulic. The
         // duties are the lowered ones -- stated, or what the closure chose -- and a boundary stream
         // carries the enthalpy of the node it crosses at, so an open circuit's sum is its net enthalpy
-        // flux. `FS2203` checks this and says nothing about the numbers.
+        // flux. `FS2203` checks this and says nothing about the numbers. A duty the solve was asked to find
+        // is read from the solution and marked `solved` (`S-84`): summing the lowered one reported a machine
+        // whose duty was promoted as a hole of exactly that duty in a circuit balanced to 1e-11 W.
         report.AppendLine();
         report.AppendLine("--- heat balance");
 
@@ -111,7 +113,15 @@ public static partial class SolveExplanation
 
             foreach (var element in hydraulic.Elements)
             {
-                if (element is not HeatExchangerComponent exchanger || exchanger.Power == 0)
+                if (element is not HeatExchangerComponent exchanger)
+                {
+                    continue;
+                }
+
+                var promoted = at is null ? null : SolvedStates.Parameter(layout, at, exchanger.Name, "power");
+                var power = promoted ?? exchanger.Power;
+
+                if (power == 0)
                 {
                     continue;
                 }
@@ -124,8 +134,8 @@ public static partial class SolveExplanation
                     .Select(branch => BranchFlows.Side(graph, branch, exchanger))
                     .DefaultIfEmpty(1)
                     .First();
-                var duty = side == 2 ? -exchanger.Power : exchanger.Power;
-                var entry = $"{exchanger.Name} {duty / 1000:+0.###;-0.###}";
+                var duty = side == 2 ? -power : power;
+                var entry = $"{exchanger.Name} {duty / 1000:+0.###;-0.###}{(promoted is null ? string.Empty : " solved")}";
 
                 if (duty > 0)
                 {
