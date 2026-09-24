@@ -86,7 +86,7 @@ public static partial class SceneAudit
         }
     }
 
-    /// <summary>H10 for a tank (<c>29</c> step 9): its connected charging ports stand left of its connected discharging ports.</summary>
+    /// <summary>H10 for a tank (<c>29</c> step 9): its connected charging ports stand left of its connected discharging ports -- unless it takes a loop per flank (<c>D-157</c>).</summary>
     private static void Tanks(Scene scene, List<Route> pipes, ImmutableArray<Finding>.Builder findings)
     {
         foreach (var tank in scene.Placements.Where(static p => KindOf(p) == "tank"))
@@ -94,6 +94,13 @@ public static partial class SceneAudit
             var used = tank.Anchors.Where(a => pipes.Any(r => r.Points.Length > 0 && (r.Points[0].ManhattanTo(a.Value.At) < Eps || r.Points[^1].ManhattanTo(a.Value.At) < Eps))).ToList();
             var charging = used.Where(static a => a.Key.StartsWith("in", StringComparison.Ordinal)).Select(static a => a.Value.At.X).ToList();
             var discharging = used.Where(static a => a.Key.StartsWith("out", StringComparison.Ordinal)).Select(static a => a.Value.At.X).ToList();
+
+            // D-157: a tank shared by two loops takes a loop per flank, each flank with an inlet and an outlet; the
+            // flank a loop takes follows the loops, not the port names.
+            if (used.Count >= 4 && used.GroupBy(static a => a.Value.Outward).All(static g => g.Any(static a => a.Key.StartsWith("in", StringComparison.Ordinal)) && g.Any(static a => a.Key.StartsWith("out", StringComparison.Ordinal))))
+            {
+                continue;
+            }
 
             if (charging.Count > 0 && discharging.Count > 0 && charging.Average() > discharging.Average() + Eps)
             {

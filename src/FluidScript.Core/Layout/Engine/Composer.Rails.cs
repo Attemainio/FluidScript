@@ -534,8 +534,16 @@ internal sealed partial class Composer
             }
         }
 
-        // The sensors on pipes the form has drawn are part of what is placed; the unit's own, of what it occupies.
-        theirs.AddRange(InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)));
+        // The sensors on pipes the form has drawn are part of what is placed -- a unit's box keeps a margin from their
+        // bubbles as from a placed box's; the unit's own, of what it occupies.
+        var bubbles = InlineBubbles(runs, 0, 0).ToList();
+
+        if (mine.Any(m => bubbles.Any(m.Intersects)))
+        {
+            return false;
+        }
+
+        theirs.AddRange(bubbles.Select(b => b.Grow(_margin)));
         mine.AddRange(InlineBubbles(unit.Runs, dx, dy).Select(b => b.Grow(_margin)));
 
         foreach (var (_, points, _, _) in unit.Runs)
@@ -839,17 +847,22 @@ internal sealed partial class Composer
             origin = Math.Max(topEnd.At.X, _sheet.Centre[j0.Component].X - (unit.Out.Along(_margin).X - unit.In.At.X) - _margin);
         }
 
-        // A left-facing outlet descends to the bottom rail one margin out -- to where the rail ends, which is lower than
-        // it began where a standing member turned it down (C3, C-133); the descent must clear the boxes too, and the
-        // sensors on the pipes the form has drawn (D-151).
+        // An outlet facing left or down descends to the bottom rail one margin out -- to where the rail ends, which is
+        // lower than it began where a standing member turned it down (C3, C-133); the descent must clear the boxes too,
+        // the sensors on the pipes the form has drawn (D-151), and cross none of those pipes: a block hung between the
+        // rails is passed, not cut through.
         var yRail = cursor.At.Y;
         var sensors = InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)).ToList();
-        Func<double, double, bool>? clear = rightJunction is null && unit.Out.Outward == Direction.Left
+        var laid = runs.SelectMany(static r => r.Points.Zip(r.Points.Skip(1))).ToList();
+        Func<double, double, bool>? clear = rightJunction is null && (unit.Out.Outward == Direction.Left || unit.Out.Outward == Direction.Down)
             ? (dx, dy) =>
             {
-                var x = unit.Out.Along(_margin).X + dx;
-                var (low, high) = (new Point(x, yRail), new Point(x, unit.Out.At.Y + dy));
-                return _sheet.Free(x, yRail, unit.Out.At.Y + dy, unit.Members) && !sensors.Any(o => Sheet.Passes(o, low, high));
+                var from = unit.Out.Along(_margin).Offset(dx, dy);
+                var (low, high) = (new Point(from.X, yRail), from);
+                return _sheet.Free(from.X, yRail, from.Y, unit.Members)
+                    && !sensors.Any(o => Sheet.Passes(o, low, high))
+                    && !laid.Any(s => Math.Abs(s.First.Y - s.Second.Y) < Eps && s.First.Y > low.Y + Eps && s.First.Y < high.Y - Eps
+                        && Math.Min(s.First.X, s.Second.X) < from.X - Eps && Math.Max(s.First.X, s.Second.X) > from.X + Eps);
             }
             : null;
         var (uIn, uOut) = Slide(unit, origin, topEnd.At.Y - drop, runs, clear, topEnd.At.X, rightJunction is null ? cursor.At.X : null);
@@ -925,7 +938,7 @@ internal sealed partial class Composer
         return (left, right);
     }
 
-    /// <summary>One member as a ring's right side, placed with its inlet at the local origin: at the corner if it can turn the flow from leftward to downward (C9), else taking the flow from above.</summary>
+    /// <summary>One member as a ring's right side, placed with its inlet at the local origin: at the corner if it can turn the flow from leftward to downward (C9), else taking the flow from above, else entered and left on its left flank (<c>D-157</c>).</summary>
     private Unit? Single(Member m)
     {
         List<Transform> candidates;
@@ -941,6 +954,13 @@ internal sealed partial class Composer
             // Any arrangement the symbol offers may turn the corner, the default first (A9, D-112).
             var turning = _sheet.Admitted(m.Component).Where(t => Faces(t, Direction.Left)).ToList();
             candidates = turning.Count > 0 ? turning : _sheet.Admitted(m.Component).Where(t => Faces(t, Direction.Up)).ToList();
+
+            if (candidates.Count == 0)
+            {
+                // A member entered and left on its left flank -- a tank taking its charging loop on its west side
+                // (D-157): the top rail comes in level, the return leaves level from the outlet below.
+                candidates = [.. _sheet.Admitted(m.Component).Where(t => _sheet.Outward(m.Component, m.InPort, t) == Direction.Left && _sheet.Outward(m.Component, m.OutPort, t) == Direction.Left)];
+            }
         }
 
         if (candidates.Count == 0)

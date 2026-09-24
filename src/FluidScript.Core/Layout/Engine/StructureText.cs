@@ -29,7 +29,18 @@ internal static class StructureText
             var at = pendant.Port >= 0 ? Port(view, pendant.At, pendant.Port) : view.Name(pendant.At);
             var members = pendant.Members.Length == 0 ? "no boxed member" : string.Join(", ", pendant.Members.Select(view.Name));
             var runs = pendant.Runs.Length == 1 ? "1 run" : $"{pendant.Runs.Length.ToString(CultureInfo.InvariantCulture)} runs";
-            yield return $"  pendant at {at}: {members}; {runs}{(pendant.Tree ? string.Empty : " (not a tree)")}";
+            var attached = plan.Rings.Any(r => r.At == pendant.At && (pendant.Port == r.InPort || pendant.Port == r.OutPort));
+            yield return $"  pendant at {at}: {members}; {runs}{(pendant.Tree ? string.Empty : attached ? " (an attached ring, below)" : " (not a tree)")}";
+        }
+
+        foreach (var ring in plan.Rings)
+        {
+            yield return $"  attached ring (D-157) from {Port(view, ring.At, ring.OutPort)} back to {Port(view, ring.At, ring.InPort)}";
+
+            foreach (var line in Lines(view, plan with { Cut = ring.At }, ring.Body, 2))
+            {
+                yield return line;
+            }
         }
     }
 

@@ -70,6 +70,12 @@ internal sealed partial class Sheet
 
     // ---- geometry -------------------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// The flank a tank's port takes where the layout decides it (<c>D-157</c>): true for the east side, false for the
+    /// west. A port not listed takes the side its symbol's indexed-anchor rule gives by name.
+    /// </summary>
+    public Dictionary<(int Component, int Port), bool> East { get; } = [];
+
     /// <summary>An element's box size under its transform; an inline point has none.</summary>
     public (double Width, double Height) SizeOf(int c) => View.IsInline(c) ? (0, 0) : Transform[c].Size(View.Symbols[c]);
 
@@ -97,8 +103,15 @@ internal sealed partial class Sheet
             if (name.StartsWith(rule.Prefix, StringComparison.Ordinal) && flow is TankComponent tank)
             {
                 var box = symbol.ViewBox;
-                var x = rule.Side == "west" ? box[0] : box[0] + box[2];
                 var y = box[1] + (tank.PortLevels[port] * box[3]);
+
+                if (East.TryGetValue((c, port), out var east))
+                {
+                    // D-157: a tank shared by two loops -- the flank the port's loop takes, not the one its name gives.
+                    return (t.Apply(east ? box[0] + box[2] : box[0], y), t.Apply(east ? Direction.Right : Direction.Left));
+                }
+
+                var x = rule.Side == "west" ? box[0] : box[0] + box[2];
                 return (t.Apply(x, y), t.Apply(Direction.Of(new Point(rule.Direction[0], rule.Direction[1])) ?? Direction.Right));
             }
         }

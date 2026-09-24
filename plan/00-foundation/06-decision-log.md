@@ -199,6 +199,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-154` | Accepted | 2026-09-23 | A header's spine is its branch declared last |
 | `D-155` | Accepted | 2026-09-24 | The audit holds every drawing rule it states, and the report names the rule behind every element |
 | `D-156` | Accepted | 2026-09-24 | Headers in series are drawn as stacked bands |
+| `D-157` | Accepted | 2026-09-24 | A tank shared by two loops takes a loop per flank |
 <!-- index:end -->
 
 ---
@@ -7280,3 +7281,42 @@ return doubled back under its own columns; the user chose stacked (2026-09-24). 
 
 - *Staircase right* -- reads left to right, but with direct-return wiring the first header's return runs back under
   its own columns to reach the second.
+
+## D-157 · A tank shared by two loops takes a loop per flank
+
+**Accepted · 2026-09-24** · amends H10's tank clause (`28`, `29` step 9) and the tank symbol's anchor rule (`26`:
+`in{n}` west, `out{n}` east) for that one case · `28` E2, E3 · `C-129` · the user's choice from mock-ups
+
+**What was wrong.** A buffer tank between a boiler loop and a distribution loop is the one component both loops
+share. The decomposition read the second loop as a pendant that is not a tree, no form drew it, and the chain
+fallback drew the whole plant (`C-129`). Even with a form for it, the symbol's rule puts every `in{n}` on the west
+wall and every `out{n}` on the east wall by name. In a four-pipe buffer the boiler enters by `in` and leaves by
+`out[2]`, the distribution leaves by `out` and returns by `in[2]`: each loop would have one pipe on each wall, and
+the two loops would cross in front of the tank.
+
+**The rule.** Where a tank closes two loops -- one leaves and re-enters it at two ports, the other at two more --
+each loop takes one flank: the loop through the fragment's head (the heat source) stands on the tank's west flank
+with its outlet and inlet there, and the second loop on the east flank, both at the elevations the script states.
+The decomposition reads the second loop as an **attached ring** of the tank (a pendant touching the body at two of
+the tank's ports, one leaving and one entering) and decomposes it as a ring whose head is the tank; C2 lays it with
+that head fixed, its top rail from the tank's east outlet, its bottom rail back to the east inlet. The tank is the
+source ring's consumer unit, on its right side (C11). A tank with fewer ports, or with its loops not paired so,
+keeps the rule by name.
+
+**Why.** The "classic" four-pipe buffer connection has "the heat source add[ing] heat on one side, while the load
+removes heat from the other side" ([Caleffi, *Is there a difference between a buffer tank and a storage
+tank?*](https://www.caleffi.com/en-us/blog/there-difference-between-buffer-tank-and-storage-tank); the four-pipe
+schematics of [idronics 17, *Thermal storage in hydronic systems*](https://www.caleffi.com/sites/default/files/media/external-file/Idronics_17_NA_Thermal%20storage%20in%20hydronic%20systems.pdf)
+and [idronics 15, *Separation in hydronic
+systems*](https://www.caleffi.com/sites/default/files/media/external-file/Idronics_15_NA_Separation%20in%20hydronic%20systems.pdf)).
+Heat still reads left to right -- into the tank from the west, out of it to the east -- which is what H10 asks; the
+ports' names say which way the fluid crosses the wall, not where the heat comes from. Shown to the user as mock-ups
+of the stress plant's piece A; the user chose one loop per side (2026-09-24). Built, ladder step 13a draws hard 0
+soft 0.
+
+### Rejected
+
+- *Keep ports by name* -- both loops cross the tank's width, one pipe of each on each wall; the reader cannot see
+  which pipe belongs to which loop.
+- *The second loop above or below the tank* -- the stated port elevations would put its pipes on the walls anyway,
+  and turning them over the tank's top hides the stratification the elevations show.

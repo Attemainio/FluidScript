@@ -118,7 +118,9 @@ public sealed class DecompositionTests
         // series-parallel, so nothing is left loose, and whatever hangs off a body is a tree.
         var scene = Solve(Source(name));
         var runs = scene.Provenance.Count(static n => n.Rule == "E1" && n.Subject.StartsWith("run ", StringComparison.Ordinal));
-        var plan = scene.Provenance.Where(static n => n.Rule == "E2").Select(static n => n.Reason.Trim()).ToList();
+        // An attached ring (D-157) re-reads a pendant's runs as a ring; they are counted once, in the pendant.
+        var plan = scene.Provenance.Where(static n => n.Rule == "E2").Select(static n => n.Reason.Trim())
+            .TakeWhile(static l => !l.StartsWith("attached ring ", StringComparison.Ordinal)).ToList();
         var inBody = plan.Count(static l => l.StartsWith("run ", StringComparison.Ordinal));
         var inPendants = plan
             .Where(static l => l.StartsWith("pendant at ", StringComparison.Ordinal))

@@ -62,7 +62,7 @@ internal sealed class Decomposition
 
         if (_view.IsSource(head) && Ring(head, head, FragmentKind.Sourced) is { } sourced)
         {
-            return sourced;
+            return sourced with { Rings = Attached(sourced) };
         }
 
         if (_runs.Any(r => r.Start.Component == head && r.End.Component == head))
@@ -520,6 +520,65 @@ internal sealed class Decomposition
     }
 
     // ---- what hangs off the body ----------------------------------------------------------------------------------
+
+    /// <summary>
+    /// The rings that share one element with the body (<c>D-157</c>): each pendant that is no tree and touches the body
+    /// at exactly two ports of one element -- one it leaves by, one it returns by -- read as a ring cut at that element
+    /// between those two ports, over the pendant's own runs.
+    /// </summary>
+    private ImmutableArray<AttachedRing> Attached(FragmentPlan plan)
+    {
+        var rings = ImmutableArray.CreateBuilder<AttachedRing>();
+        var onBody = new HashSet<int>();
+
+        foreach (var r in plan.Body is null ? [] : Runs(plan.Body))
+        {
+            onBody.Add(_view.Runs[r].Start.Component);
+            onBody.Add(_view.Runs[r].End.Component);
+        }
+
+        foreach (var pendant in plan.Pendants.Where(static p => !p.Tree))
+        {
+            var runs = pendant.Runs.Select(r => _view.Runs[r]).ToList();
+            var touches = runs.SelectMany(static r => new[] { r.Start, r.End }).Where(e => onBody.Contains(e.Component)).Distinct().ToList();
+
+            if (touches.Count != 2 || touches[0].Component != touches[1].Component)
+            {
+                continue;
+            }
+
+            var at = touches[0].Component;
+            var leaving = touches.FirstOrDefault(e => !_view.Enters(at, e.Port));
+            var entering = touches.FirstOrDefault(e => _view.Enters(at, e.Port));
+
+            if (leaving == default || entering == default)
+            {
+                continue;
+            }
+
+            var own = pendant.Runs.ToHashSet();
+            int Vertex(RunEnd end) => end.Component != at ? end.Component : end.Port == leaving.Port ? _plus : end.Port == entering.Port ? _minus : -1;
+            var edges = _runs.Where(r => own.Contains(r.Index)).Select(r => new Edge(r.Index, Vertex(r.Start), Vertex(r.End))).Where(static e => e.A >= 0 && e.B >= 0).ToList();
+            var body = Body(edges, _plus, _minus);
+
+            if (body.Count > 0)
+            {
+                rings.Add(new AttachedRing(at, leaving.Port, entering.Port, Decompose(body, _plus, _minus)));
+            }
+        }
+
+        return rings.ToImmutable();
+    }
+
+    /// <summary>Every run a structure holds.</summary>
+    private static IEnumerable<int> Runs(Structure structure) => structure switch
+    {
+        RunLeaf leaf => [leaf.Run],
+        SeriesStructure series => series.Parts.SelectMany(Runs),
+        HeaderStructure header => header.Branches.SelectMany(Runs),
+        LoopStructure loop => Runs(loop.Forward).Concat(Runs(loop.Back)),
+        _ => [],
+    };
 
     /// <summary>
     /// Every run outside the body, grouped into the pieces that hang off it: a body element's port is where a piece is

@@ -1596,9 +1596,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     second side is one (`C-132`, its filed mechanism corrected); a branch that rejoins its rail -- the duty/standby
     pair -- runs as a row under it (`C-130`, built, awaiting the picture). Each compared on all 50 scripts: no
     accepted picture moved. Core 2361/0.
-    Next: two design questions put to the user -- headers in series (`C-131`: the direct-return wiring makes header
-    A's return run back towards the source) and the buffer tank between two loops (`C-129`: which tank ports face
-    which loop) -- then R5 (pipe bands in the occupancy across forms, H11).
+  - **The two design questions, answered from mock-ups (2026-09-24): stacked, and one loop per side.** Headers in
+    series are stacked bands (`D-156`, `C-131`: piece B hard 15 → 0). A tank shared by two loops takes a loop per
+    flank, the second loop read as an attached ring and laid by C2 with the tank as its fixed head (`D-157`,
+    `C-129`'s first step: ladder step 13a hard 0 soft 0, and it solves). Piece B with its controls
+    (`plant-distribution-controls.fluid`) draws hard 0 once the right side's descent crosses no laid pipe and its
+    box keeps clear of the sensor bubbles still to come (`28` E3). No accepted picture moved. Core 2367/0.
+    Next: the rest of `C-129` -- parallel boilers on the source ring (piece A), the attached ring through the bands
+    (the whole plant), a loop per side of a two-sided exchanger (piece C's DHW) -- then R5 (pipe bands in the
+    occupancy across forms, H11). The pictures of 13a and the controls version await the user.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

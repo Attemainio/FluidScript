@@ -102,7 +102,10 @@ under the first, dropping from the split and rising into the merge, so the two p
 side the way a pump set is drawn. Two headers in series -- a second group fed from the first group's return -- are
 stacked: the first group is a band of its own with its return running back under it, and from the
 return's left end the pipe steps down to the second group's supply, whose branches hang to the
-return that closes the loop. A sensor stands on the node it reads
+return that closes the loop. A buffer tank shared by two loops -- the boiler charging it, the
+distribution drawing from it -- takes one loop on each side: the loop that holds the heat source runs
+from the tank's left side, the second loop from its right, each side with its own inlet and outlet at
+the heights the script gave them, so the heat still reads left to right, through the tank. A sensor stands on the node it reads
 and a controller on the component it drives, joined to it by a short straight line; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a
@@ -203,7 +206,8 @@ not serve; every pipe and signal line runs level or plumb, never on a slant; a p
 on the two ports its connection names and leaves each port straight for a whole margin; a junction
 dot takes one pipe per side; no inline element sits on a corner; supply and return never share a
 segment; nothing is left undrawn; every flow loop runs clockwise; and heat progresses left to
-right -- through every exchanger, and into a tank by its charging ports on the left. Eight things
+right -- through every exchanger, and into a tank by its charging ports on the left, unless the tank
+takes a loop on each side. Eight things
 are counted rather than forbidden, and fewer is better: a pipe through a margin, two pipes side by
 side closer than a margin, two pipes crossing, a pipe running through a point cut into another
 pipe (where a sensor on that point would read as measuring either), a signal line running along a

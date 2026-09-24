@@ -20,6 +20,16 @@ internal sealed partial class Composer
     /// <summary>Lays the body the plan names, each form that fits the plan in turn until one draws it; with none, the head stands at the origin for the chain rules (C1).</summary>
     private void Form(FragmentPlan plan, ImmutableArray<int> members, string subject)
     {
+        // D-157: a tank shared by two loops takes a loop per flank -- the body's ports on its west side, the attached
+        // ring's on its east -- whatever its ports are called.
+        foreach (var ring in plan.Rings.Where(r => _view.Graph.Components[r.At] is TankComponent))
+        {
+            foreach (var port in _view.Connected(ring.At))
+            {
+                _sheet.East[(ring.At, port)] = port == ring.OutPort || port == ring.InPort;
+            }
+        }
+
         var drawn = plan.Kind switch
         {
             FragmentKind.Sourced => Tried(subject, "C2 sourced loop", () => Settled(() => Sourced(plan)))
@@ -35,6 +45,13 @@ internal sealed partial class Composer
         {
             _sheet.Note(subject, "form", "chain (C1): no ring, loop or open form drew the fragment");
             _sheet.Place(plan.Head, Transform.Identity, new Point(0, 0), "C1", "the fragment's head at the origin in its drawn default");
+            return;
+        }
+
+        // D-157: each ring attached to an element the body placed is laid from that element's flank, rightwards.
+        foreach (var ring in plan.Rings.Where(r => _sheet.Placed[r.At]))
+        {
+            Tried(subject, $"C2 attached ring at {_view.Name(ring.At)} (D-157)", () => Settled(() => Sourced(ring.Body, ring.At, fixedHead: true)));
         }
     }
 
@@ -141,25 +158,37 @@ internal sealed partial class Composer
     /// the consumer of the largest duty) takes the right side, and the bottom rail returns to the inlet. A header's
     /// other branches hang between the rails (C14).
     /// </summary>
-    private bool Sourced(FragmentPlan plan)
+    private bool Sourced(FragmentPlan plan) => Sourced(plan.Body, plan.Cut, fixedHead: false);
+
+    /// <summary>
+    /// C2 from a head: the source placed at the origin, outlet up and inlet down -- or, for a ring attached to an element
+    /// the body has already placed (<paramref name="fixedHead"/>, <c>D-157</c>), that element where it stands, the ring
+    /// leaving its flank by the outlet and returning by the inlet, both facing right.
+    /// </summary>
+    private bool Sourced(Structure? body, int cut, bool fixedHead)
     {
         var attempt = new Attempt(this);
 
-        if (plan.Body is null || RingPath(plan.Body, plan.Cut) is not { } path)
+        if (body is null || RingPath(body, cut) is not { } path)
         {
             return attempt.Decline("the ring could not be read from the decomposition");
         }
 
         var cycle = path.Members;
         var s = cycle[0];
-        var ts = _sheet.Admitted(s.Component).Where(t => t.Arrangement == "default" && _sheet.Outward(s.Component, s.OutPort, t) == Direction.Up && _sheet.Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
+        var ts = fixedHead ? [] : _sheet.Admitted(s.Component).Where(t => t.Arrangement == "default" && _sheet.Outward(s.Component, s.OutPort, t) == Direction.Up && _sheet.Outward(s.Component, s.InPort, t) == Direction.Down).ToList();
 
-        if (ts.Count == 0)
+        if (!fixedHead && ts.Count == 0)
         {
             return attempt.Decline("the source has no default arrangement with its outlet up and its inlet down");
         }
 
-        LoopCentre = new Point(0, 0);
+        if (fixedHead && (_sheet.AnchorOf(s.Component, s.OutPort).Outward != Direction.Right || _sheet.AnchorOf(s.Component, s.InPort).Outward != Direction.Right))
+        {
+            return attempt.Decline("the shared element's ports for this ring do not face right");
+        }
+
+        LoopCentre = fixedHead ? _sheet.Centre[s.Component] : new Point(0, 0);
 
         foreach (var member in cycle)
         {
@@ -177,14 +206,19 @@ internal sealed partial class Composer
         Unplace(items, unit);
         var bands = range is null ? SeriesBands(path, unitStart) : [];
 
-        _sheet.Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
+        if (!fixedHead)
+        {
+            _sheet.Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
+        }
+
         var sOut = _sheet.AnchorOf(s.Component, s.OutPort);
         var sIn = _sheet.AnchorOf(s.Component, s.InPort);
         var yTop = sOut.Along(_margin).Y;
+        var left = fixedHead ? sOut.Along(_margin).X : sIn.At.X;
         var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
         var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
-        List<Point> topStart = [sOut.At, new Point(sOut.At.X, yTop)];
+        List<Point> topStart = fixedHead ? [sOut.At, sOut.Along(_margin)] : [sOut.At, new Point(sOut.At.X, yTop)];
         var cursor = Sheet.Anchor(topStart[^1], Direction.Right, Direction.Right);
         var pending = topStart;
         var previous = s;
@@ -205,7 +239,7 @@ internal sealed partial class Composer
             var bandReturn = cycle.GetRange(consumer + 1, merge - consumer);
             var bandHangers = new List<Hanger>();
 
-            if (Top(cursor, pending, previous, [.. cycle.GetRange(from, consumer - from).Select(static m => new Item(m, null))], path, bandReturn, runs, bandHangers, sIn.At.X) is not { } bandTop)
+            if (Top(cursor, pending, previous, [.. cycle.GetRange(from, consumer - from).Select(static m => new Item(m, null))], path, bandReturn, runs, bandHangers, left) is not { } bandTop)
             {
                 return attempt.Decline("a band's rail could not be laid");
             }
@@ -232,7 +266,7 @@ internal sealed partial class Composer
 
         var lastFrom = cycle.IndexOf(previous) + 1;
 
-        if (Top(cursor, pending, previous, bands.Count == 0 ? items : [.. cycle.GetRange(lastFrom, unitStart - lastFrom).Select(static m => new Item(m, null))], path, bottomMembers, runs, hangers, sIn.At.X) is not { } top)
+        if (Top(cursor, pending, previous, bands.Count == 0 ? items : [.. cycle.GetRange(lastFrom, unitStart - lastFrom).Select(static m => new Item(m, null))], path, bottomMembers, runs, hangers, left) is not { } top)
         {
             return attempt.Decline("the top rail could not be laid");
         }
@@ -253,17 +287,22 @@ internal sealed partial class Composer
         }
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);
-        var (drop, yBottom) = Bottom(unit, top.End.At.Y, sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
+        var (drop, yBottom) = Bottom(unit, top.End.At.Y, fixedHead ? sIn.At.Y : sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
         yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
 
-        // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
-        var slack = sIn.Along(_margin).Y - yBottom;
-        _sheet.Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
-        sOut = _sheet.AnchorOf(s.Component, s.OutPort);
-        sIn = _sheet.AnchorOf(s.Component, s.InPort);
-        topStart[0] = sOut.At;
+        if (!fixedHead)
+        {
+            // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
+            var slack = sIn.Along(_margin).Y - yBottom;
+            _sheet.Place(s.Component, ts[0], new Point(0, -slack / 2), "C12", $"the source at the middle of its side, half the rails' slack ({slack:0.##}) down");
+            sOut = _sheet.AnchorOf(s.Component, s.OutPort);
+            sIn = _sheet.AnchorOf(s.Component, s.InPort);
+            topStart[0] = sOut.At;
+        }
 
-        if (!Close(top, unit, drop, yBottom, bottomMembers, [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)], null, rightJunction, hangers, runs))
+        List<Point> bottomStart = fixedHead ? [sIn.At, sIn.Along(_margin), new Point(sIn.Along(_margin).X, yBottom)] : [sIn.At, sIn.Along(_margin), new Point(sIn.At.X, yBottom)];
+
+        if (!Close(top, unit, drop, yBottom, bottomMembers, bottomStart, null, rightJunction, hangers, runs))
         {
             return attempt.Decline("the ring could not be closed along the bottom rail");
         }

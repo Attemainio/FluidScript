@@ -13,4 +13,8 @@ namespace FluidScript.Core.Layout.Engine.Structures;
 /// <param name="Pendants">What hangs off the body, each at one port.</param>
 /// <param name="Plus">The virtual vertex standing for the cut member's outlet side, or -1.</param>
 /// <param name="Minus">The virtual vertex standing for the cut member's inlet side, or -1.</param>
-internal sealed record FragmentPlan(FragmentKind Kind, int Head, int Cut, Structure? Body, ImmutableArray<Pendant> Pendants, int Plus, int Minus);
+internal sealed record FragmentPlan(FragmentKind Kind, int Head, int Cut, Structure? Body, ImmutableArray<Pendant> Pendants, int Plus, int Minus)
+{
+    /// <summary>Gets the rings that share one element with the body and are laid from it (<c>D-157</c>); none by default.</summary>
+    public ImmutableArray<AttachedRing> Rings { get; init; } = [];
+}

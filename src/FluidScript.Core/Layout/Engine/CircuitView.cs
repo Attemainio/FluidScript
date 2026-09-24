@@ -177,10 +177,17 @@ internal sealed class CircuitView
     /// The duty a path entering <paramref name="c"/> by <paramref name="port"/> sees, negative (W), heat leaving that
     /// path's fluid: <see cref="Duty"/>, except that a two-sided exchanger entered by its second side gives up there
     /// what its first side gains -- a heat source's second side is a consumer of the path through it (H10's losing
-    /// side) -- and a consumer's second side gains, so it is none.
+    /// side) -- and a consumer's second side gains, so it is none; a tank entered by a charging port is a nominal
+    /// consumer of the path that charges it (<c>D-157</c>).
     /// </summary>
     public double? DutyOn(int c, int port)
     {
+        if (port >= 0 && Graph.Components[c] is TankComponent && Graph.Components[c].Ports[port].Name.StartsWith("in", StringComparison.Ordinal))
+        {
+            // A store the path charges takes its heat away from that path (D-157): a nominal consumer, lighter than any stated one.
+            return -double.Epsilon;
+        }
+
         if (port < 0 || Graph.Components[c] is not HeatExchangerComponent h || !h.Ports[port].Name.EndsWith('2'))
         {
             return Duty(c);

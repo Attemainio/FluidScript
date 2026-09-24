@@ -1,0 +1,99 @@
+# Layout stress plant, piece B with its controls (2026-09-24): the stacked bands of D-156 with every loop
+# controlled the way the ladder's control steps do it. Each radiator valve holds its return temperature,
+# each injection valve its circuit's supply, the DHW valve its return, the duty pump the pressure at the
+# index junction; the supply carries a sensor pair and a flow meter.
+
+fluidscript 1
+project static plant_big
+
+circuit distribution 101
+fluid water
+
+HS1    heat_exchanger power=250 kW out.t=75
+TE_S   t_sensor at NS
+TE_R   t_sensor at NS0
+FE_S   flow_sensor at NS
+
+PU_S1  pump
+PU_S2  pump
+CV_S1  valve kv=25
+CV_S2  valve kv=25
+BV1    valve kv=40
+CV_R1  valve kv=4
+CV_R2  valve kv=4
+CV_R3  valve kv=4
+RAD1   load in.t=70 out.t=50 power=40 kW
+RAD2   load in.t=70 out.t=50 power=35 kW
+RAD3   load in.t=70 out.t=50 power=25 kW
+TE_R1  t_sensor at NR1
+TE_R2  t_sensor at NR2
+TE_R3  t_sensor at NR3
+TC_R1  pid kp=2
+TC_R2  pid kp=2
+TC_R3  pid kp=2
+PE_A2  p_sensor at NA2
+PC_S1  pid kp=1
+
+connections
+NS0 - HS1 - NS - NP_S
+NP_S - PU_S1 - CV_S1 - NP_M
+NP_S - PU_S2 - CV_S2 - NP_M
+NP_M - BV1 - NA1
+NA1 - CV_R1 - RAD1 - NR1 - NRB1
+NA1 - NA2
+NA2 - CV_R2 - RAD2 - NR2 - NRB2
+NA2 - CV_R3 - RAD3 - NR3 - NRB2
+NRB2 - NRB1
+NRB1 - NC1
+
+control CV_R1 with TE_R1 by TC_R1 setpoint=50
+control CV_R2 with TE_R2 by TC_R2 setpoint=50
+control CV_R3 with TE_R3 by TC_R3 setpoint=50
+control PU_S1 with PE_A2 by PC_S1 setpoint=150
+
+circuit AHU 102
+
+HE_AHU  load in.t=45 out.t=30 power=60 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+TE_AHU  t_sensor at NT_AHU
+TC_AHU  pid kp=2
+
+connections
+NC1 - TV_AHU.a length=12 dn=40
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - NT_AHU - HE_AHU - NM_AHU
+NM_AHU - ND1 length=12 dn=40
+
+control TV_AHU with TE_AHU by TC_AHU setpoint=45
+
+circuit floor 103
+
+HE_FLR  load in.t=35 out.t=28 power=40 kW
+TV_FLR  three_way_valve
+PU_FLR  pump
+TE_FLR  t_sensor at NT_FLR
+TC_FLR  pid kp=2
+
+connections
+NC1 - NC2
+NC2 - TV_FLR.a length=15 dn=32
+NM_FLR - TV_FLR.b
+TV_FLR.ab - PU_FLR - NT_FLR - HE_FLR - NM_FLR
+NM_FLR - ND2 length=15 dn=32
+
+control TV_FLR with TE_FLR by TC_FLR setpoint=35
+
+circuit dhw 104
+
+HE_DHW   load in.t=50 out.t=25 power=50 kW
+CV_DHW   valve kv=4
+TE_DHW   t_sensor at NR_DHW
+TC_DHW   pid kp=2
+
+connections
+NC2 - CV_DHW - HE_DHW - NR_DHW - ND2
+ND2 - ND1
+ND1 - NS0
+
+control CV_DHW with TE_DHW by TC_DHW setpoint=25

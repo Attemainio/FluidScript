@@ -132,4 +132,37 @@ public sealed class ComposerTests
         Assert.True(At("ND1").Y < At("NM_AHU").Y, "the injection blocks return to the ring's bottom rail");
         Assert.Contains(scene.Provenance, n => n.Subject == "NA1" && n.Reason.Contains("band of its own, RAD3 on its right side", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void TheLastBandsRightSideStandsPastTheBlocksHungFromItsRail()
+    {
+        // Piece B with its controls: the floor block's sensor point widens its level pipe, leaving a gap between its pump
+        // and its load wide enough for the DHW load. The right side's descent crosses no pipe the form has laid and its box
+        // keeps clear of the sensor bubbles still to come, so HE_DHW stands past the whole block. Hard 0.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution-controls.fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
+        Assert.True(Inner("HE_DHW").X > Inner("HE_FLR").Right, "the DHW load stands right of the floor block");
+    }
+
+    [Fact]
+    public void ATankSharedByTwoLoopsTakesALoopPerFlank()
+    {
+        // D-157 (C-129): the boiler loop enters T1 by in and leaves by out[2]; the secondary leaves by out and returns by
+        // in[2]. The boiler loop's two ports stand on T1's west flank and the secondary's on its east, so neither loop
+        // crosses the tank; the secondary is an attached ring laid by C2 with T1 as its fixed head, its load right of it.
+        var (scene, findings) = Solve("step-13a-buffer-tank.fluid");
+        var tank = scene.Placements.Single(static p => p.ComponentId == "T1");
+
+        Assert.Empty(findings);
+        Assert.Equal(tank.Inner.X, tank.Anchors["in1"].At.X, 6);
+        Assert.Equal(tank.Inner.X, tank.Anchors["out2"].At.X, 6);
+        Assert.Equal(tank.Inner.Right, tank.Anchors["out1"].At.X, 6);
+        Assert.Equal(tank.Inner.Right, tank.Anchors["in2"].At.X, 6);
+        Assert.True(X(scene, "B1") < tank.Inner.X && X(scene, "LOAD") > tank.Inner.Right, "the boiler stands west of the tank and the load east");
+        Assert.Contains(scene.Provenance, static n => n.Reason.Contains("attached ring at T1", StringComparison.Ordinal));
+    }
 }

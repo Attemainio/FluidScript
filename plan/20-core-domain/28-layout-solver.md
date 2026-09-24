@@ -240,7 +240,7 @@ stated as constraints (`D-108`).
 | H7 | Supply and return never share a pipe segment |
 | H8 | Every component and every connection is drawn; nothing is dropped |
 | H9 | **Every flow loop runs clockwise**: each simple directed cycle of the flow-oriented graph (A3), walked in flow order through its members' centres, encloses negative signed area (y up) |
-| H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right |
+| H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right (a tank shared by two loops takes a loop per flank, `D-157`) |
 | H11 | **Two pipes never run side by side closer than a margin**, except two runs of one symbol within that symbol's clearance, where the port pitch decides (`C-96`). *Stated 2026-09-23 (`D-153`); the audit enforces it when the new engine takes over (part E), since the old one never kept it -- until then it is the soft `pipe-beside-pipe`* |
 | H12 | **Every pipe and every signal line is an orthogonal polyline** (A7): each segment level or plumb. *Measured since `D-155` (2026-09-24); a run a rule lays skew is refused and left to the router (E4)* |
 | H13 | **A junction takes one pipe per side** (A6, `53`): no two pipes leave a junction's dot in the same direction. *Measured since `D-155`* |
@@ -642,6 +642,10 @@ Each fragment becomes a tree of structures before any geometry exists.
   first declared member comes latest -- and every other branch hangs between the rails in script order
   (C14). A header's taps therefore lie on its rails, and the spine of the last header is the ring's right
   side (C11's unit).
+- **Attached rings** (`D-157`). A pendant that is not a tree, touching the body at exactly two ports of one
+  element -- one leaving it, one entering -- is a second loop through that element: a buffer tank's distribution
+  loop, its boiler loop being the ring. It is decomposed as a ring of its own whose head is that element, and
+  printed in the trace under its own heading.
 - **Chains.** What hangs off a port and ends in a boundary or an open port is a chain (C4, C5, C6), and
   the open ends of a ring are paired (C7).
 - **Instruments** (C15) are attached to their hosts here, so a host's footprint knows its bubbles from
@@ -703,6 +707,14 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   left to the chain rules. Pumps side by side on branches between a common suction and a common discharge line is
   how HVAC schematics draw a pump set ([The Engineering Mindset, chilled-water schematics](https://theengineeringmindset.com/chilled-water-schematics/));
   stacking the rows under a level rail is this project's mapping of that, the part most worth the user's eye.
+- **A loop per flank** *(built 2026-09-24, `D-157`, `C-129`)*. Where the element an attached ring shares is a tank,
+  the ring's two ports stand on its east flank and the source ring's on its west, at their stated elevations (a
+  flank override on the sheet; the symbol's rule by name holds everywhere else). The tank is the source ring's
+  consumer unit (C11), its west inlet and outlet facing the ring. Once the ring is drawn, the attached ring is laid by
+  C2 with its head fixed where C11 stood it: the top rail from the east outlet, the bottom rail back to the east
+  inlet, its consumer on its own right side; C12 does not move the fixed head. A head whose two ports do not both
+  face right declines, and the attached ring is left to the chain rules. Built for a tank; a two-sided exchanger
+  with a loop per side (the DHW circulation of the stress plant) is the next step of `C-129`.
 - **Room for what a unit carries** *(built P6.10 R4)*. A hanging block hangs low enough that its devices'
   bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
   the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every
@@ -712,7 +724,10 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   sensor on the rail with more members pushes the unit no further than its own run needs. A sensor on a pipe's point has no side until C15 chooses
   it, so placement keeps clear of where it will stand: a bubble over the point where its run is level
   (the side tried first) or to its left where the run is vertical; the right side's descent keeps
-  clear of those too. A node's instruments count in its footprint as a device's do.
+  clear of those too. A node's instruments count in its footprint as a device's do. The unit's own box keeps a
+  margin from those bubbles as from a placed box, and its outlet's descent to the bottom rail -- facing left or down --
+  crosses no pipe the form has laid: a block hung between the rails is passed, not cut through (2026-09-24, piece B
+  with its controls, where the DHW load stood inside the floor block's width on its sensor: hard 3 → 0).
 - **Chains** grow from their port along its axis, a standing member entered by C3's turn, a pump kept
   level (C13), and a chain off a loop member's flank leaving by two margins (C6).
 - **Fragments** stack under one another, left edges aligned (C17); then open ends align (C7), which is

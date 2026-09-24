@@ -1,0 +1,19 @@
+# Layout ladder, step 13a (P6.10, D-157, C-129): a buffer tank between two loops. The boiler loop charges the
+# tank at its top and takes its bottom back; the secondary draws from the top and returns to the bottom. The tank
+# is the one component both loops share: a loop per side, the charging loop on its left flank and the discharging
+# loop on its right.
+
+fluidscript 1
+circuit buffer
+fluid water
+
+B1     heat_exchanger power=100 kW in.t=55 out.t=75
+PU_B1  pump
+T1     tank volume=1000 layers=3 in.level=90% out[2].level=10% out.level=90% in[2].level=10%
+PU_S1  pump
+LOAD   heat_exchanger power=-100 kW dt=20
+
+connections
+B1 - T1.in
+T1.out[2] - PU_B1 - B1
+T1.out - PU_S1 - LOAD - T1.in[2]
