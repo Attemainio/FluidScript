@@ -193,10 +193,18 @@ internal sealed partial class Composer
     /// <returns>Where the rail ends, its pending points and the member it leaves; null when a member cannot be placed.</returns>
     private (PlacedAnchor End, List<Point> Pending, Member Previous)? Top(PlacedAnchor cursor, List<Point> pending, Member previous, List<Item> items, Path? path, List<Member>? bottomMembers, List<RunDraft> runs, List<Hanger> hangers, double left = double.NegativeInfinity)
     {
+        // Branches that rejoin this rail (C14, C-130): laid as a row under the spine once the rail reaches the merge.
+        var rows = new List<(Member Split, Branch Branch, List<Member> Members, List<int> Spine)>();
+
         foreach (var item in items)
         {
             if (item.Unit is { } u)
             {
+                foreach (var row in rows)
+                {
+                    row.Spine.AddRange(u.Members);
+                }
+
                 var (uIn, uOut) = Slide(u, cursor.At.X, cursor.At.Y, runs);
                 pending.Add(uIn.At);
                 runs.Add(new RunDraft(previous, pending, "C2", "along the rail into a unit"));
@@ -207,6 +215,39 @@ internal sealed partial class Composer
             }
 
             var m = item.Member!.Value;
+            var joining = rows.FindIndex(r => r.Branch.Merge == m.Component);
+            (PlacedAnchor End, Member Last, List<RunDraft> Runs)? laidRow = null;
+
+            if (joining >= 0 && (cursor.Outward != Direction.Right || Math.Abs(cursor.At.Y - _sheet.Centre[rows[joining].Split.Component].Y) > Eps))
+            {
+                // The rail turned between the split and the merge: a row under it has no level spine to stand under, so the
+                // branch is left to the chain rules as before.
+                _parallelMerge.Remove(m.Component);
+                rows.RemoveAt(joining);
+                joining = -1;
+            }
+
+            if (joining >= 0)
+            {
+                // The merge stands far enough right that the row rises into it in one bend, a stub clear of its last member.
+                if (Parallel(rows[joining].Split, rows[joining].Branch, rows[joining].Members, rows[joining].Spine) is not { } row)
+                {
+                    return null;
+                }
+
+                laidRow = row;
+                var half = Transform.Identity.Size(_view.Symbols[m.Component]).Width / 2;
+                var rise = _view.RunAt(row.Last.Component, row.Last.OutPort) is { } riseRun ? _sheet.RunLength(riseRun) : _margin;
+                var onto = _view.RunAt(m.Component, m.InPort) is { } ontoRun ? _sheet.RunLength(ontoRun) : _margin;
+                var x = row.End.At.X + Math.Max(_margin, rise) - half - onto;
+
+                if (x > cursor.At.X)
+                {
+                    cursor = Sheet.Anchor(new Point(x, cursor.At.Y), Direction.Right, Direction.Right);
+                }
+
+                rows.RemoveAt(joining);
+            }
 
             if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
             {
@@ -218,10 +259,31 @@ internal sealed partial class Composer
             cursor = _sheet.AnchorOf(m.Component, m.OutPort);
             previous = m;
 
+            foreach (var row in rows)
+            {
+                row.Spine.Add(m.Component);
+            }
+
+            if (laidRow is { } parallel && MergePortOf(m.Component) is { } mergePort)
+            {
+                _sheet.Side[(m.Component, mergePort)] = Direction.Down;
+                var up = _sheet.AnchorOf(m.Component, mergePort);
+                runs.AddRange(parallel.Runs);
+                runs.Add(new RunDraft(parallel.Last, [parallel.End.At, new Point(up.At.X, parallel.End.At.Y), up.At], "C14", "the parallel row's rise into its merge"));
+            }
+
             if (bottomMembers is not null && path is not null && path.Branches.TryGetValue(m.Component, out var branches))
             {
                 foreach (var branch in branches)
                 {
+                    if (items.Any(i => i.Member is { } later && later.Component == branch.Merge)
+                        && PathOf([branch.Body], m.Component) is { Blocks.Count: 0 } plain)
+                    {
+                        _parallelMerge[branch.Merge] = branch.MergePort;
+                        rows.Add((m, branch, plain.Members.Skip(1).ToList(), [m.Component]));
+                        continue;
+                    }
+
                     if (bottomMembers.Any(b => b.Component == branch.Merge) && Hang(m, branch, cursor.At.Y, left, runs, hangers) is { } moved)
                     {
                         cursor = moved;
@@ -544,6 +606,81 @@ internal sealed partial class Composer
                 ? h.Out.At.Y - _sheet.RunLength(run) - half
                 : h.Out.At.Y - _margin - half - (_margin / 5);
         });
+
+    /// <summary>The port a merge takes its parallel row by, while the row is being laid; null for any other member.</summary>
+    private int? MergePortOf(int merge) => _parallelMerge.TryGetValue(merge, out var port) ? port : null;
+
+    /// <summary>
+    /// C14 for a branch that leaves a rail and rejoins it (a duty/standby pair, <c>C-130</c>): a row parallel to the
+    /// spine a margin under its lowest box -- down from the split, rightwards along the row, the rise into the merge
+    /// added by the rail -- laid on a canvas of its own, then lowered until it clears everything placed by the one test.
+    /// Pumps side by side on branches between a common suction and a common discharge line, as HVAC schematics draw a
+    /// pump set; the rows stacked under the rail is this project's mapping of that onto a level rail.
+    /// </summary>
+    /// <param name="j">The split, on the rail.</param>
+    /// <param name="branch">The branch; plain, no loops.</param>
+    /// <param name="members">Its boxed members in flow order.</param>
+    /// <param name="spine">The rail's members from the split up to the merge, which the row stands under.</param>
+    /// <returns>The row's last outlet, the member it leaves, and its runs; null when a member cannot be placed.</returns>
+    private (PlacedAnchor End, Member Last, List<RunDraft> Runs)? Parallel(Member j, Branch branch, List<Member> members, List<int> spine)
+    {
+        _sheet.Side[(j.Component, branch.SplitPort)] = Direction.Down;
+        var down = _sheet.AnchorOf(j.Component, branch.SplitPort);
+        var bottom = spine.Min(i => _view.IsInline(i) ? _sheet.Centre[i].Y : _sheet.InnerOf(i).Y);
+        var half = members.Count == 0 ? 0 : members.Max(m => Transform.Identity.Size(_view.Symbols[m.Component]).Height / 2);
+        var yRow = Math.Min(bottom - _margin - half, down.At.Y - _margin);
+        var cursor = Sheet.Anchor(new Point(down.At.X, yRow), Direction.Right, Direction.Right);
+        var previous = new Member(j.Component, -1, branch.SplitPort);
+        var pending = new List<Point> { down.At, cursor.At };
+        var own = new List<RunDraft>();
+        var placed = (bool[])_sheet.Placed.Clone();
+        Array.Clear(_sheet.Placed);
+
+        foreach (var m in members)
+        {
+            if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
+            {
+                placed.CopyTo(_sheet.Placed, 0);
+                return null;
+            }
+
+            pending.AddRange(points.Skip(1));
+            own.Add(new RunDraft(previous, pending, "C14", own.Count == 0 ? "the split's feed down to its parallel row" : "along the parallel row"));
+            cursor = _sheet.AnchorOf(m.Component, m.OutPort);
+            previous = m;
+            pending = [cursor.At];
+        }
+
+        placed.CopyTo(_sheet.Placed, 0);
+        var boxed = members.Select(static m => m.Component).ToList();
+        var dy = 0.0;
+
+        // Lowered, not slid: the split stands where the rail put it and the row hangs under it.
+        for (var guard = 0; guard < 400 && !_sheet.ClearAt(boxed, 0, dy); guard++)
+        {
+            dy -= 0.1;
+        }
+
+        _sheet.Move(boxed, [], 0, dy);
+
+        foreach (var i in boxed)
+        {
+            _sheet.Placed[i] = true;
+        }
+
+        // The feed's first point is the split's port, which does not move with the row.
+        var shifted = own.Select((r, k) => r with { Points = [.. r.Points.Select((p, n) => k == 0 && n == 0 ? p : p.Offset(0, dy))] }).ToList();
+        _rowBottom = Math.Min(_rowBottom, Math.Min(yRow + dy, boxed.Count == 0 ? double.MaxValue : boxed.Min(i => _sheet.InnerOf(i).Y)));
+        _sheet.Note(_view.Name(j.Component), "C14", $"a branch rejoining the rail at {_view.Name(branch.Merge)} runs as a parallel row under it, {members.Count} member(s), at y {yRow + dy:0.##}");
+        var end = members.Count == 0 ? Sheet.Anchor(new Point(down.At.X, yRow + dy), Direction.Right, Direction.Right) : _sheet.AnchorOf(previous.Component, previous.OutPort);
+        return (end, previous, shifted);
+    }
+
+    /// <summary>Where the bottom rail must lie to keep a margin under the parallel rows (C14, <c>C-130</c>), its members' boxes included.</summary>
+    private double RowFloor(List<Member> bottomMembers) =>
+        _rowBottom == double.MaxValue
+            ? double.MaxValue
+            : _rowBottom - _margin - bottomMembers.Select(m => Transform.Identity.Size(_view.Symbols[m.Component])).Select(static s => Math.Max(s.Width, s.Height) / 2).DefaultIfEmpty(0).Max();
 
     // ---- closing a ring (C9, C10, C12) ----------------------------------------------------------------------------
 

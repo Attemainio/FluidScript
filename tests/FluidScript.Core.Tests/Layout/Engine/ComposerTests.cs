@@ -98,4 +98,23 @@ public sealed class ComposerTests
         // after its feed was laid; a unit's descent to a rail that is not where the form thought).
         Assert.True(refused > 0, "no run was refused: the stress plant no longer lays one skew; find the refusal a new witness");
     }
+
+    [Fact]
+    public void ADutyStandbyPairRunsAsARowUnderTheRailAndRejoinsIt()
+    {
+        // C14 for a branch that rejoins its rail (C-130): the stress plant's pump pair splits at NP_S and rejoins at NP_M,
+        // both on the top rail. The standby pump and its valve stand a margin under the duty pair, the row rising into
+        // NP_M right of its last member -- not grown at the rail's far end with its return wrapped over the ring.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution.fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
+        var findings = SceneAudit.Findings(scene, input.Model);
+
+        Assert.True(Inner("PU_S1").Top <= Inner("PU_S2").Y - scene.Margin + 1e-9, "the standby pump stands a margin under the duty pump");
+        Assert.True(Math.Abs(Inner("PU_S1").Centre.X - Inner("PU_S2").Centre.X) < 2 * scene.Margin, "the two pumps stand side by side along the header");
+        Assert.True(Inner("NP_M").X >= Inner("CV_S1").Right + scene.Margin - 1e-9, "the merge stands right of the row");
+        Assert.DoesNotContain(findings, f => f.Hard && (f.First is "NP_S" or "NP_M" or "PU_S1" or "CV_S1" || f.Second is "NP_S" or "NP_M" or "PU_S1" or "CV_S1"));
+        Assert.Contains(scene.Provenance, n => n.Rule == "C14" && n.Subject == "NP_S" && n.Reason.Contains("parallel row", StringComparison.Ordinal));
+    }
 }

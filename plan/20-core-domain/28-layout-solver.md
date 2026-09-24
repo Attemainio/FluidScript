@@ -686,6 +686,15 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   the merge that pushed it keeps the gap after the pump has moved back, since a hold only moves right. A merge
   a column returns to never takes C10's corner under the right side's outlet. A block's merge is held the
   same way, a margin short of its outlet.
+- **A branch that rejoins its rail** *(built 2026-09-24, `C-130`)*. A plain branch whose split and merge both stand
+  on one level rail -- a duty/standby pump pair -- is not hung: it runs as a row parallel to the spine, a margin
+  under the lowest spine box between split and merge, down from the split, along the row, up into the merge. It is
+  laid when the rail reaches the merge (the spine is placed by then), on a canvas of its own, then lowered until
+  it clears everything placed by the one test; the merge is held right of the row's end by the rise's run length,
+  and the bottom rail keeps a margin under the row. Where the rail turns between split and merge the branch is
+  left to the chain rules. Pumps side by side on branches between a common suction and a common discharge line is
+  how HVAC schematics draw a pump set ([The Engineering Mindset, chilled-water schematics](https://theengineeringmindset.com/chilled-water-schematics/));
+  stacking the rows under a level rail is this project's mapping of that, the part most worth the user's eye.
 - **Room for what a unit carries** *(built P6.10 R4)*. A hanging block hangs low enough that its devices'
   bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
   the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every

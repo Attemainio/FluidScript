@@ -72,7 +72,7 @@ public static partial class SceneAudit
     {
         foreach (var node in scene.Placements.Where(static p => !p.IsInline && KindOf(p) == "node"))
         {
-            var leaving = Leaving(pipes, [.. node.Anchors.Values.Select(static a => a.At)]);
+            var leaving = Leaving(pipes, [.. node.Anchors.Values.Select(static a => a.At).Distinct()]);
 
             if (leaving.Count < 3)
             {

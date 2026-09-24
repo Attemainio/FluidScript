@@ -96,7 +96,10 @@ is laid out first as a block of its own, its inlet and outlet side by side facin
 the header treats the block as one component; a distribution ring has its supply header along the
 top, its return along the bottom, and its branches hanging between them in the order they are
 declared, each under the junction that feeds it and over the one it returns to; branches in series
-step down from one block's outlet to the next block's inlet. A sensor stands on the node it reads
+step down from one block's outlet to the next block's inlet; a branch that leaves a level pipe and
+rejoins that same pipe -- a duty and a standby pump, each with its valve -- runs as a second row just
+under the first, dropping from the split and rising into the merge, so the two pumps stand side by
+side the way a pump set is drawn. A sensor stands on the node it reads
 and a controller on the component it drives, joined to it by a short straight line; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a

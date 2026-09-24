@@ -11,6 +11,8 @@ namespace FluidScript.Core.Layout.Engine;
 internal sealed partial class Composer
 {
     private readonly Dictionary<int, double> _hangFloor = [];
+    private readonly Dictionary<int, int> _parallelMerge = [];
+    private double _rowBottom = double.MaxValue;
     private string? _declined;
     private bool _floorRaised;
     private int _pass;
@@ -50,6 +52,8 @@ internal sealed partial class Composer
             var start = new Attempt(this);
             _floorRaised = false;
             _pass = pass;
+            _rowBottom = double.MaxValue;
+            _parallelMerge.Clear();
 
             if (pass > 0)
             {
@@ -188,7 +192,7 @@ internal sealed partial class Composer
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
-        yBottom = Math.Min(yBottom, Under(hangers));
+        yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
 
         // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
         var slack = sIn.Along(_margin).Y - yBottom;
@@ -324,7 +328,7 @@ internal sealed partial class Composer
 
         var (_, right) = Corners(bottomMembers, unit, leftFirst: false, hangers);
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, cIn.Along(_margin).Y, right?.Component ?? -1);
-        yBottom = Math.Min(yBottom, Under(hangers));
+        yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
 
         if (leftTurner is { } lt)
         {
@@ -646,7 +650,7 @@ internal sealed partial class Composer
 
         var (_, rightJunction) = Corners(bottomMembers, unit!, leftFirst: false, hangers);
         var (drop, yBottom) = Bottom(unit!, top.End.At.Y, natural, rightJunction?.Component ?? -1);
-        yBottom = Math.Min(yBottom, Under(hangers));
+        yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
 
         // The return stands directly under the supply at the bottom rail's level, fed by the chain from above and by the rail from the right.
         _sheet.Place(ret, Transform.Identity, new Point(0, yBottom), "C19", "the return directly under the supply at the bottom rail's level");
