@@ -51,6 +51,11 @@ internal sealed partial class Composer
             _floorRaised = false;
             _pass = pass;
 
+            if (pass > 0)
+            {
+                _sheet.Note($"pass {pass + 1}", "C14", "the form laid again from where it started, " + string.Join(", ", _hangFloor.OrderBy(static f => f.Key).Select(f => $"{_view.Name(f.Key)} held at x >= {f.Value:0.##}")));
+            }
+
             if (!form())
             {
                 return false;
@@ -172,7 +177,7 @@ internal sealed partial class Composer
         var sIn = _sheet.AnchorOf(s.Component, s.InPort);
         var yTop = sOut.Along(_margin).Y;
         var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
-        var runs = new List<(Member From, List<Point> Points)>();
+        var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
         List<Point> topStart = [sOut.At, new Point(sOut.At.X, yTop)];
 
@@ -309,7 +314,7 @@ internal sealed partial class Composer
             previous = cycle[end - 1];
         }
 
-        var runs = new List<(Member From, List<Point> Points)>();
+        var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
 
         if (Top(cOut, [cOut.At], previous, items, path, bottomMembers, runs, hangers, cIn.At.X) is not { } top)
@@ -344,11 +349,11 @@ internal sealed partial class Composer
             var into = halves.FirstOrDefault(r => r.Points[^1].ManhattanTo(cOut.At) < Eps);
             var outOf = halves.FirstOrDefault(r => r.Points[0].ManhattanTo(cOut.At) < Eps);
 
-            if (into.Points is not null && outOf.Points is not null && !ReferenceEquals(into.Points, outOf.Points))
+            if (into is not null && outOf is not null && !ReferenceEquals(into.Points, outOf.Points))
             {
                 runs.Remove(into);
                 runs.Remove(outOf);
-                runs.Add((previous, [.. into.Points, .. outOf.Points.Skip(1)]));
+                runs.Add(new RunDraft(previous, [.. into.Points, .. outOf.Points.Skip(1)], "C18", "the bare corner's two halves as one run"));
             }
         }
 
@@ -555,7 +560,7 @@ internal sealed partial class Composer
         _sheet.Side[(supply, firstOut)] = Direction.Right;
         var half = Transform.Identity.Size(_view.Symbols[ret]).Height / 2;
         var natural = _sheet.InnerOf(supply).Y - (2 * _margin) - half;
-        var runs = new List<(Member From, List<Point> Points)>();
+        var runs = new List<RunDraft>();
         Member chainEnd = default;
         PlacedAnchor chainCursor = default;
 
@@ -575,7 +580,7 @@ internal sealed partial class Composer
                 }
 
                 pending.AddRange(points.Skip(1));
-                runs.Add((previous, pending));
+                runs.Add(new RunDraft(previous, pending, "C19", "down the supply's chain"));
                 cursor = _sheet.AnchorOf(m.Component, m.OutPort);
                 previous = m;
                 pending = [cursor.At];
@@ -596,7 +601,7 @@ internal sealed partial class Composer
             // No ring path: the return stands at the chain's foot, directly under the junction.
             _sheet.Place(ret, Transform.Identity, new Point(0, natural), "C19", "no ring path: the return at the chain's foot, directly under the junction");
             _sheet.Side[(ret, chain!.Members[0].InPort)] = Direction.Up;
-            runs.Add((chainEnd, [chainCursor.At, _sheet.AnchorOf(ret, chain.Members[0].InPort).At]));
+            runs.Add(new RunDraft(chainEnd, [chainCursor.At, _sheet.AnchorOf(ret, chain.Members[0].InPort).At], "C19", "the chain's foot into the return"));
             Finish();
             return true;
         }
@@ -651,7 +656,7 @@ internal sealed partial class Composer
         if (chain is not null)
         {
             _sheet.Side[(ret, chain.EndPort)] = Direction.Up;
-            runs.Add((chainEnd, [chainCursor.At, _sheet.AnchorOf(ret, chain.EndPort).At]));
+            runs.Add(new RunDraft(chainEnd, [chainCursor.At, _sheet.AnchorOf(ret, chain.EndPort).At], "C19", "the chain into the return"));
         }
 
         var rIn = _sheet.AnchorOf(ret, ringIn);
@@ -740,7 +745,7 @@ internal sealed partial class Composer
         }
 
         _sheet.Groups.Add((members, true));
-        AssignRuns([(new Member(head, inPort, outPort), points)]);
+        AssignRuns([new RunDraft(new Member(head, inPort, outPort), points, "C20", "the ring of one round its head")]);
         return true;
     }
 

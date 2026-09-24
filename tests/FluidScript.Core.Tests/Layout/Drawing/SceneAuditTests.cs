@@ -125,6 +125,105 @@ public sealed class SceneAuditTests
         Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard));
     }
 
+    [Fact]
+    public void ASegmentNeitherLevelNorPlumbIsHard()
+    {
+        // A7: a pipe is an orthogonal polyline. A route with its corner dropped runs straight from one end to the other.
+        var (scene, input) = Solve(ContractFixture.Sample("m2-simple-loop.fluid"));
+        var bent = scene.Routes.First(static r => r.Kind == "pipe" && r.Points.Length >= 3);
+        var skew = bent with { Points = [bent.Points[0], bent.Points[^1]] };
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "diagonal"));
+        var findings = SceneAudit.Findings(scene with { Routes = Swap(scene.Routes, skew) }, input.Model).Where(static f => f.Kind == "diagonal").ToList();
+        Assert.Contains(findings, f => f.First == bent.ConnectionId && f.Hard);
+    }
+
+    [Fact]
+    public void AnInlinePointOnACornerIsHard()
+    {
+        // H6: the two pipes that meet at an inline point leave it in opposite directions. Step 10's N1 sits on the
+        // supply rail; the pipe leaving it is bent to leave upwards.
+        var (scene, input) = Solve(File.ReadAllText(Path.Combine(Ladder, "step-10-instruments.fluid")));
+        var at = scene.Placements.Single(static p => p.ComponentId == "N1").Inner.Centre;
+        var leaving = scene.Routes.First(r => r.Kind == "pipe" && r.Points[0].ManhattanTo(at) < 1e-9);
+        var end = leaving.Points[^1];
+        var up = leaving with { Points = [at, new Point(at.X, at.Y + 1), new Point(end.X, at.Y + 1), end] };
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "inline-on-corner"));
+        var findings = SceneAudit.Findings(scene with { Routes = Swap(scene.Routes, up) }, input.Model).Where(static f => f.Kind == "inline-on-corner").ToList();
+        Assert.Contains(findings, f => f.First == "N1" && f.Hard);
+    }
+
+    [Fact]
+    public void AConnectionOrAComponentLeftOutIsUndrawn()
+    {
+        // H8: every connection is a pipe and every component is placed. A pipe with cells is drawn as its cells
+        // (C-124), so the demand-step sample's PB is drawn although no placement carries its name.
+        var (scene, input) = Solve(ContractFixture.Sample("m2-simple-loop.fluid"));
+        var dropped = scene.Routes.First(static r => r.Kind == "pipe");
+        var gone = scene.Placements.First(static p => !p.IsInline);
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "undrawn"));
+        var (cells, cellsInput) = Solve(ContractFixture.Sample("m4-demand-step.fluid"));
+        Assert.Empty(SceneAudit.Findings(cells, cellsInput.Model).Where(static f => f.Kind == "undrawn"));
+
+        var findings = SceneAudit.Findings(scene with { Routes = [.. scene.Routes.Where(r => r != dropped)], Placements = [.. scene.Placements.Where(p => p != gone)] }, input.Model)
+            .Where(static f => f.Kind == "undrawn").ToList();
+        Assert.Contains(findings, f => f.First == dropped.ConnectionId && f.Hard);
+        Assert.Contains(findings, f => f.First == gone.ComponentId && f.Hard);
+    }
+
+    [Fact]
+    public void TwoPipesOnOneSideOfAJunctionAreHard()
+    {
+        // A6: a junction is a dot with one pipe per side. One of a junction's pipes is brought round to arrive on the
+        // side another already leaves by.
+        var (scene, input) = Solve(ContractFixture.Sample("m2-distribution-header.fluid"));
+        var pipes = scene.Routes.Where(static r => r.Kind == "pipe" && r.Points.Length >= 2).ToList();
+        var (junction, first, second) = scene.Placements
+            .Where(static p => !p.IsInline && p.SymbolId.Split('.')[0] == "node")
+            .Select(p => (Node: p, Ends: pipes.Where(r => p.Anchors.Values.Any(a => a.At.ManhattanTo(r.Points[^1]) < 1e-9)).ToList(), Starts: pipes.Where(r => p.Anchors.Values.Any(a => a.At.ManhattanTo(r.Points[0]) < 1e-9)).ToList()))
+            .Where(static j => j.Ends.Count + j.Starts.Count >= 3 && j.Ends.Count >= 1 && j.Starts.Count >= 1)
+            .Select(static j => (j.Node, j.Starts[0], j.Ends[0]))
+            .First();
+        var side = first.Points[0];
+        var out1 = first.Points[1];
+        var beyond = new Point(side.X + (2 * (out1.X - side.X)), side.Y + (2 * (out1.Y - side.Y)));
+        var from = second.Points[0];
+        var round = second with { Points = [from, new Point(beyond.X, from.Y), beyond, side] };
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "junction-side"));
+        var findings = SceneAudit.Findings(scene with { Routes = Swap(scene.Routes, round) }, input.Model).Where(static f => f.Kind == "junction-side").ToList();
+        Assert.Contains(findings, f => f.First == junction.ComponentId && f.Hard);
+    }
+
+    [Fact]
+    public void ATankDrawnWithItsChargingPortsOnTheRightIsHard()
+    {
+        // H10 for a tank (29 step 9): charging ports left, discharging right. The storage header mirrored puts them
+        // the other way round.
+        var (scene, input) = Solve(File.ReadAllText(Path.Combine(Ladder, "step-09-tank.fluid")));
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "charging-side-right"));
+        var findings = SceneAudit.Findings(Mirror(scene), input.Model).Where(static f => f.Kind == "charging-side-right").ToList();
+        Assert.Contains(findings, f => f.First == "T1" && f.Hard);
+    }
+
+    [Fact]
+    public void APipeThroughAnotherRunsInlinePointIsSoft()
+    {
+        // A sensor on an inline point measures the run the point is cut into; a second pipe through the same point
+        // makes that illegible. Step 10's return is laid straight through N1, where TE1 measures the supply.
+        var (scene, input) = Solve(File.ReadAllText(Path.Combine(Ladder, "step-10-instruments.fluid")));
+        var at = scene.Placements.Single(static p => p.ComponentId == "N1").Inner.Centre;
+        var other = scene.Routes.First(r => r.Kind == "pipe" && r.Points[0].ManhattanTo(at) > 1e-9 && r.Points[^1].ManhattanTo(at) > 1e-9);
+        var through = other with { Points = [new Point(at.X, at.Y - 1), new Point(at.X, at.Y + 1)] };
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "pipe-through-point"));
+        var findings = SceneAudit.Findings(scene with { Routes = Swap(scene.Routes, through) }, input.Model).Where(static f => f.Kind == "pipe-through-point").ToList();
+        Assert.Contains(findings, f => f.First == other.ConnectionId && f.Second == "N1" && !f.Hard);
+    }
+
     private static ImmutableArray<Route> Swap(ImmutableArray<Route> routes, Route replacement) =>
         [.. routes.Select(r => r.ConnectionId == replacement.ConnectionId ? replacement : r)];
 

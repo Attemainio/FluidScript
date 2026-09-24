@@ -20,6 +20,7 @@ internal sealed partial class Sheet
     private const double Eps = 1e-9;
 
     private readonly ImmutableArray<Point>?[] _runs;
+    private readonly string?[] _laidBy;
 
     /// <summary>Creates an empty sheet.</summary>
     /// <param name="view">The circuit view.</param>
@@ -34,6 +35,7 @@ internal sealed partial class Sheet
         Placed = new bool[view.Count];
         Stood = new bool[view.Count];
         _runs = new ImmutableArray<Point>?[view.Runs.Length];
+        _laidBy = new string?[view.Runs.Length];
     }
 
     /// <summary>Gets the circuit view.</summary>
@@ -225,14 +227,27 @@ internal sealed partial class Sheet
 
     /// <summary>
     /// Lays a run: its polyline from start to end, normalised, with its inline points cut into it at even fractions
-    /// of its longest segment (A5), each turned along the run.
+    /// of its longest segment (A5), each turned along the run; the trace names the run, its connections and the rule
+    /// that laid it. A polyline that is not orthogonal is not a pipe (A7): it is refused, noted, and left to the router.
     /// </summary>
     /// <param name="run">The run.</param>
     /// <param name="points">Its polyline, from the run's start to its end.</param>
-    public void Lay(Run run, IReadOnlyList<Point> points)
+    /// <param name="rule">The rule that shaped it, as the trace names rules (<c>C2</c>, <c>C14</c>, <c>E4</c>).</param>
+    /// <param name="reason">What the rule did, in the trace's words.</param>
+    /// <returns>Whether the run was laid.</returns>
+    public bool Lay(Run run, IReadOnlyList<Point> points, string rule, string reason)
     {
         var line = Normalise(points);
+
+        if (Skew(line) is { } skew)
+        {
+            Note(RunName(run), rule, $"{reason} -- not orthogonal from ({skew.From.X:0.##}, {skew.From.Y:0.##}) to ({skew.To.X:0.##}, {skew.To.Y:0.##}); left to the router (A7)");
+            return false;
+        }
+
         _runs[run.Index] = line;
+        _laidBy[run.Index] = rule;
+        Note(RunName(run), rule, reason);
         var pieces = Pieces(line, run.Inline.Length);
 
         for (var t = 0; t < run.Inline.Length; t++)
@@ -246,10 +261,40 @@ internal sealed partial class Sheet
             Side[(element, near)] = Direction.Of(first[^2].Offset(-first[^1].X, -first[^1].Y)) ?? Direction.Left;
             Side[(element, far)] = Direction.Of(second[1].Offset(-second[0].X, -second[0].Y)) ?? Direction.Right;
         }
+
+        return true;
     }
 
     /// <summary>Lays a run given from its end back to its start.</summary>
-    public void LayBackwards(Run run, IReadOnlyList<Point> points) => Lay(run, [.. points.Reverse()]);
+    public bool LayBackwards(Run run, IReadOnlyList<Point> points, string rule, string reason) => Lay(run, [.. points.Reverse()], rule, reason);
+
+    /// <summary>Takes a laid run back off the sheet, so the router draws it (<c>28</c> E4).</summary>
+    public void Unlay(int run)
+    {
+        _runs[run] = null;
+        _laidBy[run] = null;
+    }
+
+    /// <summary>The rule that laid a run, or null while it is unlaid.</summary>
+    public string? LaidBy(int run) => _laidBy[run];
+
+    /// <summary>A run as the trace names it: its ports and inline points in flow order, then its connections' ids -- the ids the audit's findings name.</summary>
+    public string RunName(Run run) =>
+        $"{StructureText.Run(View, run)} [{string.Join(", ", run.Links.Select(l => View.Links[l.Link].Id))}]";
+
+    /// <summary>The first segment of a polyline that is neither level nor plumb, or null when every one is.</summary>
+    public static (Point From, Point To)? Skew(IReadOnlyList<Point> line)
+    {
+        for (var k = 1; k < line.Count; k++)
+        {
+            if (Math.Abs(line[k].X - line[k - 1].X) > Eps && Math.Abs(line[k].Y - line[k - 1].Y) > Eps)
+            {
+                return (line[k - 1], line[k]);
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>The pieces of a laid run, one per link from start to end, consecutive ones sharing their cut.</summary>
     public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, View.Runs[run].Inline.Length);

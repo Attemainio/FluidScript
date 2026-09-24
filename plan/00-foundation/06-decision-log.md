@@ -197,6 +197,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-152` | Accepted | 2026-09-23 | A signal line crosses the drawing by the fewest bends, then the shortest way; only an inner box stops it |
 | `D-153` | Accepted | 2026-09-23 | The layout engine is rebuilt as decompose, compose, draw, beside the old one until parity |
 | `D-154` | Accepted | 2026-09-23 | A header's spine is its branch declared last |
+| `D-155` | Accepted | 2026-09-24 | The audit holds every drawing rule it states, and the report names the rule behind every element |
 <!-- index:end -->
 
 ---
@@ -7221,3 +7222,34 @@ expects, zones 1 and 2 hanging and zone 3 on the right. It is the ladder's own "
 - *The most junctions* -- the `08e` counter-example above.
 - *The earliest-written port at the split* -- what the ladder engine's depth-first walk did in effect; it makes the
   zones read 1, 3, 2 from left to right.
+
+## D-155 · The audit holds every drawing rule it states, and the report names the rule behind every element
+
+**Accepted · 2026-09-24** · amends `D-108` (the standard of `28` B) · `28` A6, A7, A10, B, E4 · the user's request
+("ensure that the new layout designer has proper diagnostics")
+
+**What was wrong.** `28` B said the audit measured all ten hard constraints since `C-88`; H6 (no inline element on a
+corner) and H8 (nothing left undrawn) had no check, and two rules the drawing states as definitions were never
+measured at all: A7's "a pipe is an orthogonal polyline" and A6's "a junction is a dot with at most one pipe per
+side". A 61-component stress plant drew three diagonal pipes and five junctions with two pipes on one side, and the
+report counted none of them. The report also named the rule behind every component but not behind any pipe a form
+laid, so a diagonal could not be traced to the rule that drew it.
+
+**The rule.** (1) Two rows join B's hard table: **H12**, every pipe and every signal line is an orthogonal polyline;
+**H13**, a junction takes one pipe per side. H6, H8 and H10's tank clause (charging ports left, `29` step 9) are
+measured. A pipe running through another run's inline point is a new soft class: a sensor there would read as
+measuring either pipe. (2) Every run a rule lays is named in the trace with its connections' ids and the rule that
+shaped it; a run that is not orthogonal is refused and left to the router, and one whose end a later move left off
+its port is taken back for the router -- each with a line saying which rule laid it and why. (3) The report prints
+every audit kind from one table, each fragment's form with the forms that declined, the worst detours, and on every
+finding the rules that placed or laid the two things it names.
+
+**Why hard.** A slanted pipe or two pipes leaving one side of a dot is not a worse drawing but an undrawable one:
+the canvas has no symbol for either (`53`). The router always draws orthogonally, so refusing a skew run costs a
+pipe the router's shape instead of a pipe no engineer would draw. This project's reasoning.
+
+### Rejected
+
+- *Fix each rule that lays a run skew, and leave the audit as it was* -- the two producers found are fixed at the
+  rule when their packages come (`C-133`); without the check, the next one is found by eye again.
+- *Soft* -- a count that says "fewer is better" of something the canvas cannot draw.

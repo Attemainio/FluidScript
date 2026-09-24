@@ -1584,8 +1584,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     two-sided DHW exchanger with its tank -- and three pieces of it. Neither engine draws it (composed hard
     28, ladder hard 39). Filed `C-129`, `C-130`, `C-131`, `C-132`; each is planned as a ladder step, `C-129`
     recommended first since it sends the whole plant to the fallback. No gate reads the folder.
+  - **Diagnostics first (2026-09-24, the user's call; `D-155`):** the audit now measures what `28` states and
+    did not check -- H6, H8, H10's tank clause, and A7/A6 as hard H12 (orthogonal) and H13 (one pipe per junction
+    side), plus a soft `pipe-through-point`; the report names the rule behind every component and every pipe,
+    each fragment's form and what declined, the worst detours, and the rules behind each finding. Every run a
+    rule lays is named with its connections' ids; a skew one is refused for the router, a stale one taken back.
+    Every accepted picture unchanged (parity, hard 0); the stress plant's diagonals are gone, its two skew
+    producers filed as `C-133`, and the new checks' findings there added to `C-129` and `C-132`. Core 2360/0.
     Next: the user's choice between R5 (pipe bands in the occupancy across forms, H11) and the ladder
-    steps for `C-129`–`C-132`.
+    steps for `C-129`–`C-133`.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

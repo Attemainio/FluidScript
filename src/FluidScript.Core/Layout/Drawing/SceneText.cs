@@ -37,6 +37,7 @@ public static class SceneText
         var m = scene.Margin;
         text.Append("margin ").Append(N(m)).Append('\n');
         text.Append("extent ").Append(Text(scene.Extent)).Append("\n\nCOMPONENTS\n");
+        var decided = Decided(scene);
 
         foreach (var p in scene.Placements)
         {
@@ -47,11 +48,13 @@ public static class SceneText
             if (p.IsInline)
             {
                 text.Append(" inline\n at ").Append(Text(p.Inner.Centre)).Append('\n');
+                By(text, decided, p.ComponentId, "placed");
             }
             else
             {
-                text.Append('\n')
-                    .Append(" group ").Append(p.Group ?? "-").Append('\n')
+                text.Append('\n');
+                By(text, decided, p.ComponentId, "placed");
+                text.Append(" group ").Append(p.Group ?? "-").Append('\n')
                     .Append(" rotation ").Append(p.Rotation).Append(p.Mirrored ? " mirrored" : string.Empty).Append(p.Arrangement == "default" ? string.Empty : " " + p.Arrangement).Append('\n')
                     .Append(" inner ").Append(Text(p.Inner)).Append('\n')
                     .Append(" outer ").Append(Text(p.Outer)).Append('\n')
@@ -100,6 +103,11 @@ public static class SceneText
 
             if (r.Kind == "pipe")
             {
+                By(text, decided, r.ConnectionId, "laid");
+            }
+
+            if (r.Kind == "pipe")
+            {
                 text.Append(" envelope ").Append(Text(SceneAudit.Band(r.Points, m))).Append('\n');
                 totalBends += bends;
                 totalLength += r.Length;
@@ -145,21 +153,11 @@ public static class SceneText
         Raster(text, scene, graph);
 
         text.Append("\nVALIDATION\n");
-        text.Append(" hard ").Append(findings.Count(static f => f.Hard))
-            .Append(" (inner-in-inner ").Append(Count(findings, "inner-in-inner"))
-            .Append(", clearance ").Append(Count(findings, "clearance"))
-            .Append(", pipe-in-inner ").Append(Count(findings, "pipe-in-inner"))
-            .Append(", ends-off-port ").Append(Count(findings, "ends-off-port"))
-            .Append(", stub-short ").Append(Count(findings, "stub-short"))
-            .Append(", pipes-overlap ").Append(Count(findings, "pipes-overlap"))
-            .Append(", loop-counter-clockwise ").Append(Count(findings, "loop-counter-clockwise"))
-            .Append(", losing-side-right ").Append(Count(findings, "losing-side-right"))
-            .Append(", signal-in-inner ").Append(Count(findings, "signal-in-inner")).Append(")\n");
-        text.Append(" soft ").Append(findings.Count(static f => !f.Hard))
-            .Append(" (pipe-in-outer ").Append(Count(findings, "pipe-in-outer"))
-            .Append(", pipe-beside-pipe ").Append(Count(findings, "pipe-beside-pipe"))
-            .Append(", pipes-cross ").Append(Count(findings, "pipes-cross"))
-            .Append(", signal-along-pipe ").Append(Count(findings, "signal-along-pipe")).Append(")\n");
+        text.Append(" hard ").Append(findings.Count(static f => f.Hard)).Append(" (")
+            .Append(string.Join(", ", SceneAudit.HardKinds.Select(k => k + " " + Count(findings, k)))).Append(")\n");
+        text.Append(" soft ").Append(findings.Count(static f => !f.Hard)).Append(" (")
+            .Append(string.Join(", ", SceneAudit.SoftKinds.Select(k => k + " " + Count(findings, k)))).Append(")\n");
+        Forms(text, scene);
         text.Append(" bends ").Append(totalBends).Append(" length ").Append(N(totalLength)).Append('\n');
 
         // The metrics 62 trends rather than gates: how much longer the pipes run than their ends are apart, how much of the drawing is symbol, and its shape.
@@ -168,6 +166,7 @@ public static class SceneText
         text.Append(" length-ratio ").Append(N(totalManhattan > 0 ? totalLength / totalManhattan : 1))
             .Append(" area-utilisation ").Append(N(extentArea > 0 ? symbolArea / extentArea : 0))
             .Append(" aspect ").Append(N(scene.Extent.Height > 0 ? scene.Extent.Width / scene.Extent.Height : 0)).Append('\n');
+        Detours(text, scene);
 
         text.Append("\nINTERFERENCE\n");
 
@@ -178,7 +177,9 @@ public static class SceneText
 
         foreach (var finding in findings)
         {
-            text.Append(' ').Append(finding).Append('\n');
+            text.Append(' ').Append(finding);
+            var origins = new[] { finding.First, finding.Second }.Where(decided.ContainsKey).Distinct(StringComparer.Ordinal).Select(id => $"{id} by {decided[id].Rule}").ToList();
+            text.Append(origins.Count > 0 ? " -- " + string.Join(", ", origins) : string.Empty).Append('\n');
         }
 
         return text.ToString();
@@ -345,6 +346,72 @@ public static class SceneText
         for (var k = 0; k < name.Length && column + k < columns; k++)
         {
             grid[row][column + k] = name[k];
+        }
+    }
+
+    /// <summary>
+    /// The last decision the trace records for each component (by name) and each pipe (by connection id, from the
+    /// bracket a laid run's subject ends with): the rule that last placed or laid it, and why.
+    /// </summary>
+    private static Dictionary<string, PlacementNote> Decided(Scene scene)
+    {
+        var decided = new Dictionary<string, PlacementNote>(StringComparer.Ordinal);
+
+        foreach (var note in scene.Provenance.Where(static n => n.Rule is not ("form" or "head")))
+        {
+            var bracket = note.Subject.LastIndexOf(" [", StringComparison.Ordinal);
+
+            if (bracket >= 0 && note.Subject.EndsWith(']'))
+            {
+                foreach (var id in note.Subject[(bracket + 2)..^1].Split(", "))
+                {
+                    decided[id] = note;
+                }
+            }
+            else
+            {
+                decided[note.Subject] = note;
+            }
+        }
+
+        return decided;
+    }
+
+    private static void By(StringBuilder text, Dictionary<string, PlacementNote> decided, string id, string verb)
+    {
+        if (decided.TryGetValue(id, out var note))
+        {
+            text.Append(' ').Append(verb).Append(" by ").Append(note.Rule).Append(" -- ").Append(note.Reason).Append('\n');
+        }
+    }
+
+    /// <summary>Each fragment's form: the one that drew it, and the ones that declined before it.</summary>
+    private static void Forms(StringBuilder text, Scene scene)
+    {
+        foreach (var fragment in scene.Provenance.Where(static n => n.Rule == "form").GroupBy(static n => n.Subject, StringComparer.Ordinal))
+        {
+            var declined = fragment.Where(static n => n.Reason.Contains(": declined", StringComparison.Ordinal)).Select(static n => n.Reason[..n.Reason.IndexOf(':', StringComparison.Ordinal)]).ToList();
+            var drawn = fragment.FirstOrDefault(static n => !n.Reason.Contains(": declined", StringComparison.Ordinal))?.Reason ?? "nothing";
+            text.Append(" form ").Append(fragment.Key).Append(": ").Append(drawn)
+                .Append(declined.Count > 0 ? " (declined: " + string.Join(", ", declined) + ")" : string.Empty).Append('\n');
+        }
+    }
+
+    /// <summary>The pipes that run furthest past the distance between their ends -- where a drawing detours.</summary>
+    private static void Detours(StringBuilder text, Scene scene)
+    {
+        var worst = scene.Routes
+            .Where(static r => r.Kind == "pipe" && r.Points.Length >= 2)
+            .Select(static r => (r.ConnectionId, r.Length, Apart: r.Points[0].ManhattanTo(r.Points[^1])))
+            .Where(r => r.Length - r.Apart > 2 * scene.Margin)
+            .OrderByDescending(static r => r.Length - r.Apart)
+            .ThenBy(static r => r.ConnectionId, StringComparer.Ordinal)
+            .Take(3)
+            .ToList();
+
+        if (worst.Count > 0)
+        {
+            text.Append(" detours ").Append(string.Join(", ", worst.Select(r => $"{r.ConnectionId} {N(r.Length)} for {N(r.Apart)} apart"))).Append('\n');
         }
     }
 

@@ -170,7 +170,10 @@ two -- and for every scene it lists:
   count, totals of bends and length, and the metrics `62` trends rather than gates: the pipes'
   length over their ends' Manhattan distance, the symbol area over the extent's, the extent's
   aspect;
-- every finding, one per line;
+- every finding, one per line, with the rules that last placed or laid the two things it names (`D-155`);
+- **who placed what** *(`D-155`, 2026-09-24)*: each component's block says the rule that last placed it and why,
+  each pipe's the rule that laid it; the verdict names each fragment's form with the forms that declined before it,
+  and the three pipes that run furthest past the distance between their ends;
 - **the placement trace** *(shipped 2026-09-20, `C-107`)*: every decision the engine made, in the
   order it made them -- each fragment's declared members; which member is its head and by which of
   C1's fallbacks (the largest positive duty, else the first inlet, else the first member with
@@ -239,6 +242,8 @@ stated as constraints (`D-108`).
 | H9 | **Every flow loop runs clockwise**: each simple directed cycle of the flow-oriented graph (A3), walked in flow order through its members' centres, encloses negative signed area (y up) |
 | H10 | **Heat progresses left to right**: a two-sided exchanger's losing side is its left flank and its gaining side its right flank (`D-36`'s edge decides which is which); a fragment's first process path starts at its heat source -- a supply boundary, a tank's charging ports, or the member with the largest positive stated duty -- and flows right |
 | H11 | **Two pipes never run side by side closer than a margin**, except two runs of one symbol within that symbol's clearance, where the port pitch decides (`C-96`). *Stated 2026-09-23 (`D-153`); the audit enforces it when the new engine takes over (part E), since the old one never kept it -- until then it is the soft `pipe-beside-pipe`* |
+| H12 | **Every pipe and every signal line is an orthogonal polyline** (A7): each segment level or plumb. *Measured since `D-155` (2026-09-24); a run a rule lays skew is refused and left to the router (E4)* |
+| H13 | **A junction takes one pipe per side** (A6, `53`): no two pipes leave a junction's dot in the same direction. *Measured since `D-155`* |
 
 H9 and H10 together fix, for a loop with a standing source and a standing consumer: the source on
 the left side flowing up, the consumer on the right side flowing down, supply along the top to the
@@ -254,7 +259,8 @@ clearance touching the pipe it measures is C15's line one margin long and not a 
 clearance yields to a sibling run of the same symbol -- the tank's second supply at the symbol's
 0.96 port pitch under a margin of 1.0 (`C-96`), a node being a point and its outer box a
 convention, the same allowance the beside test makes for two runs of one symbol; a pipe running beside
-another closer than a margin (hard as H11 once the new engine takes over, `D-153`); two pipes crossing; two outer boxes overlapping; a signal line running
+another closer than a margin (hard as H11 once the new engine takes over, `D-153`); two pipes crossing; a pipe running through another run's inline point, where a sensor on the point would read as
+measuring either pipe (`D-155`); two outer boxes overlapping; a signal line running
 along a pipe (a signal crosses pipes freely: C16 hops it); and, since labels are boxes (A11), a
 label entering another inner box, two labels intersecting, or a line crossing a label -- soft
 because the layout keeps the label with a leader rather than dropping it, and the count says how
@@ -281,7 +287,11 @@ the `C-88` package (2026-09-17) that is all ten: H1–H3 and H6 as box and pipe 
 route's ends (H5 followed through inline points, since a node on a straight line is not a bend), H7 as
 collinear overlap, H9 as the signed area of every simple directed cycle of the flow-oriented graph,
 H10 as the losing side's flank where a duty is stated. A hard constraint nobody measures would be a
-preference; none is left. The `C-95` package (2026-09-18) closed the three gaps the tour's faulty
+preference -- and two were: H6 and H8 had no check until `D-155` (2026-09-24), which measures them (H6 as the
+directions the two pipes at an inline point leave it by, H8 as a pipe per connection and a placement per
+component, a pipe with cells drawn as its cells), H10's tank clause (the connected charging ports left of the
+discharging ones), and the drawing rules A6 and A7 as H12 and H13. The kinds live in one table,
+`SceneAudit.HardKinds` / `SoftKinds`, which the report prints from. The `C-95` package (2026-09-18) closed the three gaps the tour's faulty
 picture had shown: a connection's sense is read from the flow along the route's first segment, so a
 cycle through inline nodes -- where both anchors sit on one point -- is enumerated; a pipe is excused
 from its own two components' clearance but never from their bodies; and a signal line is measured
@@ -695,6 +705,12 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
 - **One run builder.** Every run is drawn from its two anchors through its stubs: straight where the
   anchors face each other, one bend where the rules put the corner, else the router (part D) with both
   stubs fixed. A junction's side is decided when its run is drawn and never defaulted.
+- **Every laid run is checked** *(`D-155`)* before anything is routed. A run is laid through one call that names it,
+  its connections' ids and the rule that shaped it in the trace; one that is not orthogonal is refused there and
+  left to the router. At the draw stage, a laid run whose end is no longer on its port -- a member moved after the
+  run was laid: a junction slid along its rail, a unit slid in -- is taken back for the router, and the trace says
+  which rule laid it and which end it lost. The rule that laid it skew is still wrong (`C-133`); the check makes
+  that visible instead of drawing it.
 - **Signals** (C15, `D-152`) through the router's signal mode, then **crossings** (C16), **labels** (A11),
   the **groups** (A8) and the **scene**.
 

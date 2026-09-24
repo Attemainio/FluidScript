@@ -19,15 +19,31 @@ public static partial class SceneAudit
 {
     private const double Eps = 1e-6;
 
+    /// <summary>
+    /// The hard kinds, in the order the report prints them: <c>28</c> B H1–H10 and the drawing rules of A6 and A7 --
+    /// a pipe is an orthogonal polyline, a junction takes one pipe per side.
+    /// </summary>
+    public static readonly ImmutableArray<string> HardKinds =
+    [
+        "inner-in-inner", "clearance", "pipe-in-inner", "ends-off-port", "stub-short", "inline-on-corner", "pipes-overlap", "undrawn",
+        "loop-counter-clockwise", "losing-side-right", "charging-side-right", "signal-in-inner", "diagonal", "junction-side",
+    ];
+
+    /// <summary>The soft kinds, in the order the report prints them: counted, and the fewer the better (<c>28</c> B).</summary>
+    public static readonly ImmutableArray<string> SoftKinds =
+    [
+        "pipe-in-outer", "pipe-beside-pipe", "pipes-cross", "pipe-through-point", "signal-along-pipe", "label-in-inner", "label-in-label", "line-in-label",
+    ];
+
     /// <summary>One breach of the clearance rules (<c>28</c> §22).</summary>
-    /// <param name="Kind">Hard (<c>28</c> B H1–H10): <c>inner-in-inner</c>, <c>clearance</c>, <c>pipe-in-inner</c>, <c>ends-off-port</c>, <c>stub-short</c>, <c>pipes-overlap</c>, <c>loop-counter-clockwise</c>, <c>losing-side-right</c>, <c>signal-in-inner</c>. Soft: <c>pipe-in-outer</c>, <c>pipe-beside-pipe</c>, <c>pipes-cross</c>, <c>signal-along-pipe</c>, and the label rules of <c>53</c> invariant 3a (<c>C-84</c>): <c>label-in-inner</c>, <c>label-in-label</c>, <c>line-in-label</c>.</param>
+    /// <param name="Kind">One of <see cref="HardKinds"/> (<c>28</c> B H1–H10, A6, A7) or <see cref="SoftKinds"/>, the label rules of <c>53</c> invariant 3a (<c>C-84</c>) among them.</param>
     /// <param name="First">The element that enters: a component id or a connection id.</param>
     /// <param name="Second">The element entered.</param>
     /// <param name="Detail">Where, in world units.</param>
     public sealed record Finding(string Kind, string First, string Second, string Detail)
     {
         /// <summary>Gets whether the finding invalidates the layout, as opposed to counting against it.</summary>
-        public bool Hard => Kind is "inner-in-inner" or "clearance" or "pipe-in-inner" or "ends-off-port" or "stub-short" or "pipes-overlap" or "loop-counter-clockwise" or "losing-side-right" or "signal-in-inner";
+        public bool Hard => HardKinds.Contains(Kind);
 
         /// <inheritdoc/>
         public override string ToString() => $"{Kind} {(Hard ? "hard" : "soft")} {First} {Second}: {Detail}";
@@ -196,6 +212,12 @@ public static partial class SceneAudit
         Loops(scene, model, findings);
         Flanks(scene, model, findings);
         Signals(scene, pipes, findings);
+        Orthogonal(scene, findings);
+        Corners(scene, pipes, findings);
+        Drawn(scene, model, pipes, findings);
+        Junctions(scene, pipes, findings);
+        Tanks(scene, pipes, findings);
+        Points(scene, pipes, findings);
         return findings.ToImmutable();
     }
 

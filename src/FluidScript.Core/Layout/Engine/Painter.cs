@@ -48,6 +48,7 @@ internal sealed partial class Painter
     /// <summary>Every run no rule laid: through the router from its start's anchors to its end's, each stub kept (H5), the sides of a node's ports set by where the route leaves it.</summary>
     private void Connect()
     {
+        Recheck();
         var router = new OrthogonalRouter(_margin);
 
         for (var i = 0; i < _view.Count; i++)
@@ -114,8 +115,11 @@ internal sealed partial class Painter
                 _sheet.Side[(b.Component, b.Port)] = result.To.Outward;
             }
 
-            _sheet.Lay(run, result.Points);
-            _sheet.Note(StructureText.Run(_view, run), "E4", result.Clean ? "routed, both stubs kept" : "routed, no clean path: the straight join, drawn beneath what it crosses");
+            if (!_sheet.Lay(run, result.Points, "E4", result.Clean ? "routed, both stubs kept" : "routed, no clean path: the straight join, drawn beneath what it crosses"))
+            {
+                continue;
+            }
+
             AddPipe(router, run, _sheet.RunPoints(run.Index)!.Value);
         }
 
@@ -128,6 +132,34 @@ internal sealed partial class Painter
                 var (k, forward) = run.Links[t];
                 var points = forward ? pieces[t] : [.. pieces[t].Reverse()];
                 _routes.Add((k, new Route(_view.Links[k].Id, "pipe", LayerOf(k), Sheet.Normalise(points), [])));
+            }
+        }
+    }
+
+    /// <summary>
+    /// A run a rule laid must still meet the two ports it joins: a member moved after its run was laid -- a junction
+    /// slid along its rail, a unit slid in -- leaves the run's end where the member was. Such a run is taken back and
+    /// drawn by the router, and the trace says which rule laid it and which end it lost (<c>28</c> E4).
+    /// </summary>
+    private void Recheck()
+    {
+        foreach (var run in _view.Runs)
+        {
+            if (_sheet.RunPoints(run.Index) is not { } laid)
+            {
+                continue;
+            }
+
+            foreach (var (end, at) in new[] { (run.Start, laid[0]), (run.End, laid[^1]) })
+            {
+                var anchor = _sheet.AnchorOf(end.Component, end.Port).At;
+
+                if (anchor.ManhattanTo(at) > Eps && !(_view.Wildcard(end.Component) && !_sheet.Side.ContainsKey((end.Component, end.Port)) && _sheet.Centre[end.Component].ManhattanTo(at) < _margin))
+                {
+                    _sheet.Note(_sheet.RunName(run), "E4", $"laid by {_sheet.LaidBy(run.Index)}, but its end at ({at.X:0.##}, {at.Y:0.##}) is off {StructureText.Port(_view, end.Component, end.Port)} at ({anchor.X:0.##}, {anchor.Y:0.##}) -- the member moved after; taken back for the router");
+                    _sheet.Unlay(run.Index);
+                    break;
+                }
             }
         }
     }

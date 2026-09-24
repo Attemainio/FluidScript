@@ -156,13 +156,18 @@ internal sealed partial class Composer
 
                 List<Point> line = [.. lead, .. points];
 
+                // The run takes the rule that placed the member it grew to (C3, C4, C5), as the trace just named it.
+                var grown = _view.Name(far.Component);
+                var rule = _sheet.Trace.LastOrDefault(n => n.Subject == grown)?.Rule ?? "C1";
+                var reason = $"grown from {_view.Name(from.Component)} to {grown}";
+
                 if (startPlaced)
                 {
-                    _sheet.Lay(run, line);
+                    _sheet.Lay(run, line, rule, reason);
                 }
                 else
                 {
-                    _sheet.LayBackwards(run, line);
+                    _sheet.LayBackwards(run, line, rule, reason);
                 }
 
                 changed = true;
@@ -345,7 +350,7 @@ internal sealed partial class Composer
                     line[^1] = tip;
                 }
 
-                _sheet.Lay(near.Run, line);
+                _sheet.Lay(near.Run, line, "C7", "the open end's run, re-ended at its aligned place");
             }
         }
     }

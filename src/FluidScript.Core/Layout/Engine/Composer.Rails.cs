@@ -9,6 +9,12 @@ namespace FluidScript.Core.Layout.Engine;
 internal sealed partial class Composer
 {
     /// <summary>
+    /// A run as a form drew it: the member and port it leaves by, its polyline in that direction, and the rule that
+    /// shaped it with why -- what the trace names when the run is laid (<c>28</c> A10).
+    /// </summary>
+    private sealed record RunDraft(Member From, List<Point> Points, string Rule, string Reason);
+
+    /// <summary>
     /// A ring's right side, laid out at a provisional place: one member, or a whole loop as a block (A8, C11). The ring
     /// slides it into place and shifts its runs with it.
     /// </summary>
@@ -18,7 +24,7 @@ internal sealed partial class Composer
     /// <param name="OutFrom">The member and port the leaving run starts from.</param>
     /// <param name="Bottom">The lowest inner-box edge, provisional units.</param>
     /// <param name="Runs">The unit's own runs, provisional units, laid by the ring after the shift.</param>
-    private sealed record Unit(List<int> Members, PlacedAnchor In, PlacedAnchor Out, Member OutFrom, double Bottom, List<(Member From, List<Point> Points)> Runs);
+    private sealed record Unit(List<int> Members, PlacedAnchor In, PlacedAnchor Out, Member OutFrom, double Bottom, List<RunDraft> Runs);
 
     /// <summary>One thing on a rail: a member, or a block laid out as a unit (C11).</summary>
     private readonly record struct Item(Member? Member, Unit? Unit);
@@ -108,9 +114,9 @@ internal sealed partial class Composer
     }
 
     /// <summary>Lays every run a form drew, each given from the member and port it leaves by.</summary>
-    private void AssignRuns(List<(Member From, List<Point> Points)> runs)
+    private void AssignRuns(List<RunDraft> runs)
     {
-        foreach (var (from, points) in runs)
+        foreach (var (from, points, rule, reason) in runs)
         {
             if (_view.RunAt(from.Component, from.OutPort) is not { } run)
             {
@@ -119,11 +125,11 @@ internal sealed partial class Composer
 
             if (run.Start.Component == from.Component && run.Start.Port == from.OutPort)
             {
-                _sheet.Lay(run, points);
+                _sheet.Lay(run, points, rule, reason);
             }
             else
             {
-                _sheet.LayBackwards(run, points);
+                _sheet.LayBackwards(run, points, rule, reason);
             }
         }
     }
@@ -181,7 +187,7 @@ internal sealed partial class Composer
     /// the branch hanging between the rails (C14). Appends the runs so far.
     /// </summary>
     /// <returns>Where the rail ends, its pending points and the member it leaves; null when a member cannot be placed.</returns>
-    private (PlacedAnchor End, List<Point> Pending, Member Previous)? Top(PlacedAnchor cursor, List<Point> pending, Member previous, List<Item> items, Path? path, List<Member>? bottomMembers, List<(Member From, List<Point> Points)> runs, List<Hanger> hangers, double left = double.NegativeInfinity)
+    private (PlacedAnchor End, List<Point> Pending, Member Previous)? Top(PlacedAnchor cursor, List<Point> pending, Member previous, List<Item> items, Path? path, List<Member>? bottomMembers, List<RunDraft> runs, List<Hanger> hangers, double left = double.NegativeInfinity)
     {
         foreach (var item in items)
         {
@@ -189,7 +195,7 @@ internal sealed partial class Composer
             {
                 var (uIn, uOut) = Slide(u, cursor.At.X, cursor.At.Y, runs);
                 pending.Add(uIn.At);
-                runs.Add((previous, pending));
+                runs.Add(new RunDraft(previous, pending, "C2", "along the rail into a unit"));
                 cursor = uOut;
                 pending = [uOut.At];
                 previous = u.OutFrom;
@@ -204,7 +210,7 @@ internal sealed partial class Composer
             }
 
             pending.AddRange(points.Skip(1));
-            runs.Add((previous, pending));
+            runs.Add(new RunDraft(previous, pending, "C2", "along the rail"));
             cursor = _sheet.AnchorOf(m.Component, m.OutPort);
             previous = m;
 
@@ -234,7 +240,7 @@ internal sealed partial class Composer
     /// with no loop hangs as a column straight down from the split (<see cref="Column"/>).
     /// </summary>
     /// <returns>The split's outlet where the rail continues from, or null when nothing hangs.</returns>
-    private PlacedAnchor? Hang(Member j, Branch branch, double yTop, double left, List<(Member From, List<Point> Points)> runs, List<Hanger> hangers)
+    private PlacedAnchor? Hang(Member j, Branch branch, double yTop, double left, List<RunDraft> runs, List<Hanger> hangers)
     {
         if (PathOf([branch.Body], j.Component) is not { } path)
         {
@@ -302,7 +308,7 @@ internal sealed partial class Composer
 
         _sheet.Side[(j.Component, branch.SplitPort)] = Direction.Down;
         var free = _sheet.AnchorOf(j.Component, branch.SplitPort);
-        runs.Add((new Member(j.Component, -1, branch.SplitPort), [free.At, new Point(free.At.X, uIn.At.Y), uIn.At]));
+        runs.Add(new RunDraft(new Member(j.Component, -1, branch.SplitPort), [free.At, new Point(free.At.X, uIn.At.Y), uIn.At], "C14", "the split's feed down to its hanging block"));
 
         // The rest of the chain steps on from the first block's outlet, as a rail does.
         if (Top(uOut, [uOut.At], first.OutFrom, items, null, null, runs, hangers) is not { } chain)
@@ -328,14 +334,14 @@ internal sealed partial class Composer
     /// <param name="runs">The form's runs so far; the last is the rail's run into the split.</param>
     /// <param name="hangers">Where the column is added.</param>
     /// <returns>The split's outlet where the rail continues from, or null when a member cannot be placed.</returns>
-    private PlacedAnchor? Column(Member j, Branch branch, List<Member> members, double left, List<(Member From, List<Point> Points)> runs, List<Hanger> hangers)
+    private PlacedAnchor? Column(Member j, Branch branch, List<Member> members, double left, List<RunDraft> runs, List<Hanger> hangers)
     {
         var feed = runs.Count - 1;
         _sheet.Side[(j.Component, branch.SplitPort)] = Direction.Down;
         var cursor = _sheet.AnchorOf(j.Component, branch.SplitPort);
         var previous = new Member(j.Component, -1, branch.SplitPort);
         var pending = new List<Point> { cursor.At };
-        var own = new List<(Member From, List<Point> Points)>();
+        var own = new List<RunDraft>();
         var placed = (bool[])_sheet.Placed.Clone();
         Array.Clear(_sheet.Placed);
 
@@ -348,7 +354,7 @@ internal sealed partial class Composer
             }
 
             pending.AddRange(points.Skip(1));
-            own.Add((previous, pending));
+            own.Add(new RunDraft(previous, pending, "C14", "down the column"));
             cursor = _sheet.AnchorOf(m.Component, m.OutPort);
             previous = m;
             pending = [cursor.At];
@@ -389,7 +395,7 @@ internal sealed partial class Composer
             runs[feed].Points[^1] = _sheet.AnchorOf(j.Component, j.InPort).At;
         }
 
-        runs.AddRange(own.Select(r => (r.From, r.Points.Select(p => p.Offset(dx, 0)).ToList())));
+        runs.AddRange(own.Select(r => r with { Points = r.Points.Select(p => p.Offset(dx, 0)).ToList() }));
         _sheet.Note(_view.Name(j.Component), "C14", $"a plain branch hangs as a column under the split, {members.Count} member(s), its merge {_view.Name(branch.Merge)} to stand under it");
         hangers.Add(new Hanger(_sheet.AnchorOf(previous.Component, previous.OutPort), previous, j.Component, branch.Merge, branch.MergePort, true, boxed));
         return _sheet.AnchorOf(j.Component, j.OutPort);
@@ -400,7 +406,7 @@ internal sealed partial class Composer
     /// pipes in it, P6.10 R5): none of its own runs through the clearance of a placed box or bubble, and none of the
     /// runs the form has laid so far through the clearance of its boxes or bubbles, a run that ends on it aside.
     /// </summary>
-    private bool PipesClear(Unit unit, double dx, double dy, List<(Member From, List<Point> Points)> runs)
+    private bool PipesClear(Unit unit, double dx, double dy, List<RunDraft> runs)
     {
         var mine = unit.Members.Where(i => !_view.IsInline(i))
             .SelectMany(i => _sheet.FootprintOf(i, _sheet.Transform[i], _sheet.Centre[i].Offset(dx, dy)).Boxes)
@@ -420,7 +426,7 @@ internal sealed partial class Composer
         theirs.AddRange(InlineBubbles(runs, 0, 0).Select(b => b.Grow(_margin)));
         mine.AddRange(InlineBubbles(unit.Runs, dx, dy).Select(b => b.Grow(_margin)));
 
-        foreach (var (_, points) in unit.Runs)
+        foreach (var (_, points, _, _) in unit.Runs)
         {
             for (var s = 1; s < points.Count; s++)
             {
@@ -433,7 +439,7 @@ internal sealed partial class Composer
             }
         }
 
-        foreach (var (_, points) in runs)
+        foreach (var (_, points, _, _) in runs)
         {
             if (points.Count < 2 || mine.Any(o => o.ContainsInterior(points[0]) || o.ContainsInterior(points[^1])))
             {
@@ -485,11 +491,11 @@ internal sealed partial class Composer
     /// <param name="runs">The runs, each from the member and port it leaves by, in provisional units.</param>
     /// <param name="dx">How far the runs are about to move right.</param>
     /// <param name="dy">How far the runs are about to move up.</param>
-    private IEnumerable<Box> InlineBubbles(IEnumerable<(Member From, List<Point> Points)> runs, double dx, double dy)
+    private IEnumerable<Box> InlineBubbles(IEnumerable<RunDraft> runs, double dx, double dy)
     {
         var hats = _sheet.Hats();
 
-        foreach (var (from, points) in runs)
+        foreach (var (from, points, _, _) in runs)
         {
             if (_view.RunAt(from.Component, from.OutPort) is not { } run || run.Inline.Length == 0 || points.Count < 2)
             {
@@ -542,14 +548,14 @@ internal sealed partial class Composer
     /// nodes (C10), the unit slid into the right side at the top rail's end, and the hanging branches' returns down
     /// into their merges. Appends the ring's remaining runs.
     /// </summary>
-    private bool Close((PlacedAnchor End, List<Point> Pending, Member Previous) top, Unit unit, double drop, double yBottom, List<Member> bottomMembers, List<Point> bottomStart, Member? leftJunction, Member? rightJunction, List<Hanger> hangers, List<(Member From, List<Point> Points)> runs, (Member Member, Transform Transform)? leftTurner = null)
+    private bool Close((PlacedAnchor End, List<Point> Pending, Member Previous) top, Unit unit, double drop, double yBottom, List<Member> bottomMembers, List<Point> bottomStart, Member? leftJunction, Member? rightJunction, List<Hanger> hangers, List<RunDraft> runs, (Member Member, Transform Transform)? leftTurner = null)
     {
         var (topEnd, topPending, topPrevious) = top;
 
         // The bottom rail, built left to right against the flow, each member placed by its outlet facing the left side.
         var cursor = Sheet.Anchor(bottomStart[^1], Direction.Right, Direction.Right);
         var pending = bottomStart;
-        var bottomRuns = new List<(Member From, List<Point> Points)>();
+        var bottomRuns = new List<RunDraft>();
         var first = bottomMembers.Count - 1;
 
         if (leftJunction is { } lj)
@@ -560,7 +566,7 @@ internal sealed partial class Composer
             _sheet.Side[(lj.Component, lj.InPort)] = Direction.Right;
             pending.RemoveAt(pending.Count - 1);
             pending.Add(_sheet.AnchorOf(lj.Component, lj.OutPort).At);
-            bottomRuns.Add((lj, pending));
+            bottomRuns.Add(new RunDraft(lj, pending, "C14", "the bottom-left junction up the left side"));
             cursor = _sheet.AnchorOf(lj.Component, lj.InPort);
             pending = [cursor.At];
             first--;
@@ -574,7 +580,7 @@ internal sealed partial class Composer
             _sheet.Place(lt.Member.Component, lt.Transform, new Point(at.X - dOut.X, at.Y - dIn.Y), "C9", "the left turner takes the bottom-left corner, mirrored (C-105)");
             pending.RemoveAt(pending.Count - 1);
             pending.Add(_sheet.AnchorOf(lt.Member.Component, lt.Member.OutPort).At);
-            bottomRuns.Add((lt.Member, pending));
+            bottomRuns.Add(new RunDraft(lt.Member, pending, "C9", "the left turner up the left side"));
             cursor = _sheet.AnchorOf(lt.Member.Component, lt.Member.InPort);
             pending = [cursor.At];
         }
@@ -612,7 +618,7 @@ internal sealed partial class Composer
             }
 
             pending.AddRange(points.Skip(1));
-            bottomRuns.Add((m, pending));
+            bottomRuns.Add(new RunDraft(m, pending, "C2", "along the bottom rail"));
             cursor = _sheet.AnchorOf(m.Component, m.InPort);
             pending = [cursor.At];
 
@@ -670,7 +676,7 @@ internal sealed partial class Composer
         }
 
         topPending.Add(uIn.At);
-        runs.Add((topPrevious, topPending));
+        runs.Add(new RunDraft(topPrevious, topPending, "C11", "the top rail into the unit"));
         var outOuter = uOut.Along(_margin);
 
         if (rightJunction is { } j)
@@ -696,12 +702,12 @@ internal sealed partial class Composer
             pending.AddRange([new Point(outOuter.X, yBottom), outOuter, uOut.At]);
         }
 
-        bottomRuns.Add((unit.OutFrom, pending));
+        bottomRuns.Add(new RunDraft(unit.OutFrom, pending, rightJunction is null ? "C11" : "C10", rightJunction is null ? "the unit's outlet down to the bottom rail" : "the unit's outlet down to the corner junction under it"));
 
-        foreach (var (walkFrom, points) in bottomRuns)
+        foreach (var draft in bottomRuns)
         {
-            points.Reverse();
-            runs.Add((walkFrom, points));
+            draft.Points.Reverse();
+            runs.Add(draft);
         }
 
         // C14: each hanging branch returns from where it ends, level to above its merge and down into it.
@@ -709,7 +715,7 @@ internal sealed partial class Composer
         {
             _sheet.Side[(h.Bottom, h.BottomPort)] = Direction.Up;
             var up = _sheet.AnchorOf(h.Bottom, h.BottomPort);
-            runs.Add((h.OutFrom, [h.Out.At, new Point(up.At.X, h.Out.At.Y), up.At]));
+            runs.Add(new RunDraft(h.OutFrom, [h.Out.At, new Point(up.At.X, h.Out.At.Y), up.At], "C14", "the hanger's return, level then down into its merge"));
         }
 
         return true;
@@ -846,7 +852,7 @@ internal sealed partial class Composer
         var cOut = _sheet.AnchorOf(corner.Component, corner.OutPort);
         var cIn = _sheet.AnchorOf(corner.Component, corner.InPort);
         var (left, right) = Corners(bottomMembers, unit, leftFirst: outlet == Direction.Left);
-        var runs = new List<(Member From, List<Point> Points)>();
+        var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
 
         if (Top(cOut, [cOut.At], corner, items, null, null, runs, hangers) is not { } top)
@@ -955,7 +961,7 @@ internal sealed partial class Composer
     /// the offset. Its runs move with it.
     /// </summary>
     /// <returns>The unit's inlet and outlet where they landed.</returns>
-    private (PlacedAnchor In, PlacedAnchor Out) Slide(Unit unit, double originX, double yIn, List<(Member From, List<Point> Points)> runs, Func<double, double, bool>? clear = null, double? feedFrom = null, double? returnTo = null)
+    private (PlacedAnchor In, PlacedAnchor Out) Slide(Unit unit, double originX, double yIn, List<RunDraft> runs, Func<double, double, bool>? clear = null, double? feedFrom = null, double? returnTo = null)
     {
         // The runs into and out of the unit are laid long enough for any sensor's bubble on them (C15, D-151): the one in
         // counted from where it starts, the one out from where it returns to; the unit stands a margin clear of the
@@ -1000,9 +1006,9 @@ internal sealed partial class Composer
             _sheet.Note(_view.Name(i), "C11", $"slid in as a unit member by ({dx:0.##}, {dy:0.##}) to ({_sheet.Centre[i].X:0.##}, {_sheet.Centre[i].Y:0.##}), a margin right of its origin and past every obstacle (H2)");
         }
 
-        foreach (var (walkFrom, points) in unit.Runs)
+        foreach (var draft in unit.Runs)
         {
-            runs.Add((walkFrom, points.Select(p => p.Offset(dx, dy)).ToList()));
+            runs.Add(draft with { Points = draft.Points.Select(p => p.Offset(dx, dy)).ToList() });
         }
 
         return (unit.In with { At = unit.In.At.Offset(dx, dy) }, unit.Out with { At = unit.Out.At.Offset(dx, dy) });

@@ -64,4 +64,38 @@ public sealed class ComposerTests
 
         Assert.Empty(findings);
     }
+
+    [Fact]
+    public void EveryPipeNamesTheRuleThatLaidItAndNoneIsDiagonal()
+    {
+        // 28 A10: the trace names the rule behind every placement, and since P6.10's diagnostics package every laid run
+        // too, under its connections' ids. A run a rule laid skew is refused and left to the router (A7), so no drawn
+        // pipe is diagonal -- on the ladder, the pending scripts and the stress plant alike.
+        var tests = Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout");
+        var files = Directory.GetFiles(Path.Combine(tests, "Ladder"), "step-*.fluid")
+            .Concat(Directory.GetFiles(Pending, "*.fluid"))
+            .Concat(Directory.GetFiles(Path.Combine(tests, "Stress"), "*.fluid"))
+            .Order(StringComparer.Ordinal);
+        var refused = 0;
+
+        foreach (var file in files)
+        {
+            var input = ContractFixture.Compile(File.ReadAllText(file));
+            var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+            var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+            var named = scene.Provenance
+                .Where(static n => n.Subject.EndsWith(']'))
+                .SelectMany(static n => n.Subject[(n.Subject.LastIndexOf(" [", StringComparison.Ordinal) + 2)..^1].Split(", "))
+                .ToHashSet(StringComparer.Ordinal);
+            var name = Path.GetFileName(file);
+
+            Assert.All(scene.Routes.Where(static r => r.Kind == "pipe"), r => Assert.True(named.Contains(r.ConnectionId), $"{name}: {r.ConnectionId} was laid by no named rule"));
+            Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Kind == "diagonal").Select(f => $"{name}: {f}"));
+            refused += scene.Provenance.Count(static n => n.Reason.Contains("not orthogonal", StringComparison.Ordinal) && n.Reason.EndsWith("left to the router (A7)", StringComparison.Ordinal));
+        }
+
+        // The refusal's witness while C-130/C-131 stand: the stress plant's pieces lay two runs skew (a junction moved
+        // after its feed was laid; a unit's descent to a rail that is not where the form thought).
+        Assert.True(refused > 0, "no run was refused: the stress plant no longer lays one skew; find the refusal a new witness");
+    }
 }
