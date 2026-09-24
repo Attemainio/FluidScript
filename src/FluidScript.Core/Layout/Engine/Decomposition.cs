@@ -524,7 +524,9 @@ internal sealed class Decomposition
     /// <summary>
     /// The rings that share one element with the body (<c>D-157</c>): each pendant that is no tree and touches the body
     /// at exactly two ports of one element -- one it leaves by, one it returns by -- read as a ring cut at that element
-    /// between those two ports, over the pendant's own runs.
+    /// between those two ports, over the pendant's own runs. A pendant that is no tree and hangs from one port holds
+    /// its ring at an element of its own (<c>D-160</c>): the first boxed member, never a junction, one of whose leaving
+    /// ports and one of whose entering ports close a cycle through the pendant -- a DHW tank's circulation loop.
     /// </summary>
     private ImmutableArray<AttachedRing> Attached(FragmentPlan plan)
     {
@@ -551,23 +553,59 @@ internal sealed class Decomposition
             var leaving = touches.FirstOrDefault(e => !_view.Enters(at, e.Port));
             var entering = touches.FirstOrDefault(e => _view.Enters(at, e.Port));
 
-            if (leaving == default || entering == default)
+            if (leaving != default && entering != default && Ring(at, leaving.Port, entering.Port, pendant.Runs) is { } ring)
+            {
+                rings.Add(ring);
+            }
+        }
+
+        // D-160: what still hangs off the body and those rings, no tree and from one element, holds its ring at an element
+        // of its own -- the first boxed member, never a junction, whose ports close it.
+        var taken = (plan.Body is null ? [] : Runs(plan.Body)).Concat(rings.SelectMany(static r => r.Runs)).ToHashSet();
+
+        foreach (var pendant in Pendants(taken, plan.Cut >= 0 ? [plan.Cut] : []).Where(static p => !p.Tree))
+        {
+            var runs = pendant.Runs.Select(r => _view.Runs[r]).ToList();
+            var owned = pendant.Members.ToHashSet();
+
+            if (runs.SelectMany(static r => new[] { r.Start, r.End }).Where(e => !owned.Contains(e.Component)).Select(static e => e.Component).Distinct().Count() != 1)
             {
                 continue;
             }
 
-            var own = pendant.Runs.ToHashSet();
-            int Vertex(RunEnd end) => end.Component != at ? end.Component : end.Port == leaving.Port ? _plus : end.Port == entering.Port ? _minus : -1;
-            var edges = _runs.Where(r => own.Contains(r.Index)).Select(r => new Edge(r.Index, Vertex(r.Start), Vertex(r.End))).Where(static e => e.A >= 0 && e.B >= 0).ToList();
-            var body = Body(edges, _plus, _minus);
-
-            if (body.Count > 0)
+            foreach (var at in pendant.Members.Where(m => !_view.Wildcard(m) && !_view.IsInline(m)))
             {
-                rings.Add(new AttachedRing(at, leaving.Port, entering.Port, Decompose(body, _plus, _minus)));
+                var ends = runs.SelectMany(static r => new[] { r.Start, r.End }).Where(e => e.Component == at).Distinct().ToList();
+                var found = ends.Where(e => !_view.Enters(at, e.Port))
+                    .SelectMany(l => ends.Where(e => _view.Enters(at, e.Port)).Select(e => Ring(at, l.Port, e.Port, pendant.Runs)))
+                    .FirstOrDefault(static r => r is not null);
+
+                if (found is not null)
+                {
+                    rings.Add(found);
+                    break;
+                }
             }
         }
 
         return rings.ToImmutable();
+    }
+
+    /// <summary>The ring a pendant's runs close through one element between two of its ports, or null when they close none.</summary>
+    private AttachedRing? Ring(int at, int leaving, int entering, ImmutableArray<int> pendantRuns)
+    {
+        var own = pendantRuns.ToHashSet();
+        int Vertex(RunEnd end) => end.Component != at ? end.Component : end.Port == leaving ? _plus : end.Port == entering ? _minus : -1;
+        var edges = _runs.Where(r => own.Contains(r.Index)).Select(r => new Edge(r.Index, Vertex(r.Start), Vertex(r.End))).Where(static e => e.A >= 0 && e.B >= 0).ToList();
+        var body = Body(edges, _plus, _minus);
+
+        if (body.Count == 0)
+        {
+            return null;
+        }
+
+        var structure = Decompose(body, _plus, _minus);
+        return new AttachedRing(at, leaving, entering, structure, [.. Runs(structure)]);
     }
 
     /// <summary>Every run a structure holds.</summary>

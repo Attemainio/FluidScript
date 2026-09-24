@@ -111,7 +111,10 @@ along the top, the pump standing in the riser, the first boiler on the left side
 is otherwise always drawn level. A buffer tank shared by two loops -- the boiler charging it, the
 distribution drawing from it -- takes one loop on each side: the loop that holds the heat source runs
 from the tank's left side, the second loop from its right, each side with its own inlet and outlet at
-the heights the script gave them, so the heat still reads left to right, through the tank. A sensor stands on the node it reads
+the heights the script gave them, so the heat still reads left to right, through the tank. A hot-water
+tank with a circulation loop is drawn the same way: the heater charges it from the left, and the
+circulation leaves its right side along the top, past the tap line, and returns through its pump and
+valve along the bottom into the tank's right side. A sensor stands on the node it reads
 and a controller on the component it drives, joined to it by a short straight line; a sensor takes
 the side of its pipe its controller stands on, so the line between them does not cross the pipe; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:

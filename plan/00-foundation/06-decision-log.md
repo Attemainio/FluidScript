@@ -202,6 +202,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-157` | Accepted | 2026-09-24 | A tank shared by two loops takes a loop per flank |
 | `D-158` | Accepted | 2026-09-24 | Branches built the same way are drawn the same way, and a sensor shares its controller's side |
 | `D-159` | Accepted | 2026-09-24 | Heat sources in parallel rise as columns, a pump standing in its riser |
+| `D-160` | Accepted | 2026-09-24 | A ring on an element a chain reaches is an attached ring too |
 <!-- index:end -->
 
 ---
@@ -7412,3 +7413,36 @@ circulation still open in `C-129`.
   the two branches stop reading as parallel.
 - *Stacked rows between vertical headers* -- keeps `D-113`, but the standing boilers make each row step up through
   them, and the headers stand tall at both ends.
+
+## D-160 · A ring on an element a chain reaches is an attached ring too
+
+**Accepted · 2026-09-24** · extends `D-157` from an element of the body to an element of a pendant · `28` E2, E3 ·
+`C-129`
+
+**What was wrong.** `D-157` attached a ring to an element the body holds: a buffer tank whose second loop leaves
+and re-enters it. A DHW tank is reached differently: the DHW heater's hot side is an open chain -- cold water in,
+the heater, the tank, the tap -- and the tank carries its own circulation loop, `T2.out → NDS → PU_CIRC → CV_CIRC
+→ T2.in2`. The tank is not on the body; it is a member of the pendant hanging off the heater's outlet, and that
+pendant is not a tree because of the loop. No rule read it, so the chain rules grew into the loop and the router
+drew its return straight through the circulation pump and valve: piece C hard 7, and the same seven on the whole
+plant once `D-159` had it drawn by the forms.
+
+**The rule.** A pendant that is not a tree and hangs from one element holds its ring at an element of its own: the
+first boxed member -- never a junction -- one of whose leaving ports and one of whose entering ports close a cycle
+through the pendant. That ring is an attached ring (`D-157`): read as a ring cut at the element, its runs left out
+of the chain rules until the chains have placed the element, then laid from the element's flank as C2 lays a ring
+with a fixed head, the chains growing on from it afterwards (the tap off `NDS`). A tank so shared takes the ring's
+ports on its east flank and the charging chain on its west, as `D-157` gives a tank's two loops. The search runs
+over what hangs off the body and the rings already found, so a DHW side hanging off a ring that is itself attached
+(the whole plant's distribution) is found too.
+
+**Why.** Heat still reads left to right -- heater, tank, tap -- and the circulation loop runs clockwise beside the
+tank, the way a DHW tank with its circulation is drawn. It is `D-157` applied where the shared element is reached by a
+chain instead of standing on the body; no new drawing convention, so no mock-up was put to the user. This project's
+reasoning. Built: piece C hard 7 → 0 (soft 3), the whole 61-component stress plant hard 7 → 0 (soft 4). No other
+script moved.
+
+### Rejected
+
+- *Leave the circulation to the chain rules and the router* -- the router draws the return through the pump and
+  valve the chains grew along it (the seven hard findings).

@@ -649,6 +649,11 @@ Each fragment becomes a tree of structures before any geometry exists.
   element -- one leaving it, one entering -- is a second loop through that element: a buffer tank's distribution
   loop, its boiler loop being the ring. It is decomposed as a ring of its own whose head is that element, and
   printed in the trace under its own heading.
+  A pendant that is no tree and hangs from one element -- a DHW heater's hot side, whose tank carries its
+  circulation -- holds its ring at an element of its own (`D-160`): the first boxed member, never a junction, one of
+  whose leaving and one of whose entering ports close a cycle through the pendant. The search runs over what hangs off
+  the body and the rings already found. Such a ring's runs are left out of the chain rules until the chains have
+  placed its element; it is then laid from that element's flank as a body ring is (E3), and the chains grow on.
 - **Chains.** What hangs off a port and ends in a boundary or an open port is a chain (C4, C5, C6), and
   the open ends of a ring are paired (C7).
 - **Instruments** (C15) are attached to their hosts here, so a host's footprint knows its bubbles from

@@ -212,6 +212,27 @@ public sealed class ComposerTests
         Assert.Contains(scene.Provenance, static n => n.Subject == "NB_M" && n.Reason.Contains("rises as a column", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("plant-distribution-dhw.fluid")]
+    [InlineData("plant.fluid")]
+    public void ADhwTanksCirculationIsARingOnItsEastFlank(string file)
+    {
+        // D-160 (C-129): T2 is reached by a chain from HX_DHW's hot side, and its circulation -- out, NDS, PU_CIRC, CV_CIRC,
+        // back into in2 -- is a ring of T2's own, laid from its east flank once the chain has placed it; the charging pipe
+        // from HX_DHW enters its west. The whole stress plant draws with no hard finding.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", file)));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        var tank = scene.Placements.Single(static p => p.ComponentId == "T2");
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
+        Assert.Equal(tank.Inner.X, tank.Anchors["in1"].At.X, 6);
+        Assert.Equal(tank.Inner.Right, tank.Anchors["out1"].At.X, 6);
+        Assert.Equal(tank.Inner.Right, tank.Anchors["in2"].At.X, 6);
+        Assert.Contains(scene.Provenance, static n => n.Rule == "form" && n.Reason.Contains("attached ring at T2 (D-160): drawn", StringComparison.Ordinal));
+        Assert.DoesNotContain(scene.Provenance, static n => n.Rule == "form" && n.Reason.Contains("chain (C1)", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ATankSharedByTwoLoopsTakesALoopPerFlank()
     {

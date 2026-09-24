@@ -50,8 +50,8 @@ internal sealed partial class Composer
 
             using (_sheet.Canvas())
             {
-                Form(plan, members, $"fragment {f + 1}");
-                Grow(fragmentRuns);
+                var drawn = Form(plan, members, $"fragment {f + 1}");
+                GrowWithRings(plan, fragmentRuns, $"fragment {f + 1}", drawn);
                 Stranded(members);
                 AlignOpenEnds(members);
                 _sheet.ChooseHats(_view.Ordered(members.Where(c => _sheet.Placed[c])));

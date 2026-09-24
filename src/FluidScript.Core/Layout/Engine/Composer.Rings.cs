@@ -21,7 +21,8 @@ internal sealed partial class Composer
     private int _pass;
 
     /// <summary>Lays the body the plan names, each form that fits the plan in turn until one draws it; with none, the head stands at the origin for the chain rules (C1).</summary>
-    private void Form(FragmentPlan plan, ImmutableArray<int> members, string subject)
+    /// <returns>Whether a form drew the body.</returns>
+    private bool Form(FragmentPlan plan, ImmutableArray<int> members, string subject)
     {
         // D-157: a tank shared by two loops takes a loop per flank -- the body's ports on its west side, the attached
         // ring's on its east -- whatever its ports are called.
@@ -48,7 +49,7 @@ internal sealed partial class Composer
         {
             _sheet.Note(subject, "form", "chain (C1): no ring, loop or open form drew the fragment");
             _sheet.Place(plan.Head, Transform.Identity, new Point(0, 0), "C1", "the fragment's head at the origin in its drawn default");
-            return;
+            return false;
         }
 
         // D-157: each ring attached to an element the body placed is laid from that element's flank, rightwards.
@@ -56,6 +57,27 @@ internal sealed partial class Composer
         {
             Tried(subject, $"C2 attached ring at {_view.Name(ring.At)} (D-157)", () => Settled(() => Sourced(ring.Body, ring.At, fixedHead: true)));
         }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The chain rules, with the rings a pendant holds (<c>D-160</c>) left out until the chains have placed the element
+    /// each is attached to; each is then laid from that element's flank, as a ring on the body is, and the chains grow
+    /// on from it.
+    /// </summary>
+    private void GrowWithRings(FragmentPlan plan, List<int> fragmentRuns, string subject, bool drawn)
+    {
+        var later = drawn ? plan.Rings.Where(r => !_sheet.Placed[r.At]).ToList() : [];
+        var held = later.SelectMany(static r => r.Runs).ToHashSet();
+        Grow([.. fragmentRuns.Where(r => !held.Contains(r))]);
+
+        foreach (var ring in later.Where(r => _sheet.Placed[r.At]))
+        {
+            Tried(subject, $"C2 attached ring at {_view.Name(ring.At)} (D-160)", () => Settled(() => Sourced(ring.Body, ring.At, fixedHead: true)));
+        }
+
+        Grow(fragmentRuns);
     }
 
     /// <summary>
