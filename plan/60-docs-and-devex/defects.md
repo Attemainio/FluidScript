@@ -15,13 +15,14 @@ that assert its table. Like [`30-solver/defects.md`](../30-solver/defects.md), t
 late — the findings below were made across P2.6 through P3.4a and recorded, where they were recorded
 at all, in the tier of the code rather than the tier of the document.
 
-**Next id: `T-6`.** The columns, their vocabularies, and the rule for filing, reopening and closing
+**Next id: `T-7`.** The columns, their vocabularies, and the rule for filing, reopening and closing
 are in [`08`](../08-implementation-sequence.md) under *Every package writes down what it found*.
 
 ## Open
 
 | # | Filed | Effort | Risk | Basis | Document | What | Why it is still open |
 |---|---|---|---|---|---|---|---|
+| T-6 | 2026-09-24 | small | low | measured | [`62`](62-testing-strategy.md) | **A `Category=Diagnostic` test asserts a wall-clock bound, so it fails when the suite is busy** | What `T-1` settled: a diagnostic test measures a duration and has no budget, because a run whose duration is the result cannot also fail when it is slow. What `LayoutTimingTests.TheTwoHundredComponentLayoutIsTimed` does: it records the 200-component layout time in `diagnostics/layout-timing.txt` and then asserts the ladder engine's solve under 250 ms. Alone it takes about 50 ms (ladder 47–51 ms, composed 19–21 ms, best of 5, 2026-09-24); inside the whole Core run, with 2,370 tests in parallel, it took 221 ms on one run and failed over 250 ms on another, with no layout code in the ladder engine changed. The assertion measures the machine's load, not the layout. | Open: either drop the assertion (the category's rule) or move the bound to a `Performance` test run alone; the choice is `62`'s owner's. Until then a red result on this test alone, in a full run, is contention -- rerun it alone before reading anything into it. |
 | T-3 | 2026-09-03 | medium | med | hunch | [`61`](61-documentation-plan.md) | **The gate knows about kinds, reserved words and codes, and a feature is none of those** | `P3.3` shipped eight diagnostics and four "What is checked" sections on component pages. The gate enforced the first set — every code has a row — and could not see the second: a parameter gaining a hard bound is a user-visible behaviour change with no registry entry to hang a gate on. The four sections were written by hand and would have been forgotten silently. This is the limit of a mechanical gate rather than a defect in it, but `61` presents the gate as *the* enforcement of "every feature ships with its page", and it enforces a proper subset. |
 
 ## Traps

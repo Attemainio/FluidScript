@@ -81,12 +81,40 @@ internal sealed partial class Sheet
                     continue;
                 }
 
+                // D-158: a sensor tries first the side of its pipe its controller takes on its own host.
+                if (View.IsInline(host) && SensorSide(hat.Element, level: taken.Contains(Direction.Left) || taken.Contains(Direction.Right)) is { } toward && free.Remove(toward))
+                {
+                    free.Insert(0, toward);
+                }
+
                 var side = free.FirstOrDefault(d => BubbleClear(host, BoxOn(host, d, hat.Size)), free[0]);
                 HatSide[hat.Element.ComponentId] = (host, side);
                 taken.Add(side);
                 Note(hat.Element.ComponentId, "C15", $"on {View.Name(host)}'s {Name(side)} side, one margin out");
             }
         }
+    }
+
+    /// <summary>
+    /// The side of its pipe a sensor stands on to share it with the controller that reads through it (<c>D-158</c>): the
+    /// side that controller takes on its own host -- chosen, else the first free one -- where it lies across the pipe
+    /// (up or down of a level pipe, left or right of a vertical one), so the signal between them need not cross the pipe.
+    /// Null for an element no controller reads, or a controller standing along the pipe's axis.
+    /// </summary>
+    /// <param name="sensor">The sensor.</param>
+    /// <param name="level">Whether the pipe at the sensor's point is level.</param>
+    public Direction? SensorSide(NonFlowElementHint sensor, bool level)
+    {
+        if (sensor.ActuationTargetId is not null
+            || View.Hints.NonFlowElements.FirstOrDefault(e => e.ActuationTargetId is not null && e.MeasurementTargetId == sensor.MeasurementTargetId && e.ComponentId != sensor.ComponentId) is not { } controller
+            || !View.Index.TryGetValue(controller.PlacementAnchorId, out var host))
+        {
+            return null;
+        }
+
+        var taken = Taken(host);
+        Direction? side = HatSide.TryGetValue(controller.ComponentId, out var chosen) ? chosen.Side : Preference(host, Transform[host]).Where(d => !taken.Contains(d)).Cast<Direction?>().FirstOrDefault();
+        return side is { } across && across.Horizontal != level ? across : null;
     }
 
     /// <summary>The sides a connection leaves a host by: a port's outward direction, or the side a node's or an inline point's port takes.</summary>

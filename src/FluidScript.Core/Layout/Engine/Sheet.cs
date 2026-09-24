@@ -21,6 +21,7 @@ internal sealed partial class Sheet
 
     private readonly ImmutableArray<Point>?[] _runs;
     private readonly string?[] _laidBy;
+    private readonly bool?[] _cutFirst;
 
     /// <summary>Creates an empty sheet.</summary>
     /// <param name="view">The circuit view.</param>
@@ -36,6 +37,7 @@ internal sealed partial class Sheet
         Stood = new bool[view.Count];
         _runs = new ImmutableArray<Point>?[view.Runs.Length];
         _laidBy = new string?[view.Runs.Length];
+        _cutFirst = new bool?[view.Runs.Length];
     }
 
     /// <summary>Gets the circuit view.</summary>
@@ -247,8 +249,9 @@ internal sealed partial class Sheet
     /// <param name="points">Its polyline, from the run's start to its end.</param>
     /// <param name="rule">The rule that shaped it, as the trace names rules (<c>C2</c>, <c>C14</c>, <c>E4</c>).</param>
     /// <param name="reason">What the rule did, in the trace's words.</param>
+    /// <param name="cutFirst">Where the inline points are cut instead of the longest segment: true on the first segment, false on the last (a column's return, <c>D-158</c>).</param>
     /// <returns>Whether the run was laid.</returns>
-    public bool Lay(Run run, IReadOnlyList<Point> points, string rule, string reason)
+    public bool Lay(Run run, IReadOnlyList<Point> points, string rule, string reason, bool? cutFirst = null)
     {
         var line = Normalise(points);
 
@@ -260,8 +263,9 @@ internal sealed partial class Sheet
 
         _runs[run.Index] = line;
         _laidBy[run.Index] = rule;
+        _cutFirst[run.Index] = cutFirst;
         Note(RunName(run), rule, reason);
-        var pieces = Pieces(line, run.Inline.Length);
+        var pieces = Pieces(line, run.Inline.Length, cutFirst);
 
         for (var t = 0; t < run.Inline.Length; t++)
         {
@@ -279,13 +283,14 @@ internal sealed partial class Sheet
     }
 
     /// <summary>Lays a run given from its end back to its start.</summary>
-    public bool LayBackwards(Run run, IReadOnlyList<Point> points, string rule, string reason) => Lay(run, [.. points.Reverse()], rule, reason);
+    public bool LayBackwards(Run run, IReadOnlyList<Point> points, string rule, string reason, bool? cutFirst = null) => Lay(run, [.. points.Reverse()], rule, reason, cutFirst);
 
     /// <summary>Takes a laid run back off the sheet, so the router draws it (<c>28</c> E4).</summary>
     public void Unlay(int run)
     {
         _runs[run] = null;
         _laidBy[run] = null;
+        _cutFirst[run] = null;
     }
 
     /// <summary>The rule that laid a run, or null while it is unlaid.</summary>
@@ -310,14 +315,17 @@ internal sealed partial class Sheet
     }
 
     /// <summary>The pieces of a laid run, one per link from start to end, consecutive ones sharing their cut.</summary>
-    public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, View.Runs[run].Inline.Length);
+    public List<ImmutableArray<Point>> Pieces(int run) => Pieces(_runs[run]!.Value, View.Runs[run].Inline.Length, _cutFirst[run]);
 
-    /// <summary>A polyline cut into one more piece than <paramref name="count"/>, at even fractions of its longest segment (A5).</summary>
-    public static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, int count)
+    /// <summary>
+    /// A polyline cut into one more piece than <paramref name="count"/>, at even fractions of its longest segment (A5) --
+    /// or of its first or last, where <paramref name="cutFirst"/> says so (a column's return, <c>D-158</c>).
+    /// </summary>
+    public static List<ImmutableArray<Point>> Pieces(ImmutableArray<Point> points, int count, bool? cutFirst = null)
     {
-        var longest = 1;
+        var longest = cutFirst switch { true => 1, false => points.Length - 1, null => 1 };
 
-        for (var s = 2; s < points.Length; s++)
+        for (var s = 2; cutFirst is null && s < points.Length; s++)
         {
             if (points[s - 1].ManhattanTo(points[s]) > points[longest - 1].ManhattanTo(points[longest]) + Eps)
             {

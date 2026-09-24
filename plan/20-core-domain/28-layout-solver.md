@@ -460,7 +460,9 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   -- and a controller on the device it actuates, each joined to its host by a straight line one margin
   long: from the node's point, or from the middle of the device's edge. Its side is the host's first
   free side, a side no connection leaves by, in the order: the device's actuator stem (a valve's is up
-  in its drawn default, a three-way valve's right, opposite its angle port), then up, down, left, right;
+  in its drawn default, a three-way valve's right, opposite its angle port), then up, down, left, right --
+  except that a sensor first tries the side its controller takes on its own host, where that side lies
+  across the sensor's pipe, so the signal between them need not cross it (`D-158`);
   the first whose bubble keeps the clearance from every box, bubble and drawn pipe of its fragment, else
   the first free side. The layout makes room rather than searching for it: while a form places a
   component, a device's bubbles count in the clearance as its box does, every stub -- the first margin
@@ -698,15 +700,26 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   halves of the step's run (the return down to the step, the rail on from it) are joined into one run. The last
   band closes the ring to the source. Only single-member consumers on the bands and no block on the ring's path so
   far; anything else falls back to one band.
-- **A branch that rejoins its rail** *(built 2026-09-24, `C-130`)*. A plain branch whose split and merge both stand
-  on one level rail -- a duty/standby pump pair -- is not hung: it runs as a row parallel to the spine, a margin
-  under the lowest spine box between split and merge, down from the split, along the row, up into the merge. It is
+- **A branch that rejoins its rail** *(built 2026-09-24, `C-130`; over the rail since `D-158`)*. A plain branch whose
+  split and merge both stand on one level rail -- a duty/standby pump pair -- is not hung: it runs as a row parallel
+  to the spine. On the ring's top rail the row stands a margin *over* the highest spine box, up from the split, along
+  the row, down into the merge, raised until it clears everything placed -- out of the ring, the branch declared first
+  highest -- and where its boxed members and the spine's carry the same symbols in order, each stands square over its
+  counterpart (`D-158`). On any other rail it runs a margin under the lowest spine box, down from the split, along
+  the row, up into the merge, as below. It is
   laid when the rail reaches the merge (the spine is placed by then), on a canvas of its own, then lowered until
   it clears everything placed by the one test; the merge is held right of the row's end by the rise's run length,
   and the bottom rail keeps a margin under the row. Where the rail turns between split and merge the branch is
   left to the chain rules. Pumps side by side on branches between a common suction and a common discharge line is
   how HVAC schematics draw a pump set ([The Engineering Mindset, chilled-water schematics](https://theengineeringmindset.com/chilled-water-schematics/));
   stacking the rows under a level rail is this project's mapping of that, the part most worth the user's eye.
+- **The spine as a column** *(built 2026-09-24, `D-158`)*. Where a ring's or a band's right side is a consumer on a
+  header's spine with members of its own between the split and it, that stretch is C11's unit, laid as the header's
+  hanging columns are (C14): on a canvas of its own, each member facing down the drop, its inlet a split's half-height
+  and a run under the rail -- level with the siblings' first members -- the top rail turning down into it at a corner.
+  Its return's points are cut on its drop rather than its longest segment (A5), so a sensor there stands where the
+  siblings' do, and the drop is at least that run's length; the column is not centred on its side (C12). The unit
+  slides by the one test -- boxes, bubbles and stubs -- as every placement does (E3), not box against box.
 - **A loop per flank** *(built 2026-09-24, `D-157`, `C-129`)*. Where the element an attached ring shares is a tank,
   the ring's two ports stand on its east flank and the source ring's on its west, at their stated elevations (a
   flank override on the sheet; the symbol's rule by name holds everywhere else). The tank is the source ring's
@@ -723,7 +736,8 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   far end: the unit's inlet run from the top rail's end, its outlet run from the bottom rail's, so a
   sensor on the rail with more members pushes the unit no further than its own run needs. A sensor on a pipe's point has no side until C15 chooses
   it, so placement keeps clear of where it will stand: a bubble over the point where its run is level
-  (the side tried first) or to its left where the run is vertical; the right side's descent keeps
+  (the side tried first) or to its left where the run is vertical -- in either case the side its controller takes,
+  where that lies across the run (`D-158`); the right side's descent keeps
   clear of those too. A node's instruments count in its footprint as a device's do. The unit's own box keeps a
   margin from those bubbles as from a placed box, and its outlet's descent to the bottom rail -- facing left or down --
   crosses no pipe the form has laid: a block hung between the rails is passed, not cut through (2026-09-24, piece B

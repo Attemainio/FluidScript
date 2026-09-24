@@ -1605,6 +1605,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     Next: the rest of `C-129` -- parallel boilers on the source ring (piece A), the attached ring through the bands
     (the whole plant), a loop per side of a two-sided exchanger (piece C's DHW) -- then R5 (pipe bands in the
     occupancy across forms, H11). The pictures of 13a and the controls version await the user.
+  - **The user's review of the controls picture (2026-09-24, `D-158`):** the pump pair's row stands over the top
+    rail, square with the spine; a header's spine on the right side is a column like its siblings (step 12's zone 3,
+    the stacked plant's RAD3 and DHW); a sensor takes its controller's side of its pipe; a unit slides by the one
+    clearance test. Piece B with controls hard 0 soft 3, step 12 hard 0 soft 0; no ladder picture or sample moved.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

@@ -96,22 +96,62 @@ public sealed class ComposerTests
     }
 
     [Fact]
-    public void ADutyStandbyPairRunsAsARowUnderTheRailAndRejoinsIt()
+    public void ADutyStandbyPairRunsAsARowOverTheRailSquareWithTheSpine()
     {
-        // C14 for a branch that rejoins its rail (C-130): the stress plant's pump pair splits at NP_S and rejoins at NP_M,
-        // both on the top rail. The standby pump and its valve stand a margin under the duty pair, the row rising into
-        // NP_M right of its last member -- not grown at the rail's far end with its return wrapped over the ring.
+        // C14 for a branch that rejoins its rail (C-130), as D-158 settles it: the stress plant's pump pair splits at NP_S
+        // and rejoins at NP_M, both on the ring's top rail. PU_S1's branch, declared first, stands a margin over the duty
+        // pair, each member square with its counterpart, the row dropping into NP_M -- out of the ring, in script order.
         var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution.fluid")));
         var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
         var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
         Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
         var findings = SceneAudit.Findings(scene, input.Model);
 
-        Assert.True(Inner("PU_S1").Top <= Inner("PU_S2").Y - scene.Margin + 1e-9, "the standby pump stands a margin under the duty pump");
-        Assert.True(Math.Abs(Inner("PU_S1").Centre.X - Inner("PU_S2").Centre.X) < 2 * scene.Margin, "the two pumps stand side by side along the header");
+        Assert.True(Inner("PU_S1").Y >= Inner("PU_S2").Top + scene.Margin - 1e-9, "the standby pump stands a margin over the duty pump");
+        Assert.Equal(Inner("PU_S2").Centre.X, Inner("PU_S1").Centre.X, 6);
+        Assert.Equal(Inner("CV_S2").Centre.X, Inner("CV_S1").Centre.X, 6);
         Assert.True(Inner("NP_M").X >= Inner("CV_S1").Right + scene.Margin - 1e-9, "the merge stands right of the row");
         Assert.DoesNotContain(findings, f => f.Hard && (f.First is "NP_S" or "NP_M" or "PU_S1" or "CV_S1" || f.Second is "NP_S" or "NP_M" or "PU_S1" or "CV_S1"));
-        Assert.Contains(scene.Provenance, n => n.Rule == "C14" && n.Subject == "NP_S" && n.Reason.Contains("parallel row", StringComparison.Ordinal));
+        Assert.Contains(scene.Provenance, n => n.Rule == "C14" && n.Subject == "NP_S" && n.Reason.Contains("parallel row over it", StringComparison.Ordinal) && n.Reason.Contains("square", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("step-12-zones.fluid", "CV1", "CV3", "LD1", "LD3", "NR1", "NR3")]
+    [InlineData("step-12-zones-controls.fluid", "CV1", "CV3", "LD1", "LD3", "NR1", "NR3")]
+    public void AHeadersSpineOnTheRightSideStandsAsAColumnLikeItsSiblings(string file, string valve, string spineValve, string load, string spineLoad, string point, string spinePoint)
+    {
+        // D-158: zone 3 is the header's spine and the ring's right side. It stands as zone 1 and zone 2 hang -- its valve
+        // over its load, both level with theirs, its return's point on its drop -- so the three zones read the same.
+        var (scene, findings) = Solve(file);
+        Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
+
+        Assert.Empty(findings);
+        Assert.Equal(Inner(load).Centre.X - Inner(valve).Centre.X, Inner(spineLoad).Centre.X - Inner(spineValve).Centre.X, 6);
+        Assert.Equal(Inner(valve).Centre.Y, Inner(spineValve).Centre.Y, 6);
+        Assert.Equal(Inner(load).Centre.Y, Inner(spineLoad).Centre.Y, 6);
+        // The sibling's return ends on its merge's dot, the spine's on the rail's corner: their points differ by half the dot.
+        Assert.True(Math.Abs(Inner(point).Centre.Y - Inner(spinePoint).Centre.Y) <= 0.05 + 1e-9, "the return's point stands on the drop, level with its siblings'");
+        Assert.Equal(X(scene, spineValve), Inner(spinePoint).Centre.X, 6);
+        Assert.Contains(scene.Provenance, n => n.Subject == spineValve && n.Reason.Contains("right side's column", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ASensorStandsOnItsControllersSideOfThePipe()
+    {
+        // D-158: TE_R1 reads the return RAD1's valve CV_R1 holds. TC_R1 stands on the valve's actuator side, right of the
+        // column, so TE_R1 takes the right side of NR1 too and the signal between them crosses no pipe; likewise for the
+        // pump pair's controller over the row and its pressure sensor over the rail.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-distribution-controls.fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        Box Inner(string id) => scene.Placements.Single(p => p.ComponentId == id).Inner;
+
+        foreach (var (sensor, point, controller, valve) in new[] { ("TE_R1", "NR1", "TC_R1", "CV_R1"), ("TE_R2", "NR2", "TC_R2", "CV_R2"), ("TE_R3", "NR3", "TC_R3", "CV_R3") })
+        {
+            Assert.True(Inner(sensor).X > Inner(point).Centre.X && Inner(controller).X > Inner(valve).Centre.X, $"{sensor} and {controller} stand right of their column");
+        }
+
+        Assert.True(Inner("PC_S1").Y > Inner("PU_S1").Top && Inner("PE_A2").Y > Inner("NA2").Top, "the pump pair's controller and its sensor stand over their pipes");
     }
 
     [Fact]

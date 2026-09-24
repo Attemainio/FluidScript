@@ -12,7 +12,11 @@ internal sealed partial class Composer
     /// A run as a form drew it: the member and port it leaves by, its polyline in that direction, and the rule that
     /// shaped it with why -- what the trace names when the run is laid (<c>28</c> A10).
     /// </summary>
-    private sealed record RunDraft(Member From, List<Point> Points, string Rule, string Reason);
+    private sealed record RunDraft(Member From, List<Point> Points, string Rule, string Reason)
+    {
+        /// <summary>Gets whether the run's inline points are cut on its segment at <see cref="From"/> rather than on its longest (A5): a column's return, whose points stand on its drop (<c>D-158</c>).</summary>
+        public bool CutAtFrom { get; init; }
+    }
 
     /// <summary>
     /// A ring's right side, laid out at a provisional place: one member, or a whole loop as a block (A8, C11). The ring
@@ -24,7 +28,14 @@ internal sealed partial class Composer
     /// <param name="OutFrom">The member and port the leaving run starts from.</param>
     /// <param name="Bottom">The lowest inner-box edge, provisional units.</param>
     /// <param name="Runs">The unit's own runs, provisional units, laid by the ring after the shift.</param>
-    private sealed record Unit(List<int> Members, PlacedAnchor In, PlacedAnchor Out, Member OutFrom, double Bottom, List<RunDraft> Runs);
+    private sealed record Unit(List<int> Members, PlacedAnchor In, PlacedAnchor Out, Member OutFrom, double Bottom, List<RunDraft> Runs)
+    {
+        /// <summary>Gets whether the unit is a header's spine standing as a column (<c>D-158</c>), whose return keeps its points on its drop.</summary>
+        public bool Column { get; init; }
+
+        /// <summary>Gets how far under the rail a column's inlet stands: as far as a hanging column's first inlet under its split, world units.</summary>
+        public double Lead { get; init; }
+    }
 
     /// <summary>One thing on a rail: a member, or a block laid out as a unit (C11).</summary>
     private readonly record struct Item(Member? Member, Unit? Unit);
@@ -76,14 +87,104 @@ internal sealed partial class Composer
         }
 
         var consumerAt = ConsumerOf(cycle, 1);
-        var single = consumerAt < 0 ? null : Single(cycle[consumerAt]);
+
+        if (consumerAt < 0)
+        {
+            return (null, consumerAt, consumerAt, items, null, 0);
+        }
+
+        var (single, start) = RightSide(path, 1, consumerAt);
 
         if (single is not null)
         {
-            items.AddRange(cycle.GetRange(1, consumerAt - 1).Select(static m => new Item(m, null)));
+            items.AddRange(cycle.GetRange(1, start - 1).Select(static m => new Item(m, null)));
         }
 
-        return (single, consumerAt, consumerAt, items, null, 0);
+        return (single, start, consumerAt, items, null, 0);
+    }
+
+    /// <summary>
+    /// The unit on a ring's (or a band's) right side for a consumer with no loop: where the consumer stands on a
+    /// header's spine with members of its own between the split and it, that stretch as a column like the header's
+    /// hanging ones (<see cref="SpineColumn"/>, <c>D-158</c>); else the consumer alone (<see cref="Single"/>).
+    /// </summary>
+    /// <param name="path">The ring's path.</param>
+    /// <param name="from">The first path index the rail lays.</param>
+    /// <param name="consumerAt">The consumer's index on the path.</param>
+    /// <returns>The unit (null when it could not be laid) and the path index it starts at.</returns>
+    private (Unit? Unit, int Start) RightSide(Path path, int from, int consumerAt)
+    {
+        var cycle = path.Members;
+        var start = consumerAt;
+
+        while (start - 1 >= from && !_view.Wildcard(cycle[start - 1].Component) && !path.Branches.ContainsKey(cycle[start - 1].Component))
+        {
+            start--;
+        }
+
+        if (start < consumerAt && start - 1 >= from && path.Branches.ContainsKey(cycle[start - 1].Component) && SpineColumn(cycle.GetRange(start, consumerAt - start + 1)) is { } column)
+        {
+            // Level with the header's hanging columns: their first inlet stands a run under the split's box.
+            var split = Transform.Identity.Size(_view.Symbols[cycle[start - 1].Component]).Height / 2;
+            var into = _view.RunAt(cycle[start].Component, cycle[start].InPort) is { } run ? _sheet.RunLength(run) : _margin;
+            return (column with { Lead = split + into }, start);
+        }
+
+        return (Single(cycle[consumerAt]), consumerAt);
+    }
+
+    /// <summary>
+    /// A header's spine as the right side's column (<c>D-158</c>): its members one under the other, each facing down the
+    /// drop as a hanging column's do (C14), laid on a canvas of their own with the first inlet at the local origin
+    /// facing up and the last outlet facing down -- so two branches built the same way are drawn the same way.
+    /// </summary>
+    /// <param name="members">The spine's members from after the split to the consumer, in flow order.</param>
+    /// <returns>The column as a unit, or null when a member cannot face the drop.</returns>
+    private Unit? SpineColumn(List<Member> members)
+    {
+        var placed = (bool[])_sheet.Placed.Clone();
+        Array.Clear(_sheet.Placed);
+        var cursor = Sheet.Anchor(new Point(0, 0), Direction.Down, Direction.Down);
+        Member? previous = null;
+        var pending = new List<Point>();
+        var own = new List<RunDraft>();
+        var ids = members.Select(static m => m.Component).ToList();
+
+        foreach (var m in members)
+        {
+            if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
+            {
+                placed.CopyTo(_sheet.Placed, 0);
+                return null;
+            }
+
+            if (previous is { } before)
+            {
+                pending.AddRange(points.Skip(1));
+                own.Add(new RunDraft(before, pending, "C11", "down the right side's column (D-158)"));
+            }
+
+            cursor = _sheet.AnchorOf(m.Component, m.OutPort);
+            previous = m;
+            pending = [cursor.At];
+        }
+
+        placed.CopyTo(_sheet.Placed, 0);
+        var unitIn = _sheet.AnchorOf(members[0].Component, members[0].InPort);
+        var unitOut = _sheet.AnchorOf(members[^1].Component, members[^1].OutPort);
+
+        if (unitIn.Outward != Direction.Up || unitOut.Outward != Direction.Down)
+        {
+            return null;
+        }
+
+        foreach (var i in ids)
+        {
+            _sheet.Placed[i] = true;
+            _sheet.Note(_view.Name(i), "C11", "the header's spine stands as the right side's column, as its hanging branches do (D-158)");
+        }
+
+        return new Unit(ids, unitIn, unitOut, members[^1], ids.Min(i => _sheet.InnerOf(i).Y), own) { Column = true };
     }
 
     /// <summary>The unit that starts a closed path (C11): the block of the loop its first member begins, else that member alone.</summary>
@@ -116,8 +217,10 @@ internal sealed partial class Composer
     /// <summary>Lays every run a form drew, each given from the member and port it leaves by.</summary>
     private void AssignRuns(List<RunDraft> runs)
     {
-        foreach (var (from, points, rule, reason) in runs)
+        foreach (var draft in runs)
         {
+            var (from, points, rule, reason) = draft;
+
             if (_view.RunAt(from.Component, from.OutPort) is not { } run)
             {
                 continue;
@@ -125,11 +228,11 @@ internal sealed partial class Composer
 
             if (run.Start.Component == from.Component && run.Start.Port == from.OutPort)
             {
-                _sheet.Lay(run, points, rule, reason);
+                _sheet.Lay(run, points, rule, reason, draft.CutAtFrom ? true : null);
             }
             else
             {
-                _sheet.LayBackwards(run, points, rule, reason);
+                _sheet.LayBackwards(run, points, rule, reason, draft.CutAtFrom ? false : null);
             }
         }
     }
@@ -234,12 +337,13 @@ internal sealed partial class Composer
     /// <summary>
     /// Lays a rail rightwards from its start: each member by <see cref="OnRail"/>, each block by <see cref="Slide"/>
     /// with the rail continuing from its outlet, and under each split whose branch returns to a bottom-rail member,
-    /// the branch hanging between the rails (C14). Appends the runs so far.
+    /// the branch hanging between the rails (C14). Appends the runs so far. A branch that rejoins the rail runs as a
+    /// row beside it: over it where the rail is the ring's top (<paramref name="above"/>, <c>D-158</c>), else under it.
     /// </summary>
     /// <returns>Where the rail ends, its pending points and the member it leaves; null when a member cannot be placed.</returns>
-    private (PlacedAnchor End, List<Point> Pending, Member Previous)? Top(PlacedAnchor cursor, List<Point> pending, Member previous, List<Item> items, Path? path, List<Member>? bottomMembers, List<RunDraft> runs, List<Hanger> hangers, double left = double.NegativeInfinity)
+    private (PlacedAnchor End, List<Point> Pending, Member Previous)? Top(PlacedAnchor cursor, List<Point> pending, Member previous, List<Item> items, Path? path, List<Member>? bottomMembers, List<RunDraft> runs, List<Hanger> hangers, double left = double.NegativeInfinity, bool above = false)
     {
-        // Branches that rejoin this rail (C14, C-130): laid as a row under the spine once the rail reaches the merge.
+        // Branches that rejoin this rail (C14, C-130): laid as a row beside the spine once the rail reaches the merge.
         var rows = new List<(Member Split, Branch Branch, List<Member> Members, List<int> Spine)>();
 
         foreach (var item in items)
@@ -276,7 +380,7 @@ internal sealed partial class Composer
             if (joining >= 0)
             {
                 // The merge stands far enough right that the row rises into it in one bend, a stub clear of its last member.
-                if (Parallel(rows[joining].Split, rows[joining].Branch, rows[joining].Members, rows[joining].Spine) is not { } row)
+                if (Parallel(rows[joining].Split, rows[joining].Branch, rows[joining].Members, rows[joining].Spine, above) is not { } row)
                 {
                     return null;
                 }
@@ -312,10 +416,10 @@ internal sealed partial class Composer
 
             if (laidRow is { } parallel && MergePortOf(m.Component) is { } mergePort)
             {
-                _sheet.Side[(m.Component, mergePort)] = Direction.Down;
+                _sheet.Side[(m.Component, mergePort)] = above ? Direction.Up : Direction.Down;
                 var up = _sheet.AnchorOf(m.Component, mergePort);
                 runs.AddRange(parallel.Runs);
-                runs.Add(new RunDraft(parallel.Last, [parallel.End.At, new Point(up.At.X, parallel.End.At.Y), up.At], "C14", "the parallel row's rise into its merge"));
+                runs.Add(new RunDraft(parallel.Last, [parallel.End.At, new Point(up.At.X, parallel.End.At.Y), up.At], "C14", above ? "the parallel row's drop into its merge" : "the parallel row's rise into its merge"));
             }
 
             if (bottomMembers is not null && path is not null && path.Branches.TryGetValue(m.Component, out var branches))
@@ -615,21 +719,24 @@ internal sealed partial class Composer
     {
         var hats = _sheet.Hats();
 
-        foreach (var (from, points, _, _) in runs)
+        foreach (var draft in runs)
         {
+            var (from, points, _, _) = draft;
+
             if (_view.RunAt(from.Component, from.OutPort) is not { } run || run.Inline.Length == 0 || points.Count < 2)
             {
                 continue;
             }
 
-            var line = Sheet.Normalise(run.Start.Component == from.Component && run.Start.Port == from.OutPort ? points : [.. Enumerable.Reverse(points)]);
+            var forward = run.Start.Component == from.Component && run.Start.Port == from.OutPort;
+            var line = Sheet.Normalise(forward ? points : [.. Enumerable.Reverse(points)]);
 
             if (line.Length < 2)
             {
                 continue;
             }
 
-            var pieces = Sheet.Pieces(line, run.Inline.Length);
+            var pieces = Sheet.Pieces(line, run.Inline.Length, draft.CutAtFrom ? forward : null);
 
             for (var t = 0; t < run.Inline.Length; t++)
             {
@@ -641,7 +748,8 @@ internal sealed partial class Composer
                 var at = pieces[t][^1].Offset(dx, dy);
                 var level = Math.Abs(pieces[t][^2].Y - pieces[t][^1].Y) < Eps;
                 var size = on.Max(static h => h.Size);
-                var centre = level ? at.Towards(Direction.Up, _margin + (size / 2)) : at.Towards(Direction.Left, _margin + (size / 2));
+                var side = on.Select(h => _sheet.SensorSide(h.Element, level)).FirstOrDefault(static d => d is not null) ?? (level ? Direction.Up : Direction.Left);
+                var centre = at.Towards(side, _margin + (size / 2));
                 yield return Box.Around(centre, size, size);
             }
         }
@@ -668,22 +776,33 @@ internal sealed partial class Composer
     /// C14 for a branch that leaves a rail and rejoins it (a duty/standby pair, <c>C-130</c>): a row parallel to the
     /// spine a margin under its lowest box -- down from the split, rightwards along the row, the rise into the merge
     /// added by the rail -- laid on a canvas of its own, then lowered until it clears everything placed by the one test.
-    /// Pumps side by side on branches between a common suction and a common discharge line, as HVAC schematics draw a
-    /// pump set; the rows stacked under the rail is this project's mapping of that onto a level rail.
+    /// On the ring's top rail the row stands over the spine instead, raised until clear, so it stays out of the ring and
+    /// reads above the spine in script order (<c>D-158</c>). Where the row's boxed members and the spine's have the same
+    /// symbols in the same order, each stands square with its counterpart (<c>D-158</c>). Pumps side by side on branches
+    /// between a common suction and a common discharge line, as HVAC schematics draw a pump set; the rows stacked
+    /// beside the rail is this project's mapping of that onto a level rail.
     /// </summary>
     /// <param name="j">The split, on the rail.</param>
     /// <param name="branch">The branch; plain, no loops.</param>
     /// <param name="members">Its boxed members in flow order.</param>
-    /// <param name="spine">The rail's members from the split up to the merge, which the row stands under.</param>
+    /// <param name="spine">The rail's members from the split up to the merge, which the row stands beside.</param>
+    /// <param name="above">Whether the row stands over the spine rather than under it.</param>
     /// <returns>The row's last outlet, the member it leaves, and its runs; null when a member cannot be placed.</returns>
-    private (PlacedAnchor End, Member Last, List<RunDraft> Runs)? Parallel(Member j, Branch branch, List<Member> members, List<int> spine)
+    private (PlacedAnchor End, Member Last, List<RunDraft> Runs)? Parallel(Member j, Branch branch, List<Member> members, List<int> spine, bool above)
     {
-        _sheet.Side[(j.Component, branch.SplitPort)] = Direction.Down;
+        _sheet.Side[(j.Component, branch.SplitPort)] = above ? Direction.Up : Direction.Down;
         var down = _sheet.AnchorOf(j.Component, branch.SplitPort);
-        var bottom = spine.Min(i => _view.IsInline(i) ? _sheet.Centre[i].Y : _sheet.InnerOf(i).Y);
         var half = members.Count == 0 ? 0 : members.Max(m => Transform.Identity.Size(_view.Symbols[m.Component]).Height / 2);
-        var yRow = Math.Min(bottom - _margin - half, down.At.Y - _margin);
+        var yRow = above
+            ? Math.Max(spine.Max(i => _view.IsInline(i) ? _sheet.Centre[i].Y : _sheet.InnerOf(i).Top) + _margin + half, down.At.Y + _margin)
+            : Math.Min(spine.Min(i => _view.IsInline(i) ? _sheet.Centre[i].Y : _sheet.InnerOf(i).Y) - _margin - half, down.At.Y - _margin);
         var cursor = Sheet.Anchor(new Point(down.At.X, yRow), Direction.Right, Direction.Right);
+
+        // Square with the spine: each boxed row member over (or under) the spine member of the same symbol in its place.
+        bool Boxed(int i) => !_view.IsInline(i) && !_view.Wildcard(i);
+        var counterparts = spine.Skip(1).Where(Boxed).ToList();
+        var rowBoxed = members.Where(m => Boxed(m.Component)).ToList();
+        var square = counterparts.Count == rowBoxed.Count && counterparts.Zip(rowBoxed).All(p => _view.Symbols[p.First].Id == _view.Symbols[p.Second.Component].Id);
         var previous = new Member(j.Component, -1, branch.SplitPort);
         var pending = new List<Point> { down.At, cursor.At };
         var own = new List<RunDraft>();
@@ -692,6 +811,14 @@ internal sealed partial class Composer
 
         foreach (var m in members)
         {
+            if (square && rowBoxed.IndexOf(m) is var k and >= 0
+                && _view.Connected(counterparts[k]).Select(p => _sheet.AnchorOf(counterparts[k], p)).FirstOrDefault(a => a.Outward == Direction.Left) is { } facing
+                && facing.At.X - (_view.RunAt(m.Component, m.InPort) is { } into ? _sheet.RunLength(into) : _margin) is var x && x > cursor.At.X + Eps)
+            {
+                cursor = Sheet.Anchor(new Point(x, cursor.At.Y), Direction.Right, Direction.Right);
+                pending.Add(cursor.At);
+            }
+
             if (OnRail(cursor, m, m.InPort, m.OutPort) is not { } points)
             {
                 placed.CopyTo(_sheet.Placed, 0);
@@ -699,7 +826,7 @@ internal sealed partial class Composer
             }
 
             pending.AddRange(points.Skip(1));
-            own.Add(new RunDraft(previous, pending, "C14", own.Count == 0 ? "the split's feed down to its parallel row" : "along the parallel row"));
+            own.Add(new RunDraft(previous, pending, "C14", own.Count == 0 ? (above ? "the split's feed up to its parallel row" : "the split's feed down to its parallel row") : "along the parallel row"));
             cursor = _sheet.AnchorOf(m.Component, m.OutPort);
             previous = m;
             pending = [cursor.At];
@@ -709,10 +836,10 @@ internal sealed partial class Composer
         var boxed = members.Select(static m => m.Component).ToList();
         var dy = 0.0;
 
-        // Lowered, not slid: the split stands where the rail put it and the row hangs under it.
+        // Lowered (raised, over the rail), not slid: the split stands where the rail put it and the row beside it.
         for (var guard = 0; guard < 400 && !_sheet.ClearAt(boxed, 0, dy); guard++)
         {
-            dy -= 0.1;
+            dy += above ? 0.1 : -0.1;
         }
 
         _sheet.Move(boxed, [], 0, dy);
@@ -724,8 +851,12 @@ internal sealed partial class Composer
 
         // The feed's first point is the split's port, which does not move with the row.
         var shifted = own.Select((r, k) => r with { Points = [.. r.Points.Select((p, n) => k == 0 && n == 0 ? p : p.Offset(0, dy))] }).ToList();
-        _rowBottom = Math.Min(_rowBottom, Math.Min(yRow + dy, boxed.Count == 0 ? double.MaxValue : boxed.Min(i => _sheet.InnerOf(i).Y)));
-        _sheet.Note(_view.Name(j.Component), "C14", $"a branch rejoining the rail at {_view.Name(branch.Merge)} runs as a parallel row under it, {members.Count} member(s), at y {yRow + dy:0.##}");
+        if (!above)
+        {
+            _rowBottom = Math.Min(_rowBottom, Math.Min(yRow + dy, boxed.Count == 0 ? double.MaxValue : boxed.Min(i => _sheet.InnerOf(i).Y)));
+        }
+
+        _sheet.Note(_view.Name(j.Component), "C14", $"a branch rejoining the rail at {_view.Name(branch.Merge)} runs as a parallel row {(above ? "over" : "under")} it, {members.Count} member(s), at y {yRow + dy:0.##}{(square ? ", each member square with the spine's (D-158)" : string.Empty)}");
         var end = members.Count == 0 ? Sheet.Anchor(new Point(down.At.X, yRow + dy), Direction.Right, Direction.Right) : _sheet.AnchorOf(previous.Component, previous.OutPort);
         return (end, previous, shifted);
     }
@@ -904,7 +1035,7 @@ internal sealed partial class Composer
             pending.AddRange([new Point(outOuter.X, yRail), outOuter, uOut.At]);
         }
 
-        bottomRuns.Add(new RunDraft(unit.OutFrom, pending, rightJunction is null ? "C11" : "C10", rightJunction is null ? "the unit's outlet down to the bottom rail" : "the unit's outlet down to the corner junction under it"));
+        bottomRuns.Add(new RunDraft(unit.OutFrom, pending, rightJunction is null ? "C11" : "C10", rightJunction is null ? "the unit's outlet down to the bottom rail" : "the unit's outlet down to the corner junction under it") { CutAtFrom = unit.Column });
 
         foreach (var draft in bottomRuns)
         {
@@ -1124,15 +1255,18 @@ internal sealed partial class Composer
     /// </summary>
     private (double Drop, double YBottom) Bottom(Unit unit, double yTop, double natural, int junction)
     {
-        var drop = unit.In.Outward == Direction.Up ? _margin : 0;
+        var drop = unit.In.Outward != Direction.Up ? 0 : unit.Column ? unit.Lead : _margin;
         var half = junction < 0 ? 0 : Transform.Identity.Size(_view.Symbols[junction]).Height / 2;
         var stub = junction >= 0 && unit.Out.Outward == Direction.Right ? _margin : 0;
+        // A column's return keeps its points on its drop (D-158), so the drop is as long as those points' bubbles need.
+        var column = unit.Column && _view.RunAt(unit.OutFrom.Component, unit.OutFrom.OutPort) is { } back ? _sheet.RunLength(back) : 0;
         double Low(double dy) => unit.Out.Outward == Direction.Left
             ? unit.Out.At.Y + dy
-            : Math.Min(unit.Bottom + dy - _margin, unit.Out.Along(_margin).Y + dy - half - stub);
+            : Math.Min(Math.Min(unit.Bottom + dy - _margin, unit.Out.Along(_margin).Y + dy - half - stub), unit.Out.At.Y + dy - column);
         var low = Low(yTop - drop - unit.In.At.Y);
 
-        if (unit.In.Outward == Direction.Up && low > natural)
+        // A column hangs from the rail as the header's other columns do; it is not centred on its side.
+        if (unit.In.Outward == Direction.Up && low > natural && !unit.Column)
         {
             drop += (low - natural) / 2;
             low = Low(yTop - drop - unit.In.At.Y);
@@ -1199,7 +1333,8 @@ internal sealed partial class Composer
                 continue;
             }
 
-            if ((clear is not null && !clear(dx, dy)) || !PipesClear(unit, dx, dy, runs))
+            // The one test (28 E3): the unit's boxes and bubbles against every placed box and bubble, not only box to box.
+            if ((clear is not null && !clear(dx, dy)) || !_sheet.ClearAt(unit.Members, dx, dy) || !PipesClear(unit, dx, dy, runs))
             {
                 dx += 0.1;
                 continue;

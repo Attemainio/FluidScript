@@ -200,6 +200,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-155` | Accepted | 2026-09-24 | The audit holds every drawing rule it states, and the report names the rule behind every element |
 | `D-156` | Accepted | 2026-09-24 | Headers in series are drawn as stacked bands |
 | `D-157` | Accepted | 2026-09-24 | A tank shared by two loops takes a loop per flank |
+| `D-158` | Accepted | 2026-09-24 | Branches built the same way are drawn the same way, and a sensor shares its controller's side |
 <!-- index:end -->
 
 ---
@@ -7320,3 +7321,54 @@ soft 0.
   which pipe belongs to which loop.
 - *The second loop above or below the tank* -- the stated port elevations would put its pipes on the walls anyway,
   and turning them over the tank's top hides the stratification the elevations show.
+
+## D-158 · Branches built the same way are drawn the same way, and a sensor shares its controller's side
+
+**Accepted · 2026-09-24** · amends C11 and C15 of `28`, and the row form of `C-130` · `28` C15, E3 · the user's
+review of the stacked plant with its controls (piece B, `plant-distribution-controls.fluid`)
+
+**What was wrong.** Four things in one picture, each drawn by a rule that had never met the case.
+1. The duty/standby row hung *under* the ring's top rail, packed rather than aligned: the standby pump 0.1 left of
+   the duty pump, and its controller between the two rows, so the signal to the pressure sensor over the rail
+   crossed the rail.
+2. A sensor on a vertical pipe took its left side (C15's order, up-down-left-right, with up and down taken), while
+   the controller of the valve on the same pipe took the valve's actuator side, the right: the signal crossed the
+   branch it controls.
+3. The header's last branch -- its spine, the ring's right side (`D-154`, C11) -- stood as a single consumer with its
+   valve lying on the top rail, while its siblings hung as columns, valve over load. Three radiator branches built
+   alike were drawn two ways, and the third's signal ran the long way round.
+4. The right side slid clear of placed boxes but not of placed bubbles, so a column there could stand on its
+   neighbour's controller.
+
+**The rule.**
+1. **Rows.** A branch that leaves the ring's top rail and rejoins it runs as a row *over* the rail -- out of the
+   ring, the branch declared first highest, the spine (declared last) on the rail -- and where the row's boxed
+   members and the spine's carry the same symbols in the same order, each stands square over its counterpart. On
+   any other rail (a band's, a block's) the row stays under it.
+2. **The spine as a column.** Where a ring's or a band's right side is a consumer on a header's spine with members of
+   its own between the split and it, that stretch is drawn as the header's hanging columns are: the rail turns
+   down at a corner, the members stand one under the other facing down the drop, level with the siblings' (the same
+   run under the split), and the return's points are cut on the drop, not on the longest segment (A5).
+3. **Sensor side.** A sensor on a pipe tries first the side its controller takes on its own host, where that side
+   lies across the pipe; placement reserves room there too.
+4. **One test for a slide.** A unit sliding into place (C11) clears placed boxes, bubbles and stubs by the one
+   clearance test (`28` E3), not box against box.
+
+**Why.** Congruence -- two branches built the same way are drawn the same way -- already ranks above compactness
+in `28` part D; the spine column is that rule applied to the right side. A controller and the sensor it reads on one
+side of their pipe keep the signal from crossing it; drawings avoid crossings and mark the ones they cannot
+([Autodesk, *line crossing style in P&ID drawings*](https://www.autodesk.com/support/technical/article/caas/sfdcarticles/sfdcarticles/AutoCAD-P-ID-Line-crossing-style-explained.html)).
+The search found no published rule on stacking a pump set, aligning its members, or which side of a pipe a sensor
+takes: ISA-5.1 governs symbols and tags, not layout. Items 1-3 are the user's review (2026-09-24) and this project's
+reasoning, the part most worth the eye; item 4 is the stated rule of `28` E3 that the slide had not applied.
+Measured: piece B with its controls hard 0 soft 3; plain piece B hard 0 soft 3; step 12 with and without its controls
+hard 0 soft 0. No ladder picture and no sample moved.
+
+### Rejected
+
+- *The row kept under the rail, the branches swapped* -- the standby still hangs into the ring, and its controller's
+  signal to a sensor over the rail still crosses it.
+- *A column only where every sibling is a plain column* -- misses the DHW branch, whose siblings are injection
+  blocks.
+- *The controller follows its sensor* (the valve mirrored so its actuator faces the sensor) -- mirrors valve symbols
+  and moves more pictures.

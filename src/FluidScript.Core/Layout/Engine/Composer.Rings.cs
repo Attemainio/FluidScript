@@ -229,17 +229,18 @@ internal sealed partial class Composer
         // supply runs on rightwards. The last band closes the ring back to the source.
         foreach (var (split, consumer, merge) in bands)
         {
-            if (Single(cycle[consumer]) is not { } bandUnit)
+            var from = cycle.IndexOf(previous) + 1;
+
+            if (RightSide(path, from, consumer) is not ({ } bandUnit, var bandStart))
             {
                 return attempt.Decline("a band's consumer could not be laid as a unit");
             }
 
             Unplace([], bandUnit);
-            var from = cycle.IndexOf(previous) + 1;
             var bandReturn = cycle.GetRange(consumer + 1, merge - consumer);
             var bandHangers = new List<Hanger>();
 
-            if (Top(cursor, pending, previous, [.. cycle.GetRange(from, consumer - from).Select(static m => new Item(m, null))], path, bandReturn, runs, bandHangers, left) is not { } bandTop)
+            if (Top(cursor, pending, previous, [.. cycle.GetRange(from, bandStart - from).Select(static m => new Item(m, null))], path, bandReturn, runs, bandHangers, left, above: steps.Count == 0) is not { } bandTop)
             {
                 return attempt.Decline("a band's rail could not be laid");
             }
@@ -266,7 +267,7 @@ internal sealed partial class Composer
 
         var lastFrom = cycle.IndexOf(previous) + 1;
 
-        if (Top(cursor, pending, previous, bands.Count == 0 ? items : [.. cycle.GetRange(lastFrom, unitStart - lastFrom).Select(static m => new Item(m, null))], path, bottomMembers, runs, hangers, left) is not { } top)
+        if (Top(cursor, pending, previous, bands.Count == 0 ? items : [.. cycle.GetRange(lastFrom, unitStart - lastFrom).Select(static m => new Item(m, null))], path, bottomMembers, runs, hangers, left, above: steps.Count == 0) is not { } top)
         {
             return attempt.Decline("the top rail could not be laid");
         }
@@ -422,7 +423,7 @@ internal sealed partial class Composer
         var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
 
-        if (Top(cOut, [cOut.At], previous, items, path, bottomMembers, runs, hangers, cIn.At.X) is not { } top)
+        if (Top(cOut, [cOut.At], previous, items, path, bottomMembers, runs, hangers, cIn.At.X, above: true) is not { } top)
         {
             return attempt.Decline("the top rail could not be laid");
         }
@@ -744,7 +745,7 @@ internal sealed partial class Composer
         var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
         var hangers = new List<Hanger>();
 
-        if (Top(sOut, [sOut.At], cycle[0], items, ringPath, bottomMembers, runs, hangers, sOut.At.X) is not { } top)
+        if (Top(sOut, [sOut.At], cycle[0], items, ringPath, bottomMembers, runs, hangers, sOut.At.X, above: true) is not { } top)
         {
             return attempt.Decline("the top rail could not be laid");
         }

@@ -98,15 +98,19 @@ top, its return along the bottom, and its branches hanging between them in the o
 declared, each under the junction that feeds it and over the one it returns to; branches in series
 step down from one block's outlet to the next block's inlet; a branch that leaves a level pipe and
 rejoins that same pipe -- a duty and a standby pump, each with its valve -- runs as a second row just
-under the first, dropping from the split and rising into the merge, so the two pumps stand side by
-side the way a pump set is drawn. Two headers in series -- a second group fed from the first group's return -- are
+over the first, outside the loop, rising from the split and dropping into the merge, the branch you
+wrote first on top; where the two branches hold the same kinds of component in the same order, each
+stands straight over its partner, so the pumps read as the set they are. The last branch of a group
+of branches -- the one the loop runs on through to its right side -- is drawn the way its siblings
+hang: its valve over its load, level with theirs, rather than its valve lying on the supply pipe. Two headers in series -- a second group fed from the first group's return -- are
 stacked: the first group is a band of its own with its return running back under it, and from the
 return's left end the pipe steps down to the second group's supply, whose branches hang to the
 return that closes the loop. A buffer tank shared by two loops -- the boiler charging it, the
 distribution drawing from it -- takes one loop on each side: the loop that holds the heat source runs
 from the tank's left side, the second loop from its right, each side with its own inlet and outlet at
 the heights the script gave them, so the heat still reads left to right, through the tank. A sensor stands on the node it reads
-and a controller on the component it drives, joined to it by a short straight line; the controller's
+and a controller on the component it drives, joined to it by a short straight line; a sensor takes
+the side of its pipe its controller stands on, so the line between them does not cross the pipe; the controller's
 signal comes from the sensor, across the drawing by the fewest bends and then the shortest way. Where lines cross, the one in front runs through and the one behind is broken around it:
 signal lines run behind pipes, and return pipes behind supply pipes. A signal line goes round a
 symbol but never along a pipe, and it crosses a pipe away from its ends, so a crossing never looks
