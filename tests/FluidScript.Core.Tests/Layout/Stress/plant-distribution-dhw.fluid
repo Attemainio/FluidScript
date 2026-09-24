@@ -1,0 +1,81 @@
+# Layout stress plant, piece C (2026-09-24): piece B with the two-sided DHW exchanger, its DHW tank and
+# circulation loop. Composed engine hard 18 soft 79: the DHW side is a pendant that is not a tree
+# (C-129), plus C-130 and C-131; the right side is RAD3 here, since the exchanger is not a consumer.
+
+fluidscript 1
+project static plant_big
+
+circuit distribution 101
+fluid water
+
+HS1    heat_exchanger power=250 kW out.t=75
+
+PU_S1  pump
+PU_S2  pump
+CV_S1  valve kv=25
+CV_S2  valve kv=25
+BV1    valve kv=40
+CV_R1  valve kv=4
+CV_R2  valve kv=4
+CV_R3  valve kv=4
+RAD1   load in.t=70 out.t=50 power=40 kW
+RAD2   load in.t=70 out.t=50 power=35 kW
+RAD3   load in.t=70 out.t=50 power=25 kW
+
+connections
+NS0 - HS1 - NP_S
+NP_S - PU_S1 - CV_S1 - NP_M
+NP_S - PU_S2 - CV_S2 - NP_M
+NP_M - BV1 - NA1
+NA1 - CV_R1 - RAD1 - NR1 - NRB1
+NA1 - NA2
+NA2 - CV_R2 - RAD2 - NR2 - NRB2
+NA2 - CV_R3 - RAD3 - NR3 - NRB2
+NRB2 - NRB1
+NRB1 - NC1
+
+circuit AHU 102
+
+HE_AHU  load in.t=45 out.t=30 power=60 kW
+TV_AHU  three_way_valve
+PU_AHU  pump
+
+connections
+NC1 - TV_AHU.a length=12 dn=40
+NM_AHU - TV_AHU.b
+TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
+NM_AHU - ND1 length=12 dn=40
+
+circuit floor 103
+
+HE_FLR  load in.t=35 out.t=28 power=40 kW
+TV_FLR  three_way_valve
+PU_FLR  pump
+
+connections
+NC1 - NC2
+NC2 - TV_FLR.a length=15 dn=32
+NM_FLR - TV_FLR.b
+TV_FLR.ab - PU_FLR - HE_FLR - NM_FLR
+NM_FLR - ND2 length=15 dn=32
+
+circuit dhw 104
+
+HX_DHW   heat_exchanger power=50 kW in.t=10 out.t=60 in[2].t=50 out[2].t=25
+T2       tank volume=500 layers=3 in.level=90% in[2].level=50% out.level=90%
+PU_DHW   pump
+PU_CIRC  pump
+CV_CIRC  valve kv=1.6
+CW       inlet t=10 p=300
+TAP      outlet p=250
+
+connections
+NC2 - HX_DHW.in[2]
+HX_DHW.out[2] - ND2
+ND2 - ND1
+ND1 - NS0
+CW - PU_DHW - HX_DHW.in
+HX_DHW.out - T2.in
+T2.out - NDS
+NDS - TAP
+NDS - PU_CIRC - CV_CIRC - T2.in[2]

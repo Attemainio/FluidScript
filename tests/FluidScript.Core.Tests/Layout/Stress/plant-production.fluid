@@ -1,0 +1,32 @@
+# Layout stress plant, piece A (2026-09-24): the boilers and the buffer tank of plant.fluid, the whole
+# secondary replaced by one pump and one load. The tank belongs to two cycles (C-129): composed engine
+# hard 7 soft 10 by the chain fallback, the tank mirrored; the ladder engine's C18 draws it hard 3.
+
+fluidscript 1
+project static plant_big
+
+circuit production 100
+fluid water
+
+B1     heat_exchanger power=150 kW out.t=75
+B2     heat_exchanger power=150 kW out.t=75
+PU_B1  pump
+PU_B2  pump
+CV_B1  valve kv=16
+CV_B2  valve kv=16
+T1     tank volume=2000 layers=5 in.level=90% in[2].level=10% out.level=90% out[2].level=10%
+
+connections
+T1.out[2] - NB_S
+NB_S - PU_B1 - B1 - CV_B1 - NB_M
+NB_S - PU_B2 - B2 - CV_B2 - NB_M
+NB_M - T1.in
+
+circuit secondary 101
+fluid water
+
+PU_S1  pump
+LOAD   heat_exchanger power=-250 kW
+
+connections
+T1.out - PU_S1 - LOAD - T1.in[2]

@@ -1579,7 +1579,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     the ladder engine had drifted from that picture and the parity gate lists it as such. Zones: `NA1`
     4.65 → 2.25, `LD3` 8.3 → 5.9; zones with controls `NA1` 5.25 → 3.35, `LD3` 10.0 → 8.1; hard 0 soft 0.
     Core 2353/0.
-    Next: R5 (pipe bands in the occupancy across forms, H11).
+  - **A stress plant (2026-09-24, the user's request):** `Layout/Stress/plant.fluid`, 61 components --
+    boilers in parallel, a buffer tank, duty/standby pumps, two headers in series, injection circuits, a
+    two-sided DHW exchanger with its tank -- and three pieces of it. Neither engine draws it (composed hard
+    28, ladder hard 39). Filed `C-129`, `C-130`, `C-131`, `C-132`; each is planned as a ladder step, `C-129`
+    recommended first since it sends the whole plant to the fallback. No gate reads the folder.
+    Next: the user's choice between R5 (pipe bands in the occupancy across forms, H11) and the ladder
+    steps for `C-129`–`C-132`.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
