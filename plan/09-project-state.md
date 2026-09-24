@@ -1427,13 +1427,19 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 28 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
-| 30 · Solver | 11 | [`30-solver/defects.md`](30-solver/defects.md) |
-| 40 · API | 2 | [`40-api/defects.md`](40-api/defects.md) |
-| 50 · Frontend | 8 | [`50-frontend/defects.md`](50-frontend/defects.md) |
+| 10 · Language | 3 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
+| 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
+| 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **57** | |
+| | **47** | |
+
+Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
+the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
+hunch**; 1 tiny, 14 small, 23 medium, 7 big, 2 large. **Fixable now** (tiny or small, measured): `S-88`,
+`S-78`, `A-2`, `U-2`, and `C-132`, `C-125`, `C-122`, `C-108`, `T-6`, which wait on a decision of the user's.
+**Largest** (big or large, high risk): `C-73` (large); `C-98`, `S-76`, `S-27` (big).
 
 Counted from the files on 2026-09-20 after the sweep's tier 4b (seven closed, `C-108` opened, six
 re-triaged). Of the 58: **35 measured, 23 hunch**; 3 tiny, 12 small, 30 medium, 9 big, 4 large.
@@ -1629,9 +1635,10 @@ that governed each size. What P6.8 still owes, and what comes after:
   sit in its path, because P6.3 is tested on controlled circuits and several do not settle today: `S-85` (a plain
   split's seed runs a branch backwards -- steps 12 and 12b), `S-86` (the seed ignores a controller's setpoint --
   steps 5, 8c and 11a with their controls), `S-87` (a pump holding a temperature makes the design solve singular
-  -- step 3 with its controls), and `S-82` (a saturated actuator keeps its target: a `D-` that is the steady-state
-  half of anti-windup, so decided with P6.3). Recommended order, not yet settled with the user: `S-85`–`S-87`,
-  then read `34` whole and decide `S-82`, then P6.3.
+  -- step 3 with its controls), and `S-82` (a saturated actuator keeps its target). **`S-82` is not a decision
+  left for P6.3:** the user decided it on 2026-09-23 (above) -- the failure is right, and what remains is a
+  diagnostic naming the over-statement. This paragraph said otherwise until the bookkeeping review of 2026-09-25
+  corrected it. Order: `S-85`–`S-87`, then P6.3.
   - **`S-85` worked (2026-09-24):** a load stating only its duty is rated at its sources' design temperatures
     (`32`, `BranchFlows.DesignFlow`); step 12 settles in 2 passes and lost its marker. Step 12b now stops at
     `S-86` (its returns are setpoints). `S-85` stays open, narrowed and risk low: the copy rule at a split whose
@@ -1644,6 +1651,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     with no design return, so it is a decision about what a `control` line on a pump means at the design point.
   - **`S-87` closed (2026-09-24, `D-163`, the user's option (a)):** a pump holds a control line's setpoint through
     its head in the design solve and through its speed in the run; step 3 with its controls solves. Next: `S-86`.
+  - **The bookkeeping review (2026-09-24/25, the user's ask: is every open row still true):** all 49 open rows
+    re-checked against the tree. Closed: `C-83` and `C-79` (the engines they described are gone and the composed
+    one does what they asked), `S-64` (closed by `D-115` in its own text; its residue is an *Observation*), and
+    `C-72` (the user's decision: the 20 kPa default stays and `dp=0` is documented). Filed: `C-134` (the report
+    states a stated valve's authority for a Kv it does not have) and `S-88` (`CommonReturn` seeds step 8c's ring
+    at 1.5×). Re-measured with a dated note: `C-132` (risk raised: a duty edit takes piece B to hard 8), `C-82`,
+    `C-118`, `C-98`, `C-73`, `C-49`, `C-44`, `C-23`, `S-85`, `S-82`, `S-69`, `S-4`, `S-18`, `S-86`, `F-27`,
+    `F-19`, `L-58`, `L-50`, `L-25`, `U-2`. It also found that `S-85`'s rule had stopped the propane heat pump
+    converging, fixed the same day (`d57f4d5`). Next: `S-86`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

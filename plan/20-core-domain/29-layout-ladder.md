@@ -772,7 +772,8 @@ user's refinement, a sensor always: `PID3` measures `NS3.t` and now reads it thr
 binder puts on `NS3` (I8) and the run `PU3 → NS3 → HE3` is laid long enough to hold; the demand-step
 loop's `TC1` reads `NS__TE` under `NS`, its signal round the loop's right side, and the two hard
 findings its line straight to the node carried are gone (its 5 soft are `PB`'s cells crowding the
-3WV–N2 column, `C-125`). Every reached sample and step: hard 0, soft 0. `L19`'s instrument clause is retired with `D-100`'s; the
+3WV–N2 column, `C-125`). Every other reached sample and step: hard 0, soft 0 on that date -- a count, not an
+invariant; today's are pinned by the picture goldens (`D-162`). `L19`'s instrument clause is retired with `D-100`'s; the
 `C15` predicates take its place.
 
 **The composed engine (2026-09-24, P6.10 R4):** draws the picture above -- step 4's loop, `LOAD` at

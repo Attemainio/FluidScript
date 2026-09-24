@@ -326,12 +326,11 @@ A transient needs something to disturb it. v1's schedule:
 | `over 60s..120s HE1.power = 30..45` | Linear ramp |
 | `at 60s 3WV.position = 0.3` | Any settable parameter |
 
-**There is no ambient, so the first transient a user will reach for cannot be written (`S-18`).** A
-schedule targets `component.parameter`, and an outdoor temperature is not one; v1 also has no ambient
-loss and no wall conduction, so even given a target no component would read it. The only route an
-outdoor condition has into a model today is a boundary node's stated temperature — a district-supply
-scenario, correct as far as it goes and not a weather one. Closing it needs an ambient scalar the
-schedule can reach and a `−UA(T̄ − T_amb)` term on the pipe; the component half already has its place,
+**There is no ambient heat sink, so half of the first transient a user will reach for cannot be written
+(`S-18`).** An outdoor temperature can drive the demand -- a curve of time, below (`D-149`) -- but v1 has
+no ambient loss and no wall conduction, so no component reads the outdoor air as a temperature to lose
+heat to, and "the front reaches the air handling unit late because the pipes cool" has no statement.
+Closing it needs an ambient scalar a run can reach and a `−UA(T̄ − T_amb)` term on the pipe; the component half already has its place,
 because `D-69`'s flux member is on `IFlowComponent` rather than on the exchanger for exactly this.
 
 **A curve of time is a disturbance too** (`D-149`). A parameter written as a curve in a dynamic

@@ -113,8 +113,7 @@ jobs:
       # script so the failure names what is missing, and because 03-repository-layout allows no .cs
       # outside src/ and tests/.
       #
-      # The diagnostic half is live: the code table in docs/functions/diagnostics.md is rendered from
-      # the registry and compared, so a code with no documented meaning fails here. The component and
-      # reserved-word registries are still empty and start doing real work the first time one of them
-      # gains an entry -- which is the point of wiring the gate this early.
+      # Every half is live: the code table in docs/functions/diagnostics.md is rendered from the
+      # registry and compared, so a code with no documented meaning fails here, and every registered
+      # component kind and statement-introducing word needs its page the same way.
       - run: dotnet test --project tests/FluidScript.Core.Tests --filter-trait "Category=Docs"
