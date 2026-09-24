@@ -1609,6 +1609,9 @@ that governed each size. What P6.8 still owes, and what comes after:
     rail, square with the spine; a header's spine on the right side is a column like its siblings (step 12's zone 3,
     the stacked plant's RAD3 and DHW); a sensor takes its controller's side of its pipe; a unit slides by the one
     clearance test. Piece B with controls hard 0 soft 3, step 12 hard 0 soft 0; no ladder picture or sample moved.
+  - **Boilers in parallel (2026-09-24, `D-159`, `C-129`):** sibling sources rise as columns, a pump standing in its
+    riser. Piece A hard 7 → 0; the whole stress plant drawn by the forms for the first time, hard 25 → 7, all on the
+    DHW circulation -- the last open part of `C-129`.
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at

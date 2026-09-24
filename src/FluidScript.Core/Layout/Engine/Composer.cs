@@ -195,12 +195,17 @@ internal sealed partial class Composer
     /// kind that cannot face the pipe, below or beside a single turn at the port's outer anchor (C3); else in an
     /// alternative arrangement that faces the pipe.
     /// </summary>
+    /// <param name="anchor">The placed port the pipe leaves.</param>
+    /// <param name="j">The component.</param>
+    /// <param name="q">Its port facing the pipe.</param>
+    /// <param name="length">The pipe's least length, world units.</param>
+    /// <param name="upright">Whether a level kind (a pump, C13) may stand in a vertical pipe -- a column's riser (<c>D-159</c>).</param>
     /// <returns>The pipe from the placed port to the component's port, or null when no admitted transform fits.</returns>
-    private ImmutableArray<Point>? PlaceFrom(PlacedAnchor anchor, int j, int q, double length)
+    private ImmutableArray<Point>? PlaceFrom(PlacedAnchor anchor, int j, int q, double length, bool upright = false)
     {
         var d = anchor.Outward;
         var admitted = _sheet.Admitted(j).ToList();
-        var level = _view.Symbols[j].TransformClass == "level";
+        var level = !upright && _view.Symbols[j].TransformClass == "level";
         var facing = admitted.Where(t => t.Arrangement == "default" && _sheet.AnchorOffset(j, q, t) is { } a && a.Outward == d.Opposite && (!level || t.Rotation is 0 or 180)).OrderBy(t => _sheet.Onward(j, q, t)).ToList();
 
         if (facing.Count == 0)

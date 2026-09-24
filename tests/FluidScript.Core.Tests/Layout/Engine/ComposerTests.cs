@@ -189,6 +189,30 @@ public sealed class ComposerTests
     }
 
     [Fact]
+    public void BoilersInParallelRiseAsColumnsWithThePumpInTheRiser()
+    {
+        // D-159 (C-129): B1 and B2 are siblings between NB_S and NB_M, the tank the one consumer. B1's branch is the
+        // ring's left side and B2's rises beside it, each a column -- pump, boiler, valve, the pump standing in the
+        // riser -- level with each other, NB_S straight under NB_M; the tank takes the boiler loop on its west flank.
+        var input = ContractFixture.Compile(File.ReadAllText(Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Stress", "plant-production.fluid")));
+        var (hints, _) = LayoutHintsDerivation.Derive(input.Graph, input.Model, null);
+        var scene = LayoutSolver.Solve(input.Graph, input.Model, hints, LayoutSolver.MarginOf(input.Model), LayoutEngineKind.Composed);
+        Placement At(string id) => scene.Placements.Single(p => p.ComponentId == id);
+
+        Assert.Empty(SceneAudit.Findings(scene, input.Model).Where(static f => f.Hard).Select(static f => f.ToString()));
+
+        foreach (var (one, two) in new[] { ("PU_B1", "PU_B2"), ("B1", "B2"), ("CV_B1", "CV_B2") })
+        {
+            Assert.Equal(At(one).Inner.Centre.Y, At(two).Inner.Centre.Y, 6);
+        }
+
+        Assert.True(At("PU_B1").Inner.Centre.Y < At("B1").Inner.Centre.Y && At("B1").Inner.Centre.Y < At("CV_B1").Inner.Centre.Y, "the branch rises: pump, boiler, valve");
+        Assert.True(At("PU_B2").Rotation is 90 or 270, "the pump stands in the riser");
+        Assert.Equal(At("NB_M").Inner.Centre.X, At("NB_S").Inner.Centre.X, 6);
+        Assert.Contains(scene.Provenance, static n => n.Subject == "NB_M" && n.Reason.Contains("rises as a column", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ATankSharedByTwoLoopsTakesALoopPerFlank()
     {
         // D-157 (C-129): the boiler loop enters T1 by in and leaves by out[2]; the secondary leaves by out and returns by

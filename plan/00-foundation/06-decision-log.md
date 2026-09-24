@@ -201,6 +201,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-156` | Accepted | 2026-09-24 | Headers in series are drawn as stacked bands |
 | `D-157` | Accepted | 2026-09-24 | A tank shared by two loops takes a loop per flank |
 | `D-158` | Accepted | 2026-09-24 | Branches built the same way are drawn the same way, and a sensor shares its controller's side |
+| `D-159` | Accepted | 2026-09-24 | Heat sources in parallel rise as columns, a pump standing in its riser |
 <!-- index:end -->
 
 ---
@@ -7372,3 +7373,42 @@ hard 0 soft 0. No ladder picture and no sample moved.
   blocks.
 - *The controller follows its sensor* (the valve mirrored so its actuator faces the sensor) -- mirrors valve symbols
   and moves more pictures.
+
+## D-159 · Heat sources in parallel rise as columns, a pump standing in its riser
+
+**Accepted · 2026-09-24** · amends `D-113` (C13: a pump is level) for a column's riser · `28` C13, E3 · `C-129` · the
+user's choice from three mock-ups
+
+**What was wrong.** Two boilers in parallel feeding a buffer tank -- the stress plant's piece A -- drew nothing by
+the forms. Cut at its head (`B1`, C1), the ring's path runs `B1 → CV_B1 → NB_M → T1 → NB_S → PU_B1`, and between
+`NB_M` and `NB_S` there are two ways, one each direction: forward through the tank, back through `B2`. The
+decomposition reads two such ways as a loop -- an inner block, as an injection circuit is -- so C2 tried to lay the
+tank and the second boiler as a block on the ring's right side, could not, and declined; the chain fallback drew
+the plant (hard 7, and the whole plant hard 25). Physically `B2` is `B1`'s sibling in a header of heat sources, and
+the tank is the one consumer.
+
+**The rule.**
+1. **Sources in parallel.** Where a ring's head sits on one branch of a header -- the loop the cut reads between the
+   first junction after the head and the last before it, whose way back carries a heat source -- that loop is the
+   ring itself: its forward way (the consumer's) stays on the ring's path, and its way back is a sibling branch.
+2. **Columns.** The head's branch is the ring's left side as a column, and each sibling rises as a column from its
+   split on the bottom rail into its merge on the top rail, the merge moved along its rail to stand over it and the
+   split straight under it: the mirror of the hanging columns (`D-158`), each member facing up the riser, the
+   siblings level with the head's.
+3. **A pump in a riser.** In a column, a pump stands in the riser. C13's "a pump is level" holds everywhere else: a
+   pump on a rail or a row never turns for a vertical.
+
+**Why.** Boilers side by side, each with its circulator on its own vertical riser between common headers, is how
+multi-boiler plants are drawn; the two branches read the same, and the same as the radiator columns. Of three
+mock-ups -- rising columns with the pumps vertical, rising columns with each pump level on a stub at the foot, and
+stacked rows between vertical headers -- the user chose the first as "the most consistent" (2026-09-24). This
+project's reasoning plus the user's choice; the search in `D-158` found no published layout rule. Built: piece A hard
+0 soft 1; the whole stress plant drawn by the forms for the first time, hard 25 → 7, all seven on the DHW
+circulation still open in `C-129`.
+
+### Rejected
+
+- *Rising columns, each pump level on a stub at its foot* -- keeps `D-113` whole, but every riser gets a dog-leg and
+  the two branches stop reading as parallel.
+- *Stacked rows between vertical headers* -- keeps `D-113`, but the standing boilers make each row step up through
+  them, and the headers stand tall at both ends.

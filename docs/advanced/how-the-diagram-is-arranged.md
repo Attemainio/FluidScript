@@ -105,7 +105,10 @@ of branches -- the one the loop runs on through to its right side -- is drawn th
 hang: its valve over its load, level with theirs, rather than its valve lying on the supply pipe. Two headers in series -- a second group fed from the first group's return -- are
 stacked: the first group is a band of its own with its return running back under it, and from the
 return's left end the pipe steps down to the second group's supply, whose branches hang to the
-return that closes the loop. A buffer tank shared by two loops -- the boiler charging it, the
+return that closes the loop. Boilers in parallel stand side by side: each branch -- its pump, its
+boiler, its valve -- rises as a column from the common return along the bottom to the common supply
+along the top, the pump standing in the riser, the first boiler on the left side of the loop. A pump
+is otherwise always drawn level. A buffer tank shared by two loops -- the boiler charging it, the
 distribution drawing from it -- takes one loop on each side: the loop that holds the heat source runs
 from the tank's left side, the second loop from its right, each side with its own inlet and outlet at
 the heights the script gave them, so the heat still reads left to right, through the tank. A sensor stands on the node it reads

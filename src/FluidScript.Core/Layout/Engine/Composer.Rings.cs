@@ -13,6 +13,9 @@ internal sealed partial class Composer
     private readonly Dictionary<int, double> _hangFloor = [];
     private readonly Dictionary<int, int> _parallelMerge = [];
     private double _rowBottom = double.MaxValue;
+
+    /// <summary>The branches beside a ring's source that rise into a top-rail merge (<c>D-159</c>), by merge; set per ring.</summary>
+    private readonly Dictionary<int, Branch> _rising = [];
     private string? _declined;
     private bool _floorRaised;
     private int _pass;
@@ -195,6 +198,20 @@ internal sealed partial class Composer
             OnLoop[member.Component] = true;
         }
 
+        // D-159 (C-129): sources in parallel. Cut at the head, its sibling and the consumer read as one loop between the
+        // junctions either side of the head; that loop is the ring itself, the sibling rising beside the head's column.
+        _rising.Clear();
+        List<Member> upper = [], lower = [];
+
+        if (!fixedHead && SourceHeader(path) is { } header)
+        {
+            path.Blocks.Remove(header.Span);
+            _rising[header.Rising.Merge] = header.Rising;
+            upper = cycle.GetRange(1, header.Span.Start - 1);
+            lower = cycle.GetRange(header.Span.End + 1, cycle.Count - header.Span.End - 1);
+        }
+
+        var column = upper.Count + lower.Count > 0 || _rising.Count > 0;
         var mark = _sheet.Groups.Count;
         var (unit, unitStart, unitEnd, items, range, _) = RailItems(path, mark);
 
@@ -203,25 +220,54 @@ internal sealed partial class Composer
             return attempt.Decline("no consumer unit was found on the cycle");
         }
 
+        items = [.. items.Skip(upper.Count)];
         Unplace(items, unit);
         var bands = range is null ? SeriesBands(path, unitStart) : [];
+        var runs = new List<RunDraft>();
 
-        if (!fixedHead)
+        if (column)
+        {
+            // The left side as a column, top down from its top corner as the sibling hangs from its merge: each member
+            // facing up the riser, a pump standing in it (D-159).
+            var half = Transform.Identity.Size(_view.Symbols[cycle[upper.Count + 1].Component]).Height / 2;
+            var riser = Sheet.Anchor(new Point(0, -half), Direction.Down, Direction.Down);
+            List<Member> flow = [.. lower, s, .. upper];
+
+            for (var k = flow.Count - 1; k >= 0; k--)
+            {
+                var m = flow[k];
+
+                if (OnRail(riser, m, m.OutPort, m.InPort, upright: true) is not { } points)
+                {
+                    return attempt.Decline("the source's branch could not stand as the left side's column");
+                }
+
+                if (k < flow.Count - 1)
+                {
+                    runs.Add(new RunDraft(m, [.. points.Reverse()], "C2", "up the left side's column (D-159)"));
+                }
+
+                riser = _sheet.AnchorOf(m.Component, m.InPort);
+                _sheet.Note(_view.Name(m.Component), "C2", "the source's branch stands as the left side's column, as its sibling rises beside it (D-159)");
+            }
+        }
+        else if (!fixedHead)
         {
             _sheet.Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
         }
 
-        var sOut = _sheet.AnchorOf(s.Component, s.OutPort);
-        var sIn = _sheet.AnchorOf(s.Component, s.InPort);
-        var yTop = sOut.Along(_margin).Y;
+        var top0 = upper.Count > 0 ? upper[^1] : s;
+        var bottom0 = lower.Count > 0 ? lower[0] : s;
+        var sOut = _sheet.AnchorOf(top0.Component, top0.OutPort);
+        var sIn = _sheet.AnchorOf(bottom0.Component, bottom0.InPort);
+        var yTop = column ? 0 : sOut.Along(_margin).Y;
         var left = fixedHead ? sOut.Along(_margin).X : sIn.At.X;
-        var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1);
-        var runs = new List<RunDraft>();
+        var bottomMembers = cycle.GetRange(unitEnd + 1, cycle.Count - unitEnd - 1 - lower.Count);
         var hangers = new List<Hanger>();
         List<Point> topStart = fixedHead ? [sOut.At, sOut.Along(_margin)] : [sOut.At, new Point(sOut.At.X, yTop)];
         var cursor = Sheet.Anchor(topStart[^1], Direction.Right, Direction.Right);
         var pending = topStart;
-        var previous = s;
+        var previous = top0;
         var steps = new List<Member>();
 
         // D-156: each header in series is a band of its own -- its supply along the rail, its consumer on the band's
@@ -291,7 +337,7 @@ internal sealed partial class Composer
         var (drop, yBottom) = Bottom(unit, top.End.At.Y, fixedHead ? sIn.At.Y : sIn.Along(_margin).Y, rightJunction?.Component ?? -1);
         yBottom = Math.Min(yBottom, Math.Min(Under(hangers), RowFloor(bottomMembers)));
 
-        if (!fixedHead)
+        if (!fixedHead && !column)
         {
             // C12: a member on a side with slack sits at the side's middle. The source moves down by half the excess of the rails' span over its own.
             var slack = sIn.Along(_margin).Y - yBottom;
@@ -312,6 +358,36 @@ internal sealed partial class Composer
         _sheet.Groups.Insert(mark, (cycle.Select(static m => m.Component).ToList(), true));
         AssignRuns(runs);
         return true;
+    }
+
+    /// <summary>
+    /// Sources in parallel (<c>D-159</c>, <c>C-129</c>): the span, cut at the head, whose junctions are the first after the
+    /// head and the last before it, and whose way back from the one to the other is a plain branch carrying a source
+    /// -- the head's sibling, not a block. Its forward way (the consumer's) stays on the ring's path.
+    /// </summary>
+    /// <returns>The span and the sibling as a branch from its split to its merge; null for any other ring.</returns>
+    private (Span Span, Branch Rising)? SourceHeader(Path path)
+    {
+        var cycle = path.Members;
+        var first = cycle.FindIndex(1, m => _view.Wildcard(m.Component));
+        var last = cycle.FindLastIndex(m => _view.Wildcard(m.Component));
+
+        if (first < 1 || last <= first)
+        {
+            return null;
+        }
+
+        foreach (var span in path.Blocks)
+        {
+            if (span.Start == first && span.End == last
+                && PathOf([span.Loop.Back], span.Loop.To) is { Blocks.Count: 0 } back
+                && back.Members.Skip(1).Any(m => _view.IsSource(m.Component)))
+            {
+                return (span, new Branch(span.Loop.To, back.Members[0].OutPort, span.Loop.Back, span.Loop.From, back.EndPort));
+            }
+        }
+
+        return null;
     }
 
     // ---- C18: the unsourced ring -----------------------------------------------------------------------------------

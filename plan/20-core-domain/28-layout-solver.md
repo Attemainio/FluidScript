@@ -434,10 +434,11 @@ with the same number. *Stated* means the user gave the rule ahead of the step th
   stub to lengthen: where the chain is taller than the block, the block is laid again with its own
   bottom rail lower by the difference and its hung unit down by half of it, so its outlet meets
   the rail level and the return runs straight (step 11d's correction).
-- **C13** *(step 7, `D-113`)* -- **A pump is level.** It pumps left or right; a quarter turn is
+- **C13** *(step 7, `D-113`; a column's riser since `D-159`)* -- **A pump is level.** It pumps left or right; a quarter turn is
   admitted only where nothing level fits, and a vertical pipe turns level into a pump (C3's turn,
   rightwards) before the pump is turned to meet it. This answers open question 2 for pumps: they
-  never leave a rail for a vertical.
+  never leave a rail for a vertical. The one exception is a column: a pump on a branch drawn as a column --
+  boilers in parallel, each with its circulator -- stands in the riser (`D-159`).
 - **C14** *(step 8, provisional)* -- **A branch hangs between the rails, under the junction that
   feeds it and over the one it returns to.** When a top-rail junction's free port leads, off the
   ring, to a bottom-rail member, the path between them is an injection branch: its inner loop is
@@ -713,6 +714,14 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   left to the chain rules. Pumps side by side on branches between a common suction and a common discharge line is
   how HVAC schematics draw a pump set ([The Engineering Mindset, chilled-water schematics](https://theengineeringmindset.com/chilled-water-schematics/));
   stacking the rows under a level rail is this project's mapping of that, the part most worth the user's eye.
+- **Sources in parallel** *(built 2026-09-24, `D-159`, `C-129`)*. Cut at its head, a ring whose head sits on one
+  branch of a header of heat sources reads, between the first junction after the head and the last before it, as a
+  loop: forward through the consumer, back through the sibling source. That loop is the ring itself. Its forward way
+  stays on the ring's path; its way back is a sibling that rises as a column from its split on the bottom rail into
+  its merge on the top rail -- laid top down under the merge on a canvas of its own, each member facing up the riser,
+  slid right until clear with the merge moved over it, its split then held straight under it by C14's rule for a
+  merge. The head's own branch, from the junction before it to the one after, is the left side as a column, top down
+  from the top-left corner the same way, so the siblings stand level with it. A pump stands in a riser (C13).
 - **The spine as a column** *(built 2026-09-24, `D-158`)*. Where a ring's or a band's right side is a consumer on a
   header's spine with members of its own between the split and it, that stretch is C11's unit, laid as the header's
   hanging columns are (C14): on a canvas of its own, each member facing down the drop, its inlet a split's half-height

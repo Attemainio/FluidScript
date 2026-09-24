@@ -317,14 +317,19 @@ internal sealed partial class Composer
         _view.Connected(m.Component).Any(p => p != m.InPort && p != m.OutPort && !_view.Enters(m.Component, p));
 
     /// <summary>A loop member placed on a rail from the cursor: a component by C5 through the port facing the cursor, a node by C4 with its other loop port turned on along the rail.</summary>
+    /// <param name="cursor">Where the rail has reached.</param>
+    /// <param name="m">The member.</param>
+    /// <param name="facing">Its port facing the cursor.</param>
+    /// <param name="onward">Its port the rail goes on from.</param>
+    /// <param name="upright">Whether a pump may stand in the rail: a column's riser (<c>D-159</c>).</param>
     /// <returns>The pipe from the cursor to the facing port, or null when nothing admitted fits.</returns>
-    private ImmutableArray<Point>? OnRail(PlacedAnchor cursor, Member m, int facing, int onward)
+    private ImmutableArray<Point>? OnRail(PlacedAnchor cursor, Member m, int facing, int onward, bool upright = false)
     {
         var length = _view.RunAt(m.Component, facing) is { } run ? _sheet.RunLength(run) : _margin;
 
         if (!_view.Wildcard(m.Component))
         {
-            return PlaceFrom(cursor, m.Component, facing, length);
+            return PlaceFrom(cursor, m.Component, facing, length, upright);
         }
 
         var points = PlaceNode(cursor, m.Component, facing, length);
@@ -420,6 +425,12 @@ internal sealed partial class Composer
                 var up = _sheet.AnchorOf(m.Component, mergePort);
                 runs.AddRange(parallel.Runs);
                 runs.Add(new RunDraft(parallel.Last, [parallel.End.At, new Point(up.At.X, parallel.End.At.Y), up.At], "C14", above ? "the parallel row's drop into its merge" : "the parallel row's rise into its merge"));
+            }
+
+            // D-159: a sibling of the ring's source rises from its split on the bottom rail into this merge, as a column under it.
+            if (bottomMembers is not null && _rising.TryGetValue(m.Component, out var rising) && Rise(m, rising, left, runs, hangers) is { } risen)
+            {
+                cursor = risen;
             }
 
             if (bottomMembers is not null && path is not null && path.Branches.TryGetValue(m.Component, out var branches))
@@ -614,6 +625,89 @@ internal sealed partial class Composer
         runs.AddRange(own.Select(r => r with { Points = r.Points.Select(p => p.Offset(dx, 0)).ToList() }));
         _sheet.Note(_view.Name(j.Component), "C14", $"a plain branch hangs as a column under the split, {members.Count} member(s), its merge {_view.Name(branch.Merge)} to stand under it");
         hangers.Add(new Hanger(_sheet.AnchorOf(previous.Component, previous.OutPort), previous, j.Component, branch.Merge, branch.MergePort, true, boxed));
+        return _sheet.AnchorOf(j.Component, j.OutPort);
+    }
+
+    /// <summary>
+    /// A branch parallel to the ring's source (<c>D-159</c>, <c>C-129</c>): a second boiler rising from its split on the
+    /// bottom rail to its merge on the top rail. Laid as a hanging column is (<see cref="Column"/>), top down under the
+    /// merge on a canvas of its own -- each member facing up the riser, a pump standing in it -- and slid right as one
+    /// until it clears what is placed, the merge moved along its rail to stand over it; its split then stands on the
+    /// bottom rail straight under it, and the run from the split up into the column is the hanger's return.
+    /// </summary>
+    /// <param name="j">The merge, on the top rail.</param>
+    /// <param name="branch">The branch, from its split to this merge.</param>
+    /// <param name="left">The x of the ring's left side, which the column's outer boxes stay right of.</param>
+    /// <param name="runs">The form's runs so far; the last is the rail's run into the merge.</param>
+    /// <param name="hangers">Where the column is added.</param>
+    /// <returns>The merge's outlet where the rail continues from, or null when a member cannot be placed.</returns>
+    private PlacedAnchor? Rise(Member j, Branch branch, double left, List<RunDraft> runs, List<Hanger> hangers)
+    {
+        if (PathOf([branch.Body], branch.Split) is not { Blocks.Count: 0 } path || path.Members.Count < 2)
+        {
+            return null;
+        }
+
+        var members = path.Members.Skip(1).ToList();
+        var feed = runs.Count - 1;
+        _sheet.Side[(j.Component, branch.MergePort)] = Direction.Down;
+        var cursor = _sheet.AnchorOf(j.Component, branch.MergePort);
+        var own = new List<RunDraft>();
+        var placed = (bool[])_sheet.Placed.Clone();
+        Array.Clear(_sheet.Placed);
+
+        for (var k = members.Count - 1; k >= 0; k--)
+        {
+            var m = members[k];
+
+            if (OnRail(cursor, m, m.OutPort, m.InPort, upright: true) is not { } points)
+            {
+                placed.CopyTo(_sheet.Placed, 0);
+                return null;
+            }
+
+            own.Add(new RunDraft(m, [.. points.Reverse()], "C14", "up the rising column (D-159)"));
+            cursor = _sheet.AnchorOf(m.Component, m.InPort);
+        }
+
+        placed.CopyTo(_sheet.Placed, 0);
+        _sheet.Placed[j.Component] = false;
+        var boxed = members.Where(m => !_view.IsInline(m.Component)).Select(static m => m.Component).ToList();
+        var dx = Math.Max(0, _hangFloor.GetValueOrDefault(j.Component, double.NegativeInfinity) - _sheet.Centre[j.Component].X);
+
+        if (boxed.Count > 0)
+        {
+            dx = Math.Max(dx, left + _margin - boxed.Min(i => _sheet.InnerOf(i).X));
+        }
+
+        for (var shift = _sheet.Shift(boxed, dx, 0); shift > 0; shift = _sheet.Shift(boxed, dx, 0))
+        {
+            dx += Math.Ceiling((shift * 10) - 1e-6) / 10;
+        }
+
+        while (!_sheet.ClearAt(boxed, dx, 0))
+        {
+            dx += 0.1;
+        }
+
+        _sheet.Placed[j.Component] = true;
+        _sheet.Move([j.Component, .. boxed], [], dx, 0);
+
+        foreach (var i in boxed)
+        {
+            _sheet.Placed[i] = true;
+        }
+
+        if (dx > Eps)
+        {
+            _sheet.Note(_view.Name(j.Component), "C14", $"the merge moved right by {dx:0.##} to ({_sheet.Centre[j.Component].X:0.##}, {_sheet.Centre[j.Component].Y:0.##}) so the column under it clears the ring's left side and what is placed (H2)");
+            runs[feed].Points[^1] = _sheet.AnchorOf(j.Component, j.InPort).At;
+        }
+
+        runs.AddRange(own.Select(r => r with { Points = r.Points.Select(p => p.Offset(dx, 0)).ToList() }));
+        var bottom = members[0];
+        _sheet.Note(_view.Name(j.Component), "C14", $"a branch beside the ring's source rises as a column into the merge, {members.Count} member(s), its split {_view.Name(branch.Split)} to stand under it (D-159)");
+        hangers.Add(new Hanger(_sheet.AnchorOf(bottom.Component, bottom.InPort), new Member(bottom.Component, -1, bottom.InPort), j.Component, branch.Split, branch.SplitPort, true, boxed));
         return _sheet.AnchorOf(j.Component, j.OutPort);
     }
 
