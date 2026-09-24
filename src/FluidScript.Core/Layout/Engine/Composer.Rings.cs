@@ -167,7 +167,7 @@ internal sealed partial class Composer
         }
 
         var mark = _sheet.Groups.Count;
-        var (unit, _, unitEnd, items, _, _) = RailItems(path, mark);
+        var (unit, unitStart, unitEnd, items, range, _) = RailItems(path, mark);
 
         if (unit is null)
         {
@@ -175,6 +175,7 @@ internal sealed partial class Composer
         }
 
         Unplace(items, unit);
+        var bands = range is null ? SeriesBands(path, unitStart) : [];
 
         _sheet.Place(s.Component, ts[0], new Point(0, 0), "C2", "the loop's source at the origin, outlet up and inlet down");
         var sOut = _sheet.AnchorOf(s.Component, s.OutPort);
@@ -184,10 +185,71 @@ internal sealed partial class Composer
         var runs = new List<RunDraft>();
         var hangers = new List<Hanger>();
         List<Point> topStart = [sOut.At, new Point(sOut.At.X, yTop)];
+        var cursor = Sheet.Anchor(topStart[^1], Direction.Right, Direction.Right);
+        var pending = topStart;
+        var previous = s;
+        var steps = new List<Member>();
 
-        if (Top(Sheet.Anchor(topStart[^1], Direction.Right, Direction.Right), topStart, s, items, path, bottomMembers, runs, hangers, sIn.At.X) is not { } top)
+        // D-156: each header in series is a band of its own -- its supply along the rail, its consumer on the band's
+        // right side, its return back along the band's bottom to a step down on the left, from which the next band's
+        // supply runs on rightwards. The last band closes the ring back to the source.
+        foreach (var (split, consumer, merge) in bands)
+        {
+            if (Single(cycle[consumer]) is not { } bandUnit)
+            {
+                return attempt.Decline("a band's consumer could not be laid as a unit");
+            }
+
+            Unplace([], bandUnit);
+            var from = cycle.IndexOf(previous) + 1;
+            var bandReturn = cycle.GetRange(consumer + 1, merge - consumer);
+            var bandHangers = new List<Hanger>();
+
+            if (Top(cursor, pending, previous, [.. cycle.GetRange(from, consumer - from).Select(static m => new Item(m, null))], path, bandReturn, runs, bandHangers, sIn.At.X) is not { } bandTop)
+            {
+                return attempt.Decline("a band's rail could not be laid");
+            }
+
+            var (_, bandCorner) = Corners(bandReturn, bandUnit, leftFirst: false, bandHangers);
+            var (bandDrop, yBand) = Bottom(bandUnit, bandTop.End.At.Y, double.PositiveInfinity, bandCorner?.Component ?? -1);
+            yBand = Math.Min(yBand, Math.Min(Under(bandHangers), RowFloor(bandReturn)));
+            var nextEnd = bands.IndexOf((split, consumer, merge)) + 1 < bands.Count ? bands[bands.IndexOf((split, consumer, merge)) + 1].Consumer : unitStart;
+            var yNext = yBand - Math.Max(2 * _margin, HalfHeight(bandReturn) + _margin + HalfHeight(cycle.GetRange(merge + 1, nextEnd - merge - 1)));
+            var stepRun = _view.RunAt(cycle[merge].Component, cycle[merge].OutPort);
+            var stepX = _sheet.Centre[cycle[split].Component].X - (Transform.Identity.Size(_view.Symbols[cycle[merge].Component]).Width / 2) - Math.Max(_margin, stepRun is { } sr ? _sheet.RunLength(sr) : _margin);
+
+            if (!Close(bandTop, bandUnit, bandDrop, yBand, bandReturn, [new Point(stepX, yNext), new Point(stepX, yBand)], null, bandCorner, bandHangers, runs))
+            {
+                return attempt.Decline("a band could not be closed along its return");
+            }
+
+            _sheet.Note(_view.Name(cycle[split].Component), "C14", $"a header in series: a band of its own, {_view.Name(cycle[consumer].Component)} on its right side, its return back to x {stepX:0.##} and down to the next band's rail at y {yNext:0.##} (D-156)");
+            cursor = Sheet.Anchor(new Point(stepX, yNext), Direction.Right, Direction.Right);
+            pending = [cursor.At];
+            previous = cycle[merge];
+            steps.Add(previous);
+        }
+
+        var lastFrom = cycle.IndexOf(previous) + 1;
+
+        if (Top(cursor, pending, previous, bands.Count == 0 ? items : [.. cycle.GetRange(lastFrom, unitStart - lastFrom).Select(static m => new Item(m, null))], path, bottomMembers, runs, hangers, sIn.At.X) is not { } top)
         {
             return attempt.Decline("the top rail could not be laid");
+        }
+
+        // A step's run is laid in two halves, the band's return down to the step and the next rail on from it: one run.
+        foreach (var step in steps)
+        {
+            var halves = runs.Where(r => r.From.Equals(step)).ToList();
+            var down = halves.FirstOrDefault(h => halves.Any(o => o != h && o.Points[0].ManhattanTo(h.Points[^1]) < Eps));
+            var on = halves.FirstOrDefault(h => down is not null && h != down && h.Points[0].ManhattanTo(down.Points[^1]) < Eps);
+
+            if (down is not null && on is not null)
+            {
+                runs.Remove(down);
+                runs.Remove(on);
+                runs.Add(new RunDraft(step, [.. down.Points, .. on.Points.Skip(1)], "C14", "the band's return stepping down to the next band's rail"));
+            }
         }
 
         var (_, rightJunction) = Corners(bottomMembers, unit, leftFirst: false, hangers);

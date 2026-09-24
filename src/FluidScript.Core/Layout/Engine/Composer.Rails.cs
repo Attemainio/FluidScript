@@ -139,11 +139,12 @@ internal sealed partial class Composer
     /// on -- the duty the ring sees on the side it passes, so a heat source's second side is a consumer (C-132) -- else
     /// the first member the flow leaves the ring by.
     /// </summary>
-    private int ConsumerOf(List<Member> cycle, int from)
+    private int ConsumerOf(List<Member> cycle, int from, int to = -1)
     {
         var consumerAt = -1;
+        to = to < 0 ? cycle.Count : to;
 
-        for (var k = from; k < cycle.Count; k++)
+        for (var k = from; k < to; k++)
         {
             if (_view.DutyOn(cycle[k].Component, cycle[k].InPort) is { } duty && (consumerAt < 0 || duty < _view.DutyOn(cycle[consumerAt].Component, cycle[consumerAt].InPort)))
             {
@@ -151,7 +152,7 @@ internal sealed partial class Composer
             }
         }
 
-        for (var k = from; k < cycle.Count && consumerAt < 0; k++)
+        for (var k = from; k < to && consumerAt < 0; k++)
         {
             // No standing consumer: the member the loop's flow leaves by -- a valve or a junction with an off-loop outlet -- takes the right side.
             if (LeavesLoop(cycle[k]))
@@ -162,6 +163,51 @@ internal sealed partial class Composer
 
         return consumerAt;
     }
+
+    /// <summary>
+    /// The headers in series before a ring's right side (<c>D-156</c>, <c>C-131</c>): each split on the path whose branch
+    /// returns to a merge that is also on the path before <paramref name="unitStart"/>, with a consumer on the spine
+    /// between them -- a header whose return feeds on round the ring. Each is a band: its consumer takes the band's right
+    /// side and its return is the band's own bottom rail. A branch rejoining the path with no consumer between (a pump
+    /// pair) is a row (C14), not a band; a header nested in a band's spine hangs inside it.
+    /// </summary>
+    /// <returns>Each band's split, consumer and merge, as indices on the path, in flow order.</returns>
+    private List<(int Split, int Consumer, int Merge)> SeriesBands(Path path, int unitStart)
+    {
+        var cycle = path.Members;
+        var index = new Dictionary<int, int>();
+
+        for (var i = 0; i < cycle.Count; i++)
+        {
+            index.TryAdd(cycle[i].Component, i);
+        }
+
+        var bands = new List<(int Split, int Consumer, int Merge)>();
+
+        for (var k = 1; k < unitStart; k++)
+        {
+            if (!path.Branches.TryGetValue(cycle[k].Component, out var branches))
+            {
+                continue;
+            }
+
+            foreach (var branch in branches)
+            {
+                if (index.TryGetValue(branch.Merge, out var merge) && merge > k && merge + 1 < unitStart && ConsumerOf(cycle, k + 1, merge) is var consumer and >= 0 && _view.DutyOn(cycle[consumer].Component, cycle[consumer].InPort) is not null)
+                {
+                    bands.Add((k, consumer, merge));
+                    k = merge;
+                    break;
+                }
+            }
+        }
+
+        return bands;
+    }
+
+    /// <summary>The largest half-height of the boxed members of a stretch of rail, world units; zero for none.</summary>
+    private double HalfHeight(IEnumerable<Member> members) =>
+        members.Where(m => !_view.IsInline(m.Component)).Select(m => Transform.Identity.Size(_view.Symbols[m.Component]).Height / 2).DefaultIfEmpty(0).Max();
 
     /// <summary>Whether a loop member has a connection off the loop the fluid leaves by.</summary>
     private bool LeavesLoop(Member m) =>

@@ -686,6 +686,14 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   the merge that pushed it keeps the gap after the pump has moved back, since a hold only moves right. A merge
   a column returns to never takes C10's corner under the right side's outlet. A block's merge is held the
   same way, a margin short of its outlet.
+- **Headers in series** *(built 2026-09-24, `D-156`, `C-131`)*. A header whose branch returns to a merge on the
+  ring's path before the ring's right side, with a consumer on its spine, is a band: laid by the same rail rules as
+  the ring (`Top`, C11's unit on the band's right side from `ConsumerOf` bounded to the band, `Close` for its return),
+  its return ending at a step on its left -- the band split's x less the merge's half-width and the step run's length
+  -- from which the next band's rail runs on rightwards, a margin plus the two rails' half-heights lower. The two
+  halves of the step's run (the return down to the step, the rail on from it) are joined into one run. The last
+  band closes the ring to the source. Only single-member consumers on the bands and no block on the ring's path so
+  far; anything else falls back to one band.
 - **A branch that rejoins its rail** *(built 2026-09-24, `C-130`)*. A plain branch whose split and merge both stand
   on one level rail -- a duty/standby pump pair -- is not hung: it runs as a row parallel to the spine, a margin
   under the lowest spine box between split and merge, down from the split, along the row, up into the merge. It is

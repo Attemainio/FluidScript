@@ -198,6 +198,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-153` | Accepted | 2026-09-23 | The layout engine is rebuilt as decompose, compose, draw, beside the old one until parity |
 | `D-154` | Accepted | 2026-09-23 | A header's spine is its branch declared last |
 | `D-155` | Accepted | 2026-09-24 | The audit holds every drawing rule it states, and the report names the rule behind every element |
+| `D-156` | Accepted | 2026-09-24 | Headers in series are drawn as stacked bands |
 <!-- index:end -->
 
 ---
@@ -7253,3 +7254,29 @@ pipe the router's shape instead of a pipe no engineer would draw. This project's
 - *Fix each rule that lays a run skew, and leave the audit as it was* -- the two producers found are fixed at the
   rule when their packages come (`C-133`); without the check, the next one is found by eye again.
 - *Soft* -- a count that says "fewer is better" of something the canvas cannot draw.
+
+## D-156 · Headers in series are drawn as stacked bands
+
+**Accepted · 2026-09-24** · amends C2/C11/C14 of `28` · `28` E3 · `C-131` · the user's choice between two mock-ups
+
+**What was wrong.** C14 hangs every branch from the top rail to the bottom rail. Where one header's return feeds the
+next header's supply -- radiators first, injection circuits fed from their return -- the first header's merges stood
+on the ring's path before its right side, so they were neither on the top rail nor the bottom: its branches hung
+upwards, its spine turned down mid-rail, and the second header was squeezed down the right side (the stress plant's
+piece B: hard 13, diagonals, junctions with two pipes on a side).
+
+**The rule.** A header whose branch returns to a merge on the ring's path before the ring's right side, with a
+consumer on its spine between split and merge, is a **band**: its supply runs along the rail, its consumer stands
+on the band's right side, its branches hang to the band's own return rail, and that return runs back left, past the
+band's first split, and steps down to the next band's rail, which runs rightwards from there. The last band closes
+the ring back to the source. A branch rejoining the path with no consumer between (a pump pair) is a row, not a
+band. The script's direct-return wiring (the last merge is the first branch's) is what makes the return run back
+left; the bands follow it, so no pipe doubles back.
+
+**Why.** Shown to the user as two hand-placed mock-ups on piece B, stacked against a staircase to the right whose
+return doubled back under its own columns; the user chose stacked (2026-09-24). Built, piece B draws hard 0.
+
+### Rejected
+
+- *Staircase right* -- reads left to right, but with direct-return wiring the first header's return runs back under
+  its own columns to reach the second.
