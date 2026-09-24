@@ -1,4 +1,3 @@
-# does not settle: S-87 -- a pump named to hold a temperature makes the design solve singular.
 # Step 3 with its controls (a variant beside the ladder, P6.10): the supply and return are measured,
 # and the pump holds the return temperature -- its constant-temperature mode -- in place of the
 # exchanger's stated inlet.

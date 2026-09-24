@@ -205,6 +205,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-160` | Accepted | 2026-09-24 | A ring on an element a chain reaches is an attached ring too |
 | `D-161` | Accepted | 2026-09-24 | Room is kept for every instrument a chain or an attached ring carries |
 | `D-162` | Accepted | 2026-09-24 | Since the switch, every layout picture is pinned as a golden |
+| `D-163` | Accepted | 2026-09-24 | A pump holds a control line's setpoint through its head at the design point |
 <!-- index:end -->
 
 ---
@@ -7500,3 +7501,26 @@ Coordinates are rounded to 1e-6 and the lines sorted by id, so only a change in 
 **Alternatives.** A table of audit counts that may not grow: cheaper, blind to a rearrangement that adds no finding.
 Nothing new: hard 0 alone, which is what let step 10 drift. **Cost:** 52 files, 288 KB; every intended picture change
 now arrives as a diff to review, which is the point.
+
+## D-163 · A pump holds a control line's setpoint through its head at the design point
+
+**Accepted · 2026-09-24** · amends `D-141` (which parameter an unstated actuator's setpoint promotes) · `S-87` · the
+user's choice between two options
+
+**What was wrong.** `D-141` promotes the parameter a `control` line actuates, and on a pump that is `speed`. At the
+design point speed moves nothing: the pump's head is sized (or stated) and its curve anchored at the design flow the
+loop's drops are read at. Step 3 with its controls -- a circulator holding its return at 20 °C in place of the
+exchanger's stated inlet -- was singular at iteration 0 (`FS3009`, `FS3010`). Setting the setpoint aside instead
+(`FS3210`) made the note right and the circuit no better: nothing else stated the design return, and the seed's
+0.1 kg/s put `NR` below freezing.
+
+**The rule.** A setpoint whose actuator is a pump's `speed` promotes the pump's `head` in the design solve; the run
+moves `speed`, and its controller starts at 1. A pump that states `head`, `dp`, `flow` or `vflow` has no head left,
+and the setpoint is `FS3210` with that reason.
+
+**Why.** The head is what sets a pump's design flow, and the design solve already holds temperatures with it -- the
+three-zone plant's `PU1.head` answers `HE1.in.t`. It is how a constant-temperature circulator is selected: sized at the
+duty point that meets the design temperatures, then run at varying speed to hold them. This project's reasoning, in
+the same shape as a valve's setpoint holding through the position the solve chooses. **Alternative:** `FS3210` and the
+script states its inlet -- simpler, but a setpoint written on the control line alone would never solve. Measured: step
+3 with its controls converges in one iteration at 0.2392 kg/s, `PU1.head` 4.09 m.

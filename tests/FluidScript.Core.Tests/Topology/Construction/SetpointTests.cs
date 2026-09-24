@@ -136,4 +136,58 @@ public sealed class SetpointTests
         Assert.Equal(DiagnosticSeverity.Info, info.Severity);
         Assert.Contains("TC1 measures N1.t, which the design solve cannot hold at a setpoint", info.Message, StringComparison.Ordinal);
     }
+
+    private const string Circulator = """
+        fluidscript 1
+        circuit ladder
+        fluid water
+
+        PU1  pump
+        HE1  heat_exchanger power=30 out.t=50
+        TE_R t_sensor at NR
+        TC1  pid kp=2
+        LOAD heat_exchanger power=-30
+
+        connections
+        PU1 - HE1
+        HE1 - NS - LOAD
+        LOAD - NR - PU1
+
+        control PU1 with TE_R by TC1 setpoint=20
+        """;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APumpHoldsItsSetpointThroughItsHeadAtTheDesignPoint()
+    {
+        // `D-163`, `S-87`: a circulator in constant-temperature mode. Its speed moves nothing at the design point,
+        // where the curve is anchored at the design flow, so NR.t = 20 C is answered by PU1.head -- the head that
+        // sets the flow 30 kW needs over 20 -> 50 C -- and the run moves the speed from 1.
+        var graph = GraphFixture.Lower(Circulator).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        Assert.True(setpoint.Applied);
+        Assert.Equal(("PU1", "speed"), (setpoint.ActuatorComponent, setpoint.ActuatorParameter));
+
+        var result = WellPosedness.Check(graph);
+        var promotion = Assert.Single(result.Counting.Promotions, static p => p.Constraint.Component == "NR");
+
+        Assert.Equal(("PU1", "head"), (promotion.Component, promotion.Parameter));
+        Assert.Equal(0, result.Counting.Excess);
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code is "FS3210" or "FS3211");
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("PU1  pump head=4", "head")]
+    [InlineData("PU1  pump flow=0.24", "flow")]
+    public void APumpThatStatesItsRiseOrItsFlowHasNoHeadLeftForASetpoint(string pump, string stated)
+    {
+        var graph = GraphFixture.Lower(Circulator.Replace("PU1  pump", pump, StringComparison.Ordinal)).Graph;
+        var setpoint = Assert.Single(graph.Setpoints);
+
+        Assert.False(setpoint.Applied);
+        Assert.Equal($"'PU1.{stated}' is stated, so the pump has no head left to hold it with", setpoint.Reason);
+        Assert.Contains(WellPosedness.Check(graph).Diagnostics, static d => d.Code == "FS3210");
+    }
 }

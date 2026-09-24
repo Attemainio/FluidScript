@@ -151,6 +151,11 @@ public static partial class Lowering
         /// (<c>FS3210</c>, raised by well-posedness).
         /// </para>
         /// <para>
+        /// <strong>A pump holds its setpoint through its head at the design point</strong> (<c>D-163</c>, <c>S-87</c>),
+        /// so a pump that states its rise or its flow has nothing left to hold it with, and the setpoint is set
+        /// aside rather than promoted onto a stated value.
+        /// </para>
+        /// <para>
         /// What can be held is a plain node's temperature, read directly (<c>N2.t</c>) or through a sensor
         /// on it. A boundary's temperature is what enters the model and is not a demand; a node that
         /// states its own <c>t</c> has said what it wants; a measurement of anything else has no
@@ -217,7 +222,9 @@ public static partial class Lowering
                             : symbols.TryGetValue(binding.Actuator.Component, out var actuated)
                                 && actuated.Parameters.ContainsKey(binding.Actuator.Property)
                                 ? $"'{binding.Actuator.Component}.{binding.Actuator.Property}' is stated"
-                                : held.ContainsKey(measured.Component)
+                                : actuated?.Kind?.Keyword == "pump" && PumpStatement(actuated) is { } statement
+                                    ? $"'{binding.Actuator.Component}.{statement}' is stated, so the pump has no head left to hold it with"
+                                    : held.ContainsKey(measured.Component)
                                     ? $"another control line already holds '{measured.Component}'"
                                     : null;
                 }
@@ -242,6 +249,15 @@ public static partial class Lowering
 
             return held;
         }
+
+        /// <summary>The first statement on a pump that uses the head a setpoint would hold with: its rise, or its flow.</summary>
+        /// <param name="pump">The pump's symbol.</param>
+        /// <returns>The parameter's name, or <see langword="null"/> when the head is the design solve's to choose.</returns>
+        private static string? PumpStatement(ComponentSymbol pump) =>
+            PumpStatements.FirstOrDefault(pump.Parameters.ContainsKey);
+
+        /// <summary>A pump's parameters that spend its head: a rise (<c>C-109</c>'s one freedom) or a flow it drives.</summary>
+        private static readonly string[] PumpStatements = ["head", "dp", "flow", "vflow"];
 
         /// <summary>Records one end of a connection as the other end's neighbour, when that end is a node.</summary>
         private static void Neighbour(

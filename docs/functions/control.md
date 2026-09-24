@@ -43,6 +43,12 @@ transposing them is caught rather than obeyed.
 ## Rules
 
 - The setpoint lives here rather than on the controller, so one tuning can serve several loops.
+- The setpoint is the loop's **design point**. When the actuator is left unstated, the design solve holds the
+  measured temperature with it: a valve at whatever position does it, and a **pump through its head** -- a
+  circulator holding its return at 20 °C gets the head that moves the design flow, and the run then moves its
+  speed, starting at 1. A pump that states `head`, `dp`, `flow` or `vflow` has no head left to hold it with, so the
+  setpoint is not a constraint and the loop may start off it ([`FS3210`](diagnostics.md)), as with any stated
+  actuator.
 - A setpoint may be a [`curve`](curve.md): `setpoint=supplyTemp` gives a compensated loop, where the
   target follows the outdoor temperature.
 - A controller named by no `control` line drives nothing, and is reported. Two `control` lines naming

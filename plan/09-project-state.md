@@ -1642,6 +1642,8 @@ that governed each size. What P6.8 still owes, and what comes after:
     `S-80` closed (both interface-flow branches tested by hand); `S-17` narrowed to its guard (`33` already carries
     the corrected argument). `S-87` was tried and reverted: setting a pump's setpoint aside leaves step 3's loop
     with no design return, so it is a decision about what a `control` line on a pump means at the design point.
+  - **`S-87` closed (2026-09-24, `D-163`, the user's option (a)):** a pump holds a control line's setpoint through
+    its head in the design solve and through its speed in the run; step 3 with its controls solves. Next: `S-86`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

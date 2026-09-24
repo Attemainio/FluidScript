@@ -118,6 +118,15 @@ the node's stated parameters and records every binding on `CircuitGraph.Setpoint
 `WellPosedness` answers the node-temperature constraint with the named actuator alone and raises the
 two codes. The demand-step loop solves on `01`'s figures (`S-75` closed).
 
+**A pump holds its setpoint through its head (`D-163`, `S-87`).** A `control` line on a pump actuates its
+`speed`, and at the design point speed moves nothing: the pump's head is sized or stated and its curve anchored at
+the design flow the loop's drops are read at, so a promoted speed left the design solve singular (`FS3009`, then
+`FS3010` on the held node). What sets the design flow is the head, and the design solve already holds temperatures
+with it (a pump head answers `HE1.in.t` on the three-zone plant). So the binding promotes `head` in the design solve
+and leaves `speed` to the run, where the controller starts at 1 -- the circulator's constant-temperature mode, sized
+at its duty point. Step 3 with its controls: `NR.t = 20` held by `PU1.head` at 4.09 m, 0.2392 kg/s, converged in one
+iteration. A pump stating `head`, `dp`, `flow` or `vflow` has spent its head and the setpoint is `FS3210`.
+
 **These three properties are populated from the binding, not from the declaration** (`D-40`). The
 controller *declaration* carries the algorithm and its gains; the `control` *binding* carries what is
 measured, what is actuated, and the setpoint. Lowering resolves each `ControlBindingSymbol`

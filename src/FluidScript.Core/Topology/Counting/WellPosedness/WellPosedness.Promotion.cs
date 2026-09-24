@@ -102,6 +102,15 @@ public static partial class WellPosedness
             var actuator = graph.Components.FirstOrDefault(
                 element => string.Equals(element.Name, setpoint.ActuatorComponent, StringComparison.Ordinal));
 
+            // A pump holds its setpoint through its head at the design point and through its speed in the run
+            // (`D-163`, `S-87`): the design solve anchors the pump's curve at the design flow, so speed moves
+            // nothing there, and the head is what sets that flow. The controller starts the run at speed 1.
+            if (actuator is PumpComponent pump
+                && string.Equals(setpoint.ActuatorParameter, "speed", StringComparison.Ordinal))
+            {
+                return pump.StatedRise is null && IsFree(graph, pump, "head") ? [(pump.Name, "head")] : [];
+            }
+
             return actuator is not null && IsFree(graph, actuator, setpoint.ActuatorParameter)
                 ? [(setpoint.ActuatorComponent, setpoint.ActuatorParameter)]
                 : [];
