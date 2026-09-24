@@ -218,14 +218,18 @@ walk take a `b` leg outward and then give up a rated `a` leg to close the tree.
 rates copies the largest rated flow it meets, and on a header with more unrated legs than the tree can absorb
 the copies become chords: the three-zone plant's zones each kept the plant's whole 0.478 kg/s, and the tree
 closed the supply junction by running zone 1 backwards. A load that states its duty and no temperature is
-therefore rated at its sources' design temperatures, when every source its water reaches states both and they
-agree -- `BranchFlows.DesignFlow`, the other half of the common-return rule for a source -- and yields to any
+therefore rated at its sources' design temperatures, when the circuit is closed and every source its water reaches
+states both and they agree -- `BranchFlows.DesignFlow`, the other half of the common-return rule for a source -- and yields to any
 rating the branch has from temperatures stated on it. *This project's reasoning*: an emitter is designed to the
 system's flow and return, so the design difference is the plant's; it is a seed, and nothing of it enters the
 equations. It matters beyond the first Newton step because a load's design flow is sized from the flow the last
 pass found, a fixed point the sizing loop approaches by about 20 / (20 + the valve's drop) per pass: started at
 the copy's split the three zones did not settle in 10 passes, started at 0.159 they settle in 2. The copy itself
-remains for legs with nothing to rate; two mass-consistent shares were measured and rejected (`S-85`).
+remains for legs with nothing to rate; two mass-consistent shares were measured and rejected (`S-85`). The rule
+first ran on open circuits too, and regressed the propane heat pump's heating priority (converged in one iteration
+before, `IterationCap` after): its cooling side takes the bores' 10 °C water through boundaries, the evaporator was
+rated at the cooling coil's 7/12, and Newton walked the bore valve onto its stop. Water crossing a boundary brings
+heat of its own, so an open circuit's exchangers are not its loads' design reference.
 
 **One case the seed cannot rescue, and should not try to.** A dead leg — a terminal with no boundary
 role — carries exactly zero flow, so its node's enthalpy is multiplied by zero in every equation it

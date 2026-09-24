@@ -322,6 +322,8 @@ public static partial class BranchFlows
     /// matters because a load's design flow is sized from the flow the previous pass found, a fixed point the sizing
     /// loop approaches by about 20 / (20 + the valve's 2 kPa) per pass; started 15 % off it needs some fifty passes. The
     /// sources must agree: a plant with a 70/40 and an 80/60 source has no one design difference, and none is invented.
+    /// And the circuit must be closed: an open one takes heat in or out through its boundaries, so its exchangers'
+    /// temperatures are not the design difference of its loads.
     /// </para>
     /// </remarks>
     private static double? DesignFlow(CircuitGraph graph, HeatExchangerComponent load)
@@ -335,6 +337,14 @@ public static partial class BranchFlows
             .Where(partition => partition.Elements.Contains(load))
             .SelectMany(static partition => partition.Elements)
             .ToHashSet();
+
+        // Only a closed circuit: water arriving through a boundary brings heat of its own, so the exchangers are not
+        // the only design reference -- on the heat pump's cooling side the bores' 10 C water joins the coil's 7/12,
+        // and borrowing 7/12 for the evaporator sent a converging solve to its valve's stop.
+        if (reachable.Any(static element => element is NodeComponent { Boundary: not BoundaryRole.Interior }))
+        {
+            return null;
+        }
 
         var sources = graph.Components
             .OfType<HeatExchangerComponent>()

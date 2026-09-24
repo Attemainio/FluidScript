@@ -292,6 +292,14 @@ public sealed class SolutionSeedTests
         var unrated = BranchFlows.Estimate(disagreeing)[disagreeing.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
 
         Assert.NotEqual(FlowBasis.Duty, unrated.Basis);
+
+        // An open circuit takes heat in through its boundaries, so its exchangers are not its loads' design reference:
+        // the heat pump's evaporator, rated at its cooling coil's 7/12 while the bores' 10 C water joined, sent a
+        // converging solve to its valve's stop.
+        var open = GraphFixture.Lower(Zones.Replace("NB1 - PU1", "NB1 - PU1\nNB_in - NB1\nNA1 - NB_out\nNB_in inlet t=40 p=200\nNB_out outlet p=200", StringComparison.Ordinal)).Graph;
+        var borrowed = BranchFlows.Estimate(open)[open.Branches.Single(branch => branch.Path.Any(part => part.Name == "LD1")).Index];
+
+        Assert.NotEqual(FlowBasis.Duty, borrowed.Basis);
     }
     /// <summary>The legs a valve partitions from a rated coil carry the coil's own basis one rank down, so the forest keeps them ahead of anything merely propagated (<c>S-68</c>).</summary>
     [Fact]
