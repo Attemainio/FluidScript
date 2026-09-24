@@ -1571,6 +1571,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     the composed engine ~n^2 against the ladder engine's ~n^3 -- 234 ms against 13.3 s at 1762 components.
     Code: the composed engine is 3550 code lines against the ladder engine's 2811 (+26%); the rail geometry
     (`Composer.Rails`, 693) is the old engine's, ported for parity.
+  - **Two placement fixes (2026-09-24, accepted by the user):** (A) a unit's sensor room is counted from
+    the far end of its own run -- the inlet run's from the top rail's end, the outlet run's from the bottom
+    rail's -- not both from the bottom rail's; (B) the first settle pass lays the bottom rail as if no
+    column hung over it (four passes now), so a pump pushed past an early column no longer leaves a gap
+    once the splits are held. Step 10 draws as `29` records it (`LOAD` 1 m left, back on step 4's loop);
+    the ladder engine had drifted from that picture and the parity gate lists it as such. Zones: `NA1`
+    4.65 → 2.25, `LD3` 8.3 → 5.9; zones with controls `NA1` 5.25 → 3.35, `LD3` 10.0 → 8.1; hard 0 soft 0.
+    Core 2353/0.
     Next: R5 (pipe bands in the occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 

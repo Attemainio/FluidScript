@@ -23,8 +23,11 @@ internal sealed partial class Composer
     /// <summary>One thing on a rail: a member, or a block laid out as a unit (C11).</summary>
     private readonly record struct Item(Member? Member, Unit? Unit);
 
-    /// <summary>A branch hanging between the rails (C14): where it ends, its return still to be laid to its merge on the bottom rail, which stands under its split -- straight under for a plain column.</summary>
-    private sealed record Hanger(PlacedAnchor Out, Member OutFrom, int Top, int Bottom, int BottomPort, bool Straight);
+    /// <summary>A branch hanging between the rails (C14): where it ends, its return still to be laid to its merge on the bottom rail, which stands under its split -- straight under for a plain column, whose boxed members it names.</summary>
+    private sealed record Hanger(PlacedAnchor Out, Member OutFrom, int Top, int Bottom, int BottomPort, bool Straight, List<int>? Members = null);
+
+    /// <summary>A column's boxed members; a block hanger names none.</summary>
+    private static List<int> ColumnMembers(Hanger h) => h.Members ?? [];
 
     /// <summary>
     /// The ring path's unit and top-rail items (C11): the last loop in flow order is the unit on the ring's right side,
@@ -388,7 +391,7 @@ internal sealed partial class Composer
 
         runs.AddRange(own.Select(r => (r.From, r.Points.Select(p => p.Offset(dx, 0)).ToList())));
         _sheet.Note(_view.Name(j.Component), "C14", $"a plain branch hangs as a column under the split, {members.Count} member(s), its merge {_view.Name(branch.Merge)} to stand under it");
-        hangers.Add(new Hanger(_sheet.AnchorOf(previous.Component, previous.OutPort), previous, j.Component, branch.Merge, branch.MergePort, true));
+        hangers.Add(new Hanger(_sheet.AnchorOf(previous.Component, previous.OutPort), previous, j.Component, branch.Merge, branch.MergePort, true, boxed));
         return _sheet.AnchorOf(j.Component, j.OutPort);
     }
 
@@ -576,6 +579,15 @@ internal sealed partial class Composer
             pending = [cursor.At];
         }
 
+        // The first pass lays the bottom rail as if no column hung over it, so the floor a merge raises is where the rail
+        // wants it -- not where a column hanging at its first, too-early place pushed the members before it.
+        var columnMembers = _pass == 0 ? hangers.Where(static h => h.Straight).SelectMany(h => ColumnMembers(h)).ToList() : [];
+
+        foreach (var c in columnMembers)
+        {
+            _sheet.Placed[c] = false;
+        }
+
         for (var k = first; k >= 0; k--)
         {
             var m = bottomMembers[k];
@@ -619,6 +631,11 @@ internal sealed partial class Composer
             }
         }
 
+        foreach (var c in columnMembers)
+        {
+            _sheet.Placed[c] = true;
+        }
+
         // The unit: as far right as the longer rail needs, its inlet level with the top rail's end (or a drop under it).
         var origin = Math.Max(topEnd.At.X, cursor.At.X);
 
@@ -640,7 +657,7 @@ internal sealed partial class Composer
                 return _sheet.Free(x, yBottom, unit.Out.At.Y + dy, unit.Members) && !sensors.Any(o => Sheet.Passes(o, low, high));
             }
             : null;
-        var (uIn, uOut) = Slide(unit, origin, topEnd.At.Y - drop, runs, clear);
+        var (uIn, uOut) = Slide(unit, origin, topEnd.At.Y - drop, runs, clear, topEnd.At.X, rightJunction is null ? cursor.At.X : null);
 
         if (rightJunction is { } j1)
         {
@@ -938,10 +955,17 @@ internal sealed partial class Composer
     /// the offset. Its runs move with it.
     /// </summary>
     /// <returns>The unit's inlet and outlet where they landed.</returns>
-    private (PlacedAnchor In, PlacedAnchor Out) Slide(Unit unit, double originX, double yIn, List<(Member From, List<Point> Points)> runs, Func<double, double, bool>? clear = null)
+    private (PlacedAnchor In, PlacedAnchor Out) Slide(Unit unit, double originX, double yIn, List<(Member From, List<Point> Points)> runs, Func<double, double, bool>? clear = null, double? feedFrom = null, double? returnTo = null)
     {
-        // The run into the unit is laid long enough for any sensor's bubble on it (C15, D-151).
-        var dx = originX + Math.Max(_margin, InletReserve(unit)) - Math.Min(unit.In.At.X, unit.Out.At.X);
+        // The runs into and out of the unit are laid long enough for any sensor's bubble on them (C15, D-151): the one in
+        // counted from where it starts, the one out from where it returns to; the unit stands a margin clear of the
+        // origin in any case.
+        var dx = Math.Max(originX + _margin, (feedFrom ?? originX) + Math.Max(_margin, InletReserve(unit))) - Math.Min(unit.In.At.X, unit.Out.At.X);
+
+        if (returnTo is { } back && _view.RunAt(unit.OutFrom.Component, unit.OutFrom.OutPort) is { } leaving)
+        {
+            dx = Math.Max(dx, back + Math.Max(_margin, _sheet.RunLength(leaving)) - unit.Out.At.X);
+        }
         var dy = yIn - unit.In.At.Y;
 
         foreach (var i in unit.Members)

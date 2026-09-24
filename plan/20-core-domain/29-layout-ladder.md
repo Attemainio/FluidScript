@@ -769,6 +769,14 @@ findings its line straight to the node carried are gone (its 5 soft are `PB`'s c
 3WV–N2 column, `C-125`). Every reached sample and step: hard 0, soft 0. `L19`'s instrument clause is retired with `D-100`'s; the
 `C15` predicates take its place.
 
+**The composed engine (2026-09-24, P6.10 R4):** draws the picture above -- step 4's loop, `LOAD` at
+`[(3.75, −0.5), (4.25, 0.5)]`, `N1` at `(2, 1)`, `TE1` at `[(1.7, 1.5), (2.3, 2.1)]` -- and the ladder engine
+no longer does. Its run-length reserve for `TE1`, added after the redraw, counted the supply run's 1.6
+from the *return* rail's end (`CV1`'s outlet at 3.25) and stood `LOAD` at 5.0, with `N1` at 2.5 and `TE1`
+over it. The run already measured 3.75; nothing needed the metre. The composed engine counts a unit's
+inlet run from the top rail's end and its outlet run from the bottom rail's (`28` E3), so the parity
+gate lists step 10 as the ladder engine's drift, not the composed engine's. Accepted (2026-09-24).
+
 **Redrawn (2026-09-23, `D-152`):** the user's sketch -- a signal crosses the drawing; nothing moves aside
 for it. The demand-step loop's `TC1` line leaves the controller's left and drops through the loop into
 `NS__TE`'s left, `(2.25, −1.8) → (2, −1.8) → (2, 2.3) → (3.15, 2.3)`, 5.5 long where it had been 7.8

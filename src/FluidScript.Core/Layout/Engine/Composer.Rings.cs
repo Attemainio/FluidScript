@@ -13,6 +13,7 @@ internal sealed partial class Composer
     private readonly Dictionary<int, double> _hangFloor = [];
     private string? _declined;
     private bool _floorRaised;
+    private int _pass;
 
     /// <summary>Lays the body the plan names, each form that fits the plan in turn until one draws it; with none, the head stands at the origin for the chain rules (C1).</summary>
     private void Form(FragmentPlan plan, ImmutableArray<int> members, string subject)
@@ -37,7 +38,7 @@ internal sealed partial class Composer
 
     /// <summary>
     /// Runs a ring form until its columns stand over their merges (C14): a pass that finds a merge the bottom rail put
-    /// right of its column raises that column's floor, and the form is laid again from the state it started in. Three
+    /// right of its column raises that column's floor, and the form is laid again from the state it started in. Four
     /// passes at most; the last stands as drawn.
     /// </summary>
     private bool Settled(Func<bool> form)
@@ -48,13 +49,14 @@ internal sealed partial class Composer
         {
             var start = new Attempt(this);
             _floorRaised = false;
+            _pass = pass;
 
             if (!form())
             {
                 return false;
             }
 
-            if (!_floorRaised || pass == 2)
+            if (!_floorRaised || pass == 3)
             {
                 return true;
             }

@@ -669,14 +669,19 @@ Bottom-up: every structure lays itself out on its own canvas, then reports its *
   cursor stopped short of it by the run length the merge's onward run needs, and the bottom rail lies a
   whole return's run length under the column (bubbles included). Where the bottom rail still cannot
   put the merge under its column -- a pump on the rail before it, a long reserved run -- the ring is laid
-  again from the state it started in with that split held over the merge; three passes at most. A merge
+  again from the state it started in with that split held over the merge; four passes at most. The first
+  pass lays the bottom rail as if no column hung over it, so the merge it finds is where the rail itself
+  wants it: a column hung early would push a tall rail member (a pump) past itself, and a split held over
+  the merge that pushed it keeps the gap after the pump has moved back, since a hold only moves right. A merge
   a column returns to never takes C10's corner under the right side's outlet. A block's merge is held the
   same way, a margin short of its outlet.
 - **Room for what a unit carries** *(built P6.10 R4)*. A hanging block hangs low enough that its devices'
   bubbles, and a bubble over each sensor point on its own level pipes (the side C15 tries first), clear
   the rail it hangs from by a margin. A unit sliding into place (C11) goes on until its pipes clear every
   placed box and bubble and the pipes the form has laid clear its own -- the first of E3's pipe bands,
-  within one form; across forms it is R5's. A sensor on a pipe's point has no side until C15 chooses
+  within one form; across forms it is R5's. The run length it needs is counted from the run's own
+  far end: the unit's inlet run from the top rail's end, its outlet run from the bottom rail's, so a
+  sensor on the rail with more members pushes the unit no further than its own run needs. A sensor on a pipe's point has no side until C15 chooses
   it, so placement keeps clear of where it will stand: a bubble over the point where its run is level
   (the side tried first) or to its left where the run is vertical; the right side's descent keeps
   clear of those too. A node's instruments count in its footprint as a device's do.
