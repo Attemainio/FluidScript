@@ -1591,8 +1591,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     rule lays is named with its connections' ids; a skew one is refused for the router, a stale one taken back.
     Every accepted picture unchanged (parity, hard 0); the stress plant's diagonals are gone, its two skew
     producers filed as `C-133`, and the new checks' findings there added to `C-129` and `C-132`. Core 2360/0.
-    Next: the user's choice between R5 (pipe bands in the occupancy across forms, H11) and the ladder
-    steps for `C-129`–`C-133`.
+  - **Fixes the diagnostics pointed at (2026-09-24, the user's go-ahead):** a unit's descent lands where the
+    bottom rail ends (`C-133` part 2); a ring's consumer is read by the side the ring passes, so a heat source's
+    second side is one (`C-132`, its filed mechanism corrected); a branch that rejoins its rail -- the duty/standby
+    pair -- runs as a row under it (`C-130`, built, awaiting the picture). Each compared on all 50 scripts: no
+    accepted picture moved. Core 2361/0.
+    Next: two design questions put to the user -- headers in series (`C-131`: the direct-return wiring makes header
+    A's return run back towards the source) and the buffer tank between two loops (`C-129`: which tank ports face
+    which loop) -- then R5 (pipe bands in the occupancy across forms, H11).
 - **Then P6.3**, controllers, actuator limits and anti-windup. Its blocker is gone; P6.10 runs first (the user's call).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
