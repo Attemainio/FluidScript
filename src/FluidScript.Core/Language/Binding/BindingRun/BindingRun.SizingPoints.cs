@@ -53,6 +53,10 @@ internal sealed partial class BindingRun
     // Each parameter's capacity, the design case's: the first evaluation stores it, and later cases read the same point.
     private readonly Dictionary<ValueId, Quantity> _capacities = [];
 
+    // Set when an evaluation at a sizing point actually read the point, directly or through a curve: a capacity
+    // is a value the point changed, and a parameter that never reads it has none.
+    private bool _pointRead;
+
     /// <summary>Binds a declaration's <c>sized_at</c> clause, if it wrote one.</summary>
     /// <param name="declaration">The declaration.</param>
     /// <param name="componentName">Its name, already known to be unique.</param>
@@ -71,8 +75,11 @@ internal sealed partial class BindingRun
 
         foreach (var argument in declaration.SizingPoint)
         {
+            // Language 2's driver is the `let` the point names, by its exact spelling (`D-170`, `D-175`); language 1's
+            // is a schedule role, `tout` and `outdoor` one driver. Resolving a language 2 name through the roles turned
+            // `sized_at.demnad` into the role `demand`, which the file's `let demand` happened to share.
             var written = argument.Name.Text;
-            var role = ScheduleRoleRegistry.Resolve(written);
+            var role = parse.Language == 2 ? null : ScheduleRoleRegistry.Resolve(written);
             var key = role?.CanonicalName ?? written;
 
             if (point.TryGetValue(key, out var existing))
@@ -152,7 +159,7 @@ internal sealed partial class BindingRun
         if (pending.Id is not ValueId.ComponentParameter parameter
             || !_sizingPoints.TryGetValue(parameter.Component, out var point)
             || point.Count == 0
-            || !pending.Dependencies.Any(static dependency => dependency is ValueId.Curve)
+            || !pending.Dependencies.Any(static dependency => dependency is ValueId.Curve or ValueId.Let)
             || AtSizingPoint(pending) is not { } capacity
             || capacity.Dimension != value.Dimension)
         {
@@ -170,6 +177,7 @@ internal sealed partial class BindingRun
     private Quantity? AtSizingPoint(PendingValue pending)
     {
         _atSizingPoint = true;
+        _pointRead = false;
         _evaluating = pending.Id;
 
         try
@@ -180,7 +188,7 @@ internal sealed partial class BindingRun
                 ImmutableArray.CreateBuilder<Diagnostic>(),
                 pending.Target?.Info.Dimension);
 
-            if (evaluator.Evaluate(pending.Expression) is not EvaluationResult.Value at)
+            if (evaluator.Evaluate(pending.Expression) is not EvaluationResult.Value at || !_pointRead)
             {
                 return null;
             }
@@ -193,6 +201,101 @@ internal sealed partial class BindingRun
         {
             _atSizingPoint = false;
             _evaluating = null;
+        }
+    }
+
+    /// <summary>The value a component's own point gives a <c>let</c> it names, while that component's capacity is read.</summary>
+    /// <param name="name">The <c>let</c>'s name.</param>
+    /// <returns>The point's value, a bare number in the <c>let</c>'s own unit; <see langword="null"/> outside a capacity read.</returns>
+    private Quantity? PointValueFor(string name)
+    {
+        if (!_atSizingPoint
+            || _evaluating is not ValueId.ComponentParameter parameter
+            || !_sizingPoints.TryGetValue(parameter.Component, out var point))
+        {
+            return null;
+        }
+
+        var key = point.ContainsKey(name) ? name : parse.Language == 2 ? null : ScheduleRoleRegistry.Resolve(name)?.CanonicalName;
+        if (key is null
+            || !point.ContainsKey(key)
+            || !_pending.TryGetValue(new ValueId.SizingPoint(parameter.Component, key), out var given)
+            || given.Value is not { } value
+            || !_bindingsByName.TryGetValue(name, out var slot)
+            || !_pending.TryGetValue(slot.Id, out var let)
+            || let.Value is not { } current)
+        {
+            return null;
+        }
+
+        _pointRead = true;
+
+        // A bare point is written in the `let`'s own unit, as a curve's rows are.
+        return value.Dimension == Dimension.Dimensionless && current.Dimension != Dimension.Dimensionless
+            && LetUnit(let, current.Dimension) is { } unit
+                ? Quantity.FromUnit(value.SiValue, unit)
+                : value;
+    }
+
+    /// <summary>The number a point is reported at: in its role's unit, or in the unit its <c>let</c> is written in.</summary>
+    private double? PointNumber(string component, string key, DesignValue entry)
+    {
+        var id = new ValueId.SizingPoint(component, key);
+
+        if (entry.Role is not null || !_pending.TryGetValue(id, out var given) || given.Value is not { } value)
+        {
+            return Number(id, entry.Role);
+        }
+
+        // A `let` gives its own unit; a name no `let` has, the value's own dimension's.
+        return _bindingsByName.ContainsKey(key)
+            ? LetNumber(key, value)
+            : UnitTable.CanonicalUnitFor(value.Dimension) is { } unit ? value.ValueIn(unit) : value.SiValue;
+    }
+
+    /// <summary>Warns of a sizing point none of a component's parameters read (<c>FS1549</c>).</summary>
+    private void ReviewSizingPoints()
+    {
+        foreach (var (component, point) in _sizingPoints)
+        {
+            if (point.Count == 0 || _capacities.Keys.Any(id => id is ValueId.ComponentParameter parameter && parameter.Component == component))
+            {
+                continue;
+            }
+
+            // A point in another dimension than its `let` is that mismatch, not a point nothing reads.
+            var mismatched = false;
+            foreach (var (key, entry) in point)
+            {
+                if (parse.Language == 2
+                    && _bindingsByName.TryGetValue(key, out var slot)
+                    && _pending.TryGetValue(slot.Id, out var let) && let.Value is { } current
+                    && _pending.TryGetValue(new ValueId.SizingPoint(component, key), out var given) && given.Value is { } value
+                    && value.Dimension != Dimension.Dimensionless && value.Dimension != current.Dimension)
+                {
+                    Report(
+                        BinderDiagnostics.ParameterDimensionMismatch,
+                        entry.Span,
+                        ("parameter", $"sized_at.{entry.WrittenName}"),
+                        ("expected", BinderDiagnostics.Expected(current.Dimension)),
+                        ("value", parse.Source.ToString(given.Expression.Span).Trim()),
+                        ("actual", value.Dimension.Name.ToLowerInvariant()));
+                    mismatched = true;
+                }
+            }
+
+            if (mismatched)
+            {
+                continue;
+            }
+
+            var first = point.Values.First();
+            Report(
+                BinderDiagnostics.SizingPointUnread,
+                first.Span,
+                ("component", component),
+                ("point", string.Join(" ", point.Select(entry => $"{entry.Value.WrittenName}={FormatNumber(PointNumber(component, entry.Key, entry.Value))}"))),
+                ("driver", first.WrittenName));
         }
     }
 
@@ -217,12 +320,19 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        // A `let` driver is found by its own name or by the role that name spells: `sized_at.outdoor` declares the
-        // point under the role `tout` that `outdoor` is a spelling of, and a curve on `let outdoor` looks up `outdoor`.
-        var key = curve.DriverRole?.CanonicalName ?? driver;
-        if (!point.ContainsKey(key) && ScheduleRoleRegistry.Resolve(driver)?.CanonicalName is { } role && point.ContainsKey(role))
+        // Found by the driver's own name first, which is how language 2 declares a point (the `let` it names), then by
+        // the role language 1 declares it under: `sized_at tout=-5` for a curve on `tout` or `outdoor`.
+        var key = point.ContainsKey(driver)
+            ? driver
+            : curve.DriverRole?.CanonicalName is { } role && point.ContainsKey(role)
+                ? role
+                : ScheduleRoleRegistry.Resolve(driver)?.CanonicalName is { } spelled && point.ContainsKey(spelled)
+                    ? spelled
+                    : curve.DriverRole?.CanonicalName ?? driver;
+
+        if (point.ContainsKey(key))
         {
-            key = role;
+            _pointRead = true;
         }
 
         double? x = point.TryGetValue(key, out var stated)
@@ -267,7 +377,7 @@ internal sealed partial class BindingRun
         {
             var id = new ValueId.SizingPoint(componentName, key);
             _pending.TryGetValue(id, out var pending);
-            published[key] = entry with { Value = pending?.Value, Number = Number(id, entry.Role) };
+            published[key] = entry with { Value = pending?.Value, Number = PointNumber(componentName, key, entry) };
         }
 
         return published.ToImmutable();
@@ -282,7 +392,7 @@ internal sealed partial class BindingRun
         if (!_sizingPoints.TryGetValue(componentName, out var point)
             || point.Count == 0
             || pending.Value is not { } sized
-            || !pending.Dependencies.Any(static dependency => dependency is ValueId.Curve))
+            || !_capacities.ContainsKey(pending.Id))
         {
             return null;
         }
@@ -290,7 +400,7 @@ internal sealed partial class BindingRun
         var at = string.Join(
             " ",
             point.Select(entry =>
-                $"{entry.Value.WrittenName}={FormatNumber(Number(new ValueId.SizingPoint(componentName, entry.Key), entry.Value.Role))}"));
+                $"{entry.Value.WrittenName}={FormatNumber(PointNumber(componentName, entry.Key, entry.Value))}"));
 
         // The capacity, which is what the point sets; the design day's value is held to it and may be smaller.
         sized = _capacities.GetValueOrDefault(pending.Id, sized);

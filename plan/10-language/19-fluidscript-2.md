@@ -388,10 +388,11 @@ aliases of the sensor kinds. A two-sided exchanger's sides are **`primary` and `
 families keep brackets: `layer[3].t`, `in[2].level` on a tank. The wider vocabulary review — `duty`,
 `rise`, `kvs`, direction taken from the kind — is open question 2.
 
-**A component's own sizing point is a setting per driver**, `sized_at.outdoor = -5 C` (`D-175`, amending `D-94`):
-the driver named as the `let` or role its curves read, the value in the driver's unit (a bare number is taken in
-the unit the `let` is written in). The parameters that read a curve take their value there as a **capacity**, and
-are held to it in magnitude in every case and at every step of a run: a heat pump sized at −5 °C on a 50 kW
+**A component's own sizing point is a setting per driver**, `sized_at.outdoor = -5 C` (`D-175`, `D-176`, amending
+`D-94`): the driver is any `let`, of any quantity, named by its exact spelling, and the value is read in the `let`'s
+unit (a bare number is taken in it). Each parameter that reads the `let`, directly or through curves, takes its value
+there as a **capacity**, and is held to it in magnitude in every case and at every step of a run. A point nothing reads
+is `FS1549`. With `let demand = [50, 16.3] kW`, `power = demand  sized_at.demand = 27.2 kW` gives 27.2 and 16.3 kW; a heat pump sized at −5 °C on a 50 kW
 heating curve gives 27.2 kW on the −26 °C design day, the boiler the other 22.8, and the whole of a 5 °C day's
 16.3 kW with the boiler at nothing. The basis line reports the capacity and its share of the design day.
 

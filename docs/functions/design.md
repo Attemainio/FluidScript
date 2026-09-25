@@ -109,11 +109,22 @@ pump above its bivalence point turns down. With a mild case at 5 °C beside the 
 The limit applies to the size of the value, so a chiller sized at 28 °C on a 32 °C cooling curve is
 held the same way.
 
-In FluidScript 2 the point is a setting per driver, named as the `let` the curve reads:
+In FluidScript 2 the point is a setting per driver, named as the `let` it sets:
 
 ```
 HP1  heater  power = heating  sized_at.outdoor = -5 C
 ```
+
+The driver can be any `let`, of any quantity, and the parameter can read it directly or through
+curves. A plant whose cases state the heat demand itself sizes the heat pump the same way:
+
+```
+let demand = [50, 16.3] kW
+HP1  heater  power = demand  sized_at.demand = 27.2 kW
+```
+
+That gives 27.2 kW in the first case and all 16.3 kW in the second. A point that none of the
+component's parameters read changes nothing, and `FS1549` says so.
 
 Everything about `design` applies to `sized_at`: the same driver names, the same units, the same
 check that `tout=3 bar` is not a temperature. Name more than one driver on the clause if the curves

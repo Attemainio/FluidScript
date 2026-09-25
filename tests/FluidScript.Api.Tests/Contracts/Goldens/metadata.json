@@ -5217,6 +5217,17 @@
       ]
     },
     {
+      "code": "FS1549",
+      "severity": "warning",
+      "area": "Binder",
+      "message": "'{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point.",
+      "arguments": [
+        "component",
+        "point",
+        "driver"
+      ]
+    },
+    {
       "code": "FS1701",
       "severity": "info",
       "area": "Compatibility",

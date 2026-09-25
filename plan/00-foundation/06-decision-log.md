@@ -218,6 +218,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-173` | Accepted | 2026-09-25 | Property tables are built in memory for the session, on a fixed lattice in (ln p, h), to a stated tolerance |
 | `D-174` | Accepted | 2026-09-25 | Language 2 replaces language 1: it is bound directly, and language 1 is removed once its corpus is converted and proven |
 | `D-175` | Accepted | 2026-09-25 | What converting language 1 found: a three-way valve is labelled by the plant, `sized_at` states a capacity, and language 1's other extras are dropped |
+| `D-176` | Accepted | 2026-09-26 | `sized_at` names any `let`, read directly or through a curve, by its exact spelling |
 <!-- index:end -->
 
 ---
@@ -7967,3 +7968,35 @@ closed function set (`14`) for it; *write the capacity as a number* — right, a
 **Constrains.** `19` (§Connections rule 2, the component settings, open question 7 closed), `24` (a capacity held
 per case), `docs/functions/design.md` and `curve.md` (the language 2 page for `sized_at`), `ValveLegs` and the
 translation (one test, not two), the converter's proof.
+
+## D-176 · `sized_at` names any `let`, read directly or through a curve, by its exact spelling
+
+**Accepted · 2026-09-26** (the user's: "we can have systems which do not depend on the outdoor at all … the values
+or cases or scenarios can be declared anything such as temperature, heat, pressure") · amends `D-175` rule 2 ·
+constrains [`19`](../10-language/19-fluidscript-2.md) §Declarations, `docs/functions/design.md`
+
+**What was wrong.** `D-175` carried `D-94`'s mechanism over: a sizing point moved the curves a component reads.
+Language 1 needed nothing more, since a driver reached a parameter only through a curve. Language 2's drivers are
+`let`s of any quantity, and most are read directly. Measured, with `let demand = [50, 16.3] kW`:
+
+| Written | Before |
+|---|---|
+| `power = output  sized_at.demand = 27.2 kW`, with `curve output: demand` | 27.2 kW at peak, 16.3 at part load: right |
+| `power = demand  sized_at.demand = 27.2 kW` | 50 kW at peak and nothing said: the point was ignored |
+| `sized_at.demnad = 27.2 kW` (misspelt) | Bound to the language 1 role `demand` by similarity, against `D-170` |
+| `sized_at.dp_avail = 50 kPa` on a `let` in kPa | Right value, reported as `dp_avail=50000` |
+
+**The rule.** `sized_at.X = v` gives each of the component's parameters its value with `X` taken as `v`, wherever the
+parameter reads `X`: directly, in an expression, or through a chain of curves. That value is the parameter's
+capacity, held as `D-175` says. In language 2, `X` is a `let`'s exact name. It is never resolved through language 1's
+schedule roles, and it is reported in the unit the `let` is written in. A point that none of the component's
+parameters read is `FS1549`, a warning. A point in another dimension than its `let` is `FS1304`. One gap remains:
+a parameter that reaches `X` only through another `let` (`let hp = demand * 0.6`, `power = hp`) does not see the
+point, and `FS1549` says so rather than sizing silently.
+
+**Why.** Nothing about a capacity is specific to temperature or to curves; the user's cases are "anything such as
+temperature, heat, pressure". A point the file states and the binder ignores is the failure a sizing tool must not
+have.
+
+**Constrains.** `19` §Declarations; `16`/`15` (`FS1549`); `docs/functions/design.md`; package 6, whose binder has no
+roles for language 2 drivers at all.

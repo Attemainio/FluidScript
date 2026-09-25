@@ -1085,6 +1085,7 @@ above, never to a `let`.
 | `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value.` |
 | `FS1547` | `start=` in a file no circuit of which is solved in time (`D-149`) | Warning | `Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.` |
 | `FS1548` | A sensor's `at`, or a `measure=` naming a node, reads a node where more than two connections meet (`D-150`) | Error | `'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.` |
+| `FS1549` | A component's `sized_at` names a driver none of its parameters read, directly or through a curve (`D-175`) | Warning | `'{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point.` |
 
 **`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
 matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`

@@ -39,6 +39,13 @@ internal sealed partial class BindingRun
                 return new ScopeLookup.UnknownName(ClosestName(head));
             }
 
+            // A component's own sizing point stands in for the `let` it names while that component's capacity is
+            // read (`D-175`): `power = demand  sized_at.demand = 27.2 kW` is 27.2 kW there, whatever the case says.
+            if (PointValueFor(head) is { } point)
+            {
+                return new ScopeLookup.Value(point, IsBare: false, binding.Id);
+            }
+
             return _pending.TryGetValue(binding.Id, out var pending) && pending.Value is { } value
                 ? new ScopeLookup.Value(value, IsBare: false, binding.Id)
                 : new ScopeLookup.Deferred(binding.Id);

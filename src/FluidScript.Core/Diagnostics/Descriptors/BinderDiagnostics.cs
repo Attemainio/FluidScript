@@ -897,6 +897,19 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.");
 
+    /// <summary>A component's own sizing point that none of its parameters read (<c>D-175</c>).</summary>
+    /// <value><c>FS1549</c>, a warning.</value>
+    /// <remarks>
+    /// <c>sized_at.demand = 27.2 kW</c> gives the component a capacity only through a parameter that reads
+    /// <c>demand</c>, directly or through a curve. Naming a driver nothing reads -- a misspelling, or a <c>let</c> the
+    /// parameters reach only through another <c>let</c> -- changed nothing and used to say nothing, so the component
+    /// was sized at the design day while the file said otherwise.
+    /// </remarks>
+    public static DiagnosticDescriptor SizingPointUnread { get; } = new(
+        "FS1549",
+        DiagnosticSeverity.Warning,
+        "'{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point.");
+
     /// <summary>Spells the dimension a parameter expects, for <c>FS1304</c>.</summary>
     /// <param name="dimension">The parameter's dimension.</param>
     /// <returns>The lower-case name; for a head, the definition too, since that is the mismatch people write (<c>L-60</c>).</returns>
@@ -908,7 +921,7 @@ public static class BinderDiagnostics
     }
 
     /// <summary>Gets every code the binder emits, for the registry to collect.</summary>
-    /// <value>Seventy-six descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Seventy-seven descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         ScenarioCountMismatch,
@@ -920,6 +933,7 @@ public static class BinderDiagnostics
         ClockWithoutStart,
         StartWithoutClock,
         MeasuredJunction,
+        SizingPointUnread,
         LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,

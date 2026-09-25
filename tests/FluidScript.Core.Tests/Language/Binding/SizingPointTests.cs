@@ -243,4 +243,68 @@ public sealed class SizingPointTests
         Assert.Equal(27_173.913, Power(model, "HP1", 0), 3);
         Assert.Equal(16_304.348, Power(model, "HP1", 1), 3);
     }
+
+    /// <summary>A heat demand stated per case and read directly, the way language 2 writes most drivers: nothing about the
+    /// point needs a curve or an outdoor temperature (<c>D-175</c>).</summary>
+    private const string Demand = """
+        fluidscript 2
+        project "p":
+          cases = [peak, part]
+        let demand = [50, 16.3] kW
+        circuit "c":
+          fluid = water
+          HP1  load  in.t = 50 C  out.t = 30 C  power = demand  sized_at.demand = 27.2 kW
+          BL1  load  in.t = 50 C  out.t = 30 C  power = demand
+        """;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ALetReadDirectlyIsReadAtThePoint()
+    {
+        var model = Model2(Demand);
+
+        Assert.Equal(27_200, Power(model, "HP1", 0), 6);
+        Assert.Equal(16_300, Power(model, "HP1", 1), 6);
+        Assert.Equal(50_000, Power(model, "BL1", 0), 6);
+        Assert.Equal(27_200, Component(model, "HP1").Capacities["power"].SiValue, 6);
+        Assert.Equal(
+            "27.2 kW at demand=27.2, 0.54 of the 50 kW the design day asks",
+            Component(model, "HP1").Parameters["power"].Basis);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APointNothingReadsIsSaid()
+    {
+        var source = new SourceText(Demand.Replace("sized_at.demand", "sized_at.demnad", StringComparison.Ordinal));
+        var result = new Binder(ComponentRegistry.Default).Bind(
+            MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default));
+
+        var unread = Assert.Single(result.Diagnostics, static d => d.Code == "FS1549");
+        Assert.Equal(
+            "'HP1' is sized at demnad=27.2, and none of its parameters read 'demnad', so it changes nothing. Read 'demnad' in a parameter, directly or through a curve, or remove the point.",
+            unread.Message);
+        Assert.Equal(50_000, Power(result.Model, "HP1", 0), 6);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void APointIsReportedInTheUnitItsLetIsWrittenIn()
+    {
+        var model = Model2("""
+            fluidscript 2
+            project "p":
+              cases = [high, low]
+            let dp_avail = [80, 20] kPa
+            curve pump_head: dp_avail
+              0    2
+              100  12
+            circuit "c":
+              fluid = water
+              PU1 pump  head = pump_head  sized_at.dp_avail = 50 kPa
+            """);
+
+        Assert.Equal(50, Assert.Single(Component(model, "PU1").SizingPoint).Value.Number);
+        Assert.StartsWith("7 at dp_avail=50,", Component(model, "PU1").Parameters["head"].Basis, StringComparison.Ordinal);
+    }
 }

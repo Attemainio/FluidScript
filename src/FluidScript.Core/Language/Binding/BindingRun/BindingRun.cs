@@ -56,6 +56,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         Evaluate();
         ReviewComponents();
         ReviewCurveReferences();
+        ReviewSizingPoints();
         ReviewStart();
         ReviewLegacyReferences();
         BindTopology(circuits);
