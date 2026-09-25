@@ -114,7 +114,9 @@ export function SceneView({
                 )}
                 <text
                   data-owner={label.ownerId}
-                  className={label.inferred ? 'scene__label scene__label--inferred' : 'scene__label'}
+                  className={
+                    label.inferred ? 'scene__label scene__label--inferred' : 'scene__label'
+                  }
                   transform={`translate(${label.at.x} ${label.at.y}) scale(1 -1)`}
                   textAnchor="middle"
                 >

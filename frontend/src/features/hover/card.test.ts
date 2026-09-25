@@ -10,7 +10,10 @@ import { bindingCard, componentCard, connectionCard, formatValue, quantityCard }
 const metadata = JSON.parse(
   readFileSync(
     fileURLToPath(
-      new URL('../../../../tests/FluidScript.Api.Tests/Contracts/Goldens/metadata.json', import.meta.url),
+      new URL(
+        '../../../../tests/FluidScript.Api.Tests/Contracts/Goldens/metadata.json',
+        import.meta.url,
+      ),
     ),
     'utf8',
   ),
@@ -75,7 +78,9 @@ describe('the hover card', () => {
       (c) => c.from.component === pipe.id || c.to.component === pipe.id,
     )!;
     const card = connectionCard(loop, connection.id)!;
-    expect(card.state.map((r) => r.label)).toEqual(expect.arrayContaining(['flow', 'velocity', 'Re', 'Δp']));
+    expect(card.state.map((r) => r.label)).toEqual(
+      expect.arrayContaining(['flow', 'velocity', 'Re', 'Δp']),
+    );
     expect(card.state.find((r) => r.label === 'velocity')!.unit).toBe('m/s');
     expect(componentCard(loop, pipe.id, [])!.state.map((r) => r.label)).toContain('Re');
   });

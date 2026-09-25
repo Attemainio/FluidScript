@@ -245,7 +245,9 @@ describe('value completion is dimension-filtered', () => {
     const dp = at('HE1 heat_exchanger dp=').items.find((i) => i.label === 'laterDp');
     expect(dp?.dimmed).toBe(true);
     expect(dp?.detail).toContain('PressureDelta');
-    expect(at('HE1 heat_exchanger power=').items.find((i) => i.label === 'laterDp')).toBeUndefined();
+    expect(
+      at('HE1 heat_exchanger power=').items.find((i) => i.label === 'laterDp'),
+    ).toBeUndefined();
   });
 
   it('offers an unnamed-dimension let dimmed with its derived unit, where the filter is off', () => {

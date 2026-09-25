@@ -26,18 +26,25 @@ describe('prepareScene', () => {
       // The layout boxed the labels from its declared metric; the canvas draws them with this font. The two
       // must agree, or a label the layout kept clear overflows on screen.
       // The size leaves Core rounded to a micro world unit, which is 6e-5 px at 60 px per unit.
-      expect(model.layout.labelMetric.size * worldUnitPx).toBeCloseTo(typeMetrics.canvasLabel.sizePx, 3);
+      expect(model.layout.labelMetric.size * worldUnitPx).toBeCloseTo(
+        typeMetrics.canvasLabel.sizePx,
+        3,
+      );
       expect(model.layout.labelMetric.advance).toBe(typeMetrics.canvasLabel.advanceEm);
 
       const scene = prepareScene(model);
       for (const label of scene.labels) {
         const placement = model.layout.placements.find((p) => p.componentId === label.ownerId)!;
-        expect([label.box.x, label.box.y, label.box.width, label.box.height]).toEqual(placement.labelBox);
+        expect([label.box.x, label.box.y, label.box.width, label.box.height]).toEqual(
+          placement.labelBox,
+        );
         expect(label.clear).toBe(placement.labelClear);
         // Boxes cross the wire at four decimals.
         expect(label.box.height).toBeCloseTo(model.layout.labelMetric.size, 3);
         expect(label.box.width).toBeCloseTo(
-          Math.max(1, label.text.length) * model.layout.labelMetric.advance * model.layout.labelMetric.size,
+          Math.max(1, label.text.length) *
+            model.layout.labelMetric.advance *
+            model.layout.labelMetric.size,
           3,
         );
       }

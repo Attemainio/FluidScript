@@ -220,7 +220,11 @@ export function quantityCard(text: string, metadata: Metadata): Card | null {
     state.push({ label: 'SI', value: formatValue(si), unit: dimension.siUnit });
     for (const to of dimension.conversions) {
       if (to.symbol !== symbol && to.symbol !== dimension.siUnit) {
-        state.push({ label: to.symbol, value: formatValue((si - to.offset) / to.factor), unit: to.symbol });
+        state.push({
+          label: to.symbol,
+          value: formatValue((si - to.offset) / to.factor),
+          unit: to.symbol,
+        });
       }
     }
   }
