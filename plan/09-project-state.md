@@ -1427,15 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **51** | |
+| | **52** | |
 
-Recounted 2026-09-25 after `L-66` and `L-67` (P6.11 package 4) were filed: 51.
+Recounted 2026-09-25 after `L-68` (P6.11 package 5) was filed: 52.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
 the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
@@ -1807,6 +1807,22 @@ that governed each size. What P6.8 still owes, and what comes after:
     `docs/`, scripts inline in 53 C# test files and 11 frontend files. The binder reads 44 syntax node types on
     182 lines, about half of them expressions language 2 shares, so package 6 replaces a statement layer, not the
     binder. **Next: package 5.** `L-65` (language 2's controller parameters in language 1) closes with the switch.
+  - **`P6.11` package 5 (2026-09-25): the corpus converted and proven, waiting on the user's decisions.** A
+    language 1 → language 2 converter in the test project (`Language1Converter`, a development tool deleted at the
+    switch) reads the language 1 tree for the text -- expressions as written, comments carried with their
+    statement -- and the language 1 model for what the text leaves implicit (a circuit's role, a port chosen by
+    order); it writes a port only where language 2's inference would choose another, found by binding its own
+    output. `ki`/`kd` become `ti = kp/ki`, `td = kd/kp` (`34`'s parallel form), `project start=` the run's `start`,
+    `design tout=` a `let`, and a curve reading a design value through its role names that let. The proof,
+    `Language1ConversionTests`, compares whole models (every parameter in every case, every port, control,
+    curve and event) and whole solve reports: **52 of 53 files bind to the same model, 44 give a word-for-word
+    identical solve report**, 76 of 85 clean markdown blocks bind to the same model; a mutation test shows the
+    comparison sees a 1 kW duty change and an exchanger's sides swapped. What does not convert is `19`'s open
+    question 7 (six features, each for the user to keep or drop) and `L-68`: language 1 labels an unwritten
+    three-way valve by order but sizes it by geometry, and in 8 files the two disagree -- the only difference in
+    their solves. Of the scripts inline in tests, 110 bind to the same model; the rest are fragments written
+    to raise a language 1 error, or wait on question 7. They convert at the switch. Converted comments that still describe language 1 are listed for a
+    person to reword. **Next: the user's decisions on question 7 and `L-68`, then package 6.**
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1876,7 +1892,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2623 total, 0 failed, 3 skipped** (2026-09-25), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2817 total, 0 failed, 12 skipped** (2026-09-25; 9 of the skips are package 5's, waiting on `L-68` and `19`'s question 7), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
