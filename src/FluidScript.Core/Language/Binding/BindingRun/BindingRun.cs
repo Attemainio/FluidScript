@@ -117,7 +117,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             switch (statement)
             {
                 case CircuitHeaderSyntax header:
-                    current = new CircuitBlock(header, []);
+                    current = new CircuitBlock(CircuitHead.Of(header), []);
                     blocks.Add(current);
 
                     // A circuit starts from the project's style, not from the previous circuit's.
@@ -190,6 +190,14 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             blocks.Add(new CircuitBlock(null, []));
         }
 
+        // Language 1 writes a circuit's fluid as a statement inside its block; the binder reads it off the block.
+        foreach (var block in blocks)
+        {
+            block.Fluid ??= block.Statements.OfType<FluidDirectiveSyntax>().FirstOrDefault() is { } fluid
+                ? new CircuitFluid(fluid.Substance.Token.Text, fluid.Mode, fluid.Span)
+                : null;
+        }
+
         AssignCircuits(blocks);
 
         return blocks;
@@ -243,9 +251,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var block in blocks)
         {
-            if (block.Header?.Number?.Value is { } stated)
+            if (block.Head?.Number is { } stated)
             {
-                used.Add((int)stated);
+                used.Add(stated);
             }
         }
 
@@ -253,21 +261,21 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var block in blocks)
         {
-            var header = block.Header;
-            var name = header?.Name.Text ?? documentName;
-            var span = header?.Span ?? new TextSpan(0, 0);
+            var head = block.Head;
+            var name = head?.Name ?? documentName;
+            var span = head?.Span ?? new TextSpan(0, 0);
 
-            if (header is null)
+            if (head is null)
             {
                 Report(BinderDiagnostics.NoCircuitHeader, span, ("name", name));
             }
 
             int number;
-            var explicitNumber = header?.Number is not null;
+            var explicitNumber = head?.Number is not null;
 
             if (explicitNumber)
             {
-                number = (int)header!.Number!.Value;
+                number = head!.Number!.Value;
 
                 if (_circuits.Any(circuit => circuit.Number == number))
                 {
@@ -317,7 +325,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 NumberIsExplicit = explicitNumber,
                 Substance = Substance(block),
                 Mode = mode,
-                Role = RoleOfCircuit(header, name, span),
+                Role = RoleOfCircuit(head, name, span),
                 DeclarationSpan = span,
             });
 
@@ -325,12 +333,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         }
     }
 
-    private static string? Substance(CircuitBlock block) =>
-        block.Statements.OfType<FluidDirectiveSyntax>().FirstOrDefault()?.Substance.Token.Text;
+    private static string? Substance(CircuitBlock block) => block.Fluid?.Substance;
 
     private FluidMode ModeOf(CircuitBlock block, string name, TextSpan span)
     {
-        var fluid = block.Statements.OfType<FluidDirectiveSyntax>().FirstOrDefault();
+        var fluid = block.Fluid;
         var stated = fluid?.Mode;
 
         if (stated is null)
@@ -358,8 +365,8 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     /// A language 2 circuit's title is free text in quotes, so it says nothing about the role; a circuit that
     /// states no <c>role</c> is neutral without a word, where language 1 would report that its name is no role.
     /// </remarks>
-    private CircuitRole RoleOfCircuit(CircuitHeaderSyntax? header, string name, TextSpan span) =>
-        header?.Role is { } stated
+    private CircuitRole RoleOfCircuit(CircuitHead? head, string name, TextSpan span) =>
+        head?.Role is { } stated
             ? RoleOf(stated.Text, stated.Span)
             : parse.Language == 2
                 ? CircuitRoleRegistry.Neutral
@@ -513,10 +520,36 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return unit is null ? text : $"{text} {unit}";
     }
 
-    private sealed record CircuitBlock(CircuitHeaderSyntax? Header, List<StatementSyntax> Statements)
+    /// <summary>One circuit's statements, and the circuit as the binder reads it from either language (<c>D-177</c>).</summary>
+    /// <param name="Head">The header, or <see langword="null"/> for the implicit circuit a file with none gets.</param>
+    /// <param name="Statements">The statements inside it.</param>
+    private sealed record CircuitBlock(CircuitHead? Head, List<StatementSyntax> Statements)
     {
         public CircuitSymbol? Circuit { get; set; }
+
+        /// <summary>Gets or sets the circuit's fluid: language 1's line in the block, language 2's setting.</summary>
+        public CircuitFluid? Fluid { get; set; }
     }
+
+    /// <summary>A circuit's header as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
+    /// <param name="Name">The name, language 1's identifier or language 2's quoted title.</param>
+    /// <param name="Span">Where the header is written.</param>
+    /// <param name="Number">The number written, if any.</param>
+    /// <param name="Role">The role written, with where, if any.</param>
+    private sealed record CircuitHead(string Name, TextSpan Span, int? Number, (string Text, TextSpan Span)? Role)
+    {
+        public static CircuitHead Of(CircuitHeaderSyntax header) => new(
+            header.Name.Text,
+            header.Span,
+            header.Number?.Value is { } number ? (int)number : null,
+            header.Role is { } role ? (role.Text, role.Span) : null);
+    }
+
+    /// <summary>A circuit's fluid as the binder reads it (<c>D-177</c>).</summary>
+    /// <param name="Substance">The substance as written.</param>
+    /// <param name="Mode">The solve mode stated with it, or <see langword="null"/> for the project's.</param>
+    /// <param name="Span">Where it is written, which a contradicted mode is reported against.</param>
+    private sealed record CircuitFluid(string Substance, FluidMode? Mode, TextSpan Span);
 
     private sealed record BindingSlot(LetBindingSyntax Declaration, ValueId Id);
 
