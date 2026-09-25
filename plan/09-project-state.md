@@ -1795,6 +1795,18 @@ that governed each size. What P6.8 still owes, and what comes after:
     `ScriptCorpus` marks a sample's language from its version line and the fourteen tests that walk samples by
     path now read language 1's only. Its solve stops at `S-86`, as the reference script's does. Filed `L-66`
     (wording leftovers) and `L-67` (an event after the run's end is silent). Next: package 5, the frontend.
+  - **`D-174` (2026-09-25): language 2 replaces language 1, no code.** Asked to compare the two, the session
+    measured: the same plant parses and binds 5–7 % slower in language 2 (translation 10–20 µs on a 60–90 µs total,
+    under 1 % of a solve, which is shared), in 5–7 % fewer non-space characters, with no ports written where
+    `m2-substation` writes four. The cost is the design: 1.3k lines of translation, 22 language checks in shared
+    code, a second template on 23 codes, `L-66`. The user's call: language 2 only, bound directly, language 1
+    **dropped entirely** (no converter kept), and **before P6.12 and P6.3**. `08`'s P6.11 now runs **5** validate
+    (a converter as a development tool, the whole corpus proven through the translated path), **6** bind directly,
+    **7** the switch and the deletions, **8** the frontend in language 2 only, **9** the docs. Measured scope for
+    package 5: 80 `.fluid` files (26 in the ignored `diagnostics/scratch`), 128 language 1 blocks in `plan/` and
+    `docs/`, scripts inline in 53 C# test files and 11 frontend files. The binder reads 44 syntax node types on
+    182 lines, about half of them expressions language 2 shares, so package 6 replaces a statement layer, not the
+    binder. **Next: package 5.** `L-65` (language 2's controller parameters in language 1) closes with the switch.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

@@ -216,6 +216,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-171` | Accepted | 2026-09-25 | Language 2 declares presentation once in the project block, and a circuit may override it |
 | `D-172` | Accepted | 2026-09-25 | In language 2, `K` is a temperature difference |
 | `D-173` | Accepted | 2026-09-25 | Property tables are built in memory for the session, on a fixed lattice in (ln p, h), to a stated tolerance |
+| `D-174` | Accepted | 2026-09-25 | Language 2 replaces language 1: it is bound directly, and language 1 is removed once its corpus is converted and proven |
 <!-- index:end -->
 
 ---
@@ -7842,3 +7843,57 @@ tolerance's size on an edge, which a finite-difference Jacobian reads as a slope
 **Constrains.** `21` §Property tables and its invariant 7; `08`'s P6.12; the run's start (`33`), which builds its
 tiles before the first step; `C-68`, whose remaining lever this is for the transient; `C-135`, which a blend's
 tables cannot fix.
+
+## D-174 · Language 2 replaces language 1: it is bound directly, and language 1 is removed once its corpus is converted and proven
+
+**Accepted · 2026-09-25** (the user's call: "keep language 2 only — not route to language 1 first but directly; my
+intention was to replace the syntax after validation that everything works"; language 1 files dropped entirely,
+and the switch before P6.12 and P6.3) · supersedes `D-164`'s "a second major beside the first" and its translation
+step, and its `docs/v1/` · `D-165`–`D-169` stand · constrains [`19`](../10-language/19-fluidscript-2.md),
+[`18`](../10-language/18-script-compatibility.md), [`16`](../10-language/16-diagnostics.md), `08`'s P6.11
+
+**What was wrong.** `D-164` kept language 1 current and bound language 2 by translating its tree into language 1's
+statements. P6.11 package 4 measured what that costs. Every diagnostic is raised in language 1's terms, so 23 codes
+needed a second wording and a pass that re-renders them, and four cannot be put right because the port is only
+`in[2]` by the time the message is written (`L-66`). Language 2 can say only what language 1's statements hold (an
+exchanger side has no flow of its own, `primary.flow`). Shared code checks the language in 22 places, and one of
+them broke the steady solve of both languages (package 4's `FollowsTheClock`). And the language 1 corpus keeps
+growing with every test written in it. The user's intention was replacement from the start; `D-164` recorded
+coexistence.
+
+**The rule.**
+
+1. **Language 2 is the only language.** After the switch `SupportedVersions.Default` is current 2, supported {2}. A
+   `fluidscript 1` file is an unsupported older major under `18`'s existing policy: viewable as text, never compiled
+   or migrated. No converter is kept and nothing imports language 1 — the user's call, the project having no
+   language 1 files outside this repository worth a maintained importer. A file with no version line is language 2.
+2. **The binder reads the language 2 tree.** What the translation decides — port inference by flow direction,
+   the controller declaration, cases and drivers, runs — moves into the binder; what it only respells is deleted,
+   and with it `Language2Wording` and `DiagnosticDescriptor.Language2Template`: each language 2 wording becomes its
+   code's one template.
+3. **Nothing is deleted before it is proven.** In order:
+   1. *Validate.* A mechanical language 1 → language 2 converter, a development tool and never a product
+      feature, converts the whole corpus: `samples/`, the layout ladder, variants and stress files, the fenced
+      blocks in `plan/` and `docs/`, and the scripts inline in tests and the frontend. Each converted script must
+      bind to the same model and give the same solve as its original through today's translated path, spans
+      aside. What the converter cannot express is a list of decisions for the user — a feature dropped, or added
+      to language 2 — never a silent loss.
+   2. *Bind directly.* On the converted corpus, the direct binder produces the model the translated path does.
+   3. *Switch.* The converted corpus replaces the original; goldens regenerate, and a golden that changes
+      beyond its spans is a defect. The language 1 lexer rules, parser, printer paths and binder statement layer,
+      the translation, the wording pass and the converter are deleted.
+4. **Before P6.12 and P6.3**, so that no later package writes tests in a language about to go.
+
+**Why.** Replacement was the intent, and package 4 measured coexistence's price. The translation is not wasted:
+its tree-to-model semantics move into the binder, and until then it is the reference every converted script is
+checked against — which is why deletion comes last.
+
+**Rejected.** *Both languages indefinitely* (`D-164` as written) — the costs above, permanently. *Bind directly
+first, validate after* — nothing to compare against once the translation is gone. *Keep the translation and convert
+the corpus* — keeps the second wording, `L-66` and the 22 checks. *Convert on open* — a maintained converter with
+diagnostics of its own, for files that do not exist. *Refuse and keep the converter as an import tool* — the user
+chose to drop language 1 entirely.
+
+**Constrains.** `19` (translation, invariants 6 and 7, acceptance), `18` (the supported set after the switch),
+`16` (one template per code), `08`'s P6.11 packages 5 onward, the frontend editor (language 2 only), `docs/` (no
+`docs/v1/`), and every test that states a script.

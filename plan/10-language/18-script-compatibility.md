@@ -96,6 +96,11 @@ rewritten on open, exactly as `SupportedOld`. A file with no version line stays 
 current major, language 1, until the switch makes 2 current. The catalogue pattern also matches language 2's
 `catalog = id@version` inside the project block.
 
+**After the switch** (`D-174`, `P6.11` package 7). `SupportedVersions.Default` becomes current 2, supported {2}, and
+`SupportedNewer` has nothing left to describe. A `fluidscript 1` file is an unsupported older major under the policy
+below — viewable as text, never compiled, solved or migrated — because language 1 is dropped, not kept behind a
+migration: no converter ships. A file with no version line is language 2.
+
 ### Policy (`D-27`)
 
 - New and saved files use the current major; v1 is `fluidscript 1`.

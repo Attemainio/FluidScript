@@ -203,7 +203,9 @@ Values arrive already formatted, because only the emit site knows the unit the u
 beside its template, naming only placeholders the first names, and a diagnostic keeps the arguments it was
 rendered from. A language 2 file's diagnostics are rendered again from those arguments with the second
 template, so one emit site serves both languages and the second wording is in the registry, where `/docs`
-and the style tests see it. `19` §Diagnostics says where it is applied and which codes have one.
+and the style tests see it. `19` §Diagnostics says where it is applied and which codes have one. It is
+transitional: at `P6.11`'s switch each code's language 2 wording becomes its one template and the second template
+goes (`D-174`).
 
 ## Message style rules
 

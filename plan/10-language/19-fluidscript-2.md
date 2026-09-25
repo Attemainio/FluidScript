@@ -21,10 +21,12 @@ statements and an invented node, positional scenario lists, and a file whose sol
 study settings are scattered through its model. The user asked what the language would be if it were
 written from scratch, and settled it over one conversation. This document is that language.
 
-Language 2 is a **second major beside the first, not a replacement of it** (`D-164`). The version
-line selects it before anything parses (`18`, `D-27`); language 1 files keep their own parser and
-their own meaning, and language 1 stays the current major until language 2 is complete. The two
-share everything after binding: the registry, sizing, the solver, the layout, the model contract.
+Language 2 **replaces** language 1 (`D-174`, superseding `D-164`'s "a second major beside the first"). It was
+built beside language 1 — its own parser, a translation into the statements language 1's binder reads — and
+language 1 stays the current major until every script the project owns is converted and proven to bind to the
+same model and solve (`P6.11` package 5). Then the binder reads the language 2 tree directly (package 6), and
+language 1 is removed, parser, translation and all (package 7). The two share everything after binding: the
+registry, sizing, the solver, the layout, the model contract.
 
 What language 2 keeps from language 1, deliberately: one statement per line, `NAME kind` with the tag
 first, named parameters, omission meaning "size it" (`D-02`), chains `A - B - C`, globally unique
@@ -579,6 +581,10 @@ duration and frame as the transient's settings. So:
 
 ### Translation to the binder
 
+**Transitional** (`D-174`). This section describes packages 3 and 4; package 6 moves what the translation decides
+into the binder, which then reads the language 2 tree, and package 7 deletes the rest. Until then the translation
+is also the reference the converted corpus is checked against.
+
 Language 2 has its own syntax tree, which the printer prints and the editor reads. **The binder reads
 the statements it already reads**: a translation step turns the language 2 tree into them, and every
 span in them points into the language 2 text, so every diagnostic lands on what the user wrote.
@@ -679,8 +685,9 @@ and which raise no code from the third row.
 5. **Every span the binder sees points into the language 2 text.**
 6. **A language 2 file and its language 1 twin bind to the same model** wherever both can say it: the
    same components, parameters, connections and ports, the same solve.
-7. **Language 1 is untouched.** Its parser, binder rules and every one of its goldens stay as they are
-   until a decision retires them.
+7. **Language 1 is untouched until it is removed.** Its parser, binder rules and every one of its goldens stay as
+   they are until package 7, which `D-174` makes the decision that retires them; a golden then changes by its
+   spans alone.
 
 ## Error cases
 
@@ -760,7 +767,12 @@ shows what the records say.
       `Language2WordingTests`, `Language2DiagnosticsTests`).
 - [x] `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report
       (package 4). Its solve, like the reference script's, is `S-86`'s.
-- [ ] A file with no version line is language 1 until `P6.11`'s switch-over (`D-164`).
+- [ ] A file with no version line is language 1 until `P6.11`'s switch, and language 2 after it (`D-174`).
+- [ ] Every script the project owns converts, and each converted script binds to the same model and gives the
+      same solve as its original, spans aside; what could not convert is decided by the user (package 5).
+- [ ] The direct binder gives the translated path's model on the whole converted corpus (package 6).
+- [ ] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
+      changed by its spans alone (package 7).
 - [ ] The editor highlights and completes language 2 in a file whose version line says 2, and language
       1 otherwise.
 - [ ] The tutorial and a reference page per language 2 statement exist, and the documentation gate
