@@ -253,6 +253,12 @@ instead, because an example that cannot be run cannot be trusted, and one that i
 be run. This is the mechanism that makes the documentation trustworthy for both audiences, and it
 turns `/docs` into a second test corpus at almost no cost.
 
+**A block in language 2 says so on its fence too**, `` ```fluidscript lang=2 ``, beside any `expects=`,
+because most blocks are fragments with no version line to tell which parser reads them
+([`19`](../10-language/19-fluidscript-2.md)). Its `expects=` names what language 2's parser produces, and
+language 1's corpus checks leave it out. Without the tag a language 2 block is read as language 1 and
+fails, which is how `19`'s own examples first reached the suite.
+
 ## Generated pages
 
 Four pages are generated from the same data the implementation reads, because a hand-maintained copy

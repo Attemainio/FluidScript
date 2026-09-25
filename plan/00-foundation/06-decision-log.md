@@ -212,6 +212,8 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-167` | Accepted | 2026-09-25 | Language 2 sizes over cases; a value varies per case through a driver or a list, a curve names its driver, and `design` is gone |
 | `D-168` | Accepted | 2026-09-25 | A language 2 controller is one declaration with its type, binding and tuning |
 | `D-169` | Accepted | 2026-09-25 | A language 2 run is a block that says where it starts, how long it runs and what happens when |
+| `D-170` | Accepted | 2026-09-25 | Language 2 binds a name only by its exact spelling |
+| `D-171` | Accepted | 2026-09-25 | Language 2 declares presentation once in the project block, and a circuit may override it |
 <!-- index:end -->
 
 ---
@@ -7694,3 +7696,42 @@ there is); the quasi-steady choice on the circuit (a fidelity choice worth compa
 the run).
 
 **Constrains.** `19` §Runs; `33` (settings read from the run); the API's run settings; the interface (a run picker).
+
+## D-170 · Language 2 binds a name only by its exact spelling
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-15`'s third stage (similarity) · the user's
+choice
+
+**What was wrong.** `D-15` resolves a kind, and the binder a parameter, in three stages: normalisation, curated
+aliases, then similarity. The third stage binds a close spelling and says so as information, which the log hides by
+default. Measured 2026-09-25: `PU1 pmp haed=15` binds as a pump with `head = 15`, `HE1 … powr=30` as `power = 30`,
+and `RAD radiators power=30` as a neutral `heat_exchanger`, which loses the radiator's sign and puts 30 kW *into* the
+water. A typo in a parameter's name becomes a constraint — a wrong answer that compiles.
+
+**The rule.** Language 2 keeps `D-15`'s first two stages — case and underscores normalised, curated aliases — and
+drops the third: a name that matches neither is an error, and the similar spellings are its suggestion and its
+one-click fix.
+
+**Why.** A fix the user accepts in one click costs a second; a constraint they never meant costs a wrong design.
+**Alternative:** keep similarity binding and raise it to a warning — still binds the wrong thing on a file nobody
+rereads.
+
+**Constrains.** `19` §Lines, blocks and names; the language 2 translation's name resolution.
+
+## D-171 · Language 2 declares presentation once in the project block, and a circuit may override it
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-104`'s positional application and `D-37`'s
+`spacing` line · the user's choice
+
+**The rule.** `show`, `scale` and `spacing` are project settings; a `style:` block in the project gives the file's
+style (`colour`, `width`, `corner`, `line`), and a `style:` block in a circuit overrides the keys it states for that
+circuit. A style is never applied by position. Named styles and a component's own style are not in language 2's
+first version.
+
+**Why.** Language 1 applies `style hot` to what follows it in its circuit, so moving a line recolours it, and
+`show` repeats by one rule while `spacing` refuses a second by another. One place for what the whole drawing
+shares, and one override where a circuit differs, says the same with nothing depending on order. **Alternative:** a
+`view:` section at the end of the file — the presentation kept apart from the model, but a second place to look for
+what a circuit looks like.
+
+**Constrains.** `19` §Presentation, §The project block; the language 2 translation (style per circuit).

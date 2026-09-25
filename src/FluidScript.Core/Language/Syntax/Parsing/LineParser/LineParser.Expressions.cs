@@ -132,6 +132,10 @@ internal sealed partial class LineParser
             case TokenKind.StringLiteral:
                 return new StringLiteralSyntax(Advance());
 
+            // Only language 2's lexer makes one (`LexerOptions.LexesDates`).
+            case TokenKind.DateLiteral:
+                return new DateLiteralSyntax(Advance());
+
             case TokenKind.OpenParenthesis:
             {
                 var open = Advance();
@@ -150,6 +154,11 @@ internal sealed partial class LineParser
                 if (Current is { Kind: TokenKind.OpenParenthesis })
                 {
                     return ParseCall(name);
+                }
+
+                if (language2)
+                {
+                    return ParseLanguage2Name(name);
                 }
 
                 return ParseReference(name) is { } reference ? WithUnit(reference) : null;

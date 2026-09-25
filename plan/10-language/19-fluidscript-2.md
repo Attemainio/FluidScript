@@ -6,7 +6,7 @@ status: draft
 owns: [language 2 grammar, language 2 statement set, block structure, port inference by flow direction, cases and drivers, controller declaration, run block, translation from language 2 to the binder]
 depends_on: [01-vision-and-scope, 06-decision-log, 11-language-overview, 12-grammar, 13-type-and-unit-system, 14-expressions-and-references, 15-semantic-model, 16-diagnostics, 17-formatting-and-round-trip, 18-script-compatibility]
 traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-12, R-13, R-46, R-49]
-open_questions: 10
+open_questions: 8
 last_review_pass: 0
 ---
 
@@ -66,12 +66,16 @@ Every rule below is measured against this file. It is a district-heating substat
 through a pressure-control valve and a plate exchanger, and a closed heating secondary with a mixing
 valve held on a weather-compensated supply temperature. It has two cases and one run.
 
-```fluidscript
+```fluidscript lang=2
 fluidscript 2
 
 project "Substation 12":
   cases   = [winter, mild]
   catalog = steel_en10255@2026.1
+  show    = temperature
+  style:
+    colour = "#2f6f9f"
+    width  = 2
 
 let outdoor = [-26, 5] C
 
@@ -94,6 +98,8 @@ curve weather_jan: time
 circuit "District primary":
   fluid  = water
   number = 100
+  style:
+    colour = crimson
 
   NPS  inlet      t = district_supply   p = 600 kPa
   NPR  outlet     p = 350 kPa
@@ -140,20 +146,23 @@ run "Cold morning":
   at   1 h          TC1.setpoint = 55 C
 ```
 
-`band = 20 K` reads `K` as a temperature difference, which is open question 3; under language 1's
+`band = 20 K` reads `K` as a temperature difference, which is open question 2; under language 1's
 reading it is `20 dK`.
 
 ### Lines, blocks and names
 
-**One statement per line, or a block.** A line whose last significant token is `:` is a **block
-head**. Every following line indented deeper than the head belongs to it; the first non-blank,
+**One statement per line, or a block.** A **block head** is a `project`, `circuit` or `run` line or a
+declaration whose last token is `:`, a `style:` line inside a project or circuit, or a `curve` header
+(whose `:` separates the curve's name from its driver). Every following line indented deeper than the head belongs to it; the first non-blank,
 non-comment line at the head's indentation or less ends it. Blank lines and comment lines never end a
 block. Blocks nest (a component block inside a circuit block); the depth is relative, so two levels is
 the most any script needs.
 
 **Indentation is counted in characters, and a block's lines agree.** Every line of one block body is
 indented alike; a body mixing tabs and spaces, or a line indented between two levels, is `FS1801`
-reported on that line, and the line is read as belonging to the nearer level. Nothing else about
+reported on that line, and the line is read as belonging to the nearer level. **A curve's rows are the
+exception**: they are a table whose columns the user aligns (`  -26   85` over `   18   65`, as in the
+reference script), so a row needs only to be deeper than its header. Nothing else about
 whitespace means anything. The formatter indents a body two spaces; the printer keeps what was typed
 (`17`).
 
@@ -166,18 +175,31 @@ A quoted string is a title (`"District primary"`) and is never a reference.
 
 **Comments** start with `#` outside quotes, as in language 1.
 
-**Reserved words** open statements and appear only at a line's start: `fluidscript`, `project`, `let`,
-`curve`, `circuit`, `run`; inside a run body, `at` and `over`. `time` is the one built-in driver name.
-Kinds and parameters are **not** reserved: they are names the binder checks against the registry, so a
-new kind or parameter needs no grammar change.
+**Statement words** open statements and are recognised by their position at a line's start, not by the
+lexer: `fluidscript`, `project`, `let`, `curve`, `circuit`, `run`; inside a run body, `at` and `over`. A
+component may therefore not be named one of the six — `run pump` is a run head that fails — and that is
+`FS1004`, as a reserved word used as a name is in language 1. The lexer reserves nothing, which keeps
+language 1's reserved-word table, and everything generated from it, unchanged. `time` is the one
+built-in driver name. Kinds and parameters are names the binder checks against the registry, so a new
+kind or parameter needs no grammar change. A name binds **only by its exact spelling** (`D-170`): case
+and underscores are normalised as `D-15`'s first stage does, curated aliases resolve as its second stage
+does, and a merely similar spelling feeds the error's suggestion and never binds.
+
+**Classifying a line** reads its first token and, when that is a name, the qualified name it starts:
+`=` after it makes a setting or a parameter line, `-` a connection, another name a declaration. That is
+more than language 1's one token of lookahead (`11` invariant 7) and bounded the same way — by one
+line, never by the lines around it — and the enclosing block narrows it further: a declaration block's
+body holds only parameter lines.
 
 ### Values, units, lists and ranges
 
 A unit follows its number, with or without a space: `600 kPa`, `12 m`, `30kW`. Units are a closed
 vocabulary (`13`), recognised only immediately after a number. Language 2 removes the two symbols that
-collide with names a script writes: **`in`** (inch) and **`t`** (tonne). With them gone, `13`'s rule
-"a unit is never recognised before `=`, `[` or `.`" is no longer needed, and neither is its lexer
-lookahead.
+collide with names a script writes most: **`in`** (inch) and **`t`** (tonne). `13`'s rule that a unit
+is never recognised before `=`, `[` or a `.` that starts a word **stays**, and looks past spaces,
+because language 2 lets `=` stand apart: `h` is an hour and an enthalpy, so in `flow = 5 h = 2000` the
+`h` is the next parameter. Language 1 reads `p = 300 t = 6` as three hundred tonnes (the review measured
+it); language 2 does not.
 
 A bare number takes the canonical unit of the dimension it lands in, as in language 1 (`D-14`, `13`).
 
@@ -198,6 +220,7 @@ is arithmetic there; no one means 2026 − 1 − 15, so language 2 lexes the sha
 | `project` | The project block: title and study settings | yes |
 | `let` | A named value, or a driver when its value is a list | no |
 | `curve` | A curve: header, then rows | rows indented |
+| `style` | A style, inside a project or circuit block | yes |
 | `circuit` | A circuit block | yes |
 | `run` | A run block | yes |
 | a name, then a kind | A component declaration | optional |
@@ -210,7 +233,7 @@ outside a run — is `FS1802`, with the block it belongs in.
 
 ### The project block
 
-```fluidscript
+```fluidscript lang=2
 project "Substation 12":
   cases   = [winter, mild]
   catalog = steel_en10255@2026.1
@@ -219,14 +242,45 @@ project "Substation 12":
 The title is quoted. `cases` names the operating cases every list is read against; a file with no
 `cases` has one case, and no list. `catalog` pins the pipe catalogue as language 1's `catalog` line does
 (`18`); `ScriptCompatibility` reads it from the text before parsing, so its pattern is extended to this
-form. Nothing else goes in the project block: the solve mode belongs to a run (`D-169`), a circuit's
-fluid to the circuit (`D-165`).
+form. The project block also holds the presentation (below, `D-171`). Nothing else goes in it: the solve
+mode belongs to a run (`D-169`), a circuit's fluid to the circuit (`D-165`).
+
+### Presentation
+
+Presentation is declared once, **in the project block**, and a circuit may override it (`D-171`):
+
+```fluidscript lang=2
+project "Substation 12":
+  show    = temperature
+  scale   = 20..90 C
+  spacing = 1.2
+  style:
+    colour = "#2f6f9f"
+    width  = 2
+    corner = fillet
+    line   = solid
+
+circuit "District primary":
+  style:
+    colour = crimson
+```
+
+| Setting | Where | Meaning |
+|---|---|---|
+| `show` | project | The property the diagram colours by, one or a list (`57`) |
+| `scale` | project | The colour scale's range for the first property shown |
+| `spacing` | project | The layout's spacing factor (`D-37`, `28`) |
+| `style:` | project, circuit | `colour` (a colour name or a quoted hex, since `#` starts a comment), `width` (pixels), `corner` (`sharp`, `fillet`), `line` (`solid`, `dashed`, `dotted`, `dashdot`) |
+
+A circuit's `style:` overrides only the keys it states; the rest come from the project's. A style is
+never applied by position, as language 1's `style` line is (to what follows it). Named styles and a
+component's own style are not in language 2's first version.
 
 ### Drivers and cases
 
 **A driver is a `let` whose value varies per case** (`D-167`):
 
-```fluidscript
+```fluidscript lang=2
 let outdoor = [-26, 5] C
 ```
 
@@ -236,7 +290,7 @@ driver is `time`, the run's clock.
 
 **A curve names its driver in its header**, and its rows are bare numbers:
 
-```fluidscript
+```fluidscript lang=2
 curve heat_demand: outdoor
   -26   150
    18     0
@@ -262,13 +316,13 @@ interface; which case a run starts from is the run's `from`.
 
 ### Circuits
 
-```fluidscript
+```fluidscript lang=2
 circuit "Heating":
   fluid  = water
   number = 200
 
   SP   pump
-  ...
+  # … the other declarations
   TV1 - SP - TE1 - RAD - NR
 ```
 
@@ -281,13 +335,14 @@ in another; that is how circuits are joined, and there is no attachment statemen
 
 ### Declarations
 
-```fluidscript
-RAD  radiator  power = heat_demand            # one line
+```fluidscript lang=2
+circuit "Heating":
+  RAD  radiator  power = heat_demand            # one line
 
-HX1  exchanger:                               # a block
-  primary.out.t   = 45 C
-  secondary.in.t  = 40 C
-  secondary.out.t = 60 C
+  HX1  exchanger:                               # a block
+    primary.out.t   = 45 C
+    secondary.in.t  = 40 C
+    secondary.out.t = 60 C
 ```
 
 `NAME kind`, then parameters on the line, or `:` and parameters on indented lines. The two forms are one
@@ -299,7 +354,7 @@ aliases of the sensor kinds. A two-sided exchanger's sides are **`primary` and `
 `primary.in.t`, `HX1.secondary.out`. `primary` is side 1 and `secondary` side 2 of language 1's
 `in`/`in[2]`; which side is primary is decided by the circuit (below). Port families that really are
 families keep brackets: `layer[3].t`, `in[2].level` on a tank. The wider vocabulary review — `duty`,
-`rise`, `kvs`, direction taken from the kind — is open question 6.
+`rise`, `kvs`, direction taken from the kind — is open question 4.
 
 ### Connections
 
@@ -336,8 +391,9 @@ on a named node with `at`.
 
 **A pipe's length and DN sit at the end of its link, with no `=`**:
 
-```fluidscript
-PCV - HX1                  12 m  DN25
+```fluidscript lang=2
+circuit "District primary":
+  PCV - HX1                  12 m  DN25
 ```
 
 Each is recognised by its own form — a length has a length unit, `DN25` is a designation — so neither
@@ -351,15 +407,16 @@ asks which link is meant. Language 1 applies them to every link of the chain, so
 A controller is **one declaration** holding its type, what it moves, what it reads, its setpoint and its
 tuning (`D-168`):
 
-```fluidscript
-TC1 controller:
-  type     = PI
-  moves    = TV1
-  reads    = TE1
-  setpoint = supply_temp
-  band     = 20 K
-  ti       = 120 s
-  output   = 10..100 %
+```fluidscript lang=2
+circuit "Heating":
+  TC1 controller:
+    type     = PI
+    moves    = TV1
+    reads    = TE1
+    setpoint = supply_temp
+    band     = 20 K
+    ti       = 120 s
+    output   = 10..100 %
 ```
 
 | Parameter | Meaning |
@@ -386,7 +443,7 @@ TC1 controller:
 
 A parameter that does not belong to the stated type — `td` on a `PI`, `differential` on a `PI`, `band` on
 an `onoff` — is `FS1808`. Tuning left out is estimated when a run starts (`34`; the estimation rule is
-open question 9). Until P6.3 builds them, the types other than `PI` bind and are reported `FS1810` —
+open question 7). Until P6.3 builds them, the types other than `PI` bind and are reported `FS1810` —
 "not yet run by the solver" — and are never run as `PI` in silence.
 
 **An actuator's speed is the actuator's**: `TV1 valve3 stroke = 90 s`. It limits the valve however it is
@@ -397,7 +454,7 @@ moved, by a controller or by an event.
 A run says what happens to the plant in time; the model says what the plant is (`D-169`). A file may hold
 several; the interface plays the one chosen.
 
-```fluidscript
+```fluidscript lang=2
 run "Cold morning":
   from     = winter
   start    = 2026-01-15 06:00
@@ -457,6 +514,7 @@ span in them points into the language 2 text, so every diagnostic lands on what 
 | A controller block | A controller declaration and a control binding |
 | `cases` | The scenario list, with the first case as the operating case `design` names |
 | A run | The run settings, the per-circuit mode, the start, and the events |
+| `show`, `scale`, `spacing`, `style:` | The show directive, the spacing, and a style per circuit with the project's keys under the circuit's |
 
 **What the binder must newly learn**, because language 1 cannot say it:
 
@@ -485,12 +543,13 @@ range is **`FS18xx`**, owned by this document:
 | `FS1803` | Error | Pipe properties on a line with more than one link |
 | `FS1804` | Error | A port the inference rule cannot settle; the message lists the ports to write |
 | `FS1805` | Error | A `mixing_valve` or `diverting_valve` whose connections say the other function |
-| `FS1806` | Error | A language 1 statement in a language 2 file (`connections`, `control`, `scenarios`, `design`, `schedule`, `project dynamic`), with the language 2 form as its fix |
+| `FS1806` | Error | A language 1 statement in a language 2 file, with the language 2 form as its fix. Recognised by language 1's shape, so a language 2 line starting with the same word is not caught: `connections` or `schedule` alone; `control`, `scenarios`, `design`, `project`, `circuit` or `style` followed by a name (`project dynamic`, `circuit heating`); `curve NAME DRIVER` without the colon; `fluid`, `show`, `spacing` or `catalog` followed by anything but `=`, `-` or `.`; `inlet NAME` or `outlet NAME` alone. The price is that a component may not be declared under one of these words (`design valve` reads as language 1's `design`) — this project's reasoning: that reading is far more likely to be meant |
 | `FS1807` | Error | A ramp with one value |
 | `FS1808` | Error | A controller parameter that its stated type does not have |
 | `FS1809` | Error | Both `band` and `kp` stated |
 | `FS1810` | Warning | A controller type the solver does not run yet |
 | `FS1811` | Error | A curve whose driver is neither a `let` nor `time` |
+| `FS1812` | Error | A block head without its `:` |
 
 ## Invariants
 
@@ -559,7 +618,8 @@ shows what the records say.
 ## Acceptance criteria
 
 - [ ] The reference script parses, prints back byte for byte, and binds with no error.
-- [ ] The printer fuzz test runs on language 2 input as it does on language 1.
+- [x] The printer fuzz test runs on language 2 input as it does on language 1 (package 2:
+      `FluidScript2ParserTests`, every one-character deletion of the reference script and 3 000 random edits).
 - [ ] A malformed line inside a block leaves the rest of the block and the file bound (invariant 2).
 - [ ] Every sample in `samples/` has a language 2 twin that binds to the same model and the same solve
       (invariant 6), checked by a test that compares the two model contracts.
@@ -579,33 +639,25 @@ shows what the records say.
 
 ## Open questions
 
-1. **The `view` section** — `show`, `style` and `spacing` — is not designed. Recommendation: a `view:`
-   block at the end of the file (`show = temperature`, `spacing = 1.2`, `style hot: stroke = crimson
-   width = 2px`), with a style applied by `style = hot` on a circuit or a component and never by position
-   (language 1's `style` applies to what follows it). Until decided, a language 2 file has no
-   presentation statements and draws with the defaults.
-2. **Tanks.** A tank's ports and layers inside a block (`layer[3].t = 45 C`, `in[2].level = 0.8`) and
+1. **Tanks.** A tank's ports and layers inside a block (`layer[3].t = 45 C`, `in[2].level = 0.8`) and
    rule 4 of port inference are written above; nothing else about tanks has been discussed.
-3. **`K` as a temperature difference.** Recommendation: in language 2 `K` is a difference and `C`/`°C` a
+2. **`K` as a temperature difference.** Recommendation: in language 2 `K` is a difference and `C`/`°C` a
    temperature, as engineers write them (EN and ISO 80000-5 write a difference in kelvin); an absolute
    kelvin is not writable, since no plant input needs one. This amends `D-26` for language 2 only.
    Language 1 keeps `dK`.
-4. **Exact names.** Recommendation: language 2 binds a kind or parameter name only by its exact spelling
-   (case and underscores normalised, as `D-15`'s first two stages do); a close spelling feeds the error's
-   suggestion and never binds. The review measured `haed=15` binding as `head` with only an info notice.
-5. **Case-insensitive parameter names** (`Kp` = `kp`, printed as written). Recommendation: yes; engineers
+3. **Case-insensitive parameter names** (`Kp` = `kp`, printed as written). Recommendation: yes; engineers
    write Kp and Ti.
-6. **The vocabulary pass**: `duty` for heat and `power` for shaft or electrical power, `rise` on a pump
+4. **The vocabulary pass**: `duty` for heat and `power` for shaft or electrical power, `rise` on a pump
    and `dp` only ever a drop, `kvs`, and each thermal kind taking its direction from what it is (a boiler
    heats its water, a radiator cools it) instead of from a sign convention on an alias (`D-91`).
    Recommendation: a package of its own after language 2 lands, since the registry is shared by both
    languages.
-7. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the
+5. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the
    setpoint (on at setpoint − differential, off at the setpoint). Both appear in practice and no
    standard was found; the choice is this project's and the documentation must state it.
-8. **A sensor's `lag`** (a thermowell's time constant), which the derivative default below needs.
+6. **A sensor's `lag`** (a thermowell's time constant), which the derivative default below needs.
    Recommendation: add it.
-9. **Default tuning.** Proposal for `34`: a bump test in the compiled model at run start (a 10 % step of
+7. **Default tuning.** Proposal for `34`: a bump test in the compiled model at run start (a 10 % step of
    the actuator, a first-order-plus-dead-time fit by Smith's two-point method), then Skogestad's SIMC
    rules with τc = θ — `band` from Kc = (1/k)·τ/(τc + θ), `ti` = min(τ, 8θ) but never shorter than the
    actuator's stroke time, `td` = the sensor's lag; for `onoff`, the differential that keeps the cycle at
@@ -613,6 +665,6 @@ shows what the records say.
    left out defaults to the design solve's value at the sensor; a valve's stroke defaults to 90 s (Belimo's
    globe-valve default). This replaces `34`'s current rule, whose "half the ultimate gain" is taken from a
    steady gain and has no source. It is `34`'s to decide, with P6.3.
-10. **Check-only cases** (`check = [extreme]`: solved and reported, never sized for), and a labelled list
+8. **Check-only cases** (`check = [extreme]`: solved and reported, never sized for), and a labelled list
     form (`[winter: 85, mild: 70]`) for files with many cases. Recommendation: later, neither is needed
     for the first version.

@@ -112,6 +112,7 @@ public static class DiagnosticRegistry
         .. StyleDiagnostics.All,
         .. BinderDiagnostics.All,
         .. CompatibilityDiagnostics.All,
+        .. Language2Diagnostics.All,
         .. FluidDiagnostics.All,
         .. TopologyDiagnostics.All,
         .. SolverDiagnostics.All,

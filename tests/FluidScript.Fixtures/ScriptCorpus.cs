@@ -18,6 +18,11 @@ namespace FluidScript.Fixtures;
 /// meant to be wrong says so on its fence: <c>```fluidscript expects=FS1203</c>. A block that is not a
 /// script at all — an editing session with a cursor in it, say — is not marked <c>fluidscript</c>.
 /// </para>
+/// <para>
+/// A block written in language 2 says so too, <c>```fluidscript lang=2</c>, because most blocks are fragments
+/// with no version line to tell (<c>plan/10-language/19-fluidscript-2.md</c>). Its <c>expects=</c> is what
+/// language 2's parser produces; language 1's tests leave it out.
+/// </para>
 /// </remarks>
 public static class ScriptCorpus
 {
@@ -87,6 +92,12 @@ public static class ScriptCorpus
     /// <returns>The concatenation of <see cref="Samples"/> and <see cref="MarkdownBlocks"/>.</returns>
     public static ImmutableArray<ScriptSource> All() => [.. Samples(), .. MarkdownBlocks()];
 
+    /// <summary>The corpus in one language: the samples and blocks written in it.</summary>
+    /// <param name="language">The language's major version, 1 or 2.</param>
+    /// <returns>The entries of <see cref="All"/> whose <see cref="ScriptSource.Language"/> is <paramref name="language"/>.</returns>
+    public static ImmutableArray<ScriptSource> InLanguage(int language) =>
+        [.. All().Where(script => script.Language == language)];
+
     private static IEnumerable<ScriptSource> BlocksIn(string path)
     {
         var relative = RepositoryLayout.ToRelative(path);
@@ -94,7 +105,7 @@ public static class ScriptCorpus
 
         for (var i = 0; i < lines.Length; i++)
         {
-            if (!TryOpenFence(lines[i], out var expected))
+            if (!TryOpenFence(lines[i], out var expected, out var language))
             {
                 continue;
             }
@@ -117,14 +128,18 @@ public static class ScriptCorpus
                 yield return new ScriptSource(
                     $"{relative}:{opened + 1}",
                     string.Join('\n', content) + "\n",
-                    expected);
+                    expected)
+                {
+                    Language = language,
+                };
             }
         }
     }
 
-    private static bool TryOpenFence(string line, out ImmutableArray<string> expected)
+    private static bool TryOpenFence(string line, out ImmutableArray<string> expected, out int language)
     {
         expected = [];
+        language = 1;
 
         var text = line.TrimEnd();
         if (!text.StartsWith(Fence + Language, StringComparison.Ordinal))
@@ -132,26 +147,37 @@ public static class ScriptCorpus
             return false;
         }
 
-        var info = text[(Fence.Length + Language.Length)..].Trim();
-        if (info.Length == 0)
+        var info = text[(Fence.Length + Language.Length)..];
+        if (info.Length > 0 && info[0] != ' ')
         {
-            return true;
-        }
-
-        // The one annotation the corpus reads, and the reason the info line is not simply compared:
-        // `61` requires an intentionally-broken example to be annotated with what it produces. Any
-        // other info string is not a fluidscript block, which is what keeps ```fluidscriptish out.
-        const string Expects = "expects=";
-        if (!info.StartsWith(Expects, StringComparison.Ordinal))
-        {
+            // ```fluidscriptish is not a fluidscript block.
             return false;
         }
 
-        expected =
-        [
-            .. info[Expects.Length..]
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-        ];
+        // The two annotations the corpus reads, and the reason the info line is not simply compared:
+        // `61` requires an intentionally-broken example to be annotated with what it produces, and a
+        // language 2 fragment has no version line to say which parser reads it. Any other info string is
+        // not a fluidscript block.
+        const string Expects = "expects=";
+        foreach (var attribute in info.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (attribute == "lang=2")
+            {
+                language = 2;
+            }
+            else if (attribute.StartsWith(Expects, StringComparison.Ordinal))
+            {
+                expected =
+                [
+                    .. attribute[Expects.Length..]
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                ];
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         return true;
     }
@@ -271,4 +297,9 @@ public static class ScriptCorpus
 /// The diagnostic codes the block's fence says it produces, empty for a block that is meant to be
 /// clean. Written as <c>```fluidscript expects=FS1102,FS1104</c>.
 /// </param>
-public readonly record struct ScriptSource(string Name, string Text, ImmutableArray<string> Expected);
+public readonly record struct ScriptSource(string Name, string Text, ImmutableArray<string> Expected)
+{
+    /// <summary>Gets the language the source is written in.</summary>
+    /// <value>1, unless a markdown block's fence says <c>lang=2</c>. Samples are language 1 until language 2 has some.</value>
+    public int Language { get; init; } = 1;
+}

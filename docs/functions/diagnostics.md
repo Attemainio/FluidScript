@@ -144,6 +144,12 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
 | `FS1702` | Error | Compatibility | This file is FluidScript {major}, which this version cannot read. It understands {supported}. |
 | `FS1705` | Error | Compatibility | This file says it is FluidScript {first} and also {second}. Delete the line that is wrong. |
+| `FS1801` | Error | Language2 | This line is indented unlike the rest of its block. Indent it as the line above it is. |
+| `FS1802` | Error | Language2 | {statement} belongs {place}. |
+| `FS1803` | Error | Language2 | A pipe's length and size describe one link, and this line has {links}. Put the pipe on a line of its own: '{first} - {second} {properties}'. |
+| `FS1806` | Error | Language2 | '{word}' is language 1. In language 2, {instead}. |
+| `FS1807` | Error | Language2 | A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'. |
+| `FS1812` | Error | Language2 | A {head} line opens a block and ends with ':'. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |

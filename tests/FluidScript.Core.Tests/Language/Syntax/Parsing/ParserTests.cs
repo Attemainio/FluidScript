@@ -327,7 +327,7 @@ public sealed class ParserTests
         // check that would have caught D-52 and D-56 in the document instead of in the parser.
         var offenders = new List<string>();
 
-        foreach (var script in ScriptCorpus.All())
+        foreach (var script in ScriptCorpus.InLanguage(1))
         {
             var produced = FluidScriptParser.Parse(new SourceText(script.Text))
                 .Diagnostics

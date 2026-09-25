@@ -294,52 +294,67 @@ internal sealed partial class LineParser
                 break;
             }
 
-            if (!EqualsFollowsName())
-            {
-                Report(
-                    ParserDiagnostics.ParameterWithoutValue,
-                    nameToken.Span,
-                    new DiagnosticArgument("token", nameToken.Text));
-                failed = true;
-                return [];
-            }
-
-            // `style=` is a keyword where a name belongs, so it bypasses the identifier check that
-            // would report it as a reserved word.
-            var name = nameToken.Kind == TokenKind.Keyword
-                ? new QualifiedNameSyntax(new IndexedNameSyntax(new IdentifierSyntax(Advance()), null), [])
-                : TakeQualifiedName();
-            if (name is null)
+            var parameter = ParseParameter(nameToken);
+            if (parameter is null)
             {
                 failed = true;
                 return [];
             }
 
-            var equals = Advance();
-            var explained = diagnostics.Count;
-
-            // A bracket directly after `=` opens a scenario list and can be nothing else (`D-143`):
-            // an indexed name puts its bracket after an identifier, and that name is already consumed.
-            ExpressionSyntax? value = Current is { Kind: TokenKind.OpenBracket }
-                ? ParseScenarioList()
-                : ParseExpression();
-
-            if (value is null)
-            {
-                // A value that failed with its own message (`FS1119`) does not also need the general one.
-                if (diagnostics.Count == explained)
-                {
-                    Report(ParserDiagnostics.UnclassifiableStatement, LineSpan);
-                }
-
-                failed = true;
-                return [];
-            }
-
-            parameters.Add(new ParameterSyntax(name, equals, value));
+            parameters.Add(parameter);
         }
 
         return parameters.ToImmutable();
+    }
+
+    /// <summary>Reads one <c>name=value</c> pair starting at the current token.</summary>
+    /// <param name="nameToken">The current token, which starts the name.</param>
+    /// <returns>The pair, or <see langword="null"/> after a diagnostic explaining why it is not one.</returns>
+    private ParameterSyntax? ParseParameter(Token nameToken)
+    {
+        if (!EqualsFollowsName())
+        {
+            Report(
+                ParserDiagnostics.ParameterWithoutValue,
+                nameToken.Span,
+                new DiagnosticArgument("token", nameToken.Text));
+            return null;
+        }
+
+        // `style=` is a keyword where a name belongs, so it bypasses the identifier check that
+        // would report it as a reserved word.
+        var name = nameToken.Kind == TokenKind.Keyword
+            ? new QualifiedNameSyntax(new IndexedNameSyntax(new IdentifierSyntax(Advance()), null), [])
+            : TakeQualifiedName();
+        if (name is null)
+        {
+            return null;
+        }
+
+        var equals = Advance();
+        var explained = diagnostics.Count;
+
+        // A bracket directly after `=` opens a scenario list and can be nothing else (`D-143`):
+        // an indexed name puts its bracket after an identifier, and that name is already consumed.
+        // Language 2's value adds a unit after the list and a range (`ParseLanguage2Value`).
+        ExpressionSyntax? value = language2
+            ? ParseLanguage2Value()
+            : Current is { Kind: TokenKind.OpenBracket }
+                ? ParseScenarioList()
+                : ParseExpression();
+
+        if (value is null)
+        {
+            // A value that failed with its own message (`FS1119`) does not also need the general one.
+            if (diagnostics.Count == explained)
+            {
+                Report(ParserDiagnostics.UnclassifiableStatement, LineSpan);
+            }
+
+            return null;
+        }
+
+        return new ParameterSyntax(name, equals, value);
     }
 
     /// <summary>Whether the name starting at the current token — a word, its index, its dotted quantity — is followed by <c>=</c>.</summary>

@@ -51,6 +51,9 @@ public enum DiagnosticArea
     /// <summary>Opening a script written by another version. <c>FS17xx</c>.</summary>
     Compatibility = 17,
 
+    /// <summary>Language 2's syntax and its translation to the binder. <c>FS18xx</c>.</summary>
+    Language2 = 18,
+
     /// <summary>Substances and their thermodynamic properties. <c>FS20xx</c>.</summary>
     Substances = 20,
 

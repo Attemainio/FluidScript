@@ -137,7 +137,7 @@ public static class FluidScriptParser
     /// trivia holds an end-of-line. Blank lines produce no tokens at all — their newlines ride along in
     /// the next token's leading trivia — which is exactly the attachment rule the printer relies on.
     /// </remarks>
-    private static ImmutableArray<ImmutableArray<Token>> SplitLines(ImmutableArray<Token> tokens)
+    internal static ImmutableArray<ImmutableArray<Token>> SplitLines(ImmutableArray<Token> tokens)
     {
         var lines = ImmutableArray.CreateBuilder<ImmutableArray<Token>>();
         var current = ImmutableArray.CreateBuilder<Token>();

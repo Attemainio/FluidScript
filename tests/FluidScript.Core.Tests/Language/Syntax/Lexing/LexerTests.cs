@@ -344,8 +344,10 @@ public sealed class LexerTests
         var tour = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("m1-syntax-tour.fluid", StringComparison.Ordinal));
         var kinds = Lexer.Lex(new SourceText(tour.Text)).Tokens.Select(static token => token.Kind).ToHashSet();
 
+        // A date is language 2's alone (`LexerOptions.LexesDates`), and the tour is language 1's;
+        // `Language2LexerTests` covers it.
         var missing = Enum.GetValues<TokenKind>()
-            .Where(kind => kind != TokenKind.Unknown && !kinds.Contains(kind))
+            .Where(kind => kind is not (TokenKind.Unknown or TokenKind.DateLiteral) && !kinds.Contains(kind))
             .ToArray();
 
         Assert.True(missing.Length == 0, $"The tour never produces: {string.Join(", ", missing)}");

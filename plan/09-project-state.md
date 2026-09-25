@@ -1664,11 +1664,25 @@ that governed each size. What P6.8 still owes, and what comes after:
     reviewers over every `.fluid` file, then the user's decisions one at a time -- produced a second language major
     beside the first: blocks, `name = value`, circuits as blocks, ports inferred from flow direction, cases with drivers
     and curves that name them, one-declaration controllers with a type, and runs. Package 1, the spec
-    ([`19`](10-language/19-fluidscript-2.md)), is written and **stopped for the user's review** with ten open questions;
-    no code yet. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
+    ([`19`](10-language/19-fluidscript-2.md)), was reviewed by the user and accepted with two more decisions: exact
+    names only (`D-170`) and presentation in the project block, overridable per circuit (`D-171`); eight questions stay
+    open in `19`. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
     wrong answers in language 1 (a misspelt `haed=15` binding as `head`, `setpoint=20 kPa` on a temperature loop, extra
     `control` arguments dropped, `power=30000` read as 30 MW with no warning, spaces around `=` losing a declaration,
-    and more) are **not filed yet**: the user has not decided whether to file them. Next: the user's review of `19`.
+    and more) are **not filed yet**: the user has not decided whether to file them.
+  - **`P6.11` package 2 (2026-09-25): language 2's lexer, parser and printer.** `FluidScript2Parser` reads blocks by
+    indentation into language 1's `ScriptSyntax`, so the printer is unchanged; the line work is `LineParser` behind a
+    `language2` flag, with language 2's statements in their own partials. `LexerOptions.Language2` drops `in` and `t`,
+    keeps the no-unit-before-`=` rule past spaces, and lexes dates. `FS1801`, `FS1802`, `FS1803`, `FS1806`, `FS1807`,
+    `FS1812` are raised; the reference script parses clean and prints back byte for byte, and every deletion of one of
+    its characters and 3 000 random edits stay lossless. Found and fixed in the same change: the reference script's
+    right-aligned curve rows broke its own `FS1801` rule (curve bodies are now exempt, `19` says so); `19`'s examples
+    were parsed as language 1 by the corpus test, which was red from package 1's commit (`lang=2` fences, `61`); and
+    language 1's formatter, reachable through the format endpoint, would have flattened a language 2 file's blocks (it
+    now leaves any other major as written). **Not yet reachable**: `SupportedVersions` is still `[1]`, so a
+    `fluidscript 2` file stops at `FS1702` before parsing; package 3 wires the parser in with the translation. For
+    package 4: a language 2 line that fails generically is `FS1104`, whose message names language 1's statements.
+    Next: package 3.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

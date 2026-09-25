@@ -24,6 +24,15 @@ internal sealed partial class LineParser
 
         switch (token.Kind)
         {
+            // Language 2 reserves its statement words by position rather than in the lexer (`19`), so a
+            // name spelled as one is caught here, where a name belongs, with language 1's code.
+            case TokenKind.Identifier when language2 && IsStatementWord(token.Text):
+                Report(
+                    ParserDiagnostics.ReservedWordAsName,
+                    token.Span,
+                    new DiagnosticArgument("word", token.Text));
+                return null;
+
             case TokenKind.Identifier:
                 return new IdentifierSyntax(Advance());
 

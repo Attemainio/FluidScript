@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text;
 
 using FluidScript.Core.Diagnostics;
+using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Core.Language.Syntax.Text;
 
@@ -29,11 +30,28 @@ public static class Formatter
 {
     /// <summary>Computes the edits that bring a script to the canonical layout.</summary>
     /// <param name="source">The script.</param>
-    /// <returns>One edit per line that changes, in document order; none for a script already formatted.</returns>
+    /// <returns>
+    /// One edit per line that changes, in document order; none for a script already formatted, and none for a
+    /// file whose version line names a major other than 1.
+    /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <remarks>
+    /// These are language 1's layout rules, and the first of them removes leading indentation — which in
+    /// language 2 is the block structure (<c>plan/10-language/19-fluidscript-2.md</c>). Formatting a language 2
+    /// file with them would move every block's lines to the top level and change what the file says, so a
+    /// file that declares another major, or two contradictory ones, is left exactly as written.
+    /// </remarks>
     public static ImmutableArray<TextEdit> Format(SourceText source)
     {
         ArgumentNullException.ThrowIfNull(source);
+
+        var compatibility = ScriptCompatibility.Inspect(source);
+        var languageOne = compatibility.DetectedMajor is { Value: 1 }
+            || compatibility.Disposition == CompatibilityDisposition.UnversionedDraft;
+        if (!languageOne)
+        {
+            return [];
+        }
 
         var lines = Analyse(source);
         AlignRuns(lines);

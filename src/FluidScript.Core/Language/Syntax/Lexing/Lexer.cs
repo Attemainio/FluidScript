@@ -37,11 +37,22 @@ public static class Lexer
     /// text produced.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    public static LexResult Lex(SourceText source)
+    public static LexResult Lex(SourceText source) => Lex(source, LexerOptions.Language1);
+
+    /// <summary>Lexes a script under one language major's options.</summary>
+    /// <param name="source">The text to lex. Any characters at all; may be empty.</param>
+    /// <param name="options">What differs for the major being lexed.</param>
+    /// <returns>
+    /// The tokens, always ending in <see cref="TokenKind.EndOfFile"/>, and whatever diagnostics the
+    /// text produced.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Either argument is <see langword="null"/>.</exception>
+    public static LexResult Lex(SourceText source, LexerOptions options)
     {
         ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(options);
 
-        var scanner = new Scanner(source);
+        var scanner = new Scanner(source, options);
         var tokens = ImmutableArray.CreateBuilder<Token>();
 
         while (true)
@@ -72,7 +83,7 @@ public static class Lexer
 
     private static bool IsWordChar(char c) => IsWordStart(c) || IsDigit(c);
 
-    private sealed class Scanner(SourceText source)
+    private sealed class Scanner(SourceText source, LexerOptions options)
     {
         private readonly ImmutableArray<Diagnostic>.Builder _diagnostics =
             ImmutableArray.CreateBuilder<Diagnostic>();
@@ -213,7 +224,7 @@ public static class Lexer
 
             var text = source.ToString(TextSpan.FromBounds(start, _position));
 
-            return ReservedWords.TryMatch(text, out var word)
+            return options.ReservesWords && ReservedWords.TryMatch(text, out var word)
                 ? new Token
                 {
                     Kind = TokenKind.Keyword,
@@ -269,6 +280,13 @@ public static class Lexer
         private Token ScanNumeric()
         {
             var start = _position;
+
+            if (options.LexesDates && ScanDate() is > 0 and var dateEnd)
+            {
+                _position = dateEnd;
+                return Make(TokenKind.DateLiteral, start);
+            }
+
             ScanNumberBody();
             var numberEnd = _position;
             var numberText = source.ToString(TextSpan.FromBounds(start, numberEnd));
@@ -366,6 +384,78 @@ public static class Lexer
             }
         }
 
+        /// <summary>Finds the end of a date or a clock time starting here, or zero when none does.</summary>
+        /// <remarks>
+        /// A date is <c>yyyy-MM-dd</c>, optionally followed by spaces or a <c>T</c> and a clock time; a
+        /// clock time is <c>HH:mm</c> or <c>HH:mm:ss</c>. The shapes are fixed-width and checked digit by
+        /// digit, so nothing a number could be is mistaken for one: <c>2026-01-15</c> is never meant as
+        /// 2026 − 1 − 15, and a clock time is the only place two digits meet a colon. Neither may run on
+        /// into a word character, so <c>2026-01-15x</c> is not a date.
+        /// </remarks>
+        private int ScanDate()
+        {
+            var position = _position;
+
+            if (Digits(position, 4) && At(position + 4, '-') && Digits(position + 5, 2)
+                && At(position + 7, '-') && Digits(position + 8, 2))
+            {
+                position += 10;
+                var time = position;
+
+                if (At(time, 'T'))
+                {
+                    time++;
+                }
+                else
+                {
+                    while (time < Length && source[time] is ' ' or '\t')
+                    {
+                        time++;
+                    }
+                }
+
+                if (time > position && ClockEnd(time) is > 0 and var clockEnd)
+                {
+                    position = clockEnd;
+                }
+
+                return position < Length && IsWordChar(source[position]) ? 0 : position;
+            }
+
+            return ClockEnd(position) is > 0 and var end && !(end < Length && IsWordChar(source[end])) ? end : 0;
+        }
+
+        private int ClockEnd(int position)
+        {
+            if (!(Digits(position, 2) && At(position + 2, ':') && Digits(position + 3, 2)))
+            {
+                return 0;
+            }
+
+            var end = position + 5;
+            return At(end, ':') && Digits(end + 1, 2) ? end + 3 : end;
+        }
+
+        private bool Digits(int position, int count)
+        {
+            if (position + count > Length)
+            {
+                return false;
+            }
+
+            for (var i = position; i < position + count; i++)
+            {
+                if (!IsDigit(source[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool At(int position, char c) => position < Length && source[position] == c;
+
         /// <summary>Finds the longest unit symbol at a position that ends where a symbol may end.</summary>
         private int MatchUnit(int start, bool rejectBeforeEquals)
         {
@@ -388,18 +478,43 @@ public static class Lexer
                 // '.' counts only before a word, so a range's `..` still ends a unit (`50 m..60 m`).
                 if (rejectBeforeEquals && end < Length
                     && (source[end] is '=' or '['
-                        || (source[end] == '.' && end + 1 < Length && IsWordStart(source[end + 1]))))
+                        || (source[end] == '.' && end + 1 < Length && IsWordStart(source[end + 1]))
+                        || (options.UnitStopsBeforeSpacedEquals && EqualsAfterSpaces(end))))
                 {
                     continue;
                 }
 
-                if (UnitTable.IsSymbol(source.Slice(TextSpan.FromBounds(start, end))))
+                var symbol = source.Slice(TextSpan.FromBounds(start, end));
+                if (UnitTable.IsSymbol(symbol) && !IsExcluded(symbol))
                 {
                     return length;
                 }
             }
 
             return 0;
+        }
+
+        private bool EqualsAfterSpaces(int position)
+        {
+            while (position < Length && source[position] is ' ' or '\t')
+            {
+                position++;
+            }
+
+            return position < Length && source[position] == '=';
+        }
+
+        private bool IsExcluded(ReadOnlySpan<char> symbol)
+        {
+            foreach (var excluded in options.ExcludedUnitSymbols)
+            {
+                if (symbol.SequenceEqual(excluded))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Token MakeQuantity(int start, string numberText, int unitStart, int unitEnd)

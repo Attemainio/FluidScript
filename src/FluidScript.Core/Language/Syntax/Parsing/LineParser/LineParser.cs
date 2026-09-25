@@ -14,10 +14,17 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 /// <see cref="MalformedStatementSyntax"/> holding its tokens, so the printer can reproduce it and every
 /// other line is unaffected.
 /// </summary>
+/// <remarks>
+/// One class reads both languages' lines, because a name, an endpoint and an expression are spelled alike in
+/// both. <c>language2</c> selects language 2's differences where they are that small — a statement word is not
+/// a name, a list may carry a unit, a value may be a range or a date — and language 2's statements have
+/// partials of their own (<c>LineParser.Language2*.cs</c>), entered through <see cref="ParseLanguage2"/>.
+/// </remarks>
 internal sealed partial class LineParser(
     SourceText source,
     ImmutableArray<Token> tokens,
-    ImmutableArray<Diagnostic>.Builder diagnostics)
+    ImmutableArray<Diagnostic>.Builder diagnostics,
+    bool language2 = false)
 {
     /// <summary>How deep an expression may nest before the line is read as malformed.</summary>
     /// <remarks>

@@ -5133,6 +5133,63 @@
       ]
     },
     {
+      "code": "FS1801",
+      "severity": "error",
+      "area": "Language2",
+      "message": "This line is indented unlike the rest of its block. Indent it as the line above it is.",
+      "arguments": []
+    },
+    {
+      "code": "FS1802",
+      "severity": "error",
+      "area": "Language2",
+      "message": "{statement} belongs {place}.",
+      "arguments": [
+        "statement",
+        "place"
+      ]
+    },
+    {
+      "code": "FS1803",
+      "severity": "error",
+      "area": "Language2",
+      "message": "A pipe's length and size describe one link, and this line has {links}. Put the pipe on a line of its own: '{first} - {second} {properties}'.",
+      "arguments": [
+        "links",
+        "first",
+        "second",
+        "properties"
+      ]
+    },
+    {
+      "code": "FS1806",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{word}' is language 1. In language 2, {instead}.",
+      "arguments": [
+        "word",
+        "instead"
+      ]
+    },
+    {
+      "code": "FS1807",
+      "severity": "error",
+      "area": "Language2",
+      "message": "A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'.",
+      "arguments": [
+        "target"
+      ]
+    },
+    {
+      "code": "FS1812",
+      "severity": "error",
+      "area": "Language2",
+      "message": "A {head} line opens a block and ends with ':'.",
+      "arguments": [
+        "head"
+      ]
+    },
+    {
       "code": "FS2001",
       "severity": "error",
       "area": "Substances",

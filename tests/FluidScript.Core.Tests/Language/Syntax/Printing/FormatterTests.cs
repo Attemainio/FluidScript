@@ -99,4 +99,14 @@ public sealed class FormatterTests
         Assert.Equal("PU1   pump".Length, edit.Span.Length);
         Assert.Equal("PU1 pump", edit.NewText);
     }
+
+    [Theory]
+    [InlineData("fluidscript 2\ncircuit \"c\":\n  P1   pump\n  P1 - P2\n")]
+    [InlineData("fluidscript 1\nfluidscript 2\n  P1   pump\n")]
+    [Trait("Category", "Unit")]
+    public void ItLeavesAFileOfAnotherMajorAsWritten(string text)
+    {
+        // Language 1's first rule removes leading indentation, which is language 2's block structure.
+        Assert.Empty(Formatter.Format(new SourceText(text)));
+    }
 }

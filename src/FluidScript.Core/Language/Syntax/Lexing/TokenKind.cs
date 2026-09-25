@@ -3,7 +3,8 @@ namespace FluidScript.Core.Language.Syntax.Lexing;
 /// <summary>What one token is.</summary>
 /// <remarks>
 /// The set is exactly <c>plan/10-language/12-grammar.md</c>'s <c>token</c> production, plus
-/// <see cref="EndOfFile"/> and <see cref="Unknown"/>. There is no <c>Percent</c>: <c>%</c> is a unit
+/// <see cref="EndOfFile"/> and <see cref="Unknown"/>, and language 2's <see cref="DateLiteral"/>
+/// (<c>plan/10-language/19-fluidscript-2.md</c>). There is no <c>Percent</c>: <c>%</c> is a unit
 /// symbol and the language has no modulo operator (<c>D-51</c>).
 /// </remarks>
 public enum TokenKind
@@ -91,4 +92,11 @@ public enum TokenKind
     /// <c>FS1002</c>.
     /// </remarks>
     Unknown,
+
+    /// <summary>A date, a date and a clock time, or a clock time alone: <c>2026-01-15 06:00</c>, <c>06:30</c>.</summary>
+    /// <remarks>
+    /// Language 2 only (<see cref="LexerOptions.LexesDates"/>). Language 1 quotes a date, because there
+    /// <c>2026-01-15</c> lexes as three numbers and two minus signs; its lexer never produces this kind.
+    /// </remarks>
+    DateLiteral,
 }

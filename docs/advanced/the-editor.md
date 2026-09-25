@@ -99,6 +99,9 @@ A blank line or a full-line comment ends a run, so one long line aligns the comm
 paragraph and no further. Formatting twice changes nothing, it changes no token and no comment, and
 the whole thing is one edit: one Undo restores your layout.
 
+These are the rules of `fluidscript 1`. A file whose version line names another major, such as
+`fluidscript 2`, where indentation is what puts a line inside its block, is left exactly as written.
+
 ## Shortcuts
 
 | Keys | Does |
