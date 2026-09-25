@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:1066b56cee5d0d06b3b77c2108721150a3930af073c33d6280b50a9f9792017f",
+    "sourceHash": "sha256:e1f926c87b3c4dddcc2658ba3d233c41e34a89ddf1c8e27863e22c5b0df91592",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -180,12 +180,12 @@
         {
           "name": "a",
           "role": "bidirectional",
-          "connectedTo": "N2"
+          "connectedTo": "3WV__N3__in"
         },
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "3WV__N3__in"
+          "connectedTo": "N2"
         }
       ]
     },
@@ -241,7 +241,7 @@
       "origin": "inferred:I7",
       "sourceSpan": {
         "start": 834,
-        "length": 24
+        "length": 26
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -1265,7 +1265,7 @@
       "id": "c6",
       "from": {
         "component": "3WV",
-        "port": "a"
+        "port": "b"
       },
       "to": {
         "component": "N2",
@@ -1278,7 +1278,7 @@
       "id": "c7",
       "from": {
         "component": "3WV",
-        "port": "b"
+        "port": "a"
       },
       "to": {
         "component": "3WV__N3__in",
@@ -1896,16 +1896,16 @@
         ],
         "rotation": 90,
         "mirrored": true,
-        "arrangement": "swapped",
+        "arrangement": "default",
         "anchors": {
           "a": {
             "at": [
-              2.35,
-              0.5
+              2.85,
+              1
             ],
             "direction": [
-              0,
-              -1
+              1,
+              0
             ]
           },
           "ab": {
@@ -1920,12 +1920,12 @@
           },
           "b": {
             "at": [
-              2.85,
-              1
+              2.35,
+              0.5
             ],
             "direction": [
-              1,
-              0
+              0,
+              -1
             ]
           }
         },
@@ -2694,10 +2694,10 @@
         },
         "end": {
           "line": 23,
-          "character": 24
+          "character": 26
         },
         "offset": 834,
-        "length": 24
+        "length": 26
       },
       "component": "3WV__N3",
       "suggestion": null,
@@ -2714,10 +2714,10 @@
         },
         "end": {
           "line": 23,
-          "character": 24
+          "character": 26
         },
         "offset": 834,
-        "length": 24
+        "length": 26
       },
       "component": "3WV__N3__in",
       "suggestion": null,

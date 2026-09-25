@@ -209,6 +209,21 @@ public sealed partial class NewtonSolver : ISolver
 
             factored.Solve(step);
 
+            // `S-89`. A promoted parameter crossing its bound from inside covers nine tenths of the way instead of being
+            // projected onto it; see `EquationSystem.StepToBounds`. `trial` is free until the line search fills it.
+            for (var column = 0; column < columns; column++)
+            {
+                trial[column] = step[column] * system.UnknownScales[column];
+            }
+
+            if (system.StepToBounds(x, trial, Tolerances.NewtonFractionToBound, _settings.MinLineSearchStep))
+            {
+                for (var column = 0; column < columns; column++)
+                {
+                    step[column] = trial[column] / system.UnknownScales[column];
+                }
+            }
+
             var alpha = LineSearch(system, x, step, norm, trial, perturbed);
 
             if (alpha < 0)

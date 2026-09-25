@@ -539,7 +539,7 @@ public sealed class OuterLoopTests
     public async Task AValveWrittenForOneServiceAndRunInTheOtherIsNamed()
     {
         // `C-65`, closed by `D-136`. The cooling loop's `3WV` diverts: the secondary's flow enters at
-        // `ab` and leaves by `a` (recirculation) and `b` (primary return). Written as a mixing valve the
+        // `ab` and leaves by `a` (primary return) and `b` (recirculation), as the sample states them (`D-175`). Written as a mixing valve the
         // script names a body built for the other service, and FS4012 says which way it actually runs;
         // written as a diverting valve, or as a bare three_way_valve, nothing is claimed and nothing
         // is said. The spelling reaches the component as its arrangement.
@@ -551,7 +551,7 @@ public sealed class OuterLoopTests
 
         Assert.Equal("3WV", contradiction.ComponentName);
         Assert.Contains("written as a mixing valve and the solve runs it diverting", contradiction.Message, StringComparison.Ordinal);
-        Assert.Contains("leaves 0.076 kg/s by a and 0.163 kg/s by b", contradiction.Message, StringComparison.Ordinal);
+        Assert.Contains("leaves 0.163 kg/s by a and 0.076 kg/s by b", contradiction.Message, StringComparison.Ordinal);
         Assert.Equal(ValveArrangement.Mixing, Assert.IsType<ThreeWayValveComponent>(mixing.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
 
         var diverting = await Solve(source.Replace("3WV three_way_valve", "3WV diverting_valve", StringComparison.Ordinal), "diverting");
@@ -596,13 +596,14 @@ public sealed class OuterLoopTests
         // `C-111`. The cooling loop's `3WV` diverts: both switched legs leave it, and the primary
         // return is the easier path. The reading is the same arithmetic with the sign turned, the
         // valve on that leg is set to 17.8 kPa, and the three-way valve sits at its split: the
-        // recirculation is 0.0763 of 0.2392 kg/s, 0.32.
+        // recirculation is 0.0763 of 0.2392 kg/s, 0.32, so the position -- the opening of `a`, the primary
+        // return the sample states since `D-175` -- is 0.68.
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"), TestContext.Current.CancellationToken);
         source = source
             .Replace("PU1 pump\n", "PU1 pump\nBV1 valve\n", StringComparison.Ordinal)
-            .Replace("3WV - N3 length=25 dn=25", "3WV - BV1 - N3 length=25 dn=25", StringComparison.Ordinal);
-        Assert.Contains("3WV - BV1 - N3", source, StringComparison.Ordinal);
+            .Replace("3WV.a - N3 length=25 dn=25", "3WV.a - BV1 - N3 length=25 dn=25", StringComparison.Ordinal);
+        Assert.Contains("3WV.a - BV1 - N3", source, StringComparison.Ordinal);
 
         var run = await Solve(source, "diverting");
 
@@ -612,7 +613,7 @@ public sealed class OuterLoopTests
 
         var layout = SystemLayout.Build(run.Graph, FluidScript.Core.Topology.Counting.WellPosedness.Check(run.Graph).Counting);
 
-        Assert.Equal(0.32, run.Solve.Solution.Values[Index(layout, UnknownKind.Parameter, "3WV", "3WV.position")], 0.02);
+        Assert.Equal(0.68, run.Solve.Solution.Values[Index(layout, UnknownKind.Parameter, "3WV", "3WV.position")], 0.02);
         Assert.DoesNotContain(run.Solve.Diagnostics, static d => d.Code == "FS4011");
     }
 
@@ -780,7 +781,7 @@ public sealed class OuterLoopTests
         double Flow(string branch) =>
             Math.Abs(solved[Index(layout, UnknownKind.BranchFlow, branch)]);
 
-        Assert.Equal(ReferenceNumbers.CoolingLoop.RecirculationFlow, Flow("3WV.a->N2"), 0.001);
+        Assert.Equal(ReferenceNumbers.CoolingLoop.RecirculationFlow, Flow("3WV.b->N2"), 0.001);
         Assert.Equal(ReferenceNumbers.CoolingLoop.PrimaryFlow, Flow("N1->N2"), 0.001);
         Assert.Equal(ReferenceNumbers.CoolingLoop.SecondaryFlow, Flow("3WV.ab->N2"), 0.001);
 

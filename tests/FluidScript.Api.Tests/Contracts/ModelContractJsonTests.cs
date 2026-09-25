@@ -77,7 +77,7 @@ public sealed class ModelContractJsonTests
         // 200-component reference model, 512 KiB, half the cap. Since C-124 the pipe's 101 cells are
         // drawn as the chain they are, 200 routes more: 274 KiB measured, where a quarter of the cap was
         // the bound when the cells were drawn loose and unconnected.
-        var one = ModelContractJson.Build(PipelineFixture.Compile(PipelineFixture.Sample("m2-cooling-loop.fluid").Replace("3WV - N3 length=25 dn=25", "3WV - N3 length=25 dn=25 nodes=100", StringComparison.Ordinal)));
+        var one = ModelContractJson.Build(PipelineFixture.Compile(PipelineFixture.Sample("m2-cooling-loop.fluid").Replace("3WV.a - N3 length=25 dn=25", "3WV.a - N3 length=25 dn=25 nodes=100", StringComparison.Ordinal)));
 
         Assert.True(ModelContractJson.MeasureBytes(one) < 512 * 1024, $"{ModelContractJson.MeasureBytes(one)} bytes");
         Assert.Equal(210, one.Components.Length);

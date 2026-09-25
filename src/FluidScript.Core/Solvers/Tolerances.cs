@@ -62,6 +62,27 @@ public static class Tolerances
     /// </value>
     public const double NewtonDivergenceFactor = 10.0;
 
+    /// <summary>The share of the distance to its bound a promoted parameter may cover in one Newton step, from inside.</summary>
+    /// <value>
+    /// <c>newton.fraction_to_bound</c>, dimensionless: <c>τ</c>. A step that would carry a parameter across its bound is
+    /// shortened so the parameter covers nine tenths of the way instead of being projected onto the bound.
+    /// It is interior-point practice's fraction-to-the-boundary rule (Nocedal and Wright, <em>Numerical
+    /// Optimization</em>, 2nd ed., §19.2, where <c>τ</c> is typically 0.99-0.995) and the step-back of strictly feasible
+    /// Newton methods for bound-constrained systems (Coleman and Li 1996; Bellavia, Macconi and Morini 2003). 0.9 is
+    /// this project's choice, measured on <c>S-89</c>: the cooling loop's first step carried its pump's head from 2.2 m
+    /// past zero, the projection pinned it there, and the iterate stayed in the corner where the valve is on its stop.
+    /// </value>
+    public const double NewtonFractionToBound = 0.9;
+
+    /// <summary>How close to its bound a promoted parameter counts as on it, so a step may project it there.</summary>
+    /// <value>
+    /// <c>newton.near_bound</c>, a share of the column's unknown scale. Within it, the projection holds the parameter on
+    /// its bound as before <see cref="NewtonFractionToBound"/>, so a parameter whose answer is its bound -- a valve on its
+    /// stop (<c>FS3008</c>), a pump with no resistance to overcome -- lands there after a few tenfold approaches rather
+    /// than never. This project's choice.
+    /// </value>
+    public const double NewtonNearBound = 1e-3;
+
     /// <summary>The smallest line-search step the backtracking loop will try.</summary>
     /// <value>
     /// <c>newton.line_search_min</c>, dimensionless: <c>α</c>. Six halvings; beyond that the step

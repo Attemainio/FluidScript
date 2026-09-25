@@ -15,8 +15,8 @@ N1 - N2
 N2 - PU1
 PU1 - HE1
 HE1 - 3WV
-3WV - N2
-3WV - N3 length=25 dn=25
+3WV.b - N2
+3WV.a - N3 length=25 dn=25
 
 N1 inlet t=60 p=300
 N3 outlet p=280

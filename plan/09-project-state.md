@@ -1427,15 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **52** | |
+| | **51** | |
 
-Recounted 2026-09-25 after `L-68` (P6.11 package 5) was filed: 52.
+Recounted 2026-09-25 after `S-89` and `L-68` (P6.11 package 5) closed: 51.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
 the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
@@ -1822,7 +1822,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     three-way valve by order but sizes it by geometry, and in 8 files the two disagree -- the only difference in
     their solves. Of the scripts inline in tests, 110 bind to the same model; the rest are fragments written
     to raise a language 1 error, or wait on question 7. They convert at the switch. Converted comments that still describe language 1 are listed for a
-    person to reword. **Next: the user's decisions on question 7 and `L-68`, then package 6.**
+    person to reword. **Decided the same day (`D-175`):** a three-way valve's `a` is its control path, read from
+    the plant (`L-68` closed: the 8 files state their ports that way, convert with none written, and give identical
+    solves); `sized_at` makes a capacity, held in every case and run step, written `sized_at.outdoor = -5 C`;
+    named styles and language 1's other extras are dropped or respelled. Relabelling the cooling loop's valve
+    exposed a Newton stall between 22.4 and 26 kW (`S-89`), closed by holding a parameter that crosses its bound
+    from inside at nine tenths of the way (`32` §Line search). **Next: `sized_at` in language 2 and its conversion,
+    which closes package 5; then package 6.**
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1892,7 +1898,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2817 total, 0 failed, 12 skipped** (2026-09-25; 9 of the skips are package 5's, waiting on `L-68` and `19`'s question 7), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2829 total, 0 failed, 4 skipped** (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

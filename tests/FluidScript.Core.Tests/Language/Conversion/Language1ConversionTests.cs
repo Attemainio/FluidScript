@@ -47,8 +47,9 @@ public sealed partial class Language1ConversionTests
     ];
 
     /// <summary>
-    /// The scripts whose converted solve differs by a three-way valve's labelling alone (<c>L-68</c>), until the user
-    /// decides which leg is `a`.
+    /// The scripts whose three-way valve language 1 labelled by order and sized by geometry (<c>L-68</c>). Each now
+    /// states the ports the plant's shape gives (<c>D-175</c>: <c>a</c> the control path, <c>b</c> the bypass), which
+    /// is what language 2 infers unwritten.
     /// </summary>
     private static readonly string[] ThreeWayLabelling =
     [
@@ -115,6 +116,30 @@ public sealed partial class Language1ConversionTests
         Assert.Equal(ModelShape.Of(conversion.Original, withRun: !converted.Model.Runs.IsEmpty), ModelShape.Of(model, withRun: !converted.Model.Runs.IsEmpty));
     }
 
+    /// <summary>
+    /// The converter writes a port only where language 2's inference would choose another, so a converted valve with no
+    /// port written is one whose legs language 2 labels from the plant exactly as the original states them.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(PlantLabelledValves))]
+    [Trait("Category", "Unit")]
+    public void AThreeWayValveIsLabelledByThePlantWithNothingWritten(string file)
+    {
+        var text = File.ReadAllText(Path.Combine(RepositoryLayout.Root, file));
+        var conversion = Language1Converter.Convert(text);
+        var valve = text.Contains("TV_C ", StringComparison.Ordinal) ? "TV_C" : "3WV";
+
+        Assert.DoesNotContain($"{valve}.a", conversion.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain($"{valve}.b", conversion.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain($"{valve}.ab", conversion.Text, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string> PlantLabelledValves =>
+    [
+        .. ((IEnumerable<ITheoryDataRow>)Files()).Select(static row => (string)row.GetData()[0]!)
+            .Where(static file => ThreeWayLabelling.Any(name => file.EndsWith(name, StringComparison.Ordinal))),
+    ];
+
     [Theory]
     [MemberData(nameof(Files))]
     [Trait("Category", "Unit")]
@@ -124,10 +149,6 @@ public sealed partial class Language1ConversionTests
         var text = File.ReadAllText(Path.Combine(RepositoryLayout.Root, file));
         var conversion = Language1Converter.Convert(text);
         Assert.SkipUnless(conversion.Gaps.IsEmpty, "The conversion waits on the user's decision (19, open question 7).");
-        Assert.SkipWhen(
-            ThreeWayLabelling.Any(name => file.EndsWith(name, StringComparison.Ordinal)),
-            "L-68: a three-way valve labelled by order and sized by geometry; the solve differs by that alone.");
-
         var converted = Language1Converter.BindLanguage2(conversion.Text).Model;
         var model = converted.Runs.IsEmpty ? converted : RunProjection.Project(converted, converted.Runs[0]);
 

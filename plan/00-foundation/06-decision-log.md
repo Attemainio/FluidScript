@@ -217,6 +217,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-172` | Accepted | 2026-09-25 | In language 2, `K` is a temperature difference |
 | `D-173` | Accepted | 2026-09-25 | Property tables are built in memory for the session, on a fixed lattice in (ln p, h), to a stated tolerance |
 | `D-174` | Accepted | 2026-09-25 | Language 2 replaces language 1: it is bound directly, and language 1 is removed once its corpus is converted and proven |
+| `D-175` | Accepted | 2026-09-25 | What converting language 1 found: a three-way valve is labelled by the plant, `sized_at` states a capacity, and language 1's other extras are dropped |
 <!-- index:end -->
 
 ---
@@ -7897,3 +7898,72 @@ chose to drop language 1 entirely.
 **Constrains.** `19` (translation, invariants 6 and 7, acceptance), `18` (the supported set after the switch),
 `16` (one template per code), `08`'s P6.11 packages 5 onward, the frontend editor (language 2 only), `docs/` (no
 `docs/v1/`), and every test that states a script.
+
+## D-175 · What converting language 1 found: a three-way valve is labelled by the plant, `sized_at` states a capacity, and language 1's other extras are dropped
+
+**Accepted · 2026-09-25** (the user's call on `P6.11` package 5's list, "as recommended"; `sized_at` as a capacity
+after the case below was shown) · amends `D-166` (a three-way valve's `a` and `b`), `D-94` (what `sized_at`'s value
+is, and its language 2 spelling) · in language 2, drops `D-104`'s named styles and `D-33`'s attachment for good ·
+constrains [`19`](../10-language/19-fluidscript-2.md), [`24`](../20-core-domain/24-auto-sizing.md), `docs/`
+
+**What was wrong.** Converting the corpus (`D-174`'s package 5) found four things language 2 either says differently
+or cannot say.
+
+1. **A three-way valve with no ports written was labelled one way and sized another** (`L-68`). Language 1 gives
+   the switched legs `a` and `b` in the order written, and the valve's equations open `a` with its position; but
+   sizing ignores unwritten letters and reads the control leg from the plant (`ValveLegs.Variable`). In 8 corpus
+   files, `m2-cooling-loop` among them, the recirculation is written first, so the equations put the position on
+   the bypass and the authority is reported against the other leg. `D-166` then made the first written leg `a` in
+   language 2, and counted it as stated, so the converted files reported authority against the bypass: 1 (1.2 of
+   1.2 kPa) where the plant's control leg gives 0.83 (5.6 of 6.7 kPa).
+2. **`sized_at` fixes a component's value in every case, not only on the design day.** `D-94` reads a component's
+   curves at its own point, a bivalent heat pump at −5 °C, and in language 1, whose files have one driver value,
+   that is only ever read on the design day: 27.2 kW of a 50 kW peak, the boiler sized to 22.8. Language 2 lets the
+   driver vary per case. At a mild case of 5 °C the load is 16.3 kW, the heat pump would still give 27.2, and the
+   boiler would have to take 10.9 kW back out. A heat pump above its bivalence point turns down; its capacity is a
+   ceiling, not an output. (Measured that language 1 cannot vary the driver: a list on `design tout=` is `FS1404`,
+   a curve on a `let` `FS1528`. The mild-case figure is the binder's code read, not a run: language 2 had no
+   `sized_at` to run.)
+3. **Named styles and a style that applies to the components after it** have no language 2 form (`19`
+   §Presentation leaves them out of its first version).
+4. **Four smaller things**: a steady file whose curve is driven by another curve that reads the clock; a `show` per
+   circuit; a subcircuit's `inlet`/`outlet` attachment; and `design <case>` naming a case that is not the first.
+
+**The rule.**
+
+1. **A three-way valve's `a` is its control path and `b` its bypass, read from the plant when not written.** The
+   bypass is the switched leg that gets back to the common leg's far end crossing the fewest components, the valve
+   barred: `ValveLegs.Variable`'s test, so the port that takes the position is the one sizing measures authority
+   against. Two legs equally far (an injection circuit's, landing on one header) take the order written, the first
+   `a`, and a script that means otherwise names the port. This replaces `D-166`'s "the inflows `a` then `b` in the
+   order written"; the rest of `D-166` stands. The 8 language 1 files state their ports as the plant reads them, and
+   their conversions write none.
+2. **`sized_at` makes the parameter's value at the stated point its capacity.** In every case and at every step of a
+   run the parameter reads its curve as usual, held to that capacity in magnitude, so a heating curve and a cooling
+   one are held the same way. On the design day of `D-94`'s example nothing changes: 27.2 kW, the boiler 22.8, and
+   the basis line *27.2 kW at outdoor=−5, 0.54 of the 50 kW the design day asks*. At the mild case the heat pump
+   gives 16.3 kW and the boiler nothing. Language 2 writes it as a component setting per driver,
+   `sized_at.outdoor = -5 C`; the driver is a `let` or a role, and its value is read in the driver's unit.
+3. **Named styles and a style for the components after it are dropped.** Presentation is the project's and each
+   circuit's (`D-171`); per-component styling can be added later without breaking a file.
+4. **The smaller four are spelled in language 2's own terms, or dropped**: a curve that follows the clock is handed
+   its driver by a run (`19` §Runs); `show` is the project's; the attachment is gone (`D-166`); the design case is
+   written first. Language 1's syntax tour (`m1-syntax-tour`) is deleted at the switch, its place taken by the
+   language 2 tour.
+
+**Why.** Valve bodies are labelled A–AB for the control path and B for the bypass, and the component's equations
+already assume it (`ValveLegs`); labelling by order was the one place the text could contradict the physics, and
+the plant settles it with no guess. For `sized_at`, the engineering decision is the bivalence point (CIBSE CPD 205,
+cited in `D-94`), and a capacity is what that point sets; a fixed output is right on one day only, and language 2
+exists to size over many.
+
+**Rejected.** *Keep the order for valve labels* — language 1's contradiction, carried on. *Require the ports* —
+safe, and six characters on every valve line, which `D-166` already judged not worth it. For `sized_at`: *port it
+unchanged* (wrong above the bivalence point, above); *a curve read at a point, `min(heating, heating(-5 C))`* —
+right in every case, but a curve called as a function is a new expression form, and the user chose not to open the
+closed function set (`14`) for it; *write the capacity as a number* — right, and stale the moment the curve changes;
+*leave it out of language 2* — the feature is missing, and nothing gained.
+
+**Constrains.** `19` (§Connections rule 2, the component settings, open question 7 closed), `24` (a capacity held
+per case), `docs/functions/design.md` and `curve.md` (the language 2 page for `sized_at`), `ValveLegs` and the
+translation (one test, not two), the converter's proof.

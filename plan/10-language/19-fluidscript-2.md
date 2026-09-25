@@ -6,7 +6,7 @@ status: draft
 owns: [language 2 grammar, language 2 statement set, block structure, port inference by flow direction, cases and drivers, controller declaration, run block, translation from language 2 to the binder]
 depends_on: [01-vision-and-scope, 06-decision-log, 11-language-overview, 12-grammar, 13-type-and-unit-system, 14-expressions-and-references, 15-semantic-model, 16-diagnostics, 17-formatting-and-round-trip, 18-script-compatibility]
 traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-12, R-13, R-46, R-49]
-open_questions: 7
+open_questions: 6
 last_review_pass: 0
 ---
 
@@ -399,8 +399,12 @@ the file is read:
 1. **A two-port component** (pump, valve, pipe, one-sided exchanger): the connection flowing in is its
    inlet, the one flowing out its outlet.
 2. **A three-way valve** counts its connections. Two in and one out is a **mixing** valve: the out is
-   `ab`, and the ins are `a` and `b` in the order written — the first written is `a`, the control path.
-   One in and two out is **diverting**: the in is `ab`, the outs `a` and `b` in order. `mixing_valve` and
+   `ab`, and the ins are `a` and `b`. One in and two out is **diverting**: the in is `ab`, the outs `a` and
+   `b`. **`a` is the control path and `b` the bypass, read from the plant** (`D-175`): the bypass is the
+   switched leg that gets back to the common leg's far end crossing the fewest components, the valve barred —
+   the leg that closes the valve's own loop, and the test sizing already applies (`ValveLegs.Variable`). Two
+   legs equally far, an injection circuit's landing on one header, take the order written, the first `a`;
+   a script that means otherwise names the port. `mixing_valve` and
    `diverting_valve` remain as kinds that **assert** the function; a connection count that disagrees with
    the asserted function is `FS1805`.
 3. **A two-sided exchanger**: the side wired inside the circuit that declares it is **primary**; the side
@@ -423,7 +427,7 @@ inference is for what people type.
 
 **What the binder receives is an explicit port, so an inferred port counts as stated.** In language 1 an
 unwritten port is a guess the binder may revise (`D-88`'s `PortStated`); in language 2 the rule is the
-meaning (rule 2 makes the first inflow `a`, the path the controller moves), so there is nothing left to
+meaning (rule 2 makes the control path `a`, the leg the controller moves), so there is nothing left to
 revise. A chain reaches the binder as one connection per link, because a component in the middle of
 `A - B - C` takes a different port on each side and one language 1 endpoint cannot name two.
 
@@ -710,9 +714,9 @@ language 2 input.
 |---|---|
 | `PCV - HX1` (in `HX1`'s own circuit) | `HX1.primary.in` |
 | `HX1 - NPR` | `HX1.primary.out` |
-| `HX1 - TV1` (from another circuit) | `HX1.secondary.out`; `TV1`'s first inflow → `a` |
+| `HX1 - TV1` (from another circuit) | `HX1.secondary.out`; `TV1`'s inflow from the exchanger, the control path → `a` |
 | `TV1 - SP - TE1 - RAD - NR` | `TV1`'s one outflow → `ab`, so `TV1` mixes; `TE1` becomes a node between `SP` and `RAD` with `TE1` placed at it |
-| `NR - TV1` | `TV1`'s second inflow → `b`, the bypass |
+| `NR - TV1` | `TV1`'s inflow from the return, which closes its own loop through `RAD` → `b`, the bypass |
 | `NR - HX1` | `HX1.secondary.in` |
 
 **What the binder receives for the heating circuit** (language 1 spellings, spans in the language 2
@@ -773,8 +777,11 @@ shows what the records say.
       **Measured 2026-09-25:** of the 53 language 1 `.fluid` files, 52 bind to the same model and 44 give the same
       solve report, word for word; the other 8 differ by a three-way valve's labelling alone (`L-68`), and the one
       that does not convert is language 1's own syntax tour. Of the 85 markdown blocks language 1 binds cleanly, 76
-      bind to the same model and 9 wait on open question 7. Of the scripts inline in tests, 110 bind to the same
-      model; the rest are fragments written to raise a language 1 error, or wait on question 7. Open until question 7 and `L-68` are decided
+      bind to the same model and 9 wait on package 5's list of decisions. Of the scripts inline in tests, 110 bind
+      to the same model; the rest are fragments written to raise a language 1 error, or wait on that list.
+      **Decided 2026-09-25 (`D-175`):** the 8 files state their valve's ports as the plant reads them, and all 53
+      but `m1-syntax-tour` now give the same model *and* the same solve, with no port written on those valves
+      (fixing `S-89` on the way). Open until `sized_at` (`D-175` rule 2) is in language 2 and converted
       (`Language1ConversionTests`).
 - [ ] The direct binder gives the translated path's model on the whole converted corpus (package 6).
 - [ ] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
@@ -811,18 +818,3 @@ shows what the records say.
 6. **Check-only cases** (`check = [extreme]`: solved and reported, never sized for), and a labelled list
     form (`[winter: 85, mild: 70]`) for files with many cases. Recommendation: later, neither is needed
     for the first version.
-7. **What language 1 says that language 2 cannot yet** (package 5, measured by converting the corpus; `D-174`
-   drops language 1, so each is kept by adding it to language 2 or dropped):
-   - **`sized_at`** (`D-94`): a component whose curves are read at its own point, a bivalent heat pump sized at
-     its bivalence point. Engineering practice (CIBSE CPD 205, cited in `D-94`), documented in `docs/functions/design.md`
-     and used by the sizing-point and outer-loop tests. Recommendation: keep it, as a component setting naming the
-     driver's value.
-   - **Named styles and a style for the components after it** (`D-104`): not in language 2's first version (see
-     *Presentation*). Documented in `docs/functions/style.md`.
-   - **A curve driven by another curve** (`curve heating outdoor` where `outdoor` follows time): language 2 says
-     it as a driver a run hands a curve of time (*Runs*), so what is lost is only the steady file that reads a
-     clock without a run. Used by `m1-syntax-tour` and the binder's tests of that composition.
-   - **A `show` per circuit**: language 2 shows one list for the project. `docs/functions/show.md` only.
-   - **`inlet`/`outlet` attachment** of a subcircuit: removed on purpose (`D-166`). `m1-syntax-tour` only.
-   - **`design <case>` naming a case other than the first**: the converter could reorder `cases` and every list;
-     `docs/functions/scenarios.md` only.

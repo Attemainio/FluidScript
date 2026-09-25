@@ -32,6 +32,8 @@ public sealed partial class ToleranceTableTests
         ("newton.max_iterations", Tolerances.NewtonMaxIterations),
         ("newton.divergence_factor", Tolerances.NewtonDivergenceFactor),
         ("newton.line_search_min", Tolerances.NewtonLineSearchMin),
+        ("newton.fraction_to_bound", Tolerances.NewtonFractionToBound),
+        ("newton.near_bound", Tolerances.NewtonNearBound),
         ("newton.fd_step", Tolerances.NewtonFiniteDifferenceStep),
         ("newton.fd_step_state", Tolerances.NewtonFiniteDifferenceStateStep),
         ("jacobian.singular_tol", Tolerances.JacobianSingular),

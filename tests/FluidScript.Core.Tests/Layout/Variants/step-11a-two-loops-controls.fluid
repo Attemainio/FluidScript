@@ -38,8 +38,8 @@ N1 - N2
 N2 - NC - PU_C
 PU_C - HE_C
 HE_C - TV_C
-TV_C - N2
-TV_C - N3 length=25 dn=25
+TV_C.b - N2
+TV_C.a - N3 length=25 dn=25
 
 N1 inlet t=6 p=300
 N3 outlet p=280

@@ -20,6 +20,9 @@ internal sealed partial class TranslationRun
     /// <summary>Each component's kind as written, for what a spelling asserts: <c>mixing_valve</c>, <c>diverting_valve</c>.</summary>
     private readonly Dictionary<string, string> _writtenKinds = new(StringComparer.Ordinal);
 
+    /// <summary>Every name's neighbours along the file's links, each with the components crossed to reach it: 1, or 2 across a link that describes a pipe.</summary>
+    private readonly Dictionary<string, List<(string Name, int Crossed)>> _adjacent = new(StringComparer.Ordinal);
+
     /// <summary>One end of one link: where a stream enters or leaves a component.</summary>
     /// <param name="Endpoint">The endpoint as written.</param>
     /// <param name="Inflow">Whether the stream enters the component here; a chain reads in the direction of flow.</param>
@@ -44,13 +47,22 @@ internal sealed partial class TranslationRun
 
         for (var circuit = 0; circuit < circuits.Count; circuit++)
         {
-            foreach (var chain in circuits[circuit].Body.Select(Chain).OfType<ConnectionSyntax>())
+            foreach (var statement in circuits[circuit].Body)
             {
+                if (Chain(statement) is not { } chain)
+                {
+                    continue;
+                }
+
+                // A one-link line that describes a pipe puts that pipe between its ends (`D-166`).
+                var crossed = statement is PipedConnectionSyntax && chain.Links.Length == 1 ? 2 : 1;
                 var endpoints = chain.Endpoints;
                 for (var i = 0; i + 1 < endpoints.Length; i++)
                 {
                     Add(endpoints[i], inflow: false, endpoints[i + 1]);
                     Add(endpoints[i + 1], inflow: true, endpoints[i]);
+                    Adjacent(endpoints[i].Component.Text, endpoints[i + 1].Component.Text, crossed);
+                    Adjacent(endpoints[i + 1].Component.Text, endpoints[i].Component.Text, crossed);
                 }
 
                 void Add(EndpointSyntax endpoint, bool inflow, EndpointSyntax peer)
@@ -144,11 +156,33 @@ internal sealed partial class TranslationRun
         }
     }
 
-    /// <summary>Rule 2: two streams in and one out is mixing, one in and two out is diverting; the first written is <c>a</c>.</summary>
+    private void Adjacent(string from, string to, int crossed)
+    {
+        if (!_adjacent.TryGetValue(from, out var list))
+        {
+            _adjacent[from] = list = [];
+        }
+
+        list.Add((to, crossed));
+    }
+
+    /// <summary>Rule 2: two streams in and one out is mixing, one in and two out is diverting; <c>b</c> is the bypass.</summary>
     /// <remarks>
+    /// <para>
     /// The function is counted over every connection, named ports included, since a port written on one leg does not
     /// change how many streams meet. A valve with one stream in and one out takes the function its kind asserts; a bare
     /// <c>valve3</c> with two legs says neither, and is <c>FS1804</c>.
+    /// </para>
+    /// <para>
+    /// <strong>Which switched leg is <c>a</c> is read from the plant, not from the order written</strong> (<c>D-175</c>):
+    /// <c>a</c> is the control path and <c>b</c> the bypass, as valve bodies are labelled, and the bypass is the leg that
+    /// closes the valve's own loop -- the one whose far end gets back to the common leg's far end crossing the fewest
+    /// components, the valve itself barred. It is <see cref="FluidScript.Core.Solvers.Results.ValveLegs.Variable"/>'s test,
+    /// which sizing already applies to a valve whose ports are not stated, so the port that takes the position and the
+    /// port sizing measures authority against are the same one. Where the two legs are equally far -- an injection
+    /// circuit whose legs land on one header -- the first written is <c>a</c>, and a script that means otherwise names
+    /// the port.
+    /// </para>
     /// </remarks>
     private void Valve(string name, List<End> all, List<End> free, HashSet<string> claimed)
     {
@@ -201,7 +235,7 @@ internal sealed partial class TranslationRun
 
         var wiring = new List<string>();
 
-        foreach (var end in free)
+        foreach (var end in ByControlPath(name, all, free, commonIsInflow))
         {
             string? port = end.Inflow == commonIsInflow
                 ? (claimed.Contains("ab") ? null : "ab")
@@ -231,6 +265,66 @@ internal sealed partial class TranslationRun
             free[0].Endpoint.Span,
             ("component", name),
             ("wiring", $"a {function} valve: {string.Join(", ", wiring)}"));
+    }
+
+    /// <summary>A valve's unnamed ends with the control path's switched leg ahead of the bypass, when both are unnamed and the plant tells them apart.</summary>
+    private List<End> ByControlPath(string valve, List<End> all, List<End> free, bool commonIsInflow)
+    {
+        var switched = free.Where(end => end.Inflow != commonIsInflow).ToList();
+
+        if (switched.Count != 2 || all.SingleOrDefault(end => end.Inflow == commonIsInflow) is not { } common)
+        {
+            return free;
+        }
+
+        var first = Crossed(switched[0].Peer, common.Peer, valve);
+        var second = Crossed(switched[1].Peer, common.Peer, valve);
+
+        // The farther leg is the control path; the nearer closes the valve's own loop, which is what a bypass is.
+        return second > first
+            ? [.. free.Where(end => !ReferenceEquals(end, switched[0])), switched[0]]
+            : free;
+    }
+
+    /// <summary>The fewest components crossed getting from one name to another without passing through a third.</summary>
+    /// <returns>The count, or <see cref="int.MaxValue"/> when the target cannot be reached: a leg that leaves through a boundary.</returns>
+    private int Crossed(string from, string target, string barred)
+    {
+        if (string.Equals(from, target, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var best = new Dictionary<string, int>(StringComparer.Ordinal) { [from] = 0 };
+        var frontier = new PriorityQueue<string, int>();
+        frontier.Enqueue(from, 0);
+
+        while (frontier.TryDequeue(out var name, out var steps))
+        {
+            if (string.Equals(name, target, StringComparison.Ordinal))
+            {
+                return steps;
+            }
+
+            if (steps > best[name])
+            {
+                continue;
+            }
+
+            foreach (var (next, crossed) in _adjacent.GetValueOrDefault(name) ?? [])
+            {
+                if (string.Equals(next, barred, StringComparison.Ordinal)
+                    || (best.TryGetValue(next, out var known) && known <= steps + crossed))
+                {
+                    continue;
+                }
+
+                best[next] = steps + crossed;
+                frontier.Enqueue(next, steps + crossed);
+            }
+        }
+
+        return int.MaxValue;
     }
 
     /// <summary>Rule 3: the side wired in the declaring circuit is primary, a side wired from another circuit secondary.</summary>

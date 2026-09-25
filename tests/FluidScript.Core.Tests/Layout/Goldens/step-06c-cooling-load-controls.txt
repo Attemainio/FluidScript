@@ -1,5 +1,5 @@
 # step-06c-cooling-load-controls: hard 0, soft 0
-placement 3WV three_way_valve.standard (0, -2) swapped rot 270 mirrored label (0.5, -1.35)
+placement 3WV three_way_valve.standard (0, -2) default rot 270 mirrored label (0.5, -1.35)
 placement 3WV__N3 pipe.standard (-0.833333, -2) default rot 0 label (-0.833333, -1.85)
 placement 3WV__N3__in node.junction (-0.666667, -2) default rot 0 label (-0.666667, -1.85)
 placement HE1 heat_exchanger.standard (3.45, -1) default rot 0 label (3.7, -0.35)

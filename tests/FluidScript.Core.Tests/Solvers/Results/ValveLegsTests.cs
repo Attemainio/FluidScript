@@ -135,13 +135,13 @@ public sealed class ValveLegsTests
     {
         // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`. Lowering
         // resolves an unqualified endpoint to a real port and records its name like any other, so every
-        // leg carries a letter whether or not anyone wrote one. On `m2-cooling-loop`, whose valve is
-        // wired `HE1 - 3WV` / `3WV - N2` / `3WV - P1`, positional binding hands out `ab`, `a`, `b` in
-        // connection order -- putting `a` on the *recirculation* leg and `b` on the control leg, exactly
+        // leg carries a letter whether or not anyone wrote one. On `m2-cooling-loop` with its ports taken
+        // out (the sample states them since `D-175`), wired `HE1 - 3WV` / `3WV - N2` / `3WV - N3`,
+        // positional binding hands out `ab`, `a`, `b` in connection order -- putting `a` on the *recirculation* leg and `b` on the control leg, exactly
         // backwards. Believing that letter sizes the valve against a branch with almost no resistance
         // behind it, which asks for a large Kv and yields no authority over the path it controls;
         // measured, it also stopped the sample converging at all.
-        var (graph, legs, valve) = Legs("m2-cooling-loop.fluid");
+        var (graph, legs, valve) = Legs("m2-cooling-loop.fluid", unstated: true);
 
         Assert.Empty(graph.StatedPorts);
 
@@ -219,10 +219,15 @@ public sealed class ValveLegsTests
     }
 
     private static (CircuitGraph Graph, Branch[] Legs, IFlowComponent Valve) Legs(
-        string sample, string? name = null)
+        string sample, string? name = null, bool unstated = false)
     {
-        var graph = GraphFixture.Lower(
-            File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample))).Graph;
+        var text = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));
+        if (unstated)
+        {
+            text = text.Replace("3WV.a ", "3WV ", StringComparison.Ordinal).Replace("3WV.b ", "3WV ", StringComparison.Ordinal);
+        }
+
+        var graph = GraphFixture.Lower(text).Graph;
         var valve = graph.Components.OfType<ThreeWayValveComponent>().Single(
             v => v.BypassConnected
                 && (name is null || string.Equals(v.Name, name, StringComparison.Ordinal)));

@@ -347,6 +347,90 @@ public sealed partial class EquationSystem
         return pinned >= 0;
     }
 
+    /// <summary>Keeps a step from carrying any promoted column across its bound from inside.</summary>
+    /// <param name="x">The iterate.</param>
+    /// <param name="step">The step, in the same units as <paramref name="x"/>, shortened in place.</param>
+    /// <param name="fraction">The share of the distance to its bound a column may cover in one step, below 1.</param>
+    /// <param name="smallest">The smallest share of the step worth taking whole: below it, only the crossing columns are shortened.</param>
+    /// <returns><see langword="true"/> when the step was shortened.</returns>
+    /// <remarks>
+    /// <para>
+    /// <strong>A step that crosses a bound from inside is shortened, not projected</strong> (<c>S-89</c>). Projecting
+    /// lands the parameter exactly on its bound, and from there the linear model can point outward for good: the
+    /// cooling loop's first step carried its pump's head from 2.2 m past zero, the valve then ran onto its stop, and at
+    /// that corner the Newton step asked both to go further out, 45 steps running. This is interior-point practice's
+    /// fraction-to-the-boundary rule (<see cref="Tolerances.NewtonFractionToBound"/>).
+    /// </para>
+    /// <para>
+    /// <strong>The whole step is shortened, so Newton's direction is kept, unless that leaves less of it than the line
+    /// search would ever take.</strong> Both halves are measured. Shortening only the crossing column sent the cooling
+    /// loop back into its corner: the other columns moved as if the head had changed by all of its step. Shortening the
+    /// whole step froze the over-driven cooling loop (a stated Kv of 630): its valve sat 0.003 from its stop asking for
+    /// −30, the step shrank ten thousandfold, and the iterate crawled for 47 steps. So below
+    /// <paramref name="smallest"/> the crossing columns alone are held back and the rest move.
+    /// </para>
+    /// <para>
+    /// A column on its bound, or within <see cref="Tolerances.NewtonNearBound"/> of its scale, is not counted: the
+    /// projection keeps it there, and a step that leaves the bound is taken whole. So a parameter whose answer is its
+    /// bound lands on it after a few tenfold approaches.
+    /// </para>
+    /// </remarks>
+    public bool StepToBounds(ReadOnlySpan<double> x, Span<double> step, double fraction, double smallest)
+    {
+        var factor = 1.0;
+
+        foreach (var (column, bound) in Crossings(x, step))
+        {
+            factor = Math.Min(factor, fraction * (bound - x[column]) / step[column]);
+        }
+
+        if (factor >= 1)
+        {
+            return false;
+        }
+
+        if (factor >= smallest)
+        {
+            for (var column = 0; column < step.Length; column++)
+            {
+                step[column] *= factor;
+            }
+
+            return true;
+        }
+
+        foreach (var (column, bound) in Crossings(x, step))
+        {
+            step[column] = fraction * (bound - x[column]);
+        }
+
+        return true;
+    }
+
+    /// <summary>The promoted columns a step would carry across a bound they are inside, with the bound each crosses.</summary>
+    private List<(int Column, double Bound)> Crossings(ReadOnlySpan<double> x, ReadOnlySpan<double> step)
+    {
+        var crossings = new List<(int Column, double Bound)>();
+
+        foreach (var (element, slot, column, holds) in _promoted)
+        {
+            var parameter = _graph.Components[element].Resolvable[slot];
+            var to = x[column] + step[column];
+            var near = Tolerances.NewtonNearBound * UnknownScales[column];
+
+            if (holds is null && parameter.Minimum is { } low && x[column] > low + near && to < low)
+            {
+                crossings.Add((column, low));
+            }
+            else if (parameter.Maximum is { } high && x[column] < high - near && to > high)
+            {
+                crossings.Add((column, high));
+            }
+        }
+
+        return crossings;
+    }
+
     /// <summary>The promoted columns that hold a switched-off branch shut, with the component each holds (<c>S-56</c>).</summary>
     /// <value>Column and the stopped exchanger's name. Such a column is exempt from its parameter's lower bound: a negative head is the check valve's drop.</value>
     public IEnumerable<(int Column, string Holds)> Closing

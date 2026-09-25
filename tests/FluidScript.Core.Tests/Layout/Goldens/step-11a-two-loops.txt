@@ -14,7 +14,7 @@ placement PU_C pump.standard (1.25, -5.5) default rot 0 mirrored label (1.25, -4
 placement PU_C__HE_C node.junction (0.45, -5.5) default rot 0 label (0.45, -5.35)
 placement PU_H pump.standard (1.25, -1) default rot 0 mirrored label (1.25, -0.35)
 placement PU_H__HS_H node.junction (0.45, -1) default rot 0 label (0.45, -0.85)
-placement TV_C three_way_valve.standard (2.35, -3.5) swapped rot 90 mirrored label (2.35, -2.85)
+placement TV_C three_way_valve.standard (2.35, -3.5) default rot 90 mirrored label (2.35, -2.85)
 placement TV_C__N3 pipe.standard (3.183333, -3.5) default rot 0 label (3.183333, -3.35)
 placement TV_C__N3__in node.junction (3.016667, -3.5) default rot 0 label (3.016667, -3.35)
 route c0 pipe (0.75, -1) (0.45, -1)

@@ -1,7 +1,7 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:1066b56cee5d0d06b3b77c2108721150a3930af073c33d6280b50a9f9792017f",
+    "sourceHash": "sha256:e1f926c87b3c4dddcc2658ba3d233c41e34a89ddf1c8e27863e22c5b0df91592",
     "languageMajor": 1,
     "catalog": {
       "id": "steel_en10255",
@@ -199,7 +199,7 @@
           "basis": "Belimo's bypass at leakage class I; a rotary body is under 0.05 %"
         },
         "position": {
-          "value": 0.520384,
+          "value": 0.479616,
           "unit": null,
           "source": "sized",
           "basis": "found by the solver, to hold the stated constraints"
@@ -215,7 +215,7 @@
           "unit": "°C"
         },
         "tOut": {
-          "value": 50.0111,
+          "value": 50.015,
           "unit": "°C"
         },
         "pIn": {
@@ -223,16 +223,16 @@
           "unit": "kPa"
         },
         "pOut": {
-          "value": 300,
+          "value": 281.118,
           "unit": "kPa"
         },
         "dp": {
-          "value": 4.32461,
+          "value": 23.2062,
           "unit": "kPa"
         },
         "solved": {
           "position": {
-            "value": 0.520384,
+            "value": 0.479616,
             "unit": ""
           }
         }
@@ -246,12 +246,12 @@
         {
           "name": "a",
           "role": "bidirectional",
-          "connectedTo": "N2"
+          "connectedTo": "3WV__N3__in"
         },
         {
           "name": "b",
           "role": "bidirectional",
-          "connectedTo": "3WV__N3__in"
+          "connectedTo": "N2"
         }
       ]
     },
@@ -348,7 +348,7 @@
       "origin": "inferred:I7",
       "sourceSpan": {
         "start": 834,
-        "length": 24
+        "length": 26
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -1489,7 +1489,7 @@
       "id": "c6",
       "from": {
         "component": "3WV",
-        "port": "a"
+        "port": "b"
       },
       "to": {
         "component": "N2",
@@ -1507,7 +1507,7 @@
       "id": "c7",
       "from": {
         "component": "3WV",
-        "port": "b"
+        "port": "a"
       },
       "to": {
         "component": "3WV__N3__in",
@@ -2140,16 +2140,16 @@
         ],
         "rotation": 90,
         "mirrored": true,
-        "arrangement": "swapped",
+        "arrangement": "default",
         "anchors": {
           "a": {
             "at": [
-              2.35,
-              0.5
+              2.85,
+              1
             ],
             "direction": [
-              0,
-              -1
+              1,
+              0
             ]
           },
           "ab": {
@@ -2164,12 +2164,12 @@
           },
           "b": {
             "at": [
-              2.85,
-              1
+              2.35,
+              0.5
             ],
             "direction": [
-              1,
-              0
+              0,
+              -1
             ]
           }
         },
@@ -2192,7 +2192,7 @@
           "fill": null,
           "corner": "fillet"
         },
-        "scale": 0.8335,
+        "scale": 0.8336,
         "scales": {
           "flow": {
             "at": 0.9904,
@@ -2200,14 +2200,14 @@
             "to": null
           },
           "pressure": {
-            "at": 0.4,
+            "at": 0.0224,
             "from": 0.4865,
-            "to": 0.4
+            "to": 0.0224
           },
           "temperature": {
-            "at": 0.8335,
+            "at": 0.8336,
             "from": 0.8335,
-            "to": 0.8335
+            "to": 0.8336
           }
         }
       },
@@ -2687,7 +2687,7 @@
           "fill": null,
           "corner": "fillet"
         },
-        "scaleFrom": 0.8335,
+        "scaleFrom": 0.8336,
         "scaleTo": 0.3334,
         "scales": {
           "flow": {
@@ -2697,12 +2697,12 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.4,
+            "from": 0.0224,
             "to": 0.4
           },
           "temperature": {
             "at": null,
-            "from": 0.8335,
+            "from": 0.8336,
             "to": 0.3334
           }
         }
@@ -2725,7 +2725,7 @@
           "fill": null,
           "corner": "fillet"
         },
-        "scaleFrom": 0.8335,
+        "scaleFrom": 0.8336,
         "scaleTo": 0.8336,
         "scales": {
           "flow": {
@@ -2735,12 +2735,12 @@
           },
           "pressure": {
             "at": null,
-            "from": 0.4,
+            "from": 0.0224,
             "to": 0.0224
           },
           "temperature": {
             "at": null,
-            "from": 0.8335,
+            "from": 0.8336,
             "to": 0.8336
           }
         }
@@ -2886,7 +2886,7 @@
     {
       "code": "FS4011",
       "severity": "warning",
-      "message": "'3WV' throttles its b leg by 23.2 kPa at position 0.52: that path is 18.9 kPa easier than the a path, more than the 12.0 kPa the valve drops fully open. A balancing valve between N3 and 3WV.b dropping 18.9 kPa at 0.163 kg/s (Kv 1.36) would level the legs and leave the valve its travel.",
+      "message": "'3WV' throttles its a leg by 23.2 kPa at position 0.48: that path is 18.9 kPa easier than the b path, more than the 12.0 kPa the valve drops fully open. A balancing valve between N3 and 3WV.a dropping 18.9 kPa at 0.163 kg/s (Kv 1.36) would level the legs and leave the valve its travel.",
       "range": null,
       "component": "3WV",
       "suggestion": null,
@@ -2963,10 +2963,10 @@
         },
         "end": {
           "line": 23,
-          "character": 24
+          "character": 26
         },
         "offset": 834,
-        "length": 24
+        "length": 26
       },
       "component": "3WV__N3",
       "suggestion": null,
@@ -2983,10 +2983,10 @@
         },
         "end": {
           "line": 23,
-          "character": 24
+          "character": 26
         },
         "offset": 834,
-        "length": 24
+        "length": 26
       },
       "component": "3WV__N3__in",
       "suggestion": null,
@@ -3004,7 +3004,7 @@
   ],
   "solve": {
     "converged": true,
-    "iterations": 8,
+    "iterations": 9,
     "residualNorm": 6.16E-10,
     "elapsedMs": null,
     "sizingPasses": 2

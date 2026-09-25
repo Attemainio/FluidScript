@@ -110,6 +110,27 @@ and the divergence check catches it next iteration — refusing to move is how a
 absolute pressure is rejected and `α` halved without evaluating residuals there. Without this, the
 first thing a poor initial guess does is ask CoolProp for water at −3 bar.
 
+**A promoted parameter crossing its bound from inside covers nine tenths of the way to it, not all of it**
+(`S-89`). A `position` is a fraction and a `head` is not negative (`D-30`); after each step the iterate is projected
+back into those ranges. Projection alone lands a parameter exactly *on* its bound, and at a corner where two sit on
+theirs the linear model can point outward for good. Measured: the cooling loop with its valve's `a` on the primary
+return took its pump's head from 2.2 m past zero on the first step, the valve ran onto its stop, and from iteration 5
+the Newton step asked both to go further out, every step, until the cap. So before the line search, the step is
+shortened so no parameter inside its range crosses the bound: by `newton.fraction_to_bound` (τ = 0.9) of the distance.
+This is interior-point practice's fraction-to-the-boundary rule (Nocedal and Wright, *Numerical Optimization*, 2nd
+ed., §19.2) and the step-back of strictly feasible Newton methods for bound-constrained systems (Coleman and Li 1996;
+Bellavia, Macconi and Morini 2003). τ = 0.9 and the two refinements below are this project's, each measured:
+
+- **The whole step is shortened**, which keeps Newton's direction, **unless that leaves less than `αmin` of it**; then
+  only the crossing parameters are held back and the rest move whole. Shortening only the crossing column put the
+  cooling loop back in its corner (the other unknowns moved as if the head had changed by all of its step);
+  shortening the whole step froze the over-driven loop (a stated Kv of 630), whose valve sat 0.003 from its stop
+  asking for −30, and the iterate crawled for 47 steps.
+- **A parameter on its bound, or within `newton.near_bound` (10⁻³ of its unknown scale) of it, is not held back**:
+  the projection applies as before, so a parameter whose answer is its bound — a valve on its stop (`FS3008`), a
+  pump with nothing to overcome — lands there after a few tenfold approaches. The over-driven loop reaches both
+  bounds in 8 steps.
+
 ## Linear solve
 
 Dense LU with partial pivoting. v1 sizes make this uninteresting: a 200×200 factorisation is

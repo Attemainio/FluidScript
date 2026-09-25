@@ -746,8 +746,15 @@ public static partial class Language1Converter
             var pieces = new List<List<string>> { new() };
             for (var i = 0; i < endpoints.Length; i++)
             {
+                // A three-way valve's written port is dropped for language 2's rule to settle (D-175), and written back
+                // only where the rule would label the leg otherwise: what is left written is what the plant cannot say.
                 var endpoint = endpoints[i];
                 var name = endpoint.Component.Text;
+                if (endpoint.Port is not null && ThreeWay(name) && !forced.Contains(name))
+                {
+                    endpoint = endpoint with { Dot = null, Port = null };
+                }
+
                 var middle = i > 0 && i + 1 < endpoints.Length;
 
                 if (endpoint.Port is null && forced.Contains(name) && middle)
@@ -783,6 +790,11 @@ public static partial class Language1Converter
 
             circuit.Body.Add(chunk);
         }
+
+        /// <summary>A three-way valve with all three legs connected: one the rule can count, which a fragment's is not.</summary>
+        private bool ThreeWay(string name) =>
+            _model.Components.FirstOrDefault(c => c.Name == name)?.Kind?.Keyword == "three_way_valve"
+            && _model.Connections.Count(c => c.From.Component == name || c.To.Component == name) == 3;
 
         private string? WrittenPort(int statement, int endpoint, bool inflow)
         {

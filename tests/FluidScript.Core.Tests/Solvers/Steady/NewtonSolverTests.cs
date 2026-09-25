@@ -159,14 +159,39 @@ public sealed class NewtonSolverTests
         Assert.False(result.Converged);
 
         // Once per parameter rather than once per step, and it names the parameter. Which of the two
-        // gives out moved again with the linear legs (`D-122`): the split now runs to its stop first.
-        var held = Assert.Single(
-            result.Diagnostics.Where(static diagnostic => diagnostic.Code == "FS3008"));
+        // gives out moved again with the linear legs (`D-122`), and again when the sample stated its
+        // valve's ports as the plant reads them (`D-175`): both now do, each said once.
+        var held = result.Diagnostics.Where(static diagnostic => diagnostic.Code == "FS3008").ToArray();
 
-        Assert.True(
-            held.Message.Contains("PU1.head", StringComparison.Ordinal)
-                || held.Message.Contains("3WV.position", StringComparison.Ordinal),
-            held.Message);
+        Assert.NotEmpty(held);
+        Assert.Equal(held.Length, held.Select(static diagnostic => diagnostic.Message).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(held, static diagnostic => Assert.True(
+            diagnostic.Message.Contains("PU1.head", StringComparison.Ordinal)
+                || diagnostic.Message.Contains("3WV.position", StringComparison.Ordinal),
+            diagnostic.Message));
+    }
+
+    [Fact]
+    public async Task AStepThatWouldCarryAParameterPastItsBoundIsHeldShortOfIt()
+    {
+        // `S-89`. The cooling loop at 23 kW with its valve's bootstrap Kv stated, `a` on the primary return. The first
+        // Newton step took the pump's head from 2.2 m past zero; projected onto zero, and the valve then onto its stop,
+        // the iterate sat in a corner where every step asked both to go further out, until the cap. Held at nine
+        // tenths of the way, the next step is taken from inside: head 0.96 m, position 0.24 (the old labelling's 0.76).
+        var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
+            .Replace("power=30", "power=23", StringComparison.Ordinal)
+            .Replace("3WV three_way_valve", "3WV three_way_valve kv=4", StringComparison.Ordinal);
+        Assert.Contains("3WV.a - N3", source, StringComparison.Ordinal);
+
+        var system = Assemble(source, out var seed);
+        var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Converged, $"{result.Termination} after {result.Iterations}");
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS3008");
+
+        var names = system.Unknowns.Unknowns.Select(static u => u.Name).ToList();
+        Assert.Equal(0.96, result.Solution.Values[names.IndexOf("PU1.head")], 0.01);
+        Assert.Equal(0.24, result.Solution.Values[names.IndexOf("3WV.position")], 0.01);
     }
 
     [Fact]

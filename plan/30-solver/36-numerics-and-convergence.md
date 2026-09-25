@@ -101,6 +101,8 @@ derivative's magnitude at a join is a property of the regularisation, not a cons
 | `newton.max_iterations` | 50 | | 10× a normal solve. Reaching it means something is wrong, not slow |
 | `newton.divergence_factor` | 10 | ‖F_k‖ / ‖F_{k−1}‖ | A tenfold increase is divergence, not a line-search excursion |
 | `newton.line_search_min` | 1/64 | α | Six halvings; beyond that the step is not the problem |
+| `newton.fraction_to_bound` | 0.9 | τ, dimensionless | A promoted parameter crossing its bound from inside covers this share of the distance, and the step is shortened with it (`32` §Line search, `S-89`). Interior-point practice uses 0.99–0.995 (Nocedal and Wright §19.2); 0.9 is this project's, measured on the cooling loop's corner |
+| `newton.near_bound` | 1e-3 | Share of the column's unknown scale | Within it a parameter counts as on its bound and is projected there, so an answer on the bound is reached |
 | `newton.fd_step` | √ε ≈ 1.49e-8 | Relative, flow and parameter columns | Standard forward-difference optimum for a function exact to round-off: balances truncation against round-off |
 | `newton.fd_step_state` | 1e-5 | Relative, node pressure columns, every row but a valve's Kv law | A property flash is not exact to round-off: at √ε of the pressure scale (4 mPa) water's (p,h) flash returns a temperature derivative 3.5× and a density derivative 1.4× the value it settles at from 1 Pa up; the enthalpy columns are exact at √ε (`S-74`). A Kv law keeps √ε, because its Δp may be under a pascal and a step of pascals is a secant across its whole operating range: the dead-leg script's bootstrap valve at 0.19 Pa |
 | `jacobian.singular_tol` | 1e-12 | pivot / ‖J‖∞ | Twelve orders below the matrix norm is numerically zero |

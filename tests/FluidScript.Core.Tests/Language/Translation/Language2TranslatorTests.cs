@@ -309,7 +309,7 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TwoStreamsInMakeAMixingValveAndTheFirstWrittenIsA()
+    public void TwoStreamsInMakeAMixingValveAndTheControlPathIsA()
     {
         var result = Bind("""
             fluidscript 2
@@ -328,6 +328,51 @@ public sealed class Language2TranslatorTests
 
         var wired = Assert.Single(result.Diagnostics, static d => d.Code == "FS1815");
         Assert.Equal("'TV1' is wired as a mixing valve: a from RAD, ab to N1, b from N2.", wired.Message);
+    }
+
+    /// <summary>
+    /// <c>D-175</c>: the bypass is the leg that closes the valve's own loop, however the file orders it. Here the
+    /// recirculation from <c>N2</c> is written first; <c>N2</c> is two components from the mix point <c>N1</c> (through
+    /// <c>PU1</c>) and <c>RAD</c> three, so <c>N2</c>'s leg is <c>b</c> and the radiator's the control path.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheBypassIsBWhenItIsWrittenFirst()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              RAD heat_exchanger  power = -10 kW
+              TV1 valve3
+              N2 - TV1
+              N1 - PU1 - N2 - RAD - TV1 - N1
+            """);
+
+        Assert.Equal("a", PortAt(result, "RAD", "TV1", "TV1"));
+        Assert.Equal("b", PortAt(result, "N2", "TV1", "TV1"));
+        Assert.Equal("ab", PortAt(result, "TV1", "N1", "TV1"));
+    }
+
+    /// <summary>Two switched legs equally far from the mix point cannot be told apart by the plant, so the order written decides.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TwoLegsEquallyFarTakeTheOrderWritten()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              TV1 valve3
+              N1 - TV1
+              N1 - TV1
+              TV1 - PU1 - N1
+            """);
+
+        var wired = Assert.Single(result.Diagnostics, static d => d.Code == "FS1815");
+        Assert.StartsWith("'TV1' is wired as a mixing valve: a from N1, b from N1", wired.Message, StringComparison.Ordinal);
     }
 
     [Fact]

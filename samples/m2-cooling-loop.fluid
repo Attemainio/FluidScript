@@ -20,8 +20,8 @@ N1 - N2                      # primary supply into the mixing node
 N2 - PU1                     # the secondary pump drives the loop
 PU1 - HE1
 HE1 - 3WV
-3WV - N2                     # recirculation branch — closes the secondary loop
-3WV - N3 length=25 dn=25                      # primary return
+3WV.b - N2                   # recirculation branch — closes the secondary loop
+3WV.a - N3 length=25 dn=25                    # primary return
 
 N1 inlet t=6 p=300          # primary-side boundary: fluid enters here (D-64)
 N3 outlet p=280              # and leaves here
