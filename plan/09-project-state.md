@@ -1702,7 +1702,22 @@ that governed each size. What P6.8 still owes, and what comes after:
     this was already true is corrected in `19`. **What 19's reference script still reports**, each a later slice's:
     the per-case `let` and the curves of it (`FS1404`, `FS1528`, 3c), the controller's parameters and `stroke`
     (`FS1503`, 3d), runs left out of the translation (3e), and a cross-circuit exchanger wired to its first free port
-    rather than its secondary (3b). Next: slice 3b.
+    rather than its secondary (3b).
+  - **`P6.11` package 3, slice 3b (2026-09-25): ports by flow direction.** The translation reads every line, then
+    gives each unnamed end its port by `D-166`'s rules (`19` §Connections) and hands the binder explicit ports, so an
+    inferred port counts as stated and language 1's order-based assignment is untouched. A chain now reaches the
+    binder as one connection per link, since a component in the middle takes a different port on each side. New
+    codes: `FS1804` (the rule cannot settle it: a valve with one stream each way or three in, a third pass through an
+    exchanger, a second inflow into a pump), `FS1805` (a `mixing_valve` wired to divert), and `FS1815`, information
+    saying how a valve, a two-sided exchanger or a busy tank was wired -- `19`'s invariant 4 now says a two-port's
+    inlet and outlet are not reported, since they are no choice. `m2-substation`'s language 2 twin binds to the
+    sample's model; it has to write the heating pass first, because the sample puts the district water on side 2
+    and rule 3 makes the first pass written in the declaring circuit primary. Measured on the reference script:
+    `HX1` is primary from `PCV` to `NPR`, secondary from `NR` to `TV1`, and `TV1` mixes with `a` from `HX1` -- `19`'s
+    worked example, line for line. **For package 4:** an exchanger's `power` is side 1's heat, so a district
+    substation declared in the district circuit (primary = the water that cools) takes `power = -150 kW`; stated
+    positive it is `FS2119`, whose message says "side 1" and `in.t`, language 1's words. Still reported by the
+    reference script: the per-case `let` and its curves (3c), the controller and `stroke` (3d). Next: slice 3c.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

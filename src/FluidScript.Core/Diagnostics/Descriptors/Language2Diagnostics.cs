@@ -96,8 +96,42 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Error,
         "'{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits.");
 
+    /// <summary>A connection whose port the flow-direction rule cannot settle.</summary>
+    /// <value><c>FS1804</c>, an error.</value>
+    /// <remarks>
+    /// <c>D-166</c> rule 6: what the rule cannot settle is an error, never a guess. The connection is left without
+    /// a port and binds as far as it can; the message names what the component has and what to write.
+    /// </remarks>
+    public static DiagnosticDescriptor PortNotInferred { get; } = new(
+        "FS1804",
+        DiagnosticSeverity.Error,
+        "'{component}' cannot take this connection: {reason}. Name the port, such as '{example}'.");
+
+    /// <summary>A valve written as mixing or diverting whose connections say the other function.</summary>
+    /// <value><c>FS1805</c>, an error.</value>
+    /// <remarks>
+    /// <c>D-166</c> rule 2: <c>mixing_valve</c> and <c>diverting_valve</c> assert the function the connections
+    /// otherwise decide. The ports follow the connections, which is what the plant will do.
+    /// </remarks>
+    public static DiagnosticDescriptor ValveFunctionContradicted { get; } = new(
+        "FS1805",
+        DiagnosticSeverity.Error,
+        "'{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out.");
+
+    /// <summary>The ports a multi-port component was given by the flow-direction rule.</summary>
+    /// <value><c>FS1815</c>, information.</value>
+    /// <remarks>
+    /// <c>19</c> §Connections: every inference is stated once, so the reading is visible without opening the
+    /// drawing. Raised for a three-way valve, an exchanger wired on both sides, and a tank; a two-port component's
+    /// inlet and outlet say nothing a reader could doubt.
+    /// </remarks>
+    public static DiagnosticDescriptor PortsInferred { get; } = new(
+        "FS1815",
+        DiagnosticSeverity.Info,
+        "'{component}' is wired as {wiring}.");
+
     /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
-    /// <value>Eight descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Eleven descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -108,5 +142,8 @@ public static class Language2Diagnostics
         HeadWithoutColon,
         NotAPipeSize,
         SensorPlacedTwice,
+        PortNotInferred,
+        ValveFunctionContradicted,
+        PortsInferred,
     ];
 }

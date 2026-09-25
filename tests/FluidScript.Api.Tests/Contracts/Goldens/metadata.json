@@ -5164,6 +5164,30 @@
       ]
     },
     {
+      "code": "FS1804",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{component}' cannot take this connection: {reason}. Name the port, such as '{example}'.",
+      "arguments": [
+        "component",
+        "reason",
+        "example"
+      ]
+    },
+    {
+      "code": "FS1805",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out.",
+      "arguments": [
+        "component",
+        "asserted",
+        "actual",
+        "inflows",
+        "outflows"
+      ]
+    },
+    {
       "code": "FS1806",
       "severity": "error",
       "area": "Language2",
@@ -5208,6 +5232,16 @@
       "arguments": [
         "sensor",
         "node"
+      ]
+    },
+    {
+      "code": "FS1815",
+      "severity": "info",
+      "area": "Language2",
+      "message": "'{component}' is wired as {wiring}.",
+      "arguments": [
+        "component",
+        "wiring"
       ]
     },
     {

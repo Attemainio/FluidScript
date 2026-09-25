@@ -86,6 +86,7 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
 
         CollectNames(circuits);
         PlaceSensorsInChains(circuits);
+        InferPorts(circuits);
 
         for (var index = 0; index < circuits.Count; index++)
         {

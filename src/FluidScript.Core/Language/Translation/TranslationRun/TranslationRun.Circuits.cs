@@ -19,12 +19,14 @@ internal sealed partial class TranslationRun
     /// <remarks>Components are named globally (<c>D-41</c>), so a chain in one circuit may name a sensor declared in another.</remarks>
     private void CollectNames(List<BlockSyntax> circuits)
     {
-        foreach (var statement in circuits.SelectMany(static circuit => circuit.Body))
+        foreach (var (statement, circuit) in circuits.SelectMany(static (block, index) => block.Body.Select(statement => (statement, index))))
         {
             if (Declared(statement) is { } declaration)
             {
                 var name = declaration.Name.Text;
                 _names.Add(name);
+                _declaredIn.TryAdd(name, circuit);
+                _writtenKinds.TryAdd(name, declaration.Kind.Text);
                 _kinds.TryAdd(
                     name,
                     registry.Resolve(declaration.Kind.Text) is KindResolution.Exact exact ? exact.Kind : null);
@@ -166,13 +168,13 @@ internal sealed partial class TranslationRun
                     break;
 
                 case ConnectionSyntax chain:
-                    _circuits.Add(TranslateChain(chain, []));
+                    _circuits.AddRange(TranslateChain(chain, []));
                     break;
 
                 case PipedConnectionSyntax piped:
                     // More than one link is FS1803 from the parser, and the chain binds without the pipe rather
                     // than giving every link the same one, which is what language 1 would do (`D-166`).
-                    _circuits.Add(TranslateChain(
+                    _circuits.AddRange(TranslateChain(
                         piped.Connection,
                         piped.Connection.Links.Length == 1 ? Pipe(piped.Properties) : []));
                     break;
@@ -246,21 +248,37 @@ internal sealed partial class TranslationRun
     private ParameterSyntax Parameter(ParameterSyntax parameter) =>
         parameter with { Name = PortName(parameter.Name), Value = Value(parameter.Value) };
 
-    private ConnectionSyntax TranslateChain(ConnectionSyntax chain, ImmutableArray<ParameterSyntax> pipe) =>
-        new(
-            Endpoint(chain.First),
-            [.. chain.Links.Select(link => link with { Endpoint = Endpoint(link.Endpoint) })],
-            pipe);
+    /// <summary>Translates a chain into one connection per link, each end with its port written out.</summary>
+    /// <remarks>
+    /// Language 1 reads <c>A - B - C</c> as two connections (rule I6) and gives an unnamed end a port by preference
+    /// order. Language 2's ports come from the flow direction (<see cref="InferPorts"/>), and a component in the middle
+    /// of a chain takes a different port on each side of it, which one language 1 endpoint cannot say — so the chain
+    /// is written link by link. The pipe of a one-link line stays on that line.
+    /// </remarks>
+    private IEnumerable<ConnectionSyntax> TranslateChain(ConnectionSyntax chain, ImmutableArray<ParameterSyntax> pipe)
+    {
+        var endpoints = chain.Endpoints;
 
-    /// <summary>An endpoint with language 1's port name, or the node a sensor in the chain stands for.</summary>
-    private EndpointSyntax Endpoint(EndpointSyntax endpoint)
+        for (var i = 0; i < chain.Links.Length; i++)
+        {
+            yield return new ConnectionSyntax(
+                Endpoint(endpoints[i], inflow: false),
+                [chain.Links[i] with { Endpoint = Endpoint(endpoints[i + 1], inflow: true) }],
+                pipe);
+        }
+    }
+
+    /// <summary>An endpoint with its port in language 1's spelling, or the node a sensor in the chain stands for.</summary>
+    /// <param name="endpoint">The endpoint as written.</param>
+    /// <param name="inflow">Whether the stream enters the component at this end.</param>
+    private EndpointSyntax Endpoint(EndpointSyntax endpoint, bool inflow)
     {
         if (endpoint.Port is null && _sensorNodes.TryGetValue(endpoint.Component.Text, out var node))
         {
             return new EndpointSyntax(Identifier(node, endpoint.Component.Span), null, null);
         }
 
-        return endpoint.Port is { } port ? endpoint with { Port = PortName(port) } : endpoint;
+        return endpoint.Port is { } port ? endpoint with { Port = PortName(port) } : WithInferredPort(endpoint, inflow);
     }
 
     /// <summary>Translates a pipe's description after its link, <c>12 m  DN25  roughness = 0.05 mm</c>, into language 1's parameters (<c>D-166</c>, <c>D-110</c>).</summary>

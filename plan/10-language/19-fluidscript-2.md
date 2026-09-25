@@ -394,9 +394,18 @@ the file is read:
 6. **What the rule cannot settle is an error, never a guess**: a valve with three inflows, a side with two
    inlets — `FS1804`, naming the ports to write.
 
-The binder states every inference once as information (`TV1: a = HX1, b = NR, ab → SP`), and the canvas
-labels the ports. When the canvas writes a connection to a component with more than two ports, it writes
-the port explicitly: inference is for what people type.
+Where the rule chose between ports it says so once, as information (`FS1815`: *'TV1' is wired as a mixing
+valve: a from HX1, ab to SP, b from NR.*). That covers every three-way valve, an exchanger with both sides
+wired by the rule, and a tank with more than one stream on one side. A two-port's inflow and outflow have
+one reading, and reporting them would put a line under every pump. The canvas labels the ports. When the
+canvas writes a connection to a component with more than two ports, it writes the port explicitly:
+inference is for what people type.
+
+**What the binder receives is an explicit port, so an inferred port counts as stated.** In language 1 an
+unwritten port is a guess the binder may revise (`D-88`'s `PortStated`); in language 2 the rule is the
+meaning (rule 2 makes the first inflow `a`, the path the controller moves), so there is nothing left to
+revise. A chain reaches the binder as one connection per link, because a component in the middle of
+`A - B - C` takes a different port on each side and one language 1 endpoint cannot name two.
 
 **A sensor may sit in a chain**: `TV1 - SP - TE1 - RAD`. The binder lowers it to a node between `SP` and
 `RAD` with the sensor observing it (`D-166`, amending `D-61`, whose objection — the sensor's identity
@@ -523,7 +532,7 @@ span in them points into the language 2 text, so every diagnostic lands on what 
 | `circuit "T":` with `fluid`, `number`, `role` | A circuit header with number and role, and a fluid line |
 | A declaration, either form | A component declaration with its parameters |
 | `primary.*`, `secondary.*` | `in`/`out` and `in[2]`/`out[2]` |
-| A chain with inferred ports | A connection with every port explicit |
+| A chain with inferred ports | One connection per link, every port explicit |
 | A sensor in a chain | A node in the chain and the sensor placed `at` it |
 | `12 m DN25` at a link's end | `length=12 dn=25` on that link |
 | A controller block | A controller declaration and a control binding |
@@ -567,6 +576,7 @@ range is **`FS18xx`**, owned by this document:
 | `FS1812` | Error | A block head without its `:` |
 | `FS1813` | Error | A word after a pipe's link that is not a DN designation (`12 m NPS1`); the pipe keeps its length and is sized |
 | `FS1814` | Error | A sensor that sits in a chain and is also placed `at` a node; the chain's placement is kept |
+| `FS1815` | Info | How the rule wired a component where it chose between ports: a three-way valve, an exchanger with two sides, a tank side with more than one stream |
 
 ## Invariants
 
@@ -576,7 +586,8 @@ range is **`FS18xx`**, owned by this document:
    in that block; the block and every line after it still bind.
 3. **The parser does not read the registry.** Kinds and parameters are names; a new kind or parameter
    changes no grammar.
-4. **Every inferred port is reported once and drawn labelled.** No inference is silent.
+4. **Every choice between ports is reported once (`FS1815`) and drawn labelled.** No such choice is
+   silent; a two-port's inlet and outlet are not a choice.
 5. **Every span the binder sees points into the language 2 text.**
 6. **A language 2 file and its language 1 twin bind to the same model** wherever both can say it: the
    same components, parameters, connections and ports, the same solve.
@@ -617,12 +628,15 @@ circuit heating 200
 fluid water
 SP  pump
 TV1 three_way_valve stroke=90 s
-TE1 t_sensor at TE1__node
+TE1 t_sensor at TE1_node
 RAD radiator power=heat_demand
 TC1 controller band=20 dK ti=120 s
 connections
 HX1.out[2] - TV1.a length=30 dn=32
-TV1.ab - SP - TE1__node - RAD - NR
+TV1.ab - SP.in
+SP.out - TE1_node
+TE1_node - RAD.in
+RAD.out - NR
 NR - TV1.b
 NR - HX1.in[2] length=30 dn=32
 control actuate=TV1.position measure=TE1.t by=TC1 setpoint=supply_temp
@@ -640,8 +654,10 @@ shows what the records say.
 - [ ] A malformed line inside a block leaves the rest of the block and the file bound (invariant 2).
 - [ ] Every sample in `samples/` has a language 2 twin that binds to the same model and the same solve
       (invariant 6), checked by a test that compares the two model contracts.
-- [ ] Port inference: each rule has a test, including a mixing and a diverting `valve3`, an exchanger
-      wired across two circuits and within one, a tank, and each `FS1804` shape.
+- [x] Port inference: each rule has a test, including a mixing and a diverting `valve3`, an exchanger
+      wired across two circuits and within one, a tank, and each `FS1804` shape (slice 3b:
+      `Language2TranslatorTests`; the shapes are a valve with one stream each way, a valve with three
+      inflows, a third pass through an exchanger and a second inflow into a pump).
 - [ ] `FS1803`: `A - B - C 12 m DN25` is refused, `A - B 12 m DN25` binds as one 12 m pipe.
 - [ ] The worked example's per-case values (70.9 °C, 44.3 kW, 38.9 °C) are asserted.
 - [ ] A controller of each type binds; each `FS1808` and `FS1809` shape is refused; `FS1810` is raised

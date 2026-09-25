@@ -76,9 +76,12 @@ public sealed class Language2TranslatorTests
             text.AppendLine(CultureInfo.InvariantCulture, $"component {component.Name} {component.Kind?.Keyword} in {component.CircuitName} at {component.AttachedTo} [{string.Join(' ', parameters)}]");
         }
 
-        foreach (var connection in model.Connections)
+        // The order of connections is the order of lines, which carries no meaning.
+        foreach (var connection in model.Connections
+            .Select(static c => $"{c.From.Component}.{c.From.Port} - {c.To.Component}.{c.To.Port}")
+            .Order(StringComparer.Ordinal))
         {
-            text.AppendLine(CultureInfo.InvariantCulture, $"{connection.From.Component}.{connection.From.Port} - {connection.To.Component}.{connection.To.Port}");
+            text.AppendLine(connection);
         }
 
         return text.ToString();
@@ -105,6 +108,50 @@ public sealed class Language2TranslatorTests
 
               N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
               N5 - N1   25 m
+            """);
+
+        var original = new Binder(ComponentRegistry.Default).Bind(
+            FluidScriptParser.Parse(new SourceText(sample.Text)), "script");
+
+        Assert.Equal(Shape(original.Model), Shape(twin.Model));
+    }
+
+    /// <summary>
+    /// The sample wires the district water through side 2 and the heating water through side 1, both in one
+    /// circuit. Rule 3 makes the first pass written primary, so the twin writes the heating pass first; it is the
+    /// order of lines, not a port, that reproduces the sample's sides.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheSubstationTwinBindsToTheSampleModel()
+    {
+        var sample = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("m2-substation.fluid", StringComparison.Ordinal));
+
+        var twin = Clean("""
+            fluidscript 2
+
+            circuit "substation":
+              fluid = water
+
+              NPS  inlet   t = 85   p = 600
+              NPR  outlet  p = 350
+              PCV  valve
+              SP   pump
+              LOAD heat_exchanger  power = -150  dt = 20
+              HX1  heat_exchanger  power = 150  u = 3300:
+                primary.in.t    = 40
+                primary.out.t   = 60
+                secondary.in.t  = 85
+                secondary.out.t = 45
+
+              HX1 - NSUP     30 m  DN32
+              NSUP - LOAD - NRET
+              NRET - SP      30 m  DN32
+              SP - HX1
+
+              NPS - PCV
+              PCV - HX1      12 m  DN25
+              HX1 - NPR
             """);
 
         var original = new Binder(ComponentRegistry.Default).Bind(
@@ -244,6 +291,228 @@ public sealed class Language2TranslatorTests
               N1 - SP - TE1 - N1
             """, "FS1814");
 
+    // ---- ports by flow direction ----------------------------------------------------------------
+
+    /// <summary>The port the model connects at one end of the link between two components, through the node <c>I2</c> inserts between them if it did.</summary>
+    private static string? PortAt(BindResult result, string from, string to, string at)
+    {
+        var inserted = $"{from}__{to}";
+        return result.Model.Connections
+            .Where(c => at == from
+                ? c.From.Component == from && (c.To.Component == to || c.To.Component == inserted)
+                : c.To.Component == to && (c.From.Component == from || c.From.Component == inserted))
+            .Select(c => at == from ? c.From.Port : c.To.Port)
+            .Single();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TwoStreamsInMakeAMixingValveAndTheFirstWrittenIsA()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              RAD heat_exchanger  power = -10 kW
+              TV1 valve3
+              N1 - PU1 - N2 - RAD - TV1 - N1
+              N2 - TV1
+            """);
+
+        Assert.Equal("a", PortAt(result, "RAD", "TV1", "TV1"));
+        Assert.Equal("b", PortAt(result, "N2", "TV1", "TV1"));
+        Assert.Equal("ab", PortAt(result, "TV1", "N1", "TV1"));
+
+        var wired = Assert.Single(result.Diagnostics, static d => d.Code == "FS1815");
+        Assert.Equal("'TV1' is wired as a mixing valve: a from RAD, ab to N1, b from N2.", wired.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void OneStreamInAndTwoOutMakeADivertingValve()
+    {
+        var result = Clean("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              TV1 valve3
+              N1 - PU1 - TV1 - N2 - N1
+              TV1 - N2
+            """);
+
+        Assert.Equal("ab", PortAt(result, "PU1", "TV1", "TV1"));
+        Assert.Contains(result.Model.Connections, static c => c.From is { Component: "TV1", Port: "a" });
+        Assert.Contains(result.Model.Connections, static c => c.From is { Component: "TV1", Port: "b" });
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMixingValveWiredToDivertIsFS1805()
+    {
+        var diagnostic = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              TV1 mixing_valve
+              N1 - PU1 - TV1 - N2 - N1
+              TV1 - N2
+            """, "FS1805");
+
+        Assert.Equal("'TV1' is written as a mixing valve, and its connections make it diverting: 1 in and 2 out.", diagnostic.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AValveWithOneStreamInAndOneOutSaysNeitherAndIsFS1804()
+    {
+        var diagnostic = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              TV1 valve3
+              N1 - PU1 - TV1 - N1
+            """, "FS1804");
+
+        Assert.Contains("1 in and 1 out", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Contains("'TV1.a'", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AValveWithThreeInflowsIsFS1804() =>
+        Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              TV1 valve3
+              N1 - TV1
+              N2 - TV1
+              N3 - TV1
+              TV1 - N4
+            """, "FS1804");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnAssertedFunctionSettlesAValveWithOneLegWired()
+    {
+        var result = Clean("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              TV1 diverting_valve
+              N1 - PU1 - TV1 - N1
+            """);
+
+        Assert.Equal("ab", PortAt(result, "PU1", "TV1", "TV1"));
+        Assert.Equal("a", PortAt(result, "TV1", "N1", "TV1"));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnExchangersSideInItsOwnCircuitIsPrimaryAndTheOtherSecondary()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "source":
+              fluid = water
+              PP  pump
+              N1 - PP - N2
+            circuit "load":
+              fluid = water
+              HX1 heat_exchanger  power = 50 kW
+              SP  pump
+              N3 - SP - HX1 - N3
+            circuit "link":
+              fluid = water
+              N2 - HX1 - N1
+            """);
+
+        Assert.Equal("in", PortAt(result, "SP", "HX1", "HX1"));
+        Assert.Equal("out", PortAt(result, "HX1", "N3", "HX1"));
+        Assert.Equal("in2", PortAt(result, "N2", "HX1", "HX1"));
+        Assert.Equal("out2", PortAt(result, "HX1", "N1", "HX1"));
+
+        var wired = Assert.Single(result.Diagnostics, static d => d.Code == "FS1815");
+        Assert.Equal("'HX1' is wired as primary from SP to N3, secondary from N2 to N1.", wired.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ANamedSideLeavesTheOtherToTheUnnamedPass()
+    {
+        var result = Clean("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  power = 50 kW
+              PU1 pump
+              PU2 pump
+              N1 - PU1 - HX1 - N1
+              N2 - PU2 - HX1.primary.in
+              HX1.primary.out - N2
+            """);
+
+        Assert.Equal("in", PortAt(result, "PU2", "HX1", "HX1"));
+        Assert.Equal("in2", PortAt(result, "PU1", "HX1", "HX1"));
+        Assert.Equal("out2", PortAt(result, "HX1", "N1", "HX1"));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AThirdPassThroughAnExchangerIsFS1804() =>
+        Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  power = 50 kW
+              N1 - HX1 - N2
+              N3 - HX1 - N4
+              N5 - HX1 - N6
+            """, "FS1804");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ATanksStreamsTakeItsPortsInTheOrderWritten()
+    {
+        var result = Bind("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              TK1 tank
+              PU1 pump
+              PU2 pump
+              N1 - TK1 - PU1 - N1
+              N2 - TK1 - PU2 - N2
+            """);
+
+        Assert.Equal("in1", PortAt(result, "N1", "TK1", "TK1"));
+        Assert.Equal("out1", PortAt(result, "TK1", "PU1", "TK1"));
+        Assert.Equal("in2", PortAt(result, "N2", "TK1", "TK1"));
+        Assert.Equal("out2", PortAt(result, "TK1", "PU2", "TK1"));
+        Assert.Contains(result.Diagnostics, static d => d.Code == "FS1815");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASecondStreamIntoAPumpIsFS1804()
+    {
+        var diagnostic = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              PU1 pump
+              N1 - PU1 - N2 - N1
+              N2 - PU1
+            """, "FS1804");
+
+        Assert.Equal("'PU1' cannot take this connection: a pump has one inlet, and it is already connected. Name the port, such as 'PU1.in'.", diagnostic.Message);
+    }
+
     // ---- names ----------------------------------------------------------------------------------
 
     [Fact]
@@ -301,7 +570,9 @@ public sealed class Language2TranslatorTests
               fluid = water
               TV1 valve3
               PU1 Pump  HEAD = 5 m
-              N1 - PU1 - TV1 - N1
+              RAD heat_exchanger  power = -10 kW
+              N1 - PU1 - N2 - RAD - TV1 - N1
+              N2 - TV1
             """);
 
         Assert.Equal("three_way_valve", Component(result, "TV1").Kind?.Keyword);
