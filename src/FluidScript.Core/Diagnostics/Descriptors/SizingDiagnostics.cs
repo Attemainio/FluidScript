@@ -112,7 +112,8 @@ public static class SizingDiagnostics
         "FS2314",
         DiagnosticSeverity.Warning,
         "'{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. "
-        + "If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.");
+        + "If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.",
+        language2Template: "'{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.");
 
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =

@@ -1,0 +1,117 @@
+# FluidScript 2: every statement, in one file.
+#
+# The language 2 counterpart of samples/m1-syntax-tour.fluid. Each statement and setting that
+# plan/10-language/19-fluidscript-2.md defines appears at least once, with a comment saying what
+# it does. Unlike the language 1 tour, it is also a plant: a district-heating substation feeding a
+# radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
+# to that.
+#
+# does not settle: S-86 -- the heating ring's flow seed ignores TC1's setpoint and starts backwards,
+# as it does for the reference script (plan/30-solver/defects.md).
+
+fluidscript 2
+
+# ---- The project: its cases, catalogue and presentation ------------------------------------
+
+project "Syntax tour":
+  cases   = [winter, mild]              # every list below has one value per case, in this order
+  catalog = steel_en10255@2026.1        # pins the pipe catalogue and its version
+  show    = temperature                 # the property the diagram colours by
+  scale   = 20..90 C                    # a range; the unit after it applies to both ends
+  spacing = 1.2                         # the layout's spacing factor
+  style:                                # the drawing's defaults; a circuit may override them
+    colour = "#2f6f9f"                  # quoted, since '#' starts a comment
+    width  = 2
+    corner = fillet
+    line   = solid
+
+# ---- Values, drivers and curves ------------------------------------------------------------
+
+let outdoor = [-26, 5] C                # a driver: a let whose value is one per case
+let rise    = 20 K                      # K is a temperature difference, as engineers write it
+let swing   = rise * 1.5                # a let reading a let: arithmetic on quantities
+let supply  = outdoor + 2 K             # reads a driver, so it varies per case as well
+
+curve district_supply: outdoor          # a curve names its driver after a colon
+  -26   85                              # the first column in the driver's unit, here °C
+   18   65                              # the second in the unit of the parameter using it
+
+curve heat_demand: outdoor extrapolated # beyond its ends it continues the slope
+  -26   150
+   18     0
+
+curve supply_temp: outdoor
+  -26   60
+   18   30
+
+curve weather_jan: time                 # a curve of time, for a run; dates are unquoted
+  2026-01-15 06:00   -18
+  2026-01-15 12:00    -9
+
+# ---- The primary: an open circuit through the substation -----------------------------------
+
+circuit "District primary":
+  fluid  = water
+  number = 100                          # the tag prefix
+  role   = district                     # where the drawing places it
+  style:
+    colour = crimson                    # overrides the project's colour, keeps its width
+
+  NPS  inlet   t = district_supply   p = 600 kPa   # a parameter pinned to a curve
+  NPR  outlet  p = 350 kPa
+  PCV  valve
+  HX1  exchanger:                       # a declaration with its parameters in a block
+    primary.out.t   = 45 C              # the network's required return
+    secondary.in.t  = 40 C
+    secondary.out.t = [60, 50] C        # a list: one value per case
+
+  NPS - PCV                             # a connection, read in the direction of flow
+  PCV - HX1                  12 m  DN25 # a pipe on the link: its length and designation
+  HX1 - NPR                  8 m   roughness = 0.05 mm   # any other pipe setting by name
+
+# ---- The secondary: a radiator circuit on a weather-compensated supply ---------------------
+
+circuit "Heating":
+  fluid  = water
+  number = 200
+  role   = radiator
+
+  SP   pump
+  TV1  valve3      stroke = 90 s        # a three-way valve; its speed is the actuator's own
+  TE1  temperature_sensor               # sits in a chain below
+  PE1  pressure_sensor  at NS           # or is placed on a node with 'at'
+  RAD  radiator    power = heat_demand
+  TC1  controller:                      # a controller is one declaration
+    type     = PI
+    moves    = TV1                      # a component: its one actuated parameter, the position
+    reads    = TE1
+    setpoint = supply_temp              # a curve, read at each case's outdoor temperature
+    band     = swing                    # the proportional band, in the measurement's unit
+    ti       = 120 s
+    output   = 10..100 %                # limits, in the actuator's unit
+
+  HX1.secondary.out - TV1    30 m  DN32 # a port written explicitly always wins
+  TV1 - SP - NS - TE1 - RAD - NR        # a chain; a name nothing declares is a node
+  NR - TV1                              # the valve's second inflow: a mixing valve
+  NR - HX1                   30 m  DN32 # circuits join through a component both name
+
+# ---- Runs: what happens to the plant in time -----------------------------------------------
+
+run "Cold morning":
+  from     = winter                     # the case whose steady state it starts from
+  start    = 2026-01-15 06:00           # where the clock sits on curves of time
+  duration = 2 h
+  frame    = 10 s                       # simulated time between kept states
+  steady   = ["District primary"]       # circuits held quasi-steady in this run
+
+  outdoor  = weather_jan                # an override: the driver follows the clock
+  at   10 min       RAD.power    = 100 kW    # a step
+  over 30..40 min   NPS.t        = 85..75 C  # a ramp: both ends of both spans
+  at   07:30        TC1.setpoint = 55 C      # a clock time, after 'start'
+
+run "Mild afternoon":
+  from     = mild
+  duration = 30 min
+
+  outdoor   = 8 C                       # an override of a driver by a value, for this run only
+  RAD.power = 20 kW                     # and of a parameter

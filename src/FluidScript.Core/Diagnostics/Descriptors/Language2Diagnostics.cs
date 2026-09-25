@@ -58,13 +58,17 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Error,
         "'{word}' is language 1. In language 2, {instead}.");
 
-    /// <summary>A ramp given one value.</summary>
+    /// <summary>A ramp given one time or one value.</summary>
     /// <value><c>FS1807</c>, an error.</value>
-    /// <remarks>Language 1 reads <c>over 60 s .. 120 s X = 45</c> as a step at the span's end, which looks like a ramp.</remarks>
+    /// <remarks>
+    /// Language 1 reads <c>over 60 s .. 120 s X = 45</c> as a step at the span's end, which looks like a ramp. The
+    /// message names the half that has one end, since a ramp over <c>5 min</c> with a range of values is wrong in its
+    /// time and a ramp over a span with one value is wrong in its value.
+    /// </remarks>
     public static DiagnosticDescriptor RampWithOneValue { get; } = new(
         "FS1807",
         DiagnosticSeverity.Error,
-        "A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'.");
+        "A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'.");
 
     /// <summary>A block head without its colon.</summary>
     /// <value><c>FS1812</c>, an error.</value>

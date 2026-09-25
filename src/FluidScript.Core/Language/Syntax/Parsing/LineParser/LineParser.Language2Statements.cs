@@ -105,6 +105,13 @@ internal sealed partial class LineParser
 
         var keyword = Advance();
         var name = TakeIdentifier();
+
+        // `curve heating` and `curve heating:` both lack what the curve depends on, which is the thing to say.
+        if (name is not null && (AtEnd || (Current is { Kind: TokenKind.Colon } && _index == tokens.Length - 1)))
+        {
+            return Fail(ParserDiagnostics.CurveWithoutDriver, LineSpan, new DiagnosticArgument("name", name.Text));
+        }
+
         if (name is null || Current is not { Kind: TokenKind.Colon })
         {
             return Malformed();
@@ -147,7 +154,15 @@ internal sealed partial class LineParser
             "A setting",
             "inside the block it sets: a project, a circuit, a run, a style or a component");
 
+        // `colour = #2f6f9f`: the `#` began a comment, so the value is missing; say so as language 1's style line does,
+        // before the parameters are read, whose failure would add FS1104 for the same line.
+        if (tokens[^1] is { Kind: TokenKind.Equals } equals && HexComment(equals) is { } hex)
+        {
+            return Fail(ParserDiagnostics.BareHexColour, LineSpan, new DiagnosticArgument("hex", hex));
+        }
+
         var assignments = ParseParameters(out var failed);
+
         return failed || assignments.IsEmpty ? Malformed() : new SettingLineSyntax(assignments);
     }
 
@@ -218,6 +233,8 @@ internal sealed partial class LineParser
     {
         Place(context == Language2Block.Circuit, "A connection line", "inside a circuit block");
 
+        // Where the endpoint before the latest dash began: `N1 - HX-1 - N2` fails at `1`, and the name is `HX-1`.
+        var previous = _index;
         var first = TakeEndpoint();
         if (first is null)
         {
@@ -228,13 +245,15 @@ internal sealed partial class LineParser
         while (Current is { Kind: TokenKind.Minus })
         {
             var dash = Advance();
+            var next = _index;
             var endpoint = TakeEndpoint();
             if (endpoint is null)
             {
-                return Malformed();
+                return HyphenatedOrMalformed(previous);
             }
 
             links.Add(new ConnectionLinkSyntax(dash, endpoint));
+            previous = next;
         }
 
         var properties = ImmutableArray.CreateBuilder<SyntaxNode>();
@@ -285,6 +304,26 @@ internal sealed partial class LineParser
         return new PipedConnectionSyntax(connection, properties.ToImmutable());
     }
 
+    /// <summary>
+    /// A line that read as a chain and failed: <c>HX-1 pump</c>, or <c>N1 - HX-1 - N2</c>, has a name with a hyphen in
+    /// it, which <c>FS1108</c> names.
+    /// </summary>
+    /// <param name="start">Where the endpoint before the failing dash began.</param>
+    /// <remarks>
+    /// Only after the chain fails, since <c>N1-N2</c> written without spaces is a connection and reads as one.
+    /// </remarks>
+    private MalformedStatementSyntax HyphenatedOrMalformed(int start)
+    {
+        _index = start;
+        return TryReadHyphenated(out var written, out var underscored)
+            ? Fail(
+                ParserDiagnostics.HyphenInName,
+                LineSpan,
+                new DiagnosticArgument("text", written),
+                new DiagnosticArgument("underscored", underscored))
+            : Malformed();
+    }
+
     /// <summary>Parses an event, <c>at T target = value</c> or <c>over T1..T2 target = v1..v2</c>.</summary>
     /// <remarks>
     /// Built on language 1's <see cref="DisturbanceSyntax"/>. A ramp needs both ends of both spans
@@ -312,10 +351,15 @@ internal sealed partial class LineParser
 
         if (keyword.Text == "over" && (when is PointSyntax || value is PointSyntax))
         {
+            var written = source.ToString(target.Span);
+            var (half, example) = when is PointSyntax
+                ? ("its time", $"over 30..40 min {written} = {source.ToString(value.Span)}")
+                : ("its value", $"{written} = 30..45");
             Report(
                 Language2Diagnostics.RampWithOneValue,
                 LineSpan,
-                new DiagnosticArgument("target", source.ToString(target.Span)));
+                new DiagnosticArgument("half", half),
+                new DiagnosticArgument("example", example));
         }
 
         return new DisturbanceSyntax(keyword, when!, target, equals, value);

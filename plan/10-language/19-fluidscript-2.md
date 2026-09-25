@@ -404,7 +404,9 @@ the file is read:
 3. **A two-sided exchanger**: the side wired inside the circuit that declares it is **primary**; the side
    wired from any other circuit is **secondary**. When both sides are wired in one circuit, the first
    pass written is primary. A pass `S - HX1 - R` pairs its inlet and outlet; passes on separate lines pair
-   in the order written.
+   in the order written. A side with one port written explicitly takes the pass that needs its other port:
+   `HX1.secondary.out - TV1` with `NR - HX1` is one secondary side (package 4; before it, a written port
+   took its whole side out of the rule and the inflow was `FS1804`).
 4. **A tank's** inflows take `in`, `in[2]`, … and its outflows `out`, `out[2]`, … in the order written.
 5. **An explicit port always wins**: `HX1.secondary.out - TV1.a`.
 6. **What the rule cannot settle is an error, never a guess**: a valve with three inflows, a side with two
@@ -505,8 +507,7 @@ because each is read in the units of what is measured or moved. So:
   controller settles when it is built, so `34` owns the conversion; the binding carries the band.
 - `FS1808`, `FS1809` and `FS1810` are the translation's: the setting is dropped (`FS1808`; `kp` under `FS1809`),
   so the controller binds as the type it states. A setting no type has is `FS1503`, listing language 2's twelve.
-- A controller missing `moves` or `reads` is `FS1521`, whose message still names language 1's `control` line
-  (package 4). A `curve` controller reading a driver or `time` binds as its declaration only: language 1's
+- A controller missing `moves` or `reads` is `FS1521`, "A controller needs moves, reads." A `curve` controller reading a driver or `time` binds as its declaration only: language 1's
   line cannot name either, and `FS1810` already says it is not run. P6.3 gives it a binding.
 
 ### Runs
@@ -611,9 +612,40 @@ the binder explicit ports, so language 1's order-based assignment is untouched.
 ### Diagnostics
 
 Codes carry over where their meaning holds. A message that quotes language 1 syntax gets a language 2
-wording (`FS1531` names `moves =`, not `control … with`). A code whose cause cannot be written in
-language 2 is never raised there. The full audit of all 186 codes is package 4 of `P6.11`. The new
-range is **`FS18xx`**, owned by this document:
+wording; a code whose cause cannot be written in language 2 is never raised there. The new range is
+**`FS18xx`**, owned by this document (table below).
+
+**How a message gets its language 2 wording** (package 4). A descriptor may carry a second template,
+`Language2Template`, whose placeholders are a subset of the first's (the constructor refuses any other).
+A diagnostic keeps the arguments it was created with, and `Language2Wording.Apply` renders the second
+template from them, so applying it twice changes nothing. It runs wherever a stage that knows the language
+hands its diagnostics on: `MajorParser` (the parse and the translation), `Binder.Bind` (when the parse was
+language 2) and `ModelContractBuilder.Build` (major 2, which gathers every later stage's). **A run's
+diagnostics must go through it too:** `FS3109` is raised by the well-posedness check on the run path, and
+P6.5's worker is where they leave Core. The pass also respells arguments: an exchanger's `in[2]`/`out[2]`
+become `secondary.in`/`secondary.out` in a code about an exchanger (by its own subject, or by the `kind` it
+names), `FS2119`'s side 1/2 become primary/secondary, and `FS1302`'s worked example writes `K` for `dK`. The
+codes with a second wording are listed on the diagnostics page, generated from the registry.
+
+**The audit** (package 4, 201 codes, measured by running a battery of language 2 mistakes through the
+compile endpoint):
+
+| Class | Codes |
+|---|---|
+| A second wording, because the message quotes language 1 | `FS1104`, `FS1105`, `FS1116`, `FS1121`, `FS1521`, `FS1528`, `FS1533`, `FS1537`, `FS1540`–`FS1542`, `FS1544`–`FS1546`, `FS2107`, `FS2109`, `FS2110`, `FS2112`, `FS2119`, `FS2314`, `FS2606`, `FS3109`, `FS4008` |
+| Arguments respelled only | `FS1302`, and `FS1503`/`FS1505` on an exchanger |
+| Never raised in language 2: the statement or spelling does not exist there | `FS1101`–`FS1103`, `FS1106`, `FS1107`, `FS1109`–`FS1113`, `FS1118`, `FS1120`, `FS1204`, `FS1205`, `FS1508`, `FS1517`, `FS1518`, `FS1520`, `FS1523`, `FS1526`, `FS1527`, `FS1534`, `FS1543`, `FS1547`, `FS2217` |
+| Still `in[2]` in a language 2 file, because the pass cannot tell the port is an exchanger's | `FS2202`, `FS2210`, `FS2211`, `FS3013` (`L-66`) |
+| Unchanged: the message says nothing language 1 alone would write | every other code |
+
+`FS1107` needs no language 2 form: an event on a circuit a run holds steady still applies (measured: the
+same rise, 30.00 → 14.98 K, either way). The audit also fixed what both languages shared: `FS1531` shows
+the qualified form an engineer means (`HE1.power`, `N3.t`), `FS1503` says "no parameters" for a kind with
+none, `FS2117` names the kind, `FS2213` reads right for one name, and in language 2 `FS1116`, `FS1108`
+(in a chain), `FS1203` (without `FS1104` beside it), `FS1202` and `FS1214` (across blocks and lines), and
+`corner` outside `sharp`/`fillet` are raised where they were silent or doubled. The test holding it is
+`Language2DiagnosticsTests`: a corpus of language 2 mistakes whose messages quote no language 1 spelling
+and which raise no code from the third row.
 
 | Code | Severity | When |
 |---|---|---|
@@ -623,7 +655,7 @@ range is **`FS18xx`**, owned by this document:
 | `FS1804` | Error | A port the inference rule cannot settle; the message lists the ports to write |
 | `FS1805` | Error | A `mixing_valve` or `diverting_valve` whose connections say the other function |
 | `FS1806` | Error | A language 1 statement in a language 2 file, with the language 2 form as its fix. Recognised by language 1's shape, so a language 2 line starting with the same word is not caught: `connections` or `schedule` alone; `control`, `scenarios`, `design`, `project`, `circuit` or `style` followed by a name (`project dynamic`, `circuit heating`); `curve NAME DRIVER` without the colon; `fluid`, `show`, `spacing` or `catalog` followed by anything but `=`, `-` or `.`; `inlet NAME` or `outlet NAME` alone. The price is that a component may not be declared under one of these words (`design valve` reads as language 1's `design`) — this project's reasoning: that reading is far more likely to be meant |
-| `FS1807` | Error | A ramp with one value |
+| `FS1807` | Error | A ramp missing an end: of its time (`over 30 min`) or of its value (`= 75 C`); the message says which |
 | `FS1808` | Error | A controller parameter that its stated type does not have |
 | `FS1809` | Error | Both `band` and `kp` stated |
 | `FS1810` | Warning | A controller type the solver does not run yet |
@@ -722,7 +754,12 @@ shows what the records say.
       for every type the solver does not run (package 3d).
 - [x] A run binds to the settings and events `33` reads; a one-valued `over` is `FS1807` (package 3e; the
       weather loop in language 2 is played in time by `Language2RunTests`).
-- [ ] Every language 1 statement in a language 2 file is `FS1806` with its language 2 form.
+- [x] Every language 1 statement in a language 2 file is `FS1806` with its language 2 form (package 4: each
+      of the fifteen shapes in `FS1806`'s row, `FluidScript2ParserTests`).
+- [x] Every diagnostic a language 2 file receives is in language 2's words, from every stage (package 4:
+      `Language2WordingTests`, `Language2DiagnosticsTests`).
+- [x] `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report
+      (package 4). Its solve, like the reference script's, is `S-86`'s.
 - [ ] A file with no version line is language 1 until `P6.11`'s switch-over (`D-164`).
 - [ ] The editor highlights and completes language 2 in a file whose version line says 2, and language
       1 otherwise.
@@ -735,7 +772,9 @@ shows what the records say.
    rule 4 of port inference are written above; nothing else about tanks has been discussed.
 2. **The vocabulary pass**: `duty` for heat and `power` for shaft or electrical power, `rise` on a pump
    and `dp` only ever a drop, `kvs`, and each thermal kind taking its direction from what it is (a boiler
-   heats its water, a radiator cools it) instead of from a sign convention on an alias (`D-91`).
+   heats its water, a radiator cools it) instead of from a sign convention on an alias (`D-91`). Package 4
+   measured one gap for it: a side's flow is written at its inlet port (`primary.in.flow`,
+   `secondary.in.flow`), and the side itself has no spelling (`primary.flow` is `FS1503`).
    Recommendation: a package of its own after language 2 lands, since the registry is shared by both
    languages.
 3. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the

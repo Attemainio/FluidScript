@@ -80,8 +80,12 @@ public static partial class DeferredEvaluation
 
         // Bindings first, so a parameter reading a deferred `let` finds it; a chain of deferred
         // bindings needs one round per link, bounded by their number.
+        // A reader of a curve held for the clock keeps its bound value here: this scope has no curves, and the
+        // design solve reads none on the clock.
         var pending = model.Deferred
-            .Where(static deferred => deferred.Source is not null && deferred.Target is ValueId.Let or ValueId.ComponentParameter)
+            .Where(static deferred => deferred.Source is not null
+                && deferred.Target is ValueId.Let or ValueId.ComponentParameter
+                && !deferred.FollowsTheClock)
             .OrderBy(static deferred => deferred.Target is ValueId.Let ? 0 : 1)
             .ToList();
         var rounds = Math.Max(1, pending.Count);
@@ -360,7 +364,7 @@ public static partial class DeferredEvaluation
 
         foreach (var deferred in model.Deferred.OrderBy(static deferred => deferred.Target.ToString(), StringComparer.Ordinal))
         {
-            if (deferred.Source is null || histories.ContainsKey(deferred.Target))
+            if (deferred.Source is null || deferred.FollowsTheClock || histories.ContainsKey(deferred.Target))
             {
                 continue;
             }

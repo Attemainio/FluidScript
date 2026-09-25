@@ -5039,7 +5039,7 @@
       "code": "FS1531",
       "severity": "error",
       "area": "Binder",
-      "message": "A {kind} has no single {role} to use here. Write it out, such as '{example}'.",
+      "message": "A {kind} has no single {role}. Write it out, such as '{example}'.",
       "arguments": [
         "kind",
         "role",
@@ -5312,9 +5312,10 @@
       "code": "FS1807",
       "severity": "error",
       "area": "Language2",
-      "message": "A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'.",
+      "message": "A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'.",
       "arguments": [
-        "target"
+        "half",
+        "example"
       ]
     },
     {
@@ -5580,7 +5581,7 @@
       "code": "FS2117",
       "severity": "error",
       "area": "Components",
-      "message": "'{name}': a {kind} must state {parameter}.",
+      "message": "'{name}': the {kind} must state {parameter}.",
       "arguments": [
         "name",
         "kind",
@@ -5692,7 +5693,7 @@
       "code": "FS2213",
       "severity": "info",
       "area": "Topology",
-      "message": "'{list}' are connected to nothing else and are solved as a system of their own.",
+      "message": "Nothing connects '{list}' to the rest of the plant, so that part is solved as a system of its own.",
       "arguments": [
         "list"
       ]

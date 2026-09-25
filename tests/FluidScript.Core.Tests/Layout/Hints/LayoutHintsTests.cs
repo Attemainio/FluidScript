@@ -236,7 +236,7 @@ public sealed class LayoutHintsTests
     [Fact]
     public void EveryComponentInEverySampleIsOrderedAndStaged()
     {
-        foreach (var sample in Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal))
+        foreach (var sample in ScriptCorpus.EnumerateSampleFiles())
         {
             var lowered = GraphFixture.Lower(File.ReadAllText(sample));
             var (hints, _) = LayoutHintsDerivation.Derive(lowered.Graph, GraphFixture.Bind(File.ReadAllText(sample)), null);

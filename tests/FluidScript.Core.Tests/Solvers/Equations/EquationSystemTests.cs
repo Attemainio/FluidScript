@@ -24,7 +24,7 @@ public sealed class EquationSystemTests
     {
         var data = new TheoryData<string>();
 
-        foreach (var path in Directory.GetFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal))
+        foreach (var path in ScriptCorpus.EnumerateSampleFiles())
         {
             data.Add(Path.GetFileName(path));
         }

@@ -1067,7 +1067,7 @@ above, never to a `let`.
 | `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
 | `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
-| `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role} to use here. Write it out, such as '{example}'.` |
+| `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role}. Write it out, such as '{example}'.` |
 | `FS1532` | An `at` clause on a kind that carries flow rather than observing it | Error | `'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.` |
 | `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
 | `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |

@@ -18,15 +18,22 @@ public static class MajorParser
     /// <param name="source">The script.</param>
     /// <param name="major">The major <see cref="ScriptCompatibility.Inspect"/> detected; <see langword="null"/> for an unversioned draft.</param>
     /// <param name="registry">The component kinds, which language 2's translation reads.</param>
-    /// <returns>The tree the binder reads, with every parser and translation diagnostic.</returns>
+    /// <returns>
+    /// The tree the binder reads, with every parser and translation diagnostic — in language 2's words for a language 2
+    /// file (<see cref="Language2Wording"/>).
+    /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="registry"/> is <see langword="null"/>.</exception>
     public static ParseResult Parse(SourceText source, LanguageMajor? major, IComponentRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(registry);
 
-        return major is { Value: 2 }
-            ? Language2Translator.Translate(FluidScript2Parser.Parse(source), registry)
-            : FluidScriptParser.Parse(source);
+        if (major is not { Value: 2 })
+        {
+            return FluidScriptParser.Parse(source);
+        }
+
+        var translated = Language2Translator.Translate(FluidScript2Parser.Parse(source), registry);
+        return translated with { Diagnostics = Language2Wording.Apply(translated.Diagnostics) };
     }
 }

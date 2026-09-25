@@ -434,16 +434,23 @@ internal sealed partial class BindingRun
             return new PropertyReference(name, single);
         }
 
-        var candidates = actuated
-            ? kind?.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal)
-            : kind?.Properties.Keys.Order(StringComparer.Ordinal);
+        var candidates = (actuated
+            ? kind?.Parameters.Values.Select(static info => info.Name)
+            : kind?.Properties.Keys)?.ToHashSet(StringComparer.Ordinal) ?? [];
+
+        // The example is what a controller is most likely after, not the first name in the alphabet: a node read
+        // by a temperature loop was offered `N3.flow` and an exchanger to move `HE1.approach` (P6.11 package 4).
+        string[] likely = actuated ? ["position", "speed", "power", "flow"] : ["t", "p", "flow"];
+        var example = likely.FirstOrDefault(candidates.Contains)
+            ?? candidates.Order(StringComparer.Ordinal).FirstOrDefault()
+            ?? (actuated ? "position" : "t");
 
         Report(
             BinderDiagnostics.NoSingleEndpoint,
             endpoint.Span,
             ("kind", kind?.Keyword ?? _components[slot.Index].WrittenKind),
             ("role", actuated ? "parameter to move" : "property to read"),
-            ("example", $"{name}.{candidates?.FirstOrDefault() ?? (actuated ? "position" : "t")}"));
+            ("example", $"{name}.{example}"));
 
         return null;
     }

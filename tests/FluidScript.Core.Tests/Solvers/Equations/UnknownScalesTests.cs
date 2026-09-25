@@ -50,7 +50,7 @@ public sealed class UnknownScalesTests
         // A zero or negative scale is a division that produces infinity or a flipped sign, and neither
         // presents as a scaling bug: the first is FS3007 somewhere unrelated and the second is a
         // component that appears to have its convention backwards.
-        foreach (var path in Directory.GetFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal))
+        foreach (var path in ScriptCorpus.EnumerateSampleFiles())
         {
             var graph = GraphFixture.Lower(File.ReadAllText(path)).Graph;
             var layout = SystemLayout.Build(graph, WellPosedness.Check(graph).Counting);

@@ -123,7 +123,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1528` | Error | Binder | '{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=...' or solve in time. |
 | `FS1529` | Info | Binder | '{curve}' has two rows at {x}; the later one is used. |
 | `FS1530` | Error | Binder | '{curve}' needs at least two rows to interpolate between. |
-| `FS1531` | Error | Binder | A {kind} has no single {role} to use here. Write it out, such as '{example}'. |
+| `FS1531` | Error | Binder | A {kind} has no single {role}. Write it out, such as '{example}'. |
 | `FS1532` | Error | Binder | '{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead. |
 | `FS1533` | Warning | Binder | '{name}' observes nothing. Place it with 'at' and the name of a node. |
 | `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
@@ -150,7 +150,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1804` | Error | Language2 | '{component}' cannot take this connection: {reason}. Name the port, such as '{example}'. |
 | `FS1805` | Error | Language2 | '{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out. |
 | `FS1806` | Error | Language2 | '{word}' is language 1. In language 2, {instead}. |
-| `FS1807` | Error | Language2 | A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'. |
+| `FS1807` | Error | Language2 | A ramp needs both ends of {half}, such as '{example}'. For a step, write 'at'. |
 | `FS1808` | Error | Language2 | '{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}. |
 | `FS1809` | Error | Language2 | '{controller}' states both band and kp, and each says the other. State one. |
 | `FS1810` | Warning | Language2 | '{controller}' is a {type} controller, which the solver does not run yet. |
@@ -177,7 +177,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2113` | Error | Components | '{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them. |
 | `FS2114` | Error | Components | '{name}': layers must be a whole number from 1 to 100. |
 | `FS2115` | Error | Components | '{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top). |
-| `FS2117` | Error | Components | '{name}': a {kind} must state {parameter}. |
+| `FS2117` | Error | Components | '{name}': the {kind} must state {parameter}. |
 | `FS2118` | Error | Components | '{name}': a {kind} must state {count} of {parameters}. |
 | `FS2119` | Error | Components | '{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
 | `FS2201` | Warning | Topology | Using '{node}' as the pressure datum. Pressures are relative to it. |
@@ -187,7 +187,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2210` | Error | Topology | This circuit is over-specified by {n}. Remove one of: {list}{advice}. |
 | `FS2211` | Error | Topology | This circuit is under-specified by {n}. Add one of: {list}. |
 | `FS2212` | Error | Topology | '{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them. |
-| `FS2213` | Info | Topology | '{list}' are connected to nothing else and are solved as a system of their own. |
+| `FS2213` | Info | Topology | Nothing connects '{list}' to the rest of the plant, so that part is solved as a system of its own. |
 | `FS2214` | Warning | Topology | Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg? |
 | `FS2215` | Error | Topology | {substance} cannot be at {state}. |
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
@@ -246,6 +246,41 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS4601` | Error | Request | The script has {count} {what}; the limit is {max}, so it is not solved. |
 | `FS5002` | Warning | Rendering | The drawing breaks its own {rule} rule between '{first}' and '{second}' ({detail}); the picture is unreliable there. |
 <!-- END GENERATED: diagnostic-codes -->
+
+## In a language 2 file
+
+A code means the same thing in both languages, and most messages read the same too. Where a message
+quotes language 1's syntax — `in[2]` for an exchanger's second side, `scenarios winter mild` — a
+`fluidscript 2` file gets the wording below instead, with the same code. An exchanger's second side is
+also spelled `secondary.in` / `secondary.out` inside any message about an exchanger, whatever its code.
+
+<!-- BEGIN GENERATED: language-2-diagnostic-wordings -->
+| Code | In a language 2 file |
+|---|---|
+| `FS1104` | Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'. |
+| `FS1105` | '{token}' looks like a parameter but has no value. Write '{token} = …'. |
+| `FS1116` | 'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'. |
+| `FS1121` | A list is one value per case, separated by commas, such as '[30, 10]'. |
+| `FS1521` | A controller needs {list}. Missing: {missing}. |
+| `FS1528` | '{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time. |
+| `FS1533` | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
+| `FS1537` | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
+| `FS1540` | '{written}' states {given} values for {count} cases: {names}. State one per case, or one value for all of them. |
+| `FS1541` | '{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block. |
+| `FS1542` | '{name}' is not a case of this file. It declares: {names}. |
+| `FS1544` | '{name}' is declared twice. Each case needs its own name. |
+| `FS1545` | start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00. |
+| `FS1546` | This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value. |
+| `FS2107` | '{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass. |
+| `FS2109` | '{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved. |
+| `FS2110` | '{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it. |
+| `FS2112` | '{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open. |
+| `FS2119` | '{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater. |
+| `FS2314` | '{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list. |
+| `FS2606` | Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it. |
+| `FS3109` | '{target}' is driven by {controller}; an event in a run cannot also move it. |
+| `FS4008` | '{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach = {approach}. |
+<!-- END GENERATED: language-2-diagnostic-wordings -->
 
 ## Withdrawn codes
 

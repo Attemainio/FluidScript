@@ -74,7 +74,8 @@ public static class CatalogDiagnostics
     public static DiagnosticDescriptor DefaultCatalogUsed { get; } = new(
         "FS2606",
         DiagnosticSeverity.Info,
-        "Using catalogue '{name}'. Write 'catalog {name}' to pin it.");
+        "Using catalogue '{name}'. Write 'catalog {name}' to pin it.",
+        language2Template: "Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it.");
 
     /// <summary>Gets every code this area registers.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =

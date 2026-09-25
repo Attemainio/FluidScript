@@ -1427,15 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 6 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **49** | |
+| | **51** | |
 
-Recounted 2026-09-25 after `L-65` (P6.11 slice 3d) and `C-135` (`D-173`) were filed: 49.
+Recounted 2026-09-25 after `L-66` and `L-67` (P6.11 package 4) were filed: 51.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
 the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
@@ -1774,6 +1774,27 @@ that governed each size. What P6.8 still owes, and what comes after:
     six to eight times their components' (R454B) or none (R410A.mix), which a table would reproduce faithfully --
     T3 waits on it and on `21`'s open question 2. `21`'s open question 1 (how a project states its level) is the
     user's call before T1 closes. The probes are in the untracked `ScenarioProbe.cs`.
+  - **`P6.11` package 4 (2026-09-25): the diagnostics audit, and the language 2 syntax tour.** All 201 codes,
+    measured by a battery of language 2 mistakes run through the compile endpoint; the classes and the mechanism
+    are `19` §Diagnostics. A descriptor may carry a second template, a diagnostic keeps its arguments, and
+    `Language2Wording` re-renders them where a language-aware stage hands diagnostics on (the parse, the binding,
+    the contract) -- 23 codes have a second wording, 25 are unreachable in language 2, and four keep `in[2]`
+    because the pass cannot tell the port is an exchanger's (`L-66`). **P6.5 must apply it to a run's
+    diagnostics** (`FS3109` is raised on the run path). Shared defects fixed in the same change: `FS1531`'s example
+    (`HE1.power`, not the alphabetically first), `FS1503` with "no parameters", `FS2117` naming the kind, `FS2213`
+    for one name, and in language 2 `FS1116`, `FS1108` in a chain, `FS1203` without `FS1104`, `FS1202`/`FS1214`
+    across blocks, `corner` validated, one `FS1506` without `FS1804`, no `FS1528` beside `FS1811`. **Found and
+    fixed, the larger one:** since 3e held every language 2 reader of a curve for the clock, the steady outer loop
+    evaluated each again in a scope with no curves -- `FS1404 Nothing named 'district_supply'` on `19`'s reference
+    script, and on any language 2 file with a curve. Language 1 had the same fault in a dynamic circuit since
+    `L-59`'s step. `DeferredExpression.FollowsTheClock` now keeps the bound value for the steady solve;
+    measured on a language 2 load following a curve and on `m4-demand-step` with its duty on a curve: converged,
+    30 kW, no `FS1404`/`FS1412` (both carried them without the fix). Also fixed: rule 3 now completes an
+    exchanger side with one port written (`HX1.secondary.out - TV1` with `NR - HX1`, which was `FS1804`).
+    **The tour:** `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report;
+    `ScriptCorpus` marks a sample's language from its version line and the fourteen tests that walk samples by
+    path now read language 1's only. Its solve stops at `S-86`, as the reference script's does. Filed `L-66`
+    (wording leftovers) and `L-67` (an event after the run's end is silent). Next: package 5, the frontend.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1843,8 +1864,8 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2432 total, 0 failed, 3 skipped** (2026-09-24), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
-| API test suite | **60 passed, 0 failed**, ~4 s | `FluidScript.Api.Tests` |
+| Core test suite | **2623 total, 0 failed, 3 skipped** (2026-09-25), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |
 | Frontend checks | `tsc -b`, `npm run lint`, `npm run format:check` all clean | `frontend/` |

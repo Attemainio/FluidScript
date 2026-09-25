@@ -18,7 +18,7 @@ public sealed class SolveExplanationTests
     /// tomorrow is covered without anyone remembering to add it.
     /// </remarks>
     public static TheoryData<string> Samples =>
-        [.. Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid")
+        [.. ScriptCorpus.EnumerateSampleFiles()
             .Select(Path.GetFileName)
             .OfType<string>()
             .Order(StringComparer.Ordinal)];

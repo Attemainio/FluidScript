@@ -151,7 +151,10 @@ internal sealed partial class TranslationRun
             _circuits.AddRange(_lets);
         }
 
-        _circuits.AddRange(styles);
+        if (Merged(styles) is { } merged)
+        {
+            _circuits.Add(merged);
+        }
 
         foreach (var line in block.Body)
         {

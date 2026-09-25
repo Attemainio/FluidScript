@@ -66,7 +66,7 @@ public sealed class EnergyInjectionTests
         // too many per exchanger -- invisible in every count until the two were compared.
         var offenders = new List<string>();
 
-        foreach (var path in Directory.GetFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal))
+        foreach (var path in ScriptCorpus.EnumerateSampleFiles())
         {
             var graph = GraphFixture.Lower(File.ReadAllText(path)).Graph;
 

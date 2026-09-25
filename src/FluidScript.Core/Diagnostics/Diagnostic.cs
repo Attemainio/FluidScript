@@ -61,6 +61,14 @@ public sealed record Diagnostic
     /// </value>
     public ImmutableArray<RelatedLocation> Related { get; init; } = [];
 
+    /// <summary>Gets the values the message was rendered from, by placeholder name.</summary>
+    /// <value>
+    /// What the emitting stage supplied, kept so the message can be rendered again in the wording of the
+    /// script's language (<see cref="DiagnosticDescriptor.RenderLanguage2"/>) by a stage that knows it when the
+    /// emitting stage did not. Empty for a message with no placeholders.
+    /// </value>
+    public ImmutableArray<DiagnosticArgument> Arguments { get; init; } = [];
+
     /// <summary>Creates a diagnostic from its code's definition.</summary>
     /// <param name="descriptor">The code being emitted.</param>
     /// <param name="span">Where in the source this is about, or <see langword="null"/> when it is not about source text.</param>
@@ -84,6 +92,7 @@ public sealed record Diagnostic
             Severity = descriptor.Severity,
             Message = descriptor.Render(arguments),
             Span = span,
+            Arguments = [.. arguments],
         };
     }
 }

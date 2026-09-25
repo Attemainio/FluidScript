@@ -77,9 +77,7 @@ public sealed class CircuitDiagnostics
     /// <returns>A display name and a path for each script.</returns>
     private static IEnumerable<(string Name, string Path)> Scripts()
     {
-        foreach (var path in Directory
-            .EnumerateFiles(RepositoryLayout.Samples, "*.fluid")
-            .Order(StringComparer.Ordinal))
+        foreach (var path in ScriptCorpus.EnumerateSampleFiles())
         {
             yield return (Path.GetFileName(path), path);
         }

@@ -48,11 +48,11 @@ public static class MessageStyleRules
         RegexOptions.IgnoreCase,
         TimeSpan.FromSeconds(1));
 
-    /// <summary>Lists every style rule the descriptor's message breaks.</summary>
+    /// <summary>Lists every style rule the descriptor's messages break.</summary>
     /// <param name="descriptor">The code to check.</param>
     /// <returns>
-    /// One sentence per violation, naming the rule and quoting what triggered it. Empty when the
-    /// message is clean.
+    /// One sentence per violation, naming the rule and quoting what triggered it; a violation in the language 2
+    /// wording says so. Empty when both messages are clean.
     /// </returns>
     public static ImmutableArray<string> Violations(DiagnosticDescriptor descriptor)
     {
@@ -61,34 +61,44 @@ public static class MessageStyleRules
         var arguments = descriptor.ArgumentNames
             .Select(static name => new DiagnosticArgument(name, PlaceholderValue))
             .ToArray();
-        var message = descriptor.Render(arguments);
 
         var violations = ImmutableArray.CreateBuilder<string>();
+        Check(descriptor, descriptor.Render(arguments), string.Empty, violations);
+        if (descriptor.Language2Template is not null)
+        {
+            Check(descriptor, descriptor.RenderLanguage2(arguments), "language 2 wording, ", violations);
+        }
 
+        return violations.ToImmutable();
+    }
+
+    private static void Check(
+        DiagnosticDescriptor descriptor, string message, string wording, ImmutableArray<string>.Builder violations)
+    {
         if (!message.EndsWith('.') && !message.EndsWith('?'))
         {
-            violations.Add("rule 1: a message is a sentence and ends in a period.");
+            violations.Add($"{wording}rule 1: a message is a sentence and ends in a period.");
         }
 
         if (message.Contains('!', StringComparison.Ordinal))
         {
-            violations.Add("rule 7: no exclamation.");
+            violations.Add($"{wording}rule 7: no exclamation.");
         }
 
         var blame = Blame.Match(message);
         if (blame.Success)
         {
-            violations.Add($"rule 7: no blame -- '{blame.Value}' faults the user rather than describing the script.");
+            violations.Add($"{wording}rule 7: no blame -- '{blame.Value}' faults the user rather than describing the script.");
         }
 
         if (!message.Any(char.IsLower))
         {
-            violations.Add("rule 1: sentence case, not capitals.");
+            violations.Add($"{wording}rule 1: sentence case, not capitals.");
         }
 
         if (DoubleSpace.IsMatch(message))
         {
-            violations.Add("rule 1: a message is ordinary prose, with single spaces between words.");
+            violations.Add($"{wording}rule 1: a message is ordinary prose, with single spaces between words.");
         }
 
         if (descriptor.Area != DiagnosticArea.Internal)
@@ -96,10 +106,8 @@ public static class MessageStyleRules
             violations.AddRange(
                 BannedJargon
                     .Where(term => ContainsWord(message, term))
-                    .Select(static term => $"rule 6: '{term}' is internal vocabulary the script never uses."));
+                    .Select(term => $"{wording}rule 6: '{term}' is internal vocabulary the script never uses."));
         }
-
-        return violations.ToImmutable();
     }
 
     private static bool ContainsWord(string message, string term)

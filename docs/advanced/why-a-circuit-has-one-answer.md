@@ -179,7 +179,7 @@ So two circuits sharing only an exchanger are not reported. Two circuits sharing
 each a system of their own, solved on their own with their own datum, and the report says so:
 
 ```
-FS2213  'HE_RAD, TV_RAD, PU_RAD' are connected to nothing else and are solved as a system of their own.
+FS2213  Nothing connects 'HE_RAD, TV_RAD, PU_RAD' to the rest of the plant, so that part is solved as a system of its own.
 ```
 
 ## The rest of what it says

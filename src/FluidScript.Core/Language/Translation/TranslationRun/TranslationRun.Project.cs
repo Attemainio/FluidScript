@@ -22,9 +22,9 @@ internal sealed partial class TranslationRun
         var head = (ProjectHeadSyntax)block.Head;
         _fileWide.Add(new ProjectDirectiveSyntax(head.Keyword, null, Title(head.Title, head.Keyword, "project"), []));
 
-        ImmutableArray<IdentifierSyntax> shown = [];
+        var shows = new List<(Token Keyword, ImmutableArray<IdentifierSyntax> Names)>();
+        var styles = new List<StyleDirectiveSyntax>();
         ParameterSyntax? scale = null;
-        Token? showKeyword = null;
 
         foreach (var line in block.Body)
         {
@@ -43,8 +43,8 @@ internal sealed partial class TranslationRun
                         }
                         else if (Is(setting, "show"))
                         {
-                            showKeyword = Keyword(ReservedWord.Show, "show", setting.Span.Start);
-                            shown = Names(setting);
+                            // Every `show` is handed on, so a second one is FS1214 as it is in language 1.
+                            shows.Add((Keyword(ReservedWord.Show, "show", setting.Span.Start), Names(setting)));
                         }
                         else if (Is(setting, "scale"))
                         {
@@ -63,7 +63,7 @@ internal sealed partial class TranslationRun
                     break;
 
                 case BlockSyntax { Head: StyleHeadSyntax } style:
-                    _fileWide.Add(Style(style));
+                    styles.Add(Style(style));
                     break;
 
                 default:
@@ -71,7 +71,12 @@ internal sealed partial class TranslationRun
             }
         }
 
-        if (showKeyword is null)
+        if (Merged(styles) is { } merged)
+        {
+            _fileWide.Add(merged);
+        }
+
+        if (shows.Count == 0)
         {
             if (scale is not null)
             {
@@ -101,8 +106,19 @@ internal sealed partial class TranslationRun
                 ("written", Text(scale.Value)));
         }
 
-        _fileWide.Add(new ShowDirectiveSyntax(showKeyword, shown, range));
+        _fileWide.Add(new ShowDirectiveSyntax(shows[0].Keyword, shows[0].Names, range));
+        _fileWide.AddRange(shows.Skip(1).Select(static show => new ShowDirectiveSyntax(show.Keyword, show.Names, null)));
     }
+
+    /// <summary>One style line for a block's <c>style:</c> blocks, so a key stated twice is <c>FS1202</c> as a repeated token on one line is.</summary>
+    /// <returns>The merged line; <see langword="null"/> when the block has no style.</returns>
+    private static StyleDirectiveSyntax? Merged(List<StyleDirectiveSyntax> styles) =>
+        styles.Count switch
+        {
+            0 => null,
+            1 => styles[0],
+            _ => styles[0] with { Parts = [.. styles.SelectMany(static style => style.Parts)] },
+        };
 
     /// <summary>A title as the name language 1 gives the project or a circuit: the quoted text, or a name made up where none is written.</summary>
     private IdentifierSyntax Title(Token? title, Token keyword, string fallback) =>
@@ -252,7 +268,7 @@ internal sealed partial class TranslationRun
 
         if (Is(setting, "corner"))
         {
-            return token is { Kind: TokenKind.Identifier }
+            return token is { Kind: TokenKind.Identifier, Text: "sharp" or "fillet" }
                 ? new StyleTokenSyntax(StyleTokenKind.Word, [token])
                 : InvalidStyle(setting, "sharp or fillet");
         }

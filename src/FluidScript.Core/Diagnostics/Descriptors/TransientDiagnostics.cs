@@ -98,7 +98,8 @@ public static class TransientDiagnostics
     public static DiagnosticDescriptor ScheduledActuator { get; } = new(
         "FS3109",
         DiagnosticSeverity.Error,
-        "'{target}' is driven by {controller}; a schedule cannot also move it.");
+        "'{target}' is driven by {controller}; a schedule cannot also move it.",
+        language2Template: "'{target}' is driven by {controller}; an event in a run cannot also move it.");
 
     /// <summary>Gets every code this area defines, in code order.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =

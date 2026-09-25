@@ -117,6 +117,17 @@ internal sealed partial class TranslationRun
 
             foreach (var end in free.Where(end => end.Inflow == inflow))
             {
+                // The one port this stream could take is written on another line: that is two streams on one port,
+                // which the binder reports once, naming the other line (FS1506). FS1804's fix, naming a port, is the
+                // one thing that cannot help, so the stream takes the port and the binder says what is wrong.
+                if (ports.Count == 0
+                    && kind.Ports.Where(port => port.Role == role).ToList() is [var only]
+                    && claimed.Contains(only.Key))
+                {
+                    Give(end, only.Name);
+                    continue;
+                }
+
                 if (ports.Count == 0)
                 {
                     NotInferred(
@@ -226,8 +237,9 @@ internal sealed partial class TranslationRun
     /// <remarks>
     /// A pass is an inlet and an outlet of one side. A chain through the exchanger, <c>S - HX1 - R</c>, is one pass;
     /// ends on separate lines pair within their circuit in the order written. The passes of the declaring circuit come
-    /// first, then the others in file order: the first takes <c>in</c>/<c>out</c>, the second <c>in[2]</c>/<c>out[2]</c>,
-    /// and a side with a port already written is not given to a pass.
+    /// first, then the others in file order: the first takes <c>in</c>/<c>out</c>, the second <c>in[2]</c>/<c>out[2]</c>.
+    /// A side with one port already written is given only to a pass that needs its other port, so
+    /// <c>HX1.secondary.out - TV1</c> and <c>NR - HX1</c> make one secondary side between them.
     /// </remarks>
     private void Exchanger(string name, ComponentKindInfo kind, List<End> free, HashSet<string> claimed)
     {
@@ -262,20 +274,23 @@ internal sealed partial class TranslationRun
             .ToList();
 
         var sides = new List<(string In, string Out, string Label)> { ("in", "out", "primary"), ("in[2]", "out[2]", "secondary") };
-        sides.RemoveAll(side => claimed.Contains(Key(kind, side.In)) || claimed.Contains(Key(kind, side.Out)));
+        bool Free(string port) => !claimed.Contains(Key(kind, port));
 
         var wiring = new List<string>();
 
         foreach (var pass in ordered)
         {
-            if (sides.Count == 0)
+            var needsIn = pass.Exists(static end => end.Inflow);
+            var needsOut = pass.Exists(static end => !end.Inflow);
+            var index = sides.FindIndex(side => (!needsIn || Free(side.In)) && (!needsOut || Free(side.Out)));
+            if (index < 0)
             {
                 NotInferred(name, pass[0], "an exchanger has two sides, and both are already wired", ["primary.in", "primary.out", "secondary.in", "secondary.out"]);
                 continue;
             }
 
-            var side = sides[0];
-            sides.RemoveAt(0);
+            var side = sides[index];
+            sides.RemoveAt(index);
 
             foreach (var end in pass)
             {

@@ -29,31 +29,64 @@ public static class ScriptCorpus
     private const string Fence = "```";
     private const string Language = "fluidscript";
 
-    /// <summary>Enumerates the sample scripts.</summary>
+    /// <summary>Enumerates the language 1 sample scripts.</summary>
     /// <returns>
-    /// Absolute paths to every <c>.fluid</c> file under <c>samples/</c>, ordered by path so a failure
+    /// Absolute paths to every language 1 <c>.fluid</c> file under <c>samples/</c>, ordered by path so a failure
     /// names the same file on every platform.
     /// </returns>
-    public static IEnumerable<string> EnumerateSampleFiles() =>
+    /// <remarks>
+    /// Language 1 only, because the tests that walk the samples by path lower and solve them with language 1's
+    /// pipeline and compare them with language 1's goldens. <see cref="EnumerateSampleFiles(int)"/> names a language.
+    /// </remarks>
+    public static IEnumerable<string> EnumerateSampleFiles() => EnumerateSampleFiles(language: 1);
+
+    /// <summary>Enumerates the sample scripts in one language.</summary>
+    /// <param name="language">The language's major version, which a sample's version line states (1 when it has none).</param>
+    /// <returns>Absolute paths, ordered by path.</returns>
+    public static IEnumerable<string> EnumerateSampleFiles(int language) =>
         Directory.Exists(RepositoryLayout.Samples)
             ? Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid", SearchOption.AllDirectories)
+                .Where(path => VersionOf(ReadVerbatim(path)) == language)
                 .Order(StringComparer.Ordinal)
             : [];
 
-    /// <summary>Reads every sample script.</summary>
+    /// <summary>Reads every language 1 sample script.</summary>
     /// <returns>One entry per file, carrying the path for a failure message and the text verbatim.</returns>
     /// <remarks>
+    /// <para>
     /// Read once per test run and cached. Nothing writes to <c>samples/</c> during a run, and the
     /// corpus is walked by dozens of tests: re-reading it each time cost more than everything the
     /// suite actually measures, against <c>08</c>'s two-second budget for the unit tier.
+    /// </para>
+    /// <para>
+    /// Language 1's samples only: the tests that walk them lex, parse and bind with language 1's pipeline. A sample
+    /// in language 2 is in <see cref="All"/> and <see cref="InLanguage"/>, marked with its language.
+    /// </para>
     /// </remarks>
-    public static ImmutableArray<ScriptSource> Samples() => LazySamples.Value;
+    public static ImmutableArray<ScriptSource> Samples() => LazyLanguage1Samples.Value;
 
-    private static readonly Lazy<ImmutableArray<ScriptSource>> LazySamples = new(() =>
+    private static readonly Lazy<ImmutableArray<ScriptSource>> LazyAllSamples = new(() =>
     [
-        .. EnumerateSampleFiles()
-            .Select(static path => new ScriptSource(RepositoryLayout.ToRelative(path), ReadVerbatim(path), [])),
+        .. EnumerateSampleFiles(language: 1).Concat(EnumerateSampleFiles(language: 2))
+            .Order(StringComparer.Ordinal)
+            .Select(static path =>
+            {
+                var text = ReadVerbatim(path);
+                return new ScriptSource(RepositoryLayout.ToRelative(path), text, []) { Language = VersionOf(text) };
+            }),
     ]);
+
+    private static readonly Lazy<ImmutableArray<ScriptSource>> LazyLanguage1Samples = new(() =>
+        [.. LazyAllSamples.Value.Where(static sample => sample.Language == 1)]);
+
+    /// <summary>The major a sample's version line states: 2 for <c>fluidscript 2</c>, 1 otherwise.</summary>
+    private static int VersionOf(string text) =>
+        text.Split('\n')
+            .Select(static line => line.Trim())
+            .FirstOrDefault(static line => line.Length > 0 && !line.StartsWith('#')) is { } first
+            && first.StartsWith("fluidscript 2", StringComparison.Ordinal)
+                ? 2
+                : 1;
 
     /// <summary>Extracts every fenced <c>fluidscript</c> block from the plan and the documentation.</summary>
     /// <returns>
@@ -89,8 +122,8 @@ public static class ScriptCorpus
     }
 
     /// <summary>Everything in the corpus: samples first, then markdown blocks.</summary>
-    /// <returns>The concatenation of <see cref="Samples"/> and <see cref="MarkdownBlocks"/>.</returns>
-    public static ImmutableArray<ScriptSource> All() => [.. Samples(), .. MarkdownBlocks()];
+    /// <returns>Every sample, in either language, then <see cref="MarkdownBlocks"/>.</returns>
+    public static ImmutableArray<ScriptSource> All() => [.. LazyAllSamples.Value, .. MarkdownBlocks()];
 
     /// <summary>The corpus in one language: the samples and blocks written in it.</summary>
     /// <param name="language">The language's major version, 1 or 2.</param>
@@ -300,6 +333,6 @@ public static class ScriptCorpus
 public readonly record struct ScriptSource(string Name, string Text, ImmutableArray<string> Expected)
 {
     /// <summary>Gets the language the source is written in.</summary>
-    /// <value>1, unless a markdown block's fence says <c>lang=2</c>. Samples are language 1 until language 2 has some.</value>
+    /// <value>1, unless a markdown block's fence says <c>lang=2</c> or a sample's version line says <c>fluidscript 2</c>.</value>
     public int Language { get; init; } = 1;
 }

@@ -125,4 +125,16 @@ public sealed class MessageStyleRulesTests
             MessageStyleRules.Violations(Descriptor("Cannot read this  line.")),
             violation => violation.Contains("single spaces", StringComparison.Ordinal));
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Violations_TheLanguage2WordingIsHeldToTheSameRules()
+    {
+        var descriptor = new DiagnosticDescriptor(
+            "FS1302", DiagnosticSeverity.Error, "Cannot add two temperatures.", language2Template: "Cannot add them!");
+
+        Assert.Contains(
+            MessageStyleRules.Violations(descriptor),
+            violation => violation.StartsWith("language 2 wording, rule 7", StringComparison.Ordinal));
+    }
 }

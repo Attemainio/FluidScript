@@ -156,7 +156,7 @@ public static class TopologyDiagnostics
     public static DiagnosticDescriptor IsolatedSubgraph { get; } = new(
         "FS2213",
         DiagnosticSeverity.Info,
-        "'{list}' are connected to nothing else and are solved as a system of their own.");
+        "Nothing connects '{list}' to the rest of the plant, so that part is solved as a system of its own.");
 
     /// <summary>A loop with no component that can drive flow around it.</summary>
     /// <value><c>FS2214</c>, a warning.</value>

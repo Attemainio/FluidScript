@@ -27,6 +27,9 @@ public static class DiagnosticsPage
     /// <summary>Identifies the generated region listing every live code.</summary>
     public const string CodesRegion = "diagnostic-codes";
 
+    /// <summary>Identifies the generated region listing the codes that say something else in a language 2 file.</summary>
+    public const string Language2Region = "language-2-diagnostic-wordings";
+
     /// <summary>Identifies the generated region listing every withdrawn code.</summary>
     public const string RetiredRegion = "retired-diagnostic-codes";
 
@@ -55,6 +58,25 @@ public static class DiagnosticsPage
         return builder.ToString().TrimEnd();
     }
 
+    /// <summary>Renders the table of codes whose message has a language 2 wording.</summary>
+    /// <returns>
+    /// A markdown table, one row per code whose descriptor carries a second template, ordered by code. Every other
+    /// code reads the same in both languages, so listing them again would only be the first table twice.
+    /// </returns>
+    public static string RenderLanguage2()
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("| Code | In a language 2 file |");
+        builder.AppendLine("|---|---|");
+
+        foreach (var descriptor in DiagnosticRegistry.All.Where(static descriptor => descriptor.Language2Template is not null))
+        {
+            builder.AppendLine(CultureInfo.InvariantCulture, $"| `{descriptor.Code}` | {Cell(descriptor.Language2Template!)} |");
+        }
+
+        return builder.ToString().TrimEnd();
+    }
+
     /// <summary>Renders the table of withdrawn codes.</summary>
     /// <returns>A markdown table, one row per retired code, ordered by code.</returns>
     public static string RenderRetired()
@@ -75,7 +97,6 @@ public static class DiagnosticsPage
 
         return builder.ToString().TrimEnd();
     }
-
 
     private static string Cell(string text) => text.Replace("|", @"\|", StringComparison.Ordinal);
 

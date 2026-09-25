@@ -1185,4 +1185,19 @@ public sealed class Language2TranslatorTests
 
         Assert.Equal(Text, SyntaxPrinter.Print(parse));
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheLanguage2TourBindsWithNothingToReport()
+    {
+        // samples/v2-syntax-tour.fluid holds every language 2 statement; it is the positive half of the
+        // diagnostics audit (package 4), so nothing in it is an error or a warning.
+        var tour = Assert.Single(ScriptCorpus.InLanguage(2), static source => source.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
+        var result = Bind(tour.Text, tour.Name);
+
+        Assert.True(
+            result.Diagnostics.All(static d => d.Severity is DiagnosticSeverity.Info),
+            Describe(result));
+        Assert.Equal(2, result.Model.Runs.Length);
+    }
 }

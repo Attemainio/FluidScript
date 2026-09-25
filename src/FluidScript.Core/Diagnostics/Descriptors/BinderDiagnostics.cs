@@ -389,7 +389,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ControlMissingArgument { get; } = new(
         "FS1521",
         DiagnosticSeverity.Error,
-        "A 'control' line needs {list}. Missing: {missing}.");
+        "A 'control' line needs {list}. Missing: {missing}.",
+        language2Template: "A controller needs {list}. Missing: {missing}.");
 
     /// <summary>An <c>actuate=</c> naming something the controller cannot move.</summary>
     /// <value><c>FS1522</c>, an error.</value>
@@ -423,7 +424,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor DeadEndNode { get; } = new(
         "FS2107",
         DiagnosticSeverity.Warning,
-        "'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.");
+        "'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.",
+        language2Template: "'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.");
 
     /// <summary>A negative value for a parameter whose declared range starts at or above zero.</summary>
     /// <value><c>FS1307</c>, an error.</value>
@@ -541,7 +543,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor MissingRequiredParameter { get; } = new(
         "FS2117",
         DiagnosticSeverity.Error,
-        "'{name}': a {kind} must state {parameter}.");
+        "'{name}': the {kind} must state {parameter}.");
 
     /// <summary>A parameter group with too few of its members stated to determine it.</summary>
     /// <value><c>FS2118</c>, an error.</value>
@@ -567,7 +569,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ExchangerOverDetermined { get; } = new(
         "FS2109",
         DiagnosticSeverity.Error,
-        "'{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved.");
+        "'{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved.",
+        language2Template: "'{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved.");
 
     /// <summary>A rating parameter on an exchanger with no second side to rate against.</summary>
     /// <value><c>FS2110</c>, a warning.</value>
@@ -580,7 +583,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor RatingWithoutASecondSide { get; } = new(
         "FS2110",
         DiagnosticSeverity.Warning,
-        "'{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it.");
+        "'{name}': '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it.",
+        language2Template: "'{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it.");
 
     /// <summary>A duty larger than the two inlet temperatures allow any exchanger to move.</summary>
     /// <value><c>FS2111</c>, an error.</value>
@@ -606,7 +610,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor OneSecondaryPortOpen { get; } = new(
         "FS2112",
         DiagnosticSeverity.Error,
-        "'{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open.");
+        "'{name}': Coupled mode requires both in[2] and out[2] connections; {port} is open.",
+        language2Template: "'{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open.");
 
     /// <summary>A neutral exchanger's signed duty contradicts the direction its stated terminals give.</summary>
     /// <value><c>FS2119</c>, an error.</value>
@@ -620,7 +625,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor DutyContradictsTerminals { get; } = new(
         "FS2119",
         DiagnosticSeverity.Error,
-        "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
+        "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.",
+        language2Template: "'{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
 
     /// <summary>A curve driver that names nothing at all.</summary>
     /// <value><c>FS1527</c>, an error.</value>
@@ -654,7 +660,8 @@ public static class BinderDiagnostics
         "FS1528",
         DiagnosticSeverity.Error,
         "'{curve}' depends on '{driver}', which has no value here. "
-        + "Add 'design {driver}=...' or solve in time.");
+        + "Add 'design {driver}=...' or solve in time.",
+        language2Template: "'{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time.");
 
     /// <summary>Two rows of one curve at the same <c>x</c>.</summary>
     /// <value><c>FS1529</c>, informational.</value>
@@ -681,7 +688,7 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor NoSingleEndpoint { get; } = new(
         "FS1531",
         DiagnosticSeverity.Error,
-        "A {kind} has no single {role} to use here. Write it out, such as '{example}'.");
+        "A {kind} has no single {role}. Write it out, such as '{example}'.");
 
     /// <summary>An <c>at</c> clause on a kind that carries flow rather than observing it.</summary>
     /// <value><c>FS1532</c>, an error.</value>
@@ -707,7 +714,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ObserverNotPlaced { get; } = new(
         "FS1533",
         DiagnosticSeverity.Warning,
-        "'{name}' observes nothing. Place it with 'at' and the name of a node.");
+        "'{name}' observes nothing. Place it with 'at' and the name of a node.",
+        language2Template: "'{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node.");
 
     /// <summary>A time curve's <c>format=</c> that cannot read a date.</summary>
     /// <value><c>FS1534</c>, an error.</value>
@@ -759,7 +767,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor PortStateOnNode { get; } = new(
         "FS1537",
         DiagnosticSeverity.Error,
-        "A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.");
+        "A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.",
+        language2Template: "A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.");
 
     /// <summary>A port's quantity the kind does not take: <c>PU1 pump in.h=5</c>, <c>HX1 heat_exchanger in.rho=</c> (<c>D-120</c>).</summary>
     /// <value><c>FS1538</c>, an error naming the quantities the port does take.</value>
@@ -799,21 +808,24 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ScenarioCountMismatch { get; } = new(
         "FS1540",
         DiagnosticSeverity.Error,
-        "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.");
+        "'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.",
+        language2Template: "'{written}' states {given} values for {count} cases: {names}. State one per case, or one value for all of them.");
 
     /// <summary>A scenario list in a file that declares no scenarios (<c>D-143</c>).</summary>
     /// <value><c>FS1541</c>, an error saying where the list would have bound.</value>
     public static DiagnosticDescriptor ScenarioListWithoutScenarios { get; } = new(
         "FS1541",
         DiagnosticSeverity.Error,
-        "'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.");
+        "'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.",
+        language2Template: "'{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block.");
 
     /// <summary><c>design</c> naming a case that was not declared (<c>D-143</c>).</summary>
     /// <value><c>FS1542</c>, an error listing the declared names.</value>
     public static DiagnosticDescriptor UnknownDesignScenario { get; } = new(
         "FS1542",
         DiagnosticSeverity.Error,
-        "'{name}' is not a scenario of this file. It declares: {names}.");
+        "'{name}' is not a scenario of this file. It declares: {names}.",
+        language2Template: "'{name}' is not a case of this file. It declares: {names}.");
 
     /// <summary>Scenarios declared with no <c>design</c> naming one of them (<c>D-143</c>).</summary>
     /// <value><c>FS1543</c>, an error suggesting the first.</value>
@@ -836,7 +848,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor DuplicateScenario { get; } = new(
         "FS1544",
         DiagnosticSeverity.Error,
-        "'{name}' is declared twice. Each scenario needs its own name.");
+        "'{name}' is declared twice. Each scenario needs its own name.",
+        language2Template: "'{name}' is declared twice. Each case needs its own name.");
 
     /// <summary>A <c>start=</c> on the project line that is not a timestamp (<c>D-149</c>).</summary>
     /// <value><c>FS1545</c>, an error.</value>
@@ -847,7 +860,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor StartUnreadable { get; } = new(
         "FS1545",
         DiagnosticSeverity.Error,
-        "start={value} is not a time. Write it as a quoted ISO 8601 date, such as start=\"2026-01-15T06:00:00\", or as Unix seconds.");
+        "start={value} is not a time. Write it as a quoted ISO 8601 date, such as start=\"2026-01-15T06:00:00\", or as Unix seconds.",
+        language2Template: "start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00.");
 
     /// <summary>A dynamic circuit reads a curve that runs on the clock, and the project states no start (<c>D-149</c>).</summary>
     /// <value><c>FS1546</c>, a warning on each reading parameter.</value>
@@ -859,7 +873,8 @@ public static class BinderDiagnostics
     public static DiagnosticDescriptor ClockWithoutStart { get; } = new(
         "FS1546",
         DiagnosticSeverity.Warning,
-        "This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start=\"…\" to the project line; until then a run holds it at its design value.");
+        "This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start=\"…\" to the project line; until then a run holds it at its design value.",
+        language2Template: "This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value.");
 
     /// <summary>A <c>start=</c> in a file that nothing solves in time (<c>D-149</c>).</summary>
     /// <value><c>FS1547</c>, a warning.</value>

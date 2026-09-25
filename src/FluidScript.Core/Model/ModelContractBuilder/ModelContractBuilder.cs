@@ -7,6 +7,7 @@ using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
+using FluidScript.Core.Language.Translation;
 using FluidScript.Core.Layout;
 using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Layout.Hints;
@@ -152,7 +153,11 @@ public static partial class ModelContractBuilder
         var styles = new Styles(model, graph);
         var scales = ColourScales.Resolve(input.Root, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
-        var all = Diagnostics(input.Source, [.. diagnostics, .. raised], [.. components]);
+        var major = input.Root.Version is { } version && !double.IsNaN(version.Major.Value) ? (int)version.Major.Value : 1;
+
+        // Every stage's messages meet here, so a language 2 file's are put into its own words here (19 §Diagnostics).
+        ImmutableArray<Diagnostic> said = [.. diagnostics, .. raised];
+        var all = Diagnostics(input.Source, major == 2 ? Language2Wording.Apply(said) : said, [.. components]);
 
         return new ModelContract
         {
@@ -160,7 +165,7 @@ public static partial class ModelContractBuilder
             Provenance = new Provenance
             {
                 SourceHash = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input.Source.Text))),
-                LanguageMajor = input.Root.Version is { } version && !double.IsNaN(version.Major.Value) ? (int)version.Major.Value : 1,
+                LanguageMajor = major,
                 Catalog = new VersionedId(input.Catalog.Name, input.Catalog.Version),
                 PropertyBackend = PropertyBackend,
                 AtmosphereKPaAbsolute = UnitTable.StandardAtmosphere / 1000,

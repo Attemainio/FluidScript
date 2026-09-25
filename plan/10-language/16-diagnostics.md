@@ -199,6 +199,12 @@ sentence cannot silently swap two values, and a placeholder with no argument ren
 Values arrive already formatted, because only the emit site knows the unit the user actually wrote
 (rule 8 below).
 
+**A second wording, for language 2** (`P6.11` package 4). A descriptor may carry a `Language2Template`
+beside its template, naming only placeholders the first names, and a diagnostic keeps the arguments it was
+rendered from. A language 2 file's diagnostics are rendered again from those arguments with the second
+template, so one emit site serves both languages and the second wording is in the registry, where `/docs`
+and the style tests see it. `19` §Diagnostics says where it is applied and which codes have one.
+
 ## Message style rules
 
 These are the rules that make a hundred diagnostics feel like one product. They apply to every `FSxxxx`

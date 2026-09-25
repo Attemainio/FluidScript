@@ -76,7 +76,7 @@ internal sealed partial class BindingRun
                 ("parameter", written),
                 ("port", port),
                 ("quantity", quantity.Symbol),
-                ("available", string.Join(", ", takes.Length == 0 ? kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal) : takes)));
+                ("available", takes.Length == 0 ? Accepted(kind) : string.Join(", ", takes)));
             return null;
         }
 
@@ -108,7 +108,7 @@ internal sealed partial class BindingRun
                 new Suggestion($"Change it to '{match.Best.Name}'", parameter.Name.Span, match.Best.Name),
                 ("kind", kind.Keyword),
                 ("parameter", written),
-                ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
+                ("available", Accepted(kind)));
             return null;
         }
 
@@ -128,9 +128,15 @@ internal sealed partial class BindingRun
             parameter.Name.Span,
             ("kind", kind.Keyword),
             ("parameter", written),
-            ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
+            ("available", Accepted(kind)));
         return null;
     }
+
+    /// <summary>What <c>FS1503</c> lists as a kind's parameters: "no parameters" for a kind with none, never an empty list.</summary>
+    private static string Accepted(ComponentKindInfo kind) =>
+        kind.Parameters.Count == 0
+            ? "no parameters"
+            : string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal));
 
     private ParameterValue? BindParameterValue(
         ComponentKindInfo kind,

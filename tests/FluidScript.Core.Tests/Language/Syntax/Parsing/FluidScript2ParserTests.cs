@@ -423,6 +423,11 @@ public sealed class FluidScript2ParserTests
     [InlineData("curve heat tout", "curve")]
     [InlineData("circuit \"c\":\n  fluid water", "fluid")]
     [InlineData("show temperature", "show")]
+    [InlineData("project \"p\":\n  style gray 1px sharp", "style")]
+    [InlineData("spacing 0.75", "spacing")]
+    [InlineData("catalog steel_en10255", "catalog")]
+    [InlineData("circuit \"c\":\n  inlet N1", "inlet")]
+    [InlineData("circuit \"c\":\n  outlet N3", "outlet")]
     [Trait("Category", "Unit")]
     public void ALanguageOneStatementIsFS1806(string text, string word)
     {
@@ -442,6 +447,46 @@ public sealed class FluidScript2ParserTests
         var diagnostic = Only(Text, "FS1807");
         Assert.Contains("'NPS.t = 30..45'", diagnostic.Message, StringComparison.Ordinal);
         Assert.IsType<DisturbanceSyntax>(Assert.Single(Block(Parse(Text), 0).Body));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ARampWithOneTimeIsFS1807AboutItsTime()
+    {
+        var diagnostic = Only("run \"r\":\n  over 30 min NPS.t = 70..75 C", "FS1807");
+
+        Assert.Equal("A ramp needs both ends of its time, such as 'over 30..40 min NPS.t = 70..75 C'. For a step, write 'at'.", diagnostic.Message);
+    }
+
+    [Theory]
+    [InlineData("curve heating")]
+    [InlineData("curve heating:")]
+    [Trait("Category", "Unit")]
+    public void ACurveWithoutItsDriverIsFS1116(string head)
+    {
+        var diagnostic = Only($"{head}\n  -26 85\n  18 65", "FS1116");
+
+        Assert.Equal("heating", Assert.Single(diagnostic.Arguments).Value);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AHyphenatedNameInAChainIsFS1108AndNothingElse()
+    {
+        var result = Parse("circuit \"c\":\n  N1 - HX-1 - N2");
+
+        Assert.Equal("FS1108", Assert.Single(result.Diagnostics).Code);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnUnquotedColourSettingIsFS1203AndNothingElse()
+    {
+        var result = Parse("project \"p\":\n  style:\n    colour = #ff0000");
+
+        var diagnostic = Assert.Single(result.Diagnostics);
+        Assert.Equal("FS1203", diagnostic.Code);
+        Assert.Equal("#ff0000", diagnostic.Arguments.Single(static a => a.Name == "hex").Value);
     }
 
     [Theory]

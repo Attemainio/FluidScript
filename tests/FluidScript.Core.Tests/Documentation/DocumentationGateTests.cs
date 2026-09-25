@@ -104,6 +104,7 @@ public sealed class DocumentationGateTests
         AssertGenerated(
             "diagnostics.md",
             (DiagnosticsPage.CodesRegion, DiagnosticsPage.RenderCodes()),
+            (DiagnosticsPage.Language2Region, DiagnosticsPage.RenderLanguage2()),
             (DiagnosticsPage.RetiredRegion, DiagnosticsPage.RenderRetired()));
 
     [Fact]

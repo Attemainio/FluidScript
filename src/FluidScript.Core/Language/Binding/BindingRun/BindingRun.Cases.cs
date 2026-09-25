@@ -45,6 +45,9 @@ internal sealed partial class BindingRun
     /// <summary>Each varying curve's value in each case but the design case.</summary>
     private readonly Dictionary<(string Curve, int Case), double?> _caseCurveValues = [];
 
+    /// <summary>Language 2 curves whose driver is not a <c>let</c>: <c>FS1811</c> has said so, and <c>FS1528</c> would say it again.</summary>
+    private readonly HashSet<string> _unletCurves = new(StringComparer.Ordinal);
+
     /// <summary>The case being evaluated by a case walk, or <see langword="null"/> during the design case's.</summary>
     private int? _case;
 
@@ -97,6 +100,7 @@ internal sealed partial class BindingRun
         if (!parse.Root.Statements.OfType<LetBindingSyntax>().Any(let => string.Equals(let.Name.Text, driver, StringComparison.Ordinal)))
         {
             Report(Language2Diagnostics.CurveDriverNotALet, curve.DeclarationSpan, ("curve", curve.Name), ("driver", driver));
+            _unletCurves.Add(curve.Name);
             return curve;
         }
 

@@ -32,7 +32,8 @@ public static class DesignDiagnostics
     public static DiagnosticDescriptor ApproachBelowMinimum { get; } = new(
         "FS4008",
         DiagnosticSeverity.Error,
-        "'{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}.");
+        "'{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach={approach}.",
+        language2Template: "'{name}': the approach is {approach} K, below the {minimum} K it must respect. Raise the duty's temperature difference, or accept a closer approach with approach = {approach}.");
 
     /// <summary>A three-way valve whose two switched legs sit at pressures further apart than its own full-open drop, so it throttles the easier leg instead of mixing.</summary>
     /// <value><c>FS4011</c>, a warning.</value>

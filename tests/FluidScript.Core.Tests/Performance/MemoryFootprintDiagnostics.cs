@@ -54,7 +54,7 @@ public sealed class MemoryFootprintDiagnostics
         string Termination);
 
     private static IEnumerable<string> Samples() =>
-        Directory.GetFiles(RepositoryLayout.Samples, "*.fluid").Order(StringComparer.Ordinal).Select(Path.GetFileName)!;
+        ScriptCorpus.EnumerateSampleFiles().Select(Path.GetFileName)!;
 
     [Fact]
     public async Task WhereTheMemoryGoes()

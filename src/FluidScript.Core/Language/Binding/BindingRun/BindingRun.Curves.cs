@@ -380,7 +380,7 @@ internal sealed partial class BindingRun
             {
                 // As this reader saw it: a component's own `sized_at` positions the curve for its
                 // parameters even when the file states no `design` at all (`D-94`).
-                if (CurveValueSeenBy(pending.Id, curve.Name) is not null)
+                if (CurveValueSeenBy(pending.Id, curve.Name) is not null || _unletCurves.Contains(curve.Name))
                 {
                     continue;
                 }

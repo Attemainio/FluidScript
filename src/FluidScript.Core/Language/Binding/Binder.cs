@@ -46,7 +46,11 @@ public sealed class Binder
     {
         ArgumentNullException.ThrowIfNull(parse);
 
-        var run = new BindingRun(_registry, parse, documentName);
-        return run.Execute();
+        var bound = new BindingRun(_registry, parse, documentName).Execute();
+
+        // The binder's messages are language 1's; a language 2 file reads them in its own words (19 §Diagnostics).
+        return parse.Language == 2
+            ? bound with { Diagnostics = Translation.Language2Wording.Apply(bound.Diagnostics) }
+            : bound;
     }
 }

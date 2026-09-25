@@ -85,7 +85,7 @@ public sealed class PipelineTimingDiagnostics
 
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
-        foreach (var path in Directory.EnumerateFiles(RepositoryLayout.Samples, "*.fluid")
+        foreach (var path in ScriptCorpus.EnumerateSampleFiles()
             .OrderBy(static candidate => candidate, StringComparer.Ordinal))
         {
             await MeasureStages(path, resolved.Value);
