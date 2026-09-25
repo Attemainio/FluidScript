@@ -60,8 +60,8 @@ the reason diagnostics carry stable codes rather than only prose.
 | `R-04` | Dimensioned values may be written bare (`power=30` means kW) or with an explicit unit (`power=30000 W`); both resolve to the same internal SI quantity. |
 | `R-05` | The parser recovers from errors: one bad line does not prevent the rest of the script from being analysed and rendered. |
 | `R-06` | The language infers what it reasonably can: intermediate nodes between named components, terminating nodes on open ports, and flow direction from connection order. |
-| `R-46` | A script may describe several circuits, each with a number that is stated or resolved automatically, and subcircuits that attach to a parent circuit at explicitly named nodes. A circuit's role (`AHU`, `radiator`) resolves through a registry rather than a keyword (`D-33`, `D-35`). |
-| `R-49` | A controller is declared once with its algorithm and gains, and bound to its actuator and measurement by a separate statement with named arguments (`D-40`). |
+| `R-46` | A script may describe several circuits, each with a number that is stated or resolved automatically, and subcircuits that attach to a parent circuit at explicitly named nodes. A circuit's role (`AHU`, `radiator`) resolves through a registry rather than a keyword (`D-33`, `D-35`). In language 2 circuits join by ordinary links between globally named components and there is no attachment statement (`D-166`). |
+| `R-49` | A controller is declared once with its algorithm and gains, and bound to its actuator and measurement by a separate statement with named arguments (`D-40`). In language 2 the binding is part of the one declaration, still by named arguments (`D-168`). |
 
 ### Physics and core
 

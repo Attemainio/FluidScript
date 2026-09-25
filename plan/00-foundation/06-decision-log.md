@@ -206,6 +206,12 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-161` | Accepted | 2026-09-24 | Room is kept for every instrument a chain or an attached ring carries |
 | `D-162` | Accepted | 2026-09-24 | Since the switch, every layout picture is pinned as a golden |
 | `D-163` | Accepted | 2026-09-24 | A pump holds a control line's setpoint through its head at the design point |
+| `D-164` | Accepted | 2026-09-25 | FluidScript 2 is a second major beside the first, parsed on its own and bound by the shared binder |
+| `D-165` | Accepted | 2026-09-25 | A language 2 file is model then study, a statement is a line or a block, and a circuit is a block |
+| `D-166` | Accepted | 2026-09-25 | In language 2 ports are inferred from flow direction, circuits join by ordinary links, and a pipe is described at the end of its link |
+| `D-167` | Accepted | 2026-09-25 | Language 2 sizes over cases; a value varies per case through a driver or a list, a curve names its driver, and `design` is gone |
+| `D-168` | Accepted | 2026-09-25 | A language 2 controller is one declaration with its type, binding and tuning |
+| `D-169` | Accepted | 2026-09-25 | A language 2 run is a block that says where it starts, how long it runs and what happens when |
 <!-- index:end -->
 
 ---
@@ -7524,3 +7530,167 @@ duty point that meets the design temperatures, then run at varying speed to hold
 the same shape as a valve's setpoint holding through the position the solve chooses. **Alternative:** `FS3210` and the
 script states its inlet -- simpler, but a setpoint written on the control line alone would never solve. Measured: step
 3 with its controls converges in one iteration at 0.2392 kg/s, `PU1.head` 4.09 m.
+
+## D-164 · FluidScript 2 is a second major beside the first, parsed on its own and bound by the shared binder
+
+**Accepted · 2026-09-25** · the user's choices, over one conversation reviewing the language from scratch
+
+**What was wrong.** Language 1 grew statement by statement. A review of the whole (2026-09-25, five reviewers
+over every `.fluid` file in the repository) found words with several meanings chosen by other lines, a control
+loop spread over four statements and an invented node, positional scenario lists, and a file whose solve mode,
+drawing and study settings are scattered through its model. Fixing that in place would change what existing
+files mean, which `D-27` forbids within a major.
+
+**The rule.** Language 2 is a second major (`19`). The version line selects it before anything parses (`18`).
+It has its own lexer, parser, syntax tree and printer; a translation step turns its tree into the statements
+the binder already reads, with every span pointing into the language 2 text, so the registry, binder, sizing,
+solver, layout and model contract are shared. Language 1 stays the **current** major, and a file with no
+version line stays language 1, until language 2 is complete; the switch is a decision of its own. The
+documentation describes language 2 first, and the language 1 reference moves under `docs/v1/`. The work is
+`P6.11`, before P6.3, so the controllers are built against the syntax that will stay.
+
+**Why.** The binder, at about 6 400 lines, and everything behind it are what the product is; a second parser
+costs a fraction of that, and the translation keeps one binder answering both. **Alternatives:** a separate
+binder for language 2 — clean, and about 6 000 duplicated lines to keep in step; rewriting language 2 text
+into language 1 text — cheapest, but every diagnostic would point at text the user never wrote and the round
+trip would break. *Switch the default now:* every unversioned test script and sample would first need
+`fluidscript 1`, and a half-built language would be what a new file opens in.
+
+**Constrains.** `19`, `18` (a supported major newer than the current one), `08` (`P6.11`), `16` (`FS18xx`),
+`11`, the frontend editor, `docs/`.
+
+## D-165 · A language 2 file is model then study, a statement is a line or a block, and a circuit is a block
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-37` (the mode on `project`), `D-52` and
+`D-56` (the `connections` section) · the user's choice of the "schedule" style over a netlist and an explicit,
+comma-separated style
+
+**The rule.** A file is a `project` block (a quoted title, `cases`, `catalog`), then drivers and curves, then
+circuits, then runs (`19`). A line ending in `:` opens a block whose body is the lines indented under it; a
+statement may be one line or a block, in one grammar. Parameters are `name = value` with spaces free and no
+commas; a value runs to the next `name =`. A circuit is `circuit "Title":` with `fluid`, `number` and `role`
+as settings, and its declarations and links in any order: there is no `connections` section. Declarations
+stay `NAME kind`, tag first. Units follow their number; `in` (inch) and `t` (tonne) are not units in language
+2; a date is lexed unquoted.
+
+**Why.** Measured on one plant written four ways: the chosen style is 30 lines against language 1's 32, with one
+invented name against two; a netlist was 22 lines but needed 13 invented node names and could not show the
+loop; an explicit style with `def`, commas and `<kW>` units was 51 lines and let a missing comma spill into the
+next value. A block's lines give canvas write-back a line to insert rather than a long line to append to, and
+a line to diff. `=` is kept because without it a half-typed `power dt = 20` reads as `power = dt`; commas are
+dropped because the newline and the next `name =` already separate values. **Rejected:** a `def` keyword (four
+characters a line, and the tag no longer starts it); `150 <kW>` units (no engineering document writes them); a
+stream shorthand `40 C to 60 C` (a second spelling of `in.t`/`out.t` that reads backwards for a boiler, whose
+"80/60" is outlet then inlet).
+
+**Constrains.** `19` §Lines, blocks and names, §Statements, §The project block, §Circuits, §Declarations;
+`ScriptCompatibility`'s catalogue pattern.
+
+## D-166 · In language 2 ports are inferred from flow direction, circuits join by ordinary links, and a pipe is described at the end of its link
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-33`'s attachment statement, and amends
+`D-61` (a sensor may sit in a chain) and `D-110` (pipe properties) · the user's rule, with the circuit deciding
+an exchanger's primary side at the user's choice
+
+**What was wrong.** Language 1 assigns an unwritten port by the component's declared port order. Measured
+2026-09-25: `S1 - TV3`, `S2 - TV3`, `TV3 - PU1` does not wire `TV3` as a mixer — the design solve finds no valve
+position to hold the load's inlet — while the same lines with `.a`, `.b`, `.ab` do. The review's newcomer plant
+was silently miswired the same way, and the error named the pump.
+
+**The rule.** A chain reads in the direction of flow. After the whole file is read, a two-port component's inflow
+is its inlet and its outflow its outlet; a three-way valve with two inflows and one outflow mixes (the outflow is
+`ab`, the inflows `a` then `b` in the order written), with one inflow and two outflows it diverts; a two-sided
+exchanger's side wired in the circuit that declares it is **primary** and a side wired from another circuit
+**secondary**; a tank's inflows and outflows take `in`, `in[2]`, … and `out`, `out[2]`, … in order. An explicit
+port always wins, and what the rule cannot settle is an error (`FS1804`), never a guess. `mixing_valve` and
+`diverting_valve` assert the function (`FS1805`); `valve3` is an alias of `three_way_valve`. The translation
+does the inference and hands the binder explicit ports. A component named in another circuit's line is joined
+by that line; there is no attachment statement. A sensor in a chain is lowered to a node with the sensor at it.
+A pipe's length and DN sit at the end of a one-link line with no `=` (`PCV - HX1  12 m  DN25`); on a longer
+chain they are `FS1803`.
+
+**Why.** Flow roles are what the user means by the order they write, and a count of inflows and outflows settles
+a three-way valve's function with no guess; the circuit settles an exchanger's side in a way reordering the file
+cannot change. The attachment statement guessed its port anyway (first unconnected inlet), which is why the
+distribution-header sample never used it. **Alternatives:** *line order for exchanger sides* — moving the heating
+circuit above the district one would swap them and put `primary.out.t = 45 C` on the heating water; *ports always
+required* — safe, and about six characters on every multi-port link, which the user judged not worth it; *pipe
+properties on every link of a chain* (language 1) — `A - B - C length=25` is 50 m of pipe.
+
+**Constrains.** `19` §Connections; `01` `R-46`; the canvas's write-back (explicit ports when it writes).
+
+## D-167 · Language 2 sizes over cases; a value varies per case through a driver or a list, a curve names its driver, and `design` is gone
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-58` and `D-143`'s `design` line, and makes
+writable what `D-143` promised · the user's choice
+
+**What was wrong.** `design` did two unrelated jobs: with no scenarios it sets the driver values and sizes, with
+scenarios it sizes nothing and only picks the case the canvas shows. And `D-143`'s "a curve of any driver
+evaluated at a scenario's value for that driver gives that scenario's number" could not be written: a scenario
+had no way to state its driver value (the review measured `design tout=[-26, 25]` as `FS1404`).
+
+**The rule.** `cases` in the project block names the operating cases. A **driver** is a `let` whose value is a
+list, one value per case: `let outdoor = [-26, 5] C`. A curve names its driver in its header (`curve heat_demand:
+outdoor`); its first column is read in the driver's unit and its second takes the unit of the parameter that uses
+it (`D-57`: a curve is dimensionless). A parameter pinned to a curve is, in each case, the curve at that case's
+driver value, and a stated value there. A value that varies per case without a curve is a list on the parameter
+(`[60, 50] C`), positional against `cases`. The one built-in driver is `time`. There is no `design`: sizing
+already covers every case, the interface chooses the case the canvas shows, and a run names its starting case.
+
+**Why.** A built-in outdoor temperature would mislead: a process plant is driven by its production rate, a ground
+loop by the ground, and many plants by nothing. Worked on the reference script: at 5 °C outside, the district
+supply is 70.9 °C, the demand 44.3 kW and the setpoint 38.9 °C, from three curves and one driver, with no list on
+any component. **Alternatives:** a block per case listing its driver values (`case winter: outdoor = -26 C`) —
+reads better once a case has many drivers, and can be added later without breaking this; keeping `design` as the
+displayed case — a view choice written into the model.
+
+**Constrains.** `19` §Drivers and cases, §The project block; `15` (a per-case `let`, a curve of a `let`); the
+interface (a case picker).
+
+## D-168 · A language 2 controller is one declaration with its type, binding and tuning
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-40` and `D-43` (a controller defined once and
+bound separately) and amends `34`'s selection of the algorithm by the gains present · the user's choice
+
+**What was wrong.** `D-40` separated a controller's definition from its binding so that one tuning could serve
+several loops, and nothing uses that: `FS3209` forbids one controller driving two actuators, gains are in
+measurement units so a tuning belongs to one loop, and every controlled script in the corpus declares one
+controller per loop. The split costs three lines and an invented node per loop. And nothing states which
+algorithm a controller is: `34` infers it from which gains are present, so a stray `kd` changes it silently.
+
+**The rule.** `NAME controller` with `type` (`P`, `PI`, `PID`, `onoff`, `curve`; absent `PI`), `moves`, `reads`,
+`setpoint`, and the tuning for its type: `band` (the proportional band, in the measurement's unit) or `kp`, never
+both (`FS1809`); `ti`, `td`; `output` as a range; `differential` for `onoff`; `curve` for `curve`. A parameter the
+type does not have is `FS1808`. `action` is a check against the direction measured from the plant, never a
+setting. An actuator's speed is the actuator's (`stroke`). Types the solver does not run yet are `FS1810`.
+
+**Why.** Named arguments on one line keep what `D-40` was for — a transposed binding cannot be written — without
+the second statement. `band` carries the measurement's unit, so it can be checked, and it is how building
+controllers are specified (Beckhoff's HVAC library takes a proportional band and an integral action time, with
+Kp = (Ymax − Ymin)/Xp); `ti` and `td` are the ideal form's times, as in Modelica's CDL PID block. **Alternatives:**
+the binding on the actuator (`CV1 valve holds TE1 at 40 C`) — shortest, but it hides the controller P6.3 must
+tune; `tn`/`tv` for the times — the same quantities under their German names.
+
+**Constrains.** `19` §Controllers; `34` (its syntax section, and its default tuning — `19` open question 9); `01`
+`R-49`; the registry (`stroke`, the controller parameters).
+
+## D-169 · A language 2 run is a block that says where it starts, how long it runs and what happens when
+
+**Accepted · 2026-09-25** · for language 2 only; supersedes there `D-37`'s mode on `project` and `fluid` and
+`D-149`'s `start=` on the project line, and changes the meaning of a one-valued `over` · the user's choice, the
+settings table at the recommendation
+
+**The rule.** `run "Title":` with `from` (the case whose steady solve starts it, `D-141`; absent, the first),
+`start` (the clock on curves of time, `D-149`), `duration`, `frame`, and `steady` (circuits held quasi-steady in
+this run). Lines with no `at` are overrides, holding from t = 0 for this run only. `at T target = value` is a step;
+`over T1..T2 target = v1..v2` is a ramp with both ends written, and one value is `FS1807`. An event replaces what
+drove its target. Times are durations, or clock times when `start` is stated. Solver numerics are not written in a
+script. A file may hold several runs; the interface plays the one chosen.
+
+**Why.** The model says what the plant is and a run says what happens to it, so one file can hold a morning demand
+step, a weather day and a supply-temperature drop against one plant. Language 1's `over 60 s .. 120 s HE1.power =
+45` reads as a ramp and is a step at 120 s. **Alternatives:** `run transient` (a kind word for the only kind of run
+there is); the quasi-steady choice on the circuit (a fidelity choice worth comparing between runs, so it belongs to
+the run).
+
+**Constrains.** `19` §Runs; `33` (settings read from the run); the API's run settings; the interface (a run picker).

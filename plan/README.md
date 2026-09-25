@@ -85,6 +85,7 @@ All three sit above the tiers because all three are about the whole project; `70
 | [16-diagnostics](10-language/16-diagnostics.md) | `FSxxxx` codes, severities, spans, recovery | reviewed |
 | [17-formatting-and-round-trip](10-language/17-formatting-and-round-trip.md) | printer, write-back, trivia preservation | draft |
 | [18-script-compatibility](10-language/18-script-compatibility.md) | language versions, catalogue pins, compatibility, migration | draft |
+| [19-fluidscript-2](10-language/19-fluidscript-2.md) | language 2: blocks, port inference, cases and drivers, controllers, runs | draft |
 
 ### 20 · Core domain
 

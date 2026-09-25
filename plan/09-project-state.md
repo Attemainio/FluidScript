@@ -1660,6 +1660,15 @@ that governed each size. What P6.8 still owes, and what comes after:
     `C-118`, `C-98`, `C-73`, `C-49`, `C-44`, `C-23`, `S-85`, `S-82`, `S-69`, `S-4`, `S-18`, `S-86`, `F-27`,
     `F-19`, `L-58`, `L-50`, `L-25`, `U-2`. It also found that `S-85`'s rule had stopped the propane heat pump
     converging, fixed the same day (`d57f4d5`). Next: `S-86`.
+  - **FluidScript 2 (2026-09-25, `P6.11`, `D-164`–`D-169`):** a review of the language from scratch -- five
+    reviewers over every `.fluid` file, then the user's decisions one at a time -- produced a second language major
+    beside the first: blocks, `name = value`, circuits as blocks, ports inferred from flow direction, cases with drivers
+    and curves that name them, one-declaration controllers with a type, and runs. Package 1, the spec
+    ([`19`](10-language/19-fluidscript-2.md)), is written and **stopped for the user's review** with ten open questions;
+    no code yet. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
+    wrong answers in language 1 (a misspelt `haed=15` binding as `head`, `setpoint=20 kPa` on a temperature loop, extra
+    `control` arguments dropped, `power=30000` read as 30 MW with no warning, spaces around `=` losing a declaration,
+    and more) are **not filed yet**: the user has not decided whether to file them. Next: the user's review of `19`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

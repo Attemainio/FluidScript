@@ -47,6 +47,7 @@ plausibility warning is raised by whichever computation ran last.
 | `FS15xx` | Binder and inference | [`15-semantic-model`](15-semantic-model.md) |
 | `FS16xx` | Printer and write-back | [`17-formatting-and-round-trip`](17-formatting-and-round-trip.md) |
 | `FS17xx` | File compatibility and migration | [`18-script-compatibility`](18-script-compatibility.md) |
+| `FS18xx` | Language 2 syntax and its translation to the binder | [`19-fluidscript-2`](19-fluidscript-2.md) |
 | `FS20xx` | Substances and properties | [`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md) |
 | `FS21xx` | Components | [`22-component-model`](../20-core-domain/22-component-model.md) |
 | `FS22xx` | Topology | [`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) |

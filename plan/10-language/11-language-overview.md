@@ -19,6 +19,10 @@ answers — and it always does — this document is what breaks the tie. Without
 (`R-01`) is a preference rather than a criterion, and the language accretes convenience features until
 it is Python with different punctuation.
 
+These principles were written for language 1. Language 2 (`19`, `D-164`) re-decides several of the choices
+they led to — the file's shape, how ports and cases are written, the controller — and keeps the principles
+themselves.
+
 ## Responsibilities
 
 **Owns.** The design principles, the inference rules the language applies on the user's behalf, and

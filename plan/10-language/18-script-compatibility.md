@@ -88,6 +88,14 @@ any application that did not already know its version.
 valid only for that preview's source hash and target major. `ApplyMigration` rejects an unknown id or
 an `expectedHash` different from the preview and never searches for a compatible preview implicitly.
 
+**A supported major newer than the current one** (`D-164`, added 2026-09-25). While language 2 is built
+(`19`, `P6.11`), `SupportedVersions.Default` is current 1 and supported {1, 2}. A `fluidscript 2` file then
+fits none of the dispositions above — it is neither the current major nor an old one — so the enum gains
+`SupportedNewer`: compiled, solved and saved under its own major with every action allowed, and never
+rewritten on open, exactly as `SupportedOld`. A file with no version line stays an `unversioned-draft` of the
+current major, language 1, until the switch makes 2 current. The catalogue pattern also matches language 2's
+`catalog = id@version` inside the project block.
+
 ### Policy (`D-27`)
 
 - New and saved files use the current major; v1 is `fluidscript 1`.
