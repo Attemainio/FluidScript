@@ -219,6 +219,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-174` | Accepted | 2026-09-25 | Language 2 replaces language 1: it is bound directly, and language 1 is removed once its corpus is converted and proven |
 | `D-175` | Accepted | 2026-09-25 | What converting language 1 found: a three-way valve is labelled by the plant, `sized_at` states a capacity, and language 1's other extras are dropped |
 | `D-176` | Accepted | 2026-09-26 | `sized_at` names any `let`, read directly or through a curve, by its exact spelling |
+| `D-177` | Accepted | 2026-09-26 | The direct binder reads language 2 into small records of its own; sides resolve to the registry's ports; language 2 has no schedule roles |
 <!-- index:end -->
 
 ---
@@ -8000,3 +8001,37 @@ have.
 
 **Constrains.** `19` §Declarations; `16`/`15` (`FS1549`); `docs/functions/design.md`; package 6, whose binder has no
 roles for language 2 drivers at all.
+
+## D-177 · The direct binder reads language 2 into small records of its own; sides resolve to the registry's ports; language 2 has no schedule roles
+
+**Accepted · 2026-09-26** (the user's call on `P6.11` package 6's plan: "yes" to the three recommendations) ·
+refines `D-174` rule 2 · constrains [`19`](../10-language/19-fluidscript-2.md) §Binding directly, `15`, the binder
+
+**What was open.** `D-174` moves what the translation decides into the binder and deletes what it respells, but not
+how. The binder turns syntax into symbols early: measured by a text count, its statement layer reads language 1's
+circuit header in 4 places, connections in 7, control bindings in 4, `design`/`scenarios`/curve headers in about 10,
+and style, project and fluid lines in about 8. After collection it works on symbols. The declarations, parameters,
+`let`s and expressions are nodes both parsers already produce. Three questions followed from that.
+
+**The rule.**
+
+1. **The binder's statement layer reads small records of its own**: a circuit (name, number, role, fluid, mode,
+   spans), a link (two ends, each a component and a port key, pipe properties, spans), a control and the cases, in
+   place of language 1's statements. Both front ends fill them until package 7. Language 1's front end then goes;
+   language 2's reads its own tree into them. Moving the translation into the binder as a producer of language 1
+   syntax was rejected: it keeps language 1's syntax alive as an internal format and keeps the respelling that caused
+   `L-66` and the second wording of every code.
+2. **`primary` and `secondary` resolve to the registry's existing port keys** (`in`/`out` and `in2`/`out2`) inside the
+   binder, so the registry, the wire contract and the canvas are unchanged. A message names the side as written.
+   Renaming the registry's ports belongs to the vocabulary review (`19` open question 2).
+3. **Language 2 has no schedule roles.** A driver is a `let`, with the unit it is written in. `tout`, `outdoor` and the
+   other role names mean nothing special in a language 2 file, and nothing in its binding consults
+   `ScheduleRoleRegistry`, the way `D-176` already made true of `sized_at`. A bare `let outdoor = -26` has no unit,
+   and a curve on it reads bare rows as written.
+
+**Why.** Records keep the end state language 2's alone, with no internal language 1, and make every step measurable
+against the translated path, which `D-174` keeps as the reference until package 7. The port keys are a contract other
+tiers read. Roles were language 1's way of giving a driver a meaning and a unit; a `let` already has both.
+
+**Constrains.** `19` §Binding directly; the binder's collection layer; `ScheduleRoleRegistry`, which becomes language
+1's alone and goes with it at the switch.

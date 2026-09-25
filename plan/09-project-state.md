@@ -1833,7 +1833,8 @@ that governed each size. What P6.8 still owes, and what comes after:
     day, the user's point that cases need not be outdoor temperatures): `sized_at` names any `let` by its exact
     spelling and reads it directly as well as through curves (`power = demand  sized_at.demand = 27.2 kW` had been
     ignored); a point nothing reads is `FS1549`. **Package 5 is closed. Next: package 6, the binder reading the
-    language 2 tree directly.**
+    language 2 tree directly, planned in `19` §Binding directly (`D-177`): 6a the harness, 6b the binder's records,
+    6c–6f the language 2 front end area by area.**
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

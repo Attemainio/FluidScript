@@ -627,6 +627,24 @@ span in them points into the language 2 text, so every diagnostic lands on what 
 Port inference is done by the translation, not by the binder: the translation sees every line and hands
 the binder explicit ports, so language 1's order-based assignment is untouched.
 
+### Binding directly (package 6)
+
+**The plan** (`D-174` rule 2, `D-177`). The binder reads the language 2 tree into small records of its own (a
+circuit, a link, a control, the cases), which language 1's front end also fills until package 7 deletes it. Each step
+is measured against the translated path before the next:
+
+| Step | What | Proof |
+|---|---|---|
+| 6a | A direct-binding switch, and a harness over the converted corpus (53 files, 78 blocks) comparing the direct path's model shape and diagnostics (code, span, arguments) with the translated path's. The switch starts by delegating to the translation | Every row equal, trivially |
+| 6b | The records, filled by language 1's statement layer | No behaviour change: the whole suite and every golden identical |
+| 6c | Language 2's front end: circuits, declarations in both forms, `let`s, curves, cases, the project and its presentation; `K` as a difference, a list's unit, `primary`/`secondary` resolved to the registry's ports | The harness, per area switched |
+| 6d | Connections: port inference by flow direction and `D-175`'s valve rule, a sensor in a chain, a pipe at a link's end | The harness |
+| 6e | The controller block into a control record | The harness |
+| 6f | Runs, which are mostly native already; diagnostics raised in language 2's terms on the direct path (`L-66` closes there) | The harness, diagnostics included |
+
+Exit: the direct path equals the translated path on the whole converted corpus. Language 2 has no schedule roles: a
+driver is a `let` (`D-177`).
+
 ### Diagnostics
 
 Codes carry over where their meaning holds. A message that quotes language 1 syntax gets a language 2
