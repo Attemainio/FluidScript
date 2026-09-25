@@ -68,11 +68,12 @@ public sealed class ScriptCompatibilityTests
     public void ANewerMajorIsReadableAsTextAndNothingElse()
     {
         // The criterion that protects a user's file from a build that predates it. Interpreting it
-        // under older rules is the one outcome worse than refusing.
-        var result = Inspect("fluidscript 2\nHE1 heat_exchanger power=30\n");
+        // under older rules is the one outcome worse than refusing. Major 3, because 2 is supported while it is
+        // built beside 1 (`D-164`).
+        var result = Inspect("fluidscript 3\nHE1 heat_exchanger power=30\n");
 
         Assert.Equal(CompatibilityDisposition.UnsupportedNewer, result.Disposition);
-        Assert.Equal(new LanguageMajor(2), result.DetectedMajor);
+        Assert.Equal(new LanguageMajor(3), result.DetectedMajor);
         Assert.Equal("FS1702", Assert.Single(result.Diagnostics).Code);
         Assert.Equal([CompatibilityAction.SaveAsBytes], result.AllowedActions);
     }

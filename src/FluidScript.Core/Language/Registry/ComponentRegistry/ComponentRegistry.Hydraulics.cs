@@ -156,7 +156,7 @@ public sealed partial class ComponentRegistry
     private static ComponentKindInfo ThreeWayValve() => new()
     {
         Keyword = "three_way_valve",
-        Aliases = ["3_way_valve", "mixing_valve", "diverting_valve", "3wv"],
+        Aliases = ["3_way_valve", "mixing_valve", "diverting_valve", "3wv", "valve3"],
         // `ab` is the common port and `a`/`b` the two switched ones, which is how a valve body is
         // labelled: mixing is A + B -> AB, diverting is AB -> A + B. `b` is optional -- a three-way
         // used as a two-way leaves it open, and inference rule I3 terminates it.

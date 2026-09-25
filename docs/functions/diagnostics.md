@@ -150,6 +150,8 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1806` | Error | Language2 | '{word}' is language 1. In language 2, {instead}. |
 | `FS1807` | Error | Language2 | A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'. |
 | `FS1812` | Error | Language2 | A {head} line opens a block and ends with ':'. |
+| `FS1813` | Error | Language2 | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |
+| `FS1814` | Error | Language2 | '{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |

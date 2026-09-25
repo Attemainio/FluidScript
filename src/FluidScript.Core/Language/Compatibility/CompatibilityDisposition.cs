@@ -17,4 +17,11 @@ public enum CompatibilityDisposition
 
     /// <summary>Editor text with no directive at all — recoverable, and never durably saved.</summary>
     UnversionedDraft,
+
+    /// <summary>
+    /// A major this build supports that is newer than <see cref="SupportedVersions.Current"/>: compiled, solved and
+    /// saved under its own semantics, and never rewritten on open (<c>18</c>, <c>D-164</c>). Language 2, until the
+    /// switch-over makes it current.
+    /// </summary>
+    SupportedNewer,
 }

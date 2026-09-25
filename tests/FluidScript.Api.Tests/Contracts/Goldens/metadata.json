@@ -4,7 +4,8 @@
   "language": {
     "current": 1,
     "supported": [
-      1
+      1,
+      2
     ]
   },
   "kinds": [
@@ -1564,7 +1565,8 @@
         "3_way_valve",
         "mixing_valve",
         "diverting_valve",
-        "3wv"
+        "3wv",
+        "valve3"
       ],
       "tagCode": "TV",
       "drivesFlow": false,
@@ -5187,6 +5189,25 @@
       "message": "A {head} line opens a block and ends with ':'.",
       "arguments": [
         "head"
+      ]
+    },
+    {
+      "code": "FS1813",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'.",
+      "arguments": [
+        "text"
+      ]
+    },
+    {
+      "code": "FS1814",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits.",
+      "arguments": [
+        "sensor",
+        "node"
       ]
     },
     {

@@ -311,7 +311,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 NumberIsExplicit = explicitNumber,
                 Substance = Substance(block),
                 Mode = mode,
-                Role = RoleOf(name, span),
+                Role = RoleOfCircuit(header, name, span),
                 DeclarationSpan = span,
             });
 
@@ -347,9 +347,34 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return stated.Value;
     }
 
+    /// <summary>The role a circuit is drawn in: stated in language 2, read from the name in language 1 (<c>D-35</c>).</summary>
+    /// <remarks>
+    /// A language 2 circuit's title is free text in quotes, so it says nothing about the role; a circuit that
+    /// states no <c>role</c> is neutral without a word, where language 1 would report that its name is no role.
+    /// </remarks>
+    private CircuitRole RoleOfCircuit(CircuitHeaderSyntax? header, string name, TextSpan span) =>
+        header?.Role is { } stated
+            ? RoleOf(stated.Text, stated.Span)
+            : parse.Language == 2
+                ? CircuitRoleRegistry.Neutral
+                : RoleOf(name, span);
+
     private CircuitRole RoleOf(string name, TextSpan span)
     {
         var resolution = CircuitRoleRegistry.Resolve(name);
+
+        // `D-170`: language 2 binds a name only by its spelling, so a near miss is placed neutrally and the
+        // role it was near is the one-click fix.
+        if (resolution.BySimilarity && parse.Language == 2)
+        {
+            Report(
+                BinderDiagnostics.UnknownCircuitRole,
+                span,
+                new Suggestion($"Change it to '{resolution.Role.CanonicalName}'", span, resolution.Role.CanonicalName),
+                ("name", name),
+                ("available", CircuitRoleRegistry.Names()));
+            return CircuitRoleRegistry.Neutral;
+        }
 
         if (!resolution.WasResolved)
         {

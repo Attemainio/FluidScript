@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast.Expressions;
@@ -86,8 +87,31 @@ internal sealed partial class BindingRun
 
         var match = NameResolution.Match(written, index2);
 
+        // `D-15`'s first stage: `HEAD`, `Kp` and `in_t` are the names they normalise to, and a known spelling is
+        // not a guess, so it binds without a word. The registry's own lookup is ordinal, which is why this was
+        // reported as FS1503 until 2026-09-25 -- a case variant fell past the near-miss branch below.
+        if (match.IsExact && match.Best is not null)
+        {
+            return match.Best;
+        }
+
         // A diagnostic about a name underlines the name (44), so a quick fix that replaces the range
         // replaces the name and keeps the value (L-53).
+        if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
+            && match.IsClear && parse.Language == 2)
+        {
+            // `D-170`: in language 2 a near miss binds nothing -- `haed = 15` would otherwise be a stated head.
+            // The spelling it was near is the one-click fix, on the name alone (L-53).
+            Report(
+                BinderDiagnostics.UnknownParameter,
+                parameter.Name.Span,
+                new Suggestion($"Change it to '{match.Best.Name}'", parameter.Name.Span, match.Best.Name),
+                ("kind", kind.Keyword),
+                ("parameter", written),
+                ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
+            return null;
+        }
+
         if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
             && match.IsClear)
         {

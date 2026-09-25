@@ -125,7 +125,9 @@ FluidScript.Core/
 │   │   └── Symbols/  SymbolMap, CurveSymbols, TopologySymbols
 │   ├── Registry/     ComponentRegistry, ComponentKindInfo, CircuitRoleRegistry, ScheduleRoleRegistry,
 │   │                 PropertyTable, NameResolution, InputLimits, Range
-│   └── Compatibility/ ScriptCompatibility
+│   ├── Translation/  Language2Translator, TranslationRun (class folder) — language 2's tree into the
+│   │                 statements the binder reads (`19`, added 2026-09-25 with P6.11 package 3a)
+│   └── Compatibility/ ScriptCompatibility, MajorParser
 ├── Physics/
 │   ├── Units/        unchanged contents
 │   ├── Fluids/       FluidState, ISubstance, PropertyBackend, SubstanceRegistry, If97Saturation

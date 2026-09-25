@@ -105,6 +105,14 @@ public static partial class ScriptCompatibility
                 major, catalog, CompatibilityDisposition.Current, diagnostics.ToImmutable(), Everything);
         }
 
+        if (versions.Supported.Contains(major) && major.Value > versions.Current.Value)
+        {
+            // Language 2 while it is built beside language 1 (`D-164`): its own parser, every action, and
+            // nothing to migrate to, since the current major is the older one.
+            return new CompatibilityResult(
+                major, catalog, CompatibilityDisposition.SupportedNewer, diagnostics.ToImmutable(), Everything);
+        }
+
         if (versions.Supported.Contains(major))
         {
             // Parsed under its own major's semantics and **not rewritten on open**. Migration is
@@ -197,6 +205,8 @@ public static partial class ScriptCompatibility
     [GeneratedRegex(@"^\s*fluidscript\s+(?<major>\d+)\s*$")]
     private static partial Regex VersionLine();
 
-    [GeneratedRegex(@"^\s*catalog\s+(?<id>[A-Za-z_][A-Za-z0-9_]*)(?:@(?<version>\d+\.\d+))?\s*$")]
+    // Language 1's `catalog id@version` line, and language 2's `catalog = id@version` setting inside the
+    // project block (`18`); neither form means anything else in either language.
+    [GeneratedRegex(@"^\s*catalog(?:\s+|\s*=\s*)(?<id>[A-Za-z_][A-Za-z0-9_]*)(?:@(?<version>\d+\.\d+))?\s*$")]
     private static partial Regex CatalogLine();
 }

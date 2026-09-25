@@ -22,4 +22,13 @@ namespace FluidScript.Core.Language.Syntax.Parsing;
 public sealed record ParseResult(
     SourceText Source,
     ScriptSyntax Root,
-    ImmutableArray<Diagnostic> Diagnostics);
+    ImmutableArray<Diagnostic> Diagnostics)
+{
+    /// <summary>Gets the language major the tree was read in.</summary>
+    /// <value>
+    /// 1, unless the tree is language 2's translated into the statements the binder reads
+    /// (<c>Language2Translator</c>), which says 2. The binder reads it where the two languages bind the
+    /// same statement differently: a name matched by similarity (<c>D-170</c>) and a circuit's role.
+    /// </value>
+    public int Language { get; init; } = 1;
+}

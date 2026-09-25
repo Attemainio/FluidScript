@@ -106,6 +106,14 @@ records that both reference circuits once failed to parse while every acceptance
 document passed. A block that is meant to be wrong declares its codes on its fence
 (` ```fluidscript expects=FS1203 `); a block that is not a script at all does not claim to be one.
 
+**`NameResolution.Match` answering `IsExact` is not a binding; its caller decides** (2026-09-25, `P6.11`
+package 3a). `Match` normalises (`D-15`'s first stage), and `BindingRun.ResolveParameter` called it only to look for
+a near miss: an exact normalised hit fell past that branch into `FS1503`, so `HEAD=5` was "a pump has no 'HEAD'"
+while kinds, resolved by the registry through the same `Match`, were case-insensitive. A session answering the user
+read `Match`, concluded parameters were case-insensitive, and wrote that into `19` as measured; the first language 2
+test that used `HEAD` showed otherwise. Fixed in the same change. The rule it teaches: a claim that the binder
+already does something is measured by binding a script, not by reading the function it calls.
+
 **A port name that reaches the graph is not evidence that anyone wrote one** (`D-88`). `Unqualified`
 resolves an endpoint with no port to a real port by preference order — outlets first on the left of the
 dash, inlets first on the right — and `Lowering.Build.End` then records that port's name exactly as it

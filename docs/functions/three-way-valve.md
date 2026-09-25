@@ -227,7 +227,7 @@ two pressures, so which pair drives this valve is open. In both cases the valve 
 
 ## Also written as
 
-`3_way_valve`, `mixing_valve`, `diverting_valve`, `3wv`.
+`3_way_valve`, `mixing_valve`, `diverting_valve`, `3wv`, `valve3`.
 
 **Two of those spellings say something.** A seat body is built for one service — Siemens' VXG44 is
 "to be used only as a mixing valve" — and which one a plant needs is decided by how the ports are
@@ -242,7 +242,7 @@ FS4012  '3WV' is written as a mixing valve and the solve runs it diverting: 0.23
         wire the ports for mixing.
 ```
 
-A bare `three_way_valve`, `3_way_valve` or `3wv` claims nothing and is never reported. Rotary
+A bare `three_way_valve`, `3_way_valve`, `3wv` or `valve3` claims nothing and is never reported. Rotary
 mixing valves such as ESBE's VRG series serve both functions, and are written bare.
 
 Write `3_way_valve`, not `3-way-valve`: a hyphen subtracts.

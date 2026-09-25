@@ -64,7 +64,7 @@ public sealed class ScriptPipeline(ISolverFactory solvers, IOptions<ApiOptions> 
         }
 
         var parseStarted = Stopwatch.GetTimestamp();
-        var parse = FluidScriptParser.Parse(source);
+        var parse = MajorParser.Parse(source, compatibility.DetectedMajor, ComponentRegistry.Default);
         var parseMs = Elapsed(parseStarted);
         diagnostics.AddRange(parse.Diagnostics);
         diagnostics.AddRange(limits.Check(parse.Root));

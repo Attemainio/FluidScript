@@ -10,6 +10,9 @@ namespace FluidScript.Core.Language.Compatibility;
 public sealed record SupportedVersions(LanguageMajor Current, ImmutableArray<LanguageMajor> Supported)
 {
     /// <summary>Gets what this build of FluidScript supports.</summary>
-    /// <value>Major 1 only. A second entry appears the day a major 2 exists, with its migration.</value>
-    public static SupportedVersions Default { get; } = new(new LanguageMajor(1), [new LanguageMajor(1)]);
+    /// <value>
+    /// Current 1, supported 1 and 2: language 2 is compiled beside language 1 while it is built (<c>D-164</c>,
+    /// <c>SupportedNewer</c>), and becomes current at <c>P6.11</c>'s switch-over, a decision of its own.
+    /// </value>
+    public static SupportedVersions Default { get; } = new(new LanguageMajor(1), [new LanguageMajor(1), new LanguageMajor(2)]);
 }

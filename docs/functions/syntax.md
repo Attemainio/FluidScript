@@ -42,7 +42,9 @@ TV1 3-way-valve      # a hyphen is impossible — write 3_way_valve
 ```
 
 You never have to learn a canonical spelling for a component *kind*: `3_way_valve`, `3WayValve` and
-`threewayvalve` all find the same thing. Only the hyphen is impossible.
+`threewayvalve` all find the same thing. The same holds for a parameter: `HEAD=5`, `Head=5` and
+`head=5` are one parameter. Only the hyphen is impossible. A component's own name is different: `PU1`
+and `pu1` are two components, because a name is yours and the tool has no standing to merge two of them.
 
 **One name is unavailable, and it is worth knowing why.** A name that reads as a number and a unit is
 that number and that unit: `3K` is three kelvin, not a component called `3K`. FluidScript says so and

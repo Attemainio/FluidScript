@@ -1666,8 +1666,9 @@ that governed each size. What P6.8 still owes, and what comes after:
     and curves that name them, one-declaration controllers with a type, and runs. Package 1, the spec
     ([`19`](10-language/19-fluidscript-2.md)), was reviewed by the user and accepted with two more decisions: exact
     names only (`D-170`) and presentation in the project block, overridable per circuit (`D-171`); then `K` as a
-    temperature difference in language 2 (`D-172`), and case-insensitive registry names confirmed as already true
-    (`D-15`'s first stage, kept by `D-170`). Six questions stay open in `19`. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
+    temperature difference in language 2 (`D-172`), and case-insensitive registry names (`D-15`'s first stage, kept by
+    `D-170`) -- recorded then as already true, which was wrong for parameters and is corrected under package 3a below.
+    Six questions stay open in `19`. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
     wrong answers in language 1 (a misspelt `haed=15` binding as `head`, `setpoint=20 kPa` on a temperature loop, extra
     `control` arguments dropped, `power=30000` read as 30 MW with no warning, spaces around `=` losing a declaration,
     and more) are **not filed yet**: the user has not decided whether to file them.
@@ -1683,7 +1684,25 @@ that governed each size. What P6.8 still owes, and what comes after:
     now leaves any other major as written). **Not yet reachable**: `SupportedVersions` is still `[1]`, so a
     `fluidscript 2` file stops at `FS1702` before parsing; package 3 wires the parser in with the translation. For
     package 4: a language 2 line that fails generically is `FS1104`, whose message names language 1's statements.
-    Next: package 3.
+  - **`P6.11` package 3, slice 3a (2026-09-25): language 2 compiles.** The user chose to split package 3 into five
+    slices -- 3a wiring and translation, 3b port inference, 3c cases and drivers, 3d the controller, 3e runs -- and
+    option A for both open choices: the binder evaluates a value once per case (3c), and runs become part of the model,
+    picked by the Run button (3e). 3a: `SupportedVersions` is current 1, supported {1, 2}, with `SupportedNewer` for a
+    `fluidscript 2` file (`18`); `MajorParser` picks the parser by the version line and `ScriptPipeline` uses it;
+    `Language2Translator` turns the language 2 tree into language 1's statements with spans in the language 2 text
+    (the project, cases as scenarios with the first as the design case, catalogue, `show`/`scale`/`spacing`, `style:`
+    blocks merged key by key, `let`s, curves, circuits with title/number/fluid/`role`, declarations with their
+    blocks, `primary`/`secondary` as `in`/`in[2]`, a list's unit on each item, `K` as `dK` (`D-172`), a pipe's
+    `12 m DN25` as `length=`/`dn=`, a sensor in a chain as a node it is placed `at`). The binder, for language 2 only:
+    a near-miss kind, parameter or role binds nothing and offers the fix (`D-170`); a circuit with no `role` is
+    neutral without `FS1519`. New codes `FS1813` (not a DN) and `FS1814` (a sensor placed twice); `valve3` is an alias
+    of `three_way_valve`. `m2-simple-loop`'s language 2 twin binds to the sample's model (18 translation tests).
+    **Found and fixed:** `ResolveParameter` discarded an exact normalised match, so `HEAD=5` was `FS1503` in
+    language 1 too, contradicting `D-15`; it binds now in both languages (`syntax.md` says so), and the claim above that
+    this was already true is corrected in `19`. **What 19's reference script still reports**, each a later slice's:
+    the per-case `let` and the curves of it (`FS1404`, `FS1528`, 3c), the controller's parameters and `stroke`
+    (`FS1503`, 3d), runs left out of the translation (3e), and a cross-circuit exchanger wired to its first free port
+    rather than its secondary (3b). Next: slice 3b.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

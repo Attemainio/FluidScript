@@ -209,9 +209,12 @@ not writable; `300 K` on a temperature is a dimension error whose fix is `°C`. 
 unit still means the same thing wherever it stands (`D-26`'s property, kept).
 
 **Names are case-insensitive** where the registry owns them — kinds, parameters, properties: `Kp`, `KP` and `kp`
-bind alike, and the printer keeps what was written. That is `D-15`'s first stage, which `D-170` keeps; measured
-2026-09-25, the binder already resolves every parameter through it (`NameResolution.Match`). Component names stay
-exact, case included: `PU1` and `pu1` are two components.
+bind alike, and the printer keeps what was written. That is `D-15`'s first stage, which `D-170` keeps. **Corrected 2026-09-25 (package 3a):** this
+paragraph first said the binder already did so for parameters, from reading `NameResolution.Match`, which does
+normalise; running it showed that `ResolveParameter` discarded an exact normalised hit, so `HEAD=5` was `FS1503`
+("a pump has no 'HEAD'") in language 1. Fixed for both languages, as `D-15` states it. Kinds were already
+case-insensitive; a property named in a reference (`N2.T`) is not yet measured. Component names stay exact, case
+included: `PU1` and `pu1` are two components.
 
 **A list** is `[a, b, …]`, one value per case in the order `cases` names them; a unit after the closing
 bracket applies to every item: `t = [85, 70] C`. **A range** is `a..b`, and a trailing unit applies to
@@ -336,7 +339,8 @@ circuit "Heating":
   TV1 - SP - TE1 - RAD - NR
 ```
 
-The title is quoted and is not a reference. Settings: `fluid` (the substance, required once per circuit
+The title is quoted and is not a reference; it is the circuit's name in the model, and a circuit written
+without one is named `circuit 1`, `circuit 2`, … in file order. Settings: `fluid` (the substance, required once per circuit
 unless every circuit shares one), `number` (the tag prefix, `D-34`; resolved automatically when absent,
 as in language 1), and `role` (the circuit's role for the drawing, `D-35`; language 1 derives it from the
 circuit's name, which a quoted title cannot carry). Declarations and connection lines follow in any
@@ -397,7 +401,8 @@ the port explicitly: inference is for what people type.
 **A sensor may sit in a chain**: `TV1 - SP - TE1 - RAD`. The binder lowers it to a node between `SP` and
 `RAD` with the sensor observing it (`D-166`, amending `D-61`, whose objection — the sensor's identity
 equations in the flow path — does not arise once it is lowered to a node). A sensor may still be placed
-on a named node with `at`.
+on a named node with `at`; placed both ways it is `FS1814`, and the chain's placement is kept. The node is named
+after the sensor, `TE1_node` (with a number appended if that name is taken), and is what the drawing shows.
 
 **A pipe's length and DN sit at the end of its link, with no `=`**:
 
@@ -560,6 +565,8 @@ range is **`FS18xx`**, owned by this document:
 | `FS1810` | Warning | A controller type the solver does not run yet |
 | `FS1811` | Error | A curve whose driver is neither a `let` nor `time` |
 | `FS1812` | Error | A block head without its `:` |
+| `FS1813` | Error | A word after a pipe's link that is not a DN designation (`12 m NPS1`); the pipe keeps its length and is sized |
+| `FS1814` | Error | A sensor that sits in a chain and is also placed `at` a node; the chain's placement is kept |
 
 ## Invariants
 

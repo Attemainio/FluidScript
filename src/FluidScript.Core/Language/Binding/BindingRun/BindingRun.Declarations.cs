@@ -212,6 +212,15 @@ internal sealed partial class BindingRun
             case KindResolution.Exact exact:
                 return exact.Kind;
 
+            // `D-170`: language 2 binds a kind only by its spelling or a curated alias; the near miss is the fix.
+            case KindResolution.Similar similar when parse.Language == 2:
+                Report(
+                    BinderDiagnostics.UnknownKind,
+                    span,
+                    new Suggestion($"Change it to '{similar.Kind.Keyword}'", span, similar.Kind.Keyword),
+                    ("kind", written));
+                return null;
+
             case KindResolution.Similar similar:
                 Report(
                     BinderDiagnostics.ResolvedBySimilarity,

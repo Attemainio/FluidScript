@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 
 namespace FluidScript.Core.Diagnostics.Descriptors;
 
-/// <summary>The codes language 2's parser emits.</summary>
+/// <summary>The codes language 2's parser and its translation emit.</summary>
 /// <remarks>
 /// <para>
 /// The <c>FS18xx</c> range is language 2's syntax and its translation to the binder
@@ -74,8 +74,30 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Error,
         "A {head} line opens a block and ends with ':'.");
 
-    /// <summary>Gets every code language 2's parser emits, for the registry to collect.</summary>
-    /// <value>Six descriptors. Order does not matter; the registry sorts.</value>
+    /// <summary>A word after a pipe's link that is not a DN designation.</summary>
+    /// <value><c>FS1813</c>, an error.</value>
+    /// <remarks>
+    /// Raised by the translation (<c>D-166</c>): a length is known by its unit and a size by its <c>DN</c>, so a
+    /// word that is neither describes nothing. The pipe keeps its length and is sized.
+    /// </remarks>
+    public static DiagnosticDescriptor NotAPipeSize { get; } = new(
+        "FS1813",
+        DiagnosticSeverity.Error,
+        "'{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'.");
+
+    /// <summary>A sensor placed on a node with <c>at</c> that also sits in a chain.</summary>
+    /// <value><c>FS1814</c>, an error.</value>
+    /// <remarks>
+    /// Raised by the translation (<c>D-166</c>): a sensor in a chain observes the point where it sits, so the two
+    /// placements name two points for one reading. The chain's is kept.
+    /// </remarks>
+    public static DiagnosticDescriptor SensorPlacedTwice { get; } = new(
+        "FS1814",
+        DiagnosticSeverity.Error,
+        "'{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits.");
+
+    /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
+    /// <value>Eight descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -84,5 +106,7 @@ public static class Language2Diagnostics
         Language1Statement,
         RampWithOneValue,
         HeadWithoutColon,
+        NotAPipeSize,
+        SensorPlacedTwice,
     ];
 }

@@ -21,6 +21,14 @@ public sealed record CircuitHeaderSyntax(
     IdentifierSyntax Name,
     NumberLiteralSyntax? Number) : StatementSyntax
 {
+    /// <summary>Gets the circuit's role as a language 2 file states it, <c>role = heating</c>.</summary>
+    /// <value>
+    /// <see langword="null"/> for language 1, whose role is read from <see cref="Name"/> (<c>D-35</c>), and for a
+    /// language 2 circuit that states none. Set only by the language 2 translation, and not one of
+    /// <see cref="Tokens"/>: the setting's own tokens are in the language 2 tree, which is the one printed.
+    /// </value>
+    public IdentifierSyntax? Role { get; init; }
+
     /// <inheritdoc/>
     public override ImmutableArray<Token> Tokens =>
         Number is null ? [Keyword, .. Name.Tokens] : [Keyword, .. Name.Tokens, .. Number.Tokens];
