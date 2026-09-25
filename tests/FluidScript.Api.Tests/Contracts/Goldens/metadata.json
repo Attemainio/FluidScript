@@ -5397,6 +5397,16 @@
       ]
     },
     {
+      "code": "FS1816",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'.",
+      "arguments": [
+        "time",
+        "run"
+      ]
+    },
+    {
       "code": "FS2001",
       "severity": "error",
       "area": "Substances",

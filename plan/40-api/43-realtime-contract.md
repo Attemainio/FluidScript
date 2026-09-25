@@ -52,6 +52,12 @@ Every message is JSON with a `type` discriminator.
 { "type": "resume" }
 ```
 
+**A language 2 file names its runs** (`D-169`, bound since P6.11 slice 3e): the start message then names the run
+the user picked — `"run": "Cold morning"` or its position — in place of `settings`, and the server plays
+`RunProjection.Project(model, run)` with `TransientSettings.Of(run)`: the run's own duration, frame, starting case,
+start, steady circuits and events. A language 1 file keeps `settings` as above. To be built with P6.5's worker; the
+interface's run picker is `P6.11` package 5.
+
 `pause` exists because the alternative is unbounded client buffering: a user who pauses playback while
 frames keep arriving accumulates state until the tab dies. Pausing the *producer* is the correct fix
 and costs one flag.

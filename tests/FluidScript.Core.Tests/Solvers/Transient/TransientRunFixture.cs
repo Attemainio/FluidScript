@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components.Declarations;
+using FluidScript.Core.Language.Binding;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Physics.Units;
 using FluidScript.Core.Solvers.Equations;
@@ -80,14 +81,18 @@ internal static class TransientRunFixture
         }
     }
 
-    public static async Task<Run> RunAsync(string name, string source, TransientSettings? settings = null, CancellationToken cancellationToken = default)
+    public static Task<Run> RunAsync(string name, string source, TransientSettings? settings = null, CancellationToken cancellationToken = default) =>
+        RunAsync(name, GraphFixture.Bind(source), settings, cancellationToken);
+
+    /// <summary>Runs a bound model in time: a language 2 run's, projected by <see cref="RunProjection"/>.</summary>
+    public static async Task<Run> RunAsync(string name, SemanticModel model, TransientSettings? settings = null, CancellationToken cancellationToken = default)
     {
         var resolved = PipeCatalogs.Resolve(pin: null);
 
         Assert.True(resolved.IsSuccess, resolved.Error?.Message);
 
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(resolved.Value), OuterLoop.Rules(resolved.Value.Catalog), 10);
-        var design = await loop.RunAsync(GraphFixture.Bind(source), Water.Instance, name, cancellationToken);
+        var design = await loop.RunAsync(model, Water.Instance, name, cancellationToken);
 
         Assert.True(design.IsSuccess, design.Error?.Message);
         Assert.True(design.Value.Solve.Converged, design.Value.Solve.Termination.ToString());

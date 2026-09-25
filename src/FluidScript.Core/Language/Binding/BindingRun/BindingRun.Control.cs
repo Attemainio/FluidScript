@@ -486,6 +486,20 @@ internal sealed partial class BindingRun
 
     private void BindDisturbance(DisturbanceSyntax statement, string circuit)
     {
+        if (Disturbance(statement, circuit, range => Bounds(range, Dimension.Time)) is { } disturbance)
+        {
+            _disturbances.Add(disturbance);
+        }
+    }
+
+    /// <summary>Binds one step or ramp: its target, its times and its values.</summary>
+    /// <param name="statement">The line.</param>
+    /// <param name="circuit">The circuit it belongs to.</param>
+    /// <param name="times">Reads the line's times; a language 2 run reads a clock time as well as a duration.</param>
+    /// <returns>The change, or <see langword="null"/> when its target has been reported.</returns>
+    private DisturbanceSymbol? Disturbance(
+        DisturbanceSyntax statement, string circuit, Func<RangeOrPointSyntax, (Quantity? From, Quantity? To)> times)
+    {
         var target = statement.Target;
         var component = target.Component.Token.Text;
 
@@ -494,7 +508,7 @@ internal sealed partial class BindingRun
             // `at 60 s HE4 = 45` names no parameter, and the reference message says exactly what is
             // missing: a schedule changes a property, not a component.
             Report(BinderDiagnostics.ExpectedReference, target.Span, ("parameter", "the schedule target"));
-            return;
+            return null;
         }
 
         var parameter = written.Text;
@@ -505,12 +519,22 @@ internal sealed partial class BindingRun
                 BinderDiagnostics.UnknownName,
                 target.Span,
                 ("name", component));
-            return;
+            return null;
         }
 
         ParameterInfo? info = null;
+        Dimension? dimension = null;
 
-        if (_components[slot.Index].Kind is { } kind)
+        // A language 2 run may move a controller's setpoint (`19` §Runs), which is its line's and read in what
+        // it measures, not a parameter of the controller.
+        if (parse.Language == 2
+            && string.Equals(NameResolution.Normalize(parameter), "setpoint", StringComparison.Ordinal)
+            && _controlBindings.FirstOrDefault(binding => string.Equals(binding.Controller.Name, component, StringComparison.Ordinal)) is { } loop)
+        {
+            parameter = "setpoint";
+            dimension = DimensionOf(loop.Measurement);
+        }
+        else if (_components[slot.Index].Kind is { } kind)
         {
             // The same spellings a declaration accepts (`D-120`), the old ones with their suggestion;
             // the target is stored by key, which is how the transient finds the parameter.
@@ -524,28 +548,30 @@ internal sealed partial class BindingRun
                     ("kind", kind.Keyword),
                     ("parameter", parameter),
                     ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
-                return;
+                return null;
             }
 
             if (suggestion is not null)
             {
                 ReportLegacySpelling(written.Span, parameter, suggestion);
             }
+
+            dimension = info.Dimension;
         }
 
-        var (from, to) = Bounds(statement.When, Dimension.Time);
-        var (fromValue, toValue) = Bounds(statement.Value, info?.Dimension);
+        var (from, to) = times(statement.When);
+        var (fromValue, toValue) = Bounds(statement.Value, dimension);
 
         // A single value is where the change ends: at the instant for `at`, at the end of the span for
         // `over` (`12` §Schedule: a step at the end of the ramp). Only a range has a start value.
-        _disturbances.Add(new DisturbanceSymbol(
+        return new DisturbanceSymbol(
             circuit,
             new PropertyReference(component, info?.Key ?? parameter),
             from,
             to ?? from,
             toValue is null ? null : fromValue,
             toValue ?? fromValue,
-            statement.Span));
+            statement.Span);
     }
 
     private (Quantity? From, Quantity? To) Bounds(RangeOrPointSyntax range, Dimension? dimension) =>

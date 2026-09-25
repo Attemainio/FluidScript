@@ -59,6 +59,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         ReviewStart();
         ReviewLegacyReferences();
         BindTopology(circuits);
+        BindRuns();
 
         var model = new SemanticModel
         {
@@ -79,6 +80,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Deferred = [.. _deferred],
             Curves = [.. _curves],
             Heights = _heights,
+            Runs = [.. _runs],
         };
 
         // A diagnostic about a component carries the component (44): the producers name it in their
@@ -158,6 +160,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 case DesignDirectiveSyntax:
                 case ScenariosDirectiveSyntax:
                 case MalformedStatementSyntax:
+
+                // A language 2 run, which `BindRuns` binds once the model is complete (`D-169`).
+                case BlockSyntax { Head: RunHeadSyntax }:
                     break;
 
                 default:

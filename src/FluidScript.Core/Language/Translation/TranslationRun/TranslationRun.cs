@@ -35,6 +35,7 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
 
     private readonly List<StatementSyntax> _lets = [];
     private readonly List<StatementSyntax> _circuits = [];
+    private readonly List<StatementSyntax> _runs = [];
 
     /// <summary>Every declared component's kind, by name, for what a kind decides here: whether it is a sensor.</summary>
     private readonly Dictionary<string, ComponentKindInfo?> _kinds = new(StringComparer.Ordinal);
@@ -77,8 +78,12 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
                     _lets.Add(let with { Value = Value(let.Value) });
                     break;
 
-                // A run is `P6.11` package 3e's. Anything else at the top level is a statement the parser
-                // already reported as out of its block (FS1802) or could not read.
+                case BlockSyntax { Head: RunHeadSyntax } run:
+                    _runs.Add(TranslateRun(run));
+                    break;
+
+                // Anything else at the top level is a statement the parser already reported as out of its
+                // block (FS1802) or could not read.
                 default:
                     break;
             }
@@ -98,7 +103,9 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
             _circuits.AddRange(_lets);
         }
 
-        var root = new ScriptSyntax([.. _fileWide, .. _circuits], source.Root.EndOfFile);
+        // Last, so every name a run targets is declared above it; the binder steps over a run in its
+        // circuit partition and binds it once the model is complete.
+        var root = new ScriptSyntax([.. _fileWide, .. _circuits, .. _runs], source.Root.EndOfFile);
         return new ParseResult(source.Source, root, _diagnostics.ToImmutable()) { Language = 2 };
     }
 

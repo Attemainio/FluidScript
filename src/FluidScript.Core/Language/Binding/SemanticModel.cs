@@ -63,4 +63,8 @@ public sealed record SemanticModel
     /// here, so the hydrostatic terms around a closed loop cancel by construction.
     /// </value>
     public HeightMap Heights { get; init; } = HeightMap.Empty;
+
+    /// <summary>Gets every run the file holds, in the order written (<c>D-169</c>).</summary>
+    /// <value>Empty for a language 1 file, whose schedule and dynamic circuits are the file's own.</value>
+    public ImmutableArray<RunSymbol> Runs { get; init; } = [];
 }

@@ -159,6 +159,7 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1813` | Error | Language2 | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |
 | `FS1814` | Error | Language2 | '{sensor}' sits in a chain and is also placed at '{node}'. Keep one: in a chain it reads the point where it sits. |
 | `FS1815` | Info | Language2 | '{component}' is wired as {wiring}. |
+| `FS1816` | Error | Language2 | '{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'. |
 | `FS2001` | Error | Substances | There is no fluid called '{name}'. Available: {list}. |
 | `FS2002` | Error | Substances | Cannot fix a state from {a} and {b}; they are not independent here. |
 | `FS2003` | Error | Substances | {name} data covers {lo} to {hi}; this state is at {value}. |

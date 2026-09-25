@@ -343,6 +343,20 @@ with a weather chain, outdoor −26 → −6 °C over five minutes and `heating`
 `HE1` at its fixed 0.2393 kg/s reads 30.0 K at t = 0, 22.5 K at 150 s and 15.0 K from 300 s on, and
 the final frame is `SteadyAt`'s at the horizon, which reads the same clock.
 
+**An event replaces what drove its target** (`D-169`, fixed in P6.11 slice 3e). At each evaluation the solver wrote
+the schedule and then the clock's drives, so a parameter both scheduled and following a curve took the curve's value
+at every step and the event never showed. The clock is now written first and the schedule after it: before an
+event's start the curve drives, from it on the event does. **Measured** on the weather loop written in language 2
+with `at 10 min HE1.power = 20 kW`: the rise across `HE1` is 15.0 K at 590 s and 20.0 K at the horizon; with the old
+order it stayed at 14.98 K. The same order holds for language 1's `schedule`.
+
+**A language 2 run** (`D-169`) supplies what a language 1 file states on its project line and circuits: the horizon
+and frame (`TransientSettings.Of`), the starting case, `start`, which circuits are dynamic, and the schedule.
+`RunProjection.Project` turns the model and one run into the model the run solves, and everything in this document
+then runs on it unchanged. An override holds from t = 0: a parameter's is a step at 0, a `let`'s value is evaluated
+by the binder into a step at 0 on every parameter that reads it, and a driver handed to a curve of time re-points
+that driver's curves at it, so they follow the clock through `CurveClock` as a language 1 chain does.
+
 **[`12-grammar`](../10-language/12-grammar.md) now defines this**, as a `schedule` section whose
 statements are `at`/`over` disturbances. `at` and `over` are not reserved words — section position
 classifies them, exactly as it does connections — and the target is the `component.parameter` shape the

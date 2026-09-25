@@ -1743,7 +1743,24 @@ that governed each size. What P6.8 still owes, and what comes after:
     with no error; its mild-case setpoint is 38.9 C, the worked example's third value. Its design solve does not
     settle -- both cases end `NonFinite` after 2 iterations with the heating loop seeded backwards -- which is `S-86`
     (the seed never reads a setpoint), noted there, not a language 2 fault. Filed `L-65`: language 1 now accepts
-    the new controller parameters with no effect. Next: slice 3e.
+    the new controller parameters with no effect.
+  - **`P6.11` package 3, slice 3e (2026-09-25): runs -- package 3 complete.** A run binds to a `RunSymbol` in
+    `SemanticModel.Runs` (`D-169`, option A) and changes nothing in the model; `RunProjection.Project(model, run)` is the
+    model that run solves -- its `from` case, every circuit dynamic but those in `steady`, its events as the schedule,
+    its `start` -- and `TransientSettings.Of(run)` its duration and frame. Overrides: a parameter's is a step at 0; a
+    `let`'s value is evaluated by the binder into steps at 0 on what reads it; a driver handed to a curve of time
+    re-points its curves at it, so every language 2 curve reader is now held for the clock with its value. Clock-time
+    events read as the next such time after `start` (this project's reasoning; `FS1816` with none). **Premise
+    corrected:** option A spoke of the Run button and the start message changing, but neither exists yet -- nothing
+    outside the tests starts a transient; the worker and WebSocket contract are P6.5 and playback P6.6. `43` now says
+    what the start message carries for a language 2 file, for P6.5 to build, and the run picker stays package 5.
+    **Found and fixed:** the transient wrote the schedule and then the clock, so an event on a parameter that followed a
+    curve never showed -- measured on the weather loop in language 2 with `at 10 min HE1.power = 20 kW`: 14.98 K
+    across `HE1` with the old order, 20.0 K now (`33`; language 1's `schedule` gets the same order). **Measured:** the
+    weather loop written in language 2 and played through its run follows the weather as the language 1 test does --
+    30.0, 22.5 and 15.0 K at 0, 150 s and the end. The reference script binds with no error, its run included. Next:
+    package 4, the diagnostics audit; its list so far is in the 3a-3d entries above (`FS1104`, `FS1528`, `FS1540`,
+    `FS1541`, `FS1521`, `FS2119`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

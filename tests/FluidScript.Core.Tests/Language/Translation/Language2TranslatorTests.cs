@@ -10,6 +10,7 @@ using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Printing;
 using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Physics.Units;
+using FluidScript.Core.Solvers.Transient;
 using FluidScript.Fixtures;
 
 namespace FluidScript.Core.Tests.Language.Translation;
@@ -875,6 +876,146 @@ public sealed class Language2TranslatorTests
 
         Assert.Contains("band, kp, ti, td", diagnostic.Message, StringComparison.Ordinal);
     }
+
+    // ---- runs -----------------------------------------------------------------------------------
+
+    /// <summary>The substation of the cases section with a run appended.</summary>
+    private static string WithRun(string run) => Substation + "\n" + run;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheReferenceRunBindsItsSettingsAndEvents()
+    {
+        var model = Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScript2ParserTests.Reference).Model;
+        var run = Assert.Single(model.Runs);
+
+        Assert.Equal("Cold morning", run.Title);
+        Assert.Equal(0, run.From);
+        Assert.Equal(1_768_456_800, run.Start);
+        Assert.Equal(7200, run.Duration, 9);
+        Assert.Equal(10, run.Frame, 9);
+        Assert.Equal("weather_jan", run.DriverCurves["outdoor"]);
+
+        Assert.Collection(
+            run.Events,
+            static step =>
+            {
+                Assert.Equal(new PropertyReference("RAD", "power"), step.Target);
+                Assert.Equal(600, step.From!.Value.SiValue, 9);
+                Assert.Equal(100_000, step.ToValue!.Value.SiValue, 6);
+            },
+            static ramp =>
+            {
+                Assert.Equal(new PropertyReference("NPS", "t"), ramp.Target);
+                Assert.Equal(1800, ramp.From!.Value.SiValue, 9);
+                Assert.Equal(2400, ramp.To!.Value.SiValue, 9);
+                Assert.Equal(358.15, ramp.FromValue!.Value.SiValue, 9);
+                Assert.Equal(348.15, ramp.ToValue!.Value.SiValue, 9);
+            },
+            static setpoint =>
+            {
+                Assert.Equal(new PropertyReference("TC1", "setpoint"), setpoint.Target);
+                Assert.Equal(328.15, setpoint.ToValue!.Value.SiValue, 9);
+            });
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ARunIsProjectedOntoItsCaseItsCircuitsAndItsClock()
+    {
+        var model = Clean(WithRun("""
+            run "Mild day":
+              from   = mild
+              start  = 2026-01-15 06:00
+              steady = ["c"]
+            """)).Model;
+        var run = Assert.Single(model.Runs);
+        var projected = RunProjection.Project(model, run);
+
+        Assert.Equal(1, run.From);
+        Assert.Equal(44.3, Assert.Single(projected.Components, static c => c.Name == "RAD").Parameters["power"].Value!.Value.SiValue / 1000, 1);
+        Assert.All(projected.Circuits, static circuit => Assert.Equal(FluidScript.Core.Language.Syntax.Ast.FluidMode.Static, circuit.Mode));
+        Assert.Equal(1_768_456_800, projected.Project.Start);
+        Assert.Equal(600, TransientSettings.Of(run).Horizon, 9);
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("2026-01-15 06:00", 1800)]
+    [InlineData("2026-01-15 22:00", 8.5 * 3600)]
+    public void AClockTimeIsTheNextOneAfterTheStart(string start, double seconds)
+    {
+        var run = Assert.Single(Clean(WithRun($"""
+            run "r":
+              start = {start}
+              at 06:30  RAD.power = 100 kW
+            """)).Model.Runs);
+
+        Assert.Equal(seconds, Assert.Single(run.Events).From!.Value.SiValue, 6);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AClockTimeWithNoStartIsFS1816() =>
+        Only(WithRun("""
+            run "r":
+              at 06:30  RAD.power = 100 kW
+            """), "FS1816");
+
+    /// <summary>At −10 °C outside, <c>heat_demand</c> is 150 − 16 × 150/44 = 95.45 kW and the supply 85 − 16 × 20/44 = 77.7 °C.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ADriverOverriddenByAValueStepsWhatReadsItAtTheStart()
+    {
+        var run = Assert.Single(Clean(WithRun("""
+            run "r":
+              outdoor = -10 C
+            """)).Model.Runs);
+
+        var power = Assert.Single(run.Events, static e => e.Target == new PropertyReference("RAD", "power"));
+        var supply = Assert.Single(run.Events, static e => e.Target == new PropertyReference("NPS", "t"));
+
+        Assert.Equal(0, power.From!.Value.SiValue, 9);
+        Assert.Equal(150 - (16 * 150.0 / 44), power.ToValue!.Value.SiValue / 1000, 6);
+        Assert.Equal(85 - (16 * 20.0 / 44), supply.ToValue!.Value.SiValue - 273.15, 6);
+        Assert.Equal(2, run.Events.Length);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AParameterOverrideIsAStepAtTheStart()
+    {
+        var step = Assert.Single(Assert.Single(Clean(WithRun("""
+            run "r":
+              RAD.power = 50 kW
+            """)).Model.Runs).Events);
+
+        Assert.Equal(0, step.From!.Value.SiValue, 9);
+        Assert.Equal(50_000, step.ToValue!.Value.SiValue, 6);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ARunOnTheClockWithNoStartIsFS1546() =>
+        Only(WithRun("""
+            curve weather: time
+              2026-01-15 06:00   -26
+              2026-01-15 12:00    -9
+            run "r":
+              outdoor = weather
+            """), "FS1546");
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("from = spring", "FS1542")]
+    [InlineData("steady = [\"nowhere\"]", "FS1404")]
+    [InlineData("speed = 2", "FS1503")]
+    [InlineData("duration = 2 kW", "FS1304")]
+    public void AMistakenRunSettingIsReported(string setting, string code) =>
+        Only(WithRun($"""
+            run "r":
+              {setting}
+            """), code);
 
     // ---- names ----------------------------------------------------------------------------------
 

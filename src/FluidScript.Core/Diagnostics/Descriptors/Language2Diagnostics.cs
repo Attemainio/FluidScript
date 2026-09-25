@@ -160,6 +160,14 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Warning,
         "'{controller}' is a {type} controller, which the solver does not run yet.");
 
+    /// <summary>A clock time in a run that states no start.</summary>
+    /// <value><c>FS1816</c>, an error.</value>
+    /// <remarks><c>19</c> §Runs: a time is a duration from t = 0, or a clock time when the run states <c>start</c>.</remarks>
+    public static DiagnosticDescriptor ClockTimeWithoutStart { get; } = new(
+        "FS1816",
+        DiagnosticSeverity.Error,
+        "'{time}' is a clock time, and '{run}' states no start. Write 'start = 2026-01-15 06:00' in the run, or a duration such as '30 min'.");
+
     /// <summary>A curve whose driver is neither a <c>let</c> nor the clock.</summary>
     /// <value><c>FS1811</c>, an error.</value>
     /// <remarks>
@@ -173,7 +181,7 @@ public static class Language2Diagnostics
         "'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.");
 
     /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
-    /// <value>Fifteen descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Sixteen descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -191,5 +199,6 @@ public static class Language2Diagnostics
         ControllerSettingNotOfType,
         BandAndGain,
         ControllerTypeNotRun,
+        ClockTimeWithoutStart,
     ];
 }

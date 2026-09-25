@@ -350,7 +350,13 @@ internal sealed partial class BindingRun
                 continue;
             }
 
-            if (ModeOf(pending.Id) == FluidMode.Dynamic)
+            // Language 2 has no dynamic circuit outside a run (`D-169`), and any run may hand a driver to a curve
+            // of time; so every reader of a curve that has its value is held for the clock too, as a dynamic
+            // circuit's is in language 1. One with no value is FS1528 below, as in a static circuit.
+            var followable = parse.Language == 2
+                && curves.All(curve => CurveValueSeenBy(pending.Id, curve.Name) is not null);
+
+            if (ModeOf(pending.Id) == FluidMode.Dynamic || followable)
             {
                 if (_deferredTargets.Add(pending.Id))
                 {
@@ -360,7 +366,8 @@ internal sealed partial class BindingRun
 
                 // `D-149`: a curve that runs on the clock is read at start + t, so a run needs the start.
                 // A warning and not an error, because the design solve does not read the clock.
-                if (_project.Start is null
+                if (parse.Language != 2
+                    && _project.Start is null
                     && curves.Select(curve => Clocked(curve.Name)).FirstOrDefault(static clocked => clocked is not null) is { } clockedCurve)
                 {
                     Report(BinderDiagnostics.ClockWithoutStart, pending.Span, ("curve", clockedCurve));

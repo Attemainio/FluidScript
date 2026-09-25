@@ -2,9 +2,9 @@ namespace FluidScript.Core.Solvers.Transient;
 
 /// <summary>What a run is asked for: how long, how often a frame, and the integrator's bounds (<c>33</c>).</summary>
 /// <remarks>
-/// The horizon and the frame interval come from the <c>start</c> message, not the script (<c>43</c>):
-/// a stated exception to P5, because a run's length is a question about this viewing and not about
-/// the plant. The step bounds default to <c>36</c>'s tolerance table and are exposed for a test that
+/// For a language 1 file the horizon and the frame interval come from the <c>start</c> message, not the
+/// script (<c>43</c>): a stated exception to P5, because a run's length is a question about this viewing and
+/// not about the plant. A language 2 run states them (<c>D-169</c>), and <see cref="Of"/> reads them. The step bounds default to <c>36</c>'s tolerance table and are exposed for a test that
 /// needs a coarser or finer integrator, never to a user.
 /// </remarks>
 public sealed record TransientSettings
@@ -32,4 +32,15 @@ public sealed record TransientSettings
     /// <summary>The scaled per-step local error a step must stay under.</summary>
     /// <value>Dimensionless. <c>transient.local_error_tol</c>.</value>
     public double LocalErrorTolerance { get; init; } = Tolerances.TransientLocalError;
+
+    /// <summary>The settings a language 2 run states (<c>D-169</c>): its duration and its frame.</summary>
+    /// <param name="run">The run.</param>
+    /// <returns>The settings, the integrator's bounds at their defaults.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="run"/> is <see langword="null"/>.</exception>
+    public static TransientSettings Of(FluidScript.Core.Language.Binding.Symbols.RunSymbol run)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+
+        return new TransientSettings { Horizon = run.Duration, FrameInterval = run.Frame };
+    }
 }

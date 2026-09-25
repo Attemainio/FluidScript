@@ -557,6 +557,25 @@ override or event moves them, design targets are released to their controllers.
 
 Solver numerics — step size, tolerances — are not written in a script.
 
+**What the binder receives** (package 3e). A run reaches the binder as written, its values in language 1's
+spelling, and binds to a `RunSymbol` in `SemanticModel.Runs`; nothing in the model changes. `RunProjection` turns
+the model and the run the interface plays into the model that run solves: the `from` case's values, every circuit
+dynamic but those named in `steady` (by title), the run's events as the schedule, its `start` as the clock's, and its
+duration and frame as the transient's settings. So:
+
+- An override of a parameter (`RAD.power = 50 kW`) is a step at t = 0. An override of a `let` by a value
+  (`outdoor = -10 C`) is evaluated by the binder, in the run's starting case, into a step at t = 0 on every
+  parameter that reads it and changes. An override of a driver by a curve of time (`outdoor = weather_jan`)
+  re-points every curve of the driver at that curve, and each parameter that reads one follows the clock.
+  For that, every language 2 parameter that reads a curve is held for the clock with its value, as a dynamic
+  circuit's is in language 1.
+- A clock time is the next one at or after `start`: `06:30` in a run starting at 06:00 is 30 min in, and in one
+  starting at 22:00 it is 8.5 h in. This project's reasoning; with no `start` it is `FS1816`.
+- A run that follows a curve of time with no `start` is `FS1546`, once on the run's head.
+- `TC1.setpoint` is an event target, read in what `TC1` measures.
+- An event replaces what drove its target from its start: the transient writes the clock and then the schedule
+  (`33`, fixed here).
+
 ### Translation to the binder
 
 Language 2 has its own syntax tree, which the printer prints and the editor reads. **The binder reads
@@ -613,6 +632,7 @@ range is **`FS18xx`**, owned by this document:
 | `FS1813` | Error | A word after a pipe's link that is not a DN designation (`12 m NPS1`); the pipe keeps its length and is sized |
 | `FS1814` | Error | A sensor that sits in a chain and is also placed `at` a node; the chain's placement is kept |
 | `FS1815` | Info | How the rule wired a component where it chose between ports: a three-way valve, an exchanger with two sides, a tank side with more than one stream |
+| `FS1816` | Error | A clock time in a run that states no `start` |
 
 ## Invariants
 
@@ -684,8 +704,8 @@ shows what the records say.
 
 ## Acceptance criteria
 
-- [ ] The reference script parses, prints back byte for byte, and binds with no error. (Since package 3d it
-      binds with no error, but its run is not yet translated — 3e. Its design solve does not settle: `S-86`.)
+- [x] The reference script parses, prints back byte for byte, and binds with no error, its run included
+      (package 3e). Its design solve does not settle, which is `S-86`, not a language 2 fault.
 - [x] The printer fuzz test runs on language 2 input as it does on language 1 (package 2:
       `FluidScript2ParserTests`, every one-character deletion of the reference script and 3 000 random edits).
 - [ ] A malformed line inside a block leaves the rest of the block and the file bound (invariant 2).
@@ -700,7 +720,8 @@ shows what the records say.
       `Language2TranslatorTests`).
 - [x] A controller of each type binds; each `FS1808` and `FS1809` shape is refused; `FS1810` is raised
       for every type the solver does not run (package 3d).
-- [ ] A run binds to the settings and events `33` reads; a one-valued `over` is `FS1807`.
+- [x] A run binds to the settings and events `33` reads; a one-valued `over` is `FS1807` (package 3e; the
+      weather loop in language 2 is played in time by `Language2RunTests`).
 - [ ] Every language 1 statement in a language 2 file is `FS1806` with its language 2 form.
 - [ ] A file with no version line is language 1 until `P6.11`'s switch-over (`D-164`).
 - [ ] The editor highlights and completes language 2 in a file whose version line says 2, and language

@@ -80,8 +80,8 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
 
         // t = 0: the design state, with the schedule's t = 0 entries applied and the tank profile pinned.
         system.Pin(x);
-        Apply(system, snapshot.Schedule, time, inclusive: true);
         Follow(system, snapshot.Graph.Clock, time);
+        Apply(system, snapshot.Schedule, time, inclusive: true);
 
         var solve = await _solver.SolveAsync(system, snapshot.Initial, null, cancellationToken).ConfigureAwait(false);
 
@@ -125,8 +125,8 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             }
 
             system.Pin(predictor);
-            Apply(system, snapshot.Schedule, arrival, inclusive: false);
             Follow(system, snapshot.Graph.Clock, arrival);
+            Apply(system, snapshot.Schedule, arrival, inclusive: false);
 
             solve = await _solver.SolveAsync(system, algebraic, null, cancellationToken).ConfigureAwait(false);
 
@@ -200,8 +200,8 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             // The accepted state, with the schedule's right limit: a change at this instant applies
             // now, so the frame here shows the plant after it. This solve is the next step's k1.
             system.Pin(x);
-            Apply(system, snapshot.Schedule, time, inclusive: true);
             Follow(system, snapshot.Graph.Clock, time);
+            Apply(system, snapshot.Schedule, time, inclusive: true);
 
             solve = await _solver.SolveAsync(system, solve.Solution, null, cancellationToken).ConfigureAwait(false);
 
@@ -373,8 +373,8 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
             system.Freeze(index, snapshot.PromotionInitial[index]);
         }
 
-        Apply(system, snapshot.Schedule, time, inclusive: true);
         Follow(system, snapshot.Graph.Clock, time);
+        Apply(system, snapshot.Schedule, time, inclusive: true);
 
         return system;
     }
@@ -385,7 +385,10 @@ public sealed class TransientSolver(ISolver solver) : ITransientSolver
     /// <param name="time">s from t = 0; each curve is read at the clock's start plus this.</param>
     /// <remarks>
     /// A curve is continuous, so there is no left or right limit to choose between, and a drive the
-    /// clock cannot evaluate is left where it was rather than zeroed.
+    /// clock cannot evaluate is left where it was rather than zeroed. Written before the schedule at every
+    /// call, so an event that has begun replaces what drove its target (<c>D-169</c>): after
+    /// <c>at 10 min RAD.power = 100 kW</c> the duty stops following its curve. The other order let the clock
+    /// overwrite a scheduled change on a parameter that also followed a curve, at every step.
     /// </remarks>
     private static void Follow(EquationSystem system, CurveClock? clock, double time)
     {

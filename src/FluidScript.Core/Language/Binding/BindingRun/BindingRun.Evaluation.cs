@@ -63,6 +63,8 @@ internal sealed partial class BindingRun
     /// <summary>Step 5: evaluates every value in the order the graph gave, curves included.</summary>
     private void EvaluateInOrder(ImmutableArray<ValueId> order)
     {
+        _order = order;
+
         foreach (var id in order)
         {
             // A curve is evaluated here rather than in step 0b, because the order it needs is the one
