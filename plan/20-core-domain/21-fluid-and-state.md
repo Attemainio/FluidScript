@@ -3,10 +3,10 @@ id: 21-fluid-and-state
 title: Fluids and thermodynamic state
 tier: 20-core-domain
 status: reviewed
-owns: [ISubstance abstraction, FluidState, SharpProp adapter, property caching, humid air]
+owns: [ISubstance abstraction, FluidState, SharpProp adapter, property caching, property tables, humid air]
 depends_on: [13-type-and-unit-system, 16-diagnostics]
 traces_to: [R-07, R-08, R-16, R-40, R-43]
-open_questions: 0
+open_questions: 2
 last_review_pass: 2
 ---
 
@@ -251,7 +251,8 @@ repeats at states the solver has already visited within its iteration.
 - **Measure before optimising further.** The cache design above is the cheap part. Anything more —
   interpolation tables, incompressible fast paths — needs a benchmark first, and
   [`36-numerics-and-convergence`](../30-solver/36-numerics-and-convergence.md) owns whether the solver
-  is actually property-bound.
+  is actually property-bound. For the transient the benchmark exists and the answer is tables
+  (`D-173`, §Property tables below).
 - **A table is gridded on `(p, h)` or `(p, s)`, never on `(p, T)`** (`D-79`). This is a correctness
   constraint on the line above, not a performance one, and it is stated here because a benchmark is
   the only permission that row asks for. Inside the two-phase dome pressure and temperature are not
@@ -261,6 +262,76 @@ repeats at states the solver has already visited within its iteration.
   enthalpy's slope and `c_p` are both discontinuous across it. And no property is ever obtained by
   blending two evaluated states — the cache above returns a *computed* state, which is why exact
   bit-pattern keys are the right design twice over.
+
+## Property tables
+
+`D-173`. A transient step is property-bound — `m4-demand-step` runs 1.96 ms a step on IF97 water against
+0.14 ms on constant properties — and the substances past water are dearer still: 10–220 µs for a pure
+refrigerant's (p, h) flash, 25–110 ms for a HEOS blend's. A table answers a (p, h) state from stored nodes
+instead. This section is the specification; `08`'s P6.12 builds it.
+
+**Shape.**
+
+- **Coordinates.** x = ln p_abs, y = h; one table per phase region (`D-79` rules 1 and 2). A pure fluid's
+  dome is its one-dimensional saturation tables in p — T_s, h′, h″, ρ′, ρ″, s′, s″ — and its interior is the
+  equilibrium mixture of them. A zeotropic blend's dome is its own region gridded in (p, quality).
+- **A node** holds T, ρ, μ, k, c_p and s, each with ∂/∂x, ∂/∂y and ∂²/∂x∂y, from five exact evaluations — the
+  node and four diagonal neighbours at a small offset. A cell is bicubic Hermite, so a property and its first
+  derivatives are continuous across every edge between cells of one spacing. 192 bytes a node.
+- **The lattice** is fixed per substance and nested: level n+1 halves level n's spacing, so every node of a
+  coarser level is a node of the finer one. A node's value depends on (substance, backend version, level, i,
+  j) and on nothing else.
+- **A tile** is a block of cells built together, the unit of building, eviction and reporting.
+
+**The store.** One instance per process — the API registers it as a singleton, Core holds a default — built
+lazily and kept for the process's life, **never written to disk**. It is bounded by a memory cap with
+least-recently-used eviction (the cap is configuration; this project's reasoning puts the default at 256 MB,
+about 4 500 blend tiles). A tile requested by two solves is built once; a solve cancelled while waiting leaves
+nothing half-built. Builds run on the calling solve's thread through the per-thread backend `C-76` requires,
+and independent tiles build in parallel.
+
+**Tolerance.** Against the backend the table replaces:
+
+| Level | Temperature | Density | c_p, μ, k | Entropy |
+|---|---|---|---|---|
+| `standard` (default) | 10 mK absolute | 0.01 % | 0.1 % | ≤ c_p · 10 mK / T |
+| `fine` | 1 mK | 0.001 % | 0.01 % | ≤ c_p · 1 mK / T |
+| `exact` | no table | | | |
+
+Temperature is absolute because a duty follows a temperature difference. The levels are this project's
+reasoning between two published anchors: IAPWS G13-15's permissible deviations (10–25 mK, 0.001 %), set so a
+process simulation cannot tell the table from the formulation, and `07`'s water row (0.02 K, 0.1 %, 0.5 %),
+which the table plus its backend must stay inside.
+
+**Spacing.** Water and the pure fluids take a spacing per region and level measured in development and
+recorded in the table below; each tile checks a few interior points against the backend as it is built, and
+a miss is a diagnostic naming the tile, never a quiet refinement. A blend refines tile by tile to its check
+points, because its composition is the user's.
+
+| Region | Level | Spacing | Measured worst error | Basis |
+|---|---|---|---|---|
+| Liquid water, 5–95 °C, 0.5–6 bar g | `standard` | 9 nodes in h over the range (11.2 K), 2 in p | μ 0.026 %, T 0.1 mK, ρ 7e-5 %, c_p 1e-3 % | probe, 2026-09-25, uniform (p, h) — to be re-measured on the lattice in T1 |
+| Liquid water, same | `fine` | 17 nodes in h (5.6 K) | μ 0.0019 %, T 0.008 mK | same |
+
+**When it is built.** A run builds the tiles covering its start — every case's solved states and a margin —
+before its first step (`33`). A lookup outside them builds its tile there, and the run waits for it: a
+result never depends on which thread finished first.
+
+**Who reads it.** A tabulated substance is an `ISubstance` in front of the exact one, so nothing downstream
+changes. Its `FromPressureTemperature` inverts the table's T(p, h) by Newton, so invariant 5 holds on the
+table as it holds on the backend. Transient runs read it at the project's level; steady solves of water and
+the pure fluids stay exact; a blend reads its table in both.
+
+**Where a boundary crosses a cell.** For a refrigerant the nodes beyond the saturation line are the
+equation of state continued with the phase imposed — the metastable state, which is the smooth extension
+SBTL's extrapolation stands for — no further than the cell the line crosses. Water cannot be evaluated past
+its boiling line through this backend (IF97 answers from region 4), so a water cell the line crosses answers
+from the backend, and the step of up to the tolerance at that cell's edge is recorded as the cost (a
+finite-difference column straddling it reads the step as a slope, `S-74`'s mechanism).
+
+**Blends are not admitted by this section.** A blend is not a substance yet (glycols and refrigerant
+mixtures are post-v1, above), and its liquid transport has no trustworthy source (`C-135`): a table reproduces
+its backend, so it would reproduce a viscosity six times too high to 0.1 %.
 
 ## Substance registry
 
@@ -301,7 +372,9 @@ an assignment.
    equivalent state within round-trip tolerance.
 6. Humid-air enthalpy is per kg dry air everywhere it appears, including in the model contract and the
    UI.
-7. No property cache outlives a solve.
+7. No property **cache** outlives a solve. The table store does, by design (`D-173`): a table's value is a
+   function of its position alone, so what ran before cannot change a result, and eviction cannot either.
+8. A tabulated state is within its level's tolerance of the backend's, at every (p, h) the table answers.
 
 ## Error cases
 
@@ -379,8 +452,23 @@ row's own tolerance and inside the range a reader would accept as rounding.
       contracts cannot be frozen until it passes; a mismatch updates this plan before production code.
 - [ ] Exactly one adapter converts gauge to absolute pressure, and `p=100 kPa` reaches the backend as
       201.325 kPa absolute.
+- [ ] `m4-demand-step` and `m4-storage-header` run on `standard` tables, their ms per step reported
+      against the exact 1.96 and 0.59 and the constant-property 0.14 and 0.02, every frame within the
+      tolerance-implied band of the exact run, and V8 still agreeing.
+- [ ] A run started from a settled design state with no event drifts no further on tables than on the
+      exact backend by more than `36`'s settling tolerance; if it does, t = 0 is re-settled on the table.
+- [ ] A table built twice — in one process after eviction, and in two processes — answers bit-identically.
+- [ ] The store stays under its cap on the 200-declaration benchmark and reports tiles, memory and build
+      time in the run's explanation.
 
 ## Open questions
 
-None. The M0 spike is a pass/fail prerequisite rather than an implementation assumption; humid air
-uses a non-hiding state interface; glycol is deferred until a separately validated mixture contract.
+The M0 spike is a pass/fail prerequisite rather than an implementation assumption; humid air uses a
+non-hiding state interface; glycol is deferred until a separately validated mixture contract.
+
+1. **How a project states its table level.** `D-173` defines `standard`, `fine` and `exact`; neither language
+   has a spelling for choosing one. Until one is decided every run is `standard`. The user's call, before
+   P6.12's first package closes.
+2. **Where a blend's liquid transport comes from** (`C-135`): pseudo-pure fits where CoolProp has one, a
+   published mixing rule over the components (to be looked up and cited, not derived), or blends without
+   liquid transport. Decides whether P6.12's blend package can start.

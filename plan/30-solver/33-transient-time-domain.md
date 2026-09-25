@@ -255,6 +255,13 @@ Rejected alternatives, and their costs:
 | RK4 | Four evaluations per step; the accuracy is beyond what the property correlations justify. |
 | Implicit (BDF) | Unconditionally stable, so no CFL limit — genuinely better for a stiff model, and needs a nonlinear solve per step. Revisit only after a measured model cannot meet the explicit-step budget. |
 
+**A step is property-bound, and a run reads tables** (`D-173`, [`21`](../20-core-domain/21-fluid-and-state.md)
+§Property tables). Measured 2026-09-25: `m4-demand-step` 1.96 ms a step on IF97 against 0.14 on constant
+properties. A run therefore reads its substance through the session's tables at the project's level, and
+**builds the tiles covering its start before its first step** — every case's solved states and a margin — so
+a tile is built mid-run only when the run leaves that envelope, and the run waits for it rather than read
+the backend meanwhile.
+
 ### The step-size limit
 
 Explicit integration of transport is conditionally stable. The limit is the residence time of the

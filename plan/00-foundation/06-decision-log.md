@@ -215,6 +215,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-170` | Accepted | 2026-09-25 | Language 2 binds a name only by its exact spelling |
 | `D-171` | Accepted | 2026-09-25 | Language 2 declares presentation once in the project block, and a circuit may override it |
 | `D-172` | Accepted | 2026-09-25 | In language 2, `K` is a temperature difference |
+| `D-173` | Accepted | 2026-09-25 | Property tables are built in memory for the session, on a fixed lattice in (ln p, h), to a stated tolerance |
 <!-- index:end -->
 
 ---
@@ -7762,3 +7763,82 @@ to be the language people write without learning it first, and `dK` is the clear
 **Constrains.** `19` §Values, units, lists and ranges; `13` (the reading of `K`, for language 2); the language 2
 translation, which hands the binder `K` as a difference; the diagnostics audit (`FS1303` is never raised in
 language 2).
+
+## D-173 · Property tables are built in memory for the session, on a fixed lattice in (ln p, h), to a stated tolerance
+
+**Accepted · 2026-09-25** (the user's design — precompute the equation of state on a (p, h) grid, lazily, for the
+session, with a tolerance the project can loosen — settled over measurements taken the same day) · supersedes
+`D-79` rule 3 for the table store alone · amends `21`'s *never static/global* clause and invariant 7 for tables,
+leaving the per-solve exact cache as it was · constrains [`21`](../20-core-domain/21-fluid-and-state.md) §Property
+tables and `08`'s P6.12
+
+**What was wrong.** A transient step is property-bound. `m4-demand-step` (21 components, 600 s simulated) runs
+**1.96 ms a step on IF97 water against 0.14 on constant properties**, and `m4-storage-header` 0.59 against 0.02:
+more than nine tenths of every step is the flash. Water is the cheap case. A pure refrigerant's (p, h) flash
+through HEOS is **10–220 µs** (propane two-phase 9 µs, supercritical CO₂ at 100 bar 223 µs), and a HEOS mixture's
+is **25–110 ms** (R410A.mix, R407C.mix, R454B, R32/R1234yf; worst 165 ms): at the demand-step loop's ~300
+property calls a step, a blend would spend about 20 s per step, and its design solve would be as unaffordable as
+its run. `D-137` rejected CoolProp's own tables for their viscosity (8e-3 off), not tables as such; `D-79` ruled
+out any table that blends two evaluated states, which an interpolating table is.
+
+**The rule.**
+
+1. **Where the grid lives.** `D-79` rules 1 and 2 stand: a table is gridded in (x, y) = (ln p_abs, h), and the
+   saturation line is a boundary — one table per phase region. A pure fluid's dome is not tabulated in two
+   dimensions: its saturation properties are one-dimensional tables in p and its interior is the equilibrium
+   mixture of them, as the backend computes it. A zeotropic blend's dome is a region of its own, gridded in
+   (p, quality), because the liquid and vapour differ in composition and temperature glides across it.
+2. **What a node holds.** Temperature, density, viscosity, conductivity, specific heat and entropy, each with
+   its slopes ∂/∂x, ∂/∂y and ∂²/∂x∂y: a bicubic Hermite cell, continuously differentiable across cell edges,
+   which Newton's Jacobian needs. The slopes come from exact evaluations around the node, not from differences
+   between neighbouring nodes: measured on water, the neighbour method needs four times the nodes per axis for
+   the same error, so sixteen times the nodes in a region where both axes matter, against five evaluations a
+   node. 192 bytes a node.
+3. **Where a node sits.** On a lattice fixed per substance: a node's value is a pure function of (substance,
+   backend version, lattice level, i, j), never of the project. A grid fitted to the project's own states would
+   move its nodes whenever the script changed, and an unrelated edit would change every property by up to the
+   table's error.
+4. **How long it lives.** The process's life. The store is one instance per process (the API's singleton, Core's
+   default), built lazily, bounded by a memory cap with least-recently-used eviction, and **never written to
+   disk** — the user's call: disk copies multiply with every backend version and tolerance, and a store rebuilt
+   per session needs no invalidation at all. Eviction is safe because a rebuilt tile is identical, which is also
+   why what ran before cannot change a result, the reason `21` gave for forbidding a global cache.
+5. **How accurate, by default.** `standard`: temperature within **10 mK absolute**, density within **0.01 %**,
+   specific heat, viscosity and conductivity within **0.1 %**, entropy within the equivalent of 10 mK
+   (|Δs| ≤ c_p · 10 mK / T), all against the backend the table replaces. `fine` is a tenth of each; `exact`
+   uses no table. Temperature is absolute because a duty follows a temperature *difference*: 0.1 % of 280 K is
+   0.28 K, 5.6 % of a 5 K chilled-water split. **This project's reasoning, anchored at both ends.** IAPWS G13-15
+   (SBTL) sets 10–25 mK and 0.001 % "to ensure that the differences in the results of process simulations …
+   are negligible"; the user judged that tighter than the equation of state is itself accurate, which it is.
+   `07`'s water row (0.02 K, 0.1 % density, 0.5 % viscosity) is the ceiling a table must stay well inside.
+6. **How the spacing is found.** For water and the pure fluids, measured once in development per region and
+   level and recorded in `21`, with a few guard evaluations as each tile is built; a failed guard is a
+   diagnostic, never a silent refinement. A blend's composition is user input, so its spacing cannot be known
+   in advance and its tiles refine until their own check points pass; how a refined tile meets a coarser
+   neighbour without a step along their shared edge is that package's to settle.
+7. **When it is built.** A run builds the tiles covering its start — every case's solved states and a margin —
+   before its first step. A lookup outside them builds its tile there and then, and the run waits: answering
+   from the backend while a thread builds would make a result depend on thread timing. Two runs asking for one
+   tile build it once; a cancelled requester leaves nothing half-built in the store.
+8. **Who uses it.** Transient runs, at the project's level. Steady solves of water and the pure fluids stay
+   exact, so `D-137`'s figures and every golden stand; a blend, when one exists, uses its tables in both, since
+   its exact solve is unaffordable. The level and the backend version travel in the run's metadata, and the
+   explanation reports tiles built, tiles evicted, memory held and seconds spent building.
+
+**Measured before deciding** (the untracked probe, 2026-09-25). Water, bicubic Hermite in (p, h), worst error
+over 4 000 random states against IF97, 5–95 °C at 0.5–6 bar gauge: 9 enthalpy nodes (11.2 K cells) give
+viscosity 0.026 %, temperature 0.1 mK, density 7e-5 %; 33 nodes give 1.3e-4 %; two pressure nodes are as good as
+five, since the liquid is nearly incompressible. The error falls about fourteenfold per halving. At `standard`
+the heating range is 9 × 2 nodes, about 3.5 kB. A HEOS mixture state given as (T, ρ) with its phase imposed is
+**0.7–1.0 ms** against 25–110 ms for the flash, identical at every anchor, which is how a blend's single-phase
+nodes are to be placed: Newton in (T, ρ) seeded from the neighbouring node.
+
+**Rejected.** *A disk cache* — the user's call, above. *SBTL's tolerances as the default* — tighter than the
+backend's own uncertainty, at four times the nodes per axis. *A grid over the project's states* — rule 3.
+*CoolProp's `BICUBIC`/`TTSE`* — `D-137`. *Slopes from neighbouring nodes* — rule 2. *Refining water and the pure
+fluids tile by tile at run time* — their spacing is measurable once, and mixed depths put a step of the
+tolerance's size on an edge, which a finite-difference Jacobian reads as a slope (`S-74`'s mechanism).
+
+**Constrains.** `21` §Property tables and its invariant 7; `08`'s P6.12; the run's start (`33`), which builds its
+tiles before the first step; `C-68`, whose remaining lever this is for the transient; `C-135`, which a blend's
+tables cannot fix.

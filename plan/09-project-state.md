@@ -1427,13 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 3 | [`10-language/defects.md`](10-language/defects.md) |
-| 20 · Core domain | 19 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
+| 10 · Language | 4 | [`10-language/defects.md`](10-language/defects.md) |
+| 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **47** | |
+| | **49** | |
+
+Recounted 2026-09-25 after `L-65` (P6.11 slice 3d) and `C-135` (`D-173`) were filed: 49.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
 the table had read 57 since 2026-09-20 and the registers 49 before the review). Of the 47: **29 measured, 18
@@ -1761,6 +1763,17 @@ that governed each size. What P6.8 still owes, and what comes after:
     30.0, 22.5 and 15.0 K at 0, 150 s and the end. The reference script binds with no error, its run included. Next:
     package 4, the diagnostics audit; its list so far is in the 3a-3d entries above (`FS1104`, `FS1528`, `FS1540`,
     `FS1541`, `FS1521`, `FS2119`).
+  - **`D-173` (2026-09-25): property tables, planned as P6.12, no code.** The user's design, settled over
+    measurements: a transient step is property-bound (`m4-demand-step` 1.96 ms a step on IF97 against 0.14 on
+    constant properties), a pure refrigerant's flash is 10–220 µs and a HEOS blend's 25–110 ms, so the equation of
+    state is precomputed on a fixed (ln p, h) lattice, bicubic Hermite nodes with exact slopes, built lazily into
+    a store that lives as long as the process, capped in memory and never written to disk, to a tolerance level
+    whose default (`standard`: 10 mK, 0.01 % density, 0.1 % transport) the user loosened from SBTL's. Specified in
+    `21` §Property tables; `08`'s P6.12 has three packages (T1 water and the store, T2 the pure refrigerants, T3
+    the blends). **Runs after P6.11 and before P6.3.** Filed `C-135`: CoolProp's blends give a liquid viscosity
+    six to eight times their components' (R454B) or none (R410A.mix), which a table would reproduce faithfully --
+    T3 waits on it and on `21`'s open question 2. `21`'s open question 1 (how a project states its level) is the
+    user's call before T1 closes. The probes are in the untracked `ScenarioProbe.cs`.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
