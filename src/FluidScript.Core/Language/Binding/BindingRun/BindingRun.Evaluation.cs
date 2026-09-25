@@ -168,6 +168,7 @@ internal sealed partial class BindingRun
                 return;
             }
 
+            quantity = HeldToCapacity(pending, quantity);
             CheckRange(target, quantity, pending.Span);
         }
 
@@ -373,6 +374,7 @@ internal sealed partial class BindingRun
             {
                 Parameters = parameters.ToImmutable(),
                 SizingPoint = PublishSizingPoint(component.Name),
+                Capacities = PublishCapacities(component.Name),
             };
         }
     }

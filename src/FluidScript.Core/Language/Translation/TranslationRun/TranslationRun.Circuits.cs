@@ -240,13 +240,29 @@ internal sealed partial class TranslationRun
             attachedTo = Identifier(node, at);
         }
 
+        var written = declaration.Parameters.Concat(body).ToList();
+        var point = written.Where(IsSizingPoint).ToList();
+
         return declaration with
         {
             AtKeyword = atKeyword,
             AttachedTo = attachedTo,
-            Parameters = [.. declaration.Parameters.Concat(body).Select(Parameter)],
+            Parameters = [.. written.Except(point).Select(Parameter)],
+            SizedAtKeyword = point.Count == 0 ? null : point[0].Name.Head.Name.Token,
+            SizingPoint = [.. point.Select(SizingPoint)],
         };
     }
+
+    /// <summary>Whether a setting is <c>sized_at.driver = value</c>, a component's own sizing point (<c>D-175</c>).</summary>
+    /// <remarks>Any other shape of <c>sized_at</c> stays a parameter, and the binder reports it as one it does not know.</remarks>
+    private static bool IsSizingPoint(ParameterSyntax setting) =>
+        setting.Name.Parts is [{ Name.Index: null }]
+        && setting.Name.Head.Index is null
+        && string.Equals(setting.Name.Head.Name.Text, "sized_at", StringComparison.Ordinal);
+
+    /// <summary><c>sized_at.outdoor = -5 C</c> as language 1's <c>outdoor=-5 C</c> after <c>sized_at</c>: the driver named, its value translated.</summary>
+    private ParameterSyntax SizingPoint(ParameterSyntax setting) =>
+        setting with { Name = new QualifiedNameSyntax(setting.Name.Parts[0].Name, []), Value = Value(setting.Value) };
 
     private ParameterSyntax Parameter(ParameterSyntax parameter) =>
         parameter with { Name = PortName(parameter.Name), Value = Value(parameter.Value) };

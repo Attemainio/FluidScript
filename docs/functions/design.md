@@ -95,6 +95,26 @@ You choose the point, not the percentage — that is how a bivalent system is sp
 percentage is what you check afterwards. A bivalence point near −5 °C typically leaves the backup a
 few percent of the year's heat; one at 0 °C hands it a third.
 
+**The value at the point is a capacity, not a fixed output.** Wherever the curve asks more — the
+design day, a colder case, a cold morning in a run — the heat pump gives its 27.2 kW and the boiler
+the rest. Wherever it asks less, the heat pump gives all of it and the boiler nothing, as a heat
+pump above its bivalence point turns down. With a mild case at 5 °C beside the design day:
+
+| | design day, −26 °C | mild, 5 °C |
+|---|---|---|
+| The curve asks | 50 kW | 16.3 kW |
+| `HP1` gives | 27.2 kW, its capacity | 16.3 kW |
+| `BL1` gives | 22.8 kW | 0 kW |
+
+The limit applies to the size of the value, so a chiller sized at 28 °C on a 32 °C cooling curve is
+held the same way.
+
+In FluidScript 2 the point is a setting per driver, named as the `let` the curve reads:
+
+```
+HP1  heater  power = heating  sized_at.outdoor = -5 C
+```
+
 Everything about `design` applies to `sized_at`: the same driver names, the same units, the same
 check that `tout=3 bar` is not a temperature. Name more than one driver on the clause if the curves
 need them. A component's own point is enough for its own curves even when the file states no

@@ -28,13 +28,13 @@ public sealed partial class Language1ConversionTests
     private static readonly string[] LayoutFolders = ["Ladder", "Variants", "Stress"];
 
     /// <summary>
-    /// What language 2 cannot say yet, each waiting on the user's decision (<c>19</c> open question 7). A script whose
-    /// gaps are all of these is left for that decision; any other gap fails.
+    /// What language 1 says and language 2 does not, each dropped or respelled by <c>D-175</c>: a script whose gaps are all
+    /// of these is rewritten by hand at the switch (package 7) or with the docs (package 9), not converted. Any other gap
+    /// fails.
     /// </summary>
-    private static readonly string[] OpenDecisions =
+    private static readonly string[] Dropped =
     [
         "is driven by another curve",
-        "'sized_at' on",
         "named style",
         "style for the components that follow it",
         "a second show line",
@@ -102,7 +102,7 @@ public sealed partial class Language1ConversionTests
             File.WriteAllText(target + ".gaps.txt", string.Join('\n', conversion.Gaps));
         }
 
-        if (Undecided(conversion))
+        if (Rewritten(conversion))
         {
             return;
         }
@@ -148,7 +148,7 @@ public sealed partial class Language1ConversionTests
         // The whole report -- seeds, iterations, every node's state, every size chosen -- not just convergence.
         var text = File.ReadAllText(Path.Combine(RepositoryLayout.Root, file));
         var conversion = Language1Converter.Convert(text);
-        Assert.SkipUnless(conversion.Gaps.IsEmpty, "The conversion waits on the user's decision (19, open question 7).");
+        Assert.SkipUnless(conversion.Gaps.IsEmpty, "Says what language 2 does not (D-175); rewritten by hand at the switch.");
         var converted = Language1Converter.BindLanguage2(conversion.Text).Model;
         var model = converted.Runs.IsEmpty ? converted : RunProjection.Project(converted, converted.Runs[0]);
 
@@ -171,7 +171,7 @@ public sealed partial class Language1ConversionTests
     {
         var text = ScriptCorpus.MarkdownBlocks().Single(b => b.Name == block).Text;
         var conversion = Language1Converter.Convert(text);
-        if (Undecided(conversion))
+        if (Rewritten(conversion))
         {
             return;
         }
@@ -185,9 +185,9 @@ public sealed partial class Language1ConversionTests
     }
 
     /// <summary>Whether a conversion's gaps are all open decisions; fails on any gap that is not one.</summary>
-    private static bool Undecided(Conversion conversion)
+    private static bool Rewritten(Conversion conversion)
     {
-        var unexpected = conversion.Gaps.Where(gap => !OpenDecisions.Any(decision => gap.Contains(decision, StringComparison.Ordinal))).ToList();
+        var unexpected = conversion.Gaps.Where(gap => !Dropped.Any(decision => gap.Contains(decision, StringComparison.Ordinal))).ToList();
         Assert.True(unexpected.Count == 0, "Gaps that are no open decision:\n" + string.Join('\n', unexpected));
         return !conversion.Gaps.IsEmpty;
     }
@@ -265,6 +265,16 @@ public static class ModelShape
         foreach (var component in model.Components.OrderBy(static c => c.Name, StringComparer.Ordinal))
         {
             text.AppendLine(CultureInfo.InvariantCulture, $"component {component.Name} {component.Kind?.Keyword} in {component.CircuitName} at {component.AttachedTo} tag {component.Tag} style {component.Style}");
+            foreach (var (key, point) in component.SizingPoint.OrderBy(static p => p.Key, StringComparer.Ordinal))
+            {
+                text.AppendLine(CultureInfo.InvariantCulture, $"  sized at {key} = {point.Number:G6}");
+            }
+
+            foreach (var (key, capacity) in component.Capacities.OrderBy(static p => p.Key, StringComparer.Ordinal))
+            {
+                text.AppendLine(CultureInfo.InvariantCulture, $"  capacity {key} = {capacity.SiValue:G6}");
+            }
+
             foreach (var (key, value) in component.Parameters.OrderBy(static p => p.Key, StringComparer.Ordinal))
             {
                 text.AppendLine(CultureInfo.InvariantCulture, $"  {key} = {Value(value)}{(value.Scenarios.IsDefaultOrEmpty ? string.Empty : " [" + string.Join(" | ", value.Scenarios.Select(Value)) + "]")}");

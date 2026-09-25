@@ -1827,8 +1827,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     solves); `sized_at` makes a capacity, held in every case and run step, written `sized_at.outdoor = -5 C`;
     named styles and language 1's other extras are dropped or respelled. Relabelling the cooling loop's valve
     exposed a Newton stall between 22.4 and 26 kW (`S-89`), closed by holding a parameter that crosses its bound
-    from inside at nine tenths of the way (`32` §Line search). **Next: `sized_at` in language 2 and its conversion,
-    which closes package 5; then package 6.**
+    from inside at nine tenths of the way (`32` §Line search). `sized_at` is in language 2 with the capacity rule:
+    held per case in the binder and per step in a run (`CurveClock`), 16.3 kW on the mild day where `D-94` gave
+    27.2; the converter writes it, and 78 of 85 markdown blocks convert with sizing points compared. **Package 5
+    is closed. Next: package 6, the binder reading the language 2 tree directly.**
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1898,7 +1900,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2829 total, 0 failed, 4 skipped** (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2834 total, 0 failed, 4 skipped** (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

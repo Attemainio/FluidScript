@@ -47,6 +47,12 @@ internal sealed partial class BindingRun
     // Set while re-evaluating a parameter at the file's design point for its basis line.
     private bool _atDesignDay;
 
+    // Set while evaluating a parameter at its component's own point, for its capacity (`D-175`).
+    private bool _atSizingPoint;
+
+    // Each parameter's capacity, the design case's: the first evaluation stores it, and later cases read the same point.
+    private readonly Dictionary<ValueId, Quantity> _capacities = [];
+
     /// <summary>Binds a declaration's <c>sized_at</c> clause, if it wrote one.</summary>
     /// <param name="declaration">The declaration.</param>
     /// <param name="componentName">Its name, already known to be unique.</param>
@@ -113,6 +119,11 @@ internal sealed partial class BindingRun
     /// <summary>A curve's value as one particular reader sees it.</summary>
     /// <param name="reader">The value reading the curve, or <see langword="null"/> for the file's own point.</param>
     /// <param name="name">The curve's name.</param>
+    /// <remarks>
+    /// A component with its own point reads the curve there only for its capacity (<c>D-175</c>); its value in a case
+    /// is the curve as the case reads it, held to that capacity afterwards (<see cref="HeldToCapacity"/>). Where the
+    /// file gives the curve no value at all, the component's own point is all there is to read it at.
+    /// </remarks>
     private double? CurveValueSeenBy(ValueId? reader, string name)
     {
         if (reader is not ValueId.ComponentParameter parameter
@@ -122,8 +133,74 @@ internal sealed partial class BindingRun
             return _curveValues.GetValueOrDefault(name);
         }
 
-        return CurveAt(name, parameter.Component, point, depth: 0);
+        return _atSizingPoint
+            ? CurveAt(name, parameter.Component, point, depth: 0)
+            : _curveValues.GetValueOrDefault(name) ?? CurveAt(name, parameter.Component, point, depth: 0);
     }
+
+    /// <summary>A parameter's value held to its capacity, the value it takes at its component's own point (<c>D-175</c>).</summary>
+    /// <param name="pending">The parameter.</param>
+    /// <param name="value">Its value in the case being evaluated.</param>
+    /// <returns>The value, or the capacity with the value's sign when the value is larger in magnitude.</returns>
+    /// <remarks>
+    /// In magnitude, so a heating curve and a cooling one are held alike: a heat pump sized at −5 °C gives the
+    /// curve's 27.2 kW on a −26 °C day and the whole of a 5 °C day's 16.3 kW. <c>D-94</c> read the curve at the point
+    /// in every case, which is right on the design day only; above the bivalence point a heat pump turns down.
+    /// </remarks>
+    private Quantity HeldToCapacity(PendingValue pending, Quantity value)
+    {
+        if (pending.Id is not ValueId.ComponentParameter parameter
+            || !_sizingPoints.TryGetValue(parameter.Component, out var point)
+            || point.Count == 0
+            || !pending.Dependencies.Any(static dependency => dependency is ValueId.Curve)
+            || AtSizingPoint(pending) is not { } capacity
+            || capacity.Dimension != value.Dimension)
+        {
+            return value;
+        }
+
+        _capacities.TryAdd(pending.Id, capacity);
+
+        return Math.Abs(value.SiValue) > Math.Abs(capacity.SiValue)
+            ? Quantity.FromSi(Math.CopySign(capacity.SiValue, value.SiValue), value.Dimension)
+            : value;
+    }
+
+    /// <summary>A parameter's expression evaluated at its component's own point, in the parameter's dimension.</summary>
+    private Quantity? AtSizingPoint(PendingValue pending)
+    {
+        _atSizingPoint = true;
+        _evaluating = pending.Id;
+
+        try
+        {
+            var evaluator = new ExpressionEvaluator(
+                this,
+                parse.Source,
+                ImmutableArray.CreateBuilder<Diagnostic>(),
+                pending.Target?.Info.Dimension);
+
+            if (evaluator.Evaluate(pending.Expression) is not EvaluationResult.Value at)
+            {
+                return null;
+            }
+
+            return at.IsBare && pending.Target is { Info.ValueKind: ParameterValueKind.Quantity } target
+                ? Quantity.FromBareNumber(at.Quantity.SiValue, target.Info.Dimension)
+                : at.Quantity;
+        }
+        finally
+        {
+            _atSizingPoint = false;
+            _evaluating = null;
+        }
+    }
+
+    /// <summary>The capacities of one component's parameters, by canonical name.</summary>
+    private ImmutableDictionary<string, Quantity> PublishCapacities(string componentName) =>
+        _capacities
+            .Where(entry => entry.Key is ValueId.ComponentParameter parameter && parameter.Component == componentName)
+            .ToImmutableDictionary(static entry => ((ValueId.ComponentParameter)entry.Key).Parameter, static entry => entry.Value);
 
     private double? CurveAt(string name, string component, Dictionary<string, DesignValue> point, int depth)
     {
@@ -140,10 +217,20 @@ internal sealed partial class BindingRun
             return null;
         }
 
+        // A `let` driver is found by its own name or by the role that name spells: `sized_at.outdoor` declares the
+        // point under the role `tout` that `outdoor` is a spelling of, and a curve on `let outdoor` looks up `outdoor`.
         var key = curve.DriverRole?.CanonicalName ?? driver;
+        if (!point.ContainsKey(key) && ScheduleRoleRegistry.Resolve(driver)?.CanonicalName is { } role && point.ContainsKey(role))
+        {
+            key = role;
+        }
 
         double? x = point.TryGetValue(key, out var stated)
-            ? Number(new ValueId.SizingPoint(component, key), stated.Role)
+            ? stated.Role is null && curve.DriverKind == CurveDriverKind.Let
+                ? _pending.TryGetValue(new ValueId.SizingPoint(component, key), out var given) && given.Value is { } value
+                    ? LetNumber(driver, value)
+                    : null
+                : Number(new ValueId.SizingPoint(component, key), stated.Role)
             : curve.DriverKind == CurveDriverKind.Curve
                 ? CurveAt(driver, component, point, depth + 1)
                 : curve.DriverKind == CurveDriverKind.Let
@@ -205,6 +292,8 @@ internal sealed partial class BindingRun
             point.Select(entry =>
                 $"{entry.Value.WrittenName}={FormatNumber(Number(new ValueId.SizingPoint(componentName, entry.Key), entry.Value.Role))}"));
 
+        // The capacity, which is what the point sets; the design day's value is held to it and may be smaller.
+        sized = _capacities.GetValueOrDefault(pending.Id, sized);
         var unit = UnitTable.CanonicalUnitFor(sized.Dimension);
         var shown = Format(unit is null ? sized.SiValue : sized.ValueIn(unit), unit?.Text);
 

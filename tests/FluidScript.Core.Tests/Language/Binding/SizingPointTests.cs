@@ -1,5 +1,6 @@
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
@@ -165,5 +166,81 @@ public sealed class SizingPointTests
         var heatPump = Assert.Single(result.Model.Components, static c => c.Name == "HP1");
         Assert.Equal(27_173.913, heatPump.Parameters["power"].Value!.Value.SiValue, 3);
         Assert.Equal("27.174 kW at tout=-5", heatPump.Parameters["power"].Basis);
+    }
+
+    // ---- language 2, where the driver varies by case (`D-175`) -------------------------------------
+
+    /// <summary>The same bivalent pair in language 2, with a mild case beside the design day.</summary>
+    private const string Cases = """
+        fluidscript 2
+        project "p":
+          cases = [winter, mild]
+        let outdoor = [-26, 5] C
+        curve heating: outdoor
+          -26  50
+           20   0
+        circuit "ahu":
+          fluid = water
+          HP1  load  in.t = 50 C  out.t = 30 C  power = heating  sized_at.outdoor = -5 C
+          BL1  load  in.t = 50 C  out.t = 30 C  power = heating
+        """;
+
+    private static SemanticModel Model2(string text)
+    {
+        var source = new SourceText(text);
+        var result = new Binder(ComponentRegistry.Default).Bind(
+            MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default));
+
+        Assert.True(
+            result.Diagnostics.All(static d => d.Severity != DiagnosticSeverity.Error),
+            string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}")));
+
+        return result.Model;
+    }
+
+    /// <summary>One component's power in one case, in watts.</summary>
+    private static double Power(SemanticModel model, string component, int scenario) =>
+        Component(model, component).Parameters["power"].Scenarios[scenario].Value!.Value.SiValue;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheValueAtTheSizingPointIsACapacityHeldInEveryCase()
+    {
+        var model = Model2(Cases);
+
+        // Winter, −26 °C: the curve asks 50 kW and the heat pump gives its capacity, the curve at −5: 50 × 25/46.
+        Assert.Equal(27_173.913, Power(model, "HP1"), 3);
+        Assert.Equal(50_000, Power(model, "BL1"), 6);
+
+        // Mild, 5 °C: the curve asks 50 × 15/46 = 16.304 kW, under the capacity, so the heat pump gives all of it.
+        // D-94 read at −5 in every case would give 27.174 here, and the boiler would have to take 10.9 kW back out.
+        Assert.Equal(27_173.913, Power(model, "HP1", 0), 3);
+        Assert.Equal(16_304.348, Power(model, "HP1", 1), 3);
+        Assert.Equal(16_304.348, Power(model, "BL1", 1), 3);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Language2WritesThePointAsASettingPerDriver()
+    {
+        var model = Model2(Cases);
+
+        var point = Assert.Single(Component(model, "HP1").SizingPoint);
+        Assert.Equal(-5, point.Value.Number);
+        Assert.False(Component(model, "HP1").Parameters.ContainsKey("sized_at"));
+        Assert.Equal(
+            "27.174 kW at outdoor=-5, 0.54 of the 50 kW the design day asks",
+            Component(model, "HP1").Parameters["power"].Basis);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ALetThatSpellsNoRoleIsReadInItsOwnUnit()
+    {
+        // `-5 C` against rows in °C is −5, not 268.15 K: the point is read as the `let`'s rows are.
+        var model = Model2(Cases.Replace("outdoor", "t_ext", StringComparison.Ordinal));
+
+        Assert.Equal(27_173.913, Power(model, "HP1", 0), 3);
+        Assert.Equal(16_304.348, Power(model, "HP1", 1), 3);
     }
 }

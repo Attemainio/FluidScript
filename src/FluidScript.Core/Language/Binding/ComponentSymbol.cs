@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 
+using FluidScript.Core.Physics.Units;
+
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Registry;
@@ -86,4 +88,14 @@ public sealed record ComponentSymbol
     /// </value>
     public ImmutableDictionary<string, DesignValue> SizingPoint { get; init; } =
         ImmutableDictionary<string, DesignValue>.Empty;
+
+    /// <summary>Gets each parameter's capacity: its value at the component's own sizing point (<c>D-175</c>).</summary>
+    /// <value>
+    /// Keyed by canonical parameter name, for the parameters that read a curve on a component with a
+    /// <see cref="SizingPoint"/>; empty otherwise. In the parameter's own dimension and SI unit, signed as its value
+    /// is. The parameter is held to it in magnitude in every case and at every step of a run: a bivalent heat pump
+    /// sized at −5 °C gives the curve's 27.2 kW on the design day and the whole of a mild day's 16.3 kW.
+    /// </value>
+    public ImmutableDictionary<string, Quantity> Capacities { get; init; } =
+        ImmutableDictionary<string, Quantity>.Empty;
 }

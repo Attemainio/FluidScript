@@ -128,6 +128,13 @@ public sealed class CurveClock
 
         var si = assigned.SiValue;
 
+        // Held to the component's capacity in magnitude, as every case is (`D-175`): a heat pump sized at −5 °C gives
+        // what the curve asks on a mild morning and no more than its 27.2 kW when the day turns colder.
+        if (drive.Capacity is { } capacity && Math.Abs(si) > Math.Abs(capacity))
+        {
+            si = Math.CopySign(Math.Abs(capacity), si);
+        }
+
         return !double.IsFinite(si)
             ? null
             : string.Equals(drive.Parameter, "power", StringComparison.Ordinal)

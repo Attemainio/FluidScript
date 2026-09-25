@@ -671,11 +671,6 @@ public static partial class Language1Converter
                 return;
             }
 
-            if (declaration.SizedAtKeyword is not null)
-            {
-                Gap($"'sized_at' on '{declaration.Name.Text}'");
-            }
-
             var line = new StringBuilder($"{declaration.Name.Text}  {declaration.Kind.Text}");
             if (declaration.AttachedTo is { } node)
             {
@@ -685,6 +680,28 @@ public static partial class Language1Converter
             foreach (var parameter in declaration.Parameters)
             {
                 line.Append("  ").Append(Parameter(parameter, declaration.Name.Text));
+            }
+
+            // `sized_at tout=-5` is a setting per driver in language 2, `sized_at.tout = -5 C` (D-175), named as the
+            // design value's let is, since that is the driver a curve reads there.
+            foreach (var argument in declaration.SizingPoint)
+            {
+                var written = argument.Name.Text;
+                var role = ScheduleRoleRegistry.Resolve(written);
+                var driver = role is not null
+                    && _model.Project.Design.Values.FirstOrDefault(v => v.Role?.CanonicalName == role.CanonicalName) is { } design
+                        ? design.WrittenName
+                        : written;
+
+                var value = Value(argument.Value);
+                if (argument.Value is NumberLiteralSyntax or UnaryExpressionSyntax { Operand: NumberLiteralSyntax }
+                    && role?.Dimension is { } dimension
+                    && UnitTable.CanonicalUnitFor(dimension) is { } unit)
+                {
+                    value = $"{value} {Language2Unit(unit.Text)}";
+                }
+
+                line.Append($"  sized_at.{driver} = {value}");
             }
 
             chunk.Lines.Add(line.ToString());

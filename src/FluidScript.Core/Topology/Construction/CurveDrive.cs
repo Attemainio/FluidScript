@@ -9,6 +9,10 @@ namespace FluidScript.Core.Topology.Construction;
 /// <param name="Expression">What the script wrote for it, read again at every evaluation time.</param>
 /// <param name="Expected">The parameter's dimension, so a curve's bare <c>y</c> lands in its canonical unit (<c>D-14</c>).</param>
 /// <param name="WrittenKind">The kind as the script spelled it, whose role word carries a duty's sign.</param>
+/// <param name="Capacity">
+/// The most the parameter gives, in magnitude, in its SI unit: its value at the component's own sizing point
+/// (<c>D-175</c>), or <see langword="null"/> when it has none.
+/// </param>
 /// <remarks>
 /// The run applies it as it applies a <see cref="ScheduledChange"/>: through <c>EquationSystem.Schedule</c>
 /// at every evaluation time, so <c>FS3105</c> and <c>FS3109</c> refuse the same targets for both.
@@ -18,4 +22,5 @@ public sealed record CurveDrive(
     string Parameter,
     ExpressionSyntax Expression,
     Dimension? Expected,
-    string WrittenKind);
+    string WrittenKind,
+    double? Capacity = null);

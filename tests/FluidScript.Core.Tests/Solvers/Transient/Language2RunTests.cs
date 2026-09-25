@@ -108,4 +108,26 @@ public sealed class Language2RunTests
         Assert.Equal(15.0, Rise(run.At(590), run), 0.3);
         Assert.Equal(20.0, Rise(run.Frames[^1], run), 0.3);
     }
+
+    /// <summary>
+    /// <c>D-175</c>: a parameter with a sizing point is held to its capacity at every step, not only in the design case.
+    /// Sized at −16 °C, <c>HE1</c>'s capacity is the curve there, 22.5 kW, and its stream is sized for 22.5 kW over 30 K.
+    /// While the weather asks more (26.5 kW at 70 s) it gives 22.5 and the rise stays 30 K; once the curve falls under
+    /// the capacity it follows it, to 15 kW, a rise of 15/22.5 × 30 = 20 K. Unheld, 70 s would read 26.5 kW.
+    /// </summary>
+    [Fact]
+    public async Task AComponentWithASizingPointIsHeldToItsCapacityAtEveryStep()
+    {
+        var script = Script().Replace(
+            "HE1  heat_exchanger  power = heating  out.t = 50",
+            "HE1  heat_exchanger  power = heating  out.t = 50  sized_at.outdoor = -16 C",
+            StringComparison.Ordinal);
+        Assert.Contains("sized_at.outdoor", script, StringComparison.Ordinal);
+
+        var run = await PlayAsync("language2-weather-capacity", script);
+
+        Assert.Equal(30.0, Rise(run.At(0), run), 0.3);
+        Assert.Equal(30.0, Rise(run.At(70), run), 0.3);
+        Assert.Equal(20.0, Rise(run.Frames[^1], run), 0.3);
+    }
 }

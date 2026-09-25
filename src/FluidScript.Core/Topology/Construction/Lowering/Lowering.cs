@@ -165,7 +165,8 @@ public static partial class Lowering
                 target.Parameter,
                 deferred.Expression,
                 symbol.Kind?.Parameters.GetValueOrDefault(target.Parameter)?.Dimension,
-                NameResolution.Normalize(symbol.WrittenKind)));
+                NameResolution.Normalize(symbol.WrittenKind),
+                symbol.Capacities.TryGetValue(target.Parameter, out var capacity) ? capacity.SiValue : null));
         }
 
         // Every deferral of one model carries the same source text; the clock reads its expressions from it.

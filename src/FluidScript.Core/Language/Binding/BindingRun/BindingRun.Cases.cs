@@ -126,9 +126,39 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        var unit = WrittenUnit(pending.Expression, quantity.Dimension) ?? UnitTable.CanonicalUnitFor(quantity.Dimension);
+        var unit = LetUnit(pending, quantity.Dimension);
         return unit is null ? quantity.SiValue : quantity.ValueIn(unit);
     }
+
+    /// <summary>Reads a value given for a <c>let</c> driver, a component's sizing point, in the unit the <c>let</c>'s curve rows are read in.</summary>
+    /// <param name="name">The <c>let</c>'s name.</param>
+    /// <param name="value">The value: <c>-5 C</c> is −5 against rows in °C, and a bare −5 is taken as written.</param>
+    /// <returns>The number, or <see langword="null"/> when the <c>let</c> has no value or the two dimensions differ.</returns>
+    private double? LetNumber(string name, Quantity value)
+    {
+        if (!_bindingsByName.TryGetValue(name, out var slot)
+            || !_pending.TryGetValue(slot.Id, out var pending)
+            || pending.Value is not { } quantity)
+        {
+            return null;
+        }
+
+        if (value.Dimension == Dimension.Dimensionless)
+        {
+            return value.SiValue;
+        }
+
+        if (value.Dimension != quantity.Dimension)
+        {
+            return null;
+        }
+
+        var unit = LetUnit(pending, quantity.Dimension);
+        return unit is null ? value.SiValue : value.ValueIn(unit);
+    }
+
+    private static UnitSymbol? LetUnit(PendingValue pending, Dimension dimension) =>
+        WrittenUnit(pending.Expression, dimension) ?? UnitTable.CanonicalUnitFor(dimension);
 
     /// <summary>The unit a literal, possibly negated or parenthesised, is written in.</summary>
     private static UnitSymbol? WrittenUnit(ExpressionSyntax expression, Dimension dimension) => expression switch

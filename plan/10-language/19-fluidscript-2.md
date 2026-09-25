@@ -388,6 +388,13 @@ aliases of the sensor kinds. A two-sided exchanger's sides are **`primary` and `
 families keep brackets: `layer[3].t`, `in[2].level` on a tank. The wider vocabulary review — `duty`,
 `rise`, `kvs`, direction taken from the kind — is open question 2.
 
+**A component's own sizing point is a setting per driver**, `sized_at.outdoor = -5 C` (`D-175`, amending `D-94`):
+the driver named as the `let` or role its curves read, the value in the driver's unit (a bare number is taken in
+the unit the `let` is written in). The parameters that read a curve take their value there as a **capacity**, and
+are held to it in magnitude in every case and at every step of a run: a heat pump sized at −5 °C on a 50 kW
+heating curve gives 27.2 kW on the −26 °C design day, the boiler the other 22.8, and the whole of a 5 °C day's
+16.3 kW with the boiler at nothing. The basis line reports the capacity and its share of the design day.
+
 ### Connections
 
 **A chain reads in the direction of flow.** `A - B - C`: water leaves `A`, passes `B` and enters `C`.
@@ -772,7 +779,7 @@ shows what the records say.
 - [x] `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report
       (package 4). Its solve, like the reference script's, is `S-86`'s.
 - [ ] A file with no version line is language 1 until `P6.11`'s switch, and language 2 after it (`D-174`).
-- [ ] Every script the project owns converts, and each converted script binds to the same model and gives the
+- [x] Every script the project owns converts, and each converted script binds to the same model and gives the
       same solve as its original, spans aside; what could not convert is decided by the user (package 5).
       **Measured 2026-09-25:** of the 53 language 1 `.fluid` files, 52 bind to the same model and 44 give the same
       solve report, word for word; the other 8 differ by a three-way valve's labelling alone (`L-68`), and the one
@@ -781,8 +788,9 @@ shows what the records say.
       to the same model; the rest are fragments written to raise a language 1 error, or wait on that list.
       **Decided 2026-09-25 (`D-175`):** the 8 files state their valve's ports as the plant reads them, and all 53
       but `m1-syntax-tour` now give the same model *and* the same solve, with no port written on those valves
-      (fixing `S-89` on the way). Open until `sized_at` (`D-175` rule 2) is in language 2 and converted
-      (`Language1ConversionTests`).
+      (fixing `S-89` on the way). `sized_at` converts as `sized_at.outdoor = -5 C`, and 78 of the 85 blocks now
+      bind to the same model, sizing points and capacities compared; the 7 left are `D-175`'s dropped list, rewritten
+      by hand at the switch (`Language1ConversionTests`). Met 2026-09-25.
 - [ ] The direct binder gives the translated path's model on the whole converted corpus (package 6).
 - [ ] After the switch Core holds no language 1 parser, no translation and no second template, and every golden
       changed by its spans alone (package 7).

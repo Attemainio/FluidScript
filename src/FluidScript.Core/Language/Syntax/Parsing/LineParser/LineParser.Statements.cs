@@ -287,9 +287,10 @@ internal sealed partial class LineParser
         while (Current is { Kind: TokenKind.Identifier } or { Kind: TokenKind.Keyword, Text: "style" } && Current is { } nameToken)
         {
             // The one bare identifier a parameter list may end in front of: a declaration's sizing
-            // point begins here and the caller reads it (`D-94`).
+            // point begins here and the caller reads it (`D-94`). Language 2 writes it as a setting per
+            // driver, `sized_at.outdoor = -5 C` (`D-175`), which is an ordinary parameter here.
             if (nameToken.Text is "sized_at"
-                && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals })
+                && tokens.ElementAtOrDefault(_index + 1) is not { Kind: TokenKind.Equals or TokenKind.Dot })
             {
                 break;
             }
