@@ -3,6 +3,7 @@ using System.Text;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Binding.Symbols;
 using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Parsing;
@@ -664,6 +665,215 @@ public sealed class Language2TranslatorTests
             """, "FS1811");
 
         Assert.Equal("'heat_demand' is driven by 'tout', which is not a let. Write 'let tout = [...]' with one value per case, or drive it by time.", diagnostic.Message);
+    }
+
+    // ---- controllers ----------------------------------------------------------------------------
+
+    /// <summary>A mixing loop held on its supply temperature, with the controller written as <c>19</c> writes it.</summary>
+    private static string Controlled(string settings, string cases = "", string setpoint = "60 C") => $$"""
+        fluidscript 2
+        {{cases}}
+        circuit "Heating":
+          fluid = water
+          SP   pump
+          TV1  valve3  stroke = 90 s
+          TE1  temperature_sensor
+          RAD  radiator  power = 150 kW
+          TC1  controller:
+            moves    = TV1
+            reads    = TE1
+            setpoint = {{setpoint}}
+        {{settings}}
+          N1 - TV1 - SP - TE1 - RAD - NR
+          NR - TV1
+          NR - N1
+        """;
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheReferenceScriptBindsWithNoError() =>
+        Clean(FluidScript.Core.Tests.Language.Syntax.Parsing.FluidScript2ParserTests.Reference);
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AControllerIsOneDeclarationThatMovesAndReads()
+    {
+        var result = Clean(Controlled("""
+                type     = PI
+                band     = 20 K
+                ti       = 120 s
+                output   = 10..100 %
+            """));
+
+        var binding = Assert.Single(result.Model.ControlBindings);
+        Assert.Equal(new PropertyReference("TV1", "position"), binding.Actuator);
+        Assert.Equal(new PropertyReference("TE1", "t"), binding.Measurement);
+        Assert.Equal(333.15, binding.Setpoint!.Value.SiValue, 9);
+        Assert.Equal(Dimension.TemperatureDelta, binding.Band!.Value.Dimension);
+        Assert.Equal(20, binding.Band.Value.SiValue, 9);
+        Assert.Equal(0.1, binding.OutputLow!.Value.SiValue, 9);
+        Assert.Equal(1.0, binding.OutputHigh!.Value.SiValue, 9);
+
+        Assert.Equal(120, Stated(result, "TC1", "ti").SiValue, 9);
+        Assert.Equal(90, Stated(result, "TV1", "stroke").SiValue, 9);
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1810");
+    }
+
+    /// <summary><c>19</c>'s worked example: the setpoint follows <c>supply_temp</c>, 60 − 31 × 30/44 = 38.9 °C at 5 °C outside.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASetpointOnACurveOfADriverHoldsEachCasesValue()
+    {
+        var result = Clean(Controlled(
+            string.Empty,
+            """
+            project "p":
+              cases = [winter, mild]
+            let outdoor = [-26, 5] C
+            curve supply_temp: outdoor
+              -26   60
+               18   30
+            """,
+            "supply_temp"));
+
+        var binding = Assert.Single(result.Model.ControlBindings);
+        Assert.Equal(2, binding.Setpoints.Length);
+        Assert.Equal(333.15, binding.Setpoints[0]!.Value.SiValue, 9);
+        Assert.Equal(60 - (31 * 30.0 / 44), binding.Setpoints[1]!.Value.SiValue - 273.15, 9);
+
+        var mild = Assert.Single(ScenarioProjection.Project(result.Model, 1).ControlBindings);
+        Assert.Equal(38.9, mild.Setpoint!.Value.SiValue - 273.15, 1);
+    }
+
+    [Theory]
+    [Trait("Category", "Unit")]
+    [InlineData("P", "band = 20 K")]
+    [InlineData("PI", "ti = 120 s")]
+    [InlineData("PID", "td = 30 s")]
+    [InlineData("onoff", "differential = 2 K")]
+    public void AControllerOfEachTypeBinds(string type, string tuning)
+    {
+        var result = Clean(Controlled($"""
+                type = {type}
+                {tuning}
+            """));
+
+        Assert.Equal(type, Component(result, "TC1").Parameters["type"].Symbol);
+        Assert.Single(result.Model.ControlBindings);
+        Assert.Equal(type == "PI" ? 0 : 1, result.Diagnostics.Count(static d => d.Code == "FS1810"));
+    }
+
+    /// <summary>A <c>curve</c> controller follows its curve open loop, so it has no setpoint; reading the clock, it binds as a declaration.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ACurveControllerReadingTheClockBindsAsADeclaration()
+    {
+        var result = Bind("""
+            fluidscript 2
+            curve opening: time
+              2026-01-15 06:00   0.2
+              2026-01-15 12:00   0.8
+            circuit "c":
+              fluid = water
+              PU1 pump
+              CV1 valve
+              TC1 controller:
+                type  = curve
+                moves = CV1
+                reads = time
+                curve = opening
+              N1 - PU1 - CV1 - N1
+            """);
+
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Severity == DiagnosticSeverity.Error);
+        Assert.Equal("curve", Component(result, "TC1").Parameters["type"].Symbol);
+        Assert.Empty(result.Model.ControlBindings);
+        Assert.Contains(result.Diagnostics, static d => d.Code == "FS1810");
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASettingItsTypeDoesNotHaveIsFS1808()
+    {
+        var diagnostic = Only(Controlled("""
+                type = PI
+                td   = 30 s
+            """), "FS1808");
+
+        Assert.Equal("'TC1' is a PI controller, which has no 'td'. A PI controller takes: type, moves, reads, setpoint, output, action, band, kp, ti.", diagnostic.Message);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ABandOnAnOnOffControllerIsFS1808() =>
+        Only(Controlled("""
+                type = onoff
+                band = 20 K
+            """), "FS1808");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void BothBandAndGainIsFS1809() =>
+        Only(Controlled("""
+                band = 20 K
+                kp   = 0.05
+            """), "FS1809");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ATypeTheSolverDoesNotRunYetIsFS1810()
+    {
+        var diagnostic = Only(Controlled("""
+                type = PID
+                td   = 30 s
+            """), "FS1810");
+
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ABandIsADifferenceInWhatIsMeasured() =>
+        Only(Controlled("""
+                band = 20 C
+            """), "FS1304");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASetpointInTheWrongDimensionIsRefused() =>
+        Only(Controlled(string.Empty, setpoint: "20 kPa"), "FS1304");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnOutputOutsideTheActuatorsRangeIsRefused() =>
+        Only(Controlled("""
+                output = 10..150 %
+            """), "FS2105");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AControllerThatMovesNothingIsFS1521() =>
+        Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              TE1 temperature_sensor at N1
+              TC1 controller:
+                reads    = TE1
+                setpoint = 60 C
+              PU1 pump
+              N1 - PU1 - N1
+            """, "FS1521");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ALanguage1GainIsNotALanguage2Setting()
+    {
+        var diagnostic = Only(Controlled("""
+                ki = 0.01
+            """), "FS1503");
+
+        Assert.Contains("band, kp, ti, td", diagnostic.Message, StringComparison.Ordinal);
     }
 
     // ---- names ----------------------------------------------------------------------------------

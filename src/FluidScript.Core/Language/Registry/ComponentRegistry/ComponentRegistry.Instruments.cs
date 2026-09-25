@@ -20,7 +20,23 @@ public sealed partial class ComponentRegistry
         Parameters = Parameters(
             Sized("kp", Dimension.Dimensionless, -1e6, 1e6, precision: 4),
             Sized("ki", Dimension.Dimensionless, -1e6, 1e6, precision: 6),
-            Sized("kd", Dimension.Dimensionless, -1e6, 1e6, precision: 4)),
+            Sized("kd", Dimension.Dimensionless, -1e6, 1e6, precision: 4),
+
+            // Language 2's controller (`D-168`, `19` §Controllers). Tuning left out is estimated when a run
+            // starts, which is `34`'s and P6.3's; the direction is measured from the plant, so `action` is a
+            // check and not a setting.
+            Symbol("type", ["P", "PI", "PID", "onoff", "curve"], "PI", "D-168: a controller that states no type is PI"),
+            Sized("ti", Dimension.Time, 1, 3600, precision: 0),
+            Sized("td", Dimension.Time, 0, 600, precision: 0),
+            new ParameterInfo
+            {
+                Name = "action",
+                ValueKind = ParameterValueKind.Symbol,
+                Dimension = Dimension.Dimensionless,
+                AcceptedSymbols = ["direct", "reverse"],
+                OmissionBehavior = ParameterOmissionBehavior.Size,
+                DisplayPrecision = 0,
+            }),
         Properties = Properties(),
     };
 

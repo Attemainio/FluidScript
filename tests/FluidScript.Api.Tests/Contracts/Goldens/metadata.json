@@ -1508,6 +1508,24 @@
           },
           "wholeNumber": false,
           "displayPrecision": 3
+        },
+        {
+          "name": "stroke",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "unit": "s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 1,
+            "max": 600
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
         }
       ],
       "indexedParameters": [],
@@ -1774,6 +1792,24 @@
           },
           "wholeNumber": false,
           "displayPrecision": 3
+        },
+        {
+          "name": "stroke",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "unit": "s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 1,
+            "max": 600
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
         }
       ],
       "indexedParameters": [],
@@ -2542,6 +2578,24 @@
       "portFamilies": [],
       "parameters": [
         {
+          "name": "action",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "direct",
+            "reverse"
+          ],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
           "name": "kd",
           "aliases": [],
           "valueKind": "quantity",
@@ -2594,6 +2648,63 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 4
+        },
+        {
+          "name": "td",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "unit": "s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 600
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "ti",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Time",
+          "unit": "s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 1,
+            "max": 3600
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
+        },
+        {
+          "name": "type",
+          "aliases": [],
+          "valueKind": "symbol",
+          "dimension": "Dimensionless",
+          "unit": null,
+          "acceptedSymbols": [
+            "P",
+            "PI",
+            "PID",
+            "onoff",
+            "curve"
+          ],
+          "omission": "default",
+          "default": "PI",
+          "defaultBasis": "D-168: a controller that states no type is PI",
+          "usualRange": null,
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 0
         }
       ],
       "indexedParameters": [],
@@ -5204,6 +5315,37 @@
       "message": "A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'.",
       "arguments": [
         "target"
+      ]
+    },
+    {
+      "code": "FS1808",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}.",
+      "arguments": [
+        "controller",
+        "type",
+        "parameter",
+        "available"
+      ]
+    },
+    {
+      "code": "FS1809",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{controller}' states both band and kp, and each says the other. State one.",
+      "arguments": [
+        "controller"
+      ]
+    },
+    {
+      "code": "FS1810",
+      "severity": "warning",
+      "area": "Language2",
+      "message": "'{controller}' is a {type} controller, which the solver does not run yet.",
+      "arguments": [
+        "controller",
+        "type"
       ]
     },
     {

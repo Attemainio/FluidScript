@@ -1729,7 +1729,21 @@ that governed each size. What P6.8 still owes, and what comes after:
     example; a language 2 loop whose load follows a curve of `outdoor` sizes at 0.239 kg/s (winter, 30 kW over
     30 K) and solves mild at 0.0707 kg/s (8.86 kW), both converged. The reference script now reports only 3d's
     errors (the controller's parameters, `stroke`). **For package 4:** `FS1540`/`FS1541` tell a language 2 file to
-    add `scenarios <name> <name>` and `FS1528` to add `design {driver}=…`, language 1's statements. Next: slice 3d.
+    add `scenarios <name> <name>` and `FS1528` to add `design {driver}=…`, language 1's statements.
+  - **`P6.11` package 3, slice 3d (2026-09-25): the controller.** A controller block becomes language 1's declaration
+    (`type`, `kp`, `ti`, `td`, `action`, now registry parameters) and short `control` line (`moves`, `reads`, and
+    `setpoint`, `band`, `differential`, `output`, `curve` as arguments) (`D-168`, `19` §Controllers); valves gained
+    `stroke`. `FS1808`/`FS1809`/`FS1810` are the translation's. In language 2 the binder also binds the band and
+    differential as differences in the measurement, the output limits in the actuator's unit, and checks the
+    setpoint's dimension; a setpoint that reads a driver is evaluated per case and `ScenarioProjection` moves each
+    case's into `Setpoint`. The band is not converted to `kp` -- `34` owns that, since it needs the output range
+    P6.3 settles. **Found and fixed:** `output = 10..100 %` read its lower end as a bare 10 (the upper end's unit
+    reached a range only in a run's events), and `curve = heating` was `FS1004` because the parser refused a
+    statement word wherever a name belongs, a setting's name included. **Measured:** the reference script binds
+    with no error; its mild-case setpoint is 38.9 C, the worked example's third value. Its design solve does not
+    settle -- both cases end `NonFinite` after 2 iterations with the heating loop seeded backwards -- which is `S-86`
+    (the seed never reads a setpoint), noted there, not a language 2 fault. Filed `L-65`: language 1 now accepts
+    the new controller parameters with no effect. Next: slice 3e.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

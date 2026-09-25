@@ -151,6 +151,9 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1805` | Error | Language2 | '{component}' is written as a {asserted} valve, and its connections make it {actual}: {inflows} in and {outflows} out. |
 | `FS1806` | Error | Language2 | '{word}' is language 1. In language 2, {instead}. |
 | `FS1807` | Error | Language2 | A ramp needs both ends, such as '{target} = 30..45'. For a step, write 'at'. |
+| `FS1808` | Error | Language2 | '{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}. |
+| `FS1809` | Error | Language2 | '{controller}' states both band and kp, and each says the other. State one. |
+| `FS1810` | Warning | Language2 | '{controller}' is a {type} controller, which the solver does not run yet. |
 | `FS1811` | Error | Language2 | '{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time. |
 | `FS1812` | Error | Language2 | A {head} line opens a block and ends with ':'. |
 | `FS1813` | Error | Language2 | '{text}' is not a pipe size. Write a DN designation such as DN25, or name the property: 'roughness = 0.05 mm'. |

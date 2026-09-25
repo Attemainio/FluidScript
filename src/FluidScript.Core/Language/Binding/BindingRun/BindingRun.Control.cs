@@ -269,15 +269,134 @@ internal sealed partial class BindingRun
 
         CheckMeasurement(controller.Name, measurement, statement.Span);
 
-        _controlBindings.Add(new ControlBindingSymbol
+        var target = Value(setpoint.Value, DimensionOf(measurement));
+        var binding = new ControlBindingSymbol
         {
             Controller = controller,
             Actuator = actuator,
             Measurement = measurement,
-            Setpoint = Value(setpoint.Value, DimensionOf(measurement)),
+            Setpoint = target,
+            Setpoints = PerCase(setpoint.Value, DimensionOf(measurement), target),
             Span = statement.Span,
-        });
+        };
+
+        _controlBindings.Add(parse.Language == 2 ? WithTuning(binding, arguments) : binding);
     }
+
+    /// <summary>Binds what language 2 writes on a controller beyond its setpoint (<c>D-168</c>, <c>19</c> §Controllers).</summary>
+    /// <param name="binding">The line as language 1's short form binds it.</param>
+    /// <param name="arguments">Its named arguments, by name as written.</param>
+    /// <returns>The binding with its band, differential, output limits and curve.</returns>
+    /// <remarks>
+    /// A band and a differential are differences in what is measured (<c>20 K</c> on a temperature), and output
+    /// limits are values of what is moved (<c>10..100 %</c> of a valve's position), which is why they sit on the
+    /// line and not on the controller: only the line knows either. The setpoint's dimension is checked here too,
+    /// which language 1 does not do.
+    /// </remarks>
+    private ControlBindingSymbol WithTuning(ControlBindingSymbol binding, Dictionary<string, ParameterSyntax> arguments)
+    {
+        var named = arguments.Values.ToDictionary(static argument => NameResolution.Normalize(argument.Name.Text), StringComparer.Ordinal);
+        var measured = DimensionOf(binding.Measurement);
+
+        if (binding.Setpoint is { } setpoint && measured is { } expected && setpoint.Dimension != expected
+            && named.TryGetValue("setpoint", out var written))
+        {
+            Mismatch(written, "setpoint", expected, setpoint.Dimension);
+            binding = binding with { Setpoint = null, Setpoints = [] };
+        }
+
+        (Quantity? Low, Quantity? High) output = named.TryGetValue("output", out var limits) ? Output(binding.Actuator, limits) : (null, null);
+
+        return binding with
+        {
+            Band = named.TryGetValue("band", out var band) ? Difference(band, measured) : null,
+            Differential = named.TryGetValue("differential", out var differential) ? Difference(differential, measured) : null,
+            OutputLow = output.Low,
+            OutputHigh = output.High,
+            Curve = named.TryGetValue("curve", out var curve) ? CurveNamed(curve) : null,
+        };
+    }
+
+    /// <summary>A positive difference in what is measured: a band or a differential.</summary>
+    private Quantity? Difference(ParameterSyntax argument, Dimension? measured)
+    {
+        var dimension = measured?.Delta ?? measured;
+
+        if (Value(argument.Value, dimension) is not { } value)
+        {
+            return null;
+        }
+
+        if (dimension is { } expected && value.Dimension != expected)
+        {
+            Mismatch(argument, argument.Name.Text, expected, value.Dimension);
+            return null;
+        }
+
+        if (value.SiValue <= 0)
+        {
+            Report(BinderDiagnostics.NegativeValue, argument.Span, ("parameter", argument.Name.Text));
+            return null;
+        }
+
+        return value;
+    }
+
+    /// <summary>The output limits, <c>low..high</c> in the actuated parameter's dimension and inside its valid range.</summary>
+    private (Quantity? Low, Quantity? High) Output(PropertyReference actuator, ParameterSyntax argument)
+    {
+        if (argument.Value is not RangeExpressionSyntax range)
+        {
+            Report(
+                BinderDiagnostics.UnacceptedSymbol,
+                argument.Value.Span,
+                ("parameter", argument.Name.Text),
+                ("available", "a range, such as 10..100 %"),
+                ("written", parse.Source.ToString(argument.Value.Span).Trim()));
+            return (null, null);
+        }
+
+        var target = _componentsByName.TryGetValue(actuator.Component, out var slot)
+            && _components[slot.Index].Kind is { } kind
+            && kind.Parameters.TryGetValue(actuator.Property, out var info)
+                ? new ParameterTarget(actuator.Component, kind, info)
+                : null;
+
+        var low = Value(range.From, target?.Info.Dimension);
+        var high = Value(range.To, target?.Info.Dimension);
+
+        // Both ends are checked, so a range wrong at both ends says so twice rather than once and then again.
+        var lowInvalid = target is not null && low is { } l && CheckValidity(target, l, range.From.Span);
+        var highInvalid = target is not null && high is { } h && CheckValidity(target, h, range.To.Span);
+
+        if (lowInvalid || highInvalid)
+        {
+            return (null, null);
+        }
+
+        return (low, high);
+    }
+
+    /// <summary>The curve a <c>curve</c> controller follows, by name.</summary>
+    private string? CurveNamed(ParameterSyntax argument)
+    {
+        if (argument.Value is ReferenceSyntax { Parts.IsDefaultOrEmpty: true } reference && _curvesByName.ContainsKey(reference.Head.Token.Text))
+        {
+            return reference.Head.Token.Text;
+        }
+
+        Report(BinderDiagnostics.UnknownName, argument.Value.Span, ("name", parse.Source.ToString(argument.Value.Span).Trim()));
+        return null;
+    }
+
+    private void Mismatch(ParameterSyntax argument, string parameter, Dimension expected, Dimension actual) =>
+        Report(
+            BinderDiagnostics.ParameterDimensionMismatch,
+            argument.Span,
+            ("parameter", parameter),
+            ("expected", BinderDiagnostics.Expected(expected)),
+            ("value", parse.Source.ToString(argument.Value.Span).Trim()),
+            ("actual", actual.Name.ToLowerInvariant()));
 
     /// <summary>Resolves one bare or qualified endpoint of a short <c>control</c> line.</summary>
     /// <param name="endpoint">The endpoint as written, with or without its <c>.</c> half.</param>
@@ -440,9 +559,18 @@ internal sealed partial class BindingRun
     /// <summary>Evaluates one expression, applying <c>D-14</c>'s bare-number rule against a target.</summary>
     private Quantity? Value(ExpressionSyntax expression, Dimension? dimension)
     {
-        var evaluator = new ExpressionEvaluator(this, parse.Source, _diagnostics);
+        // In a case other than the design case the same expression has been evaluated once already, and
+        // says the same mistakes again.
+        var diagnostics = _case is null ? _diagnostics : ImmutableArray.CreateBuilder<Diagnostic>();
+        var evaluator = new ExpressionEvaluator(this, parse.Source, diagnostics);
+        var result = evaluator.Evaluate(expression);
 
-        if (evaluator.Evaluate(expression) is not EvaluationResult.Value value)
+        if (_case is not null)
+        {
+            _diagnostics.AddRange(diagnostics.Where(diagnostic => !Reported(diagnostic)));
+        }
+
+        if (result is not EvaluationResult.Value value)
         {
             return null;
         }

@@ -33,7 +33,7 @@ internal sealed partial class TranslationRun
             Arguments = [.. call.Arguments.Select(argument => argument with { Value = Value(argument.Value) })],
         },
         ReferenceSyntax reference => Reference(reference),
-        RangeExpressionSyntax range => range with { From = Value(range.From), To = Value(range.To) },
+        RangeExpressionSyntax range => Ends(range) is var (from, to) ? range with { From = from, To = to } : range,
         _ => value,
     };
 
@@ -85,6 +85,13 @@ internal sealed partial class TranslationRun
     /// <remarks>A unit written on the upper end only applies to both (<c>19</c> §Values): <c>30..40 min</c> is thirty minutes to forty.</remarks>
     private RangeSyntax Range(RangeExpressionSyntax range)
     {
+        var (from, to) = Ends(range);
+        return new RangeSyntax(from, range.DotDot, to);
+    }
+
+    /// <summary>Both ends of <c>10..100 %</c>, the upper end's unit on a bare lower end, wherever the range is written.</summary>
+    private (ExpressionSyntax From, ExpressionSyntax To) Ends(RangeExpressionSyntax range)
+    {
         var to = Value(range.To);
         var from = Value(range.From);
 
@@ -98,7 +105,7 @@ internal sealed partial class TranslationRun
             };
         }
 
-        return new RangeSyntax(from, range.DotDot, to);
+        return (from, to);
     }
 
     /// <summary>A reference with an exchanger's side written as language 1's port: <c>HX1.secondary.out.t</c> is <c>HX1.out[2].t</c>.</summary>

@@ -664,6 +664,7 @@ moves through them.
 | `authority` | Dimensionless | — | 0 … 1 | Target authority for sizing |
 | `dp` | PressureDelta | kPa | 0 … 2500 | Design pressure drop, an alternative to `kv` |
 | `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Every port, `ab` included, sits at it. |
+| `stroke` | Time | s | 1 … 600 | The actuator's full-stroke time, which limits the valve however it is moved (`D-168`). Read by a run only; the design solve never reads it. Omitted, `34`'s default slew applies (60 s full stroke). |
 | `leakage` | Dimensionless | fraction | 0 … 0.05 | `three_way_valve` only. What a leg passes at its stop, as a fraction of `kv`; default 2 %, Belimo's B–AB leakage class I, and never below 0.01 %, FCI 70-2 class IV (`D-135`). |
 
 **Properties:** `kv`, `dp`, `position`, `authority`, `flow`.

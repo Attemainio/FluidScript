@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Physics.Units;
 
@@ -25,7 +27,32 @@ public sealed record ControlBindingSymbol
     public required PropertyReference Measurement { get; init; }
 
     /// <summary>Gets the target value named by <c>setpoint=</c>, in the measurement's dimension.</summary>
+    /// <value>SI, in the measurement's dimension: K for a temperature, Pa for a pressure. The design case's value when it varies.</value>
     public Quantity? Setpoint { get; init; }
+
+    /// <summary>Gets the setpoint in every case, when it follows a driver (<c>D-167</c>); empty when it is one value.</summary>
+    /// <value>One element per declared case, in <see cref="ProjectSettings.Scenarios"/>' order; SI, as <see cref="Setpoint"/>.</value>
+    /// <remarks><see cref="ScenarioProjection"/> moves a case's element into <see cref="Setpoint"/>, as it does a parameter's.</remarks>
+    public ImmutableArray<Quantity?> Setpoints { get; init; } = [];
+
+    /// <summary>Gets the proportional band: the error over which the output travels its whole range (language 2, <c>D-168</c>).</summary>
+    /// <value>SI, a difference in the measurement's dimension: K for a temperature, Pa for a pressure; positive. <see langword="null"/> when not stated.</value>
+    public Quantity? Band { get; init; }
+
+    /// <summary>Gets an on/off controller's switching differential (language 2).</summary>
+    /// <value>SI, a difference in the measurement's dimension; positive. <see langword="null"/> when not stated.</value>
+    public Quantity? Differential { get; init; }
+
+    /// <summary>Gets the lower output limit, in the actuated parameter's dimension (language 2's <c>output = low..high</c>).</summary>
+    /// <value>SI in the actuator's dimension: a valve position is a fraction, 0 shut to 1 open. <see langword="null"/> for the actuator's full range.</value>
+    public Quantity? OutputLow { get; init; }
+
+    /// <summary>Gets the upper output limit.</summary>
+    /// <value>As <see cref="OutputLow"/>.</value>
+    public Quantity? OutputHigh { get; init; }
+
+    /// <summary>Gets the curve a <c>curve</c> controller follows: its output as a function of the reading.</summary>
+    public string? Curve { get; init; }
 
     /// <summary>Gets where the line sits in the source.</summary>
     public required TextSpan Span { get; init; }

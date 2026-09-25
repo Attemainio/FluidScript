@@ -18,6 +18,15 @@ None. A controller carries no flow and is not part of the hydraulic graph.
 | `kp` | Proportional gain, in actuator units per unit of measurement | Computed from a measured process gain, and reported |
 | `ki` | Integral gain, per second | Computed as above |
 | `kd` | Derivative gain | Absent — the controller is PI |
+| `type` | `P`, `PI`, `PID`, `onoff` or `curve` | `PI` |
+| `ti` | Integral time, in seconds | Computed when a run starts |
+| `td` | Derivative time, in seconds | Absent |
+| `action` | `direct` or `reverse`: a check against the direction measured from the plant | Measured from the plant |
+
+`type`, `ti`, `td` and `action` are how a FluidScript 2 controller is written, where one
+declaration also names what it `moves` and `reads`. Written here they are accepted and change nothing
+yet: no controller runs until the transient controllers land, and this form still picks the algorithm
+from its gains.
 
 **Which algorithm you get follows from the gains, not from the spelling.** `kd` absent means PI, and
 `kd` stated means PID. Writing `pi` instead of `controller` changes nothing about the algorithm, which

@@ -158,11 +158,11 @@ internal sealed partial class TranslationRun
             switch (line)
             {
                 case ComponentDeclarationSyntax declaration:
-                    _circuits.Add(Declaration(declaration, []));
+                    _circuits.AddRange(Declare(declaration, []));
                     break;
 
                 case BlockSyntax { Head: ComponentDeclarationSyntax declaration } component:
-                    _circuits.Add(Declaration(
+                    _circuits.AddRange(Declare(
                         declaration,
                         [.. component.Body.OfType<SettingLineSyntax>().SelectMany(static settings => settings.Assignments)]));
                     break;

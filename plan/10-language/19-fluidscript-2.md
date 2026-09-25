@@ -177,7 +177,9 @@ A quoted string is a title (`"District primary"`) and is never a reference.
 **Statement words** open statements and are recognised by their position at a line's start, not by the
 lexer: `fluidscript`, `project`, `let`, `curve`, `circuit`, `run`; inside a run body, `at` and `over`. A
 component may therefore not be named one of the six — `run pump` is a run head that fails — and that is
-`FS1004`, as a reserved word used as a name is in language 1. The lexer reserves nothing, which keeps
+`FS1004`, as a reserved word used as a name is in language 1. Before an `=` a statement word is a setting's
+name, which no statement starts with: a controller's `curve = heating` (found in package 3d, where the
+controller's own table needed it). The lexer reserves nothing, which keeps
 language 1's reserved-word table, and everything generated from it, unchanged. `time` is the one
 built-in driver name. Kinds and parameters are names the binder checks against the registry, so a new
 kind or parameter needs no grammar change. A name binds **only by its exact spelling** (`D-170`): case
@@ -487,6 +489,26 @@ open question 5). Until P6.3 builds them, the types other than `PI` bind and are
 **An actuator's speed is the actuator's**: `TV1 valve3 stroke = 90 s`. It limits the valve however it is
 moved, by a controller or by an event.
 
+**What the binder receives** (package 3d). The declaration keeps what belongs to the controller whatever it
+is wired to — `type`, `kp`, `ti`, `td`, `action`, registry parameters of `controller` — and the rest becomes
+language 1's short `control` line (`D-61`): `moves` the actuator (a bare component meaning its one actuated
+parameter), `reads` the sensor, and `setpoint`, `band`, `differential`, `output`, `curve` as its arguments,
+because each is read in the units of what is measured or moved. So:
+
+- `band` and `differential` are differences in the measurement's dimension (`20 K` on a temperature; `20 C` is
+  `FS1304`), `output` is a range in the actuated parameter's (`10..100 %` of a position, and outside the
+  parameter's valid range is its own code, `FS2105` for a position), and a setpoint in the wrong dimension is
+  `FS1304` — which language 1 does not check.
+- A setpoint that reads a driver is evaluated in every case, and each case's design solve holds its own:
+  38.9 °C in the reference script's mild case.
+- **`band` is not converted to `kp` here.** `kp = (Ymax − Ymin) / band` (`D-168`) needs the output range the
+  controller settles when it is built, so `34` owns the conversion; the binding carries the band.
+- `FS1808`, `FS1809` and `FS1810` are the translation's: the setting is dropped (`FS1808`; `kp` under `FS1809`),
+  so the controller binds as the type it states. A setting no type has is `FS1503`, listing language 2's twelve.
+- A controller missing `moves` or `reads` is `FS1521`, whose message still names language 1's `control` line
+  (package 4). A `curve` controller reading a driver or `time` binds as its declaration only: language 1's
+  line cannot name either, and `FS1810` already says it is not run. P6.3 gives it a binding.
+
 ### Runs
 
 A run says what happens to the plant in time; the model says what the plant is (`D-169`). A file may hold
@@ -662,7 +684,8 @@ shows what the records say.
 
 ## Acceptance criteria
 
-- [ ] The reference script parses, prints back byte for byte, and binds with no error.
+- [ ] The reference script parses, prints back byte for byte, and binds with no error. (Since package 3d it
+      binds with no error, but its run is not yet translated — 3e. Its design solve does not settle: `S-86`.)
 - [x] The printer fuzz test runs on language 2 input as it does on language 1 (package 2:
       `FluidScript2ParserTests`, every one-character deletion of the reference script and 3 000 random edits).
 - [ ] A malformed line inside a block leaves the rest of the block and the file bound (invariant 2).
@@ -673,11 +696,10 @@ shows what the records say.
       `Language2TranslatorTests`; the shapes are a valve with one stream each way, a valve with three
       inflows, a third pass through an exchanger and a second inflow into a pump).
 - [ ] `FS1803`: `A - B - C 12 m DN25` is refused, `A - B 12 m DN25` binds as one 12 m pipe.
-- [ ] The worked example's per-case values (70.9 °C, 44.3 kW, 38.9 °C) are asserted. (Package 3c:
-      70.9 °C and 44.3 kW, `Language2TranslatorTests`; 38.9 °C is the controller's setpoint and waits on
-      3d.)
-- [ ] A controller of each type binds; each `FS1808` and `FS1809` shape is refused; `FS1810` is raised
-      for every type the solver does not run.
+- [x] The worked example's per-case values (70.9 °C, 44.3 kW, 38.9 °C) are asserted (packages 3c and 3d,
+      `Language2TranslatorTests`).
+- [x] A controller of each type binds; each `FS1808` and `FS1809` shape is refused; `FS1810` is raised
+      for every type the solver does not run (package 3d).
 - [ ] A run binds to the settings and events `33` reads; a one-valued `over` is `FS1807`.
 - [ ] Every language 1 statement in a language 2 file is `FS1806` with its language 2 form.
 - [ ] A file with no version line is language 1 until `P6.11`'s switch-over (`D-164`).

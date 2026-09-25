@@ -130,6 +130,36 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Info,
         "'{component}' is wired as {wiring}.");
 
+    /// <summary>A controller setting its stated type does not have.</summary>
+    /// <value><c>FS1808</c>, an error.</value>
+    /// <remarks>
+    /// <c>19</c> §Controllers: <c>td</c> on a <c>PI</c>, <c>differential</c> on a <c>PI</c>, <c>band</c> on an <c>onoff</c>.
+    /// The setting is left out, so the controller binds as the type it states.
+    /// </remarks>
+    public static DiagnosticDescriptor ControllerSettingNotOfType { get; } = new(
+        "FS1808",
+        DiagnosticSeverity.Error,
+        "'{controller}' is a {type} controller, which has no '{parameter}'. A {type} controller takes: {available}.");
+
+    /// <summary>A controller stating both its proportional band and its gain.</summary>
+    /// <value><c>FS1809</c>, an error.</value>
+    /// <remarks><c>kp = range / band</c> (<c>19</c>): one says the other, so two can disagree. The band is kept.</remarks>
+    public static DiagnosticDescriptor BandAndGain { get; } = new(
+        "FS1809",
+        DiagnosticSeverity.Error,
+        "'{controller}' states both band and kp, and each says the other. State one.");
+
+    /// <summary>A controller of a type the solver does not run yet.</summary>
+    /// <value><c>FS1810</c>, a warning.</value>
+    /// <remarks>
+    /// <c>19</c> §Controllers: until P6.3 builds them, the types other than <c>PI</c> bind and say so, and are
+    /// never run as <c>PI</c> in silence.
+    /// </remarks>
+    public static DiagnosticDescriptor ControllerTypeNotRun { get; } = new(
+        "FS1810",
+        DiagnosticSeverity.Warning,
+        "'{controller}' is a {type} controller, which the solver does not run yet.");
+
     /// <summary>A curve whose driver is neither a <c>let</c> nor the clock.</summary>
     /// <value><c>FS1811</c>, an error.</value>
     /// <remarks>
@@ -143,7 +173,7 @@ public static class Language2Diagnostics
         "'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.");
 
     /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
-    /// <value>Twelve descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Fifteen descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -158,5 +188,8 @@ public static class Language2Diagnostics
         ValveFunctionContradicted,
         PortsInferred,
         CurveDriverNotALet,
+        ControllerSettingNotOfType,
+        BandAndGain,
+        ControllerTypeNotRun,
     ];
 }

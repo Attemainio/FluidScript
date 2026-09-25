@@ -42,6 +42,9 @@ internal sealed partial class BindingRun
     /// <summary>Each varying value in each case but the design case, which keeps its value on the pending value.</summary>
     private readonly Dictionary<(ValueId Id, int Case), Quantity> _caseValues = [];
 
+    /// <summary>Each varying curve's value in each case but the design case.</summary>
+    private readonly Dictionary<(string Curve, int Case), double?> _caseCurveValues = [];
+
     /// <summary>The case being evaluated by a case walk, or <see langword="null"/> during the design case's.</summary>
     private int? _case;
 
@@ -210,6 +213,7 @@ internal sealed partial class BindingRun
         if (id is ValueId.Curve curve)
         {
             EvaluateCurve(curve);
+            _caseCurveValues[(curve.Name, index)] = _curveValues.GetValueOrDefault(curve.Name);
             return;
         }
 
@@ -242,6 +246,74 @@ internal sealed partial class BindingRun
         if (pending.Value is { } quantity)
         {
             _caseValues[(id, index)] = quantity;
+        }
+    }
+
+    /// <summary>An expression bound after evaluation — a setpoint — in every case, when it reads a driver.</summary>
+    /// <param name="expression">The expression.</param>
+    /// <param name="dimension">What a bare number in it means.</param>
+    /// <param name="design">Its value in the design case, already evaluated.</param>
+    /// <returns>One value per case, or empty when the expression reads nothing that varies.</returns>
+    private ImmutableArray<Quantity?> PerCase(ExpressionSyntax expression, Dimension? dimension, Quantity? design)
+    {
+        if (_varying.Count == 0)
+        {
+            return [];
+        }
+
+        var probe = new ExpressionEvaluator(this, parse.Source, ImmutableArray.CreateBuilder<Diagnostic>());
+        probe.Evaluate(expression);
+
+        if (!probe.Dependencies.Overlaps(_varying))
+        {
+            return [];
+        }
+
+        var values = new Quantity?[_scenarios.Count];
+
+        for (var index = 0; index < values.Length; index++)
+        {
+            values[index] = index == DesignCase ? design : InCase(index, () => Value(expression, dimension));
+        }
+
+        return [.. values];
+    }
+
+    /// <summary>Runs an evaluation with every varying value, curves included, at one case's value.</summary>
+    private T InCase<T>(int index, Func<T> evaluate)
+    {
+        var values = _varying.Where(_pending.ContainsKey).Select(id => (Pending: _pending[id], Value: _pending[id].Value)).ToList();
+        var curves = _varying.OfType<ValueId.Curve>().Select(id => (id.Name, Value: _curveValues.GetValueOrDefault(id.Name))).ToList();
+
+        foreach (var (pending, _) in values)
+        {
+            pending.Value = _caseValues.TryGetValue((pending.Id, index), out var inCase) ? inCase : null;
+        }
+
+        foreach (var (name, _) in curves)
+        {
+            _curveValues[name] = _caseCurveValues.GetValueOrDefault((name, index));
+        }
+
+        _case = index;
+
+        try
+        {
+            return evaluate();
+        }
+        finally
+        {
+            _case = null;
+
+            foreach (var (pending, value) in values)
+            {
+                pending.Value = value;
+            }
+
+            foreach (var (name, value) in curves)
+            {
+                _curveValues[name] = value;
+            }
         }
     }
 

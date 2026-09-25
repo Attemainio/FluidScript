@@ -59,7 +59,12 @@ public static class ScenarioProjection
             components.Add(Project(component, scenario));
         }
 
-        return model with { Components = components.MoveToImmutable() };
+        // A setpoint that follows a driver holds that case's value in that case's design solve (`D-167`).
+        var bindings = model.ControlBindings
+            .Select(binding => scenario < binding.Setpoints.Length ? binding with { Setpoint = binding.Setpoints[scenario] } : binding)
+            .ToImmutableArray();
+
+        return model with { Components = components.MoveToImmutable(), ControlBindings = bindings };
     }
 
     /// <summary>Reduces one component's list-valued parameters to a single case.</summary>

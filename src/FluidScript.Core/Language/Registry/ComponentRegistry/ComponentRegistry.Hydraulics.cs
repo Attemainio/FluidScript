@@ -261,6 +261,10 @@ public sealed partial class ComponentRegistry
             Sized("dp", Dimension.PressureDelta, 0, 2500, precision: 1),
             Elevation(),
 
+            // The actuator's full-stroke time, which limits the valve however it is moved (`19` §Controllers).
+            // Read by a run, never by the design solve; nothing sizes it yet, as nothing runs one (P6.3).
+            Sized("stroke", Dimension.Time, 1, 600, precision: 0),
+
             // A three-way body's legs are never quite shut: what a leg passes at its stop is the body's
             // rated leakage, a catalogue figure and not the characteristic's floor (`D-135`, `C-71`).
             // Belimo's characterised three-way bodies rate B-AB at leakage class I, 1-2 % of Kvs, with

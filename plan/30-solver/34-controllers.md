@@ -95,6 +95,15 @@ run start** from the perturbation under *Default tunings*, which is a run-time m
 `FS3201`, not a sizing pass — their basis on the wire says so, and [`24`](../20-core-domain/24-auto-sizing.md)'s
 frozen-snapshot rule does not apply to them because the run has not started when they are chosen.
 
+**Language 2 (`D-168`, bound since P6.11 slice 3d).** A controller is one declaration with a `type` (`P`, `PI`,
+`PID`, `onoff`, `curve`; absent `PI`), so the algorithm is stated rather than inferred from the gains present. The
+registry row gains `type`, `ti`, `td` (the ideal form's times, where language 1 writes `ki`) and `action` (a check,
+never a setting); the binding carries `band`, `differential`, the `output` limits and a `curve`, because each is read
+in the units of what is measured or moved. **The band is not converted to `kp` by the binder:** `kp = (Ymax −
+Ymin) / band` needs the output range, which is the controller's to settle when it is built here, so this document owns
+the conversion. **Slew is the actuator's**: a valve's `stroke` is its full-stroke time and the slew is `1/stroke`;
+with no `stroke`, *Actuator limits and rate*'s default applies.
+
 ### The design point and the setpoint
 
 `D-141`. A `control` binding whose actuator is **unstated** contributes its setpoint as a constraint on

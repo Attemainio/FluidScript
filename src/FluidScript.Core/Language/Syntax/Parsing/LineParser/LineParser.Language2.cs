@@ -113,10 +113,15 @@ internal sealed partial class LineParser
                     ? ParseLanguage2Let(context)
                     : StatementWordAsName(first);
 
+            // `curve = heating` is a controller's setting (`19` §Controllers), and a setting's name is never a
+            // statement word: the `=` settles it, as it does for `show =` in the project block.
             case "curve":
-                return second is { Kind: TokenKind.Identifier }
-                    ? ParseDriverCurveHead(context)
-                    : StatementWordAsName(first);
+                return second switch
+                {
+                    { Kind: TokenKind.Identifier } => ParseDriverCurveHead(context),
+                    { Kind: TokenKind.Equals } => ParseSettingLine(context),
+                    _ => StatementWordAsName(first),
+                };
 
             case "style" when second is null or { Kind: TokenKind.Colon }:
                 return ParseStyleHead(context);

@@ -21,6 +21,7 @@ V2 valve authority=0.5 characteristic=equal_percentage
 | `authority` | — | Target authority for sizing | Sized |
 | `dp` | kPa | Design drop at the design flow: the Kv is the next catalogue row above the one that takes it | Sized |
 | `elevation` | m | Height above the project datum; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
+| `stroke` | s | How long the actuator takes from shut to open. It limits the valve however it is moved, by a controller or by a schedule, and only in a run: the design solve never reads it | No limit is stated. Nothing runs a controller yet, so today it is recorded and not used |
 
 `kv` is defined as m³/h of water at 1 bar differential, so a bare `kv=6.3` is in those units and
 nothing else.

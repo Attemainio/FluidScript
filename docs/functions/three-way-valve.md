@@ -48,7 +48,7 @@ TV1.b - N3
 
 ## Parameters
 
-The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`, and
+The same as a [`valve`](valve.md): `kv`, `position`, `characteristic`, `authority`, `dp`, `stroke`, and
 `elevation` — one height for all three ports; see [`node`](node.md#height) — plus one of its own,
 `leakage`: the fraction of `kv` a leg still passes at its stop.
 
