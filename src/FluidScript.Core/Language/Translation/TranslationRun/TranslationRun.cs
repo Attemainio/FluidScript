@@ -106,7 +106,7 @@ internal sealed partial class TranslationRun(ParseResult source, IComponentRegis
         // Last, so every name a run targets is declared above it; the binder steps over a run in its
         // circuit partition and binds it once the model is complete.
         var root = new ScriptSyntax([.. _fileWide, .. _circuits, .. _runs], source.Root.EndOfFile);
-        return new ParseResult(source.Source, root, _diagnostics.ToImmutable()) { Language = 2 };
+        return new ParseResult(source.Source, root, _diagnostics.ToImmutable()) { Language = 2, Translated = true };
     }
 
     // ---- tokens made here ----------------------------------------------------------------------

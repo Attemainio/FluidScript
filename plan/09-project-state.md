@@ -1834,7 +1834,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     spelling and reads it directly as well as through curves (`power = demand  sized_at.demand = 27.2 kW` had been
     ignored); a point nothing reads is `FS1549`. **Package 5 is closed. Next: package 6, the binder reading the
     language 2 tree directly, planned in `19` §Binding directly (`D-177`): 6a the harness, 6b the binder's records,
-    6c–6f the language 2 front end area by area.**
+    6c–6f the language 2 front end area by area.** **6a done (2026-09-26):** a language 2 tree the parser produced
+    (`ParseResult.Translated` false, `MajorParser.ParseDirect`) takes the binder's direct path, which delegates to the
+    translation for now; `DirectBindingTests` binds the converted corpus both ways and compares model shape and every
+    diagnostic's code, span and message: 131 rows equal, the 8 rewritten at the switch skipped. **Next: 6b.**
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1904,7 +1907,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2838 total, 0 failed, 4 skipped** (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **2977 total, 0 failed, 12 skipped** (139 of them package 6's harness, 8 of its skips the conversion's rewrites) (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

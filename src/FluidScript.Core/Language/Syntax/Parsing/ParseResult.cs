@@ -26,9 +26,17 @@ public sealed record ParseResult(
 {
     /// <summary>Gets the language major the tree was read in.</summary>
     /// <value>
-    /// 1, unless the tree is language 2's translated into the statements the binder reads
-    /// (<c>Language2Translator</c>), which says 2. The binder reads it where the two languages bind the
-    /// same statement differently: a name matched by similarity (<c>D-170</c>) and a circuit's role.
+    /// 1 or 2. A language 2 tree is either the parser's own or the translation's (<see cref="Translated"/>). The binder
+    /// reads it where the two languages bind the same statement differently: a name matched by similarity (<c>D-170</c>)
+    /// and a circuit's role.
     /// </value>
     public int Language { get; init; } = 1;
+
+    /// <summary>Gets whether the tree is language 2's translated into language 1's statements (<c>Language2Translator</c>).</summary>
+    /// <value>
+    /// <see langword="true"/> for the translation's output, which the binder reads as it always has; <see langword="false"/>
+    /// for a parser's own tree. A language 2 tree that is not translated takes the binder's direct path (<c>19</c>
+    /// §Binding directly), until package 7 makes it the only one.
+    /// </value>
+    public bool Translated { get; init; }
 }

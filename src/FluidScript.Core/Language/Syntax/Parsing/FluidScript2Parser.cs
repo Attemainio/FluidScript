@@ -86,7 +86,7 @@ public static class FluidScript2Parser
         }
 
         var root = new ScriptSyntax(open.Peek().Body.ToImmutable(), lex.Tokens[^1]);
-        return new ParseResult(source, root, diagnostics.ToImmutable());
+        return new ParseResult(source, root, diagnostics.ToImmutable()) { Language = 2 };
     }
 
     /// <summary>Decides where a line indented unlike its block's body belongs.</summary>

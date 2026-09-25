@@ -36,4 +36,20 @@ public static class MajorParser
         var translated = Language2Translator.Translate(FluidScript2Parser.Parse(source), registry);
         return translated with { Diagnostics = Language2Wording.Apply(translated.Diagnostics) };
     }
+
+    /// <summary>Parses source text for the binder's direct path: a language 2 file's own tree, untranslated.</summary>
+    /// <param name="source">The script.</param>
+    /// <param name="major">The major <see cref="ScriptCompatibility.Inspect"/> detected; <see langword="null"/> for an unversioned draft.</param>
+    /// <returns>The language 2 parser's tree and diagnostics, or language 1's parse for any other major.</returns>
+    /// <remarks>
+    /// <c>P6.11</c> package 6 (<c>19</c> §Binding directly): the binder reads this tree itself. Until package 7 the
+    /// pipeline keeps <see cref="Parse"/>, and the two paths are held equal on the converted corpus.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    public static ParseResult ParseDirect(SourceText source, LanguageMajor? major)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        return major is { Value: 2 } ? FluidScript2Parser.Parse(source) : FluidScriptParser.Parse(source);
+    }
 }
