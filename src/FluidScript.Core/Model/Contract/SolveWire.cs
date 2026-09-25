@@ -9,8 +9,12 @@ public sealed record SolveWire
     /// <summary>Newton iterations over every sizing pass, retries included: the run's work, where a warm start's saving shows (<c>A-4</c>).</summary>
     public required int Iterations { get; init; }
 
-    /// <summary>The scaled residual norm at the end.</summary>
-    public required double ResidualNorm { get; init; }
+    /// <summary>The scaled residual norm at the end, dimensionless.</summary>
+    /// <value>
+    /// <see langword="null"/> when the solve stopped before it measured a finite one -- a first evaluation that left
+    /// the fluid's range reads as infinite, which JSON cannot carry (contract 2.3).
+    /// </value>
+    public required double? ResidualNorm { get; init; }
 
     /// <summary>Wall time, or <see langword="null"/> when the caller did not time it.</summary>
     public required int? ElapsedMs { get; init; }

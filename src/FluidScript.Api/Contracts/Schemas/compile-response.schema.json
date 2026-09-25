@@ -2181,8 +2181,11 @@
               "type": "integer"
             },
             "residualNorm": {
-              "description": "The scaled residual norm at the end.",
-              "type": "number"
+              "description": "The scaled residual norm at the end, dimensionless.",
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "elapsedMs": {
               "description": "Wall time, or null when the caller did not time it.",

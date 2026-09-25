@@ -432,6 +432,14 @@ The rejected softer options are worth recording, because both look cheaper and a
 A major bump is honest and the frontend already refuses to render on a major mismatch, which is
 exactly the behaviour wanted here.
 
+### `2.2` → `2.3`: `solve.residualNorm` may be `null`
+
+A solve whose first evaluation leaves the fluid's range stops with an infinite residual norm, and JSON has no
+infinity: the serializer threw and the endpoint answered 500 (`FS9001`) instead of the model and its `FS3007`.
+Found by `P6.11` package 4 (2026-09-25) on a controlled loop, in both languages. The field is now `null` there —
+this document's own rule, *null means not computed*. A minor bump: the only new value appears in a case that
+never reached a consumer before, since the whole response failed.
+
 ### `pressureDatum` moved out of the circuit, and that is a correction
 
 It was `circuit.pressureDatum`, which quietly asserted one datum per circuit. That was never true —

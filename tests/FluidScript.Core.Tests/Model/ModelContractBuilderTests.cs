@@ -108,7 +108,7 @@ public sealed class ModelContractBuilderTests
     {
         // Changing a dimension's canonical unit changes the wire, which is a major bump (26): this
         // table is the version's, and it fails until both move together.
-        Assert.Equal("2.2", ModelContractBuilder.ContractVersion);
+        Assert.Equal("2.3", ModelContractBuilder.ContractVersion);
 
         var pinned = new Dictionary<string, string>(StringComparer.Ordinal)
         {

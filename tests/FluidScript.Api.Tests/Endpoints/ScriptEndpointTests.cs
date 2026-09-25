@@ -28,7 +28,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         var body = await response.ReadAsync<CompileResponse>();
 
         Assert.NotNull(body.Model);
-        Assert.Equal("2.2", body.Model.ContractVersion);
+        Assert.Equal("2.3", body.Model.ContractVersion);
         Assert.True(body.Model.Circuits[0].Solved);
         Assert.NotNull(body.Model.Solve);
         Assert.True(body.Model.Solve.Converged);
@@ -111,6 +111,45 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.NotEmpty(body.Model.Layout.Placements);
     }
 
+    /// <summary>
+    /// A solve whose first evaluation leaves the fluid's range ends with an infinite residual, which JSON cannot
+    /// carry: the endpoint answered 500 until contract 2.3 sent it as <c>null</c> (<c>26</c>, found by P6.11 package 4).
+    /// </summary>
+    [Fact]
+    public async Task ASolveThatStopsBeforeMeasuringAResidualStillAnswers()
+    {
+        const string Script = """
+            fluidscript 1
+            circuit loop
+            fluid water
+            HE1  heat_exchanger  power=30kW  in.t=20C
+            LOAD heat_exchanger  power=-30kW  dp=0
+            V1   valve
+            PU1  pump
+            TC1  controller
+            connections
+            N1 - PU1.in
+            PU1.out - N2
+            N2 - HE1.in
+            HE1.out - N3
+            N3 - V1.in
+            V1.out - N5
+            N5 - LOAD.in
+            LOAD.out - N4
+            N4 - N1
+            control actuate=V1.position measure=N3.t by=TC1 setpoint=50C
+            """;
+        using var client = factory.CreateClient();
+        using var response = await client.PostAsync(Compile, new { sessionId = "a", script = Script });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.ReadAsync<CompileResponse>();
+
+        Assert.NotNull(body.Model!.Solve);
+        Assert.False(body.Model.Solve.Converged);
+        Assert.Null(body.Model.Solve.ResidualNorm);
+    }
+
     [Fact]
     public async Task ValidateReturnsDiagnosticsAndNothingOfTheModel()
     {
@@ -120,7 +159,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.ReadAsync<ValidateResponse>();
 
-        Assert.Equal("2.2", body.ContractVersion);
+        Assert.Equal("2.3", body.ContractVersion);
         Assert.Equal(1, body.LanguageMajor);
         Assert.Contains(body.Diagnostics, static d => d.Code == "FS1507");
         Assert.Equal(0, body.Timings.SizeMs);

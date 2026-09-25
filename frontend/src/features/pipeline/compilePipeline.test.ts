@@ -224,7 +224,7 @@ describe('the validate phase', () => {
     });
     await settle();
     client.validations[0]!.resolve({
-      contractVersion: '2.2',
+      contractVersion: '2.3',
       languageMajor: 1,
       diagnostics: [diagnostic('FS1302')],
       timings: answer('a').timings,
@@ -249,7 +249,7 @@ describe('the validate phase', () => {
     pipeline.edit(doc, 'a', 1);
     await clock.advance(100);
     client.validations[0]!.resolve({
-      contractVersion: '2.2',
+      contractVersion: '2.3',
       languageMajor: 1,
       diagnostics: [diagnostic('FS1302')],
       timings: answer('a').timings,

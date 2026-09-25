@@ -37,7 +37,7 @@ namespace FluidScript.Core.Model;
 public static partial class ModelContractBuilder
 {
     /// <summary>The version this builder implements.</summary>
-    public const string ContractVersion = "2.2";
+    public const string ContractVersion = "2.3";
 
     /// <summary>The fluid property package and its exact version, as the provenance names it.</summary>
     public static VersionedId PropertyBackend { get; } = new("sharp-prop", FluidScript.Core.Physics.Fluids.PropertyBackend.PackageVersion);
@@ -188,7 +188,7 @@ public static partial class ModelContractBuilder
                 {
                     Converged = run.Solve.Converged,
                     Iterations = run.Iterations,
-                    ResidualNorm = Round(run.Solve.ResidualNorm, significant: 3),
+                    ResidualNorm = double.IsFinite(run.Solve.ResidualNorm) ? Round(run.Solve.ResidualNorm, significant: 3) : null,
                     ElapsedMs = input.ElapsedMs,
                     SizingPasses = run.Passes,
                 },

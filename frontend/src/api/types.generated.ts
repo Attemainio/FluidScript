@@ -1033,9 +1033,9 @@ export interface Solve {
    */
   iterations: number;
   /**
-   * The scaled residual norm at the end.
+   * The scaled residual norm at the end, dimensionless.
    */
-  residualNorm: number;
+  residualNorm: number | null;
   /**
    * Wall time, or null when the caller did not time it.
    */

@@ -276,7 +276,7 @@ What the solve did.
 |---|---|---|
 | `converged` | boolean | Whether the last pass converged. |
 | `iterations` | integer | Newton iterations over every sizing pass, retries included: the run's work, where a warm start's saving shows (`A-4`). |
-| `residualNorm` | number | The scaled residual norm at the end. |
+| `residualNorm` | number or `null` | The scaled residual norm at the end, dimensionless. |
 | `elapsedMs` | integer or `null` | Wall time, or `null` when the caller did not time it. |
 | `sizingPasses` | integer | Outer-loop passes. |
 
