@@ -130,6 +130,10 @@ asymmetry applies to `Pressure` / `PressureDelta`.
 `let dT = 30 dK` therefore has a type without inspecting where `dT` is later used. A difference
 written as `30 K` is an error with a fix to `30 dK`, not a context-dependent interpretation (`D-26`).
 
+**Language 2 reads `K` as a difference** (`D-172`, [`19`](19-fluidscript-2.md)): a quantity whose whole unit
+is `K` is a `TemperatureDelta` there, and an absolute kelvin is not writable. The reading is chosen by the version
+line, never by use, so this section's property holds in both languages; compound units containing `K` are unchanged.
+
 ## Unit symbol table
 
 Case-sensitive where SI is (`K` vs `k`, `mm` vs `Mm`), case-insensitive for multi-letter non-SI names.

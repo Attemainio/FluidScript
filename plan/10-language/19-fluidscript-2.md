@@ -6,7 +6,7 @@ status: draft
 owns: [language 2 grammar, language 2 statement set, block structure, port inference by flow direction, cases and drivers, controller declaration, run block, translation from language 2 to the binder]
 depends_on: [01-vision-and-scope, 06-decision-log, 11-language-overview, 12-grammar, 13-type-and-unit-system, 14-expressions-and-references, 15-semantic-model, 16-diagnostics, 17-formatting-and-round-trip, 18-script-compatibility]
 traces_to: [R-01, R-02, R-03, R-04, R-05, R-06, R-12, R-13, R-46, R-49]
-open_questions: 8
+open_questions: 6
 last_review_pass: 0
 ---
 
@@ -146,8 +146,7 @@ run "Cold morning":
   at   1 h          TC1.setpoint = 55 C
 ```
 
-`band = 20 K` reads `K` as a temperature difference, which is open question 2; under language 1's
-reading it is `20 dK`.
+`band = 20 K` reads `K` as a temperature difference (`D-172`); language 1 writes it `20 dK`.
 
 ### Lines, blocks and names
 
@@ -202,6 +201,17 @@ because language 2 lets `=` stand apart: `h` is an hour and an enthalpy, so in `
 it); language 2 does not.
 
 A bare number takes the canonical unit of the dimension it lands in, as in language 1 (`D-14`, `13`).
+
+**`K` is a temperature difference** (`D-172`): `band = 20 K`, `dt = 5 K`, as engineers write them. `C` and `°C`
+are absolute temperatures, and `dK` and `dC` remain accepted as differences. An absolute temperature in kelvin is
+not writable; `300 K` on a temperature is a dimension error whose fix is `°C`. A compound unit that contains a `K`
+(`kJ/(kg*K)`) is its own spelling and is unchanged. The reading is fixed per language by the version line, so a
+unit still means the same thing wherever it stands (`D-26`'s property, kept).
+
+**Names are case-insensitive** where the registry owns them — kinds, parameters, properties: `Kp`, `KP` and `kp`
+bind alike, and the printer keeps what was written. That is `D-15`'s first stage, which `D-170` keeps; measured
+2026-09-25, the binder already resolves every parameter through it (`NameResolution.Match`). Component names stay
+exact, case included: `PU1` and `pu1` are two components.
 
 **A list** is `[a, b, …]`, one value per case in the order `cases` names them; a unit after the closing
 bracket applies to every item: `t = [85, 70] C`. **A range** is `a..b`, and a trailing unit applies to
@@ -354,7 +364,7 @@ aliases of the sensor kinds. A two-sided exchanger's sides are **`primary` and `
 `primary.in.t`, `HX1.secondary.out`. `primary` is side 1 and `secondary` side 2 of language 1's
 `in`/`in[2]`; which side is primary is decided by the circuit (below). Port families that really are
 families keep brackets: `layer[3].t`, `in[2].level` on a tank. The wider vocabulary review — `duty`,
-`rise`, `kvs`, direction taken from the kind — is open question 4.
+`rise`, `kvs`, direction taken from the kind — is open question 2.
 
 ### Connections
 
@@ -443,7 +453,7 @@ circuit "Heating":
 
 A parameter that does not belong to the stated type — `td` on a `PI`, `differential` on a `PI`, `band` on
 an `onoff` — is `FS1808`. Tuning left out is estimated when a run starts (`34`; the estimation rule is
-open question 7). Until P6.3 builds them, the types other than `PI` bind and are reported `FS1810` —
+open question 5). Until P6.3 builds them, the types other than `PI` bind and are reported `FS1810` —
 "not yet run by the solver" — and are never run as `PI` in silence.
 
 **An actuator's speed is the actuator's**: `TV1 valve3 stroke = 90 s`. It limits the valve however it is
@@ -641,23 +651,17 @@ shows what the records say.
 
 1. **Tanks.** A tank's ports and layers inside a block (`layer[3].t = 45 C`, `in[2].level = 0.8`) and
    rule 4 of port inference are written above; nothing else about tanks has been discussed.
-2. **`K` as a temperature difference.** Recommendation: in language 2 `K` is a difference and `C`/`°C` a
-   temperature, as engineers write them (EN and ISO 80000-5 write a difference in kelvin); an absolute
-   kelvin is not writable, since no plant input needs one. This amends `D-26` for language 2 only.
-   Language 1 keeps `dK`.
-3. **Case-insensitive parameter names** (`Kp` = `kp`, printed as written). Recommendation: yes; engineers
-   write Kp and Ti.
-4. **The vocabulary pass**: `duty` for heat and `power` for shaft or electrical power, `rise` on a pump
+2. **The vocabulary pass**: `duty` for heat and `power` for shaft or electrical power, `rise` on a pump
    and `dp` only ever a drop, `kvs`, and each thermal kind taking its direction from what it is (a boiler
    heats its water, a radiator cools it) instead of from a sign convention on an alias (`D-91`).
    Recommendation: a package of its own after language 2 lands, since the registry is shared by both
    languages.
-5. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the
+3. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the
    setpoint (on at setpoint − differential, off at the setpoint). Both appear in practice and no
    standard was found; the choice is this project's and the documentation must state it.
-6. **A sensor's `lag`** (a thermowell's time constant), which the derivative default below needs.
+4. **A sensor's `lag`** (a thermowell's time constant), which the derivative default below needs.
    Recommendation: add it.
-7. **Default tuning.** Proposal for `34`: a bump test in the compiled model at run start (a 10 % step of
+5. **Default tuning.** Proposal for `34`: a bump test in the compiled model at run start (a 10 % step of
    the actuator, a first-order-plus-dead-time fit by Smith's two-point method), then Skogestad's SIMC
    rules with τc = θ — `band` from Kc = (1/k)·τ/(τc + θ), `ti` = min(τ, 8θ) but never shorter than the
    actuator's stroke time, `td` = the sensor's lag; for `onoff`, the differential that keeps the cycle at
@@ -665,6 +669,6 @@ shows what the records say.
    left out defaults to the design solve's value at the sensor; a valve's stroke defaults to 90 s (Belimo's
    globe-valve default). This replaces `34`'s current rule, whose "half the ultimate gain" is taken from a
    steady gain and has no source. It is `34`'s to decide, with P6.3.
-8. **Check-only cases** (`check = [extreme]`: solved and reported, never sized for), and a labelled list
+6. **Check-only cases** (`check = [extreme]`: solved and reported, never sized for), and a labelled list
     form (`[winter: 85, mild: 70]`) for files with many cases. Recommendation: later, neither is needed
     for the first version.

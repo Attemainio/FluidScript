@@ -1665,8 +1665,9 @@ that governed each size. What P6.8 still owes, and what comes after:
     beside the first: blocks, `name = value`, circuits as blocks, ports inferred from flow direction, cases with drivers
     and curves that name them, one-declaration controllers with a type, and runs. Package 1, the spec
     ([`19`](10-language/19-fluidscript-2.md)), was reviewed by the user and accepted with two more decisions: exact
-    names only (`D-170`) and presentation in the project block, overridable per circuit (`D-171`); eight questions stay
-    open in `19`. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
+    names only (`D-170`) and presentation in the project block, overridable per circuit (`D-171`); then `K` as a
+    temperature difference in language 2 (`D-172`), and case-insensitive registry names confirmed as already true
+    (`D-15`'s first stage, kept by `D-170`). Six questions stay open in `19`. `P6.11` runs before P6.3, since `D-168` changes how a controller is written. The review's silent
     wrong answers in language 1 (a misspelt `haed=15` binding as `head`, `setpoint=20 kPa` on a temperature loop, extra
     `control` arguments dropped, `power=30000` read as 30 MW with no warning, spaces around `=` losing a declaration,
     and more) are **not filed yet**: the user has not decided whether to file them.

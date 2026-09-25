@@ -214,6 +214,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-169` | Accepted | 2026-09-25 | A language 2 run is a block that says where it starts, how long it runs and what happens when |
 | `D-170` | Accepted | 2026-09-25 | Language 2 binds a name only by its exact spelling |
 | `D-171` | Accepted | 2026-09-25 | Language 2 declares presentation once in the project block, and a circuit may override it |
+| `D-172` | Accepted | 2026-09-25 | In language 2, `K` is a temperature difference |
 <!-- index:end -->
 
 ---
@@ -7735,3 +7736,29 @@ shares, and one override where a circuit differs, says the same with nothing dep
 what a circuit looks like.
 
 **Constrains.** `19` §Presentation, §The project block; the language 2 translation (style per circuit).
+
+## D-172 · In language 2, `K` is a temperature difference
+
+**Accepted · 2026-09-25** · for language 2 only; amends there `D-26`'s reading of `K` · the user's choice
+
+**What was wrong.** `D-26` makes `K` an absolute temperature and spells a difference `dK` or `dC`, so a unit's
+meaning never depends on where it is used. That rule is sound, but its spelling is not the one engineers write: a
+proportional band, a supply–return split, an approach are stated in kelvin (`20 K`) throughout EN standards and ISO
+80000-5, and `dK` appears nowhere outside this project. Language 1 answers `band = 20 K` with `FS1303`, and a user
+who reads the fix learns a notation that exists only here.
+
+**The rule.** In language 2 a quantity whose whole unit is `K` is a `TemperatureDelta`, as `dK` is. `C` and `°C`
+stay absolute temperatures, and `dK` and `dC` stay accepted as differences. An absolute temperature in kelvin is
+not writable in language 2: no plant input needs one, and `300 K` on a temperature is a dimension error whose fix
+is `°C`. A compound unit that contains a `K` (`kJ/(kg*K)`, `W/(m2*K)`) is its own spelling in the unit table and is
+unchanged. The meaning stays context-free — `K` has one reading per language, decided by the version line, never by
+use.
+
+**Why.** It is the notation the target users already write, and it keeps `D-26`'s one property that matters: a unit
+means the same thing wherever it stands. Nothing is lost that language 2 can say, since `°C` covers every absolute
+temperature a plant has. **Alternative:** keep `D-26` in both languages — one rule for both, but language 2 exists
+to be the language people write without learning it first, and `dK` is the clearest case of the opposite.
+
+**Constrains.** `19` §Values, units, lists and ranges; `13` (the reading of `K`, for language 2); the language 2
+translation, which hands the binder `K` as a difference; the diagnostics audit (`FS1303` is never raised in
+language 2).
