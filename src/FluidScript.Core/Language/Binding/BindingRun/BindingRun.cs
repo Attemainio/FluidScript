@@ -477,6 +477,14 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             built[i] = new DiagnosticArgument(arguments[i].Name, arguments[i].Value);
         }
 
+        var diagnostic = Diagnostic.Create(descriptor, span, built);
+
+        // A value evaluated once per case reports the same mistake once, not once per case.
+        if (_case is not null && Reported(diagnostic))
+        {
+            return;
+        }
+
         foreach (var (argumentName, value) in arguments)
         {
             if (argumentName is "name" or "node" or "component")
@@ -486,7 +494,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             }
         }
 
-        var diagnostic = Diagnostic.Create(descriptor, span, built);
         _diagnostics.Add(suggestion is null ? diagnostic : diagnostic with { Suggestion = suggestion });
     }
 

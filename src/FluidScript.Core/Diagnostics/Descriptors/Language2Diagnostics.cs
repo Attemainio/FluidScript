@@ -130,8 +130,20 @@ public static class Language2Diagnostics
         DiagnosticSeverity.Info,
         "'{component}' is wired as {wiring}.");
 
+    /// <summary>A curve whose driver is neither a <c>let</c> nor the clock.</summary>
+    /// <value><c>FS1811</c>, an error.</value>
+    /// <remarks>
+    /// <c>D-167</c>: language 2 has no registered drivers and no <c>design</c> line, so a name a curve is driven by
+    /// is a <c>let</c> with one value per case, or <c>time</c>. The curve binds and has no value; a static
+    /// parameter reading it is <c>FS1528</c> as in language 1.
+    /// </remarks>
+    public static DiagnosticDescriptor CurveDriverNotALet { get; } = new(
+        "FS1811",
+        DiagnosticSeverity.Error,
+        "'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.");
+
     /// <summary>Gets every code language 2's parser and translation emit, for the registry to collect.</summary>
-    /// <value>Eleven descriptors. Order does not matter; the registry sorts.</value>
+    /// <value>Twelve descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
         InconsistentIndentation,
@@ -145,5 +157,6 @@ public static class Language2Diagnostics
         PortNotInferred,
         ValveFunctionContradicted,
         PortsInferred,
+        CurveDriverNotALet,
     ];
 }

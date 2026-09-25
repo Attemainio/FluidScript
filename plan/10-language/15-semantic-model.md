@@ -1023,6 +1023,15 @@ nothing interpolates between them. It is not a solve mode either — a file with
 `design`'s scenario. What consumes the list is the sizing pipeline in
 [`24`](../20-core-domain/24-auto-sizing.md) §Sizing over scenarios.
 
+**A driver, in language 2** (`D-167`, [`19`](19-fluidscript-2.md) §Drivers and cases). A `let` may be a
+list, one value per case, and a curve may name that `let` as its driver. Step 5 evaluates the design case
+with each driver at its design element, then walks the same dependency order once for every other case
+over only the values that read a driver, and publishes what each parameter came to in
+`ParameterValue.Scenarios` — where a list written on the parameter puts it. A parameter pinned to a curve
+of a driver is therefore, from sizing onward, indistinguishable from one written as a list. Language 1
+cannot write either shape: a list on a `let` is `FS1104` at the parser, and a curve's driver resolves as
+above, never to a `let`.
+
 ## Error cases
 
 | Code | Trigger | Severity | Message shape |

@@ -311,7 +311,11 @@ curve heat_demand: outdoor
 
 The first column is read in the **driver's** unit (−26 means −26 °C because `outdoor` is a
 temperature); the second takes the unit of **the parameter that uses the curve** (`D-57`, unchanged: a
-curve has no dimension of its own). `extrapolated` and `format="…"` follow the driver as in language 1
+curve has no dimension of its own). The driver's unit is the one written on the `let`: `let production =
+[2, 3] m3/h` puts the rows in m³/h, not in the l/s a bare flow means. A `let` that writes no single unit
+(`let supply = outdoor + 2 K`) is read in its dimension's canonical unit (`13`), as language 1 reads a
+`design` value. This project's reasoning: the rows sit beside the `let` and are read against what it
+says. A test pins it (`ADriversRowsAreInTheUnitItIsWrittenIn`). `extrapolated` and `format="…"` follow the driver as in language 1
 (`D-60`); without `extrapolated` a driver outside the rows clamps to the end row, and the report says
 so.
 
@@ -321,7 +325,17 @@ constraint, exactly as a number would be (`D-02`). In a run, a driver overridden
 moves every curve of that driver with the clock (`D-149`'s composition, unchanged).
 
 A value that varies per case and follows no curve is a list on the parameter itself:
-`secondary.out.t = [60, 50] C`.
+`secondary.out.t = [60, 50] C`. Anything that reads a driver varies with it — a curve, another `let`
+(`let double = rise * 2`), a parameter — and is evaluated once per case. A driver whose list does not
+have one value per case is `FS1540` (or `FS1541` with no `cases`), and its first case's value, or the
+last it has, stands for every case: binding it to nothing would make every curve of it `FS1528` too.
+
+**How the binder holds it** (package 3c): the ordinary evaluation is the design case's, with each driver
+at its design element. Each other case then re-evaluates, in the same dependency order, only the values
+that differ between cases, and a parameter that reads a driver carries its value in every case beside
+its own — exactly where language 1's `power = [30, 10]` puts it — so sizing, the projection onto one
+case and the solvers read a driver as they read a list, and nothing past the binder changed. A mistake
+made in every case (a negative `dt`) is reported once.
 
 **There is no `design`.** Sizing already covers every case (`D-143`: each size is taken from the case
 that demands most, and every case is checked against it); which case the canvas shows is chosen in the
@@ -659,7 +673,9 @@ shows what the records say.
       `Language2TranslatorTests`; the shapes are a valve with one stream each way, a valve with three
       inflows, a third pass through an exchanger and a second inflow into a pump).
 - [ ] `FS1803`: `A - B - C 12 m DN25` is refused, `A - B 12 m DN25` binds as one 12 m pipe.
-- [ ] The worked example's per-case values (70.9 °C, 44.3 kW, 38.9 °C) are asserted.
+- [ ] The worked example's per-case values (70.9 °C, 44.3 kW, 38.9 °C) are asserted. (Package 3c:
+      70.9 °C and 44.3 kW, `Language2TranslatorTests`; 38.9 °C is the controller's setpoint and waits on
+      3d.)
 - [ ] A controller of each type binds; each `FS1808` and `FS1809` shape is refused; `FS1810` is raised
       for every type the solver does not run.
 - [ ] A run binds to the settings and events `33` reads; a one-valued `over` is `FS1807`.

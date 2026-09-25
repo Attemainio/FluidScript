@@ -136,7 +136,7 @@ internal sealed partial class BindingRun
         var id = new ValueId.Let(name);
         _bindingsByName[name] = new BindingSlot(let, id);
         _graph.Add(id);
-        _pending[id] = new PendingValue(let.Value, id, let.Span, null);
+        _pending[id] = new PendingValue(let.Value is ScenarioListSyntax cases ? DeclareCases(name, id, cases, let.Span) : let.Value, id, let.Span, null);
     }
 
     private void DeclareComponent(ComponentDeclarationSyntax declaration, string circuitName)

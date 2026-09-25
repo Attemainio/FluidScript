@@ -146,7 +146,9 @@ internal sealed partial class BindingRun
             ? Number(new ValueId.SizingPoint(component, key), stated.Role)
             : curve.DriverKind == CurveDriverKind.Curve
                 ? CurveAt(driver, component, point, depth + 1)
-                : DesignNumber(key);
+                : curve.DriverKind == CurveDriverKind.Let
+                    ? LetNumber(driver)
+                    : DesignNumber(key);
 
         return x is { } at ? curve.Evaluate(at) : null;
     }

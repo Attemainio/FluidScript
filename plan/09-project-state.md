@@ -1717,7 +1717,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     worked example, line for line. **For package 4:** an exchanger's `power` is side 1's heat, so a district
     substation declared in the district circuit (primary = the water that cools) takes `power = -150 kW`; stated
     positive it is `FS2119`, whose message says "side 1" and `in.t`, language 1's words. Still reported by the
-    reference script: the per-case `let` and its curves (3c), the controller and `stroke` (3d). Next: slice 3c.
+    reference script: the per-case `let` and its curves (3c), the controller and `stroke` (3d).
+  - **`P6.11` package 3, slice 3c (2026-09-25): cases and drivers.** A `let` written as a list is a driver, and a
+    curve names it (`D-167`); any other language 2 driver is `FS1811`. The binder evaluates the design case as
+    before, then walks the same dependency order once per other case over only what reads a driver, and publishes
+    each case's value in `ParameterValue.Scenarios` -- where `D-143`'s lists already put one -- so sizing and the
+    projection onto a case needed no change (`15` §Scenarios, `19` §Drivers and cases). A curve's rows are read in
+    the unit written on its `let` (`[2, 3] m3/h` in m³/h), this project's reasoning, recorded in `19`. A mistake made
+    in every case is reported once (checked: without the de-duplication `dt = [-5, -5] K` is two `FS1307`s).
+    **Measured:** the reference script's mild case gives `NPS.t` 70.9 °C and `RAD.power` 44.3 kW, `19`'s worked
+    example; a language 2 loop whose load follows a curve of `outdoor` sizes at 0.239 kg/s (winter, 30 kW over
+    30 K) and solves mild at 0.0707 kg/s (8.86 kW), both converged. The reference script now reports only 3d's
+    errors (the controller's parameters, `stroke`). **For package 4:** `FS1540`/`FS1541` tell a language 2 file to
+    add `scenarios <name> <name>` and `FS1528` to add `design {driver}=…`, language 1's statements. Next: slice 3d.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

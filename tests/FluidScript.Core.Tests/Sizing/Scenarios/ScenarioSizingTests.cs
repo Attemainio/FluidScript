@@ -2,6 +2,9 @@ using FluidScript.Core.Catalogs.Pipes;
 using FluidScript.Core.Components;
 using FluidScript.Core.Diagnostics.Explanations;
 using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Compatibility;
+using FluidScript.Core.Language.Registry;
+using FluidScript.Core.Language.Syntax.Text;
 using FluidScript.Core.Physics.Fluids.Substances;
 using FluidScript.Core.Primitives;
 using FluidScript.Core.Sizing;
@@ -192,6 +195,50 @@ public sealed class ScenarioSizingTests
         Assert.True(
             (winter.Value.Sizes.For("HE1", "flow") ?? 0) < 1.3,
             $"winter alone wanted {winter.Value.Sizes.For("HE1", "flow")} kg/s, so the two cases do not disagree");
+    }
+
+    /// <summary>
+    /// A language 2 driver reaches sizing as a list would (<c>D-167</c>): the demand curve read at −26 °C is
+    /// 30 kW, so 30 000 / (4180 × 30) = 0.239 kg/s; at 5 °C it is 30 − 31 × 30/44 = 8.86 kW, so 0.0707 kg/s.
+    /// Measured 2026-09-25: 0.2392 and 0.0707 kg/s, both cases converged, the flow governed by winter.
+    /// </summary>
+    [Fact]
+    public async Task ADriverSizesEachCaseAtItsOwnValue()
+    {
+        var source = new SourceText("""
+            fluidscript 2
+            project "p":
+              cases = [winter, mild]
+
+            let outdoor = [-26, 5] C
+
+            curve heat_demand: outdoor
+              -26   30
+               18    0
+
+            circuit "simpleLoop":
+              fluid = water
+              HE1  heat_exchanger  power = heat_demand   in.t = 20   out.t = 50
+              LOAD heat_exchanger  power = -heat_demand  dp = 0
+              CV1  valve
+              PU1  pump
+              N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+              N5 - N1   25 m
+            """);
+        var bound = new Binder(ComponentRegistry.Default).Bind(
+            MajorParser.Parse(source, ScriptCompatibility.Inspect(source).DetectedMajor, ComponentRegistry.Default), "script");
+
+        var result = await ScenarioSizing.SizeAsync(Loop(), bound.Model, Water.Instance, "scenarios", TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.All(result.Value.Operating, static s => Assert.True(s.Result.Solve.Converged));
+        Assert.Equal(0.2392, result.Value.Sizes.For("HE1", "flow") ?? 0, 3);
+        Assert.Equal("winter", result.Value.Governing[Ownership.Key("HE1", "flow")]);
+
+        var mild = await Loop().RunAsync(ScenarioProjection.Project(bound.Model, 1), Water.Instance, "mild", TestContext.Current.CancellationToken);
+
+        Assert.True(mild.IsSuccess, mild.Error?.Message);
+        Assert.Equal(0.0707, mild.Value.Sizes.For("HE1", "flow") ?? 0, 3);
     }
 
     [Fact]

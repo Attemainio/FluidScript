@@ -210,6 +210,12 @@ internal sealed partial class BindingRun
             return curve with { DriverKind = CurveDriverKind.Time };
         }
 
+        // Language 2 has no roles and no `design`: a driver is a `let` or the clock (`D-167`).
+        if (parse.Language == 2)
+        {
+            return DriverLet(curve, driver);
+        }
+
         var role = ScheduleRoleRegistry.Resolve(driver);
         var key = role?.CanonicalName ?? driver;
 
@@ -282,6 +288,11 @@ internal sealed partial class BindingRun
         if (curve.DriverName is not { } driver)
         {
             return null;
+        }
+
+        if (curve.DriverKind == CurveDriverKind.Let)
+        {
+            return LetNumber(driver);
         }
 
         if (DesignNumber(curve.DriverRole?.CanonicalName ?? driver) is { } stated)

@@ -282,7 +282,14 @@ internal sealed partial class BindingRun
             yield return parameter.Value;
         }
 
-        if (statement is LetBindingSyntax let)
+        if (statement is LetBindingSyntax { Value: ScenarioListSyntax cases })
+        {
+            foreach (var element in cases.Elements)
+            {
+                yield return element.Value;
+            }
+        }
+        else if (statement is LetBindingSyntax let)
         {
             yield return let.Value;
         }

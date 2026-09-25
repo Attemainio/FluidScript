@@ -22,4 +22,7 @@ public enum CurveDriverKind
     /// <c>FS1527</c>.
     /// </remarks>
     DesignOnly,
+
+    /// <summary>A <c>let</c>, read at its value in each case (<c>D-167</c>). Language 2 only.</summary>
+    Let,
 }

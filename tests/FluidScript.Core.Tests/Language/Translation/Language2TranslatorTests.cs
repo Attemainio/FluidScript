@@ -513,6 +513,159 @@ public sealed class Language2TranslatorTests
         Assert.Equal("'PU1' cannot take this connection: a pump has one inlet, and it is already connected. Name the port, such as 'PU1.in'.", diagnostic.Message);
     }
 
+    // ---- cases and drivers ----------------------------------------------------------------------
+
+    /// <summary>A parameter's value in every case, in case order.</summary>
+    private static double[] Cases(BindResult result, string component, string parameter) =>
+        [.. Component(result, component).Parameters[parameter].Scenarios.Select(static e => e.Value!.Value.SiValue)];
+
+    private const string Substation = """
+        fluidscript 2
+        project "p":
+          cases = [winter, mild]
+
+        let outdoor = [-26, 5] C
+
+        curve district_supply: outdoor
+          -26   85
+           18   65
+
+        curve heat_demand: outdoor
+          -26   150
+           18     0
+
+        circuit "c":
+          fluid = water
+          NPS inlet     t = district_supply  p = 600 kPa
+          NPR outlet    p = 350 kPa
+          RAD radiator  power = heat_demand
+          NPS - RAD
+          RAD - NPR
+        """;
+
+    /// <summary><c>19</c>'s worked example: at 5 °C outside the supply is 85 − 31 × 20/44 and the demand 150 − 31 × 150/44.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ACurveOfADriverIsReadAtEachCasesValue()
+    {
+        var result = Clean(Substation);
+
+        var supply = Cases(result, "NPS", "t");
+        Assert.Equal(85 + 273.15, supply[0], 9);
+        Assert.Equal(85 - (31 * 20.0 / 44) + 273.15, supply[1], 9);
+        Assert.Equal(70.9, supply[1] - 273.15, 1);
+
+        var demand = Cases(result, "RAD", "power");
+        Assert.Equal(150_000, demand[0], 6);
+        Assert.Equal(44.3, demand[1] / 1000, 1);
+
+        // The design case is the parameter's own value, and what reads no driver carries no cases.
+        Assert.Equal(358.15, Stated(result, "NPS", "t").SiValue, 9);
+        Assert.Empty(Component(result, "NPS").Parameters["p"].Scenarios);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ProjectingOntoACaseGivesThatCasesValue()
+    {
+        var model = ScenarioProjection.Project(Clean(Substation).Model, 1);
+        var radiator = Assert.Single(model.Components, static c => c.Name == "RAD");
+
+        Assert.Equal(44.3, radiator.Parameters["power"].Value!.Value.SiValue / 1000, 1);
+    }
+
+    /// <summary>The rows are read in the unit the driver is written in: 2 m³/h is row 2, not 0.56 l/s clamped to the first.</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ADriversRowsAreInTheUnitItIsWrittenIn()
+    {
+        var result = Clean("""
+            fluidscript 2
+            project "p":
+              cases = [low, high]
+            let production = [2, 3] m3/h
+            curve lift: production
+              2   10
+              4   20
+            circuit "c":
+              fluid = water
+              PU1 pump  head = lift
+              N1 - PU1 - N1
+            """);
+
+        Assert.Equal([10, 15], Cases(result, "PU1", "head"));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ALetThatReadsADriverVariesWithIt()
+    {
+        var result = Clean("""
+            fluidscript 2
+            project "p":
+              cases = [winter, mild]
+            let rise   = [10, 20] K
+            let double = rise * 2
+            circuit "c":
+              fluid = water
+              HE1 heat_exchanger  power = 30  dt = double
+              PU1 pump
+              N1 - PU1 - HE1 - N1
+            """);
+
+        Assert.Equal([20, 40], Cases(result, "HE1", "dt"));
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMistakeInEveryCaseIsReportedOnce() =>
+        Only("""
+            fluidscript 2
+            project "p":
+              cases = [winter, mild]
+            let rise = [-5, -5] K
+            circuit "c":
+              fluid = water
+              HE1 heat_exchanger  power = 30  dt = rise
+              PU1 pump
+              N1 - PU1 - HE1 - N1
+            """, "FS1307");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ADriverWithTheWrongNumberOfCasesIsFS1540() =>
+        Only("""
+            fluidscript 2
+            project "p":
+              cases = [winter, mild]
+            let outdoor = [-26, 5, 10] C
+            curve heat_demand: outdoor
+              -26   150
+               18     0
+            circuit "c":
+              fluid = water
+              RAD radiator  power = heat_demand
+              PU1 pump
+              N1 - PU1 - RAD - N1
+            """, "FS1540");
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ACurveDrivenByNeitherALetNorTimeIsFS1811()
+    {
+        var diagnostic = Only("""
+            fluidscript 2
+            curve heat_demand: tout
+              -26   150
+               18     0
+            circuit "c":
+              fluid = water
+              N1 - N2
+            """, "FS1811");
+
+        Assert.Equal("'heat_demand' is driven by 'tout', which is not a let. Write 'let tout = [...]' with one value per case, or drive it by time.", diagnostic.Message);
+    }
+
     // ---- names ----------------------------------------------------------------------------------
 
     [Fact]

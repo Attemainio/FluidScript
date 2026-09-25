@@ -26,14 +26,23 @@ internal sealed partial class BindingRun
                 pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
             _evaluating = pending.Id;
             evaluator.Evaluate(pending.Expression);
+            var dependencies = evaluator.Dependencies;
+
+            // A `let` written per case reads what every one of its cases reads (`D-167`).
+            foreach (var other in _caseExpressions.GetValueOrDefault(pending.Id, []))
+            {
+                evaluator.Evaluate(other);
+                dependencies = dependencies.Union(evaluator.Dependencies);
+            }
+
             _evaluating = null;
 
             // Kept on the pending value as well, so a later pass can ask what an expression read
             // without evaluating it a third time. That is how a curve reference is found again at the
             // site that made it, which is where reading one has to be reported.
-            pending.Dependencies = evaluator.Dependencies;
+            pending.Dependencies = dependencies;
 
-            foreach (var dependency in evaluator.Dependencies)
+            foreach (var dependency in dependencies)
             {
                 _graph.AddDependency(pending.Id, dependency);
             }
@@ -98,6 +107,7 @@ internal sealed partial class BindingRun
             }
         }
 
+        EvaluateCases(order);
         Publish();
     }
 
@@ -330,8 +340,11 @@ internal sealed partial class BindingRun
                             continue;
                         }
 
-                        if (_pending.TryGetValue(new ValueId.ScenarioParameter(component.Name, canonical, slot), out var each)
-                            && each.Value is { } settled)
+                        var element = new ValueId.ScenarioParameter(component.Name, canonical, slot);
+
+                        // An element that reads a driver was evaluated again in its own case (`D-167`).
+                        if (_pending.TryGetValue(element, out var each)
+                            && (_caseValues.TryGetValue((element, slot), out var inCase) ? inCase : each.Value) is { } settled)
                         {
                             elements[slot] = elements[slot] with { Value = settled };
 
@@ -342,6 +355,10 @@ internal sealed partial class BindingRun
                     }
 
                     bound = bound with { Scenarios = elements.ToImmutable() };
+                }
+                else if (_varying.Contains(id))
+                {
+                    bound = WithCases(component, canonical, bound, id);
                 }
 
                 if (!ReferenceEquals(bound, value))

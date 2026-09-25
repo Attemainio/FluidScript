@@ -5207,6 +5207,16 @@
       ]
     },
     {
+      "code": "FS1811",
+      "severity": "error",
+      "area": "Language2",
+      "message": "'{curve}' is driven by '{driver}', which is not a let. Write 'let {driver} = [...]' with one value per case, or drive it by time.",
+      "arguments": [
+        "curve",
+        "driver"
+      ]
+    },
+    {
       "code": "FS1812",
       "severity": "error",
       "area": "Language2",
