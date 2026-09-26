@@ -138,7 +138,7 @@ describe('hover, selection and the log (P5.8)', () => {
     expect(container.querySelector('.scene__symbol--selected')?.getAttribute('data-id')).toBe(
       'PU1',
     );
-    expect(container.querySelector('.cm-selected-declaration')?.textContent).toContain('PU1 pump');
+    expect(container.querySelector('.cm-selected-declaration')?.textContent).toContain('PU1  pump');
   });
 
   it('selects from the canvas with click and Shift+click, and clears with Escape', async () => {
@@ -159,7 +159,8 @@ describe('hover, selection and the log (P5.8)', () => {
   it('selects on canvas when the caret lands on a declaration (54: bidirectional)', async () => {
     await compileWith([]);
     const view = activeEditorView()!;
-    const at = view.state.doc.toString().indexOf('3WV three_way_valve');
+    const at = view.state.doc.toString().indexOf('3WV  three_way_valve');
+    expect(at).toBeGreaterThan(-1);
     act(() => view.dispatch({ selection: { anchor: at + 2 } }));
     expect(useSelectionStore.getState().selected.d1).toEqual(['3WV']);
     expect(useSelectionStore.getState().origin.d1).toBe('editor');

@@ -21,7 +21,8 @@ namespace FluidScript.Fixtures;
 /// <para>
 /// A block written in language 2 says so too, <c>```fluidscript lang=2</c>, because most blocks are fragments
 /// with no version line to tell (<c>plan/10-language/19-fluidscript-2.md</c>). Its <c>expects=</c> is what
-/// language 2's parser produces; language 1's tests leave it out.
+/// language 2's parser produces; language 1's tests leave it out. A block marked <c>lang=1</c> is language 1 kept
+/// as a record (<c>12</c>, <c>17</c>) and is not read at all.
 /// </para>
 /// </remarks>
 public static class ScriptCorpus
@@ -197,6 +198,12 @@ public static class ScriptCorpus
             if (attribute == "lang=2")
             {
                 language = 2;
+            }
+            else if (attribute == "lang=1")
+            {
+                // Language 1 kept as a record -- `12`'s grammar, `17`'s examples -- once `P6.11` made language 2
+                // the product's (`D-174`): read by no parser the product ships, so not a script to check.
+                return false;
             }
             else if (attribute.StartsWith(Expects, StringComparison.Ordinal))
             {

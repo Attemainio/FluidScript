@@ -35,30 +35,31 @@ production; this document specifies it), the base palette
 ([`21-fluid-and-state`](../20-core-domain/21-fluid-and-state.md),
 [`22-component-model`](../20-core-domain/22-component-model.md)).
 
-## The `show` directive
+## The `show` setting
 
-```fluidscript
-circuit coolingLoop
-fluid dynamic water
-show temperature                 # colour everything by temperature
+```fluidscript lang=2
+project:
+  show = temperature                    # colour everything by temperature
 ```
 
 ```ebnf
-show-directive = "show" , property-name , { property-name } ;
-property-name  = identifier ;
+show-setting  = "show" , "=" , ( property-name | "[" , property-name , { "," , property-name } , "]" ) ;
+property-name = identifier ;
 ```
 
-**One directive, one or more properties.** The first is the active scale; the rest are alternatives the
+It sits in the project block (`D-171`; language 1 wrote `show temperature pressure` as a line of its own).
+
+**One setting, one or more properties.** The first is the active scale; the rest are alternatives the
 UI offers as a quick switch without recompiling. Writing several is how a user says "these are the
 views I care about for this model".
 
-`show` with no properties, or no `show` at all, defaults to `temperature` — the property a designer
+No `show` at all defaults to `temperature` — the property a designer
 looks at first, and the one that makes a hydronic diagram immediately legible.
 
 ### Property names and aliases
 
-Both a long name and a short one, because the language trades on density and `show t` is what someone
-will type. The names are the language's, not this document's: `D-120` made the quantities of a
+Both a long name and a short one, because the language trades on density and `show = t` is what
+someone will type. The names are the language's, not this document's: `D-120` made the quantities of a
 state one table, `PropertyTable` ([`13`](../10-language/13-type-and-unit-system.md)), read by a port's
 state (`in[2].t`), a reference (`HX1.in[2].t`) and `show` alike. The short form is the symbol that
 table makes canonical; `show` accepts every spelling in it and the wire carries the long name.

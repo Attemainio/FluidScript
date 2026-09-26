@@ -212,8 +212,9 @@ projection of a contract that is already recomputed.
 The equipment model, the notes, and the electrical supply data are written **in the script**, on the
 component, and edited from the panel through `R-25`'s existing write-back:
 
-```fluidscript
-PU_RAD pump head=4.5 model="Grundfos Magna3 32-100" power_supply="230 V" p_el=0.18
+```fluidscript lang=2
+circuit "radiators":
+  PU_RAD  pump  head = 4.5  model = "Grundfos Magna3 32-100"  power_supply = "230 V"  p_el = 0.18
 ```
 
 One source of truth, so the data survives save and reopen, reaches static export and the report

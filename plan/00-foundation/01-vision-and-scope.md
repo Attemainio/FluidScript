@@ -167,26 +167,33 @@ or validated before the solve it wraps is trustworthy.
 
 The brief's own script, and what each requirement demands of it:
 
-```fluidscript
-fluidscript 1
-circuit coolingLoop                       # R-01: declarative block
-fluid dynamic water                       # R-12: `dynamic` selects the transient model
-style blue 2px fillet --                  # R-26: presentation is in the script, not a side file
+```fluidscript lang=2
+fluidscript 2
 
-HE1 heat_exchanger power=30 in.t=20 out.t=50  # R-04: 30 kW, 20 °C, 50 °C by parameter kind
-3WV three_way_valve                       # R-02: no parameters at all — size it
-PU1 pump                                  # R-02 + R-14: head derived from the loop it sits in
+circuit "coolingLoop":                    # R-01: declarative block
+  fluid = water
+  role  = cooling
+  style:                                  # R-26: presentation is in the script, not a side file
+    colour = blue
+    width  = 2
+    corner = fillet
+    line   = dashed
 
-connections
-N1 - N2                                   # R-06: N1 and N2 are never declared; they are inferred
-N2 - HE1
-HE1 - 3WV
-3WV - N2
-3WV - N3                                  # R-06: N3 is an open port; it gets a terminating node
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50   # R-04: 30 kW, 20 °C, 50 °C by parameter kind
+  3WV  three_way_valve                    # R-02: no parameters at all — size it
+  PU1  pump                               # R-02 + R-14: head derived from the loop it sits in
+
+  N1 - N2                                 # R-06: N1 and N2 are never declared; they are inferred
+  N2 - HE1
+  HE1 - 3WV.ab
+  3WV.b - N2                              # b, the bypass, as a valve body is labelled (D-175)
+  3WV.a - N3                              # R-06: N3 is an open port; it gets a terminating node
+
+run "Transient":                          # R-12: a run plays the model in time
 ```
 
-Reading it top to bottom: the version directive plus seven model statements produce a topology with
-a sized valve and a rendered diagram. The disconnected pump and ideal links cannot create a physical
+Reading it top to bottom: a version line, one circuit and a run produce a topology with a sized
+valve and a rendered diagram. The disconnected pump and ideal links cannot create a physical
 head or pipe size; diagnostics say so. That density is the product.
 Any proposed syntax change should be measured against whether this example gets longer.
 
@@ -229,7 +236,7 @@ names components, sizes them, or reports temperatures, it is a circuit and `D-11
 | **Substation** — a two-sided plate exchanger between two circuits | `samples/m2-substation.fluid` | thermal rating, two-sided sizing, coupled circuits |
 | **Demand-step loop** — the cooling loop in time, with a controller | `samples/m4-demand-step.fluid` | transient, controllers, streaming, playback |
 | **Storage header** — two source boundaries, a stratified tank, and two consumer boundaries | `samples/m4-storage-header.fluid` | tank physics, indexed ports, thermal ordering, multiple sources/consumers |
-| **Distribution header** — one heating circuit with two subcircuits on a shared supply/return pair | `samples/m2-distribution-header.fluid` | several circuits, attachment, header layout, per-circuit tag ordinals |
+| **Distribution header** — one heating circuit with two subcircuits on a shared supply/return pair | `samples/m2-distribution-header.fluid` | several circuits, links across circuits, header layout, per-circuit tag ordinals |
 
 Six are needed because they answer different questions. The cooling loop is the interesting
 *topology* — a junction, a bypass, a three-port component, mixed temperatures — and it is what the
@@ -241,7 +248,7 @@ substation adds the two things a single circuit cannot show: **a component with 
 and **two hydraulic circuits solved together** (`D-17`, `D-18`). The storage header adds an intentional
 thermal capacitance, several connections on one component, and parallel source/consumer groups
 (`D-32`). The distribution header is the only one with **more than one circuit**, which is what
-`D-33`'s numbering and attachment, `D-34`'s per-circuit tag ordinals and `D-38`'s header layout are
+`D-33`'s numbering, links across circuits, `D-34`'s per-circuit tag ordinals and `D-38`'s header layout are
 all measured against; every other fixture has exactly one circuit and can exercise none of them.
 
 The intended whole-plant reading is:
@@ -258,41 +265,48 @@ a ground circuit remains grouped on the left of the conversion stage (`D-31`).
 
 #### The cooling loop — topology reference
 
-```fluidscript
-fluidscript 1
-circuit coolingLoop
-fluid water
-style blue 2px fillet --
-show temperature
+```fluidscript lang=2
+fluidscript 2
 
-HE1 heat_exchanger power=30 in.t=20 out.t=50
-3WV three_way_valve
-PU1 pump
+project:
+  show = temperature
 
-connections
-N1 - N2                      # primary supply into the mixing node
-N2 - PU1                     # the secondary pump drives the loop
-PU1 - HE1
-HE1 - 3WV
-3WV - N2                     # recirculation branch — closes the secondary loop
-3WV - N3 length=25           # primary return: the line carries its pipe's properties (D-110)
+circuit "coolingLoop":
+  fluid = water
+  role  = cooling
+  style:
+    colour = blue
+    width  = 2
+    corner = fillet
+    line   = dashed
 
-N1 inlet t=6 p=300          # primary-side boundary: fluid enters here
-N3 outlet p=280              # and leaves here
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+
+  N1 - N2                     # primary supply into the mixing node
+  N2 - PU1                    # the secondary pump drives the loop
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2                    # recirculation branch — closes the secondary loop
+  3WV - N3   25 m             # primary return: the link carries its pipe's properties (D-110)
+
+  N1  inlet   t = 6  p = 300  # primary-side boundary: fluid enters here
+  N3  outlet  p = 280         # and leaves here
 ```
 
 Changes from the syntax reference, each with a reason: **`PU1` is wired into the secondary loop**,
-between `N2` and `HE1`; **the primary return carries `length=25` on its connection line** (`D-110`:
+between `N2` and `HE1`; **the primary return carries `25 m` at the end of its link** (`D-110`:
 the connection lowers to an implicit pipe, `3WV__N3`) — 25 metres under `D-14`, since a
 bare `Length` is SI — without which the pipe sizing rule in [`24`](../20-core-domain/24-auto-sizing.md)
 has no physical path length;
 **`N1` and `N3` carry boundary conditions**, making the primary side a real source and sink rather
-than dead ends; and **`fluid water`** rather than `dynamic`, since M2 is the steady-state milestone —
-the transient version is the demand-step loop below.
+than dead ends; and **no `run`**, since M2 is the steady-state milestone — the transient version is
+the demand-step loop below.
 
-**The boundary lines are ordinary declarations**, written below the connections by convention rather
-than by rule ([`12-grammar`](../10-language/12-grammar.md)). They read as `N1 inlet t=6 p=300` rather
-than `N1 t=6 p=300` because the latter is not a statement the grammar has: its second token is a
+**The boundary lines are ordinary declarations**, written below the links by convention rather than
+by rule ([`19`](../10-language/19-fluidscript-2.md)). They read as `N1  inlet  t = 6  p = 300` rather
+than `N1  t = 6  p = 300` because the latter is not a statement the grammar has: its second word is a
 parameter name where a kind name belongs. Declaring them also means inference rule I1 does not fire
 for `N1` and `N3` — which is the honest outcome, since a node the user gave a boundary condition is a
 node the user wrote.
@@ -320,8 +334,8 @@ computed from the stated duty and temperatures alone, so they are checkable with
 |---|---|---|
 | Secondary flow (through `PU1`, `HE1`) | **0.2392 kg/s** | 30 000 W ÷ (h₅₀ − h₂₀) = 30 000 ÷ 125 411 |
 | Mixing fraction at `N2` (primary share) | **0.681** | (h₅₀ − h₂₀) ÷ (h₅₀ − h₆) = 125 411 ÷ 184 094 |
-| Primary flow (`N1 → N2`, `3WV.b → N3` through `3WV__N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
-| Recirculation flow (`3WV.a → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
+| Primary flow (`N1 → N2`, `3WV.a → N3` through `3WV__N3`) | **0.1630 kg/s** | 0.681 × 0.2392 |
+| Recirculation flow (`3WV.b → N2`) | **0.0763 kg/s** | 0.2392 − 0.1630 |
 | Primary-side duty check | **30 000 W** | 0.1630 × (h₅₀ − h₆) = 0.1630 × 184 094 |
 | `3WV__N3` sized diameter | **DN20** | 0.1649 l/s at 50 °C → 138 Pa/m, 0.45 m/s |
 
@@ -334,7 +348,7 @@ Node temperatures: `N1` 6 °C · `N2` 20 °C · `PU1__HE1` 20 °C · `HE1__3WV` 
 
 **Inference inventory**, which several documents count: **5 declared** components (`HE1`, `3WV`, `PU1`,
 and the two boundary nodes `N1` and `N3`), **1 pipe from I7** (`3WV__N3`, the return line's
-`length=25`), **1 node from I1** (`N2`, the only identifier that appears solely in `connections`),
+`25 m`), **1 node from I1** (`N2`, the only identifier that appears solely in links),
 **3 from I2** (`PU1__HE1`, `HE1__3WV`, `3WV__N3__in`), and **none from I3** — every port of every
 component is connected. **Six nodes, ten components**, five inferred, so exactly five `FS1510` entries.
 
@@ -346,19 +360,19 @@ declared `P1` here is stale.
 
 #### The simple loop — sizing and solver reference
 
-```fluidscript
-fluidscript 1
-circuit simpleLoop
-fluid water
+```fluidscript lang=2
+fluidscript 2
 
-HE1  heat_exchanger power=30 in.t=20 out.t=50
-LOAD heat_exchanger power=-30
-CV1  valve
-PU1  pump
+circuit "simpleLoop":
+  fluid = water
 
-connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
-N5 - N1 length=25
+  HE1   heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30
+  CV1   valve
+  PU1   pump
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+  N5 - N1   25 m
 ```
 
 One closed series loop: five nodes, five components, one flow. No node states a pressure, so the graph
@@ -379,33 +393,39 @@ still a correct answer and an arbitrary temperature is different physics.
 
 #### The substation — two-sided exchanger reference
 
-```fluidscript
-fluidscript 1
-circuit substation
-fluid water
-show temperature
+```fluidscript lang=2
+fluidscript 2
 
-# --- district-heating primary, 85/45 -------------------------------
-NPS inlet t=85 p=600
-NPR outlet p=350
-PCV valve
+project:
+  show = temperature
 
-# --- heating secondary, 40/60 --------------------------------------
-SP   pump
-LOAD heat_exchanger power=-150 dt=20
+circuit "substation":
+  fluid = water
 
-# --- the exchanger between them ------------------------------------
-HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
+  # --- district-heating primary, 85/45 -------------------------------
+  NPS  inlet   t = 85  p = 600
+  NPR  outlet  p = 350
+  PCV  valve
 
-connections
-NPS - PCV
-PCV - HX1.in[2] length=12
-HX1.out[2] - NPR
+  # --- heating secondary, 40/60 --------------------------------------
+  SP    pump
+  LOAD  heat_exchanger  power = -150  dt = 20
 
-HX1.out - NSUP length=30
-NSUP - LOAD - NRET
-NRET - SP length=30
-SP - HX1.in
+  # --- the exchanger between them ------------------------------------
+  HX1  heat_exchanger  power = 150  u = 3300:
+    primary.in.t    = 40
+    primary.out.t   = 60
+    secondary.in.t  = 85
+    secondary.out.t = 45
+
+  NPS - PCV
+  PCV - HX1.secondary.in   12 m
+  HX1.secondary.out - NPR
+
+  HX1.primary.out - NSUP   30 m
+  NSUP - LOAD - NRET
+  NRET - SP   30 m
+  SP - HX1.primary.in
 ```
 
 **Two hydraulic circuits, coupled only through `HX1`.** The primary is open — it enters at the
@@ -476,36 +496,39 @@ unless someone builds it otherwise, and `D-02` says an omitted parameter is a re
 
 #### The demand-step loop — transient and control reference
 
-```fluidscript
-fluidscript 1
-circuit demandStep
-fluid dynamic water
-show temperature
+```fluidscript lang=2
+fluidscript 2
 
-HE1 heat_exchanger power=30 out.t=50
-3WV three_way_valve
-PU1 pump
-P1  pipe length=25
-PB  pipe length=8 dn=20 nodes=4   # recirculation branch — the path the controller sees
-TC1 pi                            # definition: algorithm and gains (D-40)
+project:
+  show = temperature
 
-control actuate=3WV.position measure=NS.t by=TC1 setpoint=20
+circuit "demandStep":
+  fluid = water
 
-connections
-N1 - N2
-N2 - NS
-NS - PU1                     # the mixed stream, where TC1 reads it
-PU1 - HE1
-HE1 - 3WV
-3WV - PB - N2                # recirculation, now with volume in it
-3WV - P1
-P1 - N3
+  HE1  heat_exchanger  power = 30  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+  P1   pipe  length = 25
+  PB   pipe  length = 8  dn = 20  nodes = 4   # recirculation branch — the path the controller sees
+  TC1  controller:                          # one declaration: what it moves, what it reads (D-168)
+    moves    = 3WV.position
+    reads    = NS.t
+    setpoint = 20
 
-N1 inlet t=6 p=300
-N3 outlet p=280
+  N1 - N2
+  N2 - NS
+  NS - PU1                    # the mixed stream, where TC1 reads it
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - PB - N2               # recirculation, now with volume in it
+  3WV - P1
+  P1 - N3
 
-schedule
-at 60 s   HE1.power = 45
+  N1  inlet   t = 6  p = 300
+  N3  outlet  p = 280
+
+run "Transient":
+  at 60 s  HE1.power = 45
 ```
 
 **Its t = 0 state is the cooling loop's design state** (`D-141`): the `control` line's setpoint holds
@@ -517,7 +540,7 @@ Without that rule the script does not solve (measured 2026-09-22, `S-75`).
 
 **`PB` puts pipe volume on the recirculation branch.** This is the change the whole transient story
 rests on. In the cooling loop the path from `HE1` to the mixing node `N2` is
-`HE1 → HE1__3WV → 3WV.ab → 3WV.a → N2` with no declared pipe on it, so a disturbance at `HE1` reaches
+`HE1 → HE1__3WV → 3WV.ab → 3WV.b → N2` with no declared pipe on it, so a disturbance at `HE1` reaches
 `N2` within one timestep and there is no dead time to tune against. `P1` cannot supply it: `P1` sits on
 the primary *return*, downstream of `N2`, and discharges to `N3` without returning. 8 m at `nodes=4`
 gives four 2 m pipe cells inside the loop the controller actually closes around. Lowering also
@@ -531,21 +554,21 @@ significant figure of a viscosity is not a reference. Stating the size makes eve
 and checkable, and matching the recirculation branch to the path it serves is what a designer does
 anyway.
 
-**`HE1` drops `in=20`.** In the steady circuit that stated value is a constraint that promotes
+**`HE1` drops `in.t = 20`.** In the steady circuit that stated value is a constraint that promotes
 `3WV.position` into a solver unknown ([`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md))
 — the circuit is *solved* into position. `TC1` does the same job dynamically. Leaving both would mean a
 constraint and a controller fighting over one actuator, which is over-specification wearing a control
 system's clothes.
 
-**`TC1` and the `schedule` section are the two new language features M4 needs.** Both are ordinary
-statements: a controller is a component declaration whose `measure` and `actuate` parameters are
-references rather than quantities, and a disturbance is one line under a `schedule` header. Neither
-adds a statement kind ([`12-grammar`](../10-language/12-grammar.md)).
+**`TC1` and the `run` are the two language features M4 needs.** A controller is one declaration
+holding what it moves, what it reads and its setpoint (`D-168`), and a disturbance is one line of a
+`run` block, which also makes the model transient (`D-169`,
+[`19`](../10-language/19-fluidscript-2.md)).
 
 **Transport figures.** These are the numbers every transient and controller document must reproduce.
 `PB` carries the **recirculation** flow of **0.0763 kg/s** at 50 °C — not the secondary 0.2392 kg/s,
 which is the mistake to avoid, since `PB` is on the branch that returns to `N2` rather than the one that
-leaves through `3WV.b`.
+leaves through `3WV.a`.
 
 | Quantity | Value | Derivation |
 |---|---|---|
@@ -581,23 +604,36 @@ gap between them is most of what `/docs`'s tutorial has to teach.
 
 #### The storage header — tank and thermal-order reference
 
-```fluidscript
-fluidscript 1
-circuit storageHeader
-fluid dynamic water
-show temperature
+```fluidscript lang=2
+fluidscript 2
 
-S1 inlet t=60 flow=0.12
-S2 inlet t=45 flow=0.08
-T1 tank volume=300 layers=5 layer[1].t=25 layer[2].t=30 layer[3].t=40 layer[4].t=50 layer[5].t=60 in.level=90% in[2].level=30% out.level=90% out[2].level=30%
-RAD_NETWORK outlet flow=0.12
-AHU_NETWORK outlet flow=0.08
+project:
+  show = temperature
 
-connections
-S1 - T1.in
-S2 - T1.in[2]
-T1.out - RAD_NETWORK
-T1.out[2] - AHU_NETWORK
+circuit "storageHeader":
+  fluid = water
+
+  S1  inlet  t = 60  flow = 0.12
+  S2  inlet  t = 45  flow = 0.08
+  T1  tank  volume = 300  layers = 5:
+    layer[1].t = 25
+    layer[2].t = 30
+    layer[3].t = 40
+    layer[4].t = 50
+    layer[5].t = 60
+    in.level     = 90%
+    in[2].level  = 30%
+    out.level    = 90%
+    out[2].level = 30%
+  RAD_NETWORK  outlet  flow = 0.12
+  AHU_NETWORK  outlet  flow = 0.08
+
+  S1 - T1.in
+  S2 - T1.in[2]
+  T1.out - RAD_NETWORK
+  T1.out[2] - AHU_NETWORK
+
+run "Transient":
 ```
 
 This reference deliberately terminates the two sources and two heating networks at declared
@@ -632,62 +668,58 @@ the transient; only arrows and temperatures change.
 `in1`, `in2`, `out1`, and `out2` from the qualified endpoints; its other indexed ports do not exist in
 this model.
 
-#### The distribution header — multi-circuit, attachment and layout reference
+#### The distribution header — multi-circuit, cross-circuit links and layout reference
 
-The only reference circuit with more than one circuit. It exists so that `D-33`'s numbering and
-attachment, `D-34`'s per-circuit tag ordinals, `D-38`'s header layout and `D-41`'s naming rule have a
+The only reference circuit with more than one circuit. It exists so that `D-33`'s numbering, links
+across circuits, `D-34`'s per-circuit tag ordinals, `D-38`'s header layout and `D-41`'s naming rule have a
 fixture to be tested against; every other reference has exactly one circuit and exercises none of them.
 
-```fluidscript
-fluidscript 1
-project static plant_01
+```fluidscript lang=2
+fluidscript 2
 
-circuit heating 100
-fluid water
+project "plant_01":
 
-HS1     heat_exchanger power=54 out.t=60             # the plant-side source
-PU_MAIN pump
+circuit "heating":
+  fluid  = water
+  number = 100
 
-connections
-N1 - HS1 - N2 - PU_MAIN - N3
-N3 - N4                                        # supply header
-N6 - N5
-N5 - N1                                        # return header
+  HS1      heat_exchanger  power = 54  out.t = 60     # the plant-side source
+  PU_MAIN  pump
 
-N1 node p=250
+  N1 - HS1 - N2 - PU_MAIN - N3
+  N3 - N4                                  # supply header
+  N6 - N5
+  N5 - N1                                  # return header
 
-circuit AHU 101
+  N1  node  p = 250
 
-HE_AHU  heat_exchanger in.t=50 out.t=30 power=24 kW
-TV_AHU  three_way_valve
-PU_AHU  pump
+circuit "AHU":
+  number = 101
 
-connections
-PU_AHU - HE_AHU - TV_AHU                       # the branch, open at both ends
+  HE_AHU  heat_exchanger  in.t = 50  out.t = 30  power = 24 kW
+  TV_AHU  three_way_valve
+  PU_AHU  pump
 
-inlet N3
-outlet N5
+  N3 - PU_AHU - HE_AHU - TV_AHU.ab         # the branch leaves the supply header
+  TV_AHU.a - N5                            # and returns to the return header
 
-circuit radiators 102
+circuit "radiators":
+  number = 102
 
-HE_RAD  heat_exchanger in.t=50 out.t=30 power=30 kW
-TV_RAD  three_way_valve
-PU_RAD  pump
+  HE_RAD  heat_exchanger  in.t = 50  out.t = 30  power = 30 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
 
-connections
-PU_RAD - HE_RAD - TV_RAD
-
-inlet N4
-outlet N6
+  N4 - PU_RAD - HE_RAD - TV_RAD.ab
+  TV_RAD.a - N6
 ```
 
-**Each subcircuit is open at both ends, and that is what the attachment joins.**
-[`23-topology-and-graph`](../20-core-domain/23-topology-and-graph.md) lowers `inlet N3` to a
-connection from the parent's `N3` to the subcircuit's *first unconnected inlet* and `outlet N5` to one
-from its *last unconnected outlet* — so the branch has to leave both free. `PU_AHU - HE_AHU - TV_AHU`
-leaves `PU_AHU.in` and `TV_AHU.a`, which is the flow path the header figures below are computed over.
-Without the `connections` lines this fixture has no path from supply to return at all, and the three
-flows `05` requires of it are unreachable (`F-11`).
+**Each branch names the header nodes it joins.** `N3 - PU_AHU - HE_AHU - TV_AHU.ab` in `AHU` starts
+at `heating`'s `N3`, and `TV_AHU.a - N5` returns to its `N5`: the flow path the header figures below
+are computed over. Language 1 wrote this as an attachment (`inlet N3`, `outlet N5`) that lowered to
+the same two connections; language 2 writes the connections themselves (`D-166`). The valves' `b`
+ports are left open, as the attachment always left them -- the listing states the header's intent,
+and `samples/m2-distribution-header.fluid` is the plant that solves.
 
 **Three circuits, three numbers, one of them resolved.** `heating` states 100, `AHU` states 101,
 `radiators` states 102. Had any been omitted it would have resolved to the next unused multiple of
@@ -695,11 +727,11 @@ flows `05` requires of it are unreachable (`F-11`).
 `NumberIsExplicit` round trip is exercised in its `true` form here and in its `false` form by every
 other reference circuit, which writes no number at all.
 
-**Attachment is explicit and cross-circuit.** `AHU` takes flow at `N3` and returns it at `N5`; both
-name nodes of `heating`. This is the only place in the language where a statement in one circuit
-refers to a component of another, and it is why identifiers are unique across the whole file
-(`D-41`) rather than scoped per circuit — with scoping, each of these four lines would need a
-qualified form the language does not have.
+**Links cross circuits by name.** `AHU` takes flow at `N3` and returns it at `N5`; both name nodes of
+`heating`. This is the only place in the fixture where a line in one circuit names a component of
+another, and it is why identifiers are unique across the whole file (`D-41`) rather than scoped per
+circuit -- with scoping, each of these four links would need a qualified form the language does not
+have.
 
 **Names and tags do different jobs, and this fixture is where the difference shows.** Both subcircuits
 have a pump and a three-way valve. Their *identifiers* must differ, so they are `PU_AHU`/`PU_RAD` and
@@ -777,9 +809,9 @@ subcircuits stack between them, `AHU` first. Both subcircuit roles resolve to `C
 share a thermal stage rank and neither is placed upstream of the other.
 
 **Inference inventory:** eight declared components and six declared nodes (`N1`…`N6`). Rule I2 inserts
-one node per directly-connected pair inside each subcircuit; the attachments lower to ordinary
-connections and infer nothing. `N1` is declared with a pressure and is therefore the datum — one
-datum for the whole model, because attaching the subcircuits makes all three circuits one hydraulic
+one node per directly-connected pair inside each subcircuit; the links to the header nodes infer
+nothing. `N1` is declared with a pressure and is therefore the datum — one datum for the whole model,
+because joining the subcircuits to the header makes all three circuits one hydraulic
 connected component (`D-33`).
 
 ## Invariants

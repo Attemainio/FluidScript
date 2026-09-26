@@ -12,6 +12,11 @@ last_review_pass: 6
 
 # Grammar
 
+> **Superseded by [`19`](19-fluidscript-2.md) (`D-174`).** This is language 1's grammar, which `P6.11`
+> package 7 removes from the product; language 2's is `19`. It stays as the record of the syntax
+> language 1 files were written in and the reasoning behind the rules language 2 inherited. Its
+> examples are marked `lang=1` and the corpus no longer checks them.
+
 ## Purpose
 
 The concrete syntax of FluidScript's declarative language (`D-01`): what the lexer produces, what the parser accepts, and what the
@@ -124,7 +129,7 @@ read than `4.18 kJ/(kg*K)`.
 **The `=` clause is what makes the permissive reading safe.** `in` is the inch symbol and a port
 name in the brief's own line:
 
-```fluidscript
+```fluidscript lang=1
 HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
@@ -163,7 +168,7 @@ or parentheses as tokens.
 
 That is what resolves the one genuine ambiguity in the language:
 
-```fluidscript
+```fluidscript lang=1
 let cp   = 4.18 kJ/(kg*K)
 let mdot = Q / (cp * dT)
 ```
@@ -412,7 +417,7 @@ circuits as three readable blocks rather than one declaration wall followed by o
 **A component declaration is legal after the `connections` header, and that is the change that makes
 the reference circuits parse.** Both write their boundary conditions below the topology:
 
-```fluidscript
+```fluidscript lang=1
 connections
 N1 - N2
 # ... the rest of the topology
@@ -484,7 +489,7 @@ language version.
 
 ### Subcircuit attachment
 
-```fluidscript
+```fluidscript lang=1
 circuit AHU 101
 HE1 duty in.t=50 out.t=30 power=24 kW
 TV1 three_way_valve
@@ -509,7 +514,7 @@ say what they mean, so the parser recognises the `in`/`out` shape only to reject
 
 ### Project and spacing directives
 
-```fluidscript
+```fluidscript lang=1
 fluidscript 1
 project dynamic plant_01
 spacing 0.75
@@ -538,7 +543,7 @@ is parsed ([`18-script-compatibility`](18-script-compatibility.md)).
 
 ### Control binding
 
-```fluidscript
+```fluidscript lang=1
 PID1 pid kp=3
 control actuate=TV1.position measure=N2.t by=PID1 setpoint=20
 ```
@@ -637,7 +642,7 @@ prevent. `27` owns the series names and their provenance; this document owns onl
 ([`33-transient-time-domain`](../30-solver/33-transient-time-domain.md)). It is meaningful only under
 `fluid dynamic`; under `fluid static` the section parses and produces `FS1107` (warning).
 
-```fluidscript
+```fluidscript lang=1
 schedule
 at 60 s              HE1.power   = 45          # step
 over 60 s .. 120 s   HE1.power   = 30 .. 45    # linear ramp
@@ -1036,7 +1041,7 @@ put the comment back in the same column.
 
 **A second line, in the connection section**, exercising the lookahead rule and the boundary form:
 
-```fluidscript
+```fluidscript lang=1
 connections
 N1 - N2                   # second token is '-'  → connection
 N1 node t=6 p=300         # second token is not  → component declaration, kind 'node'
@@ -1047,7 +1052,7 @@ the previous rules the second line was `FS1104` and the first reference circuit 
 
 **A third line, where the kind is a reserved word:**
 
-```fluidscript
+```fluidscript lang=1
 S1 inlet t=5 flow=2.3 l/s   # first token is not reserved  → declaration, kind 'inlet'
 inlet N3                    # first token is reserved      → attachment statement
 ```

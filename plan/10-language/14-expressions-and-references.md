@@ -118,17 +118,17 @@ the domain reads the speed of light, and every constant is a short name a script
 
 ## `let` bindings
 
-```fluidscript
-let dT      = 30 dK                  # context-free TemperatureDelta under D-26
-let Q       = 30 kW
-let mdot    = Q / (4.18 kJ/(kg*K) * dT)
+```fluidscript lang=2
+let dT   = 30 K                    # a difference: `K` is one in language 2 (D-172), `dK` in language 1 (D-26)
+let Q    = 30 kW
+let mdot = Q / (4.18 kJ/(kg*K) * dT)
 ```
 
 - **Bind once.** A second `let` of the same name is `FS1401`. There is no assignment and no shadowing.
 - **Order-independent.** A `let` may reference a later `let`. The dependency graph decides evaluation
   order, not source position. This matters because canvas write-back (`R-25`) inserts lines and must
   not have to reason about where.
-- **Scope is the whole script.** No block scoping in v1, because there are no blocks.
+- **Scope is the whole script.** A `let` is not scoped to a block: every circuit reads the same one.
 - **A `let` may be dimensioned or dimensionless.** Its dimension is inferred from its expression;
   there is no type annotation.
 
@@ -319,14 +319,15 @@ that reads a sized/solved property becomes a `DeferredExpression` instead. For e
 
 ## Worked example
 
-```fluidscript
-let dT   = 30 dK
+```fluidscript lang=2
+let dT   = 30 K
 let Q    = 30 kW
 let cp   = 4.18 kJ/(kg*K)
 let mdot = Q / (cp * dT)
 
-HE1 heat_exchanger power=Q in.t=20 out.t=20C+dT
-PU1 pump head=1.2*HE1.dp/(998 kg/m3*g)
+circuit "heating":
+  HE1  heat_exchanger  power = Q  in.t = 20 C  out.t = 20 C + dT
+  PU1  pump  head = 1.2 * HE1.dp / (998 kg/m3 * g)
 ```
 
 The division is what makes the line type (`D-126`): a drop over a density and `g` is a length, and a

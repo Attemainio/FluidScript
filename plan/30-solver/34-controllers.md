@@ -287,36 +287,29 @@ M4's demo is the **demand-step loop** ([`01-vision-and-scope`](../00-foundation/
 `TC1` holds `NS.t` — the mixed stream just past the mixing node `N2` — at **20 °C** by modulating `3WV.position`, and the
 load steps 30 → 45 kW at t = 60 s.
 
-```fluidscript
-TC1 pi                                                    # definition: algorithm and gains
-control actuate=3WV.position measure=NS.t by=TC1 setpoint=20   # binding: what it drives, what it reads
+```fluidscript lang=2
+circuit "demandStep":
+  TC1  controller:
+    type     = PI                 # the algorithm; PI when absent
+    moves    = 3WV.position       # what it drives
+    reads    = NS.t               # what it reads
+    setpoint = 20
 ```
 
-`actuate=` names a qualified parameter — `3WV.position`, never `3WV` (`D-43`).
+`moves` names the actuator: a component means its kind's one actuated parameter (a valve's position,
+`D-61`), and a qualified parameter, `3WV.position`, says the same thing outright -- the only form language 1
+accepted (`D-43`) ([`19`](../10-language/19-fluidscript-2.md) §Controllers). `type` selects the algorithm -- `PI` when it
+is absent -- and a parameter the stated type does not have is `FS1808`, so one declaration cannot mean
+two algorithms (`D-168`). `band` (or `kp`), `ti` and `td` are optional per `D-02` -- omitted here, so
+the defaults below apply.
 
-**`pi` is an alias of the kind `controller`, not a kind of its own** (`D-15`). `controller`, `pi`,
-`pid` and `p` all resolve to one registry entry, which is what lets one `TagCode` cover every spelling
-and keeps `/docs` at one page. The algorithm is selected by which gains are present, not by which
-alias was typed: `kd` absent means PI, and `kd` stated means PID. Making the spelling select the
-algorithm would let `TC1 pi kd=3` mean two contradictory things, and `P6` refuses to ship a form whose
-meaning depends on agreement between two places.
-
-Two statements under `D-40`. The **definition** is an ordinary component declaration whose kind
-resolves through the registry like any other; `kp`, `ki` and `kd` are optional per `D-02` — omitted
-here, so the defaults below apply. The **binding** is a `control` statement whose four arguments are
-named, resolved by
-[`15-semantic-model`](../10-language/15-semantic-model.md) into a `ControlBindingSymbol`.
-
-**Why the split, and why named arguments.** One tuning stated once can be read at each place it is
-used, and a retuning edit no longer touches the same line as a rewiring edit. Named rather than
-positional because there is no memorable order for actuator, measurement and controller: `control
-3WV.position N2.t TC1` and `control N2.t 3WV.position TC1` are both plausible-looking, exactly one is
-right, and the wrong one binds, solves, and drives the valve the wrong way. Four extra words buy a
-bind-time error instead of a plausible wrong answer.
-
-`setpoint` sits on the binding rather than on a sensor because `D-23` defers persistent sensor
-components; when they land, a setpoint carried by a sensor is a non-breaking addition, since every
-argument is already named.
+**Why one declaration, with named parameters.** Language 1 wrote this as two statements: a definition,
+`TC1 pi`, whose algorithm followed from which gains were present (`D-15`), and a `control` line binding
+it by four named arguments (`D-40`). The names were the point and stay: there is no memorable order for
+actuator, measurement and controller, and a swapped pair binds, solves, and drives the valve the wrong
+way, so a name buys a bind-time error instead of a plausible wrong answer. Language 2 keeps them and
+puts them in the one block, where a retuning edit and a rewiring edit are still different lines, and
+the spelling of the kind no longer has to agree with the gains.
 
 **There is no `dT` mode.** A differential keyword was considered and rejected in `D-40`: its proposed
 meaning — the difference between setpoint and measurement — is the error signal every controller

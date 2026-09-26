@@ -4,8 +4,8 @@
 document: plant_01
 application: 0.0.0-test
 model contract: 2.3
-language major: 1
-source hash: sha256:e1f926c87b3c4dddcc2658ba3d233c41e34a89ddf1c8e27863e22c5b0df91592
+language major: 2
+source hash: sha256:fa08d7cb8ad07ffbfe7518030c9ac428892b65affaa3fc84afd1ea70c204f584
 catalogue: steel_en10255 2026.1
 property backend: sharp-prop 1.0.0.0
 atmosphere: 101.325 kPa absolute

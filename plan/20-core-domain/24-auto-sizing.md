@@ -126,23 +126,24 @@ driver nobody wrote, and the cases a plant is sized for are the cases an enginee
 
 ### Scenarios
 
-```fluidscript
-scenarios winter summer
-design winter
+```fluidscript lang=2
+project:
+  cases = [winter, summer]              # the first case is the design case
 
-HX1 heat_exchanger power = [30, 10]
-N3  node t = [30, 40]
-PU1 pump                                # no array: one pump serving both
+circuit "heating":
+  HX1  heat_exchanger  power = [30, 10]
+  N3   node  t = [30, 40]
+  PU1  pump                             # no list: one pump serving both
 ```
 
-- `scenarios` declares the set once, with the other whole-file lines. The names are the vocabulary
-  every basis string, report and UI switcher uses.
+- `cases` in the project block declares the set once. The names are the vocabulary every basis
+  string, report and UI switcher uses.
 - An array states one value per scenario, positionally against that declaration.
 - **A scalar is not a short array.** It is the same value in every scenario.
 - **Any array whose length is not the declared count is an error**, naming the parameter, its length
   and the count. Nothing is padded (`D-143`; `D-60`'s rule against inferring from data).
-- `design <name>` names the **operating** scenario and sizes nothing: the state the canvas draws,
-  the numbers a static export carries, the inputs a run starts from.
+- The first case is the **operating** case and sizes nothing: the state the canvas draws, the numbers
+  a static export carries, the inputs a run starts from (`D-175`; language 1 named it with `design`).
 
 ### The pipeline, and why it is four steps
 
@@ -155,7 +156,7 @@ PU1 pump                                # no array: one pump serving both
    state of the merged plant — a scenario solved with a DN20 pipe does not describe a plant that
    ended up with DN32. This step produces the operating states and catches a component short
    somewhere; if one is, merge again and repeat.
-4. **Draw the merged plant**, with `design`'s scenario supplying the numbers on it.
+4. **Draw the merged plant**, with the operating case supplying the numbers on it.
 
 Step 3's loop should terminate because sizes grow under a maximum and the catalogue is finite, and
 the outer loop already caps sizing passes; **that is to be measured, not asserted.** A valve whose
@@ -1142,15 +1143,15 @@ all connections are ideal, the pump instead sizes to zero head and emits `FS2312
 The **simple loop** ([`01-vision-and-scope`](../00-foundation/01-vision-and-scope.md)) — one series
 circuit, one flow, so every step is checkable by hand:
 
-```fluidscript
-HE1  heat_exchanger power=30 in.t=20 out.t=50
-LOAD heat_exchanger power=-30
-CV1  valve
-PU1  pump
-P1   pipe length=25
+```fluidscript lang=2
+circuit "simpleLoop":
+  HE1   heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30
+  CV1   valve
+  PU1   pump
+  P1    pipe  length = 25
 
-connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1
 ```
 
 **Step 1 — seed.** `HE1` states `power`, `in` and `out`, so the energy balance fixes its flow

@@ -90,7 +90,7 @@ describe('the SVG export (59)', () => {
     const desc = /<desc id="export-desc">([\s\S]*?)<\/desc>/.exec(svg)![1]!;
     expect(desc).toContain('application: 0.0.0-test');
     expect(desc).toContain('model contract: 2.3');
-    expect(desc).toContain('language major: 1');
+    expect(desc).toContain('language major: 2');
     expect(desc).toContain(`source hash: ${loop.provenance.sourceHash}`);
     expect(desc).toContain('catalogue: steel_en10255 2026.1');
     expect(desc).toContain('property backend: sharp-prop');

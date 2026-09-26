@@ -240,8 +240,10 @@ acceptance criterion. A block that is meant to be wrong is annotated on its fenc
 produces, and asserted to produce exactly those:
 
 ````markdown
-```fluidscript expects=FS1203
-style #2f6f9f 2px        # NOT a colour: everything from the # is a comment
+```fluidscript lang=2 expects=FS1203
+circuit "heating":
+  style:
+    colour = #2f6f9f              # NOT a colour: everything from the # is a comment
 ```
 ````
 

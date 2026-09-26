@@ -12,6 +12,10 @@ last_review_pass: 6
 
 # Formatting, printing, and round-trip
 
+> **The invariants here hold for language 2 unchanged ([`19`](19-fluidscript-2.md)); the examples are
+> language 1's.** They are marked `lang=1` and the corpus no longer checks them; language 2's printer and
+> its round-trip tests are `19`'s.
+
 ## Purpose
 
 The script is the source of truth (principle P5), so every canvas edit must become a text edit that
@@ -315,7 +319,7 @@ makes invariant 2 enforced rather than hoped for.
 
 The user drags `3WV`'s Kv to 12.4 on the canvas. Source before:
 
-```fluidscript
+```fluidscript lang=1
 HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
 3WV three_way_valve                # auto size
 PU1 pump                    # auto size by pressure difference in loop
@@ -333,7 +337,7 @@ PU1 pump                    # auto size by pressure difference in loop
 
 Result:
 
-```fluidscript
+```fluidscript lang=1
 HE1 heat_exchanger power=30 in.t=20 out.t=50    # heat exchanger with power of 30 kW
 3WV three_way_valve kv=12.4                # auto size
 PU1 pump                    # auto size by pressure difference in loop

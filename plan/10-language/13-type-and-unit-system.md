@@ -203,13 +203,15 @@ separated by horizontal whitespace, **and is not immediately followed by `=`**.
 The `=` clause is the whole reason the rule can be permissive. `in` is a unit (inch) *and* a parameter
 name in the brief's own line:
 
-```fluidscript
+```fluidscript lang=1
 HE1 heat_exchanger power=30 in.t=20 out.t=50
 ```
 
 Without the clause, `30 in` lexes as thirty inches and the brief's flagship example silently becomes
 nonsense. With it, `in` is followed by `=` so it is a parameter name, and `30` stays a bare number that
 takes `power`'s canonical unit. The same protects `t` (tonne / a node's temperature) in `flow=5 t=6`.
+That is language 1's rule. Language 2 ([`19`](19-fluidscript-2.md)) writes `in.t = 20` with spaces,
+so a spaced `=` also ends a unit there, and `in` and `t` are not unit symbols at all.
 
 One token of lookahead, which [`12-grammar`](12-grammar.md)'s invariant 5 permits (it forbids
 *unbounded* lookahead). The alternative — forbidding the space entirely — is simpler to lex and costs
@@ -401,7 +403,7 @@ last run of whitespace; the lexer's only part is a `Colon` token, so that a cloc
 Two forms need no declaration — ISO 8601 (`2026-01-01T00:00:00`) and a bare number of Unix seconds.
 Anything else is stated on the curve:
 
-```fluidscript
+```fluidscript lang=1
 curve outdoor time format="dd/MM/yyyy HH:mm:ss"
 ```
 
@@ -410,6 +412,9 @@ The format string is .NET's, **and its case carries meaning**: `MM` is the month
 from memory — is literally day / minute / year, 12-hour : minute : second, and would parse without
 complaint. The format is therefore validated when the curve binds: a string naming no month, or no
 day, or using `hh` with no designator, is a diagnostic rather than a silent misparse.
+
+That is language 1's form. Language 2 lexes a date unquoted, `2026-01-15 06:00`, and has no `format`
+([`19`](19-fluidscript-2.md)).
 
 Culture-inferred parsing is rejected outright and `D-60` records why with the example that settled it.
 A format that depends on the reader's locale means one file means two things on two machines.

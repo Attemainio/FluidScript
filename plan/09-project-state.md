@@ -1883,9 +1883,25 @@ that governed each size. What P6.8 still owes, and what comes after:
     Api contract goldens moved by spans and hash, plus `FS1815` (the valves' labelling), minus `FS1519` (a circuit's
     name is no longer its role), an untitled `project:` named `project`, and the storage header's circuit `steady`
     (`C-138`); every solved value, placement and route is byte for byte. Filed `C-136` (the tour's layout: three
-    hard breaches, so it is out of the layout lists), `C-137`, `C-138`. Core 2848/0/2, Api 79/0. Next: step 1's
-    documentation blocks, then step 2 (inline test scripts converted, language 1 grammar tests deleted), step 3
-    (language 2 current), step 4 (language 1 deleted), and the sweep.
+    hard breaches, so it is out of the layout lists), `C-137`, `C-138`. Core 2848/0/2, Api 79/0.
+  - **Step 1, the plan's blocks (2026-09-26).** The user's calls: `plan/`'s blocks convert now and `docs/`'s wait for
+    package 9, which rewrites each page once, prose and examples together; `12` and `17` get a banner and keep their
+    blocks as language 1's record. Of 128 language 1 blocks, the 20 in `plan/` outside `06`, `12` and `17` are
+    language 2 now, written by hand with the converter as a draft: it wrapped 44 of the 73 clean ones corpus-wide in
+    an invented `circuit "script"` and left `at N2` and `in[2]` where it could not see the declaration, and a
+    fragment is only parsed, never bound. Each bound as its language 1 original did. The prose beside them moved with
+    them: `01`'s valve letters now follow `D-175` (the cooling loop's primary is `3WV.a → N3`, the recirculation
+    `3WV.b → N2`; the reference writes its ports so as to keep M1's nine diagnostics), its header listing links the
+    branches to the header where it attached them, and the language features M4 needs are the controller and the run;
+    `15` and `24` say the first case is the operating one; `22` says a sensor in a chain is lowered to a node; `34`
+    explains one controller declaration; `57` gives `show`'s setting grammar. `12`, `17` and two of `13`'s examples
+    (the `=` lookahead, `format=`) are `lang=1`, which the corpus reads as a record and skips. The `docs/` blocks,
+    `06`'s, and language 1 spellings in `plan/` prose outside these passages remain -- package 9 and the sweep.
+    **The frontend suite was not run on the first step 1 commit, and 16 of its tests had broken:** three asserted
+    language 1 text and are corrected; nine compare the editor's language 1 tokenizer with the samples' language 2
+    tokens, filed `U-11` and marked `it.fails` until package 8. Core 2800/0/2 (the history blocks leave the corpus
+    theories), Api 79/0, frontend 221 and 9 expected failures. Next: step 2 (inline test scripts converted, language
+    1 grammar tests deleted), step 3 (language 2 current), step 4 (language 1 deleted), and the sweep.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

@@ -844,8 +844,9 @@ lacked: `in=50` on a heat exchanger is a **specification** — what the design a
 **measurement** — what the model produced. `measure=NB2.t` blurred the two, and a plant drawing shows
 where its instruments are.
 
-```fluidscript
-TE1 t_sensor at N2
+```fluidscript lang=2
+circuit "heating":
+  TE1  t_sensor  at N2
 ```
 
 | Kind | `TagCode` | Measures | Property |
@@ -854,10 +855,11 @@ TE1 t_sensor at N2
 | `p_sensor` (aliases `pressure_sensor`, `pe`) | `PE` | pressure | `p` |
 | `flow_sensor` (aliases `flow_meter`, `fe`) | `FE` | mass flow | `flow` |
 
-**A sensor attaches to a node; it never sits in the flow path.** `TE1 t_sensor at N2`, never
-`HX1 - TE1 - TV1`. A pass-through instrument would carry two ports, gain an inserted node from rule
-I2, and contribute equations that are all identities — a hundred sensors would double the size of the
-solve to compute nothing. Attachment keeps them out of the hydraulic graph entirely, which is also why
+**A sensor attaches to a node; it never sits in the flow path.** `TE1  t_sensor  at N2`; and where a
+script writes one in a chain, `HX1 - TE1 - TV1`, the binder lowers it to a node between `HX1` and
+`TV1` that the sensor observes (`D-166`), so it is still not in the flow path. A pass-through
+instrument would carry two ports, gain an inserted node from rule I2, and contribute equations that
+are all identities — a hundred sensors would double the size of the solve to compute nothing. Attachment keeps them out of the hydraulic graph entirely, which is also why
 they have no ports, no `DrivesFlow`, and no residuals: `EvaluateResiduals` on a sensor writes nothing
 and is never called.
 

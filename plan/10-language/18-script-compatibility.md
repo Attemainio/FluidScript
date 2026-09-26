@@ -28,13 +28,16 @@ binding; it never silently interprets old text as the newest language.
 
 The first non-trivia line of every durable `.fluid` file is:
 
-```fluidscript
-fluidscript 1
-catalog steel_en10255@2026.1
+```fluidscript lang=2
+fluidscript 2
+
+project:
+  catalog = steel_en10255@2026.1
 ```
 
-`fluidscript` is followed by one unsigned decimal major. `catalog` is optional and followed by one
-ASCII catalogue id and an optional `@major.minor` exact version. An unversioned named catalogue uses
+`fluidscript` is followed by one unsigned decimal major. `catalog` is an optional setting of the
+project block (a line of its own in language 1) and names one ASCII catalogue id and an optional
+`@major.minor` exact version. An unversioned named catalogue uses
 the application's shipped version and records it in provenance; adding a second id is an error, not a
 preference list. Neither directive accepts expressions. A BOM, blank lines, and comments may precede
 the version directive; no model statement may precede it.

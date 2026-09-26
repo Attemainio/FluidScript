@@ -985,14 +985,15 @@ binding is a natural-looking shortcut whose cost only appears when a user insert
 `D-143`. A file may declare a list of named operating cases, and any parameter may state one value
 per case:
 
-```fluidscript
-scenarios winter summer
-design winter
+```fluidscript lang=2
+project:
+  cases = [winter, summer]
 
-HX1 heat_exchanger power = [30, 10]
+circuit "heating":
+  HX1  heat_exchanger  power = [30, 10]
 ```
 
-The block above used to carry `expects=FS1104,FS1105`, because the parser did not know this syntax
+Language 1's form of the block above used to carry `expects=FS1104,FS1105`, because the parser did not know this syntax
 and `ScriptCorpus` holds every fenced block to what the parser actually produces. P6.8a taught it, the
 corpus test failed on a block that had become *too* correct, and the fence came off — which is the
 mechanism working, not a repair to it.
@@ -1007,10 +1008,11 @@ four rules, and each one is a diagnostic rather than a repair:
 2. A **scalar is not a short list.** It means the same value in every scenario, which is what a
    scalar already means, so `PU1 pump` and `power=30` need no change and no file that exists today
    acquires a length.
-3. A list with no `scenarios` line is `FS1541`, and duplicate names are `FS1544`.
-4. `design <name>` names the operating scenario: `FS1542` when the name is not one of them,
-   `FS1543` when scenarios are declared and none is named. There is no default, because the first
-   column is a position and not a decision.
+3. A list with no `cases` in the project block is `FS1541`, and duplicate names are `FS1544`.
+4. The first case is the operating case (`D-175`). Language 1 named it instead, with `design <name>`
+   (`FS1542` for a name that is not a case, `FS1543` for none), on the reasoning that the first column
+   is a position and not a decision; language 2 makes the position the decision, so the case that is
+   written first is the one the canvas draws.
 
 **Each element binds exactly as the scalar would.** An element is an ordinary `parameter-value`, so
 a curve reference, an expression and a unit suffix all work inside a list, `D-14`'s bare-number rule
