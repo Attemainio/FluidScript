@@ -1,0 +1,12 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HE1 heat_exchanger in script at  tag 100HE01 style 
+component HE1__in node in script at  tag  style 
+component HE1__out node in script at  tag  style 
+connection HE1.in -> HE1__in.
+connection HE1.out -> HE1__out.
+let x = 1 Dimensionless dimension Dimensionless
+FS1510 [95..114] Added node 'HE1__in' (I3).
+FS1510 [95..114] Added node 'HE1__out' (I3).
+FS1507 [95..114] 'HE1' is not connected to anything.

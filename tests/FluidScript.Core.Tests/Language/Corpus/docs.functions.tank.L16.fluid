@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  T1.in[2] - N4
+  T1.out - N5

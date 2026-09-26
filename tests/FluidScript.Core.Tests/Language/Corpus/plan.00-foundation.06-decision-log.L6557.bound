@@ -1,0 +1,22 @@
+project project cases [winter,summer] design winter start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HX1 heat_exchanger in script at  tag 100HE01 style 
+  power = 30000 Power   [30000 Power   | 10000 Power  ]
+component HX1__in node in script at  tag  style 
+component HX1__out node in script at  tag  style 
+component N3 node in script at  tag  style 
+  t = 303.15 Temperature   [303.15 Temperature   | 313.15 Temperature  ]
+component PU1 pump in script at  tag 100PU01 style 
+component PU1__in node in script at  tag  style 
+component PU1__out node in script at  tag  style 
+connection HX1.in -> HX1__in.
+connection HX1.out -> HX1__out.
+connection PU1.in -> PU1__in.
+connection PU1.out -> PU1__out.
+FS1510 [72..109] Added node 'HX1__in' (I3).
+FS1510 [72..109] Added node 'HX1__out' (I3).
+FS1507 [72..109] 'HX1' is not connected to anything.
+FS1510 [137..146] Added node 'PU1__in' (I3).
+FS1510 [137..146] Added node 'PU1__out' (I3).
+FS1507 [137..146] 'PU1' is not connected to anything.

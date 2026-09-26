@@ -1,0 +1,31 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HE_AHU heat_exchanger in script at  tag 100HE01 style 
+  elevation = 32 Length  
+  in = 323.15 Temperature  
+  out = 303.15 Temperature  
+  power = 24000 Power  
+component HE_AHU__P2 node in script at  tag  style 
+component N1 node in script at  tag  style 
+component N2 node in script at  tag  style 
+component P1 pipe in script at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 35 Length  
+component P1__HE_AHU node in script at  tag  style 
+component P2 pipe in script at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 35 Length  
+component PU1 pump in script at  tag 100PU01 style 
+connection HE_AHU.out -> HE_AHU__P2.
+connection HE_AHU__P2. -> P2.in
+connection N1. -> PU1.in
+connection N2. -> P1.in
+connection P1.out -> P1__HE_AHU.
+connection P1__HE_AHU. -> HE_AHU.in
+connection P2.out -> N1.
+connection PU1.out -> N2.
+FS1510 [180..182] Added node 'N1' (I1).
+FS1510 [191..193] Added node 'N2' (I1).
+FS1510 [196..207] Added node 'P1__HE_AHU' (I2).
+FS1510 [201..212] Added node 'HE_AHU__P2' (I2).

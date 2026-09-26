@@ -1,0 +1,26 @@
+# Layout ladder, step 10 (plan/20-core-domain/29-layout-ladder.md): a sensor and a controller on
+# step 4's loop. N1 is written out between the source and the load so the sensor can observe it;
+# with two connections it is inline (D-114). The valve states its Kv as step 4 does (C-66) and is
+# actuated by the controller on the sensor's temperature.
+
+fluidscript 2
+
+circuit "ladder":
+  fluid = water
+
+  PU1  pump
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30
+  CV1  valve  kv = 6.3
+  PID1 controller:
+    kp = 2
+    moves = CV1
+    reads = TE1
+    setpoint = 50
+  TE1  t_sensor at N1
+
+  PU1 - HE1
+  HE1 - N1
+  N1 - LOAD
+  LOAD - CV1
+  CV1 - PU1

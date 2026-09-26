@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+  N5 - N1   25 m

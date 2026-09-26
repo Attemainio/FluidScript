@@ -1,0 +1,71 @@
+project plant_01 cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit heating 100 water heating
+circuit cooling 101 water cooling
+component CV_H valve in heating at  tag 100V01 style 
+  kv = 6.3 Kv  
+component CV_H__PU_H node in heating at  tag  style 
+component HE_C heat_exchanger in cooling at  tag 101HE01 style 
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE_C__TV_C node in cooling at  tag  style 
+component HS_H heat_exchanger in heating at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  power = 30000 Power  
+component LOAD heat_exchanger in heating at  tag 100HE02 style 
+  power = -30000 Power  
+component LOAD__CV_H node in heating at  tag  style 
+component N1 inlet in cooling at  tag  style 
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component N2 node in cooling at  tag  style 
+component N3 outlet in cooling at  tag  style 
+  p = 280000 Pressure  
+component NC node in cooling at  tag  style 
+component NH node in heating at  tag  style 
+component PU_C pump in cooling at  tag 101PU01 style 
+component PU_C__HE_C node in cooling at  tag  style 
+component PU_H pump in heating at  tag 100PU01 style 
+component PU_H__HS_H node in heating at  tag  style 
+component TC_C controller in cooling at  tag 101PID01 style 
+  kp = 2 Dimensionless  
+component TC_H controller in heating at  tag 100PID01 style 
+  kp = 2 Dimensionless  
+component TE_C t_sensor in cooling at NC tag 101TE01 style 
+component TE_H t_sensor in heating at NH tag 100TE01 style 
+component TV_C three_way_valve in cooling at  tag 101TV01 style 
+component TV_C__N3 pipe in cooling at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 25 Length  
+component TV_C__N3__in node in cooling at  tag  style 
+connection CV_H.out -> CV_H__PU_H.
+connection CV_H__PU_H. -> PU_H.in
+connection HE_C.out -> HE_C__TV_C.
+connection HE_C__TV_C. -> TV_C.ab
+connection HS_H.out -> NH.
+connection LOAD.out -> LOAD__CV_H.
+connection LOAD__CV_H. -> CV_H.in
+connection N1. -> N2.
+connection N2. -> NC.
+connection NC. -> PU_C.in
+connection NH. -> LOAD.in
+connection PU_C.out -> PU_C__HE_C.
+connection PU_C__HE_C. -> HE_C.in
+connection PU_H.out -> PU_H__HS_H.
+connection PU_H__HS_H. -> HS_H.in
+connection TV_C.a -> TV_C__N3__in.
+connection TV_C.b -> N2.
+connection TV_C__N3.out -> N3.
+connection TV_C__N3__in. -> TV_C__N3.in
+control TC_C moves PropertyReference { Component = TV_C, Property = position } reads PropertyReference { Component = TE_C, Property = t } setpoint 293.15 Temperature [] band - differential - output -..- curve 
+control TC_H moves PropertyReference { Component = CV_H, Property = position } reads PropertyReference { Component = TE_H, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
+FS1510 [719..730] Added node 'PU_H__HS_H' (I2).
+FS1510 [740..742] Added node 'NH' (I1).
+FS1510 [752..763] Added node 'LOAD__CV_H' (I2).
+FS1510 [766..777] Added node 'CV_H__PU_H' (I2).
+FS1510 [1044..1046] Added node 'N2' (I1).
+FS1510 [1054..1056] Added node 'NC' (I1).
+FS1510 [1066..1077] Added node 'PU_C__HE_C' (I2).
+FS1510 [1080..1091] Added node 'HE_C__TV_C' (I2).
+FS1510 [1106..1128] Added pipe 'TV_C__N3' (I7).
+FS1510 [1106..1128] Added node 'TV_C__N3__in' (I2).

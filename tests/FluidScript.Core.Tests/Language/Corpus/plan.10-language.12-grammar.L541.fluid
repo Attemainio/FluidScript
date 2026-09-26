@@ -1,0 +1,8 @@
+fluidscript 2
+
+circuit "script":
+  PID1 controller:
+    kp = 3
+    moves = TV1.position
+    reads = N2.t
+    setpoint = 20

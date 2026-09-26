@@ -1,0 +1,8 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit plant 100  neutral
+component HX1 heat_exchanger in plant at  tag 100HE01 style 
+component HX1__HX1 node in plant at  tag  style 
+connection HX1.out -> HX1__HX1.
+connection HX1__HX1. -> HX1.in
+FS1510 [261..270] Added node 'HX1__HX1' (I2).

@@ -1,0 +1,17 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component N1 node in script at  tag  style 
+component N2 node in script at  tag  style 
+component N3 node in script at  tag  style 
+component TV1 node in script at  tag  style 
+connection N1. -> TV1.ab
+connection TV1.a -> N2.
+connection TV1.b -> N3.
+FS1510 [35..37] Added node 'N1' (I1).
+FS2107 [35..46] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [40..46] Added node 'TV1' (I1).
+FS2107 [49..59] 'N2' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [57..59] Added node 'N2' (I1).
+FS2107 [62..72] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [70..72] Added node 'N3' (I1).

@@ -1,0 +1,4 @@
+project project cases [] design  start 
+style spacing 0.75 default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+FS1508 [0..0] No circuit name; using 'script'.

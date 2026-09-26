@@ -1,0 +1,4 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100 water cooling Static
+show [temperature] scale 

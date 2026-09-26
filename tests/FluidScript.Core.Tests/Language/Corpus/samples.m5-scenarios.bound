@@ -1,0 +1,29 @@
+project project cases [winter,summer] design winter start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit distribution 100 water distribution
+component HE1 heat_exchanger in distribution at  tag 100HE01 style 
+  in = 308.15 Temperature   [308.15 Temperature   | 285.15 Temperature  ]
+  out = 318.15 Temperature   [318.15 Temperature   | 280.15 Temperature  ]
+  power = 50000 Power   [50000 Power   | -40000 Power  ]
+component LOAD heat_exchanger in distribution at  tag 100HE02 style 
+  dp = 0 PressureDelta  
+  power = -50000 Power   [-50000 Power   | 40000 Power  ]
+component N1 node in distribution at  tag  style 
+component N2 node in distribution at  tag  style 
+component N3 node in distribution at  tag  style 
+component N4 node in distribution at  tag  style 
+component P1 pipe in distribution at  tag  style 
+  length = 20 Length  
+component PU1 pump in distribution at  tag 100PU01 style 
+connection HE1.out -> N3.
+connection LOAD.out -> N4.
+connection N1. -> PU1.in
+connection N2. -> HE1.in
+connection N3. -> LOAD.in
+connection N4. -> P1.in
+connection P1.out -> N1.
+connection PU1.out -> N2.
+FS1510 [1149..1151] Added node 'N1' (I1).
+FS1510 [1160..1162] Added node 'N2' (I1).
+FS1510 [1171..1173] Added node 'N3' (I1).
+FS1510 [1183..1185] Added node 'N4' (I1).

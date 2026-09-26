@@ -1,0 +1,26 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit ladder 100 water neutral
+component HE1 heat_exchanger in ladder at  tag 100HE01 style 
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component LOAD heat_exchanger in ladder at  tag 100HE02 style 
+  power = -30000 Power  
+component NR node in ladder at  tag  style 
+component NS node in ladder at  tag  style 
+component PU1 pump in ladder at  tag 100PU01 style 
+component PU1__HE1 node in ladder at  tag  style 
+component TC1 controller in ladder at  tag 100PID01 style 
+  kp = 2 Dimensionless  
+component TE_R t_sensor in ladder at NR tag 100TE02 style 
+component TE_S t_sensor in ladder at NS tag 100TE01 style 
+connection HE1.out -> NS.
+connection LOAD.out -> NR.
+connection NR. -> PU1.in
+connection NS. -> LOAD.in
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+control TC1 moves PropertyReference { Component = PU1, Property = speed } reads PropertyReference { Component = TE_R, Property = t } setpoint 293.15 Temperature [] band - differential - output -..- curve 
+FS1510 [499..508] Added node 'PU1__HE1' (I2).
+FS1510 [517..519] Added node 'NS' (I1).
+FS1510 [536..538] Added node 'NR' (I1).

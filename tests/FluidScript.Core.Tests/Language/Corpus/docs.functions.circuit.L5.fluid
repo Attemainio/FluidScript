@@ -1,0 +1,8 @@
+fluidscript 2
+
+circuit "coolingLoop":
+  role = cooling
+
+circuit "primary":
+  number = 200
+  role = distribution

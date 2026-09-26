@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  HE_AHU  load  power = 24  in.t = 50  out.t = 30  elevation = 32
+  N4  node  elevation = 32

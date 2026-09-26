@@ -1,0 +1,35 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit simpleLoop 100 water neutral
+component CV1 valve in simpleLoop at  tag 100V01 style 
+component HE1 heat_exchanger in simpleLoop at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component LOAD heat_exchanger in simpleLoop at  tag 100HE02 style 
+  dp = 0 PressureDelta  
+  power = -30000 Power  
+component N1 node in simpleLoop at  tag  style 
+component N2 node in simpleLoop at  tag  style 
+component N3 node in simpleLoop at  tag  style 
+component N4 node in simpleLoop at  tag  style 
+component N5 node in simpleLoop at  tag  style 
+component N5__N1 pipe in simpleLoop at  tag  style 
+  length = 25 Length  
+component PU1 pump in simpleLoop at  tag 100PU01 style 
+connection CV1.out -> N5.
+connection HE1.out -> N3.
+connection LOAD.out -> N4.
+connection N1. -> PU1.in
+connection N2. -> HE1.in
+connection N3. -> LOAD.in
+connection N4. -> CV1.in
+connection N5. -> N5__N1.in
+connection N5__N1.out -> N1.
+connection PU1.out -> N2.
+FS1510 [1713..1715] Added node 'N1' (I1).
+FS1510 [1724..1726] Added node 'N2' (I1).
+FS1510 [1735..1737] Added node 'N3' (I1).
+FS1510 [1747..1749] Added node 'N4' (I1).
+FS1510 [1758..1760] Added node 'N5' (I1).
+FS1510 [1763..1777] Added pipe 'N5__N1' (I7).

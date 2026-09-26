@@ -1,0 +1,12 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component N3 node in script at  tag  style 
+  t = 333.15 Temperature  
+component TV_MAIN three_way_valve in script at  tag 100TV01 style 
+component TV_MAIN__a node in script at  tag  style 
+connection TV_MAIN.a -> TV_MAIN__a.
+connection TV_MAIN.ab -> N3.
+FS1510 [35..59] Added node 'TV_MAIN__a' (I3).
+FS2202 [35..59] 'TV_MAIN' port 'a' is not connected; treating it as closed.
+FS2107 [62..78] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.

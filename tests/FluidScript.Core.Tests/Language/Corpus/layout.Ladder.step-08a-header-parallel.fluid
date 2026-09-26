@@ -1,0 +1,47 @@
+# Layout ladder, step 8a (plan/20-core-domain/29-layout-ladder.md): the distribution header with
+# its two injection branches in parallel -- the m2-distribution-header sample's circuits verbatim,
+# the header's own comments left out. Two blocks of one shape must draw alike, side by side
+# between the supply and return headers, in script order.
+
+fluidscript 2
+
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
+
+  HS1  heat_exchanger  power = 54 kW  out.t = 60
+
+  N1 - HS1 - N3
+  N3 - N4
+  N6 - N5
+  N5 - N1
+
+  N1  node  p = 250
+
+circuit "AHU":
+  number = 101
+  role = ahu
+
+  HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+  TV_AHU  three_way_valve
+  PU_AHU  pump
+
+  N3 - TV_AHU   12 m  DN25
+  NM_AHU - TV_AHU
+  TV_AHU - PU_AHU - HE_AHU - NM_AHU
+  NM_AHU - N5   12 m  DN25
+
+circuit "radiators":
+  number = 102
+  role = radiator
+
+  HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
+
+  N4 - TV_RAD   18 m  DN25
+  NM_RAD - TV_RAD
+  TV_RAD - PU_RAD - HE_RAD - NM_RAD
+  NM_RAD - N6   18 m  DN25

@@ -1,0 +1,82 @@
+# The distribution header reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# Three circuits: one source in the shared header and two pumped consumers. Every consumer runs cooler
+# than the 60 C supply, so each blends supply water with its own return.
+#
+# `HS1` states `power` and `out` and not `in`, as `01` says it must: `out.t=60` is the one absolute
+# temperature a closed circuit needs (`D-90`) -- it pays for the energy balance dropped as the level
+# and pins nothing else -- and the return header's 30 C is an answer, not a demand (`F-16`). Omit the
+# power and the two loads size it to +54 kW from the closed-circuit balance; both spellings solve.
+# The AHU and radiator pumps overcome the pressure drops in their complete circuits, including the
+# shared source path; there is no pump in the header (`S-55` is what the analysis still gets wrong
+# about that shape when a source valve is added). Solved, it reaches `01`'s figures: 0.2871 and
+# 0.3589 kg/s round the coils, 0.1914 and 0.2392 kg/s drawn from the header, 0.4306 kg/s through
+# HS1, the valves at 0.63 and 0.62 of travel. `S-58` is why it did not until 2026-09-14: a junction
+# mixed its inlets by a plain average, so no valve position could move a mixed temperature.
+#
+# `S-39`/`D-86`: the pressure datum sits on `N1`, the return header's junction, which is where an
+# engineer would put it -- the expansion vessel connection. It admits no mass: a `p=` on an interior
+# node is a *datum*, and only a `supply` or a `return` is a boundary. Until `D-86` it was read as a
+# boundary, which turned this closed circuit into an open one, dropped no redundant mass balance, and
+# left the system deficient by exactly one -- fixable only by moving the datum somewhere unnatural.
+#
+# `F-16`/`F-17`: each consumer's recirculation leg is connected, so `in.t=50` on a 60 C header is a
+# demand its valve can actually meet. Both ends of each attachment are written out because
+# `supply`/`return` cannot express a mixing subcircuit: the rule takes the first unconnected inlet,
+# and on this shape that is the valve's outlet, which wires the consumer's return to the *supply*
+# header and leaves every header branch carrying zero.
+#
+# `S-41`: the datum being on `N1` was not enough on its own. `D-86` fixed the three places that decide
+# whether mass crosses a boundary and missed `IsClosed`, so this circuit still read as *open* -- with
+# zero boundaries -- and no energy balance was dropped as its level. A closed circuit's energy balances
+# are one short of independent, because adding the same enthalpy to every node satisfies all of them.
+#
+# `D-91`: a `load` states positive capacity and lowering supplies the negative side-1 heat flow. `dt`
+# remains a positive magnitude. The neutral `heat_exchanger` spelling remains explicitly signed.
+#
+# `C-66`: the tap branches carry real pipework. A branch written as a bare node-to-node connection
+# drops 0 kPa, and a valve sized against no resistance at all sits inside the solver's smoothing band,
+# so the rule declines rather than inventing an answer.
+
+fluidscript 2
+
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
+
+  HS1  heat_exchanger  power = 54 kW  out.t = 60  # the plant-side source; the outlet is the level
+
+  N1 - HS1 - N3  # return is heated directly into the supply header
+  N3 - N4  # supply header
+  N6 - N5
+  N5 - N1  # return header
+
+  N1  node  p = 250
+
+circuit "AHU":
+  number = 101
+  role = ahu
+
+  HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+  TV_AHU  three_way_valve
+  PU_AHU  pump
+
+  N3 - TV_AHU   12 m  DN25  # supply-header water enters the hot port
+  NM_AHU - TV_AHU  # 30 C coil return recirculates to the cold port
+  TV_AHU - PU_AHU - HE_AHU - NM_AHU  # pump follows the valve and drives the whole loop
+  NM_AHU - N5   12 m  DN25  # injected header flow returns to the plant
+
+circuit "radiators":
+  number = 102
+  role = radiator
+
+  HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
+
+  N4 - TV_RAD   18 m  DN25
+  NM_RAD - TV_RAD
+  TV_RAD - PU_RAD - HE_RAD - NM_RAD
+  NM_RAD - N6   18 m  DN25

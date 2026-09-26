@@ -1,0 +1,26 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component N1 node in script at  tag  style 
+component N4 node in script at  tag  style 
+component N4__N1 pipe in script at  tag  style 
+  dn = 50 NominalDiameter  
+  length = 45 Length  
+component P2 pipe in script at  tag  style 
+  dn = 32 NominalDiameter  
+  length = 12 Length  
+  minor_loss = 2.5 Dimensionless  
+component P2__in node in script at  tag  style 
+component P2__out node in script at  tag  style 
+connection N4. -> N4__N1.in
+connection N4__N1.out -> N1.
+connection P2.in -> P2__in.
+connection P2.out -> P2__out.
+FS1510 [35..83] Added node 'P2__in' (I3).
+FS1510 [35..83] Added node 'P2__out' (I3).
+FS1507 [35..83] 'P2' is not connected to anything.
+FS1510 [87..107] Added pipe 'N4__N1' (I7).
+FS1510 [87..89] Added node 'N4' (I1).
+FS2107 [87..107] 'N4' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS2107 [87..107] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [92..94] Added node 'N1' (I1).

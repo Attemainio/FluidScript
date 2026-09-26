@@ -1,0 +1,154 @@
+project plant_01 cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit heating 100 water heating
+circuit radiators 102  radiator
+circuit AHU 101  ahu
+circuit floor 103  neutral
+circuit dhw 104  hot_water
+component HE_AHU heat_exchanger in AHU at  tag 101HE01 style 
+  in = 311.15 Temperature  
+  out = 309.15 Temperature  
+component HE_DHW heat_exchanger in dhw at  tag 104HE01 style 
+  in = 304.65 Temperature  
+  out = 303.15 Temperature  
+component HE_FLR heat_exchanger in floor at  tag 103HE01 style 
+  in = 307.65 Temperature  
+  out = 306.15 Temperature  
+component HE_RAD heat_exchanger in radiators at  tag 102HE01 style 
+  in = 323.15 Temperature  
+  out = 313.15 Temperature  
+  power = 20000 Power  
+component HS1 heat_exchanger in heating at  tag 100HE01 style 
+  out = 333.15 Temperature  
+  power = 30000 Power  
+component N1 node in heating at  tag  style 
+  p = 250000 Pressure  
+component N3 node in heating at  tag  style 
+component N3__TV_RAD pipe in radiators at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 18 Length  
+component N3__TV_RAD__out node in radiators at  tag  style 
+component N4 node in radiators at  tag  style 
+component N4__TV_AHU pipe in AHU at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 12 Length  
+component N4__TV_AHU__out node in AHU at  tag  style 
+component N5 node in AHU at  tag  style 
+component N5__TV_FLR pipe in floor at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 15 Length  
+component N5__TV_FLR__out node in floor at  tag  style 
+component N6 node in floor at  tag  style 
+component N6__TV_DHW pipe in dhw at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 10 Length  
+component N6__TV_DHW__out node in dhw at  tag  style 
+component N7 node in heating at  tag  style 
+component NM_AHU node in AHU at  tag  style 
+component NM_AHU__N5 pipe in AHU at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 12 Length  
+component NM_DHW node in dhw at  tag  style 
+component NM_DHW__N7 pipe in dhw at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 10 Length  
+component NM_FLR node in floor at  tag  style 
+component NM_FLR__N6 pipe in floor at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 15 Length  
+component NM_RAD node in radiators at  tag  style 
+component NM_RAD__N4 pipe in radiators at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 18 Length  
+component PU_AHU pump in AHU at  tag 101PU01 style 
+component PU_AHU__HE_AHU node in AHU at  tag  style 
+component PU_DHW pump in dhw at  tag 104PU01 style 
+component PU_DHW__HE_DHW node in dhw at  tag  style 
+component PU_FLR pump in floor at  tag 103PU01 style 
+component PU_FLR__HE_FLR node in floor at  tag  style 
+component PU_RAD pump in radiators at  tag 102PU01 style 
+component PU_RAD__HE_RAD node in radiators at  tag  style 
+component TV_AHU three_way_valve in AHU at  tag 101TV01 style 
+component TV_AHU__PU_AHU node in AHU at  tag  style 
+component TV_DHW three_way_valve in dhw at  tag 104TV01 style 
+component TV_DHW__PU_DHW node in dhw at  tag  style 
+component TV_FLR three_way_valve in floor at  tag 103TV01 style 
+component TV_FLR__PU_FLR node in floor at  tag  style 
+component TV_RAD three_way_valve in radiators at  tag 102TV01 style 
+component TV_RAD__PU_RAD node in radiators at  tag  style 
+connection HE_AHU.out -> NM_AHU.
+connection HE_DHW.out -> NM_DHW.
+connection HE_FLR.out -> NM_FLR.
+connection HE_RAD.out -> NM_RAD.
+connection HS1.out -> N3.
+connection N1. -> HS1.in
+connection N3. -> N3__TV_RAD.in
+connection N3__TV_RAD.out -> N3__TV_RAD__out.
+connection N3__TV_RAD__out. -> TV_RAD.a
+connection N4. -> N4__TV_AHU.in
+connection N4__TV_AHU.out -> N4__TV_AHU__out.
+connection N4__TV_AHU__out. -> TV_AHU.a
+connection N5. -> N5__TV_FLR.in
+connection N5__TV_FLR.out -> N5__TV_FLR__out.
+connection N5__TV_FLR__out. -> TV_FLR.a
+connection N6. -> N6__TV_DHW.in
+connection N6__TV_DHW.out -> N6__TV_DHW__out.
+connection N6__TV_DHW__out. -> TV_DHW.a
+connection N7. -> N1.
+connection NM_AHU. -> NM_AHU__N5.in
+connection NM_AHU. -> TV_AHU.b
+connection NM_AHU__N5.out -> N5.
+connection NM_DHW. -> NM_DHW__N7.in
+connection NM_DHW. -> TV_DHW.b
+connection NM_DHW__N7.out -> N7.
+connection NM_FLR. -> NM_FLR__N6.in
+connection NM_FLR. -> TV_FLR.b
+connection NM_FLR__N6.out -> N6.
+connection NM_RAD. -> NM_RAD__N4.in
+connection NM_RAD. -> TV_RAD.b
+connection NM_RAD__N4.out -> N4.
+connection PU_AHU.out -> PU_AHU__HE_AHU.
+connection PU_AHU__HE_AHU. -> HE_AHU.in
+connection PU_DHW.out -> PU_DHW__HE_DHW.
+connection PU_DHW__HE_DHW. -> HE_DHW.in
+connection PU_FLR.out -> PU_FLR__HE_FLR.
+connection PU_FLR__HE_FLR. -> HE_FLR.in
+connection PU_RAD.out -> PU_RAD__HE_RAD.
+connection PU_RAD__HE_RAD. -> HE_RAD.in
+connection TV_AHU.ab -> TV_AHU__PU_AHU.
+connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_DHW.ab -> TV_DHW__PU_DHW.
+connection TV_DHW__PU_DHW. -> PU_DHW.in
+connection TV_FLR.ab -> TV_FLR__PU_FLR.
+connection TV_FLR__PU_FLR. -> PU_FLR.in
+connection TV_RAD.ab -> TV_RAD__PU_RAD.
+connection TV_RAD__PU_RAD. -> PU_RAD.in
+FS1510 [860..862] Added node 'N3' (I1).
+FS1510 [865..867] Added node 'N7' (I1).
+FS1510 [1047..1071] Added pipe 'N3__TV_RAD' (I7).
+FS1510 [1047..1071] Added node 'N3__TV_RAD__out' (I2).
+FS1510 [1074..1080] Added node 'NM_RAD' (I1).
+FS1510 [1092..1107] Added node 'TV_RAD__PU_RAD' (I2).
+FS1510 [1101..1116] Added node 'PU_RAD__HE_RAD' (I2).
+FS1510 [1128..1152] Added pipe 'NM_RAD__N4' (I7).
+FS1510 [1137..1139] Added node 'N4' (I1).
+FS1510 [1280..1304] Added pipe 'N4__TV_AHU' (I7).
+FS1510 [1280..1304] Added node 'N4__TV_AHU__out' (I2).
+FS1510 [1307..1313] Added node 'NM_AHU' (I1).
+FS1510 [1325..1340] Added node 'TV_AHU__PU_AHU' (I2).
+FS1510 [1334..1349] Added node 'PU_AHU__HE_AHU' (I2).
+FS1510 [1361..1385] Added pipe 'NM_AHU__N5' (I7).
+FS1510 [1370..1372] Added node 'N5' (I1).
+FS1510 [1504..1528] Added pipe 'N5__TV_FLR' (I7).
+FS1510 [1504..1528] Added node 'N5__TV_FLR__out' (I2).
+FS1510 [1531..1537] Added node 'NM_FLR' (I1).
+FS1510 [1549..1564] Added node 'TV_FLR__PU_FLR' (I2).
+FS1510 [1558..1573] Added node 'PU_FLR__HE_FLR' (I2).
+FS1510 [1585..1609] Added pipe 'NM_FLR__N6' (I7).
+FS1510 [1594..1596] Added node 'N6' (I1).
+FS1510 [1745..1769] Added pipe 'N6__TV_DHW' (I7).
+FS1510 [1745..1769] Added node 'N6__TV_DHW__out' (I2).
+FS1510 [1772..1778] Added node 'NM_DHW' (I1).
+FS1510 [1790..1805] Added node 'TV_DHW__PU_DHW' (I2).
+FS1510 [1799..1814] Added node 'PU_DHW__HE_DHW' (I2).
+FS1510 [1826..1850] Added pipe 'NM_DHW__N7' (I7).

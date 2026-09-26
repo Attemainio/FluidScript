@@ -1,0 +1,78 @@
+project plant_01 cases [] design  start 
+style spacing 0.75 default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100 water cooling Static
+circuit expressions 200 water neutral Static
+component 3WV three_way_valve in coolingLoop at  tag 100TV01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__3WV node in coolingLoop at  tag  style 
+component HE2 heat_exchanger in expressions at  tag 200HE01 style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+  in = 323.15 Temperature  
+  out = 303.15 Temperature  
+  power = 30000 Power  
+component HE2__NJ2 pipe in expressions at  tag  style 
+  length = 25 Length  
+component HE2__NJ2__in node in expressions at  tag  style 
+component N1 node in coolingLoop at  tag  style 
+component N2 node in coolingLoop at  tag  style 
+component N3 node in coolingLoop at  tag  style 
+component NB1 inlet in expressions at  tag  style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component NB2 outlet in expressions at  tag  style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+  p = 280000 Pressure  
+component NJ1 node in expressions at  tag  style 
+component NJ2 node in expressions at  tag  style 
+component PU1 pump in coolingLoop at  tag 100PU01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component PU1__in node in coolingLoop at  tag  style 
+component PU1__out node in coolingLoop at  tag  style 
+component RB1 outlet in expressions at  tag  style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+component SB1 inlet in expressions at  tag  style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+  flow = 0.24 MassFlow  
+  t = 279.15 Temperature  
+component TV2 three_way_valve in expressions at  tag 200TV01 style StyleSpec { Stroke = #808080, StrokeWidth = 1, Corner = sharp, Pattern = solid, Fill = , IsEmpty = False }
+  authority = 0.5 Dimensionless  
+  characteristic = - equal_percentage 
+connection 3WV.a -> N2.
+connection 3WV.b -> N3.
+connection HE1.out -> HE1__3WV.
+connection HE1__3WV. -> 3WV.ab
+connection HE2.out -> HE2__NJ2__in.
+connection HE2__NJ2.out -> NJ2.
+connection HE2__NJ2__in. -> HE2__NJ2.in
+connection N1. -> N2.
+connection N2. -> HE1.in
+connection NB1. -> NJ1.
+connection NJ1. -> HE2.in
+connection NJ1. -> TV2.b
+connection NJ2. -> NB2.
+connection PU1.in -> PU1__in.
+connection PU1.out -> PU1__out.
+connection SB1. -> TV2.a
+connection TV2.ab -> RB1.
+let dT = 30 TemperatureDelta dimension TemperatureDelta
+let cp = 4180 SpecificHeat dimension SpecificHeat
+let Q = 30000 Power dimension Power
+let mdot = 0.23923444976076555 MassFlow dimension MassFlow
+let peak = 30000 Power dimension Power
+let margin = 32000 Power dimension Power
+let droop = -2 TemperatureDelta dimension TemperatureDelta
+let share = 0.5 Dimensionless dimension Dimensionless
+let scale = 1200 Dimensionless dimension Dimensionless
+let bore = 0.0273 Length dimension Length
+show [temperature, pressure] scale (0, 40)
+FS1510 [1867..1876] Added node 'PU1__in' (I3).
+FS1510 [1867..1876] Added node 'PU1__out' (I3).
+FS1507 [1867..1876] 'PU1' is not connected to anything.
+FS1510 [1934..1936] Added node 'N1' (I1).
+FS2107 [1934..1941] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [1939..1941] Added node 'N2' (I1).
+FS1510 [2012..2024] Added node 'HE1__3WV' (I2).
+FS2107 [2040..2050] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [2048..2050] Added node 'N3' (I1).
+FS1510 [3159..3162] Added node 'NJ1' (I1).
+FS1510 [3238..3254] Added pipe 'HE2__NJ2' (I7).
+FS1510 [3238..3254] Added node 'HE2__NJ2__in' (I2).
+FS1510 [3244..3247] Added node 'NJ2' (I1).

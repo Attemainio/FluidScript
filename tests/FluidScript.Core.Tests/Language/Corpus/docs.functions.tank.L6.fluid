@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  T1  tank  volume = 500 dm3  layers = 8

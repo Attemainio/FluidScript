@@ -1,0 +1,33 @@
+# The simple loop reference from plan/00-foundation/01-vision-and-scope.md.
+#
+# LOAD is what makes the ring solvable: a closed circuit whose duties do not sum to zero has no steady
+# state, however square its count (FS2203). HE1's `in.t=20` is then the circuit's enthalpy datum, which
+# a closed circuit's own energy relations cannot supply -- they fix every difference and no absolute
+# value (D-65).
+#
+# The return line states no `dn`: P3.7b's outer loop chooses it. This is 01's canonical block, unchanged -- the
+# sizing rule selects DN25 at 0.41 m/s, which is what 24's worked example computes by hand.
+#
+# The gradient it reports is 99.8 Pa/m, not 24's 94.1. Both are right about different states: 24 works
+# the example at the loop's 35 C mean, and the rule sizes every component at its own inlet, which for
+# the return is the 20 C leaving LOAD. Sizing at a mean nobody is standing in is the trap 24 flags for the
+# pump's head, and the pipe rule has it too -- 6 % of gradient here, and the same DN either way.
+#
+# LOAD states `dp=0` because it is the modelling device this header opens by describing, not a physical
+# block: it exists to make the duties sum to zero. Every heat_exchanger otherwise carries a decided
+# 20 kPa, which is right for HE1 and wrong for a fiction, and nothing in the language can tell the two
+# apart -- so the fiction has to say so. Without it the ring carries 40 kPa of exchanger drop rather
+# than 20, the valve is sized against twice the branch, and the loop reaches 11.9 m instead of 5.3.
+
+fluidscript 2
+
+circuit "simpleLoop":
+  fluid = water
+
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30  dp = 0
+  CV1  valve
+  PU1  pump
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+  N5 - N1   25 m

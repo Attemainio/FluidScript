@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  RAD1  load  power = 30  in.t = 50  out.t = 30
+  BLR1  heater  power = 30  in.t = 30  out.t = 50

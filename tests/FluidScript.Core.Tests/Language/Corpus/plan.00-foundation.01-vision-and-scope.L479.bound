@@ -1,0 +1,49 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit demandStep 100 water neutral Static
+component 3WV three_way_valve in demandStep at  tag 100TV01 style 
+component 3WV__P1 node in demandStep at  tag  style 
+component 3WV__PB node in demandStep at  tag  style 
+component HE1 heat_exchanger in demandStep at  tag 100HE01 style 
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__3WV node in demandStep at  tag  style 
+component N1 inlet in demandStep at  tag  style 
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component N2 node in demandStep at  tag  style 
+component N3 outlet in demandStep at  tag  style 
+  p = 280000 Pressure  
+component NS node in demandStep at  tag  style 
+component NS__TE t_sensor in demandStep at NS tag  style 
+component P1 pipe in demandStep at  tag  style 
+  length = 25 Length  
+component PB pipe in demandStep at  tag  style 
+  dn = 20 NominalDiameter  
+  length = 8 Length  
+  nodes = 4 Dimensionless  
+component PU1 pump in demandStep at  tag 100PU01 style 
+component PU1__HE1 node in demandStep at  tag  style 
+component TC1 controller in demandStep at  tag 100PID01 style 
+connection 3WV.a -> 3WV__PB.
+connection 3WV.b -> 3WV__P1.
+connection 3WV__P1. -> P1.in
+connection 3WV__PB. -> PB.in
+connection HE1.out -> HE1__3WV.
+connection HE1__3WV. -> 3WV.ab
+connection N1. -> N2.
+connection N2. -> NS.
+connection NS. -> PU1.in
+connection P1.out -> N3.
+connection PB.out -> N2.
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+control TC1 moves PropertyReference { Component = 3WV, Property = position } reads PropertyReference { Component = NS, Property = t } setpoint 293.15 Temperature [] band - differential - output -..- curve 
+show [temperature] scale 
+FS1510 [290..407] Added t_sensor 'NS__TE' (I8).
+FS1510 [416..418] Added node 'N2' (I1).
+FS1510 [426..428] Added node 'NS' (I1).
+FS1510 [482..491] Added node 'PU1__HE1' (I2).
+FS1510 [494..506] Added node 'HE1__3WV' (I2).
+FS1510 [509..519] Added node '3WV__PB' (I2).
+FS1510 [567..577] Added node '3WV__P1' (I2).

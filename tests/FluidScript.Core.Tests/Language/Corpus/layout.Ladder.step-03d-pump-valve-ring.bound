@@ -1,0 +1,13 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit plant 100  neutral
+component PU1 pump in plant at  tag 100PU01 style 
+component PU1__V1 node in plant at  tag  style 
+component V1 valve in plant at  tag 100V01 style 
+component V1__PU1 node in plant at  tag  style 
+connection PU1.out -> PU1__V1.
+connection PU1__V1. -> V1.in
+connection V1.out -> V1__PU1.
+connection V1__PU1. -> PU1.in
+FS1510 [336..344] Added node 'PU1__V1' (I2).
+FS1510 [342..350] Added node 'V1__PU1' (I2).

@@ -1,0 +1,60 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit substation 100 water neutral
+component HX1 heat_exchanger in substation at  tag 100HE02 style 
+  in = 313.15 Temperature  
+  in2 = 358.15 Temperature  
+  out = 333.15 Temperature  
+  out2 = 318.15 Temperature  
+  power = 150000 Power  
+  u = 3300 HeatTransferCoefficient  
+component HX1__NSUP pipe in substation at  tag  style 
+  length = 30 Length  
+component HX1__NSUP__in node in substation at  tag  style 
+component LOAD heat_exchanger in substation at  tag 100HE01 style 
+  dt = 20 TemperatureDelta  
+  power = -150000 Power  
+component NPR outlet in substation at  tag  style 
+  p = 350000 Pressure  
+component NPS inlet in substation at  tag  style 
+  p = 600000 Pressure  
+  t = 358.15 Temperature  
+component NRET node in substation at  tag  style 
+component NRET__SP pipe in substation at  tag  style 
+  length = 30 Length  
+component NRET__SP__out node in substation at  tag  style 
+component NSUP node in substation at  tag  style 
+component PCV valve in substation at  tag 100V01 style 
+component PCV__HX1 pipe in substation at  tag  style 
+  length = 12 Length  
+component PCV__HX1__in node in substation at  tag  style 
+component PCV__HX1__out node in substation at  tag  style 
+component SP pump in substation at  tag 100PU01 style 
+component SP__HX1 node in substation at  tag  style 
+connection HX1.out -> HX1__NSUP__in.
+connection HX1.out2 -> NPR.
+connection HX1__NSUP.out -> NSUP.
+connection HX1__NSUP__in. -> HX1__NSUP.in
+connection LOAD.out -> NRET.
+connection NPS. -> PCV.in
+connection NRET. -> NRET__SP.in
+connection NRET__SP.out -> NRET__SP__out.
+connection NRET__SP__out. -> SP.in
+connection NSUP. -> LOAD.in
+connection PCV.out -> PCV__HX1__in.
+connection PCV__HX1.out -> PCV__HX1__out.
+connection PCV__HX1__in. -> PCV__HX1.in
+connection PCV__HX1__out. -> HX1.in2
+connection SP.out -> SP__HX1.
+connection SP__HX1. -> HX1.in
+show [temperature] scale 
+FS1510 [568..597] Added pipe 'PCV__HX1' (I7).
+FS1510 [568..597] Added node 'PCV__HX1__in' (I2).
+FS1510 [568..597] Added node 'PCV__HX1__out' (I2).
+FS1510 [627..656] Added pipe 'HX1__NSUP' (I7).
+FS1510 [627..656] Added node 'HX1__NSUP__in' (I2).
+FS1510 [645..649] Added node 'NSUP' (I1).
+FS1510 [673..677] Added node 'NRET' (I1).
+FS1510 [680..696] Added pipe 'NRET__SP' (I7).
+FS1510 [680..696] Added node 'NRET__SP__out' (I2).
+FS1510 [699..718] Added node 'SP__HX1' (I2).

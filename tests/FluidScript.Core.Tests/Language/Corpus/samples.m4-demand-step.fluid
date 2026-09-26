@@ -1,0 +1,48 @@
+# The demand-step loop reference from plan/00-foundation/01-vision-and-scope.md (D-16).
+#
+# The cooling loop in time: `PB` puts 8 m of DN20 pipe in four cells on the recirculation branch,
+# so a change at `HE1` reaches the mixing node `N2` 38 s later; `TC1` holds `NS`, on the mixed pipe
+# just past it, at 20 C through the three-way valve; the schedule steps the load from 30 to 45 kW at
+# t = 60 s. The measurement is `NS` and not `N2` because `N2` is a junction of three pipes, and a
+# junction has no single stream to read (D-150, FS1548).
+#
+# Its t = 0 state is the cooling loop's design state (D-141): the control line's setpoint holds
+# `NS` at 20 C in the design solve and chooses the valve position (0.50 on 01's figures), and the
+# cells keep the pipe's stated dn (C-113). The run itself arrives with P6.1.
+#
+# `HE1` holds 0.5 dm3 a side (C-114): a 30 kW brazed plate unit is around 0.5 m2 of area, and the
+# rule in 22 puts about a litre per square metre in each side. At 0.239 kg/s that is a 2.1 s lag,
+# so the duty step at 60 s leaves the exchanger as a curve and not as a cliff.
+
+fluidscript 2
+
+project:
+  show = temperature
+
+circuit "demandStep":
+  fluid = water
+
+  HE1  heat_exchanger  power = 30  out.t = 50  volume = 0.5
+  3WV  three_way_valve
+  PU1  pump
+  P1  pipe  length = 25
+  PB  pipe  length = 8  dn = 20  nodes = 4  # recirculation branch — the path the controller sees
+  TC1 controller:  # definition: algorithm and gains (D-40)
+    moves = 3WV.position
+    reads = NS.t
+    setpoint = 20
+
+  N1 - N2
+  N2 - NS
+  NS - PU1  # the mixed stream, where TC1 reads it
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - PB - N2  # recirculation, now with volume in it
+  3WV - P1
+  P1 - N3
+
+  N1  inlet  t = 6  p = 300
+  N3  outlet  p = 280
+
+run "Transient":
+  at 60 s  HE1.power = 45

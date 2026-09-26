@@ -59,6 +59,39 @@ public sealed class DirectBindingTests
     public void ABlockBindsDirectlyAsItDoesTranslated(string block) =>
         AssertTheSame(ScriptCorpus.MarkdownBlocks().Single(b => b.Name == block).Text);
 
+    /// <summary>
+    /// Writes the frozen corpus (<c>D-178</c>): every item the conversion turns into language 2 without a gap, as its
+    /// text. Runs only with <c>FLUIDSCRIPT_FREEZE_CORPUS=1</c>, once; the corpus is then the reference, and this goes
+    /// with the converter at package 7.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheCorpusIsFrozenFromTheConversion()
+    {
+        if (Environment.GetEnvironmentVariable("FLUIDSCRIPT_FREEZE_CORPUS") != "1")
+        {
+            return;
+        }
+
+        static IEnumerable<string> Names(TheoryData<string> rows) =>
+            ((IEnumerable<ITheoryDataRow>)rows).Select(static row => (string)row.GetData()[0]!);
+
+        var sources = Names(Language1ConversionTests.Files())
+            .Select(static file => (Name: file, Text: File.ReadAllText(Path.Combine(RepositoryLayout.Root, file))))
+            .Concat(Names(Language1ConversionTests.Blocks())
+                .Select(static block => (Name: block, ScriptCorpus.MarkdownBlocks().Single(b => b.Name == block).Text)));
+
+        Directory.CreateDirectory(Corpus.Language2CorpusTests.Folder);
+
+        foreach (var (name, text) in sources)
+        {
+            if (Language1Converter.Convert(text) is { Gaps.IsEmpty: true } conversion)
+            {
+                File.WriteAllText(Path.Combine(Corpus.Language2CorpusTests.Folder, Corpus.Language2CorpusTests.Id(name) + ".fluid"), conversion.Text);
+            }
+        }
+    }
+
     /// <summary>The direct path is taken only for a language 2 tree the parser produced, never for the translation's.</summary>
     [Fact]
     [Trait("Category", "Unit")]

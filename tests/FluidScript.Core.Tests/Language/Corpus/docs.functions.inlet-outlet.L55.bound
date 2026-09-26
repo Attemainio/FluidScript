@@ -1,0 +1,26 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HE1 node in script at  tag  style 
+component NB1 inlet in script at  tag  style 
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component NB2 outlet in script at  tag  style 
+  p = 280000 Pressure  
+component NJ1 node in script at  tag  style 
+component NJ2 node in script at  tag  style 
+component NM1 node in script at  tag  style 
+component TV1 node in script at  tag  style 
+connection HE1. -> NJ2.
+connection NB1. -> NJ1.
+connection NJ1. -> HE1.
+connection NJ1. -> TV1.a
+connection NJ2. -> NB2.
+connection NM1. -> NJ2.
+FS1510 [94..97] Added node 'NJ1' (I1).
+FS1510 [139..142] Added node 'HE1' (I1).
+FS1510 [145..148] Added node 'NJ2' (I1).
+FS2107 [190..201] 'TV1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [196..201] Added node 'TV1' (I1).
+FS1510 [204..207] Added node 'NM1' (I1).
+FS2107 [204..213] 'NM1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.

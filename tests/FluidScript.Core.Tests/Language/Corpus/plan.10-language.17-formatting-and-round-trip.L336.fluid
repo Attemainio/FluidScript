@@ -1,0 +1,6 @@
+fluidscript 2
+
+circuit "script":
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50  # heat exchanger with power of 30 kW
+  3WV  three_way_valve  kv = 12.4  # auto size
+  PU1  pump  # auto size by pressure difference in loop

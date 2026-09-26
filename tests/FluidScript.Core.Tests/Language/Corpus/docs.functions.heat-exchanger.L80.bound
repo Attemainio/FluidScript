@@ -1,0 +1,17 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HX1 heat_exchanger in script at  tag 100HE01 style 
+  in = 313.15 Temperature  
+  in2 = 358.15 Temperature  
+  out = 333.15 Temperature  
+  out2 = 318.15 Temperature  
+  power = 150000 Power  
+  u = 3300 HeatTransferCoefficient  
+component HX1__in node in script at  tag  style 
+component HX1__out node in script at  tag  style 
+connection HX1.in -> HX1__in.
+connection HX1.out -> HX1__out.
+FS1510 [35..159] Added node 'HX1__in' (I3).
+FS1510 [35..159] Added node 'HX1__out' (I3).
+FS1507 [35..159] 'HX1' is not connected to anything.

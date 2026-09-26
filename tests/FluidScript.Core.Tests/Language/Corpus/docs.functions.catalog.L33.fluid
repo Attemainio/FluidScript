@@ -1,0 +1,8 @@
+fluidscript 2
+
+project:
+  catalog = steel_en10255
+
+circuit "script":
+  P1  pipe  dn = 15  length = 10
+  N1 - P1 - N2

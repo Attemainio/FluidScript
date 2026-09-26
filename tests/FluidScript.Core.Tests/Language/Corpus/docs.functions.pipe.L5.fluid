@@ -1,0 +1,6 @@
+fluidscript 2
+
+circuit "script":
+  P2  pipe  length = 12  dn = 32  minor_loss = 2.5
+
+  N4 - N1   45 m  DN50

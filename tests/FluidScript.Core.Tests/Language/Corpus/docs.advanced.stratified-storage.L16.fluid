@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  T1  tank  volume = 300 dm3  layers = 5  in.level = 90%  out.level = 90%  in[2].level = 30%  out[2].level = 30%

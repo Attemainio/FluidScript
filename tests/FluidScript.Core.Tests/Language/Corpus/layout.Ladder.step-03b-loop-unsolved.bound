@@ -1,0 +1,15 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit plant 100 water neutral
+component HX1 heat_exchanger in plant at  tag 100HE01 style 
+  power = 0 Power  
+component HX1__PU1 node in plant at  tag  style 
+component N1 inlet in plant at  tag  style 
+  p = 300000 Pressure  
+  t = 303.15 Temperature  
+component PU1 pump in plant at  tag 100PU01 style 
+connection HX1.out -> HX1__PU1.
+connection HX1__PU1. -> PU1.in
+connection N1. -> HX1.in
+connection PU1.out -> N1.
+FS1510 [301..310] Added node 'HX1__PU1' (I2).

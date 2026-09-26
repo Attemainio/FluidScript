@@ -1,0 +1,5 @@
+fluidscript 2
+
+project:
+  style:
+    colour = "#2f6f9f"

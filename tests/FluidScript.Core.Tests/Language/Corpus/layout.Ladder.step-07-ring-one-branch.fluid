@@ -1,0 +1,33 @@
+# Layout ladder, step 7 (plan/20-core-domain/29-layout-ladder.md): the distribution header's ring
+# with one injection branch -- the source HS1 and the AHU circuit of m2-distribution-header, the
+# second branch and its header taps (N4, N6) left out. HS1 states the one load's 24 kW and `out`.
+# The valve is sized: D-122 chooses its Kv on its common-port flow to a drop band, so the ring's
+# whole head no longer reaches the rule and the run converges (C-91, closed by measurement).
+
+fluidscript 2
+
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
+
+  HS1  heat_exchanger  power = 24 kW  out.t = 60
+
+  N1 - HS1 - N3
+  N5 - N1
+
+  N1  node  p = 250
+
+circuit "AHU":
+  number = 101
+  role = ahu
+
+  HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+  TV_AHU  three_way_valve
+  PU_AHU  pump
+
+  N3 - TV_AHU   12 m  DN25
+  NM_AHU - TV_AHU
+  TV_AHU - PU_AHU - HE_AHU - NM_AHU
+  NM_AHU - N5   12 m  DN25

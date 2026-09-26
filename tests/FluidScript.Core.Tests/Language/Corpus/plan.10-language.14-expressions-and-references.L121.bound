@@ -1,0 +1,7 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+let dT = 30 TemperatureDelta dimension TemperatureDelta
+let Q = 30000 Power dimension Power
+let mdot = 0.23923444976076555 MassFlow dimension MassFlow
+FS1508 [0..0] No circuit name; using 'script'.

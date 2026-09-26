@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  TV1  three_way_valve

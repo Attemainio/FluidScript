@@ -1,0 +1,19 @@
+fluidscript 2
+
+let tout = -26 °C
+
+curve heating: tout
+  -26  50
+  20   0
+
+circuit "heating":
+  fluid = water
+  role = heating
+
+  HP1  heater  power = heating  sized_at.tout = -5 °C
+  BL1  heater
+  LOAD  load  power = heating  in.t = 70  out.t = 40
+  PU1  pump
+  P1  pipe  length = 20  dn = 32
+
+  N1 - PU1 - HP1 - N2 - BL1 - N3 - LOAD - P1 - N1

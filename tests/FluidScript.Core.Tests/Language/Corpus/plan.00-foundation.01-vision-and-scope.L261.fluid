@@ -1,0 +1,27 @@
+fluidscript 2
+
+project:
+  show = temperature
+
+circuit "coolingLoop":
+  fluid = water
+  role = cooling
+  style:
+    colour = blue
+    width = 2
+    corner = fillet
+    line = dashed
+
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+
+  N1 - N2  # primary supply into the mixing node
+  N2 - PU1  # the secondary pump drives the loop
+  PU1 - HE1
+  HE1 - 3WV.ab
+  3WV.a - N2  # recirculation branch — closes the secondary loop
+  3WV.b - N3   25 m  # primary return: the line carries its pipe's properties (D-110)
+
+  N1  inlet  t = 6  p = 300  # primary-side boundary: fluid enters here
+  N3  outlet  p = 280  # and leaves here

@@ -1,0 +1,40 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit heating 100 water heating
+component BL1 heat_exchanger in heating at  tag 100HE02 style 
+component HP1 heat_exchanger in heating at  tag 100HE01 style 
+  sized at tout = -5
+  capacity power = 27173.9
+  power = 27173.91304347826 Power  
+component LOAD heat_exchanger in heating at  tag 100HE03 style 
+  in = 343.15 Temperature  
+  out = 313.15 Temperature  
+  power = 50000 Power  
+component LOAD__P1 node in heating at  tag  style 
+component N1 node in heating at  tag  style 
+component N2 node in heating at  tag  style 
+component N3 node in heating at  tag  style 
+component P1 pipe in heating at  tag  style 
+  dn = 32 NominalDiameter  
+  length = 20 Length  
+component PU1 pump in heating at  tag 100PU01 style 
+component PU1__HP1 node in heating at  tag  style 
+connection BL1.out -> N3.
+connection HP1.out -> N2.
+connection LOAD.out -> LOAD__P1.
+connection LOAD__P1. -> P1.in
+connection N1. -> PU1.in
+connection N2. -> BL1.in
+connection N3. -> LOAD.in
+connection P1.out -> N1.
+connection PU1.out -> PU1__HP1.
+connection PU1__HP1. -> HP1.in
+curve heating extrapolated False [-26:50 20:0]
+let tout = 247.14999999999998 Temperature dimension Temperature
+deferred HP1.power = heating clock True
+deferred LOAD.power = heating clock True
+FS1510 [296..298] Added node 'N1' (I1).
+FS1510 [301..310] Added node 'PU1__HP1' (I2).
+FS1510 [313..315] Added node 'N2' (I1).
+FS1510 [324..326] Added node 'N3' (I1).
+FS1510 [329..338] Added node 'LOAD__P1' (I2).

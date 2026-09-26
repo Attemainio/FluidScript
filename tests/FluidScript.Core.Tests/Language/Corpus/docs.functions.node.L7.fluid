@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  N1  node  t = 6  p = 300
+  N2  node

@@ -1,0 +1,7 @@
+fluidscript 2
+
+circuit "script":
+  TC1 controller:  # definition: algorithm and gains
+    moves = 3WV.position  # binding: what it drives, what it reads
+    reads = NS.t
+    setpoint = 20

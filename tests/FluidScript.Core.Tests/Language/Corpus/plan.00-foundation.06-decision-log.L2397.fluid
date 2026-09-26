@@ -1,0 +1,6 @@
+fluidscript 2
+
+let x = 1  # every space here belongs to `let`, `x` or `=`
+
+circuit "script":
+  HE1  heat_exchanger

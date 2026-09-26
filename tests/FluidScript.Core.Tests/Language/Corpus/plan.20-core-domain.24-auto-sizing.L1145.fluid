@@ -1,0 +1,10 @@
+fluidscript 2
+
+circuit "script":
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30
+  CV1  valve
+  PU1  pump
+  P1  pipe  length = 25
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5 - P1 - N1

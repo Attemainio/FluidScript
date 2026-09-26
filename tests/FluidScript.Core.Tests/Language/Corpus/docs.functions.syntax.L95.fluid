@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  HX1  heat_exchanger  power = 150 kW  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45

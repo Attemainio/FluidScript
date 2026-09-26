@@ -1,0 +1,8 @@
+fluidscript 2
+
+circuit "coolingLoop":
+  role = cooling
+
+  N1 - HE1 - N2
+
+  N1  node  t = 6  p = 300

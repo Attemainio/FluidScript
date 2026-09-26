@@ -1,0 +1,24 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HL heat_exchanger in script at  tag 100HE02 style 
+  dp = 20000 PressureDelta  
+  out = 313.15 Temperature  
+  power = 120000 Power  
+component HL__in node in script at  tag  style 
+component HL__out node in script at  tag  style 
+component HPC heat_exchanger in script at  tag 100HE01 style 
+  dp = 30000 PressureDelta  
+  out = 318.15 Temperature  
+component HPC__in node in script at  tag  style 
+component HPC__out node in script at  tag  style 
+connection HL.in -> HL__in.
+connection HL.out -> HL__out.
+connection HPC.in -> HPC__in.
+connection HPC.out -> HPC__out.
+FS1510 [35..67] Added node 'HPC__in' (I3).
+FS1510 [35..67] Added node 'HPC__out' (I3).
+FS1507 [35..67] 'HPC' is not connected to anything.
+FS1510 [70..112] Added node 'HL__in' (I3).
+FS1510 [70..112] Added node 'HL__out' (I3).
+FS1507 [70..112] 'HL' is not connected to anything.

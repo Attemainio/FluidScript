@@ -1427,15 +1427,15 @@ Counts only. Every description lives in the file named.
 | Tier | Open | File |
 |---|---|---|
 | 00 · Foundation | 2 | [`00-foundation/defects.md`](00-foundation/defects.md) |
-| 10 · Language | 7 | [`10-language/defects.md`](10-language/defects.md) |
+| 10 · Language | 8 | [`10-language/defects.md`](10-language/defects.md) |
 | 20 · Core domain | 20 | [`20-core-domain/defects.md`](20-core-domain/defects.md) |
 | 30 · Solver | 14 | [`30-solver/defects.md`](30-solver/defects.md) |
 | 40 · API | 1 | [`40-api/defects.md`](40-api/defects.md) |
 | 50 · Frontend | 6 | [`50-frontend/defects.md`](50-frontend/defects.md) |
 | 60 · Docs and dev-ex | 2 | [`60-docs-and-devex/defects.md`](60-docs-and-devex/defects.md) |
-| | **52** | |
+| | **53** | |
 
-Recounted 2026-09-26 after `L-69` (P6.11 package 6b) opened: 52. Recounted 2026-09-25 after `S-89` and `L-68`
+Recounted 2026-09-26 after `L-69` (package 6b) and `L-70` (6c) opened: 53. Recounted 2026-09-25 after `S-89` and `L-68`
 (P6.11 package 5) closed: 51.
 
 Counted from the files on 2026-09-25 after the bookkeeping review (four closed, `C-134` and `S-88` opened;
@@ -1849,7 +1849,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     only its value's reading differs (6c). The project line binds from its values, and each `show` line is carried on
     `SemanticModel.Visualizations`, which `ColourScales.Resolve` now reads instead of the tree (`L-50` narrowed). A style
     stays token syntax: language 2's `style:` block is read into the same tokens. **6b is done.** It found `L-69`: `InputLimits`
-    and deferred evaluation still read the tree after binding, where the harness does not look -- 6c's to close.
+    and deferred evaluation still read the tree after binding, where the harness does not look. **Route changed
+    (`D-178`, the user's call):** the reference is frozen instead of kept running, and the direct front end is
+    written whole in one step. **6c done:** 130 converted items committed as language 2 text with goldens of the
+    translated binding (`tests/FluidScript.Core.Tests/Language/Corpus/`, `Language2CorpusTests`); freezing found
+    `L-70` (a file with no circuit is told `FS1508`). **Next: 6d, the direct front end** against those goldens, with
+    `L-69`, `L-70` and `L-66` closing in it; then package 7 deletes language 1 and the sweep follows (language 1
+    defects closed, language 1 grammar tests deleted, physics tests converted).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
@@ -1919,7 +1925,7 @@ a judgement.
 
 | Baseline | Value | Where |
 |---|---|---|
-| Core test suite | **2977 total, 0 failed, 12 skipped** (139 of them package 6's harness, 8 of its skips the conversion's rewrites) (2026-09-25; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
+| Core test suite | **3108 total, 0 failed, 12 skipped** (140 of them package 6's harness, 8 of its skips the conversion's rewrites; 130 the frozen language 2 corpus, `D-178`) (2026-09-26; one skip is package 5's, `m1-syntax-tour`, deleted at the switch), ~74 s with the `Diagnostic` classes and the transient runs; the `Unit` slice in ~4.5 s | `FluidScript.Core.Tests` |
 | API test suite | **79 passed, 0 failed** (2026-09-25), ~4 s | `FluidScript.Api.Tests` |
 | Frontend tests | **230 passed, 0 failed**, ~12 s | `cd frontend && npm test` |
 | Debounce | **300 ms, provisional** (`D-49`; the benchmark is built, `npm run bench`, and has not run for want of a browser, `U-4`) | `frontend/src/features/pipeline/debounce.ts` |

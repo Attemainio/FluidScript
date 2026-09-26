@@ -1,0 +1,15 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100  cooling
+component HE1 node in coolingLoop at  tag  style 
+component N1 node in coolingLoop at  tag  style 
+component N2 node in coolingLoop at  tag  style 
+component PU1 node in coolingLoop at  tag  style 
+connection HE1. -> N2.
+connection N1. -> HE1.
+connection N2. -> PU1.
+connection PU1. -> N1.
+FS1510 [58..60] Added node 'N1' (I1).
+FS1510 [63..66] Added node 'HE1' (I1).
+FS1510 [69..71] Added node 'N2' (I1).
+FS1510 [74..77] Added node 'PU1' (I1).

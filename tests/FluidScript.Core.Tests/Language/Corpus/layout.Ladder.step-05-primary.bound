@@ -1,0 +1,49 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit ladder 100 water neutral
+component CV1 valve in ladder at  tag 100V02 style 
+component CV1__PU1 node in ladder at  tag  style 
+component HE1 heat_exchanger in ladder at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  in2 = 358.15 Temperature  
+  out = 323.15 Temperature  
+  out2 = 318.15 Temperature  
+  power = 30000 Power  
+component HE1__LOAD node in ladder at  tag  style 
+component LOAD heat_exchanger in ladder at  tag 100HE02 style 
+  power = -30000 Power  
+component LOAD__CV1 node in ladder at  tag  style 
+component NPR outlet in ladder at  tag  style 
+  p = 350000 Pressure  
+component NPS inlet in ladder at  tag  style 
+  p = 600000 Pressure  
+  t = 358.15 Temperature  
+component PCV valve in ladder at  tag 100V01 style 
+component PCV__HE1 pipe in ladder at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 12 Length  
+component PCV__HE1__in node in ladder at  tag  style 
+component PCV__HE1__out node in ladder at  tag  style 
+component PU1 pump in ladder at  tag 100PU01 style 
+component PU1__HE1 node in ladder at  tag  style 
+connection CV1.out -> CV1__PU1.
+connection CV1__PU1. -> PU1.in
+connection HE1.out -> HE1__LOAD.
+connection HE1.out2 -> NPR.
+connection HE1__LOAD. -> LOAD.in
+connection LOAD.out -> LOAD__CV1.
+connection LOAD__CV1. -> CV1.in
+connection NPS. -> PCV.in
+connection PCV.out -> PCV__HE1__in.
+connection PCV__HE1.out -> PCV__HE1__out.
+connection PCV__HE1__in. -> PCV__HE1.in
+connection PCV__HE1__out. -> HE1.in2
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+FS1510 [421..456] Added pipe 'PCV__HE1' (I7).
+FS1510 [421..456] Added node 'PCV__HE1__in' (I2).
+FS1510 [421..456] Added node 'PCV__HE1__out' (I2).
+FS1510 [486..506] Added node 'PU1__HE1' (I2).
+FS1510 [509..531] Added node 'HE1__LOAD' (I2).
+FS1510 [534..544] Added node 'LOAD__CV1' (I2).
+FS1510 [547..556] Added node 'CV1__PU1' (I2).

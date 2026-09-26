@@ -1,0 +1,17 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit ladder 100 water neutral
+component HE1 heat_exchanger in ladder at  tag 100HE01 style 
+component HE1__out node in ladder at  tag  style 
+component PU1 pump in ladder at  tag 100PU01 style 
+component PU1__HE1 node in ladder at  tag  style 
+component PU1__in node in ladder at  tag  style 
+connection HE1.out -> HE1__out.
+connection PU1.in -> PU1__in.
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+FS1510 [241..250] Added node 'PU1__in' (I3).
+FS2202 [241..250] 'PU1' port 'in' is not connected; treating it as closed.
+FS1510 [253..272] Added node 'HE1__out' (I3).
+FS2202 [253..272] 'HE1' port 'out' is not connected; treating it as closed.
+FS1510 [276..285] Added node 'PU1__HE1' (I2).

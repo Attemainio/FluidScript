@@ -1,0 +1,222 @@
+project plant_big cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit distribution 101 water distribution
+circuit AHU 102  ahu
+circuit floor 103  neutral
+circuit dhw 104  hot_water
+component BV1 valve in distribution at  tag 101V03 style 
+  kv = 40 Kv  
+component CV_DHW valve in dhw at  tag 104V01 style 
+  kv = 4 Kv  
+component CV_DHW__HE_DHW node in dhw at  tag  style 
+component CV_R1 valve in distribution at  tag 101V04 style 
+  kv = 4 Kv  
+component CV_R1__RAD1 node in distribution at  tag  style 
+component CV_R2 valve in distribution at  tag 101V05 style 
+  kv = 4 Kv  
+component CV_R2__RAD2 node in distribution at  tag  style 
+component CV_R3 valve in distribution at  tag 101V06 style 
+  kv = 4 Kv  
+component CV_R3__RAD3 node in distribution at  tag  style 
+component CV_S1 valve in distribution at  tag 101V01 style 
+  kv = 25 Kv  
+component CV_S2 valve in distribution at  tag 101V02 style 
+  kv = 25 Kv  
+component FE_S flow_sensor in distribution at NS tag 101FE01 style 
+component HE_AHU heat_exchanger in AHU at  tag 102HE01 style 
+  in = 318.15 Temperature  
+  out = 303.15 Temperature  
+  power = 60000 Power  
+component HE_DHW heat_exchanger in dhw at  tag 104HE01 style 
+  in = 323.15 Temperature  
+  out = 298.15 Temperature  
+  power = 50000 Power  
+component HE_FLR heat_exchanger in floor at  tag 103HE01 style 
+  in = 308.15 Temperature  
+  out = 301.15 Temperature  
+  power = 40000 Power  
+component HS1 heat_exchanger in distribution at  tag 101HE01 style 
+  out = 348.15 Temperature  
+  power = 250000 Power  
+component NA1 node in distribution at  tag  style 
+component NA2 node in distribution at  tag  style 
+component NC1 node in distribution at  tag  style 
+component NC1__TV_AHU pipe in AHU at  tag  style 
+  dn = 40 NominalDiameter  
+  length = 12 Length  
+component NC1__TV_AHU__out node in AHU at  tag  style 
+component NC2 node in floor at  tag  style 
+component NC2__TV_FLR pipe in floor at  tag  style 
+  dn = 32 NominalDiameter  
+  length = 15 Length  
+component NC2__TV_FLR__out node in floor at  tag  style 
+component ND1 node in AHU at  tag  style 
+component ND2 node in floor at  tag  style 
+component NM_AHU node in AHU at  tag  style 
+component NM_AHU__ND1 pipe in AHU at  tag  style 
+  dn = 40 NominalDiameter  
+  length = 12 Length  
+component NM_FLR node in floor at  tag  style 
+component NM_FLR__ND2 pipe in floor at  tag  style 
+  dn = 32 NominalDiameter  
+  length = 15 Length  
+component NP_M node in distribution at  tag  style 
+component NP_S node in distribution at  tag  style 
+component NR1 node in distribution at  tag  style 
+component NR2 node in distribution at  tag  style 
+component NR3 node in distribution at  tag  style 
+component NRB1 node in distribution at  tag  style 
+component NRB2 node in distribution at  tag  style 
+component NR_DHW node in dhw at  tag  style 
+component NS node in distribution at  tag  style 
+component NS0 node in distribution at  tag  style 
+component NT_AHU node in AHU at  tag  style 
+component NT_FLR node in floor at  tag  style 
+component PC_S1 controller in distribution at  tag 101PID04 style 
+  kp = 1 Dimensionless  
+component PE_A2 p_sensor in distribution at NA2 tag 101PE01 style 
+component PU_AHU pump in AHU at  tag 102PU01 style 
+component PU_FLR pump in floor at  tag 103PU01 style 
+component PU_S1 pump in distribution at  tag 101PU01 style 
+component PU_S1__CV_S1 node in distribution at  tag  style 
+component PU_S2 pump in distribution at  tag 101PU02 style 
+component PU_S2__CV_S2 node in distribution at  tag  style 
+component RAD1 heat_exchanger in distribution at  tag 101HE02 style 
+  in = 343.15 Temperature  
+  out = 323.15 Temperature  
+  power = 40000 Power  
+component RAD2 heat_exchanger in distribution at  tag 101HE03 style 
+  in = 343.15 Temperature  
+  out = 323.15 Temperature  
+  power = 35000 Power  
+component RAD3 heat_exchanger in distribution at  tag 101HE04 style 
+  in = 343.15 Temperature  
+  out = 323.15 Temperature  
+  power = 25000 Power  
+component TC_AHU controller in AHU at  tag 102PID01 style 
+  kp = 2 Dimensionless  
+component TC_DHW controller in dhw at  tag 104PID01 style 
+  kp = 2 Dimensionless  
+component TC_FLR controller in floor at  tag 103PID01 style 
+  kp = 2 Dimensionless  
+component TC_R1 controller in distribution at  tag 101PID01 style 
+  kp = 2 Dimensionless  
+component TC_R2 controller in distribution at  tag 101PID02 style 
+  kp = 2 Dimensionless  
+component TC_R3 controller in distribution at  tag 101PID03 style 
+  kp = 2 Dimensionless  
+component TE_AHU t_sensor in AHU at NT_AHU tag 102TE01 style 
+component TE_DHW t_sensor in dhw at NR_DHW tag 104TE01 style 
+component TE_FLR t_sensor in floor at NT_FLR tag 103TE01 style 
+component TE_R t_sensor in distribution at NS0 tag 101TE02 style 
+component TE_R1 t_sensor in distribution at NR1 tag 101TE03 style 
+component TE_R2 t_sensor in distribution at NR2 tag 101TE04 style 
+component TE_R3 t_sensor in distribution at NR3 tag 101TE05 style 
+component TE_S t_sensor in distribution at NS tag 101TE01 style 
+component TV_AHU three_way_valve in AHU at  tag 102TV01 style 
+component TV_AHU__PU_AHU node in AHU at  tag  style 
+component TV_FLR three_way_valve in floor at  tag 103TV01 style 
+component TV_FLR__PU_FLR node in floor at  tag  style 
+connection BV1.out -> NA1.
+connection CV_DHW.out -> CV_DHW__HE_DHW.
+connection CV_DHW__HE_DHW. -> HE_DHW.in
+connection CV_R1.out -> CV_R1__RAD1.
+connection CV_R1__RAD1. -> RAD1.in
+connection CV_R2.out -> CV_R2__RAD2.
+connection CV_R2__RAD2. -> RAD2.in
+connection CV_R3.out -> CV_R3__RAD3.
+connection CV_R3__RAD3. -> RAD3.in
+connection CV_S1.out -> NP_M.
+connection CV_S2.out -> NP_M.
+connection HE_AHU.out -> NM_AHU.
+connection HE_DHW.out -> NR_DHW.
+connection HE_FLR.out -> NM_FLR.
+connection HS1.out -> NS.
+connection NA1. -> CV_R1.in
+connection NA1. -> NA2.
+connection NA2. -> CV_R2.in
+connection NA2. -> CV_R3.in
+connection NC1. -> NC1__TV_AHU.in
+connection NC1. -> NC2.
+connection NC1__TV_AHU.out -> NC1__TV_AHU__out.
+connection NC1__TV_AHU__out. -> TV_AHU.a
+connection NC2. -> CV_DHW.in
+connection NC2. -> NC2__TV_FLR.in
+connection NC2__TV_FLR.out -> NC2__TV_FLR__out.
+connection NC2__TV_FLR__out. -> TV_FLR.a
+connection ND1. -> NS0.
+connection ND2. -> ND1.
+connection NM_AHU. -> NM_AHU__ND1.in
+connection NM_AHU. -> TV_AHU.b
+connection NM_AHU__ND1.out -> ND1.
+connection NM_FLR. -> NM_FLR__ND2.in
+connection NM_FLR. -> TV_FLR.b
+connection NM_FLR__ND2.out -> ND2.
+connection NP_M. -> BV1.in
+connection NP_S. -> PU_S1.in
+connection NP_S. -> PU_S2.in
+connection NR1. -> NRB1.
+connection NR2. -> NRB2.
+connection NR3. -> NRB2.
+connection NRB1. -> NC1.
+connection NRB2. -> NRB1.
+connection NR_DHW. -> ND2.
+connection NS. -> NP_S.
+connection NS0. -> HS1.in
+connection NT_AHU. -> HE_AHU.in
+connection NT_FLR. -> HE_FLR.in
+connection PU_AHU.out -> NT_AHU.
+connection PU_FLR.out -> NT_FLR.
+connection PU_S1.out -> PU_S1__CV_S1.
+connection PU_S1__CV_S1. -> CV_S1.in
+connection PU_S2.out -> PU_S2__CV_S2.
+connection PU_S2__CV_S2. -> CV_S2.in
+connection RAD1.out -> NR1.
+connection RAD2.out -> NR2.
+connection RAD3.out -> NR3.
+connection TV_AHU.ab -> TV_AHU__PU_AHU.
+connection TV_AHU__PU_AHU. -> PU_AHU.in
+connection TV_FLR.ab -> TV_FLR__PU_FLR.
+connection TV_FLR__PU_FLR. -> PU_FLR.in
+control PC_S1 moves PropertyReference { Component = PU_S1, Property = speed } reads PropertyReference { Component = PE_A2, Property = p } setpoint 150000 Pressure [] band - differential - output -..- curve 
+control TC_AHU moves PropertyReference { Component = TV_AHU, Property = position } reads PropertyReference { Component = TE_AHU, Property = t } setpoint 318.15 Temperature [] band - differential - output -..- curve 
+control TC_DHW moves PropertyReference { Component = CV_DHW, Property = position } reads PropertyReference { Component = TE_DHW, Property = t } setpoint 298.15 Temperature [] band - differential - output -..- curve 
+control TC_FLR moves PropertyReference { Component = TV_FLR, Property = position } reads PropertyReference { Component = TE_FLR, Property = t } setpoint 308.15 Temperature [] band - differential - output -..- curve 
+control TC_R1 moves PropertyReference { Component = CV_R1, Property = position } reads PropertyReference { Component = TE_R1, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
+control TC_R2 moves PropertyReference { Component = CV_R2, Property = position } reads PropertyReference { Component = TE_R2, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
+control TC_R3 moves PropertyReference { Component = CV_R3, Property = position } reads PropertyReference { Component = TE_R3, Property = t } setpoint 323.15 Temperature [] band - differential - output -..- curve 
+FS1548 [1276..1298] 'PE_A2' reads 'NA2', where 3 pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to 'NA2', and read that one.
+FS1510 [1388..1391] Added node 'NS0' (I1).
+FS1510 [1400..1402] Added node 'NS' (I1).
+FS1510 [1405..1409] Added node 'NP_S' (I1).
+FS1510 [1419..1432] Added node 'PU_S1__CV_S1' (I2).
+FS1510 [1435..1439] Added node 'NP_M' (I1).
+FS1510 [1449..1462] Added node 'PU_S2__CV_S2' (I2).
+FS1510 [1485..1488] Added node 'NA1' (I1).
+FS1510 [1497..1509] Added node 'CV_R1__RAD1' (I2).
+FS1510 [1512..1515] Added node 'NR1' (I1).
+FS1510 [1518..1522] Added node 'NRB1' (I1).
+FS1510 [1531..1534] Added node 'NA2' (I1).
+FS1510 [1543..1555] Added node 'CV_R2__RAD2' (I2).
+FS1510 [1558..1561] Added node 'NR2' (I1).
+FS1510 [1564..1568] Added node 'NRB2' (I1).
+FS1510 [1577..1589] Added node 'CV_R3__RAD3' (I2).
+FS1510 [1592..1595] Added node 'NR3' (I1).
+FS1510 [1626..1629] Added node 'NC1' (I1).
+FS1510 [1889..1914] Added pipe 'NC1__TV_AHU' (I7).
+FS1510 [1889..1914] Added node 'NC1__TV_AHU__out' (I2).
+FS1510 [1917..1923] Added node 'NM_AHU' (I1).
+FS1510 [1935..1950] Added node 'TV_AHU__PU_AHU' (I2).
+FS1510 [1953..1959] Added node 'NT_AHU' (I1).
+FS1510 [1980..2005] Added pipe 'NM_AHU__ND1' (I7).
+FS1510 [1989..1992] Added node 'ND1' (I1).
+FS1510 [2260..2263] Added node 'NC2' (I1).
+FS1510 [2266..2291] Added pipe 'NC2__TV_FLR' (I7).
+FS1510 [2266..2291] Added node 'NC2__TV_FLR__out' (I2).
+FS1510 [2294..2300] Added node 'NM_FLR' (I1).
+FS1510 [2312..2327] Added node 'TV_FLR__PU_FLR' (I2).
+FS1510 [2330..2336] Added node 'NT_FLR' (I1).
+FS1510 [2357..2382] Added pipe 'NM_FLR__ND2' (I7).
+FS1510 [2366..2369] Added node 'ND2' (I1).
+FS1510 [2637..2652] Added node 'CV_DHW__HE_DHW' (I2).
+FS1510 [2655..2661] Added node 'NR_DHW' (I1).

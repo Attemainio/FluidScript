@@ -1,0 +1,6 @@
+fluidscript 2
+
+project "plant_01":  # names the project; `dynamic` is the default solve mode for every circuit
+  spacing = 20  # component spacing on the canvas, in world units
+
+run "Transient":

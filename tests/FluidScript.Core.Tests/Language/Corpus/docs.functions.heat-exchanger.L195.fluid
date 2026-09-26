@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  HX1  heat_exchanger  power = 120 kW  u = 3300  volume = 4.2  volume[2] = 3.9

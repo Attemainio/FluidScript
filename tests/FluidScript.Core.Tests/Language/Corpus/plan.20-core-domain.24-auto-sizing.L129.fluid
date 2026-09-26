@@ -1,0 +1,9 @@
+fluidscript 2
+
+project:
+  cases = [winter, summer]
+
+circuit "script":
+  HX1  heat_exchanger  power = [30, 10]
+  N3  node  t = [30, 40]
+  PU1  pump  # no array: one pump serving both

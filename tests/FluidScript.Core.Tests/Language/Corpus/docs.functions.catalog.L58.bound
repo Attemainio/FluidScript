@@ -1,0 +1,14 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component P1 pipe in script at  tag  style 
+  dn = 25 NominalDiameter  
+  length = 10 Length  
+  roughness = 0.0003 Length  
+component P1__in node in script at  tag  style 
+component P1__out node in script at  tag  style 
+connection P1.in -> P1__in.
+connection P1.out -> P1__out.
+FS1510 [35..85] Added node 'P1__in' (I3).
+FS1510 [35..85] Added node 'P1__out' (I3).
+FS1507 [35..85] 'P1' is not connected to anything.

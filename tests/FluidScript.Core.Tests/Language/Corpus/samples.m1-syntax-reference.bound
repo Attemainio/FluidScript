@@ -1,0 +1,32 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100 water cooling Static
+component 3WV three_way_valve in coolingLoop at  tag 100TV01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__3WV node in coolingLoop at  tag  style 
+component N1 node in coolingLoop at  tag  style 
+component N2 node in coolingLoop at  tag  style 
+component N3 node in coolingLoop at  tag  style 
+component PU1 pump in coolingLoop at  tag 100PU01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component PU1__in node in coolingLoop at  tag  style 
+component PU1__out node in coolingLoop at  tag  style 
+connection 3WV.a -> N2.
+connection 3WV.b -> N3.
+connection HE1.out -> HE1__3WV.
+connection HE1__3WV. -> 3WV.ab
+connection N1. -> N2.
+connection N2. -> HE1.in
+connection PU1.in -> PU1__in.
+connection PU1.out -> PU1__out.
+FS1510 [925..934] Added node 'PU1__in' (I3).
+FS1510 [925..934] Added node 'PU1__out' (I3).
+FS1507 [925..934] 'PU1' is not connected to anything.
+FS1510 [992..994] Added node 'N1' (I1).
+FS2107 [992..999] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [997..999] Added node 'N2' (I1).
+FS1510 [1070..1082] Added node 'HE1__3WV' (I2).
+FS2107 [1098..1108] 'N3' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [1106..1108] Added node 'N3' (I1).

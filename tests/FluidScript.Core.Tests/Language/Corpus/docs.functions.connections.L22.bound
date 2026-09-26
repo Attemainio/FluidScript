@@ -1,0 +1,14 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100  cooling
+component HE1 node in coolingLoop at  tag  style 
+component N1 node in coolingLoop at  tag  style 
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component N2 node in coolingLoop at  tag  style 
+connection HE1. -> N2.
+connection N1. -> HE1.
+FS1510 [63..66] Added node 'HE1' (I1).
+FS2107 [63..71] 'N2' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.
+FS1510 [69..71] Added node 'N2' (I1).
+FS2107 [75..99] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.

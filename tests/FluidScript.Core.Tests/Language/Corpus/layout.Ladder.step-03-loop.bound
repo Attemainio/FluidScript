@@ -1,0 +1,22 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit ladder 100 water neutral
+component HE1 heat_exchanger in ladder at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__LOAD node in ladder at  tag  style 
+component LOAD heat_exchanger in ladder at  tag 100HE02 style 
+  power = -30000 Power  
+component LOAD__PU1 node in ladder at  tag  style 
+component PU1 pump in ladder at  tag 100PU01 style 
+component PU1__HE1 node in ladder at  tag  style 
+connection HE1.out -> HE1__LOAD.
+connection HE1__LOAD. -> LOAD.in
+connection LOAD.out -> LOAD__PU1.
+connection LOAD__PU1. -> PU1.in
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+FS1510 [255..264] Added node 'PU1__HE1' (I2).
+FS1510 [267..277] Added node 'HE1__LOAD' (I2).
+FS1510 [280..290] Added node 'LOAD__PU1' (I2).

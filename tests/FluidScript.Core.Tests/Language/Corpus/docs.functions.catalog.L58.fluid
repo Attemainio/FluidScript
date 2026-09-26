@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  P1  pipe  dn = 25  length = 10  roughness = 0.3 mm

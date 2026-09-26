@@ -629,21 +629,19 @@ the binder explicit ports, so language 1's order-based assignment is untouched.
 
 ### Binding directly (package 6)
 
-**The plan** (`D-174` rule 2, `D-177`). The binder reads the language 2 tree into small records of its own (a
-circuit, a link, a control, the cases), which language 1's front end also fills until package 7 deletes it. Each step
-is measured against the translated path before the next:
+**The plan** (`D-174` rule 2, `D-177`, steps revised by `D-178`). The binder reads the language 2 tree into small records of its own (a
+circuit, a link, a control, the cases), which language 1's front end also fills until package 7 deletes it. From 6c the reference is the translated
+path's result, frozen, rather than the translation kept running (`D-178`):
 
 | Step | What | Proof |
 |---|---|---|
 | 6a | A direct-binding switch, and a harness over the converted corpus (53 files, 78 blocks) comparing the direct path's model shape and diagnostics (code, span, arguments) with the translated path's. The switch starts by delegating to the translation | Every row equal, trivially |
 | 6b | The records, filled by language 1's statement layer | No behaviour change: the whole suite and every golden identical |
-| 6c | Language 2's front end: circuits, declarations in both forms, `let`s, curves, cases, the project and its presentation; `K` as a difference, a list's unit, `primary`/`secondary` resolved to the registry's ports | The harness, per area switched |
-| 6d | Connections: port inference by flow direction and `D-175`'s valve rule, a sensor in a chain, a pipe at a link's end | The harness |
-| 6e | The controller block into a control record | The harness |
-| 6f | Runs, which are mostly native already; diagnostics raised in language 2's terms on the direct path (`L-66` closes there) | The harness, diagnostics included |
+| 6c | The reference frozen (`D-178`): every converted corpus item that binds without a gap committed as its language 2 text and a golden of the translated path's binding -- model shape, `let`s, deferred expressions, `show` lines, diagnostics with code, span and message | The goldens written from the translated path, and the direct path (still delegating) equal to them |
+| 6d | Language 2's front end, whole, on 6b's records: circuits, declarations in both forms, `let`s, curves, cases, the project and its presentation; `K` as a difference and a list's unit, reaching deferred evaluation (`L-69`); `primary`/`secondary` resolved to the registry's ports; connections with port inference by flow direction, `D-175`'s valve rule, a sensor in a chain, a pipe at a link's end; the controller block; runs; diagnostics raised in language 2's terms (`L-66` closes there). Switched in one step | Every golden, or a golden changed with its reason in the commit; `L-69`'s two stages tested by name |
 
-Exit: the direct path equals the translated path on the whole converted corpus. Language 2 has no schedule roles: a
-driver is a `let` (`D-177`).
+Exit: the direct path binds the whole frozen corpus to its goldens, and package 7 deletes language 1 behind it
+(`D-178`). Language 2 has no schedule roles: a driver is a `let` (`D-177`).
 
 ### Diagnostics
 

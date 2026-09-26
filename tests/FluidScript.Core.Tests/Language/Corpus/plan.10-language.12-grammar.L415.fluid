@@ -1,0 +1,8 @@
+fluidscript 2
+
+circuit "script":
+  N1 - N2
+  # ... the rest of the topology
+
+  N1  node  t = 6  p = 300  # primary-side boundary
+  N3  node  p = 280

@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  HE1  heat_exchanger  power = 30  primary.in.t = 20  primary.out.t = 50  secondary.in.t = 85  secondary.in.flow = 0.4
+  HE2  heat_exchanger  power = 20  secondary.in.t = HE1.secondary.out.t  secondary.in.flow = 0.4

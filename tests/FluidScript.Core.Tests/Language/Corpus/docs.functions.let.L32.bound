@@ -1,0 +1,28 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component HE1 heat_exchanger in script at  tag 100HE01 style 
+  flow2 = 0.4 MassFlow  
+  in = 293.15 Temperature  
+  in2 = 358.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__in node in script at  tag  style 
+component HE1__out node in script at  tag  style 
+component HE2 heat_exchanger in script at  tag 100HE02 style 
+  flow2 = 0.4 MassFlow  
+  in2 = -  
+  power = 20000 Power  
+component HE2__in node in script at  tag  style 
+component HE2__out node in script at  tag  style 
+connection HE1.in -> HE1__in.
+connection HE1.out -> HE1__out.
+connection HE2.in -> HE2__in.
+connection HE2.out -> HE2__out.
+deferred HE2.in2 = HE1.secondary.out.t clock False
+FS1510 [35..151] Added node 'HE1__in' (I3).
+FS1510 [35..151] Added node 'HE1__out' (I3).
+FS1507 [35..151] 'HE1' is not connected to anything.
+FS1510 [154..248] Added node 'HE2__in' (I3).
+FS1510 [154..248] Added node 'HE2__out' (I3).
+FS1507 [154..248] 'HE2' is not connected to anything.

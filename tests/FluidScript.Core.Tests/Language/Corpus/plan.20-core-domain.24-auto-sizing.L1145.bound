@@ -1,0 +1,33 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component CV1 valve in script at  tag 100V01 style 
+component HE1 heat_exchanger in script at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component LOAD heat_exchanger in script at  tag 100HE02 style 
+  power = -30000 Power  
+component N1 node in script at  tag  style 
+component N2 node in script at  tag  style 
+component N3 node in script at  tag  style 
+component N4 node in script at  tag  style 
+component N5 node in script at  tag  style 
+component P1 pipe in script at  tag  style 
+  length = 25 Length  
+component PU1 pump in script at  tag 100PU01 style 
+connection CV1.out -> N5.
+connection HE1.out -> N3.
+connection LOAD.out -> N4.
+connection N1. -> PU1.in
+connection N2. -> HE1.in
+connection N3. -> LOAD.in
+connection N4. -> CV1.in
+connection N5. -> P1.in
+connection P1.out -> N1.
+connection PU1.out -> N2.
+FS1510 [178..180] Added node 'N1' (I1).
+FS1510 [189..191] Added node 'N2' (I1).
+FS1510 [200..202] Added node 'N3' (I1).
+FS1510 [212..214] Added node 'N4' (I1).
+FS1510 [223..225] Added node 'N5' (I1).

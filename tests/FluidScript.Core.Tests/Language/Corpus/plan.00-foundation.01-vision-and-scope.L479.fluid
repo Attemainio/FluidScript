@@ -1,0 +1,32 @@
+fluidscript 2
+
+project:
+  show = temperature
+
+circuit "demandStep":
+  fluid = water
+
+  HE1  heat_exchanger  power = 30  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+  P1  pipe  length = 25
+  PB  pipe  length = 8  dn = 20  nodes = 4  # recirculation branch — the path the controller sees
+  TC1 controller:  # definition: algorithm and gains (D-40)
+    moves = 3WV.position
+    reads = NS.t
+    setpoint = 20
+
+  N1 - N2
+  N2 - NS
+  NS - PU1  # the mixed stream, where TC1 reads it
+  PU1 - HE1
+  HE1 - 3WV.ab
+  3WV.a - PB - N2  # recirculation, now with volume in it
+  3WV.b - P1
+  P1 - N3
+
+  N1  inlet  t = 6  p = 300
+  N3  outlet  p = 280
+
+run "Transient":
+  at 60 s  HE1.power = 45

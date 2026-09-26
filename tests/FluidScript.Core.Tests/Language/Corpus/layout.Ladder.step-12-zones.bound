@@ -1,0 +1,69 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit zones 100 water neutral
+component CV1 valve in zones at  tag 100V01 style 
+  kv = 4 Kv  
+component CV1__LD1 node in zones at  tag  style 
+component CV2 valve in zones at  tag 100V02 style 
+  kv = 4 Kv  
+component CV2__LD2 node in zones at  tag  style 
+component CV3 valve in zones at  tag 100V03 style 
+  kv = 4 Kv  
+component CV3__LD3 node in zones at  tag  style 
+component HE1 heat_exchanger in zones at  tag 100HE01 style 
+  in = 313.15 Temperature  
+  out = 343.15 Temperature  
+  power = 60000 Power  
+component LD1 heat_exchanger in zones at  tag 100HE02 style 
+  power = -20000 Power  
+component LD2 heat_exchanger in zones at  tag 100HE03 style 
+  power = -20000 Power  
+component LD3 heat_exchanger in zones at  tag 100HE04 style 
+  power = -20000 Power  
+component NA1 node in zones at  tag  style 
+component NA2 node in zones at  tag  style 
+component NB1 node in zones at  tag  style 
+component NB2 node in zones at  tag  style 
+component NP node in zones at  tag  style 
+component NR1 node in zones at  tag  style 
+component NR2 node in zones at  tag  style 
+component NR3 node in zones at  tag  style 
+component NS node in zones at  tag  style 
+component PU1 pump in zones at  tag 100PU01 style 
+component PU1__HE1 node in zones at  tag  style 
+connection CV1.out -> CV1__LD1.
+connection CV1__LD1. -> LD1.in
+connection CV2.out -> CV2__LD2.
+connection CV2__LD2. -> LD2.in
+connection CV3.out -> CV3__LD3.
+connection CV3__LD3. -> LD3.in
+connection HE1.out -> NS.
+connection LD1.out -> NR1.
+connection LD2.out -> NR2.
+connection LD3.out -> NR3.
+connection NA1. -> CV1.in
+connection NA1. -> NA2.
+connection NA2. -> CV2.in
+connection NA2. -> CV3.in
+connection NB1. -> NP.
+connection NB2. -> NB1.
+connection NP. -> PU1.in
+connection NR1. -> NB1.
+connection NR2. -> NB2.
+connection NR3. -> NB2.
+connection NS. -> NA1.
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+FS1510 [455..464] Added node 'PU1__HE1' (I2).
+FS1510 [473..475] Added node 'NS' (I1).
+FS1510 [483..486] Added node 'NA1' (I1).
+FS1510 [495..504] Added node 'CV1__LD1' (I2).
+FS1510 [507..510] Added node 'NR1' (I1).
+FS1510 [513..516] Added node 'NB1' (I1).
+FS1510 [525..528] Added node 'NA2' (I1).
+FS1510 [537..546] Added node 'CV2__LD2' (I2).
+FS1510 [549..552] Added node 'NR2' (I1).
+FS1510 [555..558] Added node 'NB2' (I1).
+FS1510 [567..576] Added node 'CV3__LD3' (I2).
+FS1510 [579..582] Added node 'NR3' (I1).
+FS1510 [609..611] Added node 'NP' (I1).

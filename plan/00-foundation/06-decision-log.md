@@ -220,6 +220,7 @@ Find a decision here, then jump to its entry — the log is read by id, never fr
 | `D-175` | Accepted | 2026-09-25 | What converting language 1 found: a three-way valve is labelled by the plant, `sized_at` states a capacity, and language 1's other extras are dropped |
 | `D-176` | Accepted | 2026-09-26 | `sized_at` names any `let`, read directly or through a curve, by its exact spelling |
 | `D-177` | Accepted | 2026-09-26 | The direct binder reads language 2 into small records of its own; sides resolve to the registry's ports; language 2 has no schedule roles |
+| `D-178` | Accepted | 2026-09-26 | Language 2 is bound directly against a frozen corpus, in one step, and language 1 is deleted behind it |
 <!-- index:end -->
 
 ---
@@ -8035,3 +8036,44 @@ tiers read. Roles were language 1's way of giving a driver a meaning and a unit;
 
 **Constrains.** `19` §Binding directly; the binder's collection layer; `ScheduleRoleRegistry`, which becomes language
 1's alone and goes with it at the switch.
+
+---
+
+## D-178 · Language 2 is bound directly against a frozen corpus, in one step, and language 1 is deleted behind it
+
+**Accepted · 2026-09-26** (the user's call, "do which route is recommended", after package 6b) · refines `D-177`'s
+steps, not its rules · constrains [`19`](../10-language/19-fluidscript-2.md) §Binding directly, package 7
+
+**What was open.** `D-177` planned 6c–6f as four switches, one area at a time, each measured against the live
+translation. Two costs followed that the plan did not state. A path switched one area at a time binds a tree that
+is partly raw and partly translated, which is a third front end in all but name. And the translation, language 1's
+front end and the converter all stay alive for four more steps only to serve as the reference. 6b built the records
+the direct front end fills, so the reference can now be frozen instead of kept running.
+
+**The rule.**
+
+1. **The reference is frozen.** Every converted corpus item that binds without a gap (the samples, the layout
+   ladder with its variants and stress cases, and the documentation's blocks) is committed as its language 2 text
+   and a golden of what the translated path binds it to: the model's shape as `ModelShape` renders it, every `let`
+   with its value, every deferred expression's target and text, every `show` line, and every diagnostic with its
+   code, span and message. From here the goldens are the reference, not the translation.
+2. **The direct front end is written whole** on 6b's records (circuits, declarations, `let`s, curves, cases, the
+   project, connections and port inference with `D-175`'s valve rule, controllers, runs) and switched in one step
+   when every golden holds. A golden changes only with a reason stated in the commit, for each item: a span the
+   translation made up, a message `L-66` names, or a defect fixed. The reviewed diff is the proof.
+3. **Package 7 deletes language 1 behind it**: the language 1 parser, the translation, the converter,
+   `ScheduleRoleRegistry` and the tests of language 1's own grammar, printer and spellings. A test written in
+   language 1 that tests physics (sizing, the solver, the layout) is converted, not deleted. A defect about
+   language 1 alone closes with a note; one about the physics stays open.
+4. **What the goldens do not see is tested by name.** The four samples with wire-contract goldens (compile and
+   solved) are converted at the switch and must keep them. `L-69`'s two stages after the binder each get a test in
+   the direct step.
+
+**Why.** It removes the half-translated path and about one package of scaffolding. The cost is the live reference:
+a difference is found by reading a golden diff rather than by running both paths, and the translation's own quirks
+are frozen with its results, so each one is either reproduced or changed with a reason.
+
+**Rejected.** *`D-177`'s four switches against the live translation.* Each area is isolated when it fails, but the
+path in between binds a mixed tree, and every piece of language 1 stays alive until the last switch.
+
+**Constrains.** `19` §Binding directly; `DirectBindingTests`, which goes with the translation; package 7's scope.

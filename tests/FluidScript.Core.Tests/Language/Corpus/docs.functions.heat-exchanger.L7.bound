@@ -1,0 +1,25 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component BLR1 heat_exchanger in script at  tag 100HE02 style 
+  in = 303.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component BLR1__in node in script at  tag  style 
+component BLR1__out node in script at  tag  style 
+component RAD1 heat_exchanger in script at  tag 100HE01 style 
+  in = 323.15 Temperature  
+  out = 303.15 Temperature  
+  power = 30000 Power  
+component RAD1__in node in script at  tag  style 
+component RAD1__out node in script at  tag  style 
+connection BLR1.in -> BLR1__in.
+connection BLR1.out -> BLR1__out.
+connection RAD1.in -> RAD1__in.
+connection RAD1.out -> RAD1__out.
+FS1510 [35..80] Added node 'RAD1__in' (I3).
+FS1510 [35..80] Added node 'RAD1__out' (I3).
+FS1507 [35..80] 'RAD1' is not connected to anything.
+FS1510 [83..130] Added node 'BLR1__in' (I3).
+FS1510 [83..130] Added node 'BLR1__out' (I3).
+FS1507 [83..130] 'BLR1' is not connected to anything.

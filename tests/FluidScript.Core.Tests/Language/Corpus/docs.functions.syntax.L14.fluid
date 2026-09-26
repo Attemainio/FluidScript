@@ -1,0 +1,6 @@
+fluidscript 2
+
+circuit "script":
+  HE1  heat_exchanger  power = 30  # 30 kW, sized from the loop
+
+# a whole line, too

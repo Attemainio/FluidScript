@@ -1,0 +1,85 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit zones 100 water neutral
+component CV1 valve in zones at  tag 100V01 style 
+  kv = 4 Kv  
+component CV1__LD1 node in zones at  tag  style 
+component CV2 valve in zones at  tag 100V02 style 
+  kv = 4 Kv  
+component CV2__LD2 node in zones at  tag  style 
+component CV3 valve in zones at  tag 100V03 style 
+  kv = 4 Kv  
+component CV3__LD3 node in zones at  tag  style 
+component FE1 flow_sensor in zones at NS tag 100FE01 style 
+component HE1 heat_exchanger in zones at  tag 100HE01 style 
+  out = 343.15 Temperature  
+  power = 60000 Power  
+component LD1 heat_exchanger in zones at  tag 100HE02 style 
+  power = -20000 Power  
+component LD2 heat_exchanger in zones at  tag 100HE03 style 
+  power = -20000 Power  
+component LD3 heat_exchanger in zones at  tag 100HE04 style 
+  power = -20000 Power  
+component NA1 node in zones at  tag  style 
+component NA2 node in zones at  tag  style 
+component NB1 node in zones at  tag  style 
+component NB2 node in zones at  tag  style 
+component NP node in zones at  tag  style 
+component NR1 node in zones at  tag  style 
+component NR2 node in zones at  tag  style 
+component NR3 node in zones at  tag  style 
+component NS node in zones at  tag  style 
+component PC1 controller in zones at  tag 100PID04 style 
+  kp = 1 Dimensionless  
+component PE1 p_sensor in zones at NP tag 100PE01 style 
+component PU1 pump in zones at  tag 100PU01 style 
+component PU1__HE1 node in zones at  tag  style 
+component TC1 controller in zones at  tag 100PID01 style 
+  kp = 2 Dimensionless  
+component TC2 controller in zones at  tag 100PID02 style 
+  kp = 2 Dimensionless  
+component TC3 controller in zones at  tag 100PID03 style 
+  kp = 2 Dimensionless  
+component TE1 t_sensor in zones at NR1 tag 100TE01 style 
+component TE2 t_sensor in zones at NR2 tag 100TE02 style 
+component TE3 t_sensor in zones at NR3 tag 100TE03 style 
+connection CV1.out -> CV1__LD1.
+connection CV1__LD1. -> LD1.in
+connection CV2.out -> CV2__LD2.
+connection CV2__LD2. -> LD2.in
+connection CV3.out -> CV3__LD3.
+connection CV3__LD3. -> LD3.in
+connection HE1.out -> NS.
+connection LD1.out -> NR1.
+connection LD2.out -> NR2.
+connection LD3.out -> NR3.
+connection NA1. -> CV1.in
+connection NA1. -> NA2.
+connection NA2. -> CV2.in
+connection NA2. -> CV3.in
+connection NB1. -> NP.
+connection NB2. -> NB1.
+connection NP. -> PU1.in
+connection NR1. -> NB1.
+connection NR2. -> NB2.
+connection NR3. -> NB2.
+connection NS. -> NA1.
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+control PC1 moves PropertyReference { Component = PU1, Property = speed } reads PropertyReference { Component = PE1, Property = p } setpoint 150000 Pressure [] band - differential - output -..- curve 
+control TC1 moves PropertyReference { Component = CV1, Property = position } reads PropertyReference { Component = TE1, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
+control TC2 moves PropertyReference { Component = CV2, Property = position } reads PropertyReference { Component = TE2, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
+control TC3 moves PropertyReference { Component = CV3, Property = position } reads PropertyReference { Component = TE3, Property = t } setpoint 313.15 Temperature [] band - differential - output -..- curve 
+FS1510 [1035..1044] Added node 'PU1__HE1' (I2).
+FS1510 [1053..1055] Added node 'NS' (I1).
+FS1510 [1063..1066] Added node 'NA1' (I1).
+FS1510 [1075..1084] Added node 'CV1__LD1' (I2).
+FS1510 [1087..1090] Added node 'NR1' (I1).
+FS1510 [1093..1096] Added node 'NB1' (I1).
+FS1510 [1105..1108] Added node 'NA2' (I1).
+FS1510 [1117..1126] Added node 'CV2__LD2' (I2).
+FS1510 [1129..1132] Added node 'NR2' (I1).
+FS1510 [1135..1138] Added node 'NB2' (I1).
+FS1510 [1147..1156] Added node 'CV3__LD3' (I2).
+FS1510 [1159..1162] Added node 'NR3' (I1).
+FS1510 [1189..1191] Added node 'NP' (I1).

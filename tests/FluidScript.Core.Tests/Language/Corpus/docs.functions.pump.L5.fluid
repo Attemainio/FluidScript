@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  PU1  pump
+  PU2  pump  head = 15

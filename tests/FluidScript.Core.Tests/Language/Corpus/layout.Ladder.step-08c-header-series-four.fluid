@@ -1,0 +1,73 @@
+# does not settle: S-69 -- the solve gate records the report and expects the stall until the defect closes.
+# Layout ladder, step 8c (plan/20-core-domain/29-layout-ladder.md): four injection branches in
+# series on one ring. The radiators take 20 kW at 50/40 from the 60 C supply and fix the ring's
+# stream at 0.239 kg/s; the next three loads cool that stream 40 -> 36 -> 33 -> 30 with their duties
+# sized (4, 3 and 3 kW), each mixing what reaches it with its own return half and half (38 from
+# 40/36, 34.5 from 36/33, 31.5 from 33/30), and HS1 states the total 30 kW. N4, N5 and N6 each join
+# one branch's return to the next branch's supply and, with two connections, are inline (D-114).
+
+fluidscript 2
+
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
+
+  HS1  heat_exchanger  power = 30 kW  out.t = 60
+
+  N1 - HS1 - N3
+  N7 - N1
+
+  N1  node  p = 250
+
+circuit "radiators":
+  number = 102
+  role = radiator
+
+  HE_RAD  load  in.t = 50  out.t = 40  power = 20 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
+
+  N3 - TV_RAD   18 m  DN25
+  NM_RAD - TV_RAD
+  TV_RAD - PU_RAD - HE_RAD - NM_RAD
+  NM_RAD - N4   18 m  DN25
+
+circuit "AHU":
+  number = 101
+  role = ahu
+
+  HE_AHU  load  in.t = 38  out.t = 36
+  TV_AHU  three_way_valve
+  PU_AHU  pump
+
+  N4 - TV_AHU   12 m  DN25
+  NM_AHU - TV_AHU
+  TV_AHU - PU_AHU - HE_AHU - NM_AHU
+  NM_AHU - N5   12 m  DN25
+
+circuit "floor":
+  number = 103
+
+  HE_FLR  load  in.t = 34.5  out.t = 33
+  TV_FLR  three_way_valve
+  PU_FLR  pump
+
+  N5 - TV_FLR   15 m  DN25
+  NM_FLR - TV_FLR
+  TV_FLR - PU_FLR - HE_FLR - NM_FLR
+  NM_FLR - N6   15 m  DN25
+
+circuit "dhw":
+  number = 104
+  role = hot_water
+
+  HE_DHW  load  in.t = 31.5  out.t = 30
+  TV_DHW  three_way_valve
+  PU_DHW  pump
+
+  N6 - TV_DHW   10 m  DN25
+  NM_DHW - TV_DHW
+  TV_DHW - PU_DHW - HE_DHW - NM_DHW
+  NM_DHW - N7   10 m  DN25

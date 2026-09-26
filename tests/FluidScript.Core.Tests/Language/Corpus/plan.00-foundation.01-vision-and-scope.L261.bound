@@ -1,0 +1,36 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit coolingLoop 100 water cooling
+component 3WV three_way_valve in coolingLoop at  tag 100TV01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component 3WV__N3 pipe in coolingLoop at  tag  style 
+  length = 25 Length  
+component 3WV__N3__in node in coolingLoop at  tag  style 
+component HE1 heat_exchanger in coolingLoop at  tag 100HE01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__3WV node in coolingLoop at  tag  style 
+component N1 inlet in coolingLoop at  tag  style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component N2 node in coolingLoop at  tag  style 
+component N3 outlet in coolingLoop at  tag  style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+  p = 280000 Pressure  
+component PU1 pump in coolingLoop at  tag 100PU01 style StyleSpec { Stroke = #0000ff, StrokeWidth = 2, Corner = fillet, Pattern = dashed, Fill = , IsEmpty = False }
+component PU1__HE1 node in coolingLoop at  tag  style 
+connection 3WV.a -> N2.
+connection 3WV.b -> 3WV__N3__in.
+connection 3WV__N3.out -> N3.
+connection 3WV__N3__in. -> 3WV__N3.in
+connection HE1.out -> HE1__3WV.
+connection HE1__3WV. -> 3WV.ab
+connection N1. -> N2.
+connection N2. -> PU1.in
+connection PU1.out -> PU1__HE1.
+connection PU1__HE1. -> HE1.in
+show [temperature] scale 
+FS1510 [282..284] Added node 'N2' (I1).
+FS1510 [375..384] Added node 'PU1__HE1' (I2).
+FS1510 [387..399] Added node 'HE1__3WV' (I2).
+FS1510 [467..484] Added pipe '3WV__N3' (I7).
+FS1510 [467..484] Added node '3WV__N3__in' (I2).

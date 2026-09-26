@@ -1,0 +1,12 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component N1 node in script at  tag  style 
+  p = 100000 Pressure  
+component V1 valve in script at  tag 100V01 style 
+component V1__in node in script at  tag  style 
+connection V1.in -> V1__in.
+connection V1.out -> N1.
+FS1510 [35..44] Added node 'V1__in' (I3).
+FS2202 [35..44] 'V1' port 'in' is not connected; treating it as closed.
+FS2107 [47..64] 'N1' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.

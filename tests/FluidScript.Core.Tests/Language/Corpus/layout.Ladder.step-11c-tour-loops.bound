@@ -1,0 +1,53 @@
+project plant_01 cases [] design  start 
+style spacing 0.75 default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit demandStep 400 water neutral Static
+circuit radiators 500 water radiator Static
+component HE4 heat_exchanger in demandStep at  tag 400HE01 style StyleSpec { Stroke = #008000, StrokeWidth = 1, Corner = sharp, Pattern = dash-dot, Fill = , IsEmpty = False }
+  in = 323.15 Temperature  
+  out = 303.15 Temperature  
+  power = 30000 Power  
+component HE4__TV4 node in demandStep at  tag  style 
+component HE5 heat_exchanger in radiators at  tag 500HE01 style 
+  in = 323.15 Temperature  
+  out = 303.15 Temperature  
+  power = 50000 Power  
+component HE5__TV5 node in radiators at  tag  style 
+component NC1 node in demandStep at  tag  style StyleSpec { Stroke = #008000, StrokeWidth = 1, Corner = sharp, Pattern = dash-dot, Fill = , IsEmpty = False }
+  flow = 0.24 MassFlow  
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component NR1 node in radiators at  tag  style 
+component NR2 node in radiators at  tag  style 
+component PID5 controller in radiators at  tag 500PID01 style 
+  kp = 2 Dimensionless  
+component PU4 pump in demandStep at  tag 400PU01 style StyleSpec { Stroke = #008000, StrokeWidth = 1, Corner = sharp, Pattern = dash-dot, Fill = , IsEmpty = False }
+component PU4__HE4 node in demandStep at  tag  style 
+component PU5 pump in radiators at  tag 500PU01 style 
+component PU5__HE5 node in radiators at  tag  style 
+component TE5 t_sensor in radiators at NR2 tag 500TE01 style 
+component TV4 valve in demandStep at  tag 400V01 style StyleSpec { Stroke = #008000, StrokeWidth = 1, Corner = sharp, Pattern = dash-dot, Fill = , IsEmpty = False }
+component TV5 valve in radiators at  tag 500V01 style 
+connection HE4.out -> HE4__TV4.
+connection HE4__TV4. -> TV4.in
+connection HE5.out -> HE5__TV5.
+connection HE5__TV5. -> TV5.in
+connection NC1. -> PU4.in
+connection NR1. -> PU5.in
+connection NR2. -> NR1.
+connection PU4.out -> PU4__HE4.
+connection PU4__HE4. -> HE4.in
+connection PU5.out -> PU5__HE5.
+connection PU5__HE5. -> HE5.in
+connection TV4.out -> NC1.
+connection TV5.out -> NR2.
+control PID5 moves PropertyReference { Component = TV5, Property = position } reads PropertyReference { Component = TE5, Property = t } setpoint 333.15 Temperature [] band - differential - output -..- curve 
+curve heating extrapolated True [-26:50 20:0]
+curve supplyTemp extrapolated False [-26:60 20:30]
+let tout = 247.14999999999998 Temperature dimension Temperature
+deferred HE5.power = heating clock True
+FS1510 [896..905] Added node 'PU4__HE4' (I2).
+FS1510 [902..911] Added node 'HE4__TV4' (I2).
+FS1510 [1720..1723] Added node 'NR1' (I1).
+FS1510 [1726..1735] Added node 'PU5__HE5' (I2).
+FS1510 [1732..1741] Added node 'HE5__TV5' (I2).
+FS1510 [1744..1747] Added node 'NR2' (I1).

@@ -1,0 +1,13 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component LOAD heat_exchanger in script at  tag 100HE01 style 
+  dp = 0 PressureDelta  
+  power = 30000 Power  
+component LOAD__in node in script at  tag  style 
+component LOAD__out node in script at  tag  style 
+connection LOAD.in -> LOAD__in.
+connection LOAD.out -> LOAD__out.
+FS1510 [35..65] Added node 'LOAD__in' (I3).
+FS1510 [35..65] Added node 'LOAD__out' (I3).
+FS1507 [35..65] 'LOAD' is not connected to anything.

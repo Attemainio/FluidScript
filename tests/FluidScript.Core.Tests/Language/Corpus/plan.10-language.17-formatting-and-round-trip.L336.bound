@@ -1,0 +1,31 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component 3WV three_way_valve in script at  tag 100TV01 style 
+  kv = 12.4 Kv  
+component 3WV__a node in script at  tag  style 
+component 3WV__ab node in script at  tag  style 
+component HE1 heat_exchanger in script at  tag 100HE01 style 
+  in = 293.15 Temperature  
+  out = 323.15 Temperature  
+  power = 30000 Power  
+component HE1__in node in script at  tag  style 
+component HE1__out node in script at  tag  style 
+component PU1 pump in script at  tag 100PU01 style 
+component PU1__in node in script at  tag  style 
+component PU1__out node in script at  tag  style 
+connection 3WV.a -> 3WV__a.
+connection 3WV.ab -> 3WV__ab.
+connection HE1.in -> HE1__in.
+connection HE1.out -> HE1__out.
+connection PU1.in -> PU1__in.
+connection PU1.out -> PU1__out.
+FS1510 [35..89] Added node 'HE1__in' (I3).
+FS1510 [35..89] Added node 'HE1__out' (I3).
+FS1507 [35..89] 'HE1' is not connected to anything.
+FS1510 [130..161] Added node '3WV__ab' (I3).
+FS1510 [130..161] Added node '3WV__a' (I3).
+FS1507 [130..161] '3WV' is not connected to anything.
+FS1510 [177..186] Added node 'PU1__in' (I3).
+FS1510 [177..186] Added node 'PU1__out' (I3).
+FS1507 [177..186] 'PU1' is not connected to anything.

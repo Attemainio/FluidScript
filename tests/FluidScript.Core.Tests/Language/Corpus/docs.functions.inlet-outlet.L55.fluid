@@ -1,0 +1,11 @@
+fluidscript 2
+
+circuit "script":
+  NB1  inlet  t = 6  p = 300
+  NB2  outlet  p = 280
+
+  NB1 - NJ1  # the boundary's one connection
+  NJ1 - HE1 - NJ2  # the split is NJ1's, the merge NJ2's
+  NJ1 - TV1.a
+  NM1 - NJ2
+  NJ2 - NB2

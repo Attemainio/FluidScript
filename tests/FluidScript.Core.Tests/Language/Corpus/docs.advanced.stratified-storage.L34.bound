@@ -1,0 +1,18 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component T1 tank in script at  tag 100S01 style 
+  layers = 5 Dimensionless  
+  t1 = 298.15 Temperature  
+  t2 = 303.15 Temperature  
+  t3 = 313.15 Temperature  
+  t4 = 323.15 Temperature  
+  t5 = 333.15 Temperature  
+  volume = 0.3 Volume  
+component T1__in1 node in script at  tag  style 
+component T1__out1 node in script at  tag  style 
+connection T1.in1 -> T1__in1.
+connection T1.out1 -> T1__out1.
+FS1510 [35..158] Added node 'T1__in1' (I3).
+FS1510 [35..158] Added node 'T1__out1' (I3).
+FS1507 [35..158] 'T1' is not connected to anything.

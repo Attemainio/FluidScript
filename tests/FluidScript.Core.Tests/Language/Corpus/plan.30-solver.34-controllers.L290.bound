@@ -1,0 +1,5 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component TC1 controller in script at  tag 100PID01 style 
+control TC1 moves PropertyReference { Component = 3WV, Property = position } reads PropertyReference { Component = NS, Property = t } setpoint 20 Dimensionless [] band - differential - output -..- curve 

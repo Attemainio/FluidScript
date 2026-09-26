@@ -1,0 +1,43 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit buffer 100 water storage
+component B1 heat_exchanger in buffer at  tag 100HE01 style 
+  in = 328.15 Temperature  
+  out = 348.15 Temperature  
+  power = 100000 Power  
+component B1__T1 node in buffer at  tag  style 
+component LOAD heat_exchanger in buffer at  tag 100HE02 style 
+  dt = 20 TemperatureDelta  
+  power = -100000 Power  
+component LOAD__T1 node in buffer at  tag  style 
+component PU_B1 pump in buffer at  tag 100PU01 style 
+component PU_B1__B1 node in buffer at  tag  style 
+component PU_S1 pump in buffer at  tag 100PU02 style 
+component PU_S1__LOAD node in buffer at  tag  style 
+component T1 tank in buffer at  tag 100S01 style 
+  in1_level = 0.9 Dimensionless  
+  in2_level = 0.1 Dimensionless  
+  layers = 3 Dimensionless  
+  out1_level = 0.9 Dimensionless  
+  out2_level = 0.1 Dimensionless  
+  volume = 1 Volume  
+component T1__PU_B1 node in buffer at  tag  style 
+component T1__PU_S1 node in buffer at  tag  style 
+connection B1.out -> B1__T1.
+connection B1__T1. -> T1.in1
+connection LOAD.out -> LOAD__T1.
+connection LOAD__T1. -> T1.in2
+connection PU_B1.out -> PU_B1__B1.
+connection PU_B1__B1. -> B1.in
+connection PU_S1.out -> PU_S1__LOAD.
+connection PU_S1__LOAD. -> LOAD.in
+connection T1.out1 -> T1__PU_S1.
+connection T1.out2 -> T1__PU_B1.
+connection T1__PU_B1. -> PU_B1.in
+connection T1__PU_S1. -> PU_S1.in
+FS1510 [677..687] Added node 'B1__T1' (I2).
+FS1510 [690..707] Added node 'T1__PU_B1' (I2).
+FS1510 [702..712] Added node 'PU_B1__B1' (I2).
+FS1510 [715..729] Added node 'T1__PU_S1' (I2).
+FS1510 [724..736] Added node 'PU_S1__LOAD' (I2).
+FS1510 [732..747] Added node 'LOAD__T1' (I2).

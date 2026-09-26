@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  V1  valve  kv = 6.3
+  V2  valve  authority = 0.5  characteristic = equal_percentage

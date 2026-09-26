@@ -1,0 +1,10 @@
+fluidscript 2
+
+let dT = 30 K
+let Q = 30 kW
+let cp = 4.18 kJ/(kg*K)
+let mdot = Q / (cp * dT)
+
+circuit "script":
+  HE1  heat_exchanger  power = Q  in.t = 20  out.t = 20C+dT
+  PU1  pump  head = 1.2*HE1.dp/(998 kg/m3*g)

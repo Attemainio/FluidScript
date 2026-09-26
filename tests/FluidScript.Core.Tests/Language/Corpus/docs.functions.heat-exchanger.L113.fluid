@@ -1,0 +1,5 @@
+fluidscript 2
+
+circuit "script":
+  HPC  heater  out.t = 45  dp = 30
+  HL  load  power = 120  out.t = 40  dp = 20

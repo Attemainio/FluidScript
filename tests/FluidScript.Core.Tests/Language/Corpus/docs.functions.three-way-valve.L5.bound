@@ -1,0 +1,11 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component TV1 three_way_valve in script at  tag 100TV01 style 
+component TV1__a node in script at  tag  style 
+component TV1__ab node in script at  tag  style 
+connection TV1.a -> TV1__a.
+connection TV1.ab -> TV1__ab.
+FS1510 [35..55] Added node 'TV1__ab' (I3).
+FS1510 [35..55] Added node 'TV1__a' (I3).
+FS1507 [35..55] 'TV1' is not connected to anything.

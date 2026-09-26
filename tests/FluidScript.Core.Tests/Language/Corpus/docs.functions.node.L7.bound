@@ -1,0 +1,7 @@
+project project cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit script 100  neutral
+component N1 node in script at  tag  style 
+  p = 300000 Pressure  
+  t = 279.15 Temperature  
+component N2 node in script at  tag  style 

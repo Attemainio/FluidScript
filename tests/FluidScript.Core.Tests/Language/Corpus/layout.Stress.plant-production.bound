@@ -1,0 +1,64 @@
+project plant_big cases [] design  start 
+style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
+circuit production 100 water neutral
+circuit secondary 101 water heating
+component B1 heat_exchanger in production at  tag 100HE01 style 
+  out = 348.15 Temperature  
+  power = 150000 Power  
+component B1__CV_B1 node in production at  tag  style 
+component B2 heat_exchanger in production at  tag 100HE02 style 
+  out = 348.15 Temperature  
+  power = 150000 Power  
+component B2__CV_B2 node in production at  tag  style 
+component CV_B1 valve in production at  tag 100V01 style 
+  kv = 16 Kv  
+component CV_B2 valve in production at  tag 100V02 style 
+  kv = 16 Kv  
+component LOAD heat_exchanger in secondary at  tag 101HE01 style 
+  power = -250000 Power  
+component LOAD__T1 node in secondary at  tag  style 
+component NB_M node in production at  tag  style 
+component NB_S node in production at  tag  style 
+component PU_B1 pump in production at  tag 100PU01 style 
+component PU_B1__B1 node in production at  tag  style 
+component PU_B2 pump in production at  tag 100PU02 style 
+component PU_B2__B2 node in production at  tag  style 
+component PU_S1 pump in secondary at  tag 101PU01 style 
+component PU_S1__LOAD node in secondary at  tag  style 
+component T1 tank in production at  tag 100S01 style 
+  in1_level = 0.9 Dimensionless  
+  in2_level = 0.1 Dimensionless  
+  layers = 5 Dimensionless  
+  out1_level = 0.9 Dimensionless  
+  out2_level = 0.1 Dimensionless  
+  volume = 2 Volume  
+component T1__PU_S1 node in production at  tag  style 
+connection B1.out -> B1__CV_B1.
+connection B1__CV_B1. -> CV_B1.in
+connection B2.out -> B2__CV_B2.
+connection B2__CV_B2. -> CV_B2.in
+connection CV_B1.out -> NB_M.
+connection CV_B2.out -> NB_M.
+connection LOAD.out -> LOAD__T1.
+connection LOAD__T1. -> T1.in2
+connection NB_M. -> T1.in1
+connection NB_S. -> PU_B1.in
+connection NB_S. -> PU_B2.in
+connection PU_B1.out -> PU_B1__B1.
+connection PU_B1__B1. -> B1.in
+connection PU_B2.out -> PU_B2__B2.
+connection PU_B2__B2. -> B2.in
+connection PU_S1.out -> PU_S1__LOAD.
+connection PU_S1__LOAD. -> LOAD.in
+connection T1.out1 -> T1__PU_S1.
+connection T1.out2 -> NB_S.
+connection T1__PU_S1. -> PU_S1.in
+FS1510 [696..700] Added node 'NB_S' (I1).
+FS1510 [710..720] Added node 'PU_B1__B1' (I2).
+FS1510 [718..728] Added node 'B1__CV_B1' (I2).
+FS1510 [731..735] Added node 'NB_M' (I1).
+FS1510 [745..755] Added node 'PU_B2__B2' (I2).
+FS1510 [753..763] Added node 'B2__CV_B2' (I2).
+FS1510 [914..928] Added node 'T1__PU_S1' (I2).
+FS1510 [923..935] Added node 'PU_S1__LOAD' (I2).
+FS1510 [931..946] Added node 'LOAD__T1' (I2).

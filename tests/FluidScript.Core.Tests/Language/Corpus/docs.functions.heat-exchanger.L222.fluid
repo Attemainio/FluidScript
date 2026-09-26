@@ -1,0 +1,4 @@
+fluidscript 2
+
+circuit "script":
+  LOAD  load  power = 30  dp = 0

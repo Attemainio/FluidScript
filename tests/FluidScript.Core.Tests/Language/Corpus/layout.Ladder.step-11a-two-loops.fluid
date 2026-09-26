@@ -1,0 +1,40 @@
+# Layout ladder, step 11a (plan/20-core-domain/29-layout-ladder.md): two independent circuits in
+# one script -- step 4's heating loop and step 6's cooling loop, renamed apart. Nothing connects
+# them; the question is how the drawing arranges one against the other.
+
+fluidscript 2
+
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
+
+  PU_H  pump
+  HS_H  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30
+  CV_H  valve  kv = 6.3
+
+  PU_H - HS_H
+  HS_H - LOAD
+  LOAD - CV_H
+  CV_H - PU_H
+
+circuit "cooling":
+  fluid = water
+  number = 101
+  role = cooling
+
+  HE_C  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  TV_C  three_way_valve
+  PU_C  pump
+
+  N1 - N2
+  N2 - PU_C
+  PU_C - HE_C
+  HE_C - TV_C
+  TV_C - N2
+  TV_C - N3   25 m  DN25
+
+  N1  inlet  t = 6  p = 300
+  N3  outlet  p = 280
