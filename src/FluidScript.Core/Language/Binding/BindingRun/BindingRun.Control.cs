@@ -350,13 +350,39 @@ internal sealed partial class BindingRun
                 return null;
             }
 
-            if (actuated && _components[named.Index].Kind is { } owner && !owner.Parameters.ContainsKey(port))
+            if (_components[named.Index].Kind is not { } owner)
             {
-                Report(BinderDiagnostics.ParameterNotControllable, endpoint.Span, ("param", port), ("component", name));
+                return new PropertyReference(name, port);
+            }
+
+            // Resolved by the registry's spellings as a declaration's settings are (`D-179`): the parameter a loop moves
+            // is its key, `flow2` for `HX1.secondary.in.flow`, since what a loop moves is stored by key; what it reads is
+            // the property's own name. Compared with the keys as written, every parameter spelled otherwise than its
+            // key -- an exchanger's `in.t`, its whole second side -- could not be moved, and a property the kind does not
+            // have was bound as written and read nothing.
+            if (actuated)
+            {
+                if (owner.ResolveParameter(port, out _, out _) is not { } parameter)
+                {
+                    Report(BinderDiagnostics.ParameterNotControllable, endpoint.Span, ("param", port), ("component", name));
+                    return null;
+                }
+
+                return new PropertyReference(name, parameter.Key);
+            }
+
+            if (owner.ResolveProperty(port) is not { } property)
+            {
+                Report(
+                    BinderDiagnostics.UnknownProperty,
+                    endpoint.PortSpan,
+                    ("kind", owner.Keyword),
+                    ("property", port),
+                    ("available", string.Join(", ", owner.ReadableNames)));
                 return null;
             }
 
-            return new PropertyReference(name, port);
+            return new PropertyReference(name, property.Name);
         }
 
         if (!_componentsByName.TryGetValue(name, out var slot))

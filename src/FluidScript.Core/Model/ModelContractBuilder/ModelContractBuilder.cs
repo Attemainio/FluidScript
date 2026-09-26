@@ -5,9 +5,9 @@ using System.Text;
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
 using FluidScript.Core.Language.Binding;
+using FluidScript.Core.Language.Compatibility;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Ast;
-using FluidScript.Core.Language.Translation;
 using FluidScript.Core.Layout;
 using FluidScript.Core.Layout.Drawing;
 using FluidScript.Core.Layout.Hints;
@@ -153,11 +153,11 @@ public static partial class ModelContractBuilder
         var styles = new Styles(model, graph);
         var scales = ColourScales.Resolve(model.Visualizations, graph, ports, raised);
         var states = components.ToDictionary(static c => c.Id, static c => c.State, StringComparer.Ordinal);
-        var major = input.Root.Version is { } version && !double.IsNaN(version.Major.Value) ? (int)version.Major.Value : 1;
-
-        // Every stage's messages meet here, so a language 2 file's are put into its own words here (19 §Diagnostics).
-        ImmutableArray<Diagnostic> said = [.. diagnostics, .. raised];
-        var all = Diagnostics(input.Source, major == 2 ? Language2Wording.Apply(said, Language2Wording.Exchangers(model.Components)) : said, [.. components]);
+        // An unversioned draft is read in the current major, so that is the major it reports (`D-174`).
+        var major = input.Root.Version is { } version && !double.IsNaN(version.Major.Value)
+            ? (int)version.Major.Value
+            : SupportedVersions.Default.Current.Value;
+        var all = Diagnostics(input.Source, [.. diagnostics, .. raised], [.. components]);
 
         return new ModelContract
         {

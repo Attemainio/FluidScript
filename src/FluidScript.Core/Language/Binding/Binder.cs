@@ -46,9 +46,6 @@ public sealed class Binder
     {
         ArgumentNullException.ThrowIfNull(parse);
 
-        var bound = new BindingRun(_registry, parse, documentName).Execute();
-
-        // Messages with a language 2 wording are read in it (19 §Diagnostics).
-        return bound with { Diagnostics = Translation.Language2Wording.Apply(bound.Diagnostics, Translation.Language2Wording.Exchangers(bound.Model.Components)) };
+        return new BindingRun(_registry, parse, documentName).Execute();
     }
 }

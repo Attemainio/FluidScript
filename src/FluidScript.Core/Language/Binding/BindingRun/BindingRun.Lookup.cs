@@ -78,7 +78,7 @@ internal sealed partial class BindingRun
         // where the value comes from when nobody stated it. Reading the pending value rather than the
         // symbol's is what makes it work during evaluation, before anything has been published. The
         // stated value is keyed by the *parameter's* key, which `D-120` lets differ from the
-        // property's: `in[2].t` is the parameter `in2` when stated and the property `t_in2` when solved.
+        // property's: `secondary.in.t` is the parameter `in2` when stated and the property `t_in2` when solved.
         if (StatedParameterKey(kind, written) is { } key && component.Parameters.ContainsKey(key))
         {
             var parameterId = new ValueId.ComponentParameter(head, key);
@@ -265,7 +265,7 @@ internal sealed partial class BindingRun
     /// Not in <see cref="Lookup"/>: a reference is evaluated as often as the fixed point needs, and a
     /// diagnostic raised there would repeat with it. One walk over the statements after evaluation is
     /// one message per written name, at the reference's own span, with the current spelling of the
-    /// whole reference as the quick fix -- <c>HX1.t_in2</c> becomes <c>HX1.in[2].t</c>.
+    /// whole reference as the quick fix -- <c>HX1.t_in2</c> becomes <c>HX1.secondary.in.t</c>.
     /// </remarks>
     private void ReviewLegacyReferences()
     {

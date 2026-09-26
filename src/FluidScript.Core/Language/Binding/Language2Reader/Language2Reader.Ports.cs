@@ -87,7 +87,7 @@ internal sealed partial class Language2Reader
 
             var claimed = list
                 .Where(static end => end.Endpoint.Port is not null)
-                .Select(end => kind.ResolvePort(PortName(end.Endpoint.Port!).Text, out _, out _))
+                .Select(end => kind.ResolvePort(end.Endpoint.Port!.Text, out _, out _))
                 .OfType<string>()
                 .ToHashSet(StringComparer.Ordinal);
 
@@ -124,7 +124,7 @@ internal sealed partial class Language2Reader
             var role = inflow ? PortRole.Inlet : PortRole.Outlet;
             var ports = kind.Ports
                 .Where(port => port.Role == role && !claimed.Contains(port.Key))
-                .Select(static port => port.Name)
+                .Select(static port => port.Spelling)
                 .ToList();
 
             foreach (var end in free.Where(end => end.Inflow == inflow))
@@ -136,7 +136,7 @@ internal sealed partial class Language2Reader
                     && kind.Ports.Where(port => port.Role == role).ToList() is [var only]
                     && claimed.Contains(only.Key))
                 {
-                    Give(end, only.Name);
+                    Give(end, only.Spelling);
                     continue;
                 }
 
@@ -146,7 +146,7 @@ internal sealed partial class Language2Reader
                         name,
                         end,
                         string.Create(CultureInfo.InvariantCulture, $"a {kind.Keyword} has one {(inflow ? "inlet" : "outlet")}, and it is already connected"),
-                        kind.Ports.Select(static port => port.Name));
+                        kind.Ports.Select(static port => port.Spelling));
                     continue;
                 }
 
@@ -331,7 +331,7 @@ internal sealed partial class Language2Reader
     /// <remarks>
     /// A pass is an inlet and an outlet of one side. A chain through the exchanger, <c>S - HX1 - R</c>, is one pass;
     /// ends on separate lines pair within their circuit in the order written. The passes of the declaring circuit come
-    /// first, then the others in file order: the first takes <c>in</c>/<c>out</c>, the second <c>in[2]</c>/<c>out[2]</c>.
+    /// first, then the others in file order: the first takes <c>in</c>/<c>out</c>, the second <c>secondary.in</c>/<c>secondary.out</c>.
     /// A side with one port already written is given only to a pass that needs its other port, so
     /// <c>HX1.secondary.out - TV1</c> and <c>NR - HX1</c> make one secondary side between them.
     /// </remarks>
@@ -367,7 +367,7 @@ internal sealed partial class Language2Reader
             .ThenBy(static pass => pass.Min(static end => end.Order))
             .ToList();
 
-        var sides = new List<(string In, string Out, string Label)> { ("in", "out", "primary"), ("in[2]", "out[2]", "secondary") };
+        var sides = new List<(string In, string Out, string Label)> { ("in", "out", "primary"), ("secondary.in", "secondary.out", "secondary") };
         bool Free(string port) => !claimed.Contains(Key(kind, port));
 
         var wiring = new List<string>();
@@ -457,44 +457,4 @@ internal sealed partial class Language2Reader
             ("component", name),
             ("reason", reason),
             ("example", $"{name}.{ports.First()}"));
-
-    /// <summary>The endpoint with a port the rule settled, written as language 1's explicit port.</summary>
-    private EndpointSyntax WithInferredPort(EndpointSyntax endpoint, bool inflow)
-    {
-        if (endpoint.Port is not null || !_inferred.TryGetValue((endpoint.Span.Start, inflow), out var port))
-        {
-            return endpoint;
-        }
-
-        var at = endpoint.Component.Span.End;
-        return endpoint with
-        {
-            Dot = Made(TokenKind.Dot, ".", new TextSpan(at, 0)),
-            Port = new QualifiedNameSyntax(PortSyntax(port, at), []),
-        };
-    }
-
-    /// <summary>A port name made here, <c>ab</c> or <c>in[2]</c>, placed where the endpoint's name ends.</summary>
-    private static IndexedNameSyntax PortSyntax(string port, int at)
-    {
-        var open = port.IndexOf('[', StringComparison.Ordinal);
-        if (open < 0)
-        {
-            return new IndexedNameSyntax(Identifier(port, new TextSpan(at, 0)), null);
-        }
-
-        var digits = port[(open + 1)..^1];
-        var number = new Token
-        {
-            Kind = TokenKind.NumberLiteral,
-            Text = digits,
-            NumberText = digits,
-            Value = int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture),
-            Span = new TextSpan(at, 0),
-        };
-
-        return new IndexedNameSyntax(
-            Identifier(port[..open], new TextSpan(at, 0)),
-            new IndexSyntax(Made(TokenKind.OpenBracket, "[", new TextSpan(at, 0)), number, Made(TokenKind.CloseBracket, "]", new TextSpan(at, 0))));
-    }
 }

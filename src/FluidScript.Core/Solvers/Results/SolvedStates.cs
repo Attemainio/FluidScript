@@ -309,7 +309,7 @@ public static class SolvedStates
     /// <remarks>
     /// A rated exchanger's second side is the stated profile -- its entering temperature and capacity
     /// rate -- and its leaving temperature is <c>inlet2 − duty / capacity2</c>: the number a script reads
-    /// as <c>HE1.out[2].t</c> and the report prints as the rating. Shared between the two so they cannot
+    /// as <c>HE1.secondary.out.t</c> and the report prints as the rating. Shared between the two so they cannot
     /// disagree.
     /// </remarks>
     public static SolvedExchanger? Exchanger(CircuitGraph graph, SystemLayout layout, StateVector solution, int index)

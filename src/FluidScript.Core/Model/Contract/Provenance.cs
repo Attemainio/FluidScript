@@ -6,7 +6,7 @@ public sealed record Provenance
     /// <summary>SHA-256 of the source text, as <c>sha256:</c> and 64 hex digits.</summary>
     public required string SourceHash { get; init; }
 
-    /// <summary>The language major version the script declared.</summary>
+    /// <summary>The language major version the script declared, or the current major it was read in when it declared none.</summary>
     public required int LanguageMajor { get; init; }
 
     /// <summary>The pipe catalogue sizes were drawn from.</summary>

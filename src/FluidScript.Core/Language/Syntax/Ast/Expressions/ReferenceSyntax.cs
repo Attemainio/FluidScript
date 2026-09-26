@@ -21,8 +21,8 @@ public sealed record ReferenceSyntax(
     /// <returns>The parts joined with <c>.</c>; empty for a plain name.</returns>
     /// <remarks>
     /// A property is one name to the registry however many dots it carries (<c>D-120</c>), so the
-    /// binder resolves the whole path and never the last step alone — <c>HX1.in[2].t</c> is the
-    /// property <c>in[2].t</c> of <c>HX1</c>, not the <c>t</c> of something called <c>in[2]</c>.
+    /// binder resolves the whole path and never the last step alone — <c>HX1.secondary.in.t</c> is the
+    /// property <c>secondary.in.t</c> of <c>HX1</c>, not the <c>t</c> of something called <c>secondary.in</c>.
     /// </remarks>
     public string PropertyPath() =>
         Parts.IsDefaultOrEmpty ? string.Empty : string.Join('.', Parts.Select(static part => part.Name.Text));

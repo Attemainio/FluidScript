@@ -13,8 +13,9 @@ internal sealed partial class Language2Reader
 {
     /// <summary>Translates a value into what language 1's evaluator reads.</summary>
     /// <remarks>
-    /// Two differences, each resolved here: a list's trailing unit belongs to each item (<c>19</c> §Values), and an
-    /// exchanger's <c>primary</c> and <c>secondary</c> are its registry ports' first and second side (<c>L-75</c>).
+    /// One difference is resolved here: a list's trailing unit belongs to each item (<c>19</c> §Values, <c>L-75</c>).
+    /// An exchanger's <c>primary</c> and <c>secondary</c> are the registry's spellings, which the lookup resolves
+    /// (<c>D-179</c>).
     /// </remarks>
     private ExpressionSyntax Value(ExpressionSyntax value) => value switch
     {
@@ -30,7 +31,6 @@ internal sealed partial class Language2Reader
         {
             Arguments = [.. call.Arguments.Select(argument => argument with { Value = Value(argument.Value) })],
         },
-        ReferenceSyntax reference => Reference(reference),
         RangeExpressionSyntax range => Ends(range) is var (from, to) ? range with { From = from, To = to } : range,
         _ => value,
     };
@@ -55,7 +55,7 @@ internal sealed partial class Language2Reader
     {
         NumberLiteralSyntax number => Quantity(number, unit),
         UnaryExpressionSyntax { Operand: NumberLiteralSyntax number } negative => negative with { Operand = Quantity(number, unit) },
-        ReferenceSyntax reference => new QuantityReferenceSyntax(Reference(reference), unitTokens),
+        ReferenceSyntax reference => new QuantityReferenceSyntax(reference, unitTokens),
         _ => Value(item),
     };
 
@@ -93,77 +93,5 @@ internal sealed partial class Language2Reader
         }
 
         return (from, to);
-    }
-
-    /// <summary>A reference with an exchanger's side written as language 1's port: <c>HX1.secondary.out.t</c> is <c>HX1.out[2].t</c>.</summary>
-    private static ReferenceSyntax Reference(ReferenceSyntax reference)
-    {
-        if (reference.Parts.Length < 2 || Side(reference.Parts[0].Name) is not { } side)
-        {
-            return reference;
-        }
-
-        var port = SidePort(reference.Parts[1].Name, side);
-        return port is null
-            ? reference
-            : reference with { Parts = [reference.Parts[1] with { Name = port }, .. reference.Parts[2..]] };
-    }
-
-    /// <summary>A parameter or port name with an exchanger's side written as language 1's port: <c>secondary.in.t</c> is <c>in[2].t</c>.</summary>
-    private static QualifiedNameSyntax PortName(QualifiedNameSyntax name)
-    {
-        if (name.Parts.IsDefaultOrEmpty || Side(name.Head) is not { } side)
-        {
-            return name;
-        }
-
-        var port = SidePort(name.Parts[0].Name, side);
-        return port is null ? name : new QualifiedNameSyntax(port, name.Parts[1..]);
-    }
-
-    /// <summary>Which side a name spells: 1 for <c>primary</c>, 2 for <c>secondary</c>, or none.</summary>
-    private static int? Side(IndexedNameSyntax name)
-    {
-        if (name.Index is not null)
-        {
-            return null;
-        }
-
-        return NameResolution.Normalize(name.Name.Text) switch
-        {
-            "primary" => 1,
-            "secondary" => 2,
-            _ => null,
-        };
-    }
-
-    /// <summary>The port <c>in</c> or <c>out</c> of a side: itself on the first side, indexed <c>[2]</c> on the second.</summary>
-    /// <returns>The port, or <see langword="null"/> when the name is not a bare <c>in</c> or <c>out</c>.</returns>
-    private static IndexedNameSyntax? SidePort(IndexedNameSyntax port, int side)
-    {
-        if (port.Index is not null || port.Name.Text is not ("in" or "out"))
-        {
-            return null;
-        }
-
-        if (side == 1)
-        {
-            return port;
-        }
-
-        var at = port.Span.End;
-        var two = new Token
-        {
-            Kind = TokenKind.NumberLiteral,
-            Text = "2",
-            NumberText = "2",
-            Value = 2,
-            Span = new TextSpan(at, 0),
-        };
-
-        return port with
-        {
-            Index = new IndexSyntax(Made(TokenKind.OpenBracket, "[", new TextSpan(at, 0)), two, Made(TokenKind.CloseBracket, "]", new TextSpan(at, 0))),
-        };
     }
 }

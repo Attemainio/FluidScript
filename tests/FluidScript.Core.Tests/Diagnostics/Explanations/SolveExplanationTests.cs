@@ -224,8 +224,8 @@ public sealed class SolveExplanationTests
 
         Assert.Contains("FS2203       'first' is closed", report, StringComparison.Ordinal);
         Assert.Contains("FS2203       'second' is closed", report, StringComparison.Ordinal);
-        Assert.Contains("FixedFlow    on HX1.out.t    -> solved for as PU1.head", report, StringComparison.Ordinal);
-        Assert.Contains("FixedFlow    on HX1.out[2].t -> solved for as PU2.head", report, StringComparison.Ordinal);
+        Assert.Matches(@"FixedFlow    on HX1\.out\.t +-> solved for as PU1\.head", report);
+        Assert.Matches(@"FixedFlow    on HX1\.secondary\.out\.t +-> solved for as PU2\.head", report);
         Assert.Matches(@"N1 -> N1 +0\.4780  forward", report);
         Assert.Matches(@"N3 -> N3 +0\.4780  forward", report);
     }

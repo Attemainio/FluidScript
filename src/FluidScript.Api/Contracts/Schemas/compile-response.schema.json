@@ -25,7 +25,7 @@
               "type": "string"
             },
             "languageMajor": {
-              "description": "The language major version the script declared.",
+              "description": "The language major version the script declared, or the current major it was read in when it declared none.",
               "type": "integer"
             },
             "catalog": {

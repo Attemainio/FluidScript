@@ -70,7 +70,7 @@ export interface Provenance {
    */
   sourceHash: string;
   /**
-   * The language major version the script declared.
+   * The language major version the script declared, or the current major it was read in when it declared none.
    */
   languageMajor: number;
   /**

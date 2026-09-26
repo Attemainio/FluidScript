@@ -227,7 +227,7 @@ public static partial class WellPosedness
         }
     }
 
-    /// <summary>A parameter key as the script spells it on this element's kind: <c>out2</c> as <c>out[2].t</c> (<c>D-120</c>, <c>L-56</c>).</summary>
+    /// <summary>A parameter key as the script spells it on this element's kind: <c>out2</c> as <c>secondary.out.t</c> (<c>D-179</c>, <c>L-56</c>).</summary>
     /// <param name="element">The element that states it.</param>
     /// <param name="key">The model key.</param>
     /// <returns>The script spelling, or the key when the kind is not in the registry or spells it the same.</returns>

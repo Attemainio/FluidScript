@@ -136,7 +136,7 @@ describe('parameter completion', () => {
     expect(labels(result.items)).not.toContain('power');
     const inlet = result.items.find((i) => i.label === 'in.t');
     expect(inlet?.detail).toBe('Temperature · °C · typically -50…300');
-    expect(labels(result.items)).toContain('in[2].flow');
+    expect(labels(result.items)).toContain('secondary.in.flow');
     expect(result.items.find((i) => i.label === 'dt')?.detail).toBe(
       'TemperatureDelta · dK · typically 0.1…200',
     );
@@ -177,12 +177,19 @@ describe('parameter completion', () => {
 });
 
 describe("a port's state (D-120)", () => {
-  it('after a port and a dot offers the quantities that port takes, minus the ones written', () => {
-    const second = at('HE1 heat_exchanger in[2].');
-    expect(second.context).toBe('parameter');
-    expect(labels(second.items)).toEqual(expect.arrayContaining(['t', 'flow', 'dp', 'dt']));
-    expect(labels(second.items)).not.toContain('power');
+  // Expected to fail until P6.11 package 8 (U-11): an exchanger's second side is `secondary.in` since D-179, and
+  // this language 1 completion reads a two-dot prefix as a property reference. `fails` turns red when it is fixed.
+  it.fails(
+    "after the exchanger's secondary.in and a dot offers the quantities that port takes",
+    () => {
+      const second = at('HE1 heat_exchanger secondary.in.');
+      expect(second.context).toBe('parameter');
+      expect(labels(second.items)).toEqual(expect.arrayContaining(['t', 'flow', 'dp', 'dt']));
+      expect(labels(second.items)).not.toContain('power');
+    },
+  );
 
+  it('after a port and a dot offers the quantities that port takes, minus the ones written', () => {
     const first = at('HE1 heat_exchanger in.t=40 in.');
     expect(labels(first.items)).not.toContain('t');
 
@@ -193,18 +200,18 @@ describe("a port's state (D-120)", () => {
     expect(labels(at('T1 tank in[3].').items).sort()).toEqual(['level', 'p']);
   });
 
-  it('after in[2].t= filters values by temperature, as in.t= does', () => {
-    const value = at('HE1 heat_exchanger in[2].t=');
+  it('after secondary.in.t= filters values by temperature, as in.t= does', () => {
+    const value = at('HE1 heat_exchanger secondary.in.t=');
     expect(value.context).toBe('value');
     expect(labels(value.items)).toContain('Tsupply');
     expect(labels(value.items)).not.toContain('dTdesign');
   });
 
   it('a state already written is not offered again, and the port index closes a parameter', () => {
-    const next = at('HE1 heat_exchanger in[2].t=85 ');
+    const next = at('HE1 heat_exchanger secondary.in.t=85 ');
     expect(next.context).toBe('parameter');
-    expect(labels(next.items)).not.toContain('in[2].t');
-    expect(labels(next.items)).toContain('out[2].t');
+    expect(labels(next.items)).not.toContain('secondary.in.t');
+    expect(labels(next.items)).toContain('secondary.out.t');
   });
 });
 

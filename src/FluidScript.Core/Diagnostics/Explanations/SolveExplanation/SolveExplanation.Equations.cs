@@ -110,7 +110,7 @@ public static partial class SolveExplanation
         else
         {
             // The bases are keyed `HX1.flow2` because the wire's `sizes` map is (`D-120`); the report is
-            // read beside the script, so the line says `HX1.in[2].flow` (`L-56`).
+            // read beside the script, so the line says `HX1.secondary.in.flow` (`L-56`).
             foreach (var (key, basis) in bases.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
             {
                 report.AppendLine(CultureInfo.InvariantCulture, $"    {Spelled(graph, key),-20} {basis}");
@@ -138,7 +138,7 @@ public static partial class SolveExplanation
     /// <param name="solve">The solve, or <see langword="null"/> when none ran.</param>
     /// <remarks>
     /// The arithmetic is <see cref="SolvedStates.Exchanger"/>'s, shared with the deferred evaluation
-    /// that reads <c>HE1.out[2].t</c> off a rated exchanger (<c>L-59</c>); this only prints it.
+    /// that reads <c>HE1.secondary.out.t</c> off a rated exchanger (<c>L-59</c>); this only prints it.
     /// </remarks>
     private static void Ratings(StringBuilder report, CircuitGraph graph, SystemLayout layout, SolveResult? solve)
     {

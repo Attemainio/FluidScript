@@ -150,7 +150,7 @@ public sealed record ComponentKindInfo
     /// <summary>Resolves a property name, saying whether it was written in a spelling <c>D-120</c> retired.</summary>
     /// <param name="written">The property name as the reference wrote it.</param>
     /// <param name="suggestion">
-    /// The current spelling when <paramref name="written"/> is a legacy one — <c>in[2].t</c> for
+    /// The current spelling when <paramref name="written"/> is a legacy one — <c>secondary.in.t</c> for
     /// <c>t_in2</c> — else <see langword="null"/>. What <c>FS1536</c> offers as its quick fix.
     /// </param>
     /// <returns>
@@ -181,6 +181,11 @@ public sealed record ComponentKindInfo
 
             foreach (var property in Properties.Values)
             {
+                if (property.Aliases.Contains(name, StringComparer.Ordinal))
+                {
+                    return property;
+                }
+
                 if (property.LegacySpellings.Contains(name, StringComparer.Ordinal))
                 {
                     suggestion = property.Name;
@@ -218,7 +223,7 @@ public sealed record ComponentKindInfo
     }
 
     /// <summary>Resolves a parameter name as a declaration wrote it: by name, alias, legacy spelling, or indexed family (<c>D-120</c>).</summary>
-    /// <param name="written">The name as written: <c>power</c>, <c>in[2].t</c>, <c>layer[3].t</c>, or the old <c>in2</c>, <c>t3</c>.</param>
+    /// <param name="written">The name as written: <c>power</c>, <c>secondary.in.t</c>, <c>layer[3].t</c>, or the old <c>in2</c>, <c>t3</c>.</param>
     /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
     /// <param name="outsideFamily">The family the name belongs to when its index is out of the family's fixed range, else <see langword="null"/>.</param>
     /// <returns>
@@ -236,7 +241,7 @@ public sealed record ComponentKindInfo
         suggestion = null;
         outsideFamily = null;
 
-        // `in[2].temperature` is `in[2].t` (the table's name for its symbol), then `[1]` folds.
+        // `secondary.in.temperature` is `secondary.in.t` (the table's name for its symbol), then `[1]` folds.
         var folded = IndexedName.FoldFirstIndex(PropertyTable.Canonical(written));
 
         foreach (var name in string.Equals(folded, written, StringComparison.Ordinal) ? [written] : new[] { folded, written })
@@ -285,7 +290,7 @@ public sealed record ComponentKindInfo
     }
 
     /// <summary>Resolves a port as an endpoint wrote it to the key the model knows it by (<c>D-120</c>).</summary>
-    /// <param name="written">The port name as written: <c>in</c>, <c>in[2]</c>, <c>b</c>, or the old <c>in2</c>.</param>
+    /// <param name="written">The port name as written: <c>in</c>, <c>secondary.in</c>, <c>b</c>, or the old <c>in2</c>.</param>
     /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
     /// <param name="outsideFamily">The family the name belongs to when its index is out of range, else <see langword="null"/>.</param>
     /// <returns>The key — <c>in2</c>, <c>in1</c>, <c>b</c> — or <see langword="null"/> when this kind has no such port.</returns>
@@ -307,14 +312,16 @@ public sealed record ComponentKindInfo
         {
             foreach (var port in Ports)
             {
-                if (string.Equals(port.Name, name, StringComparison.Ordinal))
+                // The spelling, never the id: an exchanger's `in[2]` is the wire's, and a script writes `secondary.in`.
+                if (string.Equals(port.Spelling, name, StringComparison.Ordinal)
+                    || port.Aliases.Contains(name, StringComparer.Ordinal))
                 {
                     return port.Key;
                 }
 
                 if (port.LegacySpellings.Contains(name, StringComparer.Ordinal))
                 {
-                    suggestion = port.Name;
+                    suggestion = port.Spelling;
                     return port.Key;
                 }
             }
@@ -343,7 +350,7 @@ public sealed record ComponentKindInfo
         return null;
     }
 
-    /// <summary>Spells a parameter's key the way a script writes it: <c>in2</c> as <c>in[2].t</c>, <c>t3</c> as <c>layer[3].t</c>.</summary>
+    /// <summary>Spells a parameter's key the way a script writes it: <c>in2</c> as <c>secondary.in.t</c>, <c>t3</c> as <c>layer[3].t</c>.</summary>
     /// <param name="key">The key a stated value is stored under.</param>
     /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>
     public string ParameterName(string key)
@@ -369,7 +376,7 @@ public sealed record ComponentKindInfo
         return key;
     }
 
-    /// <summary>Spells a port's key the way a script writes it: <c>in2</c> as <c>in[2]</c>, a tank's <c>in1</c> as <c>in</c>.</summary>
+    /// <summary>Spells a port's key the way a script writes it: an exchanger's <c>in2</c> as <c>secondary.in</c>, a tank's <c>in1</c> as <c>in</c>.</summary>
     /// <param name="key">The key the model knows the port by.</param>
     /// <returns>The script spelling, or the key itself when nothing respelled it.</returns>
     public string PortName(string key)
@@ -380,7 +387,7 @@ public sealed record ComponentKindInfo
         {
             if (string.Equals(port.Key, key, StringComparison.Ordinal))
             {
-                return port.Name;
+                return port.Spelling;
             }
         }
 

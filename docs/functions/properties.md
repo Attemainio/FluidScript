@@ -58,19 +58,19 @@ the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-st
 | `heat_exchanger` | `flow` | `kg/s` | after the solve |
 | `heat_exchanger` | `in.p` | `kPa` | after the solve |
 | `heat_exchanger` | `in.t` | `°C` | after the solve |
-| `heat_exchanger` | `in[2].dp` | `kPa` | after the solve |
-| `heat_exchanger` | `in[2].dt` | `dK` | after the solve |
-| `heat_exchanger` | `in[2].flow` | `kg/s` | after the solve |
-| `heat_exchanger` | `in[2].p` | `kPa` | after the solve |
-| `heat_exchanger` | `in[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `lmtd` | `dK` | after the solve |
 | `heat_exchanger` | `ntu` | — | after sizing |
 | `heat_exchanger` | `out.p` | `kPa` | after the solve |
 | `heat_exchanger` | `out.t` | `°C` | after the solve |
-| `heat_exchanger` | `out[2].p` | `kPa` | after the solve |
-| `heat_exchanger` | `out[2].t` | `°C` | after the solve |
 | `heat_exchanger` | `plates` | — | after sizing |
 | `heat_exchanger` | `power` | `kW` | after sizing |
+| `heat_exchanger` | `secondary.in.dp` | `kPa` | after the solve |
+| `heat_exchanger` | `secondary.in.dt` | `dK` | after the solve |
+| `heat_exchanger` | `secondary.in.flow` | `kg/s` | after the solve |
+| `heat_exchanger` | `secondary.in.p` | `kPa` | after the solve |
+| `heat_exchanger` | `secondary.in.t` | `°C` | after the solve |
+| `heat_exchanger` | `secondary.out.p` | `kPa` | after the solve |
+| `heat_exchanger` | `secondary.out.t` | `°C` | after the solve |
 | `heat_exchanger` | `u` | `W/(m2*K)` | after sizing |
 | `heat_exchanger` | `ua` | `W/K` | after sizing |
 | `heat_exchanger` | `volume` | `dm3` | after sizing |

@@ -383,8 +383,10 @@ grammar; the printer keeps whichever was written, and the formatter never conver
 **Kinds and parameters are the registry's** (`22`, `15`), shared with language 1, with these additions:
 `valve3` is an alias of `three_way_valve`; `temperature_sensor`, `pressure_sensor` and `flow_sensor` are
 aliases of the sensor kinds. A two-sided exchanger's sides are **`primary` and `secondary`**:
-`primary.in.t`, `HX1.secondary.out`. `primary` is side 1 and `secondary` side 2 of language 1's
-`in`/`in[2]`; which side is primary is decided by the circuit (below). Port families that really are
+`primary.in.t`, `HX1.secondary.out`. `primary` is side 1 and `secondary` side 2; which side is primary is
+decided by the circuit (below). The registry records the spellings (`D-179`): `secondary.in` is the only way to
+write the second side (its `in[2]` is the wire's id and never the script's), and side 1 is `in` or `primary.in`
+alike, because a one-sided `load` or `heater` has no second side to tell it from. Port families that really are
 families keep brackets: `layer[3].t`, `in[2].level` on a tank. The wider vocabulary review — `duty`,
 `rise`, `kvs`, direction taken from the kind — is open question 2.
 
@@ -603,7 +605,7 @@ wrote.
 |---|---|
 | `circuit "T":` with `fluid`, `number`, `role` | A circuit's head, with its number and role, and its fluid |
 | A declaration, either form | The declaration with its settings gathered onto it |
-| `primary.*`, `secondary.*` | The registry's ports: `in`/`out` and `in2`/`out2` (`D-177` rule 2) |
+| `primary.*`, `secondary.*` | The registry's spellings of its ports `in`/`out` and `in2`/`out2`, resolved by the lookup (`D-179`) |
 | A chain with inferred ports | One connection line per link, every port settled |
 | A sensor in a chain | A node in the chain and the sensor placed on it |
 | `12 m DN25` at a link's end | `length` and `dn` on that link's pipe |
@@ -647,21 +649,16 @@ Codes carry over where their meaning holds. A message that quotes language 1 syn
 wording; a code whose cause cannot be written in language 2 is never raised there. The new range is
 **`FS18xx`**, owned by this document (table below).
 
-**How a message gets its language 2 wording** (package 4; one template since package 7 step 5). Package 4 gave
-23 descriptors a second template, `Language2Template`, rendered for a language 2 file from the arguments the
-diagnostic keeps; at the switch each became its code's one template and the second template went (`D-174`), so
-the run path's `FS3109` -- which the pass never reached -- now reads language 2 too. What remains of
-`Language2Wording.Apply` respells arguments the binder writes in its internal form (`L-75`), and applying it twice
-changes nothing. It runs wherever a stage that knows the language
-hands its diagnostics on: `MajorParser` (the parse), `Binder.Bind` (when the parse was language 2, the reader's
-included) and `ModelContractBuilder.Build` (major 2, which gathers every later stage's). **A run's
-diagnostics must go through it too:** `FS3109` is raised by the well-posedness check on the run path, and
-P6.5's worker is where they leave Core. The pass also respells arguments: an exchanger's `in[2]`/`out[2]`
-become `secondary.in`/`secondary.out` in a code about an exchanger (by its own subject, by the `kind` it names,
-or by the component it names where the caller holds the model: `Binder.Bind` and the contract builder pass the
-exchangers, so `FS2202`, `FS3013` and the lists of `FS2210`/`FS2211` say `secondary` too, `L-66`), `FS2119`'s side
-1/2 become primary/secondary, and `FS1302`'s worked example writes `K` for `dK`. The
-codes with a second wording are listed on the diagnostics page, generated from the registry.
+**How a message gets its language 2 wording** (package 4; one template since package 7 step 5a; no pass since
+step 5b). Package 4 gave 23 descriptors a second template, `Language2Template`, rendered for a language 2 file
+from the arguments the diagnostic keeps, and a pass, `Language2Wording`, that respelled the arguments the binder
+wrote in its internal form (an exchanger's `in[2]`, `dK`). At the switch each second template became its code's
+one template (`D-174`), so the run path's `FS3109` -- which the pass never reached -- reads language 2 too. Step
+5b removed the reasons for the pass (`D-179`): a whole `K` is a difference in the unit table itself, and an
+exchanger's second side is spelled `secondary.in`/`secondary.out` in the registry, so the stage that raises a
+message writes the language's spelling -- `FS2112` and `FS2202` name the port by its spelling, `FS2119` says
+"primary side" or "secondary side", `FS2210`/`FS2211` list `HX1.secondary.out.t`, and `FS1503`/`FS1505` list what
+the kind accepts. The pass is deleted, and a run's diagnostics need nothing done to them on the way out.
 
 **The audit** (package 4, 201 codes, measured by running a battery of language 2 mistakes through the
 compile endpoint):
@@ -669,9 +666,9 @@ compile endpoint):
 | Class | Codes |
 |---|---|
 | A second wording, because the message quotes language 1 | `FS1104`, `FS1105`, `FS1116`, `FS1121`, `FS1521`, `FS1528`, `FS1533`, `FS1537`, `FS1540`–`FS1542`, `FS1544`–`FS1546`, `FS2107`, `FS2109`, `FS2110`, `FS2112`, `FS2119`, `FS2314`, `FS2606`, `FS3109`, `FS4008` |
-| Arguments respelled only | `FS1302`, and `FS1503`/`FS1505`/`FS1538` on an exchanger |
+| Arguments respelled only, until step 5b wrote the spelling at the emit site (`D-179`) | `FS1302`, and `FS1503`/`FS1505`/`FS1538` on an exchanger |
 | Never raised in language 2: the statement or spelling does not exist there | `FS1523`, `FS1534`. The rest of this row -- `FS1101`–`FS1103`, `FS1106`, `FS1107`, `FS1109`–`FS1113`, `FS1118`, `FS1120`, `FS1204`, `FS1205`, `FS1508`, `FS1517`, `FS1518`, `FS1520`, `FS1526`, `FS1527`, `FS1543`, `FS1547`, `FS2217` -- and `FS1201` and `FS1512` were **retired** when language 1 was removed (package 7 step 4c): nothing emits them, and `DiagnosticRegistry.Retired` says why |
-| Still `in[2]` in a language 2 file, because the pass cannot tell the port is an exchanger's | `FS2202`, `FS2210`, `FS2211`, `FS3013` (`L-66`) |
+| Still `in[2]` in a language 2 file, because the pass could not tell the port was an exchanger's -- until step 5b, which spells the port where it is raised | `FS2202`, `FS2210`, `FS2211`, `FS3013` (`L-66`) |
 | Unchanged: the message says nothing language 1 alone would write | every other code |
 
 `FS1107` needs no language 2 form: an event on a circuit a run holds steady still applies (measured: the
@@ -794,7 +791,8 @@ shows what the records say.
 - [x] Every language 1 statement in a language 2 file is `FS1806` with its language 2 form (package 4: each
       of the fifteen shapes in `FS1806`'s row, `FluidScript2ParserTests`).
 - [x] Every diagnostic a language 2 file receives is in language 2's words, from every stage (package 4:
-      `Language2WordingTests`, `Language2DiagnosticsTests`).
+      `Language2DiagnosticsTests`; since step 5b by the emit sites themselves, `Language2TranslatorTests`'
+      `AMessageAboutTheSecondSideWritesItsSpelling`).
 - [x] `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report
       (package 4). Its solve, like the reference script's, is `S-86`'s.
 - [x] A file with no version line is language 1 until `P6.11`'s switch, and language 2 after it (`D-174`; switched
@@ -830,7 +828,8 @@ shows what the records say.
    and `dp` only ever a drop, `kvs`, and each thermal kind taking its direction from what it is (a boiler
    heats its water, a radiator cools it) instead of from a sign convention on an alias (`D-91`). Package 4
    measured one gap for it: a side's flow is written at its inlet port (`primary.in.flow`,
-   `secondary.in.flow`), and the side itself has no spelling (`primary.flow` is `FS1503`).
+   `secondary.in.flow`), and the side itself has no spelling (`primary.flow` is `FS1503`). Step 5b found a second:
+   the second side's fluid volume is still `volume[2]`, the one exchanger spelling left indexed.
    Recommendation: a package of its own after language 2 lands, since the registry is shared by both
    languages.
 3. **An `onoff` controller's switching points**: symmetric (setpoint ± differential/2) or below the

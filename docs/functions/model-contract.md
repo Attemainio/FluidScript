@@ -123,7 +123,7 @@ What produced the payload.
 | Field | Type | Meaning |
 |---|---|---|
 | `sourceHash` | string | SHA-256 of the source text, as `sha256:` and 64 hex digits. |
-| `languageMajor` | integer | The language major version the script declared. |
+| `languageMajor` | integer | The language major version the script declared, or the current major it was read in when it declared none. |
 | `catalog` | [`VersionedId`](#versionedid) | The pipe catalogue sizes were drawn from. |
 | `propertyBackend` | [`VersionedId`](#versionedid) | The fluid property package. |
 | `atmosphereKPaAbsolute` | number | The atmosphere gauge pressures are relative to, kPa absolute (`D-26`). |

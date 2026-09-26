@@ -1,7 +1,6 @@
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Parsing;
 using FluidScript.Core.Language.Syntax.Text;
-using FluidScript.Core.Language.Translation;
 
 namespace FluidScript.Core.Language.Compatibility;
 
@@ -18,17 +17,13 @@ public static class MajorParser
     /// <param name="source">The script.</param>
     /// <param name="major">The major <see cref="ScriptCompatibility.Inspect"/> detected; <see langword="null"/> for an unversioned draft.</param>
     /// <param name="registry">The component kinds; kept so a caller need not know which major reads them.</param>
-    /// <returns>
-    /// The tree the binder reads, with every parser diagnostic -- in language 2's words for a language 2 file
-    /// (<see cref="Language2Wording"/>).
-    /// </returns>
+    /// <returns>The tree the binder reads, with every parser diagnostic.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="registry"/> is <see langword="null"/>.</exception>
     public static ParseResult Parse(SourceText source, LanguageMajor? major, IComponentRegistry registry)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(registry);
 
-        var parse = FluidScript2Parser.Parse(source);
-        return parse with { Diagnostics = Language2Wording.Apply(parse.Diagnostics) };
+        return FluidScript2Parser.Parse(source);
     }
 }

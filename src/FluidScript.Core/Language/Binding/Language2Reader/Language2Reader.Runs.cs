@@ -22,7 +22,6 @@ internal sealed partial class Language2Reader
                     DisturbanceSyntax change => change with
                     {
                         When = Span(change.When),
-                        Target = change.Target.Port is { } port ? change.Target with { Port = PortName(port) } : change.Target,
                         Value = Span(change.Value),
                     },
                     _ => line,

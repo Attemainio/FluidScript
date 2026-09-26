@@ -25,7 +25,7 @@ public sealed partial class ComponentRegistry
     private static PortInfo Port(string name, PortRole role, bool optional = false) =>
         new() { Name = name, Role = role, IsOptional = optional };
 
-    // `D-120` respelled the surface and not the model: a row written `in[2].t` is stored as `in2`,
+    // `D-120` respelled the surface and not the model: a row written `secondary.in.t` is stored as `in2`,
     // which every reader of StatedParameters, every port key and every published property has used
     // since before the spelling changed, and the old spelling is exactly that key -- so one word
     // says all three. The suggestion `FS1536` offers is the row's Name.

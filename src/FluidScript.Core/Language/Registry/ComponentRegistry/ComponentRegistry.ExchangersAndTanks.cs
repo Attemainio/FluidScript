@@ -9,13 +9,15 @@ public sealed partial class ComponentRegistry
     {
         Keyword = "heat_exchanger",
         Aliases = ["exchanger", "hx", "heater", "cooler", "radiator", "load", "boiler", "chiller"],
-        // `D-120`: side 2's ports are `in[2]`/`out[2]` to the script and `in2`/`out2` to the model.
+        // `D-179`: side 2's ports are `secondary.in`/`secondary.out` to the script, `in[2]`/`out[2]` on the wire
+        // (`D-120`) and `in2`/`out2` to the model; side 1 is `in`/`out`, or `primary.in`/`primary.out` beside a
+        // secondary.
         Ports =
         [
-            Port("in", PortRole.Inlet),
-            Port("out", PortRole.Outlet),
-            Keyed(Port("in[2]", PortRole.Inlet, optional: true), "in2"),
-            Keyed(Port("out[2]", PortRole.Outlet, optional: true), "out2"),
+            Port("in", PortRole.Inlet) with { Aliases = ["primary.in"] },
+            Port("out", PortRole.Outlet) with { Aliases = ["primary.out"] },
+            Keyed(Port("in[2]", PortRole.Inlet, optional: true), "in2") with { Spelling = "secondary.in" },
+            Keyed(Port("out[2]", PortRole.Outlet, optional: true), "out2") with { Spelling = "secondary.out" },
         ],
         PortFamilies = [],
         IndexedParameterFamilies = [],
@@ -38,15 +40,16 @@ public sealed partial class ComponentRegistry
         ],
 
         // A port's state is `port.quantity` (`D-120`): `in.t` is the side-1 inlet temperature the
-        // script once wrote as `in`, and `in[2].flow`, `in[2].dp`, `in[2].dt` are side 2's stream --
-        // the one entering at `in[2]` -- where the bare `flow`, `dp`, `dt` are side 1's, as a bare
-        // quantity is always the first port's. Each is stored under the key the physics reads.
+        // script once wrote as `in`, and `secondary.in.flow`, `secondary.in.dp`, `secondary.in.dt` are
+        // side 2's stream -- the one entering at `secondary.in` (`D-179`) -- where the bare `flow`, `dp`,
+        // `dt` are side 1's, as a bare quantity is always the first port's; `primary.in.flow` is the same
+        // row. Each is stored under the key the physics reads.
         Parameters = Parameters(
             Sized("power", Dimension.Power, -100000, 100000, precision: 1),
-            Keyed(Sized("in.t", Dimension.Temperature, -50, 300, precision: 1), "in"),
-            Keyed(Sized("out.t", Dimension.Temperature, -50, 300, precision: 1), "out"),
-            Keyed(Sized("in[2].t", Dimension.Temperature, -50, 300, precision: 1), "in2"),
-            Keyed(Sized("out[2].t", Dimension.Temperature, -50, 300, precision: 1), "out2"),
+            Keyed(Sized("in.t", Dimension.Temperature, -50, 300, precision: 1), "in") with { Aliases = ["primary.in.t"] },
+            Keyed(Sized("out.t", Dimension.Temperature, -50, 300, precision: 1), "out") with { Aliases = ["primary.out.t"] },
+            Keyed(Sized("secondary.in.t", Dimension.Temperature, -50, 300, precision: 1), "in2"),
+            Keyed(Sized("secondary.out.t", Dimension.Temperature, -50, 300, precision: 1), "out2"),
             Defaulted(
                 "dp",
                 Dimension.PressureDelta,
@@ -54,10 +57,10 @@ public sealed partial class ComponentRegistry
                 1000,
                 "20 kPa",
                 "a plate exchanger at its design flow; write dp=0 for an ideal block",
-                precision: 1) with { Aliases = ["in.dp"] },
+                precision: 1) with { Aliases = ["in.dp", "primary.in.dp"] },
             Keyed(
                 Defaulted(
-                    "in[2].dp",
+                    "secondary.in.dp",
                     Dimension.PressureDelta,
                     0,
                     1000,
@@ -65,12 +68,12 @@ public sealed partial class ComponentRegistry
                     "the secondary side, on the same basis as dp",
                     precision: 1),
                 "dp2"),
-            Sized("dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1) with { Aliases = ["in.dt"] },
-            Keyed(Sized("in[2].dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1), "dt2"),
-            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3) with { Aliases = ["in.flow"] },
-            Keyed(Sized("in[2].flow", Dimension.MassFlow, 0, 1000, precision: 3), "flow2"),
-            Sized("vflow", Dimension.VolumeFlow, 0, 1000, precision: 2) with { Aliases = ["in.vflow"] },
-            Keyed(Sized("in[2].vflow", Dimension.VolumeFlow, 0, 1000, precision: 2), "vflow2"),
+            Sized("dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1) with { Aliases = ["in.dt", "primary.in.dt"] },
+            Keyed(Sized("secondary.in.dt", Dimension.TemperatureDelta, 0.1, 200, precision: 1), "dt2"),
+            Sized("flow", Dimension.MassFlow, 0, 1000, precision: 3) with { Aliases = ["in.flow", "primary.in.flow"] },
+            Keyed(Sized("secondary.in.flow", Dimension.MassFlow, 0, 1000, precision: 3), "flow2"),
+            Sized("vflow", Dimension.VolumeFlow, 0, 1000, precision: 2) with { Aliases = ["in.vflow", "primary.in.vflow"] },
+            Keyed(Sized("secondary.in.vflow", Dimension.VolumeFlow, 0, 1000, precision: 2), "vflow2"),
             Sized("ua", ConductancePerKelvin, 1, 1e7, precision: 1),
             Sized("area", Dimension.Area, 1e-3, 1e4, precision: 3),
             Sized("u", HeatTransferCoefficient, 10, 20000, precision: 1),
@@ -98,16 +101,16 @@ public sealed partial class ComponentRegistry
             Sized("plates", Dimension.Dimensionless),
             Sized("volume", Dimension.Volume),
             Keyed(Sized("volume[2]", Dimension.Volume), "volume2"),
-            Solved("dp", Dimension.PressureDelta),
-            Keyed(Solved("in[2].dp", Dimension.PressureDelta), "dp2"),
-            Solved("dt", Dimension.TemperatureDelta),
-            Keyed(Solved("in[2].dt", Dimension.TemperatureDelta), "dt2"),
-            Solved("flow", Dimension.MassFlow),
-            Keyed(Solved("in[2].flow", Dimension.MassFlow), "flow2"),
-            Keyed(Solved("in.t", Dimension.Temperature), "t_in"),
-            Keyed(Solved("out.t", Dimension.Temperature), "t_out"),
-            Keyed(Solved("in[2].t", Dimension.Temperature), "t_in2"),
-            Keyed(Solved("out[2].t", Dimension.Temperature), "t_out2")),
+            Solved("dp", Dimension.PressureDelta) with { Aliases = ["in.dp", "primary.in.dp"] },
+            Keyed(Solved("secondary.in.dp", Dimension.PressureDelta), "dp2"),
+            Solved("dt", Dimension.TemperatureDelta) with { Aliases = ["in.dt", "primary.in.dt"] },
+            Keyed(Solved("secondary.in.dt", Dimension.TemperatureDelta), "dt2"),
+            Solved("flow", Dimension.MassFlow) with { Aliases = ["in.flow", "primary.in.flow"] },
+            Keyed(Solved("secondary.in.flow", Dimension.MassFlow), "flow2"),
+            Keyed(Solved("in.t", Dimension.Temperature), "t_in") with { Aliases = ["primary.in.t"] },
+            Keyed(Solved("out.t", Dimension.Temperature), "t_out") with { Aliases = ["primary.out.t"] },
+            Keyed(Solved("secondary.in.t", Dimension.Temperature), "t_in2"),
+            Keyed(Solved("secondary.out.t", Dimension.Temperature), "t_out2")),
     };
 
     private static ComponentKindInfo Tank() => new()

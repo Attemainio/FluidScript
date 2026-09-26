@@ -385,31 +385,36 @@ positive number and lower it to negative side-1 heat flow, while `heater` and `b
 positive number to positive heat flow (`D-91`). Secondary properties promote it to Rated mode;
 secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 
-**Ports:** `in`, `out` (side 1) and optional `in[2]`, `out[2]` (side 2). A port's state is written on
-the port (`in.t=60`, `in[2].flow=0.9`) and read back the same way (`HX1.in[2].t`); `in[1]` is `in`
-(`D-120`); every port takes `p`, the touching node's pressure (*Every port has a pressure*, below). The model keys the second side `in2`/`out2`, which is also the wire's port id and the
-spelling scripts before P5.13 wrote, accepted with `FS1536`. Lowering computes exactly one mode;
+**Ports:** `in`, `out` (side 1, also written `primary.in`, `primary.out`) and optional `secondary.in`,
+`secondary.out` (side 2, `D-179`). A port's state is written on the port (`in.t=60`,
+`secondary.in.flow=0.9`) and read back the same way (`HX1.secondary.in.t`); every port takes `p`, the
+touching node's pressure (*Every port has a pressure*, below). The model keys the second side
+`in2`/`out2`; the wire's port id is `in[2]`/`out[2]` (`D-120`), and `in2` is the spelling scripts before
+P5.13 wrote, accepted with `FS1536`. Lowering computes exactly one mode;
 there is no script `mode=` parameter:
 
 | Mode | Trigger, in precedence order | Flow groups | Behaviour |
 |---|---|---|---|
-| **Coupled** | Either secondary port is connected; both must be connected or `FS2112` | `{in,out}` and `{in[2],out[2]}` | Two solved hydraulic streams. ε-NTU couples their energy equations; each side has its own momentum relation. |
-| **Rated** | No secondary connections and at least one of `in[2].t`, `out[2].t`, `in[2].dt`, `in[2].flow` is stated | `{in,out}` only | Side 2 is an external stated/sized boundary profile, not a graph branch. ε-NTU and approach/geometry are live; no side-2 pressure equation is assembled. |
+| **Coupled** | Either secondary port is connected; both must be connected or `FS2112` | `{in,out}` and `{secondary.in,secondary.out}` | Two solved hydraulic streams. ε-NTU couples their energy equations; each side has its own momentum relation. |
+| **Rated** | No secondary connections and at least one of `secondary.in.t`, `secondary.out.t`, `secondary.in.dt`, `secondary.in.flow` is stated | `{in,out}` only | Side 2 is an external stated/sized boundary profile, not a graph branch. ε-NTU and approach/geometry are live; no side-2 pressure equation is assembled. |
 | **Duty** | No secondary connection or thermal-profile property | `{in,out}` only | A stated duty crosses the model boundary. Rating parameters are inert with `FS2110`; no area, effectiveness, or approach claim is made. |
 
 Coupled wins over Rated so adding real connections to an external-profile design has one predictable
-meaning. `in[2].dp` and rating-only parameters (`ua`, `area`, `u`, `approach`, arrangement, plate geometry)
+meaning. `secondary.in.dp` and rating-only parameters (`ua`, `area`, `u`, `approach`, arrangement, plate geometry)
 do not promote Duty mode: none supplies the second inlet temperature or capacity rate that ε-NTU
 needs. Inference rule I3 skips optional secondary ports, so Duty and Rated declarations are complete
 without fabricated nodes. “Extended exchanger” means Rated or Coupled collectively.
 
 **Side 1 is the side the unindexed parameters describe.** `power`, `in.t`, `out.t`, `dt`, `flow`,
-`dp` belong to side 1; `in[2].t`, `out[2].t`, `in[2].dt`, `in[2].flow`, `in[2].dp` to side 2 -- the
+`dp` belong to side 1; `secondary.in.t`, `secondary.out.t`, `secondary.in.dt`, `secondary.in.flow`,
+`secondary.in.dp` to side 2 -- the
 side's flow, drop and rise are written on its inlet port, since a side has one of each. `power` is
 the duty *transferred*,
-positive when side 1 gains heat. Numbering rather than naming the sides (`hot`/`cold`, `primary`/
-`secondary`) is deliberate: which side is hot is a solved outcome, not a declaration, and a script
-that says `hot_in=40` when the solve makes it the cold side is worse than one that says nothing.
+positive when side 1 gains heat. Naming the sides by temperature (`hot`/`cold`) is deliberately avoided:
+which side is hot is a solved outcome, not a declaration, and a script that says `hot_in=40` when the
+solve makes it the cold side is worse than one that says nothing. `primary`/`secondary` name the sides by
+the circuit that wires them (`19` rule 3), which is a declaration; side 1 is `primary`, and a one-sided
+`load` or `heater` writes it bare (`D-179`).
 
 ### Parameters
 
@@ -417,11 +422,11 @@ that says `hot_in=40` when the solve makes it the cold side is worse than one th
 |---|---|---|---|---|
 | `power` | Power | kW | −100000 … 100000 | Duty transferred. Positive adds heat to side 1. |
 | `in.t`, `out.t` | Temperature | °C | −50 … 300 | Side-1 inlet / outlet temperature |
-| `in[2].t`, `out[2].t` | Temperature | °C | −50 … 300 | Side-2 inlet / outlet temperature |
-| `dt`, `in[2].dt` | TemperatureDelta | dK | 0.1 … 200 | Temperature change across that side. Always positive; the sign follows `power` |
-| `dp`, `in[2].dp` | PressureDelta | kPa | 0 … 1000 | Pressure drop at design flow, per side |
-| `flow`, `in[2].flow` | MassFlow | kg/s | 0 … 1000 | Flow constraint, per side: a `FixedFlow` row on that side's branch (P5.13b, `S-72`) |
-| `vflow`, `in[2].vflow` | VolumeFlow | l/s (`D-125`) | 0 … 1000 | The same constraint as a volume flow, held at the density of the side's inlet node as solved (`ṁ − ρ(p,h)·V̇ = 0`); one of `flow`/`vflow` per side |
+| `secondary.in.t`, `secondary.out.t` | Temperature | °C | −50 … 300 | Side-2 inlet / outlet temperature |
+| `dt`, `secondary.in.dt` | TemperatureDelta | dK | 0.1 … 200 | Temperature change across that side. Always positive; the sign follows `power` |
+| `dp`, `secondary.in.dp` | PressureDelta | kPa | 0 … 1000 | Pressure drop at design flow, per side |
+| `flow`, `secondary.in.flow` | MassFlow | kg/s | 0 … 1000 | Flow constraint, per side: a `FixedFlow` row on that side's branch (P5.13b, `S-72`) |
+| `vflow`, `secondary.in.vflow` | VolumeFlow | l/s (`D-125`) | 0 … 1000 | The same constraint as a volume flow, held at the density of the side's inlet node as solved (`ṁ − ρ(p,h)·V̇ = 0`); one of `flow`/`vflow` per side |
 | `ua` | — (W/K) | W/K | 1 … 1e7 | Overall conductance. The thermal size, independent of how it is achieved |
 | `area` | Area | m² | 1e-3 … 1e4 | Heat transfer area |
 | `u` | — (W/(m²·K)) | W/(m²·K) | 10 … 20000 | Overall heat transfer coefficient |
@@ -435,8 +440,9 @@ that says `hot_in=40` when the solve makes it the cold side is worse than one th
 | `elevation` | Length | m | −500 … 500 | Height above the project datum (`D-70`); default 0 m, never sized. Both sides' ports sit at it. |
 
 **Properties:** `power`, `ua`, `area`, `u`, `ntu`, `effectiveness`, `lmtd`, `approach`, `plates`,
-`volume`, `volume[2]`, `dp`, `in[2].dp`, `dt`, `in[2].dt`, `flow`, `in[2].flow`, `in.t`, `out.t`,
-`in[2].t`, `out[2].t`.
+`volume`, `volume[2]`, `dp`, `secondary.in.dp`, `dt`, `secondary.in.dt`, `flow`, `secondary.in.flow`,
+`in.t`, `out.t`, `secondary.in.t`, `secondary.out.t`. Side 1's are also read with `primary.` before them
+(`primary.in.t`, `primary.in.flow`).
 
 `ua`, `area` and `u` are related by `UA = U·A`, so **any two fix the third** and stating all three is
 `FS2101`, exactly as `power`/`in.t`/`out.t`/`flow` already are. Geometry (`plates`, `lamella`,
@@ -595,7 +601,7 @@ share a word and almost nothing else. Network pinch analysis is on
 
 `power`, `in.t`, `out.t`, and `flow` are related by side 1's energy balance: any three fix the fourth,
 and stating all four is `FS2101` reporting the value the other three imply. Side 2 has the same trap
-with `power`, `in[2].t`, `out[2].t`, `in[2].flow`.
+with `power`, `secondary.in.t`, `secondary.out.t`, `secondary.in.flow`.
 
 The third is new and is the one that will bite. In an extended mode, **the four terminal temperatures, the
 duty, and the thermal size are not independent** — ε-NTU relates them. Stating all four temperatures,
@@ -895,7 +901,7 @@ registration — not duplicated into the binder.
 
 **Every port has a pressure, and it is not in the tables.** `D-124`: a port's `p` is the pressure of
 the node the port touches, stated as `port.p` on the component and read as `Name.port.p`, on every
-kind with named ports and every member of a port family (`in.p`, `out[2].p`, `ab.p`, a tank's
+kind with named ports and every member of a port family (`in.p`, `secondary.out.p`, `ab.p`, a tank's
 `in[3].p`). The registry generates the row from the port list — key `p_` and the port's key (`p_in`,
 `p_out2`, `p_ab`, `p_in3`), omission `Size` as a node's own `p` is, property keyed the same — and the
 binder copies a stated value onto the touching node's `p` after inference, so the counting, the datum
@@ -994,10 +1000,10 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 | `FS2106` | Pipe discretization above the cap | Warning | `Using {cap} internal nodes instead of {n}.` |
 | `FS2107` | A node with a single connection that is not an `inlet` or `outlet` (`D-115`; a stated `p=` is a datum and does not make it one) | Warning | `'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.` |
 | `FS2108` | Efficiency outside 0–1 | Error | `'{name}': efficiency must be between 0 and 1.` |
-| `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `'{name}': in.t, out.t, in[2].t, out[2].t and power already fix the thermal size. Remove {param}, or let a temperature be solved.` — shipped without the implied `UA`, which needs a `cp` the binder does not hold (`C-23`'s line); the sized value's basis carries it |
-| `FS2110` | A rating parameter stated in Duty mode | Warning | `{name}: '{param}' has no second-side profile to rate. State in[2].t, out[2].t, in[2].dt or in[2].flow, connect both secondary ports, or remove it.` |
+| `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `'{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved.` — shipped without the implied `UA`, which needs a `cp` the binder does not hold (`C-23`'s line); the sized value's basis carries it |
+| `FS2110` | A rating parameter stated in Duty mode | Warning | `'{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it.` |
 | `FS2111` | Requested duty exceeds what the inlet temperatures allow | Error | `{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.` |
-| `FS2112` | Exactly one secondary port is connected | Error | `{name}: Coupled mode requires both in[2] and out[2] connections; {port} is open.` |
+| `FS2112` | Exactly one secondary port is connected | Error | `'{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open.` |
 | `FS2113` | Tank uses `t` with any indexed temperature, or states only part of `layer[1].t`…`layer[N].t` | Error | `{name}: state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them.` |
 | `FS2114` | `layers` is non-integral or outside 1…100 | Error | `{name}: layers must be a whole number from 1 to 100.` |
 | `FS2115` | A tank port level is outside 0…1 | Error | `{name}: {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).` |

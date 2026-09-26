@@ -231,6 +231,115 @@ public sealed class Language2TranslatorTests
         Assert.Contains(result.Model.Connections, static c => c.From is { Component: "HX1", Port: "out2" });
     }
 
+    /// <summary>An exchanger's second side has one spelling: <c>in[2]</c> is its id on the wire, never the script's (<c>D-179</c>, <c>D-170</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AnExchangersSecondSideIsWrittenSecondaryAndNeverIndexed()
+    {
+        var port = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  in.t = 85 C  out.t = 45 C
+              N1 - HX1 - N2
+              N3 - HX1.in[2]
+            """, "FS1505");
+
+        Assert.Equal("A heat_exchanger has no port 'in[2]'. Ports: in, out, secondary.in, secondary.out.", port.Message);
+
+        Assert.Equal("FS1503", Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  in.t = 85 C  out.t = 45 C  in[2].t = 40 C
+              N1 - HX1 - N2
+            """, "FS1503").Code);
+    }
+
+    /// <summary>A message about the second side names it as the script does, with no pass rewording it afterwards (<c>D-179</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AMessageAboutTheSecondSideWritesItsSpelling()
+    {
+        var open = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  power = 100 kW  in.t = 85 C  out.t = 45 C
+              N1 - HX1 - N2
+              N3 - HX1.secondary.in
+            """, "FS2112");
+
+        Assert.Equal("'HX1': a coupled exchanger needs both secondary.in and secondary.out connected; secondary.out is open.", open.Message);
+
+        var duty = Only("""
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1 heat_exchanger  power = 100 kW  secondary.in.t = 40 C  secondary.out.t = 60 C
+              N1 - HX1 - N2
+            """, "FS2119");
+
+        Assert.Contains("the secondary side loses heat, but secondary.in.t = 40 °C and secondary.out.t = 60 °C", duty.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>A controller reads an exchanger's secondary side by its spelling, the lookup resolving it (<c>D-179</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AControllerReadsTheSecondarySideBySpelling()
+    {
+        var result = Clean("""
+            fluidscript 2
+            circuit "Primary":
+              fluid = water
+              PU1  pump
+              TV1  valve  stroke = 90 s
+              HX1  heat_exchanger  power = -100 kW  in.t = 85 C  out.t = 45 C  secondary.in.t = 40 C  secondary.out.t = 60 C
+              TC1  controller:
+                moves    = TV1
+                reads    = HX1.secondary.out.t
+                setpoint = 60 C
+              N1 - PU1 - TV1 - HX1 - N2
+              N2 - N1
+            circuit "Secondary":
+              fluid = water
+              PU2  pump
+              N3 - PU2 - HX1 - N3
+            """);
+
+        var binding = Assert.Single(result.Model.ControlBindings);
+        Assert.Equal(new PropertyReference("HX1", "secondary.out.t"), binding.Measurement);
+    }
+
+    /// <summary>
+    /// What a loop moves is resolved to its key and what it reads to a property the kind has. Measured before this
+    /// change: <c>reads = HX1.nonsense.t</c> bound with no diagnostic, and <c>moves = HX1.secondary.in.flow</c> was
+    /// refused because the written name was compared with the keys (<c>flow2</c>).
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AControlLinesEndsAreResolvedByTheRegistry()
+    {
+        const string Loop = """
+            fluidscript 2
+            circuit "c":
+              fluid = water
+              HX1  heat_exchanger  power = -100 kW  in.t = 85 C  out.t = 45 C  secondary.in.t = 40 C  secondary.out.t = 60 C
+              TC1  controller:
+                moves    = {0}
+                reads    = {1}
+                setpoint = 60 C
+              N1 - HX1 - N1
+            """;
+
+        var unknown = Only(string.Format(CultureInfo.InvariantCulture, Loop, "HX1.power", "HX1.nonsense.t"), "FS1406");
+        Assert.StartsWith("A heat_exchanger has no 'nonsense.t'.", unknown.Message, StringComparison.Ordinal);
+
+        var moved = Assert.Single(Bind(string.Format(CultureInfo.InvariantCulture, Loop, "HX1.secondary.in.flow", "HX1.primary.out.t")).Model.ControlBindings);
+        Assert.Equal(new PropertyReference("HX1", "flow2"), moved.Actuator);
+        Assert.Equal(new PropertyReference("HX1", "out.t"), moved.Measurement);
+    }
+
     // ---- connections ----------------------------------------------------------------------------
 
     [Fact]

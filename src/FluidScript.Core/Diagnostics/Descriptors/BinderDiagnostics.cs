@@ -549,7 +549,7 @@ public static class BinderDiagnostics
     /// cools while the duty says it is heated, and the component's own energy balance cannot satisfy
     /// both (<c>C-67</c>). Only the neutral spellings can write it: a role word carries the sign
     /// (<c>D-91</c>) and its magnitude cannot contradict anything. Side 2 is the mirror -- with a
-    /// positive duty it loses heat, so <c>in[2].t</c> must be the warmer end.
+    /// positive duty it loses heat, so <c>secondary.in.t</c> must be the warmer end.
     /// </remarks>
     public static DiagnosticDescriptor DutyContradictsTerminals { get; } = new(
         "FS2119",

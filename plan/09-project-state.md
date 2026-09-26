@@ -2022,6 +2022,29 @@ that governed each size. What P6.8 still owes, and what comes after:
     with `C-139` in package 8 as one contract major. `docs/functions/units.md` and the metadata golden moved (`K`
     under temperature delta); no corpus golden moved. The generated property and exchanger pages still show `dK`,
     which is `C-140`'s and package 9's.
+  - **Step 5b-2, an exchanger's sides are the registry's spellings (2026-09-26, `D-179`).** Before, the reader rewrote
+    `HX1.secondary.out.t` into `HX1.out[2].t` with a zero-width `[2]` it made up, gave an inferred port as a made
+    token, and `Language2Wording` rewrote `in[2]` back to `secondary.in` in messages -- where it could tell the port
+    was an exchanger's. Now a port has an id and a spelling (`PortInfo.Spelling`, `Aliases`; `PropertyInfo.Aliases`):
+    the second side is `secondary.in`/`secondary.out` to the script, `in[2]` on the wire, `in2` to the model; the
+    exchanger's parameters and properties are named `secondary.in.t` etc., and side 1 takes `primary.` as an alias,
+    because a one-sided `load` writes `in.t`. The lookups resolve the spellings, the reader passes names on as
+    written and gives an inferred port as a string on the line's end (its span is now the end, not a zero-width
+    point after the name), and the emit sites write the spelling: `FS2112`, `FS2202` name the port, `FS2119` says
+    "secondary side", the counting table and the explanation print `HX1.secondary.out.t`. `Language2Wording` and its
+    tests are deleted. `HX1.in[2]` is now `FS1505` listing `in, out, secondary.in, secondary.out` (`D-170`: one
+    spelling). **Fixed in the same change**, measured on the previous commit: a controller's `reads` was never
+    checked (`reads = HX1.nonsense.t` bound with no diagnostic, and `reads = HX1.secondary.out.t` named a property the
+    registry then called `out[2].t`), and its `moves` was compared with the registry's keys, so an exchanger's
+    `secondary.in.flow` could not be moved; both now resolve through the registry (`FS1406`, `FS1522`). And
+    `provenance.languageMajor` reported 1 for an unversioned draft read as language 2; it reports the current major.
+    **Filed:** `L-79` (the spellings `D-120` retired still bind in language 2, with `FS1536`), `L-80` (26 lines of
+    `12`–`15`, `23`, `57` still spell the second side `in[2]`), `A-8` (the metadata's ports carry the id, its
+    parameters the spelling; package 8). `U-11` gained one expected failure (completion after `secondary.in.`).
+    Moved: the metadata golden (parameter names and aliases), the properties and model-contract pages, both schemas'
+    `languageMajor` text and the frontend's generated types; `22`'s exchanger section respelled, since its tables
+    are what `RegistryMatchesTheComponentModelTests` reads. No corpus golden moved. Core 2588/0/2, Api 79/0,
+    frontend 221 and 10 expected failures. Left for 5b-3: a list's and a range's unit (`L-75`).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

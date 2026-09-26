@@ -703,7 +703,8 @@
         {
           "name": "dp",
           "aliases": [
-            "in.dp"
+            "in.dp",
+            "primary.in.dp"
           ],
           "valueKind": "quantity",
           "dimension": "PressureDelta",
@@ -723,7 +724,8 @@
         {
           "name": "dt",
           "aliases": [
-            "in.dt"
+            "in.dt",
+            "primary.in.dt"
           ],
           "valueKind": "quantity",
           "dimension": "TemperatureDelta",
@@ -761,7 +763,8 @@
         {
           "name": "flow",
           "aliases": [
-            "in.flow"
+            "in.flow",
+            "primary.in.flow"
           ],
           "valueKind": "quantity",
           "dimension": "MassFlow",
@@ -798,7 +801,9 @@
         },
         {
           "name": "in.p",
-          "aliases": [],
+          "aliases": [
+            "primary.in.p"
+          ],
           "valueKind": "quantity",
           "dimension": "Pressure",
           "unit": "kPa",
@@ -816,7 +821,9 @@
         },
         {
           "name": "in.t",
-          "aliases": [],
+          "aliases": [
+            "primary.in.t"
+          ],
           "valueKind": "quantity",
           "dimension": "Temperature",
           "unit": "°C",
@@ -831,114 +838,6 @@
           "validRange": null,
           "wholeNumber": false,
           "displayPrecision": 1
-        },
-        {
-          "name": "in[2].dp",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "PressureDelta",
-          "unit": "kPa",
-          "acceptedSymbols": [],
-          "omission": "default",
-          "default": "20 kPa",
-          "defaultBasis": "the secondary side, on the same basis as dp",
-          "usualRange": {
-            "min": 0,
-            "max": 1000
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "in[2].dt",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "TemperatureDelta",
-          "unit": "dK",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0.1,
-            "max": 200
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "in[2].flow",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "MassFlow",
-          "unit": "kg/s",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0,
-            "max": 1000
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 3
-        },
-        {
-          "name": "in[2].p",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "Pressure",
-          "unit": "kPa",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0,
-            "max": 2500
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "in[2].t",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": -50,
-            "max": 300
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "in[2].vflow",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "VolumeFlow",
-          "unit": "l/s",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0,
-            "max": 1000
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 2
         },
         {
           "name": "lamella",
@@ -960,7 +859,9 @@
         },
         {
           "name": "out.p",
-          "aliases": [],
+          "aliases": [
+            "primary.out.p"
+          ],
           "valueKind": "quantity",
           "dimension": "Pressure",
           "unit": "kPa",
@@ -978,43 +879,9 @@
         },
         {
           "name": "out.t",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": -50,
-            "max": 300
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "out[2].p",
-          "aliases": [],
-          "valueKind": "quantity",
-          "dimension": "Pressure",
-          "unit": "kPa",
-          "acceptedSymbols": [],
-          "omission": "size",
-          "default": null,
-          "defaultBasis": null,
-          "usualRange": {
-            "min": 0,
-            "max": 2500
-          },
-          "validRange": null,
-          "wholeNumber": false,
-          "displayPrecision": 1
-        },
-        {
-          "name": "out[2].t",
-          "aliases": [],
+          "aliases": [
+            "primary.out.t"
+          ],
           "valueKind": "quantity",
           "dimension": "Temperature",
           "unit": "°C",
@@ -1085,6 +952,150 @@
           "displayPrecision": 1
         },
         {
+          "name": "secondary.in.dp",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "default",
+          "default": "20 kPa",
+          "defaultBasis": "the secondary side, on the same basis as dp",
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "secondary.in.dt",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0.1,
+            "max": 200
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "secondary.in.flow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 3
+        },
+        {
+          "name": "secondary.in.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "secondary.in.t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "secondary.in.vflow",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "VolumeFlow",
+          "unit": "l/s",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 1000
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 2
+        },
+        {
+          "name": "secondary.out.p",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": 0,
+            "max": 2500
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
+          "name": "secondary.out.t",
+          "aliases": [],
+          "valueKind": "quantity",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "acceptedSymbols": [],
+          "omission": "size",
+          "default": null,
+          "defaultBasis": null,
+          "usualRange": {
+            "min": -50,
+            "max": 300
+          },
+          "validRange": null,
+          "wholeNumber": false,
+          "displayPrecision": 1
+        },
+        {
           "name": "u",
           "aliases": [],
           "valueKind": "quantity",
@@ -1123,7 +1134,8 @@
         {
           "name": "vflow",
           "aliases": [
-            "in.vflow"
+            "in.vflow",
+            "primary.in.vflow"
           ],
           "valueKind": "quantity",
           "dimension": "VolumeFlow",
@@ -1228,36 +1240,6 @@
           "availability": "solved"
         },
         {
-          "name": "in[2].dp",
-          "dimension": "PressureDelta",
-          "unit": "kPa",
-          "availability": "solved"
-        },
-        {
-          "name": "in[2].dt",
-          "dimension": "TemperatureDelta",
-          "unit": "dK",
-          "availability": "solved"
-        },
-        {
-          "name": "in[2].flow",
-          "dimension": "MassFlow",
-          "unit": "kg/s",
-          "availability": "solved"
-        },
-        {
-          "name": "in[2].p",
-          "dimension": "Pressure",
-          "unit": "kPa",
-          "availability": "solved"
-        },
-        {
-          "name": "in[2].t",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
-        },
-        {
           "name": "lmtd",
           "dimension": "TemperatureDelta",
           "unit": "dK",
@@ -1282,18 +1264,6 @@
           "availability": "solved"
         },
         {
-          "name": "out[2].p",
-          "dimension": "Pressure",
-          "unit": "kPa",
-          "availability": "solved"
-        },
-        {
-          "name": "out[2].t",
-          "dimension": "Temperature",
-          "unit": "°C",
-          "availability": "solved"
-        },
-        {
           "name": "plates",
           "dimension": "Dimensionless",
           "unit": "",
@@ -1304,6 +1274,48 @@
           "dimension": "Power",
           "unit": "kW",
           "availability": "sized"
+        },
+        {
+          "name": "secondary.in.dp",
+          "dimension": "PressureDelta",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.in.dt",
+          "dimension": "TemperatureDelta",
+          "unit": "dK",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.in.flow",
+          "dimension": "MassFlow",
+          "unit": "kg/s",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.in.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.in.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.out.p",
+          "dimension": "Pressure",
+          "unit": "kPa",
+          "availability": "solved"
+        },
+        {
+          "name": "secondary.out.t",
+          "dimension": "Temperature",
+          "unit": "°C",
+          "availability": "solved"
         },
         {
           "name": "u",

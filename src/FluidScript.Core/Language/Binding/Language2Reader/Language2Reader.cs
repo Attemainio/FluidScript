@@ -19,8 +19,9 @@ namespace FluidScript.Core.Language.Binding;
 /// plant -- every unnamed port, by the direction of flow; a sensor written in a chain, on a node of its own; a
 /// controller's line from its <c>moves</c> and <c>reads</c> -- and hands the binder circuits, links, controls, curves,
 /// cases and the project as records, with the declarations, <c>let</c>s and runs as the tree has them and their values
-/// in the form the evaluator reads (a bare <c>K</c> as a difference, a list's unit on each item, an exchanger's
-/// <c>primary</c> and <c>secondary</c> as its ports).
+/// in the form the evaluator reads (a list's unit on each item, <c>L-75</c>). Names are passed on as written: a
+/// <c>K</c> is a difference in the unit table, and an exchanger's <c>secondary.in</c> is the registry's spelling
+/// (<c>D-179</c>).
 /// </para>
 /// <para>
 /// It began as the translation into language 1's statements (package 3), and makes the same decisions, which the

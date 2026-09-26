@@ -14,7 +14,7 @@ public sealed record ParameterInfo
 
     /// <summary>Gets the identifier binding stores the value under, which is what Core reads.</summary>
     /// <value>
-    /// <see cref="Name"/> unless <c>D-120</c> respelled the surface: an exchanger's <c>in[2].t</c> is
+    /// <see cref="Name"/> unless <c>D-120</c> respelled the surface: an exchanger's <c>secondary.in.t</c> is
     /// stored as <c>in2</c>, the key every sizer, seed and residual has read since before the
     /// spelling changed. The split keeps the language free to change its surface without a rename
     /// through the physics.
@@ -35,7 +35,7 @@ public sealed record ParameterInfo
 
     /// <summary>Gets the spellings a script wrote before <c>D-120</c>, read for one language major.</summary>
     /// <value>
-    /// <c>in</c> for <c>in.t</c>, <c>flow2</c> for <c>in[2].flow</c>. Each binds exactly as
+    /// <c>in</c> for <c>in.t</c>, <c>flow2</c> for <c>secondary.in.flow</c>. Each binds exactly as
     /// <see cref="Name"/> does and raises <c>FS1536</c> with the new spelling as its suggestion, so
     /// the editor's quick fix rewrites the line and the documentation teaches one form (<c>18</c>
     /// retires them at the next major).

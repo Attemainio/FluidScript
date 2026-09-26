@@ -107,7 +107,7 @@ internal sealed partial class BindingRun
                         TopologyDiagnostics.OpenPortTerminated,
                         span,
                         ("component", component.Name),
-                        ("port", port.Name));
+                        ("port", port.Spelling));
                 }
             }
         }

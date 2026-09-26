@@ -278,9 +278,9 @@ internal sealed partial class Language2Reader
         setting with { Name = new QualifiedNameSyntax(setting.Name.Parts[0].Name, []), Value = Value(setting.Value) };
 
     private ParameterSyntax Parameter(ParameterSyntax parameter) =>
-        parameter with { Name = PortName(parameter.Name), Value = Value(parameter.Value) };
+        parameter with { Value = Value(parameter.Value) };
 
-    /// <summary>Reads a chain as one connection per link, each end with its port written out.</summary>
+    /// <summary>Reads a chain as one connection per link, each end with its port as written or as the flow settled it.</summary>
     /// <remarks>
     /// Language 1 reads <c>A - B - C</c> as two connections (rule I6) and gives an unnamed end a port by preference
     /// order. Language 2's ports come from the flow direction (<see cref="InferPorts"/>), and a component in the middle
@@ -293,26 +293,28 @@ internal sealed partial class Language2Reader
 
         for (var i = 0; i < chain.Links.Length; i++)
         {
-            var link = new ConnectionSyntax(
-                Endpoint(endpoints[i], inflow: false),
-                [chain.Links[i] with { Endpoint = Endpoint(endpoints[i + 1], inflow: true) }],
-                pipe);
+            var link = new ConnectionSyntax(endpoints[i], [chain.Links[i]], pipe);
 
-            yield return new BindingRun.ConnectionLine([.. link.Endpoints.Select(BindingRun.LineEnd.Of)], pipe, link.Span);
+            yield return new BindingRun.ConnectionLine([LineEnd(endpoints[i], inflow: false), LineEnd(endpoints[i + 1], inflow: true)], pipe, link.Span);
         }
     }
 
-    /// <summary>An endpoint with its port in language 1's spelling, or the node a sensor in the chain stands for.</summary>
+    /// <summary>One end of a link: its port as written, the port the flow settled (<see cref="InferPorts"/>), or the node a sensor in the chain stands for.</summary>
     /// <param name="endpoint">The endpoint as written.</param>
     /// <param name="inflow">Whether the stream enters the component at this end.</param>
-    private EndpointSyntax Endpoint(EndpointSyntax endpoint, bool inflow)
+    /// <remarks>An inferred port is reported, where it is wrong, at the end it was inferred for: nothing was written for it.</remarks>
+    private BindingRun.LineEnd LineEnd(EndpointSyntax endpoint, bool inflow)
     {
-        if (endpoint.Port is null && _sensorNodes.TryGetValue(endpoint.Component.Text, out var node))
+        if (endpoint.Port is not null)
         {
-            return new EndpointSyntax(Identifier(node, endpoint.Component.Span), null, null);
+            return BindingRun.LineEnd.Of(endpoint);
         }
 
-        return endpoint.Port is { } port ? endpoint with { Port = PortName(port) } : WithInferredPort(endpoint, inflow);
+        var name = endpoint.Component.Token.Text;
+
+        return _sensorNodes.TryGetValue(name, out var node)
+            ? new BindingRun.LineEnd(node, endpoint.Component.Span, null, endpoint.Span, endpoint.Span)
+            : new BindingRun.LineEnd(name, endpoint.Component.Span, _inferred.GetValueOrDefault((endpoint.Span.Start, inflow)), endpoint.Span, endpoint.Span);
     }
 
     /// <summary>Translates a pipe's description after its link, <c>12 m  DN25  roughness = 0.05 mm</c>, into language 1's parameters (<c>D-166</c>, <c>D-110</c>).</summary>

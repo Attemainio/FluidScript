@@ -12,7 +12,7 @@ namespace FluidScript.Core.Solvers.Passes;
 /// <summary>Phase B of <c>14</c>'s two-phase evaluation: the deferred expressions, read against a solved pass (<c>L-59</c>).</summary>
 /// <remarks>
 /// <para>
-/// The binder evaluates everything it can and records the rest -- <c>in[2].t=HE1.out[2].t</c>,
+/// The binder evaluates everything it can and records the rest -- <c>secondary.in.t = HE1.secondary.out.t</c>,
 /// <c>kv=0.7*CV2.kv</c> -- as <see cref="SemanticModel.Deferred"/>, each with the values it needs.
 /// Until this existed nothing read that list: the parameter stayed null, lowering treated it as
 /// absent, sizing chose a value, and the script's expression was silently ignored. This evaluates
@@ -22,7 +22,7 @@ namespace FluidScript.Core.Solvers.Passes;
 /// </para>
 /// <para>
 /// <strong>What a reference reads.</strong> A property is resolved through the kind exactly as the
-/// binder resolves it (<c>HX1.in[2].t</c> is the key <c>t_in2</c>), and its value comes from the pass
+/// binder resolves it (<c>HX1.secondary.in.t</c> is the key <c>t_in2</c>), and its value comes from the pass
 /// in this order: what the script stated, what the solver found for a promoted parameter, what the
 /// ports carry (a flow, a drop, a terminal temperature or pressure, a rise), what sizing chose, the
 /// registry's default. A <c>let</c> is read from the model, or from this evaluation when the

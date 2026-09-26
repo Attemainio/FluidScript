@@ -122,7 +122,7 @@ internal sealed partial class BindingRun
                     duty.Span,
                     ("name", component.Name),
                     ("power", Format(unit is null ? stated.SiValue : stated.ValueIn(unit), unit?.Text)),
-                    ("side", side.ToString(CultureInfo.InvariantCulture)),
+                    ("side", side == 1 ? "primary" : "secondary"),
                     ("duty", losing ? "loses heat" : "gains heat"),
                     ("inlet", kind.ParameterName(inlet)),
                     ("in", Format(celsius is null ? a1.SiValue : a1.ValueIn(celsius), celsius?.Text)),

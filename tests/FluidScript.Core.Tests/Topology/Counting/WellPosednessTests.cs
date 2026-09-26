@@ -293,13 +293,13 @@ public sealed class WellPosednessTests
         // D-19: once both sides are wired, in/out/in2/out2 are what 24 sizes UA from. Counting them as
         // demands on the solved state reports the substation over-specified by three. D-97 keeps one of
         // them as a flow pin: the primary loop has no other constraint on its flow, so the design point
-        // 85/45 at 150 kW is what fixes it, and `HX1.out[2].t` is that pin -- a derived-flow row, not a
+        // 85/45 at 150 kW is what fixes it, and `HX1.secondary.out.t` is that pin -- a derived-flow row, not a
         // temperature demand. The counting table labels a constraint by the model's parameter key
         // (`out2`), not the script spelling; the report's spelling is P5.13b's (L-56).
         var table = Check(Substation).Counting;
 
         // The label is the script's spelling, the record's `Parameter` the key `out2` (`L-56`).
-        Assert.Equal(["LOAD.dt", "HX1.out[2].t"], table.Constraints.Select(static c => c.Label).ToArray());
+        Assert.Equal(["LOAD.dt", "HX1.secondary.out.t"], table.Constraints.Select(static c => c.Label).ToArray());
         Assert.Equal(["dt", "out2"], table.Constraints.Select(static c => c.Parameter).ToArray());
         Assert.Equal(0, table.Excess);
     }

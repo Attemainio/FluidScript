@@ -198,14 +198,14 @@ public static partial class SolveExplanation
     private static string Clip(string text, int width) =>
         text.Length <= width ? text : text[..(width - 1)] + "…";
 
-    /// <summary>A branch end as the script spells its port: <c>T1.in[2]</c> for the port keyed <c>in2</c> (<c>L-56</c>).</summary>
+    /// <summary>A branch end as the script spells its port: <c>HX1.secondary.in</c> for the port keyed <c>in2</c> (<c>L-56</c>).</summary>
     /// <remarks>The graph may not name the registry (<c>23</c> invariant 7), so the spelling is the report's, not <see cref="BranchEnd.Label"/>'s.</remarks>
     private static string Spelled(BranchEnd end) =>
         end.PortName is null
             ? end.Element.Name
             : $"{end.Element.Name}.{ComponentRegistry.Default.ByKeyword(end.Element.Kind)?.PortName(end.PortName) ?? end.PortName}";
 
-    /// <summary>A sizing key <c>HX1.flow2</c> spelled as the script writes it, <c>HX1.in[2].flow</c> (<c>L-56</c>).</summary>
+    /// <summary>A sizing key <c>HX1.flow2</c> spelled as the script writes it, <c>HX1.secondary.in.flow</c> (<c>L-56</c>).</summary>
     private static string Spelled(CircuitGraph graph, string key)
     {
         var dot = key.IndexOf('.', StringComparison.Ordinal);

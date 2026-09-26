@@ -140,9 +140,10 @@ public sealed partial class ComponentRegistry : IComponentRegistry
 
         foreach (var port in kind.Ports)
         {
-            var row = Sized(port.Name + ".p", Dimension.Pressure, 0, 2500, precision: 1) with { Key = "p_" + port.Key };
+            ImmutableArray<string> aliases = [.. port.Aliases.Select(static alias => alias + ".p")];
+            var row = Sized(port.Spelling + ".p", Dimension.Pressure, 0, 2500, precision: 1) with { Key = "p_" + port.Key, Aliases = aliases };
             parameters[row.Key] = row;
-            properties[row.Name] = Solved(port.Name + ".p", Dimension.Pressure) with { Key = "p_" + port.Key };
+            properties[row.Name] = Solved(port.Spelling + ".p", Dimension.Pressure) with { Key = "p_" + port.Key, Aliases = aliases };
         }
 
         var parameterFamilies = kind.IndexedParameterFamilies.ToBuilder();
