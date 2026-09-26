@@ -97,7 +97,7 @@ function actionsFor(
     case 'unversioned':
       return [
         {
-          label: "Add 'fluidscript 1'",
+          label: "Add 'fluidscript 2'",
           run: () => files.addVersionLine(documentId),
           primary: true,
         },

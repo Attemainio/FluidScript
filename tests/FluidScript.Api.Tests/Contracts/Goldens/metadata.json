@@ -2,9 +2,8 @@
   "restMajor": 1,
   "contractVersion": "2.3",
   "language": {
-    "current": 1,
+    "current": 2,
     "supported": [
-      1,
       2
     ]
   },

@@ -80,12 +80,12 @@ describe('the shell', () => {
 
   it('compiles the open document once after the idle gap and shows what came back', async () => {
     // Mounting compiles the document as it stands (revision 0); the edit restarts the debounce.
-    type('fluidscript 1\ncircuit loop\n');
+    type('fluidscript 2\ncircuit "loop":\n');
     await tick(299);
     expect(client.calls).toHaveLength(0);
     await tick(1);
     expect(client.calls).toHaveLength(1);
-    expect(client.calls[0]?.request.script).toBe('fluidscript 1\ncircuit loop\n');
+    expect(client.calls[0]?.request.script).toBe('fluidscript 2\ncircuit "loop":\n');
     expect(status()).toContain(statusText.converging.word);
 
     await act(async () => {
@@ -134,7 +134,7 @@ describe('the shell', () => {
     });
 
     expect(client.calls[0]?.signal.aborted).toBe(true);
-    expect(editorText()).toContain('fluidscript 1');
+    expect(editorText()).toContain('fluidscript 2');
     expect(status()).toContain('plant_02');
 
     act(() => {
@@ -210,6 +210,6 @@ describe('the shell', () => {
     });
     const saved = localStorage.getItem('fluidscript.workspace')!;
     expect(saved).toContain('substation');
-    expect(saved).not.toContain('fluidscript 1'); // ids and names only (51)
+    expect(saved).not.toContain('fluidscript'); // ids and names only (51)
   });
 });

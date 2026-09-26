@@ -105,15 +105,7 @@ public static partial class ScriptCompatibility
                 major, catalog, CompatibilityDisposition.Current, diagnostics.ToImmutable(), Everything);
         }
 
-        if (versions.Supported.Contains(major) && major.Value > versions.Current.Value)
-        {
-            // Language 2 while it is built beside language 1 (`D-164`): its own parser, every action, and
-            // nothing to migrate to, since the current major is the older one.
-            return new CompatibilityResult(
-                major, catalog, CompatibilityDisposition.SupportedNewer, diagnostics.ToImmutable(), Everything);
-        }
-
-        if (versions.Supported.Contains(major))
+        if (versions.Supported.Contains(major) && major.Value < versions.Current.Value)
         {
             // Parsed under its own major's semantics and **not rewritten on open**. Migration is
             // offered, never applied: `18`'s invariant 3 makes it one explicit, undoable action.

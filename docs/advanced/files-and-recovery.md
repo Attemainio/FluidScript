@@ -72,5 +72,6 @@ shows both. There is no button that overwrites the other program's work without 
 
 A file whose first line names a FluidScript version this build does not understand opens
 read-only: you can see it and download it, its bytes stay exactly as they were, and Save is
-refused. Migration to the current version is offered as an explicit step when a newer version
-exists; none does yet.
+refused. A `fluidscript 1` file is one of these: version 2 replaced version 1, and nothing migrates
+it. Migration to the current version is offered as an explicit step only for an older version this build
+still reads; none is read today.

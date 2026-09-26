@@ -91,22 +91,18 @@ any application that did not already know its version.
 valid only for that preview's source hash and target major. `ApplyMigration` rejects an unknown id or
 an `expectedHash` different from the preview and never searches for a compatible preview implicitly.
 
-**A supported major newer than the current one** (`D-164`, added 2026-09-25). While language 2 is built
-(`19`, `P6.11`), `SupportedVersions.Default` is current 1 and supported {1, 2}. A `fluidscript 2` file then
-fits none of the dispositions above — it is neither the current major nor an old one — so the enum gains
-`SupportedNewer`: compiled, solved and saved under its own major with every action allowed, and never
-rewritten on open, exactly as `SupportedOld`. A file with no version line stays an `unversioned-draft` of the
-current major, language 1, until the switch makes 2 current. The catalogue pattern also matches language 2's
+**Language 2 is the current major** (`D-174`, since `P6.11` package 7 step 3, 2026-09-26).
+`SupportedVersions.Default` is current 2, supported {2}. A `fluidscript 1` file is an unsupported older major under
+the policy below — viewable as text, never compiled, solved or migrated — because language 1 is dropped, not kept
+behind a migration: no converter ships. A file with no version line is language 2. While language 2 was built beside
+language 1 (`D-164`, 2026-09-25 to 2026-09-26) the default was current 1, supported {1, 2}, and a `fluidscript 2`
+file had a disposition of its own, `SupportedNewer`, removed at the switch; a supported major is now either the
+current one or older. The catalogue pattern matches both language 1's `catalog id@version` line and language 2's
 `catalog = id@version` inside the project block.
-
-**After the switch** (`D-174`, `P6.11` package 7). `SupportedVersions.Default` becomes current 2, supported {2}, and
-`SupportedNewer` has nothing left to describe. A `fluidscript 1` file is an unsupported older major under the policy
-below — viewable as text, never compiled, solved or migrated — because language 1 is dropped, not kept behind a
-migration: no converter ships. A file with no version line is language 2.
 
 ### Policy (`D-27`)
 
-- New and saved files use the current major; v1 is `fluidscript 1`.
+- New and saved files use the current major, `fluidscript 2`.
 - Unsaved editor text without a directive is a recoverable `unversioned-draft`: parse with current
   semantics and show `FS1701`. Save is disabled until the user accepts insertion of the directive.
 - A supported older major is parsed under that major's grammar and binding semantics. It is not

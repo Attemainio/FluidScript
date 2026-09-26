@@ -12,6 +12,9 @@ namespace FluidScript.Core.Tests.Language.Syntax.Printing;
 [Trait("Category", "Unit")]
 public sealed class FormatterTests
 {
+    /// <summary>The version line these examples need: the layout is language 1's, and a file without one is language 2 (<c>L-76</c>).</summary>
+    private const string V1 = "fluidscript 1\n";
+
     [Fact]
     public void ItIsIdempotentOverTheCorpus()
     {
@@ -49,53 +52,53 @@ public sealed class FormatterTests
     [Fact]
     public void ItAlignsTrailingCommentsWithinARunAndNotAcrossABlankLine()
     {
-        const string Text = "HE1 heat_exchanger power=30   # coil\n3WV three_way_valve # valve\n\nPU1 pump # pump\n";
+        const string Text = V1 + "HE1 heat_exchanger power=30   # coil\n3WV three_way_valve # valve\n\nPU1 pump # pump\n";
 
         var formatted = Formatter.FormatText(Text);
 
-        Assert.Equal("HE1 heat_exchanger power=30  # coil\n3WV three_way_valve          # valve\n\nPU1 pump  # pump\n", formatted);
+        Assert.Equal(V1 + "HE1 heat_exchanger power=30  # coil\n3WV three_way_valve          # valve\n\nPU1 pump  # pump\n", formatted);
     }
 
     [Fact]
     public void ItPadsConsecutiveLetsSoTheEqualsSignsLineUp()
     {
-        const string Text = "let dT = 30 dK\nlet margin=2 kW\nlet Q   =   30 kW\n";
+        const string Text = V1 + "let dT = 30 dK\nlet margin=2 kW\nlet Q   =   30 kW\n";
 
-        Assert.Equal("let dT     = 30 dK\nlet margin = 2 kW\nlet Q      = 30 kW\n", Formatter.FormatText(Text));
+        Assert.Equal(V1 + "let dT     = 30 dK\nlet margin = 2 kW\nlet Q      = 30 kW\n", Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItRemovesSpacesAroundAParametersEqualsAndKeepsAQuantitysInnerSpace()
     {
-        const string Text = "   HE1   heat_exchanger  power = 30 kW   in.t=20\n";
+        const string Text = V1 + "   HE1   heat_exchanger  power = 30 kW   in.t=20\n";
 
-        Assert.Equal("HE1 heat_exchanger power=30 kW in.t=20\n", Formatter.FormatText(Text));
+        Assert.Equal(V1 + "HE1 heat_exchanger power=30 kW in.t=20\n", Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItKeepsTheWritersSpacingInsideAnExpressionCollapsedToOne()
     {
-        const string Text = "let a = Q/(cp*dT)\nlet b = Q  /  ( cp * dT )\nlet c = max( Q ,24 kW )\n";
+        const string Text = V1 + "let a = Q/(cp*dT)\nlet b = Q  /  ( cp * dT )\nlet c = max( Q ,24 kW )\n";
 
-        Assert.Equal("let a = Q/(cp*dT)\nlet b = Q / (cp * dT)\nlet c = max(Q, 24 kW)\n", Formatter.FormatText(Text));
+        Assert.Equal(V1 + "let a = Q/(cp*dT)\nlet b = Q / (cp * dT)\nlet c = max(Q, 24 kW)\n", Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItLeavesBlankLinesFullLineCommentsAndCurveRowsExactlyAsWritten()
     {
-        const string Text = "# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x=1\n";
+        const string Text = V1 + "# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x=1\n";
 
-        Assert.Equal("# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x = 1\n", Formatter.FormatText(Text));
+        Assert.Equal(V1 + "# a comment   with   spacing\n\n\ncurve heating outdoor\n-26   50\n  0   30\n\nlet x = 1\n", Formatter.FormatText(Text));
     }
 
     [Fact]
     public void ItReturnsOneEditPerChangedLineAtThatLinesSpan()
     {
-        const string Text = "HE1 heat_exchanger power=30\nPU1   pump\n";
+        const string Text = V1 + "HE1 heat_exchanger power=30\nPU1   pump\n";
 
         var edit = Assert.Single(Formatter.Format(new SourceText(Text)));
 
-        Assert.Equal(28, edit.Span.Start);
+        Assert.Equal(V1.Length + 28, edit.Span.Start);
         Assert.Equal("PU1   pump".Length, edit.Span.Length);
         Assert.Equal("PU1 pump", edit.NewText);
     }
@@ -103,6 +106,7 @@ public sealed class FormatterTests
     [Theory]
     [InlineData("fluidscript 2\ncircuit \"c\":\n  P1   pump\n  P1 - P2\n")]
     [InlineData("fluidscript 1\nfluidscript 2\n  P1   pump\n")]
+    [InlineData("circuit \"c\":\n  P1   pump\n")]
     [Trait("Category", "Unit")]
     public void ItLeavesAFileOfAnotherMajorAsWritten(string text)
     {

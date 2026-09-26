@@ -1932,6 +1932,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     - Filed `L-76`: language 2 has no formatter, so Format is a no-op once language 1 is gone -- decide before step 4.
       `C-98` crashed after each of the four full Core runs whose exit was read today, and is now a Trap.
     Core 2752/0/2, Api 79/0; the frontend was not touched.
+  - **Step 3, language 2 is current (2026-09-26).** `SupportedVersions.Default` is current 2, supported {2}
+    (`D-174` rule 1, `18`): a file with no version line is language 2, `FS1701` offers `fluidscript 2`, and a
+    `fluidscript 1` file is an unsupported older major -- `FS1702`, read-only, bytes saved elsewhere, nothing migrates
+    it. `SupportedNewer`, the disposition language 2 had while it was built beside language 1, is removed; a supported
+    major is now the current one or older. The language 1 parser is reached only when a caller names major 1, which
+    the pipeline never does. The editor's new-file template is `fluidscript 2` with a `circuit "plant":` block (it
+    binds with nothing to report), and its version-line notice says 2. `docs/functions/fluidscript.md` and
+    `files-and-recovery.md` say what version 1 is now; the rest of `docs/` waits for package 9. The formatter formats
+    only a file that declares major 1, so from here Format does nothing on a new file (`L-76`, decide before step 4);
+    the editor's tokenizer is still language 1's (`U-11`, package 8). Unversioned `docs/` blocks and the untracked
+    `diagnostics/scratch` scripts now parse as language 2; the corpus sweeps only require that nothing throws, and
+    they hold. Core 2754/0/2, Api 79/0 (the metadata golden moved by the language versions alone), frontend 221 and
+    9 expected failures.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

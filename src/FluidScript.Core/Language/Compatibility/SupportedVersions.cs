@@ -11,8 +11,8 @@ public sealed record SupportedVersions(LanguageMajor Current, ImmutableArray<Lan
 {
     /// <summary>Gets what this build of FluidScript supports.</summary>
     /// <value>
-    /// Current 1, supported 1 and 2: language 2 is compiled beside language 1 while it is built (<c>D-164</c>,
-    /// <c>SupportedNewer</c>), and becomes current at <c>P6.11</c>'s switch-over, a decision of its own.
+    /// Current 2, supported 2 alone: language 2 replaced language 1 at <c>P6.11</c>'s switch (<c>D-174</c>), and a
+    /// <c>fluidscript 1</c> file is an unsupported older major, readable as text and nothing else (<c>18</c>).
     /// </value>
-    public static SupportedVersions Default { get; } = new(new LanguageMajor(1), [new LanguageMajor(1), new LanguageMajor(2)]);
+    public static SupportedVersions Default { get; } = new(new LanguageMajor(2), [new LanguageMajor(2)]);
 }

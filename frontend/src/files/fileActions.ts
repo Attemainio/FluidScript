@@ -356,7 +356,7 @@ export class FileActions {
       this.notify(
         doc.documentId,
         'unversioned',
-        "This draft states no language version, so it cannot become a file yet. Add 'fluidscript 1' as its first line.",
+        "This draft states no language version, so it cannot become a file yet. Add 'fluidscript 2' as its first line.",
       );
       return false;
     }

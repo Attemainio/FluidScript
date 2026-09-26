@@ -32,7 +32,7 @@ public static class Formatter
     /// <param name="source">The script.</param>
     /// <returns>
     /// One edit per line that changes, in document order; none for a script already formatted, and none for a
-    /// file whose version line names a major other than 1.
+    /// file whose version line names a major other than 1 or names none, which is language 2 (<c>L-76</c>).
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     /// <remarks>
@@ -46,9 +46,7 @@ public static class Formatter
         ArgumentNullException.ThrowIfNull(source);
 
         var compatibility = ScriptCompatibility.Inspect(source);
-        var languageOne = compatibility.DetectedMajor is { Value: 1 }
-            || compatibility.Disposition == CompatibilityDisposition.UnversionedDraft;
-        if (!languageOne)
+        if (compatibility.DetectedMajor is not { Value: 1 })
         {
             return [];
         }

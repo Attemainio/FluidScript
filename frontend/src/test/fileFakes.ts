@@ -201,7 +201,7 @@ export function unversioned(): Diagnostic {
     code: 'FS1701',
     severity: 'info',
     message:
-      "This draft states no language version. Add 'fluidscript 1' as its first line to save it.",
+      "This draft states no language version. Add 'fluidscript 2' as its first line to save it.",
     range: {
       start: { line: 0, character: 0 },
       end: { line: 0, character: 0 },
@@ -210,14 +210,14 @@ export function unversioned(): Diagnostic {
     },
     component: null,
     suggestion: {
-      title: "Add 'fluidscript 1'",
+      title: "Add 'fluidscript 2'",
       range: {
         start: { line: 0, character: 0 },
         end: { line: 0, character: 0 },
         offset: 0,
         length: 0,
       },
-      newText: 'fluidscript 1\n',
+      newText: 'fluidscript 2\n',
     },
     related: [],
   };

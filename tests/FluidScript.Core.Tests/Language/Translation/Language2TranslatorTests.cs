@@ -1197,11 +1197,11 @@ public sealed class Language2TranslatorTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void Language2IsASupportedNewerMajor()
+    public void Language2IsTheCurrentMajor()
     {
         var result = ScriptCompatibility.Inspect(new SourceText("fluidscript 2\nproject \"p\":\n  catalog = steel_en10255@2026.1\n"));
 
-        Assert.Equal(CompatibilityDisposition.SupportedNewer, result.Disposition);
+        Assert.Equal(CompatibilityDisposition.Current, result.Disposition);
         Assert.Contains(CompatibilityAction.Compile, result.AllowedActions);
         Assert.DoesNotContain(CompatibilityAction.PreviewMigration, result.AllowedActions);
         Assert.Equal("steel_en10255", result.Catalog?.Id);

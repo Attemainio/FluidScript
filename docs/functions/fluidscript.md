@@ -3,12 +3,16 @@
 The version line every script opens with.
 
 ```fluidscript
-fluidscript 1
+fluidscript 2
 ```
 
 It states which major version of the language the file is written in, and it is the first line of a
 saved file. A file without it cannot be saved durably: the version is what lets a script written today
 still mean the same thing when the language has moved on.
+
+The current version is **2**, and it is the only one this FluidScript reads. A draft with no version line
+is read as version 2. Version 1, the language before it, was replaced rather than kept alongside: a
+`fluidscript 1` file opens read-only as text, and nothing converts it.
 
 ## Rules
 
@@ -25,9 +29,9 @@ allowed to do with the file. It never guesses.
 | What the file says | What you can do |
 |---|---|
 | The current version | Everything. |
-| An older version FluidScript still supports | Edit, solve and save. The file is read under *its* rules, not today's, and opening it changes nothing. You are offered a migration; nothing is migrated until you accept it. |
+| An older version FluidScript still supports | Edit, solve and save. The file is read under *its* rules, not today's, and opening it changes nothing. You are offered a migration; nothing is migrated until you accept it. No version is in this row today. |
 | A version newer than this FluidScript | Read it as text and save a copy. It is not compiled, not solved, and never overwritten. |
-| An older version FluidScript has dropped | The same. |
+| An older version FluidScript has dropped | The same. Version 1 is in this row. |
 | Nothing at all | Edit and solve as a draft, with `FS1701`. **Save is disabled** until you add the line — one click, and FluidScript inserts the current version for you. |
 
 Two `fluidscript` lines naming *different* versions is `FS1705`. There is no rule about which one

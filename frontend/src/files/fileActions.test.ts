@@ -18,7 +18,7 @@ import { hashOf } from './hash.ts';
 import { RecoveryScheduler } from './scheduler.ts';
 import { templateText } from './template.ts';
 
-const versioned = 'fluidscript 1\n\ncircuit plant\n\nPU1 pump\n';
+const versioned = 'fluidscript 2\n\ncircuit "plant":\n  PU1  pump\n';
 
 function docs(): readonly WorkspaceDocument[] {
   return useWorkspaceStore.getState().documents;
@@ -148,7 +148,7 @@ describe.each([
   it('an unversioned draft cannot become a file; the notice offers the version line and applying it lets Save through', async () => {
     const s = setup(canOverwrite);
     const id = active().documentId;
-    s.text.loadText(id, 'circuit plant\n\nPU1 pump\n', false);
+    s.text.loadText(id, 'circuit "plant":\n  PU1  pump\n', false);
     s.text.diagnostics.set(id, [unversioned()]);
     useWorkspaceStore.getState().setText(id, hashOf(s.text.textOf(id)));
     s.backend.saveAsName = 'plant.fluid';
@@ -158,7 +158,7 @@ describe.each([
     expect(s.backend.downloads).toEqual([]);
 
     s.actions.addVersionLine(id);
-    expect(s.text.textOf(id)).toBe('fluidscript 1\ncircuit plant\n\nPU1 pump\n');
+    expect(s.text.textOf(id)).toBe('fluidscript 2\ncircuit "plant":\n  PU1  pump\n');
     s.text.diagnostics.set(id, []);
     await s.actions.save(id);
     if (canOverwrite) {

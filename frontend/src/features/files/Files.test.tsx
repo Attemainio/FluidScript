@@ -7,6 +7,7 @@ import App from '../../App.tsx';
 import { FakeBackend, MemoryRecoveryStore } from '../../test/fileFakes.ts';
 import { useFileStore } from '../../files/fileStore.ts';
 import { hashOf } from '../../files/hash.ts';
+import { templateText } from '../../files/template.ts';
 import { useDraftStore } from '../../state/draftStore.ts';
 import { useRunStore } from '../../state/runStore.ts';
 import { useUiStore } from '../../state/uiStore.ts';
@@ -18,7 +19,7 @@ import { CompilePipeline } from '../pipeline/compilePipeline.ts';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const versioned = 'fluidscript 1\n\ncircuit plant\n\nPU1 pump\n';
+const versioned = 'fluidscript 2\n\ncircuit "plant":\n  PU1  pump\n';
 
 describe('the file commands in the shell (58)', () => {
   let container: HTMLDivElement;
@@ -166,7 +167,7 @@ describe('the file commands in the shell (58)', () => {
 
   it('an unversioned draft is offered its version line and the quick fix inserts it', async () => {
     mount(true);
-    type('circuit plant\n\nPU1 pump\n');
+    type('circuit "plant":\n  PU1  pump\n');
     // The draft's diagnostics carry FS1701 as the compile would have delivered them.
     act(() =>
       useDraftStore.getState().applyValidate('d1', 99, [
@@ -182,14 +183,14 @@ describe('the file commands in the shell (58)', () => {
           },
           component: null,
           suggestion: {
-            title: "Add 'fluidscript 1'",
+            title: "Add 'fluidscript 2'",
             range: {
               start: { line: 0, character: 0 },
               end: { line: 0, character: 0 },
               offset: 0,
               length: 0,
             },
-            newText: 'fluidscript 1\n',
+            newText: 'fluidscript 2\n',
           },
           related: [],
         },
@@ -203,7 +204,7 @@ describe('the file commands in the shell (58)', () => {
       [...notice!.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Add')) ?? null,
     );
     expect(activeEditorView()!.state.doc.toString()).toBe(
-      'fluidscript 1\ncircuit plant\n\nPU1 pump\n',
+      'fluidscript 2\ncircuit "plant":\n  PU1  pump\n',
     );
     expect(container.querySelector('.file-notice[data-kind="unversioned"]')).toBeNull();
   });
@@ -232,7 +233,7 @@ describe('the file commands in the shell (58)', () => {
     );
     await flush();
     expect(useWorkspaceStore.getState().documents[0]?.documentId).not.toBe('d1');
-    expect(activeEditorView()!.state.doc.toString()).toBe('fluidscript 1\n\ncircuit plant\n\n');
+    expect(activeEditorView()!.state.doc.toString()).toBe(templateText);
   });
 
   it('a draft written to recovery comes back after a reload, dirty, into the same tab', async () => {

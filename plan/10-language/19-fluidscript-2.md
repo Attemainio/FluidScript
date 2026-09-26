@@ -23,8 +23,8 @@ written from scratch, and settled it over one conversation. This document is tha
 
 Language 2 **replaces** language 1 (`D-174`, superseding `D-164`'s "a second major beside the first"). It was
 built beside language 1 — its own parser and, until package 6, a translation into the statements language 1's binder read — and
-language 1 stays the current major until every script the project owns is converted and proven to bind to the
-same model and solve (`P6.11` package 5). Then the binder reads the language 2 tree directly (package 6), and
+language 1 stayed the current major until every script the project owns was converted and proven to bind to the
+same model and solve (`P6.11` package 5); language 2 has been current since package 7 step 3 (2026-09-26). Then the binder reads the language 2 tree directly (package 6), and
 language 1 is removed, parser, translation and all (package 7). The two share everything after binding: the
 registry, sizing, the solver, the layout, the model contract.
 
@@ -795,7 +795,8 @@ shows what the records say.
       `Language2WordingTests`, `Language2DiagnosticsTests`).
 - [x] `samples/v2-syntax-tour.fluid` holds every language 2 statement and binds with nothing to report
       (package 4). Its solve, like the reference script's, is `S-86`'s.
-- [ ] A file with no version line is language 1 until `P6.11`'s switch, and language 2 after it (`D-174`).
+- [x] A file with no version line is language 1 until `P6.11`'s switch, and language 2 after it (`D-174`; switched
+      2026-09-26, package 7 step 3: `ScriptCompatibilityTests`, and the editor's new-file template).
 - [x] Every script the project owns converts, and each converted script binds to the same model and gives the
       same solve as its original, spans aside; what could not convert is decided by the user (package 5).
       **Measured 2026-09-25:** of the 53 language 1 `.fluid` files, 52 bind to the same model and 44 give the same
