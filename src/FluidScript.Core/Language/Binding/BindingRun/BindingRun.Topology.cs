@@ -127,7 +127,7 @@ internal sealed partial class BindingRun
             // unresolvable spelling is kept as written and falls out at `Fit`.
             var name = end.Component;
             var key = _componentsByName.TryGetValue(name, out var slot) && _components[slot.Index].Kind is { } kind
-                ? kind.ResolvePort(port, out _, out _) ?? port
+                ? kind.ResolvePort(port, out _) ?? port
                 : port;
 
             Evidence(name, key);
@@ -291,14 +291,9 @@ internal sealed partial class BindingRun
             return new EndpointSymbol(component.Name, port, PortStated: true);
         }
 
-        // The written spelling to the model's key (`D-120`): `in[2]` and the old `in2` are the port
-        // `in2`, and the old form says so once, here, where the endpoint is.
-        var key = kind.ResolvePort(port, out var suggestion, out var outside);
-
-        if (key is not null && suggestion is not null)
-        {
-            ReportLegacySpelling(portSpan, port, suggestion);
-        }
+        // The written spelling to the model's key (`D-120`, `D-179`): an exchanger's `secondary.in` and a tank's
+        // `in[2]` are both the port `in2`.
+        var key = kind.ResolvePort(port, out var outside);
 
         if (key is not null && component.Ports.Contains(key, StringComparer.Ordinal))
         {

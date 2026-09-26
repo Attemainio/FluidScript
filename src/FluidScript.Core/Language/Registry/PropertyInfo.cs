@@ -22,9 +22,6 @@ public sealed record PropertyInfo
     /// <summary>Gets the other spellings a reference may write: <c>primary.in.t</c> for an exchanger's <c>in.t</c> (<c>D-179</c>).</summary>
     public ImmutableArray<string> Aliases { get; init; } = [];
 
-    /// <summary>Gets the spellings a reference used before <c>D-120</c>, read with <c>FS1536</c>.</summary>
-    public ImmutableArray<string> LegacySpellings { get; init; } = [];
-
     /// <summary>Gets the dimension of the value read back.</summary>
     public required Dimension Dimension { get; init; }
 

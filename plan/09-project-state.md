@@ -2053,6 +2053,12 @@ that governed each size. What P6.8 still owes, and what comes after:
     the reference walker needs none, a number having no references. No corpus golden moved. `L-75` is closed with
     all three steps. Core 2589/0/2 (a new test pins `[-26, 5] C` and `10..100 %`); the full suite's teardown
     crash, seen twice in this step, is `C-98`'s (2 of 5 runs on this tree, 0 of 2 on `4768744`, its stated rate).
+  - **Step 6a, the old spellings are removed (2026-09-26, `L-79` closed; the user's call).** `D-120`'s pre-P5.13
+    spellings (`in2 =`, `t3 =`, `T1.in2`, `HX1.t_in2`) bound in a language 2 file with an `FS1536` notice, though
+    `18` gave them one major. The registry no longer records them, the resolvers no longer offer a suggestion, the
+    binder's report sites and reference review are deleted, and `FS1536` is retired. No corpus golden moved; the
+    diagnostics page and the metadata golden show the retirement; four docs pages stop promising the old forms.
+    The documentation gate now probes each property's aliases (`primary.in.t`) where it probed the old spellings.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

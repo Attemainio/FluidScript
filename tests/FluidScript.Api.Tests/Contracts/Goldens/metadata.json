@@ -4899,16 +4899,6 @@
       ]
     },
     {
-      "code": "FS1536",
-      "severity": "info",
-      "area": "Binder",
-      "message": "'{written}' is now written '{current}'.",
-      "arguments": [
-        "written",
-        "current"
-      ]
-    },
-    {
       "code": "FS1537",
       "severity": "error",
       "area": "Binder",
@@ -6195,6 +6185,10 @@
     {
       "code": "FS1527",
       "reason": "A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174)."
+    },
+    {
+      "code": "FS1536",
+      "reason": "A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79)."
     },
     {
       "code": "FS1543",

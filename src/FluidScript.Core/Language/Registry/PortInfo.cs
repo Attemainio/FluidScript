@@ -41,9 +41,6 @@ public sealed record PortInfo
         init => _key = value;
     }
 
-    /// <summary>Gets the spellings an endpoint wrote before <c>D-120</c>, read with <c>FS1536</c>.</summary>
-    public ImmutableArray<string> LegacySpellings { get; init; } = [];
-
     /// <summary>Gets the nominal direction of flow through the port.</summary>
     public required PortRole Role { get; init; }
 

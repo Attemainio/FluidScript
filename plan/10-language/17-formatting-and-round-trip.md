@@ -277,8 +277,8 @@ deliberately rather than discovered.
 ## Invariants
 
 1. **`Print(Parse(x)) == x` byte for byte**, for every input, including malformed ones. A
-   pre-`D-120` spelling (`in2=`, `HX1.t_in2`) is printed as written: the rewrite is the editor's,
-   through `FS1536`'s suggestion, never the printer's.
+   pre-`D-120` spelling (`in2=`, `HX1.t_in2`) is printed as written, though language 2 does not read it
+   (`L-79`): a rename is the editor's, never the printer's.
 2. `Parse(Apply(Print(t), edits))` is well formed for every `EditResult` any method returns.
 3. An `EditResult` touches only spans belonging to the element named; a test asserts every other byte
    of the file is unchanged.

@@ -362,7 +362,7 @@ internal sealed partial class BindingRun
             // have was bound as written and read nothing.
             if (actuated)
             {
-                if (owner.ResolveParameter(port, out _, out _) is not { } parameter)
+                if (owner.ResolveParameter(port, out _) is not { } parameter)
                 {
                     Report(BinderDiagnostics.ParameterNotControllable, endpoint.Span, ("param", port), ("component", name));
                     return null;
@@ -507,9 +507,9 @@ internal sealed partial class BindingRun
         }
         else if (_components[slot.Index].Kind is { } kind)
         {
-            // The same spellings a declaration accepts (`D-120`), the old ones with their suggestion;
-            // the target is stored by key, which is how the transient finds the parameter.
-            info = kind.ResolveParameter(parameter, out var suggestion, out _);
+            // The same spellings a declaration accepts (`D-120`, `D-179`); the target is stored by key, which is how
+            // the transient finds the parameter.
+            info = kind.ResolveParameter(parameter, out _);
 
             if (info is null)
             {
@@ -520,11 +520,6 @@ internal sealed partial class BindingRun
                     ("parameter", parameter),
                     ("available", string.Join(", ", kind.Parameters.Values.Select(static info => info.Name).Order(StringComparer.Ordinal))));
                 return null;
-            }
-
-            if (suggestion is not null)
-            {
-                ReportLegacySpelling(target.PortSpan, parameter, suggestion);
             }
 
             dimension = info.Dimension;

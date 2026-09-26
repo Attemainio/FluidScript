@@ -36,8 +36,8 @@ draws from its layer.
 | `elevation` | m | Height above the project datum, for the vessel and every port on it; see [`node`](node.md#height) | Wherever it is wired to, else 0 m |
 
 A port's level is written on the port, the way every port state is ([syntax](syntax.md#a-ports-state)):
-`in[3].level=0.9` places the third inlet near the top. The old `in3_level=` and `t3=` spellings still
-bind and are pointed at the new one ([`FS1536`](diagnostics.md)).
+`in[3].level=0.9` places the third inlet near the top. The old `in3_level=` and `t3=` spellings are
+no longer read.
 
 **`t` and the indexed `layer[1].t`…`layer[N].t` are mutually exclusive**, and if you use the indexed form you must
 state every layer. Half a profile is an error rather than a guess — the layers you left out have no

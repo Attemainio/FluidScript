@@ -33,15 +33,6 @@ public sealed record ParameterInfo
     /// </value>
     public ImmutableArray<string> Aliases { get; init; } = [];
 
-    /// <summary>Gets the spellings a script wrote before <c>D-120</c>, read for one language major.</summary>
-    /// <value>
-    /// <c>in</c> for <c>in.t</c>, <c>flow2</c> for <c>secondary.in.flow</c>. Each binds exactly as
-    /// <see cref="Name"/> does and raises <c>FS1536</c> with the new spelling as its suggestion, so
-    /// the editor's quick fix rewrites the line and the documentation teaches one form (<c>18</c>
-    /// retires them at the next major).
-    /// </value>
-    public ImmutableArray<string> LegacySpellings { get; init; } = [];
-
     /// <summary>Gets what shape of value this parameter accepts.</summary>
     /// <value>
     /// <see cref="ParameterValueKind.Quantity"/> for everything dimensioned;

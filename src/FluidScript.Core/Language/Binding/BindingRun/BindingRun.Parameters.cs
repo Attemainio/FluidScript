@@ -27,17 +27,10 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        // Name, alias, the spelling `D-120` retired, or an indexed family member -- `layer[3].t`,
-        // `in[2].level`, the old `t3` -- all before similarity, so a tank's fortieth layer is an index
-        // error rather than an unknown parameter, and an old spelling is a suggestion rather than a
-        // near miss.
-        if (kind.ResolveParameter(written, out var suggestion, out var outside) is { } resolved)
+        // Name, alias, or an indexed family member -- `layer[3].t`, `in[2].level` -- exactly as written
+        // (`D-170`), so a tank's fortieth layer is an index error rather than an unknown parameter.
+        if (kind.ResolveParameter(written, out var outside) is { } resolved)
         {
-            if (suggestion is not null)
-            {
-                ReportLegacySpelling(parameter.Name.Span, written, suggestion);
-            }
-
             return resolved;
         }
 
@@ -299,5 +292,5 @@ internal sealed partial class BindingRun
     /// declaration already said what it had to.
     /// </remarks>
     private static string? StatedParameterKey(ComponentKindInfo kind, string written) =>
-        kind.ResolveParameter(written, out _, out _)?.Key;
+        kind.ResolveParameter(written, out _)?.Key;
 }

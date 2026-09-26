@@ -127,45 +127,29 @@ public sealed record ComponentKindInfo
     /// </remarks>
     public string? MeasuredProperty { get; init; }
 
-    /// <summary>Resolves a property name against this kind's fixed properties and its indexed families.</summary>
+    /// <summary>Resolves a property name against this kind's fixed properties, their aliases and its indexed families.</summary>
     /// <param name="written">The property name as the reference wrote it.</param>
     /// <returns>
-    /// The property, with <see cref="PropertyInfo.Name"/> set to the written name for a family member,
-    /// or <see langword="null"/> when this kind has no such property.
+    /// The property, with <see cref="PropertyInfo.Name"/> and <see cref="PropertyInfo.Key"/> set to the member's own
+    /// for a family member, or <see langword="null"/> when this kind has no such property.
     /// </returns>
     /// <remarks>
     /// <para>
     /// Here rather than in the binder because the binder is not the only reader: the model contract
-    /// reports <c>T1.t3</c> too, and a second copy of this walk is a second place for the fixed and
+    /// reports <c>T1.layer[3].t</c> too, and a second copy of this walk is a second place for the fixed and
     /// the indexed halves to disagree.
     /// </para>
     /// <para>
-    /// <strong>An index above the family's bound resolves to nothing.</strong> A family bounded by a
+    /// <c>in[1].t</c> and <c>in.t</c> are one port written two ways, so the bracketed first index is folded before
+    /// matching. <strong>An index above the family's bound resolves to nothing.</strong> A family bounded by a
     /// <em>parameter</em> — a tank's <c>layers</c> — has no fixed maximum to check here at all, so
-    /// <c>T1.t9</c> on a five-layer tank resolves and is caught where the layer count is known.
+    /// <c>T1.layer[9].t</c> on a five-layer tank resolves and is caught where the layer count is known. The spellings
+    /// <c>D-120</c> replaced (<c>t_in2</c>, <c>t3</c>) are not read: language 2 removed them (<c>L-79</c>).
     /// </para>
     /// </remarks>
-    public PropertyInfo? ResolveProperty(string written) => ResolveProperty(written, out _);
-
-    /// <summary>Resolves a property name, saying whether it was written in a spelling <c>D-120</c> retired.</summary>
-    /// <param name="written">The property name as the reference wrote it.</param>
-    /// <param name="suggestion">
-    /// The current spelling when <paramref name="written"/> is a legacy one — <c>secondary.in.t</c> for
-    /// <c>t_in2</c> — else <see langword="null"/>. What <c>FS1536</c> offers as its quick fix.
-    /// </param>
-    /// <returns>
-    /// The property, with <see cref="PropertyInfo.Name"/> and <see cref="PropertyInfo.Key"/> set to
-    /// the member's own for a family member, or <see langword="null"/> when this kind has no such
-    /// property.
-    /// </returns>
-    /// <remarks>
-    /// <c>in[1].t</c> and <c>in.t</c> are one port written two ways, so the bracketed first index is
-    /// folded before matching and draws no suggestion.
-    /// </remarks>
-    public PropertyInfo? ResolveProperty(string written, out string? suggestion)
+    public PropertyInfo? ResolveProperty(string written)
     {
         ArgumentNullException.ThrowIfNull(written);
-        suggestion = null;
 
         // With the quantity by its symbol and `[1]` folded first, then as written: `in[1].t` is the
         // fixed `in.t` once folded, and `layer[1].t` is a family member only as written, since its
@@ -185,60 +169,43 @@ public sealed record ComponentKindInfo
                 {
                     return property;
                 }
-
-                if (property.LegacySpellings.Contains(name, StringComparer.Ordinal))
-                {
-                    suggestion = property.Name;
-                    return property;
-                }
             }
 
             foreach (var family in IndexedPropertyFamilies)
             {
-                var legacy = false;
-
                 if (!IndexedName.Matches(family.Pattern, name, out var index)
-                    && !(legacy = family.LegacyPattern is { } old && IndexedName.Matches(old, name, out index)))
+                    || index < family.MinIndex
+                    || (family.MaxIndex is { } max && index > max))
                 {
                     continue;
                 }
 
-                if (index < family.MinIndex || (family.MaxIndex is { } max && index > max))
-                {
-                    continue;
-                }
-
-                var member = family.Element with
+                return family.Element with
                 {
                     Name = IndexedName.Spell(family.Pattern, index),
                     Key = IndexedName.Spell(family.KeyPattern, index),
                 };
-
-                suggestion = legacy ? member.Name : null;
-                return member;
             }
         }
 
         return null;
     }
 
-    /// <summary>Resolves a parameter name as a declaration wrote it: by name, alias, legacy spelling, or indexed family (<c>D-120</c>).</summary>
-    /// <param name="written">The name as written: <c>power</c>, <c>secondary.in.t</c>, <c>layer[3].t</c>, or the old <c>in2</c>, <c>t3</c>.</param>
-    /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
+    /// <summary>Resolves a parameter name as a declaration wrote it: by name, alias, or indexed family (<c>D-120</c>).</summary>
+    /// <param name="written">The name as written: <c>power</c>, <c>secondary.in.t</c>, <c>layer[3].t</c>.</param>
     /// <param name="outsideFamily">The family the name belongs to when its index is out of the family's fixed range, else <see langword="null"/>.</param>
     /// <returns>
     /// The parameter, with <see cref="ParameterInfo.Name"/> and <see cref="ParameterInfo.Key"/> set
-    /// to the member's own for a family member, or <see langword="null"/> when nothing matches
-    /// exactly — similarity is the binder's, since it reports.
+    /// to the member's own for a family member, or <see langword="null"/> when nothing matches exactly (<c>D-170</c>).
     /// </returns>
     /// <remarks>
     /// A family bounded by a <em>parameter</em> (a tank's <c>layers</c>) has no fixed maximum to check
     /// here, so <c>layer[9].t</c> on a five-layer tank resolves and is caught where the count is known.
+    /// The spellings <c>D-120</c> replaced (<c>in2</c>, <c>t3</c>) are not read (<c>L-79</c>).
     /// </remarks>
-    public ParameterInfo? ResolveParameter(string written, out string? suggestion, out IndexedParameterFamilyInfo? outsideFamily)
+    public ParameterInfo? ResolveParameter(string written, out IndexedParameterFamilyInfo? outsideFamily)
     {
         ArgumentNullException.ThrowIfNull(written);
-        suggestion = null;
         outsideFamily = null;
 
         // `secondary.in.temperature` is `secondary.in.t` (the table's name for its symbol), then `[1]` folds.
@@ -253,20 +220,11 @@ public sealed record ComponentKindInfo
                 {
                     return candidate;
                 }
-
-                if (candidate.LegacySpellings.Contains(name, StringComparer.Ordinal))
-                {
-                    suggestion = candidate.Name;
-                    return candidate;
-                }
             }
 
             foreach (var family in IndexedParameterFamilies)
             {
-                var legacy = false;
-
-                if (!IndexedName.Matches(family.Pattern, name, out var index)
-                    && !(legacy = family.LegacyPattern is { } old && IndexedName.Matches(old, name, out index)))
+                if (!IndexedName.Matches(family.Pattern, name, out var index))
                 {
                     continue;
                 }
@@ -277,7 +235,6 @@ public sealed record ComponentKindInfo
                     return null;
                 }
 
-                suggestion = legacy ? IndexedName.Spell(family.Pattern, index) : null;
                 return family.Element with
                 {
                     Name = IndexedName.Spell(family.Pattern, index),
@@ -289,21 +246,20 @@ public sealed record ComponentKindInfo
         return null;
     }
 
-    /// <summary>Resolves a port as an endpoint wrote it to the key the model knows it by (<c>D-120</c>).</summary>
-    /// <param name="written">The port name as written: <c>in</c>, <c>secondary.in</c>, <c>b</c>, or the old <c>in2</c>.</param>
-    /// <param name="suggestion">The current spelling when <paramref name="written"/> is a legacy one, else <see langword="null"/>.</param>
+    /// <summary>Resolves a port as an endpoint wrote it to the key the model knows it by (<c>D-120</c>, <c>D-179</c>).</summary>
+    /// <param name="written">The port name as written: <c>in</c>, <c>secondary.in</c>, <c>b</c>, <c>in[3]</c>.</param>
     /// <param name="outsideFamily">The family the name belongs to when its index is out of range, else <see langword="null"/>.</param>
     /// <returns>The key — <c>in2</c>, <c>in1</c>, <c>b</c> — or <see langword="null"/> when this kind has no such port.</returns>
     /// <remarks>
     /// The fixed ports first, so a family's first member — a tank's <c>in</c>, keyed <c>in1</c> — is
     /// the fixed row and the family proper starts above it; <c>in[1]</c> folds to <c>in</c> before
     /// matching, as everywhere. A kind with unlimited unnamed ports has no port to resolve and
-    /// answers <see langword="null"/>; the caller knows that case already.
+    /// answers <see langword="null"/>; the caller knows that case already. The spellings <c>D-120</c> replaced
+    /// (<c>in2</c>) are not read (<c>L-79</c>).
     /// </remarks>
-    public string? ResolvePort(string written, out string? suggestion, out PortFamilyInfo? outsideFamily)
+    public string? ResolvePort(string written, out PortFamilyInfo? outsideFamily)
     {
         ArgumentNullException.ThrowIfNull(written);
-        suggestion = null;
         outsideFamily = null;
 
         var folded = IndexedName.FoldFirstIndex(written);
@@ -318,20 +274,11 @@ public sealed record ComponentKindInfo
                 {
                     return port.Key;
                 }
-
-                if (port.LegacySpellings.Contains(name, StringComparer.Ordinal))
-                {
-                    suggestion = port.Spelling;
-                    return port.Key;
-                }
             }
 
             foreach (var family in PortFamilies)
             {
-                var legacy = false;
-
-                if (!IndexedName.Matches(family.Prefix + "[{index}]", name, out var index)
-                    && !(legacy = IndexedName.Matches(family.Prefix + "{index}", name, out index)))
+                if (!IndexedName.Matches(family.Prefix + "[{index}]", name, out var index))
                 {
                     continue;
                 }
@@ -342,7 +289,6 @@ public sealed record ComponentKindInfo
                     return null;
                 }
 
-                suggestion = legacy ? family.Name(index) : null;
                 return family.Key(index);
             }
         }

@@ -141,9 +141,8 @@ The two spellings name one point only across a bare connection: `N1 - PU1 length
 pipe between them, and `PU1 in.p` is then the node at the pipe's far end — the pump's suction, 10 m
 of friction below `N1` — not `N1` itself.
 
-Scripts written before this form used `in=`, `in2=`, `flow2=`, `t3=` and `T1.in2`. They still bind,
-to exactly the same thing, and each is pointed at the spelling above once, where it stands
-([`FS1536`](diagnostics.md), an information notice with a one-click fix).
+Scripts written before this form used `in=`, `in2=`, `flow2=`, `t3=` and `T1.in2`. FluidScript 2 does
+not read those spellings; write the form above.
 
 ## Text
 

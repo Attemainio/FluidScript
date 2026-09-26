@@ -151,7 +151,6 @@ public sealed partial class ComponentRegistry
             {
                 Pattern = "layer[{index}].t",
                 KeyPattern = "t{index}",
-                LegacyPattern = "t{index}",
                 MinIndex = 1,
                 MaxIndexParameter = "layers",
                 Element = Sized("t", Dimension.Temperature, -50, 300, precision: 1),
@@ -160,7 +159,6 @@ public sealed partial class ComponentRegistry
             {
                 Pattern = "in[{index}].level",
                 KeyPattern = "in{index}_level",
-                LegacyPattern = "in{index}_level",
                 MinIndex = 2,
                 MaxIndex = TankPorts,
                 Element = LevelParameter("in_level"),
@@ -169,7 +167,6 @@ public sealed partial class ComponentRegistry
             {
                 Pattern = "out[{index}].level",
                 KeyPattern = "out{index}_level",
-                LegacyPattern = "out{index}_level",
                 MinIndex = 2,
                 MaxIndex = TankPorts,
                 Element = LevelParameter("out_level"),
@@ -233,7 +230,6 @@ public sealed partial class ComponentRegistry
         {
             Pattern = pattern,
             KeyPattern = keyPattern,
-            LegacyPattern = keyPattern,
             MinIndex = minIndex,
             MaxIndex = maxIndex,
             MaxIndexParameter = maxIndexParameter,

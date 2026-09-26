@@ -57,7 +57,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         ReviewComponents();
         ReviewCurveReferences();
         ReviewSizingPoints();
-        ReviewLegacyReferences();
         BindTopology(circuits);
         BindRuns();
 
@@ -328,17 +327,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private void Report(DiagnosticDescriptor descriptor, TextSpan span, params (string Name, string Value)[] arguments) =>
         Report(descriptor, span, null, arguments);
 
-    /// <summary>Says a name was written in a spelling <c>D-120</c> retired, with the current one as the quick fix.</summary>
-    /// <param name="span">The name alone, so the fix replaces the name and keeps the value (<c>L-53</c>).</param>
-    /// <param name="written">What the script wrote.</param>
-    /// <param name="current">The spelling it is now written in.</param>
-    private void ReportLegacySpelling(TextSpan span, string written, string current) =>
-        Report(
-            BinderDiagnostics.LegacySpelling,
-            span,
-            new Suggestion($"Write '{current}'", span, current),
-            ("written", written),
-            ("current", current));
 
     private void Report(
         DiagnosticDescriptor descriptor,

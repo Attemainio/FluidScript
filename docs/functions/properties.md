@@ -20,8 +20,7 @@ back as `.dt` it is signed. `dn` is a pipe size, not "delta n".
 **A port's state is a property of the port.** `HX1.in[2].t` is the temperature entering the
 exchanger's second side, `T1.out.t` the temperature at a tank's first outlet, `T1.layer[3].t` its
 third layer from the bottom; `in[1]` is `in`. The quantity may be spelled long — `HX1.in[2].temperature`
-— and the old flat names (`HX1.t_in2`, `T1.t3`, `T1.in2_t`) still resolve with a notice pointing at
-the new one ([`FS1536`](diagnostics.md)). The [syntax page](syntax.md#a-ports-state) has the rule.
+— and the old flat names (`HX1.t_in2`, `T1.t3`, `T1.in2_t`) are no longer read. The [syntax page](syntax.md#a-ports-state) has the rule.
 
 <!-- BEGIN GENERATED: component-properties -->
 | Kind | Property | Unit | Available |

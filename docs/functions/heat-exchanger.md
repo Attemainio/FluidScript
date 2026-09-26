@@ -32,8 +32,8 @@ the temperature entering side 2, and `HX1.in[2].t` reads it back. A side's flow,
 temperature change are written on its inlet — `in[2].flow`, `in[2].dp`, `in[2].dt` — since a side
 has one of each; side 1's are the bare `flow`, `dp` and `dt`. `in[1]` is `in`. Every port also
 takes `p`, which is the pressure of the node it touches (`in[2].p=360` pins the primary's inlet node
-the way `N5 node p=360` would). The [syntax page](syntax.md#a-ports-state) has the rule; the old `in2=`/`flow2=` spellings still bind
-and are pointed at the new one ([`FS1536`](diagnostics.md)).
+the way `N5 node p=360` would). The [syntax page](syntax.md#a-ports-state) has the rule; the old `in2=`/`flow2=` spellings are no
+longer read.
 
 **Side 1 is the side the unindexed parameters describe.** The sides are numbered rather than named
 hot and cold, because which side is hot is a solved outcome and a script that says `hot_in=40` when

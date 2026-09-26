@@ -186,6 +186,9 @@ public static class DiagnosticRegistry
             "FS1512",
             "A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174)."),
         new RetiredDiagnostic(
+            "FS1536",
+            "A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79)."),
+        new RetiredDiagnostic(
             "FS1517",
             "Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174)."),
         new RetiredDiagnostic(

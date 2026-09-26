@@ -106,7 +106,6 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1533` | Warning | Binder | '{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node. |
 | `FS1534` | Error | Binder | '{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm". |
 | `FS1535` | Error | Binder | '{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format. |
-| `FS1536` | Info | Binder | '{written}' is now written '{current}'. |
 | `FS1537` | Error | Binder | A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='. |
 | `FS1538` | Error | Binder | A {kind}'s '{port}' has no '{quantity}'. It takes: {available}. |
 | `FS1539` | Error | Binder | '{written}' states the pressure of '{node}', which '{other}' already states. State it once. |
@@ -255,6 +254,7 @@ given to something else.
 | `FS1520` | A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174). |
 | `FS1526` | A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174). |
 | `FS1527` | A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174). |
+| `FS1536` | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79). |
 | `FS1543` | Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174). |
 | `FS1547` | Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174). |
 | `FS2217` | A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174). |

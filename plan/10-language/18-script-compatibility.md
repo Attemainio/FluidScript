@@ -134,10 +134,11 @@ ships within major 1.
 and `]` were not characters of the language, and `in.t=` was a syntax error, so no well-formed line
 reads differently; `50 in.t=` and `50 in[2]` were fifty inches followed by a syntax error and are now
 a number and a name. The old spellings -- `in=`, `in2=`, `flow2=`, `t3=`, `in1_level=`, `T1.in2`,
-`HX1.t_in2` -- are not removed: each binds to the same key it always did and raises `FS1536`, an
-information notice whose `Suggestion` replaces the name span with the current spelling, so a
-saved v1 file opens, solves and prints byte for byte. **Removing them is the next major's**, and the
-migration is the same rename the suggestion already knows. The one thing a pre-`D-120` script can
+`HX1.t_in2` -- were not removed in major 1: each bound to the same key it always did and raised
+`FS1536`, an information notice whose `Suggestion` replaced the name span with the current spelling,
+so a saved v1 file opened, solved and printed byte for byte. **Removing them was the next major's**, and
+major 2 did (P6.11 package 7 step 6, `L-79`): a language 2 file was never written in them, the corpus
+held none, and `FS1536` is retired. The one thing a pre-`D-120` script can
 no longer do is name a component `in`, `out` or `layer` and give it a parameter on the same line
 that happens to be a unit symbol -- which nothing in the corpus did.
 

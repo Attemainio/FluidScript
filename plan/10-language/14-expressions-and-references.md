@@ -153,9 +153,9 @@ The property names are declared per component in
 port, its index and the quantity, `in[2].t`; the quantity may also be spelled by its long name
 (`in[2].temperature`), which the binder folds to the symbol through the one property table
 ([`13`](13-type-and-unit-system.md)). The whole dotted path after the component is the property: the
-binder resolves it as one name against the kind's fixed properties and its indexed families, so
-`in[2].t` and the pre-`D-120` `t_in2` are the same property with two spellings, the second read with
-`FS1536`.
+binder resolves it as one name against the kind's fixed properties, their aliases and its indexed
+families. The pre-`D-120` spelling `t_in2` is the property's key and no longer a spelling: language 2 does
+not read it (`L-79`).
 
 ### The circularity that matters
 

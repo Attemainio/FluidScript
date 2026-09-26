@@ -87,7 +87,7 @@ internal sealed partial class Language2Reader
 
             var claimed = list
                 .Where(static end => end.Endpoint.Port is not null)
-                .Select(end => kind.ResolvePort(end.Endpoint.Port!.Text, out _, out _))
+                .Select(end => kind.ResolvePort(end.Endpoint.Port!.Text, out _))
                 .OfType<string>()
                 .ToHashSet(StringComparer.Ordinal);
 
@@ -444,7 +444,7 @@ internal sealed partial class Language2Reader
     }
 
     private static string Key(ComponentKindInfo kind, string port) =>
-        kind.ResolvePort(port, out _, out _) ?? port;
+        kind.ResolvePort(port, out _) ?? port;
 
     private static string Wired(string port, End end) => end.Inflow ? $"{port} from {end.Peer}" : $"{port} to {end.Peer}";
 

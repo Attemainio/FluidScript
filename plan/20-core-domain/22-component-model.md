@@ -389,8 +389,8 @@ secondary connections promote it to Coupled mode (`D-19`, which amends `D-17`).
 `secondary.out` (side 2, `D-179`). A port's state is written on the port (`in.t=60`,
 `secondary.in.flow=0.9`) and read back the same way (`HX1.secondary.in.t`); every port takes `p`, the
 touching node's pressure (*Every port has a pressure*, below). The model keys the second side
-`in2`/`out2`; the wire's port id is `in[2]`/`out[2]` (`D-120`), and `in2` is the spelling scripts before
-P5.13 wrote, accepted with `FS1536`. Lowering computes exactly one mode;
+`in2`/`out2`; the wire's port id is `in[2]`/`out[2]` (`D-120`). `in2` was the spelling scripts before
+P5.13 wrote, which language 2 no longer reads (`L-79`). Lowering computes exactly one mode;
 there is no script `mode=` parameter:
 
 | Mode | Trigger, in precedence order | Flow groups | Behaviour |

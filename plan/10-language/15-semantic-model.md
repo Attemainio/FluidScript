@@ -119,8 +119,6 @@ public sealed record ParameterInfo
     /// <summary>The model's identifier, which the bound symbol, the sizes and the wire carry: <c>in2</c> for <c>in[2].t</c>, <c>flow2</c> for <c>in[2].flow</c>. Defaults to <see cref="Name"/>.</summary>
     public string Key { get; init; }
 
-    /// <summary>Spellings scripts wrote before `D-120`, bound with <c>FS1536</c>; the key, for every keyed row.</summary>
-    public ImmutableArray<string> LegacySpellings { get; init; }
 
     /// <summary>Curated input spellings. Binding stores <see cref="Key"/>; printing preserves source.</summary>
     public required ImmutableArray<string> Aliases { get; init; }
@@ -189,8 +187,6 @@ public sealed record IndexedParameterFamilyInfo
     public required string Pattern { get; init; }
     /// <summary>The pattern of the key a member is stored under: <c>t{index}</c>, <c>in{index}_level</c>.</summary>
     public required string KeyPattern { get; init; }
-    /// <summary>The pattern scripts wrote before `D-120`, read with <c>FS1536</c>; the key pattern.</summary>
-    public string? LegacyPattern { get; init; }
     public required int MinIndex { get; init; }
     /// <summary>Fixed maximum, or null when <see cref="MaxIndexParameter"/> supplies it.</summary>
     public int? MaxIndex { get; init; }
@@ -695,8 +691,7 @@ expects `AirHandlingUnit` to find `ahu`.
    written second so `layer[1].t` still reaches its family. Indexed families (`layer[1].t`…,
    `in[2].level`…`out[16].level`) are matched against their declared pattern before similarity,
    and an index outside the family is `FS1516` rather than a near miss. A pre-`D-120` spelling
-   (`in=`, `in2=`, `t3=`) binds to the same key and reports `FS1536` with the current spelling as
-   the suggestion; a port state on a kind with unlimited unnamed ports is `FS1537`. A dotted name
+   (`in=`, `in2=`, `t3=`) is not read: language 2 removed them and retired `FS1536` (`L-79`); a port state on a kind with unlimited unnamed ports is `FS1537`. A dotted name
    whose quantity the property table names but the port does not take is `FS1538`, listing what
    the port takes, and never a similarity match: `in.p` scores 0.75 against `in.t`, and a stated
    pressure was read as a temperature of 300 °C under `FS1512` until `D-124` (P5.13b). The bound
@@ -1074,7 +1069,7 @@ above, never to a `let`.
 | `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
 | `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |
 | `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
-| `FS1536` | A parameter, port or property written in its pre-`D-120` spelling: `in=`, `in2=`, `T1.in2`, `HX1.t_in2`. Bound as the current spelling would be; the suggestion replaces the name | Info | `'{written}' is now written '{current}'.` |
+| `FS1536` | *(retired)* | — | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79). Retired by P6.11 package 7 step 6, not reused. |
 | `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.` |
 | `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
 | `FS1539` | A node's pressure stated twice: on the node and as a port pressure of a component touching it, or by two ports on one node (`D-124`) | Error | `'{written}' states the pressure of '{node}', which '{other}' already states. State it once.` |

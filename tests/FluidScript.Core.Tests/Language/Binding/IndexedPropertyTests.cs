@@ -47,10 +47,9 @@ public sealed class IndexedPropertyTests
         // The name is the script's spelling with a port's `[1]` folded away -- a layer keeps its index,
         // since `layer[1]` is the bottom layer and not a first port -- and the key is the one the
         // solved value is published under (D-120).
-        var resolved = Tank.ResolveProperty(property, out var suggestion);
+        var resolved = Tank.ResolveProperty(property);
 
         Assert.NotNull(resolved);
-        Assert.Null(suggestion);
         Assert.Equal(name, resolved.Name);
         Assert.Equal(key, resolved.Key);
         Assert.Equal(Dimension.Temperature, resolved.Dimension);
@@ -63,14 +62,12 @@ public sealed class IndexedPropertyTests
     [InlineData("in1_t", "in.t")]
     [InlineData("in16_t", "in[16].t")]
     [InlineData("out2_t", "out[2].t")]
-    public void TheOldSpellingResolvesAndSuggestsTheNewOne(string legacy, string current)
+    public void TheOldSpellingIsNotRead(string legacy, string current)
     {
-        var resolved = Tank.ResolveProperty(legacy, out var suggestion);
-
-        Assert.NotNull(resolved);
-        Assert.Equal(current, suggestion);
-        Assert.Equal(current, resolved.Name);
-        Assert.Equal(legacy, resolved.Key);
+        // `D-120`'s old spellings were read with `FS1536` for one language major; language 2 is the next (`L-79`).
+        // The key is still the old spelling, so a solved value is published under it -- but a script cannot name it.
+        Assert.Null(Tank.ResolveProperty(legacy));
+        Assert.Equal(legacy, Tank.ResolveProperty(current)!.Key);
     }
 
     [Theory]

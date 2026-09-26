@@ -648,19 +648,6 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.");
 
-    /// <summary>A port, parameter or property written in the spelling <c>D-120</c> retired.</summary>
-    /// <value><c>FS1536</c>, informational, carrying the new spelling as its suggestion.</value>
-    /// <remarks>
-    /// Read exactly as the new form is, for one language major (<c>18</c>): <c>in=50</c> binds as
-    /// <c>in.t=50</c>, <c>T1.in2</c> as <c>T1.in[2]</c>, <c>HX1.t_in2</c> as <c>HX1.in[2].t</c>. Info
-    /// rather than a warning because the script is right; the editor's quick fix rewrites the name and
-    /// keeps the value, and the documentation teaches only the new form.
-    /// </remarks>
-    public static DiagnosticDescriptor LegacySpelling { get; } = new(
-        "FS1536",
-        DiagnosticSeverity.Info,
-        "'{written}' is now written '{current}'.");
-
     /// <summary>A port's quantity written on a node, which has one state and no ports (<c>D-120</c> rule 4).</summary>
     /// <value><c>FS1537</c>, an error.</value>
     /// <remarks>
@@ -811,7 +798,6 @@ public static class BinderDiagnostics
         ClockWithoutStart,
         MeasuredJunction,
         SizingPointUnread,
-        LegacySpelling,
         FixedPointNotSettled,
         DeferredNeverEvaluated,
         DeferredStillWaiting,

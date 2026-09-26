@@ -17,10 +17,6 @@ public sealed record IndexedParameterFamilyInfo
         init => _keyPattern = value;
     }
 
-    /// <summary>Gets the pattern a script wrote before <c>D-120</c>, read for one language major with <c>FS1536</c>.</summary>
-    /// <value><see langword="null"/> for a family that never changed spelling.</value>
-    public string? LegacyPattern { get; init; }
-
     /// <summary>Gets the lowest index the family accepts.</summary>
     public required int MinIndex { get; init; }
 
