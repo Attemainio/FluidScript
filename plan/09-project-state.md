@@ -2072,6 +2072,13 @@ that governed each size. What P6.8 still owes, and what comes after:
     a parser remark that contradicted its own body). **Filed:** `L-81` (six templates write "A {kind}", "A inlet"),
     `L-82` (`FS1514`'s "none of them" for one form), `L-83` (a second version line raises nothing); `U-11` notes
     `52`'s completion still cites `FS1512`. Core 2590/0/2, Api 79/0.
+  - **Package 7 is complete (2026-09-26).** Language 1 is gone from Core: its grammar, binder semantics, second
+    templates, wording pass, value rewrites and old spellings, 26 codes retired. What it leaves for the next
+    packages: **package 8**, the frontend and one contract major -- `U-11` (the editor's tokenizer and completion
+    are language 1's; 10 expected failures), `C-139` (fields only language 1 filled), `C-140` (`dK` on the wire),
+    `A-8` (the metadata's port spellings), with `A-7` (`43`'s `start` settings) before P6.5; **package 9**, `docs/`
+    rewritten for language 2. Open from this package and not scheduled into either: `L-81`–`L-83` (message
+    wording, a silent duplicate version line), `L-72`–`L-74`, `L-71`, `L-67`, and `L-66`'s remainder.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`
