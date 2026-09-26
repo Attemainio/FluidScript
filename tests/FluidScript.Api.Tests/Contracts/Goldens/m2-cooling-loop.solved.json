@@ -1,8 +1,8 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:e1f926c87b3c4dddcc2658ba3d233c41e34a89ddf1c8e27863e22c5b0df91592",
-    "languageMajor": 1,
+    "sourceHash": "sha256:fa08d7cb8ad07ffbfe7518030c9ac428892b65affaa3fc84afd1ea70c204f584",
+    "languageMajor": 2,
     "catalog": {
       "id": "steel_en10255",
       "version": "2026.1"
@@ -13,10 +13,14 @@
     },
     "atmosphereKPaAbsolute": 101.325
   },
+  "project": {
+    "name": "project",
+    "defaultMode": null
+  },
   "style": {
     "tokens": [
       "blue",
-      "2px",
+      "2",
       "fillet",
       "--"
     ],
@@ -56,8 +60,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 514,
-        "length": 44
+        "start": 609,
+        "length": 54
       },
       "circuit": "coolingLoop",
       "tag": "100HE01",
@@ -168,8 +172,8 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 559,
-        "length": 19
+        "start": 666,
+        "length": 20
       },
       "circuit": "coolingLoop",
       "tag": "100TV01",
@@ -261,8 +265,8 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 579,
-        "length": 8
+        "start": 689,
+        "length": 9
       },
       "circuit": "coolingLoop",
       "tag": "100PU01",
@@ -347,8 +351,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 834,
-        "length": 26
+        "start": 887,
+        "length": 21
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -429,8 +433,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 898,
-        "length": 18
+        "start": 930,
+        "length": 25
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -470,8 +474,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 976,
-        "length": 15
+        "start": 1009,
+        "length": 19
       },
       "circuit": "coolingLoop",
       "tag": null,
@@ -2898,14 +2902,14 @@
       "message": "Added node 'N2' (I1).",
       "range": {
         "start": {
-          "line": 18,
-          "character": 5
-        },
-        "end": {
-          "line": 18,
+          "line": 25,
           "character": 7
         },
-        "offset": 606,
+        "end": {
+          "line": 25,
+          "character": 9
+        },
+        "offset": 707,
         "length": 2
       },
       "component": "N2",
@@ -2918,14 +2922,14 @@
       "message": "Added node 'PU1__HE1' (I2).",
       "range": {
         "start": {
-          "line": 20,
-          "character": 0
+          "line": 27,
+          "character": 2
         },
         "end": {
-          "line": 20,
-          "character": 9
+          "line": 27,
+          "character": 11
         },
-        "offset": 734,
+        "offset": 800,
         "length": 9
       },
       "component": "PU1__HE1",
@@ -2938,17 +2942,37 @@
       "message": "Added node 'HE1__3WV' (I2).",
       "range": {
         "start": {
-          "line": 21,
-          "character": 0
+          "line": 28,
+          "character": 2
         },
         "end": {
-          "line": 21,
-          "character": 9
+          "line": 28,
+          "character": 11
         },
-        "offset": 744,
+        "offset": 812,
         "length": 9
       },
       "component": "HE1__3WV",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1815",
+      "severity": "info",
+      "message": "'3WV' is wired as a diverting valve: ab from HE1, a to N3, b to N2.",
+      "range": {
+        "start": {
+          "line": 28,
+          "character": 8
+        },
+        "end": {
+          "line": 28,
+          "character": 11
+        },
+        "offset": 818,
+        "length": 3
+      },
+      "component": null,
       "suggestion": null,
       "related": []
     },
@@ -2958,15 +2982,15 @@
       "message": "Added pipe '3WV__N3' (I7).",
       "range": {
         "start": {
-          "line": 23,
-          "character": 0
+          "line": 30,
+          "character": 2
         },
         "end": {
-          "line": 23,
-          "character": 26
+          "line": 30,
+          "character": 23
         },
-        "offset": 834,
-        "length": 26
+        "offset": 887,
+        "length": 21
       },
       "component": "3WV__N3",
       "suggestion": null,
@@ -2978,15 +3002,15 @@
       "message": "Added node '3WV__N3__in' (I2).",
       "range": {
         "start": {
-          "line": 23,
-          "character": 0
+          "line": 30,
+          "character": 2
         },
         "end": {
-          "line": 23,
-          "character": 26
+          "line": 30,
+          "character": 23
         },
-        "offset": 834,
-        "length": 26
+        "offset": 887,
+        "length": 21
       },
       "component": "3WV__N3__in",
       "suggestion": null,

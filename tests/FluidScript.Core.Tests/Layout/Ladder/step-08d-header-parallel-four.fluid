@@ -3,70 +3,74 @@
 # supply at 50/30; HS1 states their sum. The supply header runs N3 -> N6 and the return N10 -> N7,
 # so branch k hangs between the k-th supply tap and the k-th return tap, in script order.
 
-fluidscript 1
-project static plant_01
+fluidscript 2
 
-circuit heating 100
-fluid water
+project "plant_01":
+circuit "heating":
+  fluid = water
+  number = 100
+  role = heating
 
-HS1     heat_exchanger power=84 kW out.t=60
+  HS1  heat_exchanger  power = 84 kW  out.t = 60
 
-connections
-N1 - HS1 - N3
-N3 - N4
-N4 - N5
-N5 - N6
-N10 - N9
-N9 - N8
-N8 - N7
-N7 - N1
+  N1 - HS1 - N3
+  N3 - N4
+  N4 - N5
+  N5 - N6
+  N10 - N9
+  N9 - N8
+  N8 - N7
+  N7 - N1
 
-N1 node p=250
+  N1  node  p = 250
 
-circuit radiators 102
+circuit "radiators":
+  number = 102
+  role = radiator
 
-HE_RAD  load in.t=50 out.t=30 power=30 kW
-TV_RAD  three_way_valve
-PU_RAD  pump
+  HE_RAD  load  in.t = 50  out.t = 30  power = 30 kW
+  TV_RAD  three_way_valve
+  PU_RAD  pump
 
-connections
-N3 - TV_RAD.a length=18 dn=25
-NM_RAD - TV_RAD.b
-TV_RAD.ab - PU_RAD - HE_RAD - NM_RAD
-NM_RAD - N7 length=18 dn=25
+  N3 - TV_RAD   18 m  DN25
+  NM_RAD - TV_RAD
+  TV_RAD - PU_RAD - HE_RAD - NM_RAD
+  NM_RAD - N7   18 m  DN25
 
-circuit AHU 101
+circuit "AHU":
+  number = 101
+  role = ahu
 
-HE_AHU  load in.t=50 out.t=30 power=24 kW
-TV_AHU  three_way_valve
-PU_AHU  pump
+  HE_AHU  load  in.t = 50  out.t = 30  power = 24 kW
+  TV_AHU  three_way_valve
+  PU_AHU  pump
 
-connections
-N4 - TV_AHU.a length=12 dn=25
-NM_AHU - TV_AHU.b
-TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU
-NM_AHU - N8 length=12 dn=25
+  N4 - TV_AHU   12 m  DN25
+  NM_AHU - TV_AHU
+  TV_AHU - PU_AHU - HE_AHU - NM_AHU
+  NM_AHU - N8   12 m  DN25
 
-circuit floor 103
+circuit "floor":
+  number = 103
 
-HE_FLR  load in.t=50 out.t=30 power=18 kW
-TV_FLR  three_way_valve
-PU_FLR  pump
+  HE_FLR  load  in.t = 50  out.t = 30  power = 18 kW
+  TV_FLR  three_way_valve
+  PU_FLR  pump
 
-connections
-N5 - TV_FLR.a length=15 dn=25
-NM_FLR - TV_FLR.b
-TV_FLR.ab - PU_FLR - HE_FLR - NM_FLR
-NM_FLR - N9 length=15 dn=25
+  N5 - TV_FLR   15 m  DN25
+  NM_FLR - TV_FLR
+  TV_FLR - PU_FLR - HE_FLR - NM_FLR
+  NM_FLR - N9   15 m  DN25
 
-circuit dhw 104
+circuit "dhw":
+  number = 104
+  role = hot_water
 
-HE_DHW  load in.t=50 out.t=30 power=12 kW
-TV_DHW  three_way_valve
-PU_DHW  pump
+  HE_DHW  load  in.t = 50  out.t = 30  power = 12 kW
+  TV_DHW  three_way_valve
+  PU_DHW  pump
 
-connections
-N6 - TV_DHW.a length=10 dn=25
-NM_DHW - TV_DHW.b
-TV_DHW.ab - PU_DHW - HE_DHW - NM_DHW
-NM_DHW - N10 length=10 dn=25
+  N6 - TV_DHW   10 m  DN25
+  NM_DHW - TV_DHW
+  TV_DHW - PU_DHW - HE_DHW - NM_DHW
+  NM_DHW - N10   10 m  DN25

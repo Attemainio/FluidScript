@@ -159,7 +159,7 @@ public sealed class ScriptCompatibilityTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void EverySavedSampleStatesMajorOne()
+    public void EverySavedSampleStatesMajorTwo()
     {
         // `18`'s first acceptance criterion. A sample that drifted into being a draft would be a file
         // the application refuses to save, shipped in the repository as an example.
@@ -167,8 +167,11 @@ public sealed class ScriptCompatibilityTests
         {
             var result = Inspect(sample.Text);
 
-            Assert.Equal(new LanguageMajor(1), result.DetectedMajor);
-            Assert.Equal(CompatibilityDisposition.Current, result.Disposition);
+            Assert.Equal(new LanguageMajor(2), result.DetectedMajor);
+
+            // Saved under its own semantics while language 1 is still current (`D-164`); current once `P6.11`
+            // package 7 makes it so.
+            Assert.Equal(CompatibilityDisposition.SupportedNewer, result.Disposition);
         }
     }
 

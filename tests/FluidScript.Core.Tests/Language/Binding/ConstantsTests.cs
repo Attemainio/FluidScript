@@ -16,7 +16,7 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class ConstantsTests
 {
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText("fluidscript 1\n" + text)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 1\n" + text)), "script");
 
     private static Quantity Let(string text, string name)
     {

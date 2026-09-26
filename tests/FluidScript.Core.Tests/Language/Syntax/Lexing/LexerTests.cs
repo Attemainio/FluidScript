@@ -341,13 +341,12 @@ public sealed class LexerTests
     {
         // The tour exists to exercise every production; this is the assertion that notices when it
         // stops doing so, which is otherwise invisible until something downstream is untested.
-        var tour = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("m1-syntax-tour.fluid", StringComparison.Ordinal));
-        var kinds = Lexer.Lex(new SourceText(tour.Text)).Tokens.Select(static token => token.Kind).ToHashSet();
+        var tour = ScriptCorpus.Samples().Single(static s => s.Name.EndsWith("v2-syntax-tour.fluid", StringComparison.Ordinal));
+        var kinds = Lexer.Lex(new SourceText(tour.Text), LexerOptions.Language2).Tokens.Select(static token => token.Kind).ToHashSet();
 
-        // A date is language 2's alone (`LexerOptions.LexesDates`), and the tour is language 1's;
-        // `Language2LexerTests` covers it.
+        // Language 2 reserves no word in the lexer (`LexerOptions.ReservesWords`), so it never produces a keyword.
         var missing = Enum.GetValues<TokenKind>()
-            .Where(kind => kind is not (TokenKind.Unknown or TokenKind.DateLiteral) && !kinds.Contains(kind))
+            .Where(kind => kind is not (TokenKind.Unknown or TokenKind.Keyword) && !kinds.Contains(kind))
             .ToArray();
 
         Assert.True(missing.Length == 0, $"The tour never produces: {string.Join(", ", missing)}");

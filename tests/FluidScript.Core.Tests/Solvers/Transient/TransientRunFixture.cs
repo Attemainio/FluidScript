@@ -131,7 +131,7 @@ internal static class TransientRunFixture
     {
         var source = await File.ReadAllTextAsync(Path.Combine(RepositoryLayout.Samples, sample), cancellationToken);
 
-        return await RunAsync(Path.GetFileNameWithoutExtension(sample), source, settings, cancellationToken);
+        return await RunAsync(Path.GetFileNameWithoutExtension(sample), GraphFixture.BindRun(source), settings, cancellationToken);
     }
 
     private static string Report(string name, Run run, TimeSpan elapsed)

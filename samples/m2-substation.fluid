@@ -10,29 +10,31 @@
 #
 # `dn` is stated on every pipe because the catalogue that would supply it lands in P3.5.
 
-fluidscript 1
-circuit substation
-fluid water
-show temperature
+fluidscript 2
 
-# --- district-heating primary, 85/45 -------------------------------
-NPS inlet t=85 p=600
-NPR outlet p=350
-PCV valve
+project:
+  show = temperature
 
-# --- heating secondary, 40/60 --------------------------------------
-SP   pump
-LOAD heat_exchanger power=-150 dt=20
+circuit "substation":
+  fluid = water
 
-# --- the exchanger between them ------------------------------------
-HX1 heat_exchanger power=150 in.t=40 out.t=60 in[2].t=85 out[2].t=45 u=3300
+  # --- district-heating primary, 85/45 -------------------------------
+  NPS  inlet  t = 85  p = 600
+  NPR  outlet  p = 350
+  PCV  valve
 
-connections
-NPS - PCV
-PCV - HX1.in[2] length=12 dn=25
-HX1.out[2] - NPR
+  # --- heating secondary, 40/60 --------------------------------------
+  SP  pump
+  LOAD  heat_exchanger  power = -150  dt = 20
 
-HX1.out - NSUP length=30 dn=32
-NSUP - LOAD - NRET
-NRET - SP length=30 dn=32
-SP - HX1.in
+  # --- the exchanger between them ------------------------------------
+  HX1  heat_exchanger  power = 150  primary.in.t = 40  primary.out.t = 60  secondary.in.t = 85  secondary.out.t = 45  u = 3300
+
+  NPS - PCV
+  PCV - HX1.secondary.in   12 m  DN25
+  HX1.secondary.out - NPR
+
+  HX1.primary.out - NSUP   30 m  DN32
+  NSUP - LOAD - NRET
+  NRET - SP   30 m  DN32
+  SP - HX1.primary.in

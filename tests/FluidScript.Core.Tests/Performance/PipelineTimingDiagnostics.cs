@@ -107,8 +107,8 @@ public sealed class PipelineTimingDiagnostics
         var name = Path.GetFileName(path);
         var source = File.ReadAllText(path);
         var text = new SourceText(source);
-        var parse = Time(() => FluidScriptParser.Parse(text), StageRuns);
-        var syntax = FluidScriptParser.Parse(text);
+        var parse = Time(() => ScriptParse.Parse(text), StageRuns);
+        var syntax = ScriptParse.Parse(text);
         var bind = Time(() => new Binder(ComponentRegistry.Default).Bind(syntax, name), StageRuns);
         var model = new Binder(ComponentRegistry.Default).Bind(syntax, name).Model;
         var loop = Loop(catalog);

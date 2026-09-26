@@ -71,7 +71,7 @@ public sealed class OwnershipTests
     }
 
     private static BindResult Bind(string source) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(source)), "script");
 
     private static SemanticModel Model(string source)
     {

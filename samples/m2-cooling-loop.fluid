@@ -5,23 +5,30 @@
 # pick the designation, which is sizing. Remove it when P3.7 lands: 01's block is the canonical form
 # and does not carry it.
 
-fluidscript 1
-circuit coolingLoop
-fluid water
-style blue 2px fillet --
-show temperature
+fluidscript 2
 
-HE1 heat_exchanger power=30 in.t=20 out.t=50
-3WV three_way_valve
-PU1 pump
+project:
+  show = temperature
 
-connections
-N1 - N2                      # primary supply into the mixing node
-N2 - PU1                     # the secondary pump drives the loop
-PU1 - HE1
-HE1 - 3WV
-3WV.b - N2                   # recirculation branch — closes the secondary loop
-3WV.a - N3 length=25 dn=25                    # primary return
+circuit "coolingLoop":
+  fluid = water
+  role = cooling
+  style:
+    colour = blue
+    width = 2
+    corner = fillet
+    line = dashed
 
-N1 inlet t=6 p=300          # primary-side boundary: fluid enters here (D-64)
-N3 outlet p=280              # and leaves here
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  3WV  three_way_valve
+  PU1  pump
+
+  N1 - N2  # primary supply into the mixing node
+  N2 - PU1  # the secondary pump drives the loop
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2  # recirculation branch — closes the secondary loop
+  3WV - N3   25 m  DN25  # primary return
+
+  N1  inlet  t = 6  p = 300  # primary-side boundary: fluid enters here (D-64)
+  N3  outlet  p = 280  # and leaves here

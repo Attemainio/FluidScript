@@ -60,7 +60,7 @@ public sealed class SurvivingProvisionalTests
         // An authority outside (0, 1) is the cheapest way to make the rule decline on a circuit that is
         // otherwise fine: `a / (1 - a)` is negative above 1, so there is no honest Kv to return.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
-            .Replace("3WV three_way_valve", "3WV three_way_valve authority=1.5", StringComparison.Ordinal);
+            .Edited("3WV  three_way_valve", "3WV  three_way_valve  authority = 1.5");
 
         var run = await Loop().RunAsync(
             GraphFixture.Bind(source), Water.Instance, "cooling", TestContext.Current.CancellationToken);

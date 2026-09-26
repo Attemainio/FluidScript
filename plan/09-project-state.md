@@ -1867,9 +1867,25 @@ that governed each size. What P6.8 still owes, and what comes after:
     package 6.** An audit of what the package found filed four rows noted in passing and not logged at the time:
     `L-72` (a scale with a unit is dropped), `L-73` (a fluid's argument is dropped), `L-74` (`sized_at` not seen
     through a second `let`, with a misleading `FS1549`), `L-75` (the reader keeps language 1's value spellings,
-    against `D-177` rule 1 -- package 7's to settle). Next: package 7 deletes language 1 (its parser, the converter, `ScheduleRoleRegistry`, the second
-    templates) and the sweep follows (language 1 defects closed, language 1 grammar tests deleted, physics tests
-    converted).
+    against `D-177` rule 1 -- package 7's to settle).
+  - **`P6.11` package 7, step 1 (2026-09-26): the file corpus is language 2.** Every sample and every layout script
+    (`Layout/{Ladder,Variants,Stress}`) is its frozen language 2 text; language 1's tour is deleted and
+    `v2-syntax-tour` takes its place (the latency bench, the token goldens, `LexerTests`' every-token check, which
+    gained a call and a division in the tour). Tests read a script by its version (`ScriptParse`), and a test that
+    edits a sample's text now fails when the text is not there (`ScriptEdits.Edited`): 38 edits in 12 test files still named
+    language 1 text and changed nothing, and one in `LayoutPredicateTests` (`TV_C - P_C`) had never matched anything. What moved, and why, each measured:
+    the transient tests play the file's run through `RunProjection` (`GraphFixture.BindRun`), with their language 1
+    numbers unchanged; the counting sweep reads the syntax reference at -1 where it was 1, because its mode is now its
+    run's and the steady count drops two energy balances for enthalpy levels (`D-90`), and the tour square; a
+    `mixing_valve` wired to divert is refused at bind (`FS1805`) instead of named by the solve (`C-137`); the valve
+    letter test asserts `D-175`'s plant labelling in place of language 1's positional letters; the open-form
+    decomposition is an inline language 2 script (the old tour's circuits, attachment written as connections). The
+    Api contract goldens moved by spans and hash, plus `FS1815` (the valves' labelling), minus `FS1519` (a circuit's
+    name is no longer its role), an untitled `project:` named `project`, and the storage header's circuit `steady`
+    (`C-138`); every solved value, placement and route is byte for byte. Filed `C-136` (the tour's layout: three
+    hard breaches, so it is out of the layout lists), `C-137`, `C-138`. Core 2848/0/2, Api 79/0. Next: step 1's
+    documentation blocks, then step 2 (inline test scripts converted, language 1 grammar tests deleted), step 3
+    (language 2 current), step 4 (language 1 deleted), and the sweep.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

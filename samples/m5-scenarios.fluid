@@ -12,17 +12,18 @@
 # So every flow-driven size is governed by summer, the smaller duty, and a plant sized from the
 # duty's winner alone is a pipe size short. The sizing report names the governing case per size.
 
-fluidscript 1
-scenarios winter summer
-design winter
+fluidscript 2
 
-circuit distribution
-fluid water
+project:
+  cases = [winter, summer]
 
-HE1  heat_exchanger power=[50, -40] in.t=[35, 12] out.t=[45, 7]   # source: boiler, then chiller
-LOAD heat_exchanger power=[-50, 40] dp=0                          # the building, either way round
-PU1  pump
-P1   pipe length=20
+circuit "distribution":
+  fluid = water
+  role = distribution
 
-connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1
+  HE1  heat_exchanger  power = [50, -40]  in.t = [35, 12]  out.t = [45, 7]  # source: boiler, then chiller
+  LOAD  heat_exchanger  power = [-50, 40]  dp = 0  # the building, either way round
+  PU1  pump
+  P1  pipe  length = 20
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - P1 - N1

@@ -29,7 +29,7 @@ public sealed class SizingPointTests
         """;
 
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText(text)));
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(text)));
 
     private static SemanticModel Model(string text)
     {

@@ -20,13 +20,27 @@ public static class GraphFixture
     public static SemanticModel Bind(string source)
     {
         var result = new Binder(ComponentRegistry.Default)
-            .Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
+            .Bind(ScriptParse.Parse(new SourceText(source)), "script");
 
         Assert.True(
             result.Diagnostics.All(static d => d.Severity != Core.Diagnostics.DiagnosticSeverity.Error),
             string.Join("; ", result.Diagnostics.Select(static d => $"{d.Code} {d.Message}")));
 
         return result.Model;
+    }
+
+    /// <summary>Binds a script and projects it onto its run, as a run is played in time (<c>D-169</c>).</summary>
+    /// <param name="source">The script.</param>
+    /// <returns>The model its one run describes, or the bound model when the script has no run.</returns>
+    /// <remarks>
+    /// A language 2 file keeps its mode on a run, so the bound model alone is the steady design; the run makes its
+    /// circuits dynamic and carries its schedule (<see cref="RunProjection"/>).
+    /// </remarks>
+    public static SemanticModel BindRun(string source)
+    {
+        var model = Bind(source);
+
+        return model.Runs.IsEmpty ? model : RunProjection.Project(model, Assert.Single(model.Runs));
     }
 
     /// <summary>The shipped catalogue's bores, resolved the way a solve resolves them.</summary>

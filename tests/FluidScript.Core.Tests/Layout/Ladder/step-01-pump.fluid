@@ -1,8 +1,9 @@
 # fragment: not a circuit, so the ladder's solve gate skips it; only its picture is judged.
 # Layout ladder, step 1 (plan/20-core-domain/29-layout-ladder.md): one component, nothing connected.
 
-fluidscript 1
-circuit ladder
-fluid water
+fluidscript 2
 
-PU1 pump
+circuit "ladder":
+  fluid = water
+
+  PU1  pump

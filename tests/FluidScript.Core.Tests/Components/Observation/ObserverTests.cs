@@ -32,7 +32,7 @@ public sealed class ObserverTests
     private static SemanticModel Model(string source)
     {
         var result = new Binder(ComponentRegistry.Default)
-            .Bind(FluidScriptParser.Parse(new SourceText(source)), "observers");
+            .Bind(ScriptParse.Parse(new SourceText(source)), "observers");
 
         Assert.DoesNotContain(result.Diagnostics, static d => d.Severity == DiagnosticSeverity.Error);
 
@@ -177,7 +177,7 @@ public sealed class ObserverTests
         // FS1533 already warned at bind time. A model under editing is malformed most of the time, so
         // a second complaint here would be noise -- and throwing would break the pipeline rule.
         var result = new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText("""
+            ScriptParse.Parse(new SourceText("""
                 fluidscript 1
                 circuit heating
                 TE1 t_sensor

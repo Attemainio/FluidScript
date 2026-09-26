@@ -131,26 +131,21 @@ public sealed class ValveLegsTests
     }
 
     [Fact]
-    public void AnInferredPortLetterIsNotBelieved()
+    public void AnUnwrittenPortIsLabelledFromThePlant()
     {
-        // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`. Lowering
-        // resolves an unqualified endpoint to a real port and records its name like any other, so every
-        // leg carries a letter whether or not anyone wrote one. On `m2-cooling-loop` with its ports taken
-        // out (the sample states them since `D-175`), wired `HE1 - 3WV` / `3WV - N2` / `3WV - N3`,
-        // positional binding hands out `ab`, `a`, `b` in connection order -- putting `a` on the *recirculation* leg and `b` on the control leg, exactly
-        // backwards. Believing that letter sizes the valve against a branch with almost no resistance
-        // behind it, which asks for a large Kv and yields no authority over the path it controls;
-        // measured, it also stopped the sample converging at all.
-        var (graph, legs, valve) = Legs("m2-cooling-loop.fluid", unstated: true);
-
-        Assert.Empty(graph.StatedPorts);
+        // The reason `D-88` needed a new signal rather than just reading `BranchEnd.PortName`. Language 1 handed an
+        // unwritten valve its letters in connection order: on `m2-cooling-loop`, wired `HE1 - 3WV` / `3WV - N2` /
+        // `3WV - N3`, that put `a` on the *recirculation* leg and `b` on the control leg, exactly backwards. Believing
+        // that letter sized the valve against a branch with almost no resistance behind it, which asks for a large Kv
+        // and yields no authority over the path it controls; measured, it also stopped the sample converging at all.
+        // Language 2 labels an unwritten three-way valve from the plant (`D-175`), so the leg the equations open with
+        // `position` and the leg the walk finds variable are one leg: `a`, the primary return.
+        var (graph, legs, valve) = Legs("m2-cooling-loop.fluid");
 
         var common = ValveLegs.Common(legs, new double[legs.Length], valve);
         var variable = ValveLegs.Variable(graph, legs, common, valve);
 
-        // The walk's answer, and the opposite of what the inferred letter would have said.
-        Assert.Equal("b", ValveLegs.PortName(legs[variable], valve));
-        Assert.False(ValveLegs.Stated(graph, legs[variable], valve));
+        Assert.Equal("a", ValveLegs.PortName(legs[variable], valve));
     }
 
     [Fact]
@@ -219,14 +214,9 @@ public sealed class ValveLegsTests
     }
 
     private static (CircuitGraph Graph, Branch[] Legs, IFlowComponent Valve) Legs(
-        string sample, string? name = null, bool unstated = false)
+        string sample, string? name = null)
     {
         var text = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, sample));
-        if (unstated)
-        {
-            text = text.Replace("3WV.a ", "3WV ", StringComparison.Ordinal).Replace("3WV.b ", "3WV ", StringComparison.Ordinal);
-        }
-
         var graph = GraphFixture.Lower(text).Graph;
         var valve = graph.Components.OfType<ThreeWayValveComponent>().Single(
             v => v.BypassConnected

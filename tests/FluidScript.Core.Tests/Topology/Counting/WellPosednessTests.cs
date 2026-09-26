@@ -376,7 +376,7 @@ public sealed class WellPosednessTests
         // carried one -- and the fix a user needs is a word, not a removal.
         var script = FluidScript.Fixtures.ScriptCorpus.Samples()
             .Single(static s => s.Name.EndsWith("m2-cooling-loop.fluid", StringComparison.Ordinal)).Text
-            .Replace("N3 outlet p=280", "N3 node p=280", StringComparison.Ordinal);
+            .Edited("N3  outlet  p = 280", "N3  node  p = 280");
         var result = Check(script);
 
         Assert.Equal(1, result.Counting.Excess);
@@ -944,9 +944,9 @@ public sealed class WellPosednessTests
     public void EverySampleIsCountedAndTheOnesThatDoNotBalanceAreTheKnownOnes()
     {
         // 23 asks that the counting check pass for every sample, and every M2 and M4 one now does. The
-        // two that do not are the syntax files, which are not plant: one is deliberately unsolvable and
-        // says so in its own header, and the other is a tour of productions. Recording the whole sweep
-        // rather than the exceptions is what makes a third one visible the day it appears.
+        // one that does not is the syntax reference, which is deliberately unsolvable and says so in its
+        // own header. Recording the whole sweep rather than the exceptions is what makes a second one
+        // visible the day it appears.
         var outcomes = FluidScript.Fixtures.ScriptCorpus.Samples()
             .ToDictionary(
                 static sample => Path.GetFileName(sample.Name),
@@ -957,23 +957,15 @@ public sealed class WellPosednessTests
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 // Not a solvable circuit by design, and its own header says so: PU1 appears in no
-                // connection, so nothing is left to absorb `HE1 out.t=50`.
-                ["m1-syntax-reference.fluid"] = "1",
+                // connection, so nothing is left to absorb `HE1 out.t=50`. That made it 1 while its
+                // `fluid dynamic` made the graph transient; language 2 keeps the mode on a run (`D-169`), so
+                // the sweep counts the steady design graph, where `D-90` drops two energy balances for the
+                // enthalpy levels the transient count kept: 1 - 2.
+                ["m1-syntax-reference.fluid"] = "-1",
 
-                // PB1 used to read "unresolved": a pipe with no `dn` had no bore and so was not built,
-                // and dropping it took its connections with it (C-24). P3.7b's outer loop chooses the
-                // diameter, so the graph is complete for the first time and what is left is the tour
-                // being a tour -- productions' worth of components that no circuit closes. Three since
-                // D-115 wired its expressions circuit through junctions.
-                // 4 since D-133: `TV2` mixes `SB1` with water tapped *from* `NJ1`, so its stream is `RB1` and
-                // it never held `HE2`'s inlet; the promotion that made it 3 was the reach S-45 was filed for.
-                // 5 since D-141: the tour's `control ... measure=NJ2.t ... setpoint=20` is a constraint on
-                // NJ2's temperature now, and its actuator TV3.position is already HE3.in.t's, so nothing
-                // is left to hold it -- the tour states both, which a plant would not.
-                // 4 again since D-150: NJ2 is a junction and no longer readable, so the tour measures NS3,
-                // the coil's supply, whose neighbour HE3 already states in.t=50; the setpoint is not
-                // applied twice, and nothing over-holds TV3.
-                ["m1-syntax-tour.fluid"] = "4",
+                // Language 1's tour was a tour of productions and never balanced (4 at the end). The language 2
+                // tour is also a plant, and its header says it binds with nothing to report: square.
+                ["v2-syntax-tour.fluid"] = "0",
 
                 ["m2-cooling-loop.fluid"] = "0",
                 ["m2-simple-loop.fluid"] = "0",
@@ -1002,7 +994,7 @@ public sealed class WellPosednessTests
     private static string Excess(string source)
     {
         var bound = new FluidScript.Core.Language.Binding.Binder(FluidScript.Core.Language.Registry.ComponentRegistry.Default)
-            .Bind(FluidScript.Core.Language.Syntax.Parsing.FluidScriptParser.Parse(new FluidScript.Core.Language.Syntax.Text.SourceText(source)), "sample");
+            .Bind(ScriptParse.Parse(new FluidScript.Core.Language.Syntax.Text.SourceText(source)), "sample");
 
         if (bound.Diagnostics.Any(static d => d.Severity == DiagnosticSeverity.Error))
         {
@@ -1034,7 +1026,7 @@ public sealed class WellPosednessTests
 
         Assert.DoesNotContain("FS2218", Codes(Check(sample)));
 
-        var stated = sample.Replace("PU_AHU  pump", "PU_AHU  pump head=6", StringComparison.Ordinal);
+        var stated = sample.Edited("PU_AHU  pump", "PU_AHU  pump  head = 6");
         var result = Check(stated);
         var reach = Assert.Single(result.Diagnostics, static d => d.Code == "FS2218");
 

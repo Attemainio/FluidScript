@@ -16,7 +16,7 @@ namespace FluidScript.Core.Tests.Language.Binding;
 public sealed class DeltaPressureTests
 {
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText("fluidscript 1\n" + text)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText("fluidscript 1\n" + text)), "script");
 
     [Fact]
     public void AReadingMinusADifferenceIsAReading()

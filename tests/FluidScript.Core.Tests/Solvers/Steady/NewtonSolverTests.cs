@@ -151,7 +151,7 @@ public sealed class NewtonSolverTests
         // nothing having no need of a pump. What is asserted is therefore that a bound the solver hits is
         // reported once and by name -- not which of the two gives out first.
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
-            .Replace("3WV three_way_valve", "3WV three_way_valve kv=630", StringComparison.Ordinal);
+            .Edited("3WV  three_way_valve", "3WV  three_way_valve  kv = 630");
 
         var system = Assemble(source, out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);
@@ -174,14 +174,14 @@ public sealed class NewtonSolverTests
     [Fact]
     public async Task AStepThatWouldCarryAParameterPastItsBoundIsHeldShortOfIt()
     {
-        // `S-89`. The cooling loop at 23 kW with its valve's bootstrap Kv stated, `a` on the primary return. The first
+        // `S-89`. The cooling loop at 23 kW with its valve's bootstrap Kv stated, its legs labelled from the plant
+        // (`D-175`). The first
         // Newton step took the pump's head from 2.2 m past zero; projected onto zero, and the valve then onto its stop,
         // the iterate sat in a corner where every step asked both to go further out, until the cap. Held at nine
         // tenths of the way, the next step is taken from inside: head 0.96 m, position 0.24 (the old labelling's 0.76).
         var source = File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
-            .Replace("power=30", "power=23", StringComparison.Ordinal)
-            .Replace("3WV three_way_valve", "3WV three_way_valve kv=4", StringComparison.Ordinal);
-        Assert.Contains("3WV.a - N3", source, StringComparison.Ordinal);
+            .Edited("power = 30", "power = 23")
+            .Edited("3WV  three_way_valve", "3WV  three_way_valve  kv = 4");
 
         var system = Assemble(source, out var seed);
         var result = await new NewtonSolver().SolveAsync(system, seed, null, TestContext.Current.CancellationToken);

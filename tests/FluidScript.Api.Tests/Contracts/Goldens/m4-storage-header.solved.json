@@ -1,8 +1,8 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:750b39f4e6bb6e6d282b96a89581b0bab383827c4e2b2fad67f11d69be5a8cda",
-    "languageMajor": 1,
+    "sourceHash": "sha256:8acb7bb092fba371bbf0e66f7c7116c472bca40107b1495571531f08516d0410",
+    "languageMajor": 2,
     "catalog": {
       "id": "steel_en10255",
       "version": "2026.1"
@@ -12,6 +12,10 @@
       "version": "1.0.0.0"
     },
     "atmosphereKPaAbsolute": 101.325
+  },
+  "project": {
+    "name": "project",
+    "defaultMode": null
   },
   "style": {
     "tokens": [],
@@ -31,7 +35,7 @@
       "number": 100,
       "numberIsExplicit": false,
       "substance": "water",
-      "mode": "transient",
+      "mode": "steady",
       "role": null,
       "parentCircuit": null,
       "inletAnchorId": null,
@@ -50,8 +54,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 772,
-        "length": 23
+        "start": 788,
+        "length": 30
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -91,8 +95,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 796,
-        "length": 23
+        "start": 821,
+        "length": 30
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -132,8 +136,8 @@
       "symbolId": "tank.stratified",
       "origin": "declared",
       "sourceSpan": {
-        "start": 820,
-        "length": 157
+        "start": 854,
+        "length": 191
       },
       "circuit": "storageHeader",
       "tag": "100S01",
@@ -247,8 +251,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 978,
-        "length": 28
+        "start": 1048,
+        "length": 32
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -283,8 +287,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1007,
-        "length": 28
+        "start": 1083,
+        "length": 32
       },
       "circuit": "storageHeader",
       "tag": null,
@@ -1714,28 +1718,7 @@
     }
   },
   "bindings": [],
-  "diagnostics": [
-    {
-      "code": "FS1519",
-      "severity": "info",
-      "message": "'storageHeader' is not a known circuit role, so it is placed neutrally. Known roles: ahu, cooling, district, distribution, ground_loop, heat_pump, heating, hot_water, radiator, solar, storage, underfloor.",
-      "range": {
-        "start": {
-          "line": 12,
-          "character": 0
-        },
-        "end": {
-          "line": 12,
-          "character": 21
-        },
-        "offset": 712,
-        "length": 21
-      },
-      "component": null,
-      "suggestion": null,
-      "related": []
-    }
-  ],
+  "diagnostics": [],
   "solve": {
     "converged": true,
     "iterations": 1,

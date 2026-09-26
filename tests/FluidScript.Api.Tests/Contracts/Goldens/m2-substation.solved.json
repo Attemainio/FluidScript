@@ -1,8 +1,8 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:e578cc6e3431b9166abd1e3f201317ca5b097123d8b76aad24621c1f94df68c5",
-    "languageMajor": 1,
+    "sourceHash": "sha256:d9d13e0ac51a2ff324694fe2220c4b35a04fdb466b3ff8395ab4bf05aa05a55f",
+    "languageMajor": 2,
     "catalog": {
       "id": "steel_en10255",
       "version": "2026.1"
@@ -12,6 +12,10 @@
       "version": "1.0.0.0"
     },
     "atmosphereKPaAbsolute": 101.325
+  },
+  "project": {
+    "name": "project",
+    "defaultMode": null
   },
   "style": {
     "tokens": [],
@@ -51,8 +55,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 897,
-        "length": 20
+        "start": 923,
+        "length": 27
       },
       "circuit": "substation",
       "tag": null,
@@ -92,8 +96,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 918,
-        "length": 16
+        "start": 953,
+        "length": 20
       },
       "circuit": "substation",
       "tag": null,
@@ -128,8 +132,8 @@
       "symbolId": "valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 935,
-        "length": 9
+        "start": 976,
+        "length": 10
       },
       "circuit": "substation",
       "tag": "100V01",
@@ -198,8 +202,8 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1016,
-        "length": 9
+        "start": 1062,
+        "length": 8
       },
       "circuit": "substation",
       "tag": "100PU01",
@@ -285,8 +289,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1026,
-        "length": 36
+        "start": 1073,
+        "length": 43
       },
       "circuit": "substation",
       "tag": "100HE01",
@@ -392,8 +396,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 1134,
-        "length": 75
+        "start": 1192,
+        "length": 124
       },
       "circuit": "substation",
       "tag": "100HE02",
@@ -554,8 +558,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1233,
-        "length": 31
+        "start": 1332,
+        "length": 35
       },
       "circuit": "substation",
       "tag": null,
@@ -636,8 +640,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1283,
-        "length": 30
+        "start": 1397,
+        "length": 35
       },
       "circuit": "substation",
       "tag": null,
@@ -718,8 +722,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 1333,
-        "length": 25
+        "start": 1456,
+        "length": 22
       },
       "circuit": "substation",
       "tag": null,
@@ -3898,40 +3902,20 @@
   "bindings": [],
   "diagnostics": [
     {
-      "code": "FS1519",
-      "severity": "info",
-      "message": "'substation' is not a known circuit role, so it is placed neutrally. Known roles: ahu, cooling, district, distribution, ground_loop, heat_pump, heating, hot_water, radiator, solar, storage, underfloor.",
-      "range": {
-        "start": {
-          "line": 13,
-          "character": 0
-        },
-        "end": {
-          "line": 13,
-          "character": 18
-        },
-        "offset": 778,
-        "length": 18
-      },
-      "component": null,
-      "suggestion": null,
-      "related": []
-    },
-    {
       "code": "FS1510",
       "severity": "info",
       "message": "Added pipe 'PCV__HX1' (I7).",
       "range": {
         "start": {
-          "line": 31,
-          "character": 0
+          "line": 33,
+          "character": 2
         },
         "end": {
-          "line": 31,
-          "character": 31
+          "line": 33,
+          "character": 37
         },
-        "offset": 1233,
-        "length": 31
+        "offset": 1332,
+        "length": 35
       },
       "component": "PCV__HX1",
       "suggestion": null,
@@ -3943,15 +3927,15 @@
       "message": "Added node 'PCV__HX1__in' (I2).",
       "range": {
         "start": {
-          "line": 31,
-          "character": 0
+          "line": 33,
+          "character": 2
         },
         "end": {
-          "line": 31,
-          "character": 31
+          "line": 33,
+          "character": 37
         },
-        "offset": 1233,
-        "length": 31
+        "offset": 1332,
+        "length": 35
       },
       "component": "PCV__HX1__in",
       "suggestion": null,
@@ -3963,15 +3947,15 @@
       "message": "Added node 'PCV__HX1__out' (I2).",
       "range": {
         "start": {
-          "line": 31,
-          "character": 0
+          "line": 33,
+          "character": 2
         },
         "end": {
-          "line": 31,
-          "character": 31
+          "line": 33,
+          "character": 37
         },
-        "offset": 1233,
-        "length": 31
+        "offset": 1332,
+        "length": 35
       },
       "component": "PCV__HX1__out",
       "suggestion": null,
@@ -3983,15 +3967,15 @@
       "message": "Added pipe 'HX1__NSUP' (I7).",
       "range": {
         "start": {
-          "line": 34,
-          "character": 0
+          "line": 36,
+          "character": 2
         },
         "end": {
-          "line": 34,
-          "character": 30
+          "line": 36,
+          "character": 37
         },
-        "offset": 1283,
-        "length": 30
+        "offset": 1397,
+        "length": 35
       },
       "component": "HX1__NSUP",
       "suggestion": null,
@@ -4003,15 +3987,15 @@
       "message": "Added node 'HX1__NSUP__in' (I2).",
       "range": {
         "start": {
-          "line": 34,
-          "character": 0
+          "line": 36,
+          "character": 2
         },
         "end": {
-          "line": 34,
-          "character": 30
+          "line": 36,
+          "character": 37
         },
-        "offset": 1283,
-        "length": 30
+        "offset": 1397,
+        "length": 35
       },
       "component": "HX1__NSUP__in",
       "suggestion": null,
@@ -4023,14 +4007,14 @@
       "message": "Added node 'NSUP' (I1).",
       "range": {
         "start": {
-          "line": 34,
-          "character": 10
+          "line": 36,
+          "character": 20
         },
         "end": {
-          "line": 34,
-          "character": 14
+          "line": 36,
+          "character": 24
         },
-        "offset": 1293,
+        "offset": 1415,
         "length": 4
       },
       "component": "NSUP",
@@ -4043,14 +4027,14 @@
       "message": "Added node 'NRET' (I1).",
       "range": {
         "start": {
-          "line": 35,
-          "character": 14
+          "line": 37,
+          "character": 16
         },
         "end": {
-          "line": 35,
-          "character": 18
+          "line": 37,
+          "character": 20
         },
-        "offset": 1328,
+        "offset": 1449,
         "length": 4
       },
       "component": "NRET",
@@ -4063,15 +4047,15 @@
       "message": "Added pipe 'NRET__SP' (I7).",
       "range": {
         "start": {
-          "line": 36,
-          "character": 0
+          "line": 38,
+          "character": 2
         },
         "end": {
-          "line": 36,
-          "character": 25
+          "line": 38,
+          "character": 24
         },
-        "offset": 1333,
-        "length": 25
+        "offset": 1456,
+        "length": 22
       },
       "component": "NRET__SP",
       "suggestion": null,
@@ -4083,15 +4067,15 @@
       "message": "Added node 'NRET__SP__out' (I2).",
       "range": {
         "start": {
-          "line": 36,
-          "character": 0
+          "line": 38,
+          "character": 2
         },
         "end": {
-          "line": 36,
-          "character": 25
+          "line": 38,
+          "character": 24
         },
-        "offset": 1333,
-        "length": 25
+        "offset": 1456,
+        "length": 22
       },
       "component": "NRET__SP__out",
       "suggestion": null,
@@ -4103,15 +4087,15 @@
       "message": "Added node 'SP__HX1' (I2).",
       "range": {
         "start": {
-          "line": 37,
-          "character": 0
+          "line": 39,
+          "character": 2
         },
         "end": {
-          "line": 37,
-          "character": 11
+          "line": 39,
+          "character": 21
         },
-        "offset": 1359,
-        "length": 11
+        "offset": 1481,
+        "length": 19
       },
       "component": "SP__HX1",
       "suggestion": null,

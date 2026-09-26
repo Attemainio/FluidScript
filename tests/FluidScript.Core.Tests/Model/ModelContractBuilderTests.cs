@@ -138,7 +138,7 @@ public sealed class ModelContractBuilderTests
         var duty = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid")));
         var coupled = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m2-substation.fluid")));
         var rated = ModelContractBuilder.Build(ContractFixture.Compile(
-            ContractFixture.Sample("m2-cooling-loop.fluid").Replace("HE1 heat_exchanger power=30 in.t=20 out.t=50", "HE1 heat_exchanger in.t=20 out.t=50 in[2].t=80 out[2].t=60 ua=2")));
+            ContractFixture.Sample("m2-cooling-loop.fluid").Edited("HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50", "HE1  heat_exchanger  primary.in.t = 20  primary.out.t = 50  secondary.in.t = 80  secondary.out.t = 60  ua = 2")));
 
         Assert.Equal("duty", duty.Components.Single(static c => c.Id == "HE1").Mode);
         Assert.Equal("coupled", coupled.Components.Single(static c => c.Id == "HX1").Mode);
@@ -156,7 +156,7 @@ public sealed class ModelContractBuilderTests
 
         Assert.StartsWith("sha256:", contract.Provenance.SourceHash, StringComparison.Ordinal);
         Assert.Equal(64 + 7, contract.Provenance.SourceHash.Length);
-        Assert.Equal(1, contract.Provenance.LanguageMajor);
+        Assert.Equal(2, contract.Provenance.LanguageMajor);
         Assert.Equal("steel_en10255", contract.Provenance.Catalog.Id);
         Assert.NotEmpty(contract.Provenance.Catalog.Version);
         Assert.Equal("sharp-prop", contract.Provenance.PropertyBackend.Id);
@@ -194,7 +194,7 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void AContainerIsATankOnTheWire()
     {
-        var source = ContractFixture.Sample("m4-storage-header.fluid").Replace("T1 tank volume=300", "T1 container v=300");
+        var source = ContractFixture.Sample("m4-storage-header.fluid").Edited("T1  tank  volume = 300", "T1  container  v = 300");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
         var tank = contract.Components.Single(static c => c.Id == "T1");
 
@@ -207,7 +207,7 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void AnExpandedPipeIsOneGroupAndNineExpandedComponents()
     {
-        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Replace("3WV.a - N3 length=25 dn=25", "3WV.a - N3 length=25 dn=25 nodes=4", StringComparison.Ordinal);
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Edited("3WV - N3   25 m  DN25", "3WV - N3   25 m  DN25  nodes = 4");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
 
         var group = Assert.Single(contract.Layout.Groups);
@@ -224,7 +224,7 @@ public sealed class ModelContractBuilderTests
     {
         // The cap is measured on the serialized form, which is the Api's; Core only knows how to leave
         // the states out when asked (26).
-        var input = ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid").Replace("3WV.a - N3 length=25 dn=25", "3WV.a - N3 length=25 dn=25 nodes=100", StringComparison.Ordinal));
+        var input = ContractFixture.Compile(ContractFixture.Sample("m2-cooling-loop.fluid").Edited("3WV - N3   25 m  DN25", "3WV - N3   25 m  DN25  nodes = 100"));
         var whole = ModelContractBuilder.Build(input);
         var omitted = ModelContractBuilder.Build(input, statesOmitted: true);
 
@@ -240,10 +240,10 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public async Task EverySymbolResolvesAndEveryPortHasAnAnchor()
     {
-        foreach (var sample in new[] { "m2-cooling-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "m1-syntax-tour" })
+        foreach (var sample in new[] { "m2-cooling-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "v2-syntax-tour" })
         {
-            // The syntax tour is not one circuit and does not solve; compile-only is what it has.
-            var contract = ModelContractBuilder.Build(sample == "m1-syntax-tour"
+            // The syntax tour does not settle (`S-86`); compile-only is what it has.
+            var contract = ModelContractBuilder.Build(sample == "v2-syntax-tour"
                 ? ContractFixture.Compile(ContractFixture.Sample(sample + ".fluid"))
                 : await ContractFixture.SolveAsync(ContractFixture.Sample(sample + ".fluid"), sample));
             var symbols = contract.Symbols.ToDictionary(static s => s.Id, StringComparer.Ordinal);
@@ -275,8 +275,8 @@ public sealed class ModelContractBuilderTests
     public void DiagnosticsCarryBothPositionFormsFromOneLineIndex()
     {
         var source = ContractFixture.Sample("m2-cooling-loop.fluid")
-            .Replace("show temperature", "show temperature\nlet duty = 30 kW")
-            .Replace("HE1 heat_exchanger power=30", "HE1 heat_exchanger power=dutyy zzz=1");
+            .Edited("  show = temperature\n", "  show = temperature\n\nlet duty = 30 kW\n")
+            .Edited("HE1  heat_exchanger  power = 30", "HE1  heat_exchanger  power = dutyy  zzz = 1");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
 
         // `zzz` is nobody's parameter: an error, with a range. `dutyy` is one letter from a `let`,
@@ -320,7 +320,7 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void AFixedRangeIsCarriedAsWritten()
     {
-        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Replace("show temperature", "show pressure 0..400");
+        var source = ContractFixture.Sample("m2-cooling-loop.fluid").Edited("show = temperature", "show = pressure\n  scale = 0..400");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
 
         Assert.Equal("pressure", contract.Visualization.Active);
@@ -333,7 +333,7 @@ public sealed class ModelContractBuilderTests
     [Fact]
     public void StyleTokensAndBindingsAreCarriedVerbatim()
     {
-        var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("m1-syntax-tour.fluid")));
+        var contract = ModelContractBuilder.Build(ContractFixture.Compile(ContractFixture.Sample("v2-syntax-tour.fluid")));
 
         Assert.NotEmpty(contract.Bindings);
         Assert.All(contract.Bindings, static b => Assert.NotNull(b.Value));
@@ -383,7 +383,7 @@ public sealed class ModelContractBuilderTests
     {
         // 57's error cases were specified and never raised; `show nonsense` silently showed temperature.
         var source = ContractFixture.Sample("m2-cooling-loop.fluid")
-            .Replace("show temperature", "show nonsense t temperature h\nshow p", StringComparison.Ordinal);
+            .Edited("show = temperature", "show = [nonsense, t, temperature, h]\n  show = p");
         var contract = ModelContractBuilder.Build(ContractFixture.Compile(source));
 
         var unknown = Assert.Single(contract.Diagnostics, static d => d.Code == "FS1210");
@@ -408,7 +408,7 @@ public sealed class ModelContractBuilderTests
         // drops (inlet less outlet: positive across the coil, negative across the pump); a temperature
         // and an enthalpy rise (outlet less inlet: negative across a cooling coil). A node has no change.
         var source = ContractFixture.Sample("m2-cooling-loop.fluid")
-            .Replace("show temperature", "show dt dh dp specific_heat", StringComparison.Ordinal);
+            .Edited("show = temperature", "show = [dt, dh, dp, specific_heat]");
         var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(source));
         var visualization = contract.Visualization;
 
@@ -437,7 +437,7 @@ public sealed class ModelContractBuilderTests
         // every available scale travels with its domain and every element's position on it. Enthalpy
         // and density were documented and drew nothing before this (the mapper had no case for them).
         var source = ContractFixture.Sample("m2-cooling-loop.fluid")
-            .Replace("show temperature", "show density enthalpy", StringComparison.Ordinal);
+            .Edited("show = temperature", "show = [density, enthalpy]");
         var contract = ModelContractBuilder.Build(await ContractFixture.SolveAsync(source));
         var visualization = contract.Visualization;
 

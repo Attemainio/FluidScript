@@ -1,6 +1,8 @@
+# does not seed: S-86 -- HX1's heating ring seeds backwards, against its pump (plan/30-solver/defects.md).
+#
 # FluidScript 2: every statement, in one file.
 #
-# The language 2 counterpart of samples/m1-syntax-tour.fluid. Each statement and setting that
+# The language 2 counterpart of language 1's tour, which went with language 1 (P6.11). Each statement and setting that
 # plan/10-language/19-fluidscript-2.md defines appears at least once, with a comment saying what
 # it does. Unlike the language 1 tour, it is also a plant: a district-heating substation feeding a
 # radiator circuit, the reference script's. It binds with nothing to report, and a test holds it
@@ -29,7 +31,7 @@ project "Syntax tour":
 
 let outdoor = [-26, 5] C                # a driver: a let whose value is one per case
 let rise    = 20 K                      # K is a temperature difference, as engineers write it
-let swing   = rise * 1.5                # a let reading a let: arithmetic on quantities
+let swing   = max(rise, 15 K) * 3 / 2   # a let reading a let: a call and arithmetic on quantities
 let supply  = outdoor + 2 K             # reads a driver, so it varies per case as well
 
 curve district_supply: outdoor          # a curve names its driver after a colon

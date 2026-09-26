@@ -664,8 +664,7 @@ public sealed class SolutionSeedTests
 
             // A branch at a standstill has no direction to be wrong about, and whether it is allowed to
             // stand still at all is EveryDrivenBranchIsSeededAwayFromRest's question rather than this
-            // one's. m1-syntax-tour has one: it is a grammar exercise and several of its circuits are
-            // deliberately incomplete as plant.
+            // one's.
             if (Math.Abs(flow) <= Tolerances.FlowZero)
             {
                 continue;

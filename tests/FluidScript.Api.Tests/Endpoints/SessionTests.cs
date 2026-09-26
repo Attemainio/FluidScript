@@ -179,12 +179,12 @@ public sealed class SessionTests
         using var host = new ApiFactory();
         using var client = host.CreateClient();
         var template = Api.Sample("m2-cooling-loop.fluid");
-        Assert.Contains("power=30", template, StringComparison.Ordinal);
+        Assert.Contains("power = 30", template, StringComparison.Ordinal);
 
         var powers = Enumerable.Range(0, 100).Select(static i => 20 + (i * 0.1)).ToArray();
         var responses = await Task.WhenAll(powers.Select(power => client.PostWithTokenAsync(
             Compile,
-            new { sessionId = $"many-{power}", script = template.Replace("power=30", $"power={power:0.0}", StringComparison.Ordinal) },
+            new { sessionId = $"many-{power}", script = template.Replace("power = 30", $"power = {power:0.0}", StringComparison.Ordinal) },
             TestContext.Current.CancellationToken)));
 
         try

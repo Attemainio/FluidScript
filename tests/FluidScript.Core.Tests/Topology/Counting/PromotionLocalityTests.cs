@@ -53,8 +53,8 @@ public sealed class PromotionLocalityTests
         // fed from `N2`; `N2 node t=20` is that node directly. Dropping the first frees `3WV` so the second
         // has something to claim, and it must claim the same valve.
         var counting = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out.t=50",
-            "N3 outlet p=280\nN2 node t=20")).Graph).Counting;
+            "HE1  heat_exchanger  power = 30  out.t = 50",
+            "N3  outlet  p = 280\n  N2  node  t = 20")).Graph).Counting;
 
         Assert.Equal(("3WV", "position"), Claimed(counting, "N2", ConstraintKind.NodeTemperature));
     }
@@ -70,11 +70,11 @@ public sealed class PromotionLocalityTests
         // Asserted as a difference rather than as an absolute, because the absolute is the sum of every
         // other counting rule and would have to be restated here to be checked.
         var without = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out.t=50", "N3 outlet p=280")).Graph).Counting;
+            "HE1  heat_exchanger  power = 30  out.t = 50", "N3  outlet  p = 280")).Graph).Counting;
 
         var with = WellPosedness.Check(GraphFixture.Lower(CoolingLoop(
-            "HE1 heat_exchanger power=30 out.t=50",
-            "N3 outlet p=280\nN2 node t=20")).Graph).Counting;
+            "HE1  heat_exchanger  power = 30  out.t = 50",
+            "N3  outlet  p = 280\n  N2  node  t = 20")).Graph).Counting;
 
         Assert.Equal(without.Excess, with.Excess);
         Assert.Equal(without.Unknowns + 1, with.Unknowns);
@@ -83,8 +83,8 @@ public sealed class PromotionLocalityTests
 
     private static string CoolingLoop(string exchanger, string boundary) =>
         File.ReadAllText(Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"))
-            .Replace("HE1 heat_exchanger power=30 in.t=20 out.t=50", exchanger, StringComparison.Ordinal)
-            .Replace("N3 outlet p=280", boundary, StringComparison.Ordinal);
+            .Edited("HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50", exchanger)
+            .Edited("N3  outlet  p = 280", boundary);
 
     [Fact]
     public void ALoneOutletPaysTheClosedCircuitsEnthalpyLevelInsteadOfPinningAFlow()

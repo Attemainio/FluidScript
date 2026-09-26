@@ -28,7 +28,7 @@ public sealed class DecompositionTests
                 data.Add(file);
             }
 
-            foreach (var sample in new[] { "m1-syntax-tour", "m2-cooling-loop", "m2-distribution-header", "m2-simple-loop", "m2-substation", "m4-demand-step", "m4-storage-header" })
+            foreach (var sample in new[] { "m2-cooling-loop", "m2-distribution-header", "m2-simple-loop", "m2-substation", "m4-demand-step", "m4-storage-header" })
             {
                 data.Add(sample);
             }
@@ -101,14 +101,48 @@ public sealed class DecompositionTests
     [Fact]
     public void AnOpenFormIsTheHeaderBetweenItsInletAndOutlet()
     {
-        // The tour's third circuit (C19): NB1 feeds NJ1, whose two paths -- HE2's chain and the ahu block -- meet at NJ2
-        // before NB2; TV2, fed from NJ1's third port, mixes into RB1 and hangs off NJ1.
-        var plan = Plan(Solve(ContractFixture.Sample("m1-syntax-tour.fluid")), 3);
+        // The language 1 tour's `expressions` circuit and the `ahu` block it fed (C19), written in language 2 with the
+        // block's attachment as its connections (`D-175`): NB1 feeds NJ1, whose two paths -- HE2's chain and the ahu
+        // block -- meet at NJ2 before NB2; TV2, fed from NJ1's third port, mixes into RB1 and hangs off NJ1.
+        var scene = Solve(OpenForm);
+        var plan = Enumerable.Range(1, 4).Select(fragment => Plan(scene, fragment)).First(static p => p.Count > 0 && p[0].StartsWith("open form", StringComparison.Ordinal));
 
-        Assert.Equal("open form (C19), head NB1", plan[0]);
+        Assert.True(plan[0] == "open form (C19), head NB1", string.Join("\n", plan));
         Assert.Contains("    header NJ1 to NJ2, 2 branches", plan);
         Assert.Contains(plan, static l => l.StartsWith("  pendant at NJ1.", StringComparison.Ordinal) && l.Contains("TV2", StringComparison.Ordinal));
     }
+
+    private const string OpenForm = """
+        fluidscript 2
+
+        circuit "expressions":
+          fluid = water
+
+          HE2  load  in.t = 50  out.t = 30  power = 30 kW
+          TV2  three_way_valve  characteristic = equal_percentage  authority = 0.5
+          NB1  inlet  t = 6  p = 300
+          NB2  outlet  p = 280
+          SB1  inlet  t = 6  flow = 0.24 kg/s
+          RB1  outlet
+
+          NB1 - NJ1
+          NJ1 - HE2
+          HE2 - NJ2   25 m
+          NJ2 - NB2
+          SB1 - TV2.a
+          NJ1 - TV2.b
+          TV2.ab - RB1
+
+        circuit "ahu":
+          HE3  load  in.t = 50  out.t = 30  power = 24 kW
+          TV3  three_way_valve
+          PU3  pump
+
+          NJ1 - TV3.a
+          TV3.ab - PU3 - NS3 - HE3 - NM3
+          NM3 - TV3.b
+          NM3 - NJ2   8 m  DN25
+        """;
 
     [Theory]
     [MemberData(nameof(Cases))]

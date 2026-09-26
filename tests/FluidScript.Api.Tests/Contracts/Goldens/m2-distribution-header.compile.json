@@ -1,8 +1,8 @@
 {
   "contractVersion": "2.3",
   "provenance": {
-    "sourceHash": "sha256:03df017bcb8c55e84a6363082caab4d3afb926163d9c2e0d2cf9ec7bd7fe246f",
-    "languageMajor": 1,
+    "sourceHash": "sha256:5f896b244dc11c2047fb4169751cdc30315407e6409fdb83e4319188cdb1a09d",
+    "languageMajor": 2,
     "catalog": {
       "id": "steel_en10255",
       "version": "2026.1"
@@ -15,7 +15,7 @@
   },
   "project": {
     "name": "plant_01",
-    "defaultMode": "steady"
+    "defaultMode": null
   },
   "style": {
     "tokens": [],
@@ -81,8 +81,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 3145,
-        "length": 43
+        "start": 3178,
+        "length": 46
       },
       "circuit": "heating",
       "tag": "100HE01",
@@ -158,8 +158,8 @@
       "symbolId": "node.junction",
       "origin": "declared",
       "sourceSpan": {
-        "start": 3502,
-        "length": 13
+        "start": 3411,
+        "length": 17
       },
       "circuit": "heating",
       "tag": null,
@@ -191,8 +191,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 3534,
-        "length": 41
+        "start": 3476,
+        "length": 50
       },
       "circuit": "AHU",
       "tag": "101HE01",
@@ -274,7 +274,7 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 3576,
+        "start": 3529,
         "length": 23
       },
       "circuit": "AHU",
@@ -330,7 +330,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 3600,
+        "start": 3555,
         "length": 12
       },
       "circuit": "AHU",
@@ -375,8 +375,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 3626,
-        "length": 29
+        "start": 3571,
+        "length": 24
       },
       "circuit": "AHU",
       "tag": null,
@@ -424,8 +424,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 3928,
-        "length": 27
+        "start": 3797,
+        "length": 24
       },
       "circuit": "AHU",
       "tag": null,
@@ -474,8 +474,8 @@
       "symbolId": "heat_exchanger.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4056,
-        "length": 41
+        "start": 3925,
+        "length": 50
       },
       "circuit": "radiators",
       "tag": "102HE01",
@@ -557,7 +557,7 @@
       "symbolId": "three_way_valve.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4098,
+        "start": 3978,
         "length": 23
       },
       "circuit": "radiators",
@@ -613,7 +613,7 @@
       "symbolId": "pump.standard",
       "origin": "declared",
       "sourceSpan": {
-        "start": 4122,
+        "start": 4004,
         "length": 12
       },
       "circuit": "radiators",
@@ -658,8 +658,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 4148,
-        "length": 29
+        "start": 4020,
+        "length": 24
       },
       "circuit": "radiators",
       "tag": null,
@@ -707,8 +707,8 @@
       "symbolId": "pipe.standard",
       "origin": "inferred:I7",
       "sourceSpan": {
-        "start": 4233,
-        "length": 27
+        "start": 4101,
+        "length": 24
       },
       "circuit": "radiators",
       "tag": null,
@@ -5038,14 +5038,14 @@
       "message": "Added node 'N3' (I1).",
       "range": {
         "start": {
-          "line": 49,
-          "character": 11
-        },
-        "end": {
-          "line": 49,
+          "line": 50,
           "character": 13
         },
-        "offset": 3271,
+        "end": {
+          "line": 50,
+          "character": 15
+        },
+        "offset": 3289,
         "length": 2
       },
       "component": "N3",
@@ -5058,14 +5058,14 @@
       "message": "Added node 'N4' (I1).",
       "range": {
         "start": {
-          "line": 50,
-          "character": 5
-        },
-        "end": {
-          "line": 50,
+          "line": 51,
           "character": 7
         },
-        "offset": 3366,
+        "end": {
+          "line": 51,
+          "character": 9
+        },
+        "offset": 3351,
         "length": 2
       },
       "component": "N4",
@@ -5078,14 +5078,14 @@
       "message": "Added node 'N6' (I1).",
       "range": {
         "start": {
-          "line": 51,
-          "character": 0
-        },
-        "end": {
-          "line": 51,
+          "line": 52,
           "character": 2
         },
-        "offset": 3427,
+        "end": {
+          "line": 52,
+          "character": 4
+        },
+        "offset": 3373,
         "length": 2
       },
       "component": "N6",
@@ -5098,14 +5098,14 @@
       "message": "Added node 'N5' (I1).",
       "range": {
         "start": {
-          "line": 51,
-          "character": 5
-        },
-        "end": {
-          "line": 51,
+          "line": 52,
           "character": 7
         },
-        "offset": 3432,
+        "end": {
+          "line": 52,
+          "character": 9
+        },
+        "offset": 3378,
         "length": 2
       },
       "component": "N5",
@@ -5118,15 +5118,15 @@
       "message": "Added pipe 'N3__TV_AHU' (I7).",
       "range": {
         "start": {
-          "line": 63,
-          "character": 0
+          "line": 65,
+          "character": 2
         },
         "end": {
-          "line": 63,
-          "character": 29
+          "line": 65,
+          "character": 26
         },
-        "offset": 3626,
-        "length": 29
+        "offset": 3571,
+        "length": 24
       },
       "component": "N3__TV_AHU",
       "suggestion": null,
@@ -5138,17 +5138,37 @@
       "message": "Added node 'N3__TV_AHU__out' (I2).",
       "range": {
         "start": {
-          "line": 63,
-          "character": 0
+          "line": 65,
+          "character": 2
         },
         "end": {
-          "line": 63,
-          "character": 29
+          "line": 65,
+          "character": 26
         },
-        "offset": 3626,
-        "length": 29
+        "offset": 3571,
+        "length": 24
       },
       "component": "N3__TV_AHU__out",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1815",
+      "severity": "info",
+      "message": "'TV_AHU' is wired as a mixing valve: a from N3, b from NM_AHU, ab to PU_AHU.",
+      "range": {
+        "start": {
+          "line": 65,
+          "character": 7
+        },
+        "end": {
+          "line": 65,
+          "character": 13
+        },
+        "offset": 3576,
+        "length": 6
+      },
+      "component": null,
       "suggestion": null,
       "related": []
     },
@@ -5158,14 +5178,14 @@
       "message": "Added node 'NM_AHU' (I1).",
       "range": {
         "start": {
-          "line": 64,
-          "character": 0
+          "line": 66,
+          "character": 2
         },
         "end": {
-          "line": 64,
-          "character": 6
+          "line": 66,
+          "character": 8
         },
-        "offset": 3728,
+        "offset": 3641,
         "length": 6
       },
       "component": "NM_AHU",
@@ -5178,15 +5198,15 @@
       "message": "Added node 'TV_AHU__PU_AHU' (I2).",
       "range": {
         "start": {
-          "line": 65,
-          "character": 0
+          "line": 67,
+          "character": 2
         },
         "end": {
-          "line": 65,
-          "character": 36
+          "line": 67,
+          "character": 17
         },
-        "offset": 3827,
-        "length": 36
+        "offset": 3709,
+        "length": 15
       },
       "component": "TV_AHU__PU_AHU",
       "suggestion": null,
@@ -5198,15 +5218,15 @@
       "message": "Added node 'PU_AHU__HE_AHU' (I2).",
       "range": {
         "start": {
-          "line": 65,
-          "character": 0
+          "line": 67,
+          "character": 11
         },
         "end": {
-          "line": 65,
-          "character": 36
+          "line": 67,
+          "character": 26
         },
-        "offset": 3827,
-        "length": 36
+        "offset": 3718,
+        "length": 15
       },
       "component": "PU_AHU__HE_AHU",
       "suggestion": null,
@@ -5218,15 +5238,15 @@
       "message": "Added pipe 'NM_AHU__N5' (I7).",
       "range": {
         "start": {
-          "line": 66,
-          "character": 0
+          "line": 68,
+          "character": 2
         },
         "end": {
-          "line": 66,
-          "character": 27
+          "line": 68,
+          "character": 26
         },
-        "offset": 3928,
-        "length": 27
+        "offset": 3797,
+        "length": 24
       },
       "component": "NM_AHU__N5",
       "suggestion": null,
@@ -5238,15 +5258,15 @@
       "message": "Added pipe 'N4__TV_RAD' (I7).",
       "range": {
         "start": {
-          "line": 75,
-          "character": 0
+          "line": 78,
+          "character": 2
         },
         "end": {
-          "line": 75,
-          "character": 29
+          "line": 78,
+          "character": 26
         },
-        "offset": 4148,
-        "length": 29
+        "offset": 4020,
+        "length": 24
       },
       "component": "N4__TV_RAD",
       "suggestion": null,
@@ -5258,17 +5278,37 @@
       "message": "Added node 'N4__TV_RAD__out' (I2).",
       "range": {
         "start": {
-          "line": 75,
-          "character": 0
+          "line": 78,
+          "character": 2
         },
         "end": {
-          "line": 75,
-          "character": 29
+          "line": 78,
+          "character": 26
         },
-        "offset": 4148,
-        "length": 29
+        "offset": 4020,
+        "length": 24
       },
       "component": "N4__TV_RAD__out",
+      "suggestion": null,
+      "related": []
+    },
+    {
+      "code": "FS1815",
+      "severity": "info",
+      "message": "'TV_RAD' is wired as a mixing valve: a from N4, b from NM_RAD, ab to PU_RAD.",
+      "range": {
+        "start": {
+          "line": 78,
+          "character": 7
+        },
+        "end": {
+          "line": 78,
+          "character": 13
+        },
+        "offset": 4025,
+        "length": 6
+      },
+      "component": null,
       "suggestion": null,
       "related": []
     },
@@ -5278,14 +5318,14 @@
       "message": "Added node 'NM_RAD' (I1).",
       "range": {
         "start": {
-          "line": 76,
-          "character": 0
+          "line": 79,
+          "character": 2
         },
         "end": {
-          "line": 76,
-          "character": 6
+          "line": 79,
+          "character": 8
         },
-        "offset": 4178,
+        "offset": 4047,
         "length": 6
       },
       "component": "NM_RAD",
@@ -5298,15 +5338,15 @@
       "message": "Added node 'TV_RAD__PU_RAD' (I2).",
       "range": {
         "start": {
-          "line": 77,
-          "character": 0
+          "line": 80,
+          "character": 2
         },
         "end": {
-          "line": 77,
-          "character": 36
+          "line": 80,
+          "character": 17
         },
-        "offset": 4196,
-        "length": 36
+        "offset": 4065,
+        "length": 15
       },
       "component": "TV_RAD__PU_RAD",
       "suggestion": null,
@@ -5318,15 +5358,15 @@
       "message": "Added node 'PU_RAD__HE_RAD' (I2).",
       "range": {
         "start": {
-          "line": 77,
-          "character": 0
+          "line": 80,
+          "character": 11
         },
         "end": {
-          "line": 77,
-          "character": 36
+          "line": 80,
+          "character": 26
         },
-        "offset": 4196,
-        "length": 36
+        "offset": 4074,
+        "length": 15
       },
       "component": "PU_RAD__HE_RAD",
       "suggestion": null,
@@ -5338,15 +5378,15 @@
       "message": "Added pipe 'NM_RAD__N6' (I7).",
       "range": {
         "start": {
-          "line": 78,
-          "character": 0
+          "line": 81,
+          "character": 2
         },
         "end": {
-          "line": 78,
-          "character": 27
+          "line": 81,
+          "character": 26
         },
-        "offset": 4233,
-        "length": 27
+        "offset": 4101,
+        "length": 24
       },
       "component": "NM_RAD__N6",
       "suggestion": null,

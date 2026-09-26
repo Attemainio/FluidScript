@@ -52,7 +52,7 @@ public sealed class ExchangerModeTests
             .Replace("{1}", secondary, StringComparison.Ordinal);
 
     private static BindResult Bind(string source) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(source)), "script");
 
     private static Diagnostic Only(string source, string code)
     {

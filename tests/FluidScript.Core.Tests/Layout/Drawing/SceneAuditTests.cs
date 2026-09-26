@@ -116,8 +116,7 @@ public sealed class SceneAuditTests
         // are two runs of one symbol at the symbol's port pitch, the other run is allowed through it --
         // the same allowance the beside test already makes. At 0.5 nothing changes.
         var source = File.ReadAllText(Path.Combine(Ladder, "step-09-tank.fluid"))
-            .Replace("fluidscript 1\n", "fluidscript 1\nspacing 1\n", StringComparison.Ordinal)
-            .Replace("fluidscript 1\r\n", "fluidscript 1\r\nspacing 1\r\n", StringComparison.Ordinal);
+            .Edited("project:\n", "project:\n  spacing = 1\n");
         var (scene, input) = Solve(source);
 
         Assert.Equal(1, scene.Margin);

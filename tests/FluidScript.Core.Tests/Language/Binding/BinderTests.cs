@@ -17,7 +17,7 @@ public sealed class BinderTests
 {
     private static BindResult Bind(string text, string documentName = "script") =>
         new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText(text)), documentName);
+            ScriptParse.Parse(new SourceText(text)), documentName);
 
     private static SemanticModel Model(string text)
     {

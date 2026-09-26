@@ -19,15 +19,15 @@
 # apart -- so the fiction has to say so. Without it the ring carries 40 kPa of exchanger drop rather
 # than 20, the valve is sized against twice the branch, and the loop reaches 11.9 m instead of 5.3.
 
-fluidscript 1
-circuit simpleLoop
-fluid water
+fluidscript 2
 
-HE1  heat_exchanger power=30 in.t=20 out.t=50
-LOAD heat_exchanger power=-30 dp=0
-CV1  valve
-PU1  pump
+circuit "simpleLoop":
+  fluid = water
 
-connections
-N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
-N5 - N1 length=25
+  HE1  heat_exchanger  power = 30  in.t = 20  out.t = 50
+  LOAD  heat_exchanger  power = -30  dp = 0
+  CV1  valve
+  PU1  pump
+
+  N1 - PU1 - N2 - HE1 - N3 - LOAD - N4 - CV1 - N5
+  N5 - N1   25 m

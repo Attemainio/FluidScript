@@ -28,7 +28,7 @@ public sealed class ComponentDiagnosticsTests
 {
     private static BindResult Bind(string body) =>
         new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText("fluidscript 1\n" + body + "\n")), "script");
+            ScriptParse.Parse(new SourceText("fluidscript 1\n" + body + "\n")), "script");
 
     private static Diagnostic Only(string body, string code)
     {
@@ -208,7 +208,7 @@ public sealed class ComponentDiagnosticsTests
         // are one too many, with no indication which.
         var source = "fluidscript 1\nHE1 heat_exchanger power=30 in.t=20 out.t=50 flow=0.24\n";
         var result = new Binder(ComponentRegistry.Default)
-            .Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
+            .Bind(ScriptParse.Parse(new SourceText(source)), "script");
 
         var span = result.Diagnostics.Single(static d => d.Code == "FS2101").Span!.Value;
 

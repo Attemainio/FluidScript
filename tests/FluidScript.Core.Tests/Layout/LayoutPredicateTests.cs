@@ -24,7 +24,7 @@ public sealed class LayoutPredicateTests
 
     public static TheoryData<string> Fixtures =>
     [
-        "m2-cooling-loop", "m2-simple-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "m1-syntax-tour", "header-200",
+        "m2-cooling-loop", "m2-simple-loop", "m2-substation", "m4-storage-header", "m2-distribution-header", "header-200",
         "step-04-valve", "step-07-ring-one-branch", "step-08e-header-mixed", "step-10-instruments", "step-11a-two-loops", "step-11c-tour-loops",
     ];
 
@@ -147,7 +147,7 @@ public sealed class LayoutPredicateTests
         // D-37: spacing is presentation. Two values move the boxes and leave the solved circuit byte for byte.
         var source = ContractFixture.Sample("m2-cooling-loop.fluid");
         Assert.DoesNotContain("spacing", source, StringComparison.Ordinal);
-        var wide = source.Replace("fluidscript 1", "fluidscript 1\nspacing 1", StringComparison.Ordinal);
+        var wide = source.Edited("project:\n", "project:\n  spacing = 1\n");
         Assert.NotEqual(source, wide);
 
         var (narrowScene, _) = Solve(source);
@@ -284,8 +284,8 @@ public sealed class LayoutPredicateTests
     {
         var source = ContractFixture.Sample("m2-distribution-header.fluid");
         var edited = source
-            .Replace("PU_AHU  pump", "PU_AHU  pump\nCV_AHU  valve kv=6.3", StringComparison.Ordinal)
-            .Replace("TV_AHU.ab - PU_AHU - HE_AHU - NM_AHU", "TV_AHU.ab - PU_AHU - CV_AHU - HE_AHU - NM_AHU", StringComparison.Ordinal);
+            .Edited("  PU_AHU  pump\n", "  PU_AHU  pump\n  CV_AHU  valve  kv = 6.3\n")
+            .Edited("TV_AHU - PU_AHU - HE_AHU - NM_AHU", "TV_AHU - PU_AHU - CV_AHU - HE_AHU - NM_AHU");
         Assert.NotEqual(source, edited);
 
         var (before, _) = Solve(source);
@@ -305,8 +305,8 @@ public sealed class LayoutPredicateTests
         // C17: circuits are laid out on their own canvases and stacked, so an edit in the second leaves the first byte for byte.
         var source = Source("step-11a-two-loops");
         var edited = source
-            .Replace("PU_C  pump", "PU_C  pump\nCV_C  valve kv=6.3", StringComparison.Ordinal)
-            .Replace("TV_C - P_C", "TV_C - CV_C - P_C", StringComparison.Ordinal);
+            .Edited("  PU_C  pump\n", "  PU_C  pump\n  CV_C  valve  kv = 6.3\n")
+            .Edited("  PU_C - HE_C\n", "  PU_C - CV_C - HE_C\n");
         Assert.NotEqual(source, edited);
 
         var (before, _) = Solve(source);

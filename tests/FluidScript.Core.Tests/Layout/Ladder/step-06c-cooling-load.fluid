@@ -2,21 +2,22 @@
 # the same ring with a load on it and a 60 C supply, so the unsourced ring rule (C18) draws it: the
 # valve takes the bottom-left corner and the two boundaries stand in a column on the left (C-105).
 
-fluidscript 1
-circuit coolingLoop
-fluid water
+fluidscript 2
 
-HE1 heat_exchanger power=-30 in.t=50 out.t=30
-3WV three_way_valve
-PU1 pump
+circuit "coolingLoop":
+  fluid = water
+  role = cooling
 
-connections
-N1 - N2
-N2 - PU1
-PU1 - HE1
-HE1 - 3WV
-3WV.b - N2
-3WV.a - N3 length=25 dn=25
+  HE1  heat_exchanger  power = -30  in.t = 50  out.t = 30
+  3WV  three_way_valve
+  PU1  pump
 
-N1 inlet t=60 p=300
-N3 outlet p=280
+  N1 - N2
+  N2 - PU1
+  PU1 - HE1
+  HE1 - 3WV
+  3WV - N2
+  3WV - N3   25 m  DN25
+
+  N1  inlet  t = 60  p = 300
+  N3  outlet  p = 280

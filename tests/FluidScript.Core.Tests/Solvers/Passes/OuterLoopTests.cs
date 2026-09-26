@@ -475,9 +475,8 @@ public sealed class OuterLoopTests
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-07-ring-one-branch.fluid"),
             TestContext.Current.CancellationToken);
         source = source
-            .Replace("PU_AHU  pump\n", "PU_AHU  pump\nBV_AHU  valve\n", StringComparison.Ordinal)
-            .Replace("NM_AHU - TV_AHU.b\n", "NM_AHU - BV_AHU - TV_AHU.b\n", StringComparison.Ordinal);
-        Assert.Contains("BV_AHU - TV_AHU.b", source, StringComparison.Ordinal);
+            .Edited("  PU_AHU  pump\n", "  PU_AHU  pump\n  BV_AHU  valve\n")
+            .Edited("  NM_AHU - TV_AHU\n", "  NM_AHU - BV_AHU - TV_AHU\n");
 
         var run = await Solve(source, "levelled");
 
@@ -514,8 +513,8 @@ public sealed class OuterLoopTests
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-08b-header-series.fluid"),
             TestContext.Current.CancellationToken);
         source = source
-            .Replace("PU_RAD  pump\n", "PU_RAD  pump\nBV_RAD  valve\n", StringComparison.Ordinal)
-            .Replace("NM_RAD - TV_RAD.b\n", "NM_RAD - BV_RAD - TV_RAD.b\n", StringComparison.Ordinal);
+            .Edited("  PU_RAD  pump\n", "  PU_RAD  pump\n  BV_RAD  valve\n")
+            .Edited("  NM_RAD - TV_RAD\n", "  NM_RAD - BV_RAD - TV_RAD\n");
 
         var run = await Solve(source, "series-levelled");
 
@@ -539,22 +538,23 @@ public sealed class OuterLoopTests
     public async Task AValveWrittenForOneServiceAndRunInTheOtherIsNamed()
     {
         // `C-65`, closed by `D-136`. The cooling loop's `3WV` diverts: the secondary's flow enters at
-        // `ab` and leaves by `a` (primary return) and `b` (recirculation), as the sample states them (`D-175`). Written as a mixing valve the
-        // script names a body built for the other service, and FS4012 says which way it actually runs;
-        // written as a diverting valve, or as a bare three_way_valve, nothing is claimed and nothing
-        // is said. The spelling reaches the component as its arrangement.
+        // `ab` and leaves by `a` (primary return) and `b` (recirculation). Written as a mixing valve the
+        // script names a body built for the other service. Language 2 reads the function from the wiring
+        // (`D-175`), so the contradiction is refused at bind, FS1805, before anything is solved; the
+        // solve's FS4012 is left to a valve whose solved flows run against its wiring (`C-137`).
+        // Written as a diverting valve, or as a bare three_way_valve, nothing is claimed and nothing is
+        // said. The spelling reaches the component as its arrangement.
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"), TestContext.Current.CancellationToken);
 
-        var mixing = await Solve(source.Replace("3WV three_way_valve", "3WV mixing_valve", StringComparison.Ordinal), "mixing");
-        var contradiction = Assert.Single(mixing.Solve.Diagnostics, static d => d.Code == "FS4012");
+        var mixing = new FluidScript.Core.Language.Binding.Binder(FluidScript.Core.Language.Registry.ComponentRegistry.Default)
+            .Bind(ScriptParse.Parse(source.Edited("3WV  three_way_valve", "3WV  mixing_valve")), "mixing");
+        var contradiction = Assert.Single(mixing.Diagnostics, static d => d.Code == "FS1805");
 
-        Assert.Equal("3WV", contradiction.ComponentName);
-        Assert.Contains("written as a mixing valve and the solve runs it diverting", contradiction.Message, StringComparison.Ordinal);
-        Assert.Contains("leaves 0.163 kg/s by a and 0.076 kg/s by b", contradiction.Message, StringComparison.Ordinal);
-        Assert.Equal(ValveArrangement.Mixing, Assert.IsType<ThreeWayValveComponent>(mixing.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
+        Assert.Equal(FluidScript.Core.Diagnostics.DiagnosticSeverity.Error, contradiction.Severity);
+        Assert.Contains("'3WV' is written as a mixing valve, and its connections make it diverting", contradiction.Message, StringComparison.Ordinal);
 
-        var diverting = await Solve(source.Replace("3WV three_way_valve", "3WV diverting_valve", StringComparison.Ordinal), "diverting");
+        var diverting = await Solve(source.Edited("3WV  three_way_valve", "3WV  diverting_valve"), "diverting");
 
         Assert.DoesNotContain(diverting.Solve.Diagnostics, static d => d.Code == "FS4012");
         Assert.Equal(ValveArrangement.Diverting, Assert.IsType<ThreeWayValveComponent>(diverting.Graph.Components.Single(static c => c.Name == "3WV")).Arrangement);
@@ -575,9 +575,8 @@ public sealed class OuterLoopTests
             Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout", "Ladder", "step-07-ring-one-branch.fluid"),
             TestContext.Current.CancellationToken);
         source = source
-            .Replace("PU_AHU  pump\n", "PU_AHU  pump\nBV_AHU  valve\n", StringComparison.Ordinal)
-            .Replace("N3 - TV_AHU.a length=12 dn=25\n", "N3 - BV_AHU - TV_AHU.a length=12 dn=25\n", StringComparison.Ordinal);
-        Assert.Contains("BV_AHU - TV_AHU.a", source, StringComparison.Ordinal);
+            .Edited("  PU_AHU  pump\n", "  PU_AHU  pump\n  BV_AHU  valve\n")
+            .Edited("  N3 - TV_AHU   12 m  DN25\n", "  N3 - BV_AHU   12 m  DN25\n  BV_AHU - TV_AHU   12 m  DN25\n");
 
         var run = await Solve(source, "wrong-leg");
 
@@ -601,9 +600,8 @@ public sealed class OuterLoopTests
         var source = await File.ReadAllTextAsync(
             Path.Combine(RepositoryLayout.Samples, "m2-cooling-loop.fluid"), TestContext.Current.CancellationToken);
         source = source
-            .Replace("PU1 pump\n", "PU1 pump\nBV1 valve\n", StringComparison.Ordinal)
-            .Replace("3WV.a - N3 length=25 dn=25", "3WV.a - BV1 - N3 length=25 dn=25", StringComparison.Ordinal);
-        Assert.Contains("3WV.a - BV1 - N3", source, StringComparison.Ordinal);
+            .Edited("  PU1  pump\n", "  PU1  pump\n  BV1  valve\n")
+            .Edited("  3WV - N3   25 m  DN25", "  3WV - BV1   25 m  DN25\n  BV1 - N3   25 m  DN25");
 
         var run = await Solve(source, "diverting");
 

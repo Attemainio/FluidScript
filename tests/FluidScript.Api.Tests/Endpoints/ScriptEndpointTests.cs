@@ -160,7 +160,7 @@ public sealed class ScriptEndpointTests(ApiFactory factory) : IClassFixture<ApiF
         var body = await response.ReadAsync<ValidateResponse>();
 
         Assert.Equal("2.3", body.ContractVersion);
-        Assert.Equal(1, body.LanguageMajor);
+        Assert.Equal(2, body.LanguageMajor);
         Assert.Contains(body.Diagnostics, static d => d.Code == "FS1507");
         Assert.Equal(0, body.Timings.SizeMs);
         Assert.Equal(0, body.Timings.SolveMs);

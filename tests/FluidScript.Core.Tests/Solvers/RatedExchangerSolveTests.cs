@@ -172,7 +172,7 @@ public sealed class RatedExchangerSolveTests
         // 62/45 on the primary against 40/60 closes the hot end to 2 K. The sizer raises it, the loop
         // carries it to the solve's diagnostics, and the solve still runs: the design is questionable,
         // not unsolvable.
-        var run = await RunAsync(Substation().Replace("in[2].t=85", "in[2].t=62", StringComparison.Ordinal), "close");
+        var run = await RunAsync(Substation().Edited("secondary.in.t = 85", "secondary.in.t = 62"), "close");
 
         Assert.Contains(run.Solve.Diagnostics, static d => d.Code == "FS4008");
     }

@@ -35,7 +35,7 @@ public sealed class ReferenceCircuitTests
             .Single(candidate => candidate.Name.EndsWith(name, StringComparison.Ordinal));
 
         var result = new Binder(ComponentRegistry.Default)
-            .Bind(FluidScriptParser.Parse(new SourceText(sample.Text)), name);
+            .Bind(ScriptParse.Parse(new SourceText(sample.Text)), name);
 
         Assert.True(
             result.Diagnostics.All(static d => d.Severity != DiagnosticSeverity.Error),
@@ -50,7 +50,7 @@ public sealed class ReferenceCircuitTests
             .Single(candidate => candidate.Name.EndsWith(name, StringComparison.Ordinal));
 
         return [.. new Binder(ComponentRegistry.Default)
-            .Bind(FluidScriptParser.Parse(new SourceText(sample.Text)), name)
+            .Bind(ScriptParse.Parse(new SourceText(sample.Text)), name)
             .Diagnostics.Select(static d => d.Code)];
     }
 

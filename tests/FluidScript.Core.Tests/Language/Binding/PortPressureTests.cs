@@ -41,7 +41,7 @@ public sealed class PortPressureTests
         """;
 
     private static BindResult Bind(string source) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText(source)), "script");
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(source)), "script");
 
     private static ComponentSymbol Symbol(SemanticModel model, string name) =>
         model.Components.Single(component => string.Equals(component.Name, name, StringComparison.Ordinal));

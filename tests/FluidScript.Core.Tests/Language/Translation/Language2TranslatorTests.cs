@@ -114,7 +114,7 @@ public sealed class Language2TranslatorTests
             """);
 
         var original = new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText(sample.Text)), "script");
+            ScriptParse.Parse(new SourceText(sample.Text)), "script");
 
         Assert.Equal(Shape(original.Model), Shape(twin.Model));
     }
@@ -158,7 +158,7 @@ public sealed class Language2TranslatorTests
             """);
 
         var original = new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText(sample.Text)), "script");
+            ScriptParse.Parse(new SourceText(sample.Text)), "script");
 
         Assert.Equal(Shape(original.Model), Shape(twin.Model));
     }

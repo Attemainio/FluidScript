@@ -36,7 +36,7 @@ public sealed class RunSnapshotTests
     private static async Task<RunSnapshot> SnapshotAsync(string sample, TransientSettings? settings = null)
     {
         var source = await File.ReadAllTextAsync(Path.Combine(RepositoryLayout.Samples, sample), TestContext.Current.CancellationToken);
-        var result = await Loop().RunAsync(GraphFixture.Bind(source), Water.Instance, sample, TestContext.Current.CancellationToken);
+        var result = await Loop().RunAsync(GraphFixture.BindRun(source), Water.Instance, sample, TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
         Assert.True(result.Value.Solve.Converged, result.Value.Solve.Termination.ToString());

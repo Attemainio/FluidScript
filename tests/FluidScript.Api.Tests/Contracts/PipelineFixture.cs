@@ -54,7 +54,9 @@ public static class PipelineFixture
 
     private static (ParseResult Parse, BindResult Bind, ResolvedCatalog<PipeSpec> Catalog) Front(string source)
     {
-        var parse = FluidScriptParser.Parse(new SourceText(source));
+        var text = new SourceText(source);
+        var parse = FluidScript.Core.Language.Compatibility.MajorParser.Parse(
+            text, FluidScript.Core.Language.Compatibility.ScriptCompatibility.Inspect(text).DetectedMajor, ComponentRegistry.Default);
         var bind = new Binder(ComponentRegistry.Default).Bind(parse, "script");
         var resolved = PipeCatalogs.Resolve(pin: null);
 

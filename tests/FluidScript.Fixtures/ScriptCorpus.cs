@@ -29,16 +29,16 @@ public static class ScriptCorpus
     private const string Fence = "```";
     private const string Language = "fluidscript";
 
-    /// <summary>Enumerates the language 1 sample scripts.</summary>
+    /// <summary>Enumerates the sample scripts in the language the pipeline compiles.</summary>
     /// <returns>
-    /// Absolute paths to every language 1 <c>.fluid</c> file under <c>samples/</c>, ordered by path so a failure
+    /// Absolute paths to every language 2 <c>.fluid</c> file under <c>samples/</c>, ordered by path so a failure
     /// names the same file on every platform.
     /// </returns>
     /// <remarks>
-    /// Language 1 only, because the tests that walk the samples by path lower and solve them with language 1's
-    /// pipeline and compare them with language 1's goldens. <see cref="EnumerateSampleFiles(int)"/> names a language.
+    /// Language 2 since <c>P6.11</c>'s switch (<c>D-174</c>): the tests that walk the samples by path lower and solve
+    /// them. <see cref="EnumerateSampleFiles(int)"/> names a language.
     /// </remarks>
-    public static IEnumerable<string> EnumerateSampleFiles() => EnumerateSampleFiles(language: 1);
+    public static IEnumerable<string> EnumerateSampleFiles() => EnumerateSampleFiles(language: 2);
 
     /// <summary>Enumerates the sample scripts in one language.</summary>
     /// <param name="language">The language's major version, which a sample's version line states (1 when it has none).</param>
@@ -50,7 +50,7 @@ public static class ScriptCorpus
                 .Order(StringComparer.Ordinal)
             : [];
 
-    /// <summary>Reads every language 1 sample script.</summary>
+    /// <summary>Reads every sample script in the language the pipeline compiles.</summary>
     /// <returns>One entry per file, carrying the path for a failure message and the text verbatim.</returns>
     /// <remarks>
     /// <para>
@@ -59,11 +59,11 @@ public static class ScriptCorpus
     /// suite actually measures, against <c>08</c>'s two-second budget for the unit tier.
     /// </para>
     /// <para>
-    /// Language 1's samples only: the tests that walk them lex, parse and bind with language 1's pipeline. A sample
-    /// in language 2 is in <see cref="All"/> and <see cref="InLanguage"/>, marked with its language.
+    /// Language 2's samples, since the switch (<c>D-174</c>). A sample in language 1 is in <see cref="All"/> and
+    /// <see cref="InLanguage"/>, marked with its language, until language 1 is deleted.
     /// </para>
     /// </remarks>
-    public static ImmutableArray<ScriptSource> Samples() => LazyLanguage1Samples.Value;
+    public static ImmutableArray<ScriptSource> Samples() => LazyCompiledSamples.Value;
 
     private static readonly Lazy<ImmutableArray<ScriptSource>> LazyAllSamples = new(() =>
     [
@@ -76,8 +76,8 @@ public static class ScriptCorpus
             }),
     ]);
 
-    private static readonly Lazy<ImmutableArray<ScriptSource>> LazyLanguage1Samples = new(() =>
-        [.. LazyAllSamples.Value.Where(static sample => sample.Language == 1)]);
+    private static readonly Lazy<ImmutableArray<ScriptSource>> LazyCompiledSamples = new(() =>
+        [.. LazyAllSamples.Value.Where(static sample => sample.Language == 2)]);
 
     /// <summary>The major a sample's version line states: 2 for <c>fluidscript 2</c>, 1 otherwise.</summary>
     private static int VersionOf(string text) =>

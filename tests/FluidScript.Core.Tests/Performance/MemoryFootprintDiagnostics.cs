@@ -88,7 +88,7 @@ public sealed class MemoryFootprintDiagnostics
         var loop = new OuterLoop(new NewtonSolver(), new CatalogBoreLookup(catalog), OuterLoop.Rules(catalog.Catalog), 10);
 
         var (model, bindAllocated) = Allocated(() =>
-            new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(text), sample).Model);
+            new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(text), sample).Model);
 
         var (prepared, prepareAllocated) = Allocated(() => loop.Prepare(model, Water.Instance, sample));
         var unknowns = FluidScript.Core.Topology.Counting.WellPosedness.Check(prepared.Lowered.Graph).Counting.Unknowns;

@@ -61,7 +61,7 @@ public static class ContractFixture
 
     private static (ParseResult Parse, BindResult Bind, ResolvedCatalog<PipeSpec> Catalog) Front(string source)
     {
-        var parse = FluidScriptParser.Parse(new SourceText(source));
+        var parse = ScriptParse.Parse(new SourceText(source));
         var bind = new Binder(ComponentRegistry.Default).Bind(parse, "script");
         var resolved = PipeCatalogs.Resolve(pin: null);
 

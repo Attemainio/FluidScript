@@ -35,7 +35,7 @@ public sealed class ImplicitPipeTests
     public void AConnectionLineMayEndInPipePropertiesAndPrintsByteForByte()
     {
         var source = "fluidscript 1\nconnections\nN1 - HE1 - N2 dn=25 length=12 # the loop's return\n";
-        var result = FluidScriptParser.Parse(new SourceText(source));
+        var result = ScriptParse.Parse(new SourceText(source));
 
         Assert.Empty(result.Diagnostics);
         var connection = Assert.IsType<ConnectionSyntax>(result.Root.Statements[2]);
@@ -47,7 +47,7 @@ public sealed class ImplicitPipeTests
     [Fact]
     public void APropertyWithoutAValueMakesTheLineMalformed()
     {
-        var result = FluidScriptParser.Parse(new SourceText("fluidscript 1\nconnections\nN1 - HE1 dn\n"));
+        var result = ScriptParse.Parse(new SourceText("fluidscript 1\nconnections\nN1 - HE1 dn\n"));
 
         Assert.IsType<MalformedStatementSyntax>(result.Root.Statements[2]);
         Assert.Contains(result.Diagnostics, static d => d.Code == "FS1105");

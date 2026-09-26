@@ -37,7 +37,7 @@ public sealed class PortStateSyntaxTests
 
     private static BindResult Bind(string body) =>
         new Binder(ComponentRegistry.Default).Bind(
-            FluidScriptParser.Parse(new SourceText("fluidscript 1\n" + body + "\n")), "script");
+            ScriptParse.Parse(new SourceText("fluidscript 1\n" + body + "\n")), "script");
 
     private static string Errors(BindResult result) =>
         string.Join("; ", result.Diagnostics

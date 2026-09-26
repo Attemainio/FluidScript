@@ -30,7 +30,7 @@ public sealed class LayoutPictureTests
 
     private static readonly string[] Samples =
     [
-        "m1-syntax-tour", "m2-cooling-loop", "m2-distribution-header", "m2-simple-loop", "m2-substation", "m4-demand-step", "m4-storage-header",
+        "m2-cooling-loop", "m2-distribution-header", "m2-simple-loop", "m2-substation", "m4-demand-step", "m4-storage-header",
     ];
 
     private static string Layout => Path.Combine(RepositoryLayout.Tests, "FluidScript.Core.Tests", "Layout");

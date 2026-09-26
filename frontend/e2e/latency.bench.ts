@@ -25,7 +25,7 @@ declare global {
 }
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const tour = readFileSync(`${root}samples/m1-syntax-tour.fluid`, 'utf8');
+const tour = readFileSync(`${root}samples/v2-syntax-tour.fluid`, 'utf8');
 
 function twoHundredDeclarations(): string {
   const lines = ['fluidscript 1', 'circuit big', 'fluid water', ''];
@@ -100,7 +100,7 @@ test('keystroke to visible diagnostic, D-48', async ({ page }) => {
 
   const results: string[] = [];
   for (const [name, script] of [
-    ['m1-syntax-tour', tour],
+    ['v2-syntax-tour', tour],
     ['200 declarations', twoHundredDeclarations()],
   ] as const) {
     const samples = await measure(page, script, 10);

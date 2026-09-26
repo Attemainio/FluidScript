@@ -60,7 +60,7 @@ public sealed class CurveClockTests
         Weather.Replace("{START}", start, StringComparison.Ordinal);
 
     private static BindResult Bind(string text) =>
-        new Binder(ComponentRegistry.Default).Bind(FluidScriptParser.Parse(new SourceText(text)));
+        new Binder(ComponentRegistry.Default).Bind(ScriptParse.Parse(new SourceText(text)));
 
     [Fact]
     public void TheStartIsReadAsATimeCurvesRowsAreRead()
