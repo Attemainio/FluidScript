@@ -9,12 +9,11 @@ using FluidScript.Core.Language.Syntax.Lexing;
 
 namespace FluidScript.Core.Language.Binding;
 
-/// <summary>Classifies the tokens of one <c>style</c> directive (<c>12</c> <em>Style directive</em>).</summary>
+/// <summary>Classifies the settings of one <c>style:</c> block into a spec (<c>19</c> §The project block, <c>D-171</c>).</summary>
 /// <remarks>
-/// Order-independent by decision: each token is read for what it is. A colour is a CSS named colour or
-/// a quoted <c>#rrggbb</c> / <c>#rgb</c>; a width is a number, bare or in <c>px</c>; a corner is
-/// <c>fillet</c>, <c>round</c> or <c>sharp</c>; a pattern is a run of dashes and dots; <c>fill=</c> is
-/// the one keyed token. Anything else is <c>FS1201</c>, and a second token of a category already
+/// Each setting arrives as the token the reader made of it, already checked against its key: a colour is a CSS
+/// named colour or a quoted <c>#rrggbb</c> / <c>#rgb</c>; a width is a number, bare or in <c>px</c>; a corner is
+/// <c>fillet</c> or <c>sharp</c>; a line is a run of dashes and dots. A second setting of a category already
 /// stated is <c>FS1202</c>.
 /// </remarks>
 public static class StyleTokens
@@ -23,7 +22,7 @@ public static class StyleTokens
 
     /// <summary>Reads a directive's tokens into a spec.</summary>
     /// <param name="parts">The tokens as parsed.</param>
-    /// <param name="report">Receives <c>FS1201</c> and <c>FS1202</c>.</param>
+    /// <param name="report">Receives <c>FS1202</c>.</param>
     /// <returns>The spec, with a category unstated where no token stated it.</returns>
     public static StyleSpec Classify(ImmutableArray<StyleTokenSyntax> parts, Action<DiagnosticDescriptor, TextSpan, (string Name, string Value)[]> report)
     {
@@ -61,23 +60,9 @@ public static class StyleTokens
                     spec = Set(spec with { Pattern = pattern }, "pattern", text);
                     break;
 
-                case StyleTokenKind.Keyed when part.Parts.Length == 3 && string.Equals(part.Parts[0].Text, "fill", StringComparison.Ordinal):
-                {
-                    var value = part.Parts[2];
-                    var colour = value.Kind == TokenKind.StringLiteral ? Hex(Unquote(value.Text)) : NamedColours.TryGet(value.Text, out var n) ? n : null;
-
-                    if (colour is null)
-                    {
-                        report(StyleDiagnostics.UnclassifiableToken, span, [("token", text)]);
-                        break;
-                    }
-
-                    spec = Set(spec with { Fill = colour }, "fill", text);
-                    break;
-                }
-
+                // The reader checked every value against its key and reported what it refused (`FS1514`), so
+                // nothing else arrives here.
                 default:
-                    report(StyleDiagnostics.UnclassifiableToken, span, [("token", text)]);
                     break;
             }
 
@@ -123,7 +108,7 @@ public static class StyleTokens
     private static string Unquote(string text) =>
         text.Length >= 2 && text[0] == '"' && text[^1] == '"' ? text[1..^1] : text;
 
-    private static double? Pixels(string text) =>
+    internal static double? Pixels(string text) =>
         text.EndsWith("px", StringComparison.Ordinal)
         && double.TryParse(text[..^2], NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
         && value > 0

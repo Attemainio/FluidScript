@@ -100,7 +100,7 @@ internal sealed partial class BindingRun
         if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
             && match.IsClear)
         {
-            // `D-170`: in language 2 a near miss binds nothing -- `haed = 15` would otherwise be a stated head.
+            // `D-170`: a near miss binds nothing -- `haed = 15` would otherwise be a stated head.
             // The spelling it was near is the one-click fix, on the name alone (L-53).
             Report(
                 BinderDiagnostics.UnknownParameter,
@@ -110,17 +110,6 @@ internal sealed partial class BindingRun
                 ("parameter", written),
                 ("available", Accepted(kind)));
             return null;
-        }
-
-        if (!match.IsExact && match.Best is not null && match.BestScore >= NameResolution.ResolveThreshold
-            && match.IsClear)
-        {
-            Report(
-                BinderDiagnostics.ResolvedBySimilarity,
-                parameter.Name.Span,
-                ("written", written),
-                ("canonical", match.Best.Name));
-            return match.Best;
         }
 
         Report(

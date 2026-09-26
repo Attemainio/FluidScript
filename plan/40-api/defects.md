@@ -17,13 +17,14 @@ day. **`43`, the
 realtime contract, has not been looked at**; its absence below means nothing has looked, not that
 nothing is wrong. The `edit` endpoint of `42` is deferred whole to `P7.1` and is not a defect.
 
-**Next id: `A-7`.** The columns, their vocabularies, and the rule for filing, reopening and closing
+**Next id: `A-8`.** The columns, their vocabularies, and the rule for filing, reopening and closing
 are in [`08`](../08-implementation-sequence.md) under *Every package writes down what it found*.
 
 ## Open
 
 | # | Filed | Effort | Risk | Basis | Document | What | Why it is still open |
 |---|---|---|---|---|---|---|---|
+| A-7 | 2026-09-26 | small | low | measured | [`43`](43-realtime-contract.md), `D-169`, `D-174` | **The realtime contract still specifies a run started from `settings`, which only a language 1 file used** | Found removing language 1's binder semantics (P6.11 package 7 step 4c). `43`'s `start` message carries `settings: { horizon, frameInterval }`, and a language 2 file instead names the run (`D-169`); "a language 1 file keeps `settings`". Since `D-174` no file is language 1, so every start names a run, and `TransientSettings`' remarks still describe the language 1 path. Nothing is built yet -- P6.5's worker is the first reader -- so this is the contract P6.5 would implement, not a running bug: built as written, the worker would accept a `settings` start for a file with no run and play a transient the file never asked for. | Open: `43`'s `start` names a run (by name or position) and nothing else; a file with no run cannot be started, and says so. Settle before P6.5 builds the worker. Small, plan-only until then. |
 | A-2 | 2026-09-18 | tiny | low | measured | [`42`](42-rest-contract.md) | **`metadata.docsIndex` is a repository-relative path, not a URI** | `42` says `docsIndex` is "a URI to the matching generated function index". `61` ships the docs as plain Markdown under `/docs` and nothing serves that directory over HTTP yet, so there is no URI to give, and the value is the configured path `docs/functions/index.md`. An agent following it today gets nothing. Closes when the docs are served, by making the option a URL. |
 
 ## Traps

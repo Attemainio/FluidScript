@@ -48,32 +48,17 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1002` | Error | Lexer | '{ch}' is not valid here. |
 | `FS1003` | Error | Lexer | '{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'. |
 | `FS1004` | Error | Lexer | '{word}' is reserved. Choose another name. |
-| `FS1101` | Warning | Parser | Only the first '{section}' section is used. |
-| `FS1102` | Error | Parser | Connections must come after the 'connections' line. |
-| `FS1103` | Error | Parser | A {statement} cannot appear after the '{section}' line. |
 | `FS1104` | Error | Parser | Cannot read this line. Expected a component declaration or a connection. |
 | `FS1105` | Error | Parser | '{token}' looks like a parameter but has no value. Write '{token}=…'. |
-| `FS1106` | Error | Parser | Put this under a 'schedule' line. |
-| `FS1107` | Warning | Parser | '{circuit}' is solved as a steady state, so its schedule does not run. Write 'fluid dynamic' to solve it in time. |
 | `FS1108` | Error | Parser | '{text}' — a name cannot contain '-'. Write '{underscored}'. |
-| `FS1109` | Error | Parser | '{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'. |
-| `FS1110` | Error | Parser | '{word}' needs one node of the parent circuit, and may appear once per circuit. |
-| `FS1111` | Error | Parser | A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'. |
-| `FS1112` | Error | Parser | '{word}' applies to the whole file and must come before the first 'circuit' line. |
-| `FS1113` | Error | Parser | Spacing is in world units, so write 'spacing {n}' with no unit. |
 | `FS1114` | Error | Parser | '{extra}' is more than this line can hold. |
 | `FS1115` | Error | Parser | Put this pair under a 'curve' line. |
 | `FS1116` | Error | Parser | 'curve {name}' needs what it depends on, such as 'curve {name} tout'. |
 | `FS1117` | Error | Parser | A curve row is one x and one y, such as '-26 50'. |
-| `FS1118` | Error | Parser | A 'design' line needs named values, such as 'design tout=-26'. |
 | `FS1119` | Error | Parser | An index is a whole number in brackets right after the name, such as 'in[2]'. |
-| `FS1120` | Error | Parser | A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'. |
 | `FS1121` | Error | Parser | A value list is one value per scenario, separated by commas, such as '[30, 10]'. |
-| `FS1201` | Warning | Style directive | Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern. |
 | `FS1202` | Warning | Style directive | '{a}' overrides the earlier '{b}'. |
 | `FS1203` | Warning | Style directive | '#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}". |
-| `FS1204` | Warning | Style directive | No style called '{name}' is defined; the components keep their previous style. |
-| `FS1205` | Warning | Style directive | Style '{name}' is defined again; the later definition is used. |
 | `FS1210` | Warning | Style directive | Nothing to show called '{name}'. Available: {list}. |
 | `FS1213` | Info | Style directive | '{name}' listed twice. |
 | `FS1214` | Warning | Style directive | Only the first 'show' is used. |
@@ -101,25 +86,18 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1505` | Error | Binder | A {kind} has no port '{port}'. Ports: {available}. |
 | `FS1506` | Error | Binder | Port '{port}' of '{name}' is already connected at line {line}. |
 | `FS1507` | Warning | Binder | '{name}' is not connected to anything. |
-| `FS1508` | Warning | Binder | No circuit name; using '{name}'. |
 | `FS1510` | Info | Binder | Added {kind} '{name}' ({rule}). |
 | `FS1511` | Warning | Binder | '{name}' and {count} others are not connected to the rest of the circuit. |
-| `FS1512` | Info | Binder | Read '{written}' as '{canonical}'. |
 | `FS1513` | Error | Binder | '{written}' could be '{first}' or '{second}'. Write one of them. |
 | `FS1514` | Error | Binder | '{parameter}' accepts {available}; '{written}' is none of them. |
 | `FS1515` | Error | Binder | '{parameter}' names a component property, like 'N2.t'. |
 | `FS1516` | Error | Binder | '{written}' is outside {kind}'s supported {min}…{max} range. |
-| `FS1517` | Warning | Binder | '{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used. |
-| `FS1518` | Error | Binder | '{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit. |
 | `FS1519` | Info | Binder | '{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}. |
-| `FS1520` | Warning | Binder | '{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both. |
 | `FS1521` | Error | Binder | A 'control' line needs {list}. Missing: {missing}. |
 | `FS1522` | Error | Binder | '{param}' of '{component}' cannot be controlled. |
 | `FS1523` | Error | Binder | '{name}' is a {kind}, not a controller. |
 | `FS1524` | Error | Binder | Circuit {number} is already '{owner}'. Every circuit's number is its own. |
 | `FS1525` | Error | Binder | '{name}' is already a circuit at line {line}. |
-| `FS1526` | Error | Binder | '{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection. |
-| `FS1527` | Error | Binder | '{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'. |
 | `FS1528` | Error | Binder | '{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=...' or solve in time. |
 | `FS1529` | Info | Binder | '{curve}' has two rows at {x}; the later one is used. |
 | `FS1530` | Error | Binder | '{curve}' needs at least two rows to interpolate between. |
@@ -135,11 +113,9 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS1540` | Error | Binder | '{written}' states {given} {values} for {count} scenario{plural}: {names}. State one per scenario, or one value for all of them. |
 | `FS1541` | Error | Binder | '{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit. |
 | `FS1542` | Error | Binder | '{name}' is not a scenario of this file. It declares: {names}. |
-| `FS1543` | Error | Binder | This file declares {count} scenarios and does not say which one to show. Add 'design {first}'. |
 | `FS1544` | Error | Binder | '{name}' is declared twice. Each scenario needs its own name. |
 | `FS1545` | Error | Binder | start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds. |
 | `FS1546` | Warning | Binder | This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value. |
-| `FS1547` | Warning | Binder | Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here. |
 | `FS1548` | Error | Binder | '{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one. |
 | `FS1549` | Warning | Binder | '{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point. |
 | `FS1701` | Info | Compatibility | This draft states no language version. Add 'fluidscript {major}' as its first line to save it. |
@@ -192,7 +168,6 @@ plausible readings means no suggestion, and a message that explains the choice i
 | `FS2214` | Warning | Topology | Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg? |
 | `FS2215` | Error | Topology | {substance} cannot be at {state}. |
 | `FS2216` | Info | Topology | '{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}. |
-| `FS2217` | Error | Topology | '{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit. |
 | `FS2218` | Info | Topology | '{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the pressure the two branches share. If a pump on its own branch was meant to hold it, free that one. |
 | `FS2219` | Error | Topology | '{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height. |
 | `FS2220` | Error | Topology | '{node}' is {rise} m above '{datum}', which puts it {short} kPa below the lowest pressure {substance} can be at. State a pressure on '{datum}' of at least {needed} kPa. |
@@ -292,5 +267,30 @@ given to something else.
 <!-- BEGIN GENERATED: retired-diagnostic-codes -->
 | Code | Why it is no longer reported |
 |---|---|
+| `FS1101` | A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174). |
+| `FS1102` | A connection above language 1's 'connections' line. Language 2 has no sections (D-174). |
+| `FS1103` | A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174). |
+| `FS1106` | A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174). |
+| `FS1107` | A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174). |
+| `FS1109` | 'in' or 'out' where language 1's 'inlet'/'outlet' attachment line was meant. Language 2 has no attachment lines (D-174). |
+| `FS1110` | A malformed language 1 'inlet'/'outlet' attachment line. Language 2 has none (D-174). |
+| `FS1111` | A malformed language 1 'control' line. Language 2 writes a loop as one controller declaration (D-168, D-174). |
+| `FS1112` | Language 1's 'project' or 'spacing' line after the first circuit. Language 2 writes both in the project block (D-174). |
+| `FS1113` | Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174). |
+| `FS1118` | Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174). |
+| `FS1120` | Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174). |
+| `FS1201` | A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174). |
+| `FS1204` | A named style used that language 1's 'style name = ...' never defined. Language 2 has no named styles and no component style (19, D-174). |
+| `FS1205` | A named style defined twice in language 1. Language 2 has no named styles (19, D-174). |
+| `FS1508` | Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174). |
 | `FS1509` | Meant 'more than one circuit header', which is now legal: a script may declare several numbered circuits. Two circuits claiming one number is a different condition and took a new code rather than inheriting this one. |
+| `FS1512` | A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174). |
+| `FS1517` | Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174). |
+| `FS1518` | A language 1 attachment line naming no component. Language 2 has no attachment lines (D-174). |
+| `FS1520` | A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174). |
+| `FS1526` | A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174). |
+| `FS1527` | A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174). |
+| `FS1543` | Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174). |
+| `FS1547` | Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174). |
+| `FS2217` | A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174). |
 <!-- END GENERATED: retired-diagnostic-codes -->

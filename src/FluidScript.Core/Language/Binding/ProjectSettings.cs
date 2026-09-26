@@ -15,20 +15,6 @@ namespace FluidScript.Core.Language.Binding;
 /// </remarks>
 public sealed record ProjectSettings(string? Name, FluidMode? DefaultMode)
 {
-    /// <summary>Gets each driver's value at the design condition (<c>D-58</c>).</summary>
-    /// <value>
-    /// Keyed by canonical driver name, so <c>design tout=-26</c> and <c>design outdoor=-26</c> land in
-    /// one entry. Empty for a file that states no design point, which is every file that solves in
-    /// time and reads no curve.
-    /// </value>
-    /// <remarks>
-    /// It sits here rather than beside the curves because it is an input to the physics that outlives
-    /// them: <c>D-58</c> makes it the <em>sizing</em> point in every mode, and the operating point as
-    /// well only in a static solve.
-    /// </remarks>
-    public ImmutableDictionary<string, DesignValue> Design { get; init; } =
-        ImmutableDictionary<string, DesignValue>.Empty;
-
     /// <summary>Gets the operating cases the plant is sized for, in the order written (<c>D-143</c>).</summary>
     /// <value>
     /// Empty for a file with no <c>scenarios</c> line, which is every file written before P6.8 and

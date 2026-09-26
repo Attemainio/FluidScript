@@ -22,9 +22,6 @@ namespace FluidScript.Core.Language.Binding;
 /// </remarks>
 internal sealed partial class BindingRun
 {
-    private static readonly ImmutableArray<string> ControlArguments =
-        ["actuate", "measure", "by", "setpoint"];
-
     private readonly List<ConnectionSymbol> _connections = [];
     private readonly List<ControlBindingSymbol> _controlBindings = [];
     private readonly List<DisturbanceSymbol> _disturbances = [];
@@ -42,7 +39,6 @@ internal sealed partial class BindingRun
         // Before inference, because an `inlet` or `outlet` line IS a connection the user wrote
         // another syntax (23). Left until after I3, it would find every port it wants to claim already
         // terminated by a dead-leg node, and the subcircuit would hang off the parent by nothing.
-        BindAttachments(blocks);
 
         // Snapshotted before inference, because FS1507 and FS1511 are statements about the topology
         // the user wrote. After I3 every component is connected to something, and the two codes could

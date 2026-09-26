@@ -29,9 +29,6 @@ public sealed record CurveSymbol
     /// <summary>Gets what the driver resolved to.</summary>
     public required CurveDriverKind DriverKind { get; init; }
 
-    /// <summary>Gets the registered driver, when the name resolved to one.</summary>
-    public ScheduleRole? DriverRole { get; init; }
-
     /// <summary>Gets whether the ends continue the slope rather than holding.</summary>
     /// <value><see langword="true"/> only when the header wrote <c>extrapolated</c>.</value>
     public required bool IsExtrapolated { get; init; }

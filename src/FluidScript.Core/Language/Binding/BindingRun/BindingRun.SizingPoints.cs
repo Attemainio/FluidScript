@@ -93,7 +93,7 @@ internal sealed partial class BindingRun
             _graph.Add(id);
             _pending[id] = new PendingValue(argument.Value, id, argument.Span, null) { IsDesign = true };
 
-            point[key] = new DesignValue(written, null, null, null, argument.Span);
+            point[key] = new DesignValue(written, null, null, argument.Span);
 
             // Every parameter of the component may read a curve this value positions, so each is
             // ordered after it. The edges cost nothing when a parameter reads no curve.
@@ -230,14 +230,14 @@ internal sealed partial class BindingRun
                 : value;
     }
 
-    /// <summary>The number a point is reported at: in its role's unit, or in the unit its <c>let</c> is written in.</summary>
-    private double? PointNumber(string component, string key, DesignValue entry)
+    /// <summary>The number a point is reported at: in the unit its <c>let</c> is written in.</summary>
+    private double? PointNumber(string component, string key)
     {
         var id = new ValueId.SizingPoint(component, key);
 
-        if (entry.Role is not null || !_pending.TryGetValue(id, out var given) || given.Value is not { } value)
+        if (!_pending.TryGetValue(id, out var given) || given.Value is not { } value)
         {
-            return Number(id, entry.Role);
+            return null;
         }
 
         // A `let` gives its own unit; a name no `let` has, the value's own dimension's.
@@ -286,7 +286,7 @@ internal sealed partial class BindingRun
                 BinderDiagnostics.SizingPointUnread,
                 first.Span,
                 ("component", component),
-                ("point", string.Join(" ", point.Select(entry => $"{entry.Value.WrittenName}={FormatNumber(PointNumber(component, entry.Key, entry.Value))}"))),
+                ("point", string.Join(" ", point.Select(entry => $"{entry.Value.WrittenName}={FormatNumber(PointNumber(component, entry.Key))}"))),
                 ("driver", first.WrittenName));
         }
     }
@@ -312,47 +312,24 @@ internal sealed partial class BindingRun
             return null;
         }
 
-        // Found by the driver's own name first, which is how language 2 declares a point (the `let` it names), then by
-        // the role language 1 declares it under: `sized_at tout=-5` for a curve on `tout` or `outdoor`.
-        var key = point.ContainsKey(driver)
-            ? driver
-            : curve.DriverRole?.CanonicalName is { } role && point.ContainsKey(role)
-                ? role
-                : ScheduleRoleRegistry.Resolve(driver)?.CanonicalName is { } spelled && point.ContainsKey(spelled)
-                    ? spelled
-                    : curve.DriverRole?.CanonicalName ?? driver;
-
-        if (point.ContainsKey(key))
+        // A point is keyed by the `let` it names (`D-175`), which is the driver the curve names.
+        if (point.ContainsKey(driver))
         {
             _pointRead = true;
         }
 
-        double? x = point.TryGetValue(key, out var stated)
-            ? stated.Role is null && curve.DriverKind == CurveDriverKind.Let
-                ? _pending.TryGetValue(new ValueId.SizingPoint(component, key), out var given) && given.Value is { } value
+        double? x = point.ContainsKey(driver)
+            ? curve.DriverKind == CurveDriverKind.Let
+                && _pending.TryGetValue(new ValueId.SizingPoint(component, driver), out var given) && given.Value is { } value
                     ? LetNumber(driver, value)
                     : null
-                : Number(new ValueId.SizingPoint(component, key), stated.Role)
             : curve.DriverKind == CurveDriverKind.Curve
                 ? CurveAt(driver, component, point, depth + 1)
                 : curve.DriverKind == CurveDriverKind.Let
                     ? LetNumber(driver)
-                    : DesignNumber(key);
+                    : null;
 
         return x is { } at ? curve.Evaluate(at) : null;
-    }
-
-    /// <summary>Reads one pending design-like value as the bare number a curve's table is written in.</summary>
-    private double? Number(ValueId id, ScheduleRole? role)
-    {
-        if (!_pending.TryGetValue(id, out var pending) || pending.Value is not { } quantity)
-        {
-            return null;
-        }
-
-        return role?.Dimension is { } dimension && UnitTable.CanonicalUnitFor(dimension) is { } unit
-            ? quantity.ValueIn(unit)
-            : quantity.SiValue;
     }
 
     /// <summary>The published sizing point of one component, values filled in.</summary>
@@ -369,7 +346,7 @@ internal sealed partial class BindingRun
         {
             var id = new ValueId.SizingPoint(componentName, key);
             _pending.TryGetValue(id, out var pending);
-            published[key] = entry with { Value = pending?.Value, Number = PointNumber(componentName, key, entry) };
+            published[key] = entry with { Value = pending?.Value, Number = PointNumber(componentName, key) };
         }
 
         return published.ToImmutable();
@@ -392,7 +369,7 @@ internal sealed partial class BindingRun
         var at = string.Join(
             " ",
             point.Select(entry =>
-                $"{entry.Value.WrittenName}={FormatNumber(PointNumber(componentName, entry.Key, entry.Value))}"));
+                $"{entry.Value.WrittenName}={FormatNumber(PointNumber(componentName, entry.Key))}"));
 
         // The capacity, which is what the point sets; the design day's value is held to it and may be smaller.
         sized = _capacities.GetValueOrDefault(pending.Id, sized);

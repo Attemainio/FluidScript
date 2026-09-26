@@ -79,12 +79,12 @@ public static partial class LayoutHintsDerivation
 
         foreach (var circuit in model.Circuits)
         {
-            var parent = circuit.ParentCircuit;
-            var supply = circuit.Supply?.ParentComponentName;
-            var returned = circuit.Return?.ParentComponentName;
+            // A circuit's parent is the one circuit it touches, where that one does not touch it back as its own.
+            string? parent = null;
+            string? supply = null;
+            string? returned = null;
 
-            if (parent is null && supply is null && returned is null
-                && TouchedParent(circuit.Name) is { } touched
+            if (TouchedParent(circuit.Name) is { } touched
                 && !string.Equals(TouchedParent(touched), circuit.Name, StringComparison.Ordinal))
             {
                 var list = contacts[circuit.Name];

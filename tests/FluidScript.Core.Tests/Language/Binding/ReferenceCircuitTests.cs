@@ -161,22 +161,6 @@ public sealed class ReferenceCircuitTests
 
     [Fact]
     [Trait("Category", "Unit")]
-    public void TheHeadersCircuitsAreSiblingsRatherThanAttachedSubcircuits()
-    {
-        // The consumers are wired to the header by hand rather than attached, so none of them declares a
-        // parent -- see `EachConsumerIsWiredToTheHeaderAtBothEndsByHand` for why attachment cannot
-        // express this shape (`F-16`/`F-17`). Asserted rather than left implicit because the previous
-        // version of this test asserted the opposite, and a fixture quietly losing a language feature is
-        // exactly the thing a reference circuit exists to make loud.
-        var model = Model("m2-distribution-header.fluid");
-
-        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.ParentCircuit));
-        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.Supply));
-        Assert.All(model.Circuits, static circuit => Assert.Null(circuit.Return));
-    }
-
-    [Fact]
-    [Trait("Category", "Unit")]
     public void TagOrdinalsRestartPerCircuit()
     {
         // `D-34`, and the reason this fixture exists: `101HE01` and `102HE01` are two different

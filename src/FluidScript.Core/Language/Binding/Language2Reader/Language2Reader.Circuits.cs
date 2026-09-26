@@ -206,11 +206,10 @@ internal sealed partial class Language2Reader
         return setting.Value switch
         {
             ReferenceSyntax { Parts.IsDefaultOrEmpty: true } named =>
-                new BindingRun.CircuitFluid(named.Head.Token.Text, null, TextSpan.FromBounds(start, named.Head.Span.End)),
+                new BindingRun.CircuitFluid(named.Head.Token.Text, TextSpan.FromBounds(start, named.Head.Span.End)),
             CallSyntax call =>
                 new BindingRun.CircuitFluid(
                     call.Name.Token.Text,
-                    null,
                     TextSpan.FromBounds(start, call.Arguments.IsEmpty ? call.Name.Span.End : Value(call.Arguments[^1].Value).Span.End)),
             _ => Rejected<BindingRun.CircuitFluid>(setting, "a fluid, such as water"),
         };

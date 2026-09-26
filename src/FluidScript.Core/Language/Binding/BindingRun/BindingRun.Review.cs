@@ -329,11 +329,8 @@ internal sealed partial class BindingRun
 
     private void ReportDeadEnds()
     {
-        // `L-44`. This used to exempt every node a subcircuit attaches to, because `supply N3` lowered to
-        // a connection one stage *later* than this ran, so the node's second edge did not exist yet and
-        // both of the header's headers were warned about (`F-12`). `BindAttachments` now runs before
-        // inference, so that connection is already counted in `_degrees`, and the exemption was dead
-        // code standing in for an edge that exists. Removing it changes no sample's diagnostics.
+        // `L-44`. This used to exempt every node a subcircuit attaches to (`F-12`); a subcircuit is joined by
+        // ordinary connections now, which `_degrees` already counts.
         foreach (var node in _components)
         {
             // A node with one connection that is not a boundary is a dead end: since D-115 only the

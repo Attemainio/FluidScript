@@ -32,7 +32,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     private readonly List<DeferredExpression> _deferred = [];
     private readonly HashSet<ValueId> _deferredTargets = [];
     private readonly List<StyleTokenSyntax> _styleTokens = [];
-    private readonly Dictionary<string, StyleSpec> _styleDefinitions = new(StringComparer.Ordinal);
     private readonly Dictionary<StatementSyntax, StyleSpec> _styleAt = new(ReferenceEqualityComparer.Instance);
     private StyleSpec _currentStyle = StyleSpec.Empty;
     private StyleSpec _projectStyle = StyleSpec.Empty;
@@ -43,8 +42,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private ProjectSettings _project = new(null, null);
 
-    /// <summary>Where <c>start=</c> was written, for a start that has no clock to act on (<c>FS1547</c>).</summary>
-    private TextSpan? _startSpan;
     private double? _spacing;
 
     /// <summary>The <c>show</c> lines, carried to the contract builder as written (<c>L-50</c>).</summary>
@@ -60,7 +57,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         ReviewComponents();
         ReviewCurveReferences();
         ReviewSizingPoints();
-        ReviewStart();
         ReviewLegacyReferences();
         BindTopology(circuits);
         BindRuns();
@@ -70,13 +66,12 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             Circuits = [.. _circuits],
             Project = _project with
             {
-                Design = PublishDesign(),
                 Scenarios = [.. _scenarios],
                 DesignScenario = SettleDesignScenario(),
             },
             Components = [.. _components],
             Bindings = [.. _bindings],
-            Style = new StyleSettings([.. _styleTokens], _spacing, _projectStyle, _styleDefinitions.ToImmutableDictionary(StringComparer.Ordinal)),
+            Style = new StyleSettings([.. _styleTokens], _spacing, _projectStyle, ImmutableDictionary<string, StyleSpec>.Empty),
             Connections = [.. _connections],
             ControlBindings = [.. _controlBindings],
             Disturbances = [.. _disturbances],
@@ -120,7 +115,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         foreach (var project in reading.Projects)
         {
-            BindProject(project, null, []);
+            BindProject(project);
         }
 
         _spacing = reading.Spacing;
@@ -128,7 +123,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         foreach (var style in reading.ProjectStyles)
         {
             _styleTokens.AddRange(style);
-            ReadStyle(null, style);
+            ReadStyle(style);
             _projectStyle = _currentStyle;
         }
 
@@ -141,7 +136,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             if (!block.Style.IsEmpty)
             {
                 _styleTokens.AddRange(block.Style);
-                ReadStyle(null, block.Style);
+                ReadStyle(block.Style);
             }
 
             foreach (var statement in block.Statements.Where(_ => !_currentStyle.IsEmpty))
@@ -154,50 +149,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         return reading.Circuits;
     }
 
-    /// <summary>Binds the <c>project</c> line: its name, its default mode, and <c>start=</c> (<c>D-149</c>).</summary>
-    /// <param name="name">The project's name, language 1's identifier or language 2's quoted title.</param>
-    /// <param name="mode">The mode every circuit takes unless it states its own, or <see langword="null"/>.</param>
-    /// <param name="arguments">Its named arguments, <c>start</c> alone being one it takes.</param>
-    private void BindProject(string? name, FluidMode? mode, ImmutableArray<ParameterSyntax> arguments)
-    {
-        double? start = null;
-
-        foreach (var argument in arguments)
-        {
-            if (!string.Equals(argument.Name.Text, "start", StringComparison.Ordinal))
-            {
-                Report(
-                    BinderDiagnostics.UnknownParameter,
-                    argument.Span,
-                    ("kind", "project"),
-                    ("parameter", argument.Name.Text),
-                    ("available", "start"));
-                continue;
-            }
-
-            // `D-149`: the same reader as a time curve's rows, so a start and a curve cannot disagree
-            // about how a date is read. Quoted, because `2026-01-15` is also a subtraction.
-            var written = argument.Value switch
-            {
-                StringLiteralSyntax quoted => quoted.Value,
-                NumberLiteralSyntax number => parse.Source.ToString(number.Span).Trim(),
-                _ => null,
-            };
-
-            start = written is null ? null : ReadTimestamp(written, format: null);
-            _startSpan = argument.Span;
-
-            if (start is null)
-            {
-                Report(
-                    BinderDiagnostics.StartUnreadable,
-                    argument.Span,
-                    ("value", parse.Source.ToString(argument.Value.Span).Trim()));
-            }
-        }
-
-        _project = new ProjectSettings(name, mode) { Start = start };
-    }
+    /// <summary>Binds the project's title. Its mode and start belong to a run (<c>D-169</c>), which projects them.</summary>
+    /// <param name="name">The project's quoted title.</param>
+    private void BindProject(string? name) => _project = new ProjectSettings(name, null);
 
     private void AssignCircuits(List<CircuitBlock> blocks)
     {
@@ -258,15 +212,8 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     ("line", LineOf(byName[name])));
             }
 
-            var mode = ModeOf(block, name, span);
-
-            // A schedule in a circuit with no time to run in. The parser cannot see this: which mode a
-            // circuit ends up in is the circuit's own directive resolved against the project's.
-            if (mode == FluidMode.Static
-                && block.Schedule is { } schedule)
-            {
-                Report(BinderDiagnostics.ScheduleWithoutTime, schedule, ("circuit", name));
-            }
+            // Every circuit binds steady; a run projects its circuits' modes (`D-169`).
+            var mode = FluidMode.Static;
 
             _circuits.Add(new CircuitSymbol
             {
@@ -284,31 +231,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     }
 
     private static string? Substance(CircuitBlock block) => block.Fluid?.Substance;
-
-    private FluidMode ModeOf(CircuitBlock block, string name, TextSpan span)
-    {
-        var fluid = block.Fluid;
-        var stated = fluid?.Mode;
-
-        if (stated is null)
-        {
-            return _project.DefaultMode ?? FluidMode.Static;
-        }
-
-        // The circuit's own setting wins, and the disagreement is reported rather than resolved
-        // quietly: a file that says dynamic once and static once means one of them by mistake.
-        if (_project.DefaultMode is { } projectMode && projectMode != stated)
-        {
-            Report(
-                BinderDiagnostics.ModeContradictsProject,
-                fluid!.Span,
-                ("circuit", name),
-                ("circuitMode", stated.Value.ToString().ToLowerInvariant()),
-                ("projectMode", projectMode.ToString().ToLowerInvariant()));
-        }
-
-        return stated.Value;
-    }
 
     /// <summary>The role a circuit is drawn in: stated in language 2, read from the name in language 1 (<c>D-35</c>).</summary>
     /// <remarks>
@@ -344,14 +266,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                 span,
                 ("name", name),
                 ("available", CircuitRoleRegistry.Names()));
-        }
-        else if (resolution.BySimilarity)
-        {
-            Report(
-                BinderDiagnostics.ResolvedBySimilarity,
-                span,
-                ("written", name),
-                ("canonical", resolution.Role.CanonicalName));
         }
 
         return resolution.Role;
@@ -478,9 +392,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         /// <summary>Gets or sets the circuit's fluid: language 1's line in the block, language 2's setting.</summary>
         public CircuitFluid? Fluid { get; set; }
 
-        /// <summary>Gets or sets where the block's schedule section begins, or <see langword="null"/> when it has none.</summary>
-        public TextSpan? Schedule { get; set; }
-
         /// <summary>Gets or sets the style tokens a language 2 circuit's <c>style:</c> block states; language 1 writes its style as a line.</summary>
         public ImmutableArray<StyleTokenSyntax> Style { get; set; } = [];
 
@@ -537,18 +448,6 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         ImmutableArray<ParameterSyntax> Arguments,
         TextSpan Span) : BlockLine(Span)
     {
-        /// <summary>Gets whether the line was written in the short form.</summary>
-        public bool IsShortForm => Actuator is not null;
-    }
-
-    /// <summary>A circuit's inlet or outlet (<c>D-41</c>).</summary>
-    /// <param name="Direction">Which side it declares.</param>
-    /// <param name="End">The component it names.</param>
-    /// <param name="Span">The line.</param>
-    internal sealed record AttachmentLine(AttachmentDirection Direction, LineEnd End, TextSpan Span) : BlockLine(Span)
-    {
-        /// <inheritdoc/>
-        public override IEnumerable<LineEnd> Mapped => [End];
     }
 
     /// <summary>A step or ramp in a schedule or a run: the parameter it changes, when, and to what.</summary>
@@ -592,9 +491,8 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     /// <summary>A circuit's fluid as the binder reads it (<c>D-177</c>).</summary>
     /// <param name="Substance">The substance as written.</param>
-    /// <param name="Mode">The solve mode stated with it, or <see langword="null"/> for the project's.</param>
-    /// <param name="Span">Where it is written, which a contradicted mode is reported against.</param>
-    internal sealed record CircuitFluid(string Substance, FluidMode? Mode, TextSpan Span);
+    /// <param name="Span">Where it is written.</param>
+    internal sealed record CircuitFluid(string Substance, TextSpan Span);
 
     private sealed record BindingSlot(LetBindingSyntax Declaration, ValueId Id);
 
@@ -616,10 +514,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
         /// <summary>Everything the expression read, from the pass that recorded the graph's edges.</summary>
         public ImmutableHashSet<ValueId> Dependencies { get; set; } = [];
 
-        /// <summary>The driver this is the design value of, when it is one and the name resolved.</summary>
-        public ScheduleRole? DesignRole { get; init; }
-
-        /// <summary>Whether this is a <c>design</c> value rather than a parameter or a binding.</summary>
+        /// <summary>Whether this is a sizing point's value rather than a parameter or a binding.</summary>
         public bool IsDesign { get; init; }
     }
 }

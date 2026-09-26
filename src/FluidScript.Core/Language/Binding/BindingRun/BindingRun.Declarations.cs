@@ -252,13 +252,6 @@ internal sealed partial class BindingRun
         {
             var written = parameter.Name.Text;
 
-            // `style=name` is presentation every kind accepts (D-104); it is read by DeclareComponent
-            // and is not a registry parameter, so it is neither bound nor reported here.
-            if (string.Equals(written, "style", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
             // With no kind there is nothing to check a parameter against, so it is kept as written and
             // nothing is reported: the user already has one error on this line about the kind, and a
             // second one per parameter would bury it.
@@ -290,68 +283,15 @@ internal sealed partial class BindingRun
         return bound.ToImmutable();
     }
 
-    /// <summary>The style a declaration carries: the one in force where it was written, then its own <c>style=</c>.</summary>
-    private StyleSpec? StyleOf(ComponentDeclarationSyntax declaration)
-    {
-        var style = _styleAt.GetValueOrDefault(declaration);
+    /// <summary>The style a declaration carries: its circuit's, merged over the project's (<c>D-171</c>).</summary>
+    /// <remarks>A component has no style of its own in language 2 (<c>19</c> §The project block); <c>style =</c> on one is <c>FS1503</c>.</remarks>
+    private StyleSpec? StyleOf(ComponentDeclarationSyntax declaration) => _styleAt.GetValueOrDefault(declaration);
 
-        foreach (var parameter in declaration.Parameters)
-        {
-            if (!string.Equals(parameter.Name.Text, "style", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            var name = (parameter.Value as ReferenceSyntax)?.Head.Token.Text ?? parse.Source.ToString(parameter.Value.Span).Trim();
-
-            if (_styleDefinitions.TryGetValue(name, out var defined))
-            {
-                style = (style ?? StyleSpec.Empty).Merge(defined);
-            }
-            else
-            {
-                Report(StyleDiagnostics.UndefinedStyle, parameter.Span, ("name", name));
-            }
-        }
-
-        return style;
-    }
-
-    /// <summary>Reads a style: a definition when it is named, else what it applies from here on.</summary>
-    /// <param name="named">The name a definition gives it, or <see langword="null"/>.</param>
-    /// <param name="parts">Its tokens.</param>
-    private void ReadStyle(Token? named, ImmutableArray<StyleTokenSyntax> parts)
+    /// <summary>Reads a style block's settings and applies them over the style in force (<c>D-171</c>).</summary>
+    /// <param name="parts">Its settings, each checked against its key by the reader.</param>
+    private void ReadStyle(ImmutableArray<StyleTokenSyntax> parts)
     {
         var reported = (DiagnosticDescriptor descriptor, TextSpan span, (string Name, string Value)[] arguments) => Report(descriptor, span, arguments);
-
-        if (named is { } name)
-        {
-            if (_styleDefinitions.ContainsKey(name.Text))
-            {
-                Report(StyleDiagnostics.RedefinedStyle, name.Span, ("name", name.Text));
-            }
-
-            _styleDefinitions[name.Text] = StyleTokens.Classify(parts, reported);
-            return;
-        }
-
-        // A single bare word that names a defined style applies it; any other token list is an
-        // anonymous style read for what its tokens are.
-        if (parts is [{ Kind: StyleTokenKind.Word } word] && !NamedColours.TryGet(word.Text, out _)
-            && word.Text is not ("fillet" or "round" or "sharp"))
-        {
-            if (_styleDefinitions.TryGetValue(word.Text, out var defined))
-            {
-                _currentStyle = _currentStyle.Merge(defined);
-            }
-            else
-            {
-                Report(StyleDiagnostics.UndefinedStyle, word.Span, ("name", word.Text));
-            }
-
-            return;
-        }
-
         _currentStyle = _currentStyle.Merge(StyleTokens.Classify(parts, reported));
     }
 }

@@ -34,19 +34,6 @@ namespace FluidScript.Core.Diagnostics.Descriptors;
 /// </remarks>
 public static class BinderDiagnostics
 {
-    /// <summary>A <c>schedule</c> section in a circuit solved as a steady state.</summary>
-    /// <value><c>FS1107</c>, a warning.</value>
-    /// <remarks>
-    /// The code belongs to the grammar's range because that is its subject (<c>D-53</c>), but only the
-    /// binder can raise it: which mode a circuit ends up in is <c>D-37</c>'s resolution of the
-    /// circuit's own directive against the project's, and the parser has neither.
-    /// </remarks>
-    public static DiagnosticDescriptor ScheduleWithoutTime { get; } = new(
-        "FS1107",
-        DiagnosticSeverity.Warning,
-        "'{circuit}' is solved as a steady state, so its schedule does not run. "
-        + "Write 'fluid dynamic' to solve it in time.");
-
     /// <summary>Two absolute temperatures added together.</summary>
     /// <value><c>FS1302</c>, an error.</value>
     /// <remarks>
@@ -218,24 +205,6 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Error,
         "A {kind} has no '{parameter}'. It accepts: {available}.");
 
-    /// <summary>A script with no <c>circuit</c> header.</summary>
-    /// <value><c>FS1508</c>, a warning.</value>
-    public static DiagnosticDescriptor NoCircuitHeader { get; } = new(
-        "FS1508",
-        DiagnosticSeverity.Warning,
-        "No circuit name; using '{name}'.");
-
-    /// <summary>A name read as a near miss for a registered one.</summary>
-    /// <value><c>FS1512</c>, informational.</value>
-    /// <remarks>
-    /// Always emitted, never suppressed. A resolution the user cannot see is magic, and escalating it
-    /// to a warning would put an amber squiggle on a script doing exactly what its author meant.
-    /// </remarks>
-    public static DiagnosticDescriptor ResolvedBySimilarity { get; } = new(
-        "FS1512",
-        DiagnosticSeverity.Info,
-        "Read '{written}' as '{canonical}'.");
-
     /// <summary>A kind name equally close to two registered kinds.</summary>
     /// <value><c>FS1513</c>, an error.</value>
     public static DiagnosticDescriptor AmbiguousKind { get; } = new(
@@ -263,14 +232,6 @@ public static class BinderDiagnostics
         "FS1516",
         DiagnosticSeverity.Error,
         "'{written}' is outside {kind}'s supported {min}…{max} range.");
-
-    /// <summary>A circuit whose own mode contradicts the project's default.</summary>
-    /// <value><c>FS1517</c>, a warning.</value>
-    /// <remarks>The circuit's own setting wins; the warning exists so the disagreement is visible.</remarks>
-    public static DiagnosticDescriptor ModeContradictsProject { get; } = new(
-        "FS1517",
-        DiagnosticSeverity.Warning,
-        "'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.");
 
     /// <summary>A circuit name matching no registered role.</summary>
     /// <value><c>FS1519</c>, informational.</value>
@@ -365,25 +326,6 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "'{name}' and {count} others are not connected to the rest of the circuit.");
 
-    /// <summary>A <c>supply</c> or <c>return</c> naming something no circuit declares.</summary>
-    /// <value><c>FS1518</c>, an error.</value>
-    public static DiagnosticDescriptor AttachmentNotDeclared { get; } = new(
-        "FS1518",
-        DiagnosticSeverity.Error,
-        "'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.");
-
-    /// <summary>A circuit with one attachment and not the other.</summary>
-    /// <value><c>FS1520</c>, a warning.</value>
-    /// <remarks>
-    /// The message is direction-neutral. <c>15</c>'s original shape — "takes flow at '{node}' and never
-    /// returns it" — is false for the half of the trigger where <c>return</c> is the line that was
-    /// written, and a message that is wrong half the time is worse than a plainer one.
-    /// </remarks>
-    public static DiagnosticDescriptor LoneAttachment { get; } = new(
-        "FS1520",
-        DiagnosticSeverity.Warning,
-        "'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.");
-
     /// <summary>A <c>control</c> line missing one of its four named arguments.</summary>
     /// <value><c>FS1521</c>, an error.</value>
     public static DiagnosticDescriptor ControlMissingArgument { get; } = new(
@@ -405,14 +347,6 @@ public static class BinderDiagnostics
         "FS1523",
         DiagnosticSeverity.Error,
         "'{name}' is a {kind}, not a controller.");
-
-    /// <summary>A subcircuit whose two attachments land in two different circuits.</summary>
-    /// <value><c>FS1526</c>, an error.</value>
-    public static DiagnosticDescriptor AttachmentsDisagree { get; } = new(
-        "FS1526",
-        DiagnosticSeverity.Error,
-        "'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one "
-        + "parent; write the second link as a connection.");
 
     /// <summary>A node with one connection that is not a boundary.</summary>
     /// <value><c>FS2107</c>, a warning.</value>
@@ -628,26 +562,6 @@ public static class BinderDiagnostics
         "'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.",
         language2Template: "'{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.");
 
-    /// <summary>A curve driver that names nothing at all.</summary>
-    /// <value><c>FS1527</c>, an error.</value>
-    /// <remarks>
-    /// <para>
-    /// A driver has to supply a number, and there are exactly three things that can: another curve,
-    /// the clock, or a <c>design</c> line. <c>D-59</c>'s registry decides only what <em>name</em> a
-    /// design value may be written under, so an unregistered driver with a design value behind it is
-    /// fine and this fires for a name with nothing behind it anywhere.
-    /// </para>
-    /// <para>
-    /// <c>D-57</c> leans on this: the three positions of a curve header are not symmetrical, and
-    /// writing <c>curve outdoor heating</c> for <c>curve heating outdoor</c> is caught here in every
-    /// case where both names exist, which is the ordinary one.
-    /// </para>
-    /// </remarks>
-    public static DiagnosticDescriptor UnknownCurveDriver { get; } = new(
-        "FS1527",
-        DiagnosticSeverity.Error,
-        "'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.");
-
     /// <summary>A curve read in a static circuit whose driver has no design value.</summary>
     /// <value><c>FS1528</c>, an error.</value>
     /// <remarks>
@@ -827,18 +741,6 @@ public static class BinderDiagnostics
         "'{name}' is not a scenario of this file. It declares: {names}.",
         language2Template: "'{name}' is not a case of this file. It declares: {names}.");
 
-    /// <summary>Scenarios declared with no <c>design</c> naming one of them (<c>D-143</c>).</summary>
-    /// <value><c>FS1543</c>, an error suggesting the first.</value>
-    /// <remarks>
-    /// There is no default. The first name is a <em>position</em> -- what element one of every list
-    /// binds to -- and reading a position as a choice would make reordering the line silently change
-    /// which case the canvas draws.
-    /// </remarks>
-    public static DiagnosticDescriptor DesignScenarioMissing { get; } = new(
-        "FS1543",
-        DiagnosticSeverity.Error,
-        "This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.");
-
     /// <summary>Two scenarios declared under one name (<c>D-143</c>).</summary>
     /// <value><c>FS1544</c>, an error naming the repeat.</value>
     /// <remarks>
@@ -875,13 +777,6 @@ public static class BinderDiagnostics
         DiagnosticSeverity.Warning,
         "This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start=\"…\" to the project line; until then a run holds it at its design value.",
         language2Template: "This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value.");
-
-    /// <summary>A <c>start=</c> in a file that nothing solves in time (<c>D-149</c>).</summary>
-    /// <value><c>FS1547</c>, a warning.</value>
-    public static DiagnosticDescriptor StartWithoutClock { get; } = new(
-        "FS1547",
-        DiagnosticSeverity.Warning,
-        "Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.");
 
     /// <summary>A measurement read at a node where more than two pipes meet (<c>D-150</c>).</summary>
     /// <value><c>FS1548</c>, an error.</value>
@@ -927,11 +822,9 @@ public static class BinderDiagnostics
         ScenarioCountMismatch,
         ScenarioListWithoutScenarios,
         UnknownDesignScenario,
-        DesignScenarioMissing,
         DuplicateScenario,
         StartUnreadable,
         ClockWithoutStart,
-        StartWithoutClock,
         MeasuredJunction,
         SizingPointUnread,
         LegacySpelling,
@@ -942,7 +835,6 @@ public static class BinderDiagnostics
         PortStateOnNode,
         UnknownPortQuantity,
         PortPressureStatedTwice,
-        ScheduleWithoutTime,
         CannotAddAbsolutes,
         ParameterDimensionMismatch,
         OperandDimensionMismatch,
@@ -961,25 +853,18 @@ public static class BinderDiagnostics
         UnknownPort,
         PortAlreadyConnected,
         NotConnected,
-        NoCircuitHeader,
         ComponentInferred,
         DisconnectedGraph,
-        ResolvedBySimilarity,
         AmbiguousKind,
         UnacceptedSymbol,
         ExpectedReference,
         IndexOutsideFamily,
-        ModeContradictsProject,
-        AttachmentNotDeclared,
         UnknownCircuitRole,
-        LoneAttachment,
         ControlMissingArgument,
         ParameterNotControllable,
         NotAController,
         DuplicateCircuitNumber,
         DuplicateCircuitName,
-        AttachmentsDisagree,
-        UnknownCurveDriver,
         CurveWithoutDesignPoint,
         DuplicateCurveRow,
         CurveTooShort,

@@ -362,7 +362,7 @@ internal sealed partial class BindingRun
 
         var pending = _pending[id];
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
-        var evaluator = new ExpressionEvaluator(this, parse.Source, diagnostics, pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
+        var evaluator = new ExpressionEvaluator(this, parse.Source, diagnostics, pending.Target?.Info.Dimension);
 
         pending.Value = null;
         _evaluating = id;

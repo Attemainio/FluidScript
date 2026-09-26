@@ -35,27 +35,6 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "'{word}' is reserved. Choose another name.");
 
-    /// <summary>A second <c>connections</c> or <c>schedule</c> header in one circuit.</summary>
-    /// <value><c>FS1101</c>, a warning.</value>
-    public static DiagnosticDescriptor DuplicateSectionHeader { get; } = new(
-        "FS1101",
-        DiagnosticSeverity.Warning,
-        "Only the first '{section}' section is used.");
-
-    /// <summary>A connection outside the <c>connections</c> section.</summary>
-    /// <value><c>FS1102</c>, an error.</value>
-    public static DiagnosticDescriptor ConnectionOutsideSection { get; } = new(
-        "FS1102",
-        DiagnosticSeverity.Error,
-        "Connections must come after the 'connections' line.");
-
-    /// <summary>A statement in a section that does not accept it.</summary>
-    /// <value><c>FS1103</c>, an error.</value>
-    public static DiagnosticDescriptor StatementInWrongSection { get; } = new(
-        "FS1103",
-        DiagnosticSeverity.Error,
-        "A {statement} cannot appear after the '{section}' line.");
-
     /// <summary>A line that cannot be classified.</summary>
     /// <value><c>FS1104</c>, an error.</value>
     public static DiagnosticDescriptor UnclassifiableStatement { get; } = new(
@@ -72,13 +51,6 @@ public static class ParserDiagnostics
         "'{token}' looks like a parameter but has no value. Write '{token}=…'.",
         language2Template: "'{token}' looks like a parameter but has no value. Write '{token} = …'.");
 
-    /// <summary>A disturbance outside the <c>schedule</c> section.</summary>
-    /// <value><c>FS1106</c>, an error.</value>
-    public static DiagnosticDescriptor DisturbanceOutsideSchedule { get; } = new(
-        "FS1106",
-        DiagnosticSeverity.Error,
-        "Put this under a 'schedule' line.");
-
     /// <summary>A hyphen inside a name or a kind name.</summary>
     /// <value><c>FS1108</c>, an error.</value>
     /// <remarks>
@@ -90,48 +62,6 @@ public static class ParserDiagnostics
         "FS1108",
         DiagnosticSeverity.Error,
         "'{text}' — a name cannot contain '-'. Write '{underscored}'.");
-
-    /// <summary><c>in</c> or <c>out</c> where an attachment was meant.</summary>
-    /// <value><c>FS1109</c>, an error.</value>
-    /// <remarks>
-    /// This is the only place the parser looks at an identifier's spelling, and it is worth the
-    /// exception. <c>in N3</c> is a legal component declaration — a component named <c>in</c> of kind
-    /// <c>N3</c> — so without this the user gets an unknown-kind message pointing at <c>N3</c>, or no
-    /// message at all and a subcircuit that never attaches.
-    /// </remarks>
-    public static DiagnosticDescriptor InOutIsNotAnAttachment { get; } = new(
-        "FS1109",
-        DiagnosticSeverity.Error,
-        "'{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'.");
-
-    /// <summary>An attachment with no endpoint, or a second of the same direction in one circuit.</summary>
-    /// <value><c>FS1110</c>, an error.</value>
-    public static DiagnosticDescriptor MalformedAttachment { get; } = new(
-        "FS1110",
-        DiagnosticSeverity.Error,
-        "'{word}' needs one node of the parent circuit, and may appear once per circuit.");
-
-    /// <summary>A <c>control</c> line with no arguments, or an argument with no value.</summary>
-    /// <value><c>FS1111</c>, an error.</value>
-    public static DiagnosticDescriptor MalformedControlBinding { get; } = new(
-        "FS1111",
-        DiagnosticSeverity.Error,
-        "A 'control' line needs named arguments, such as "
-        + "'control actuate=V1.position measure=N2.t by=PID1'.");
-
-    /// <summary>A file-wide directive after the first <c>circuit</c>, or a second of either.</summary>
-    /// <value><c>FS1112</c>, an error.</value>
-    public static DiagnosticDescriptor GlobalDirectiveOutOfPlace { get; } = new(
-        "FS1112",
-        DiagnosticSeverity.Error,
-        "'{word}' applies to the whole file and must come before the first 'circuit' line.");
-
-    /// <summary><c>spacing</c> given a quantity rather than a bare number.</summary>
-    /// <value><c>FS1113</c>, an error.</value>
-    public static DiagnosticDescriptor SpacingTakesABareNumber { get; } = new(
-        "FS1113",
-        DiagnosticSeverity.Error,
-        "Spacing is in world units, so write 'spacing {n}' with no unit.");
 
     /// <summary>A bare <c>#rrggbb</c> in a <c>style</c> directive.</summary>
     /// <value><c>FS1203</c>, a warning.</value>
@@ -159,12 +89,11 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "'{extra}' is more than this line can hold.");
 
-    /// <summary>A curve row written outside a <c>curve</c> section.</summary>
+    /// <summary>A curve row written outside a curve's block.</summary>
     /// <value><c>FS1115</c>, an error.</value>
     /// <remarks>
-    /// The counterpart of <see cref="ConnectionOutsideSection"/> and
-    /// <see cref="DisturbanceOutsideSchedule"/>. Two bare values are a statement nowhere else in the
-    /// language, so the message can say what the line is rather than that it did not parse.
+    /// Two bare values are a statement nowhere else in the language, so the message can say what the line
+    /// is rather than that it did not parse.
     /// </remarks>
     public static DiagnosticDescriptor CurveRowOutsideSection { get; } = new(
         "FS1115",
@@ -191,13 +120,6 @@ public static class ParserDiagnostics
         DiagnosticSeverity.Error,
         "A curve row is one x and one y, such as '-26 50'.");
 
-    /// <summary>A <c>design</c> line with no named values.</summary>
-    /// <value><c>FS1118</c>, an error.</value>
-    public static DiagnosticDescriptor MalformedDesignDirective { get; } = new(
-        "FS1118",
-        DiagnosticSeverity.Error,
-        "A 'design' line needs named values, such as 'design tout=-26'.");
-
     /// <summary>A bracket after a name that does not enclose one whole number touching the name (<c>D-120</c>).</summary>
     /// <value><c>FS1119</c>, an error.</value>
     /// <remarks>
@@ -209,13 +131,6 @@ public static class ParserDiagnostics
         "FS1119",
         DiagnosticSeverity.Error,
         "An index is a whole number in brackets right after the name, such as 'in[2]'.");
-
-    /// <summary>A <c>scenarios</c> line with no names (<c>D-143</c>).</summary>
-    /// <value><c>FS1120</c>, an error.</value>
-    public static DiagnosticDescriptor MalformedScenariosDirective { get; } = new(
-        "FS1120",
-        DiagnosticSeverity.Error,
-        "A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'.");
 
     /// <summary>A bracketed value list that is not closed, or that has an empty slot (<c>D-143</c>).</summary>
     /// <value><c>FS1121</c>, an error.</value>
@@ -234,28 +149,17 @@ public static class ParserDiagnostics
     /// <value>Twenty-three descriptors. Order does not matter; the registry sorts.</value>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
     [
-        MalformedScenariosDirective,
         MalformedScenarioList,
         MalformedIndex,
         NameReadsAsQuantity,
         ReservedWordAsName,
-        DuplicateSectionHeader,
-        ConnectionOutsideSection,
-        StatementInWrongSection,
         UnclassifiableStatement,
         ParameterWithoutValue,
-        DisturbanceOutsideSchedule,
         HyphenInName,
-        InOutIsNotAnAttachment,
-        MalformedAttachment,
-        MalformedControlBinding,
-        GlobalDirectiveOutOfPlace,
-        SpacingTakesABareNumber,
         ExtraTextOnLine,
         CurveRowOutsideSection,
         CurveWithoutDriver,
         MalformedCurveRow,
-        MalformedDesignDirective,
         BareHexColour,
     ];
 }

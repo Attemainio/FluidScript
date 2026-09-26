@@ -759,7 +759,7 @@ all but one free size on the path, or decoupling the blocks.
 | `FS2214` | Loop with no flow driver | Warning | `Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?` |
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |
-| `FS2217` | A subcircuit's attachment endpoint resolves to its own circuit | Error | `'{circuit}' attaches to '{node}', which is one of its own components. A subcircuit attaches to another circuit.` |
+| `FS2217` | *(retired)* | — | A language 1 attachment to a component of the attaching circuit itself. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS2218` | A flow constraint answered by a pump on another branch of its loop | Info | `'{constraint}' is held by '{pump}', on another branch of its loop: the flow is set through the pressure the two branches share. If a pump on its own branch was meant to hold it, free that one.` |
 
 | `FS2219` | Two stated heights joined by nothing that could span them | Error | `'{second}' at {b} m is wired directly to '{first}' at {a} m. Put a pipe between them, or give them one height.` |

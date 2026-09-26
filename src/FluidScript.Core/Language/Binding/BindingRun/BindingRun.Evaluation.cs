@@ -23,7 +23,7 @@ internal sealed partial class BindingRun
                 this,
                 parse.Source,
                 ImmutableArray.CreateBuilder<Diagnostic>(),
-                pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
+                pending.Target?.Info.Dimension);
             _evaluating = pending.Id;
             evaluator.Evaluate(pending.Expression);
             var dependencies = evaluator.Dependencies;
@@ -85,7 +85,7 @@ internal sealed partial class BindingRun
                 this,
                 parse.Source,
                 _diagnostics,
-                pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
+                pending.Target?.Info.Dimension);
 
             // Named while it reads, so a curve reference can tell whose parameter is asking and read
             // the curve at that component's own sizing point (`D-94`).
@@ -117,31 +117,9 @@ internal sealed partial class BindingRun
     {
         var quantity = value.Quantity;
 
-        // A design value is not a parameter, and its driver's role is what checks it (`D-59`). The
-        // role's dimension makes `design tout=-26` and `design tout=-26 C` the same point, and
-        // `design tout=3 bar` a mismatch rather than a silent reinterpretation; a role with no
-        // dimension takes its value bare and checks nothing.
+        // A sizing point is not a parameter: it is read in its `let`'s unit, which the point's reader applies.
         if (pending.IsDesign)
         {
-            if (pending.DesignRole?.Dimension is { } dimension)
-            {
-                if (value.IsBare)
-                {
-                    quantity = Quantity.FromBareNumber(quantity.SiValue, dimension);
-                }
-                else if (quantity.Dimension != dimension)
-                {
-                    Report(
-                        BinderDiagnostics.ParameterDimensionMismatch,
-                        pending.Span,
-                        ("parameter", pending.DesignRole.CanonicalName),
-                        ("expected", dimension.Name.ToLowerInvariant()),
-                        ("value", parse.Source.ToString(pending.Expression.Span).Trim()),
-                        ("actual", quantity.Dimension.Name.ToLowerInvariant()));
-                    return;
-                }
-            }
-
             pending.Value = quantity;
             return;
         }

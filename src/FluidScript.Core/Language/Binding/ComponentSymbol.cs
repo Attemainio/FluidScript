@@ -80,9 +80,9 @@ public sealed record ComponentSymbol
 
     /// <summary>Gets the component's own sizing point, from its <c>sized_at</c> clause (<c>D-94</c>).</summary>
     /// <value>
-    /// Empty for a component that reads every curve where the file's <c>design</c> line says. Keyed by
-    /// canonical driver name like <see cref="ProjectSettings.Design"/>, with the value and the number
-    /// a curve is read at filled in once evaluated. A component whose parameters read a curve at this
+    /// Empty for a component that reads every curve at each case's value of its driver. Keyed by the
+    /// <c>let</c> the point names (<c>D-175</c>), with the value and the number a curve is read at filled
+    /// in once evaluated. A component whose parameters read a curve at this
     /// point takes the curve's value there as its <em>capacity</em>: below the point it is flat out and
     /// the rest of the plant carries the remainder, which is what a bivalent heat pump is.
     /// </value>

@@ -142,7 +142,7 @@ internal sealed partial class Language2Reader
         _reading.FileLines.Add(new BindingRun.CaseNames(
             [.. names.Select(static name => (name.Token.Text, name.Span))], TextSpan.FromBounds(at, names[^1].Span.End)));
         _reading.FileLines.Add(new BindingRun.DesignLine(
-            (names[0].Token.Text, names[0].Span), [], TextSpan.FromBounds(at, names[0].Span.End)));
+            (names[0].Token.Text, names[0].Span), TextSpan.FromBounds(at, names[0].Span.End)));
     }
 
     /// <summary>Reads a setting whose value is one name or a bracketed list of names: <c>cases</c>, <c>show</c>.</summary>
@@ -243,10 +243,15 @@ internal sealed partial class Language2Reader
 
         if (Is(setting, "colour") || Is(setting, "color"))
         {
+            // The value is checked here, where the setting is known, so a hex that does not parse or a name no
+            // colour has is said against `colour` and its options (`L-77`) -- not as a style line's unplaceable
+            // word (`FS1201`) or a named style this language does not have (`FS1204`).
             return token switch
             {
-                { Kind: TokenKind.StringLiteral } => new StyleTokenSyntax(StyleTokenKind.Quoted, [token]),
-                { Kind: TokenKind.Identifier } => new StyleTokenSyntax(StyleTokenKind.Word, [token]),
+                { Kind: TokenKind.StringLiteral } when StyleTokens.Hex(token.StringValue ?? string.Empty) is not null =>
+                    new StyleTokenSyntax(StyleTokenKind.Quoted, [token]),
+                { Kind: TokenKind.Identifier } when NamedColours.TryGet(token.Text, out _) =>
+                    new StyleTokenSyntax(StyleTokenKind.Word, [token]),
                 _ => InvalidStyle(setting, "a colour name or a quoted hex such as \"#2f6f9f\""),
             };
         }
@@ -255,9 +260,10 @@ internal sealed partial class Language2Reader
         {
             return token switch
             {
-                { Kind: TokenKind.NumberLiteral } => new StyleTokenSyntax(StyleTokenKind.Number, [token]),
-                { Kind: TokenKind.QuantityLiteral } => new StyleTokenSyntax(StyleTokenKind.Quantity, [token]),
-                _ => InvalidStyle(setting, "a width in pixels, such as 2"),
+                { Kind: TokenKind.NumberLiteral, Value: > 0 } => new StyleTokenSyntax(StyleTokenKind.Number, [token]),
+                { Kind: TokenKind.QuantityLiteral } when StyleTokens.Pixels(token.Text) is not null =>
+                    new StyleTokenSyntax(StyleTokenKind.Quantity, [token]),
+                _ => InvalidStyle(setting, "a width in pixels above zero, such as 2"),
             };
         }
 

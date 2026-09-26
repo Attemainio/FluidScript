@@ -11,33 +11,12 @@ namespace FluidScript.Core.Diagnostics.Descriptors;
 /// </remarks>
 public static class StyleDiagnostics
 {
-    /// <summary>A style token that is not a colour, a width, a corner treatment or a line pattern.</summary>
-    /// <value><c>FS1201</c>, a warning.</value>
-    public static DiagnosticDescriptor UnclassifiableToken { get; } = new(
-        "FS1201",
-        DiagnosticSeverity.Warning,
-        "Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.");
-
     /// <summary>Two tokens of the same category in one directive; the later wins.</summary>
     /// <value><c>FS1202</c>, a warning.</value>
     public static DiagnosticDescriptor OverriddenToken { get; } = new(
         "FS1202",
         DiagnosticSeverity.Warning,
         "'{a}' overrides the earlier '{b}'.");
-
-    /// <summary>A style applied by a name no <c>style name = ...</c> defined.</summary>
-    /// <value><c>FS1204</c>, a warning: the directive is ignored.</value>
-    public static DiagnosticDescriptor UndefinedStyle { get; } = new(
-        "FS1204",
-        DiagnosticSeverity.Warning,
-        "No style called '{name}' is defined; the components keep their previous style.");
-
-    /// <summary>A style name defined twice; the later definition wins.</summary>
-    /// <value><c>FS1205</c>, a warning.</value>
-    public static DiagnosticDescriptor RedefinedStyle { get; } = new(
-        "FS1205",
-        DiagnosticSeverity.Warning,
-        "Style '{name}' is defined again; the later definition is used.");
 
     /// <summary><c>show</c> names a property the scale does not know; it is skipped.</summary>
     /// <value><c>FS1210</c>, a warning.</value>
@@ -62,5 +41,5 @@ public static class StyleDiagnostics
 
     /// <summary>Gets every code this family emits, for the registry to collect.</summary>
     public static ImmutableArray<DiagnosticDescriptor> All { get; } =
-        [UnclassifiableToken, OverriddenToken, UndefinedStyle, RedefinedStyle, UnknownShowProperty, DuplicateShowProperty, SecondShowDirective];
+        [OverriddenToken, UnknownShowProperty, DuplicateShowProperty, SecondShowDirective];
 }

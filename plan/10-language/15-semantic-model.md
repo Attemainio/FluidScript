@@ -1046,26 +1046,26 @@ above, never to a `let`.
 | `FS1505` | Unknown port | Error | `A {kind} has no port '{port}'. Ports: {list}.` |
 | `FS1506` | Port connected more than once | Error | `Port '{port}' of '{name}' is already connected at line {n}.` |
 | `FS1507` | Component in no connection | Warning | `'{name}' is not connected to anything.` |
-| `FS1508` | No `circuit` header | Warning | `No circuit name; using '{filename}'.` |
+| `FS1508` | *(retired)* | — | Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1509` | *(retired)* | — | Meant "more than one `circuit` header", which `D-33` makes legal. Retired, not reused; left unallocated. |
 | `FS1510` | A component was inferred | Info | `Added {kind} '{name}' ({rule}).` |
 | `FS1511` | Graph is disconnected | Warning | `'{name}' and {n} others are not connected to the rest of the circuit.` |
-| `FS1512` | A kind, parameter, or property name resolved by similarity (stage 3) | Info | `Read '{written}' as '{canonical}'.` |
+| `FS1512` | *(retired)* | — | A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1513` | A kind name is ambiguous within the margin | Error | `'{written}' could be '{a}' or '{b}'. Write one of them.` |
 | `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{param}' accepts {list}; '{written}' is none of them.` |
 | `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{param}' names a component property, like 'N2.t'.` |
 | `FS1516` | An indexed port or parameter lies outside its declared family | Error | `'{written}' is outside {kind}'s supported {min}…{max} range.` |
-| `FS1517` | A circuit's `fluid` mode contradicts the project default | Warning | `'{circuit}' is {circuitMode} while the project is {projectMode}; the circuit's own setting is used.` |
-| `FS1518` | An attachment names a component no circuit declares | Error | `'{name}' is not declared anywhere. A subcircuit attaches to a node of another circuit.` |
+| `FS1517` | *(retired)* | — | Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1518` | *(retired)* | — | A language 1 attachment line naming no component. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
-| `FS1520` | A subcircuit declares `inlet` without `outlet`, or the reverse | Warning | `'{circuit}' declares '{present} {node}' and no '{other}'. A subcircuit attaches with both.` |
+| `FS1520` | *(retired)* | — | A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
 | `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |
 | `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
 | `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
-| `FS1526` | A subcircuit's `inlet` and `outlet` resolve into different circuits | Error | `'{circuit}' takes flow from '{a}' and returns it to '{b}'. A subcircuit attaches to one parent; write the second link as a connection.` |
-| `FS1527` | A curve's driver names no curve, registered role, `design` entry or `time` | Error | `'{driver}' is not something '{curve}' can depend on. Name a curve, a known driver, or 'time'.` |
+| `FS1526` | *(retired)* | — | A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1527` | *(retired)* | — | A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
 | `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
@@ -1081,11 +1081,11 @@ above, never to a `let`.
 | `FS1540` | A scenario list whose length is not the declared count (`D-143`). Never padded | Error | `'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.` |
 | `FS1541` | A scenario list where no `scenarios` line was written (`D-143`) | Error | `'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.` |
 | `FS1542` | `design` names a scenario that was not declared (`D-143`) | Error | `'{name}' is not a scenario of this file. It declares: {names}.` |
-| `FS1543` | Scenarios are declared and `design` names none of them (`D-143`) | Error | `This file declares {count} scenarios and does not say which one to show. Add 'design {first}'.` |
+| `FS1543` | *(retired)* | — | Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1544` | Two scenarios declared with one name (`D-143`) | Error | `'{name}' is declared twice. Each scenario needs its own name.` |
 | `FS1545` | `start=` on the project line is not a time (`D-149`) | Error | `start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds.` |
 | `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value.` |
-| `FS1547` | `start=` in a file no circuit of which is solved in time (`D-149`) | Warning | `Every circuit is solved as a steady state, so there is no run for start= to begin. It does nothing here.` |
+| `FS1547` | *(retired)* | — | Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1548` | A sensor's `at`, or a `measure=` naming a node, reads a node where more than two connections meet (`D-150`) | Error | `'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.` |
 | `FS1549` | A component's `sized_at` names a driver none of its parameters read, directly or through a curve (`D-175`) | Warning | `'{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point.` |
 

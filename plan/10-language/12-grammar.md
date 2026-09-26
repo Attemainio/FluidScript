@@ -957,32 +957,32 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1002` | Unrecognised character | Error | `'{ch}' is not valid here.` |
 | `FS1003` | Identifier that parses as a quantity | Error | `'{name}' reads as a quantity ({value} {unit}), not a name. Try '{suggestion}'.` |
 | `FS1004` | Reserved word used as an identifier | Error | `'{word}' is reserved. Choose another name.` |
-| `FS1101` | Second `connections` or `schedule` header in one circuit (`D-52`) | Warning | `Only the first '{section}' section is used.` |
-| `FS1102` | Connection outside the `connections` section | Error | `Connections must come after the 'connections' line.` |
-| `FS1103` | Directive, `let`, or declaration in a section that does not accept it | Error | `A {statement} cannot appear after the '{section}' line.` |
+| `FS1101` | *(retired)* | — | A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1102` | *(retired)* | — | A connection above language 1's 'connections' line. Language 2 has no sections (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1103` | *(retired)* | — | A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1104` | Statement cannot be classified | Error | `Cannot read this line. Expected a component declaration or a connection.` |
 | `FS1105` | Parameter with no `=` | Error | `'{token}' looks like a parameter but has no value. Write '{token}=…'.` |
-| `FS1106` | Disturbance outside the `schedule` section | Error | `Put this under a 'schedule' line.` |
-| `FS1107` | `schedule` section under `fluid static` | Warning | `This circuit is solved as a steady state, so the schedule is ignored. Write 'fluid dynamic {substance}' to run it in time.` |
+| `FS1106` | *(retired)* | — | A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1107` | *(retired)* | — | A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
-| `FS1109` | `in` or `out` used where an attachment was meant | Error | `'{word}' is not an attachment. Write 'inlet {node}' or 'outlet {node}'.` |
-| `FS1110` | `inlet` or `outlet` with no endpoint, or a second one of the same direction in one circuit | Error | `'{word}' needs one node of the parent circuit, and may appear once per circuit.` |
-| `FS1111` | `control` binding with no arguments, or an argument with no `=` | Error | `A 'control' line needs named arguments, such as 'control actuate=V1.position measure=N2.t by=PID1'.` |
-| `FS1112` | A file-wide statement (`project`, `spacing`, `design`, `curve`) after the first `circuit` header, or a second `project` or `spacing` | Error | `'{word}' applies to the whole file and must come before the first 'circuit' line.` |
-| `FS1113` | `spacing` given a quantity rather than a bare number | Error | `Spacing is in world units, so write 'spacing {n}' with no unit.` |
+| `FS1109` | *(retired)* | — | 'in' or 'out' where language 1's 'inlet'/'outlet' attachment line was meant. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1110` | *(retired)* | — | A malformed language 1 'inlet'/'outlet' attachment line. Language 2 has none (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1111` | *(retired)* | — | A malformed language 1 'control' line. Language 2 writes a loop as one controller declaration (D-168, D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1112` | *(retired)* | — | Language 1's 'project' or 'spacing' line after the first circuit. Language 2 writes both in the project block (D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1113` | *(retired)* | — | Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1114` | Text after a statement that is already complete | Error | `'{extra}' is more than this line can hold.` |
 | `FS1115` | A curve row outside a `curve` section | Error | `Put this pair under a 'curve' line.` |
 | `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on, such as 'curve {name} tout'.` |
 | `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
-| `FS1118` | `design` with no arguments, or an argument with no `=` | Error | `A 'design' line needs named values, such as 'design tout=-26'.` |
+| `FS1118` | *(retired)* | — | Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1119` | An index that is not a whole number touching its name: `in[a]`, `in[ 2 ]`, `in[]` (`D-120`) | Error | `An index is a whole number in brackets right after the name, such as 'in[2]'.` |
-| `FS1120` | `scenarios` with no names (`D-143`) | Error | `A 'scenarios' line names the cases the plant is sized for, such as 'scenarios winter summer'.` |
+| `FS1120` | *(retired)* | — | Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1121` | A bracketed value list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A value list is one value per scenario, separated by commas, such as '[30, 10]'.` |
-| `FS1201` | Unclassifiable style token | Warning | `Ignoring style '{token}'. Expected a colour, a width, a corner style, or a line pattern.` |
+| `FS1201` | *(retired)* | — | A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |
-| `FS1204` | A style applied by a name no definition gave (`D-104`) | Warning | `No style called '{name}' is defined; the components keep their previous style.` |
-| `FS1205` | A style name defined twice (`D-104`) | Warning | `Style '{name}' is defined again; the later definition is used.` |
+| `FS1204` | *(retired)* | — | A named style used that language 1's 'style name = ...' never defined. Language 2 has no named styles and no component style (19, D-174). Retired by P6.11 package 7 step 4c, not reused. |
+| `FS1205` | *(retired)* | — | A named style defined twice in language 1. Language 2 has no named styles (19, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1210` | `show` names a property the colour scale does not know (`57`) | Warning | `Nothing to show called '{name}'. Available: {list}.` |
 | `FS1213` | The same property twice in one `show` (`57`) | Info | `'{name}' listed twice.` |
 | `FS1214` | A second `show` directive; only the first is read (`57`) | Warning | `Only the first 'show' is used.` |

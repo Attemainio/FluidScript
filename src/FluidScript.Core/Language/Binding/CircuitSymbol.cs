@@ -39,19 +39,6 @@ public sealed record CircuitSymbol
     /// <value>Neutral when the name matches no role — never an error.</value>
     public required CircuitRole Role { get; init; }
 
-    /// <summary>Gets the circuit both attachments resolve into, or <see langword="null"/> when this one stands alone.</summary>
-    /// <remarks>
-    /// Derived, not written: it is the circuit owning <see cref="Supply"/>'s and <see cref="Return"/>'s
-    /// resolved components, which must be the same one (<c>FS1526</c>).
-    /// </remarks>
-    public string? ParentCircuit { get; init; }
-
-    /// <summary>Gets where this circuit takes flow from its parent (<c>D-33</c>).</summary>
-    public AttachmentSymbol? Supply { get; init; }
-
-    /// <summary>Gets where this circuit returns that flow.</summary>
-    public AttachmentSymbol? Return { get; init; }
-
     /// <summary>Gets where the header sits in the source.</summary>
     /// <value>The whole file's span for the implicit circuit a headerless script gets.</value>
     public required TextSpan DeclarationSpan { get; init; }

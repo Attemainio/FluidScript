@@ -196,21 +196,6 @@ public static class TopologyDiagnostics
         DiagnosticSeverity.Info,
         "'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.");
 
-    /// <summary>A subcircuit attaching to one of its own components.</summary>
-    /// <value><c>FS2217</c>, an error.</value>
-    /// <remarks>
-    /// <strong><c>FS2217</c> and <c>FS1518</c> partition one mistake and never both fire.</strong>
-    /// <c>FS1518</c> is the binder's: the name resolves to nothing. This one is the topology's: the
-    /// name resolves, to a component of the attaching circuit. Splitting by whether resolution
-    /// succeeded — rather than by which document is convenient — is what keeps a single typo from
-    /// producing two errors.
-    /// </remarks>
-    public static DiagnosticDescriptor SelfAttachment { get; } = new(
-        "FS2217",
-        DiagnosticSeverity.Error,
-        "'{circuit}' attaches to '{node}', which is one of its own components. "
-        + "A subcircuit attaches to another circuit.");
-
     /// <summary>A flow constraint answered by a pump on none of its owner's branches.</summary>
     /// <value><c>FS2218</c>, a warning.</value>
     /// <remarks>
@@ -315,7 +300,6 @@ public static class TopologyDiagnostics
         LoopWithoutDriver,
         StateOutsideRange,
         AmbiguousOwnership,
-        SelfAttachment,
         ConstraintReachesAcross,
         HeightsMeetWithoutAPipe,
         StaticHeadBelowFloor,

@@ -1978,6 +1978,32 @@ that governed each size. What P6.8 still owes, and what comes after:
     raise. `TokenKind.Keyword` and `ReservedWords` stay for the editor's lexicon until package 8 (`U-11`). The
     untracked `ScenarioProbe.cs` uses language 1 and no longer compiles; it was set aside for the build and put back.
     Core 2596/0/2, Api 79/0; the frontend was not touched.
+  - **Step 4c, language 1's binder semantics removed (2026-09-26).** What only language 1 could reach is gone: the
+    schedule roles (`ScheduleRoleRegistry`, `ScheduleRole`, a curve's `DriverRole`, `CurveDriverKind.Role`/`DesignOnly`),
+    the driver form of `design` (`design tout=-26`: `_design`, `ValueId.Design`, the model's published design values),
+    attachments (`inlet`/`outlet` lines, `AttachmentSymbol`, a circuit's `Supply`/`Return`/`ParentCircuit` -- the layout
+    already derived a parent from the connections), the named form of a control line, a circuit's schedule span, a
+    circuit's and the project's bind-time mode (every circuit binds steady; a run projects modes, `D-169`), the project's
+    `start=`, named styles and a component's own `style =`, and the unreachable similarity and design-case branches.
+    **25 codes are retired**, not deleted (`16`: a code is never reused), each with its reason in
+    `DiagnosticRegistry.Retired` and its table row in `12`, `15` or `23` marked: `FS1101`–`FS1103`, `FS1106`, `FS1107`,
+    `FS1109`–`FS1113`, `FS1118`, `FS1120`, `FS1201`, `FS1204`, `FS1205`, `FS1508`, `FS1512`, `FS1517`, `FS1518`,
+    `FS1520`, `FS1526`, `FS1527`, `FS1543`, `FS1547`, `FS2217`. `FS1523` and `FS1534` keep raise sites language 2 cannot
+    reach and are left, as `19`'s audit row now says. The diagnostics page and the metadata golden moved by the retired
+    rows alone; the corpus goldens did not move. The untracked `ScenarioProbe.cs` is deleted at the user's word.
+    What removing it found, each recorded:
+    - **`L-77` closed, and a second style defect with it.** `colour = zigzag` said "No style called 'zigzag' is
+      defined" -- a named style, which language 2 does not have -- and so did a component's `style = hot`. The reader
+      now checks every style value against its key (`FS1514` with that key's options) and `style =` on a component is
+      `FS1503`.
+    - **Filed `C-139`:** three contract fields only language 1 could fill are always empty (`project.defaultMode`,
+      `style.styles`, and `style.tokens`' language 1 shape); dropping them is a contract change for package 8.
+    - **Filed `A-7`:** `43`'s `start` message still takes language 1's `settings` form; settle before P6.5.
+    - **Filed `L-78`:** `15`, `16` and `23`'s prose still states the retired rules (similarity binding, attachments,
+      named styles, `FS1527`'s drivers) as current, and two of `15`'s criteria can never pass; the sweep, step 6.
+    - `TokenKind.Keyword`'s dead parser branches stay with the lexicon for package 8 (`U-11`), and the reader's
+      language 1 normal form for values is `L-75`, step 5.
+    Core 2597/0/2, Api 79/0, frontend 221 and 9 expected failures.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

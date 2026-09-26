@@ -292,13 +292,23 @@ public sealed class BinderTests
         OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  V1  valve  characteristic = banana\n", "FS1514");
 
     [Theory]
-    [InlineData("colour = \"zz\"")]
-    [InlineData("width = 0")]
+    [InlineData("colour = \"zz\"", "'colour' accepts a colour name or a quoted hex")]
+    [InlineData("colour = zigzag", "'colour' accepts a colour name or a quoted hex")]
+    [InlineData("width = 0", "'width' accepts a width in pixels above zero")]
     [Trait("Category", "Unit")]
-    public void FS1201_AStyleValueOfTheRightFormThatMeansNothing(string setting) =>
-        // The reader accepts the value's form (a quoted string for a colour, a number for a width) and the
-        // style's own reading refuses it; the wording is language 1's generic one (`L-77`).
-        OnlyDiagnostic($"fluidscript 2\n\ncircuit \"script\":\n  style:\n    {setting}\n  N1 - N2\n", "FS1201");
+    public void FS1514_AStyleValueIsCheckedAgainstItsSetting(string setting, string message)
+    {
+        // `L-77`: a value of the right form that means nothing was language 1's generic FS1201, and an unknown
+        // colour word was FS1204's named style, which language 2 does not have. Each is said against its key.
+        var diagnostic = OnlyDiagnostic($"fluidscript 2\n\ncircuit \"script\":\n  style:\n    {setting}\n  N1 - N2\n", "FS1514");
+        Assert.StartsWith(message, diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AComponentHasNoStyleOfItsOwn() =>
+        // `19`: named styles and a component's own style are not in language 2; `style =` on one was FS1204.
+        OnlyDiagnostic("fluidscript 2\n\ncircuit \"script\":\n  P1  pump  style = hot\n  N1 - P1 - N2\n", "FS1503");
 
     // ---- steps 4-5: evaluation --------------------------------------------------------------------
 

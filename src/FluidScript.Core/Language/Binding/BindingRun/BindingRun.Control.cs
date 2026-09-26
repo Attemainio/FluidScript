@@ -149,91 +149,16 @@ internal sealed partial class BindingRun
             arguments[argument.Name.Text] = argument;
         }
 
-        if (statement.IsShortForm)
-        {
-            BindShortControl(statement, arguments);
-            return;
-        }
-
-        foreach (var argument in statement.Arguments)
-        {
-            arguments[argument.Name.Text] = argument;
-        }
-
-        var missing = ControlArguments.Where(name => !arguments.ContainsKey(name)).ToArray();
-
-        if (missing.Length > 0)
-        {
-            Report(
-                BinderDiagnostics.ControlMissingArgument,
-                statement.Span,
-                ("list", string.Join(", ", ControlArguments)),
-                ("missing", string.Join(", ", missing)));
-            return;
-        }
-
-        // Every field comes from a named argument, so transposing two of them is an error here rather
-        // than a silent reversal that drives the valve the wrong way (`D-40`).
-        if (Reference(arguments["actuate"]) is not { } actuator)
-        {
-            // `D-43`: a bare component name is not an actuator. There is deliberately no per-kind
-            // default, because a valve has more than one thing that could move.
-            Report(BinderDiagnostics.ExpectedReference, arguments["actuate"].Span, ("parameter", "actuate"));
-            return;
-        }
-
-        if (Reference(arguments["measure"]) is not { } measurement)
-        {
-            Report(BinderDiagnostics.ExpectedReference, arguments["measure"].Span, ("parameter", "measure"));
-            return;
-        }
-
-        var controllerName = (arguments["by"].Value as ReferenceSyntax)?.Head.Token.Text ?? string.Empty;
-        var controller = _componentsByName.TryGetValue(controllerName, out var slot)
-            ? _components[slot.Index]
-            : null;
-
-        if (controller?.Kind?.Keyword is not "controller")
-        {
-            Report(
-                BinderDiagnostics.NotAController,
-                arguments["by"].Span,
-                ("name", controllerName),
-                ("kind", controller?.Kind?.Keyword ?? controller?.WrittenKind ?? "value"));
-            return;
-        }
-
-        if (_componentsByName.TryGetValue(actuator.Component, out var actuated)
-            && _components[actuated.Index].Kind is { } kind
-            && !kind.Parameters.ContainsKey(actuator.Property))
-        {
-            Report(
-                BinderDiagnostics.ParameterNotControllable,
-                arguments["actuate"].Span,
-                ("param", actuator.Property),
-                ("component", actuator.Component));
-            return;
-        }
-
-        CheckMeasurement(controller.Name, measurement, statement.Span);
-
-        _controlBindings.Add(new ControlBindingSymbol
-        {
-            Controller = controller,
-            Actuator = actuator,
-            Measurement = measurement,
-            Setpoint = Value(arguments["setpoint"].Value, DimensionOf(measurement)),
-            Span = statement.Span,
-        });
+        BindLoop(statement, arguments);
     }
 
-    /// <summary>Binds <c>control TV1 with TE1 by PID1 setpoint=21</c> (<c>D-61</c>).</summary>
+    /// <summary>Binds a controller's loop: what it moves, what it reads, and its setpoint (<c>D-61</c>, <c>D-168</c>).</summary>
     /// <remarks>
-    /// The same three resolutions as the long form, reached from positions instead of names. Only
-    /// <c>setpoint=</c> survives as a named argument, because it is the one value no position can
-    /// carry: the other three are components, and a setpoint is a quantity.
+    /// The controller declaration's <c>moves</c> and <c>measures</c> arrive as the line's ends; its
+    /// <c>setpoint</c> and tuning as named arguments, because a setpoint is a quantity and the others are
+    /// components.
     /// </remarks>
-    private void BindShortControl(
+    private void BindLoop(
         ControlLine statement, Dictionary<string, ParameterSyntax> arguments)
     {
         if (!arguments.TryGetValue("setpoint", out var setpoint))

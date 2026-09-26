@@ -265,7 +265,7 @@ internal sealed partial class BindingRun
             this,
             parse.Source,
             diagnostics,
-            pending.Target?.Info.Dimension ?? pending.DesignRole?.Dimension);
+            pending.Target?.Info.Dimension);
 
         pending.Value = null;
         _evaluating = id;

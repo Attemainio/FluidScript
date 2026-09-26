@@ -668,7 +668,7 @@ compile endpoint):
 |---|---|
 | A second wording, because the message quotes language 1 | `FS1104`, `FS1105`, `FS1116`, `FS1121`, `FS1521`, `FS1528`, `FS1533`, `FS1537`, `FS1540`–`FS1542`, `FS1544`–`FS1546`, `FS2107`, `FS2109`, `FS2110`, `FS2112`, `FS2119`, `FS2314`, `FS2606`, `FS3109`, `FS4008` |
 | Arguments respelled only | `FS1302`, and `FS1503`/`FS1505`/`FS1538` on an exchanger |
-| Never raised in language 2: the statement or spelling does not exist there | `FS1101`–`FS1103`, `FS1106`, `FS1107`, `FS1109`–`FS1113`, `FS1118`, `FS1120`, `FS1204`, `FS1205`, `FS1508`, `FS1517`, `FS1518`, `FS1520`, `FS1523`, `FS1526`, `FS1527`, `FS1534`, `FS1543`, `FS1547`, `FS2217` |
+| Never raised in language 2: the statement or spelling does not exist there | `FS1523`, `FS1534`. The rest of this row -- `FS1101`–`FS1103`, `FS1106`, `FS1107`, `FS1109`–`FS1113`, `FS1118`, `FS1120`, `FS1204`, `FS1205`, `FS1508`, `FS1517`, `FS1518`, `FS1520`, `FS1526`, `FS1527`, `FS1543`, `FS1547`, `FS2217` -- and `FS1201` and `FS1512` were **retired** when language 1 was removed (package 7 step 4c): nothing emits them, and `DiagnosticRegistry.Retired` says why |
 | Still `in[2]` in a language 2 file, because the pass cannot tell the port is an exchanger's | `FS2202`, `FS2210`, `FS2211`, `FS3013` (`L-66`) |
 | Unchanged: the message says nothing language 1 alone would write | every other code |
 

@@ -32,7 +32,6 @@ internal sealed partial class BindingRun
 {
     private readonly List<CurveSymbol> _curves = [];
     private readonly Dictionary<string, int> _curvesByName = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, DesignValue> _design = new(StringComparer.Ordinal);
 
     /// <summary>The scenario names in the order written, which is what an array binds to (<c>D-143</c>).</summary>
     private readonly List<string> _scenarios = [];
@@ -40,8 +39,6 @@ internal sealed partial class BindingRun
     /// <summary>The scenario <c>design</c> named, with the span to report an unknown one against.</summary>
     private (string Name, TextSpan Span)? _designScenario;
 
-    /// <summary>The <c>scenarios</c> line's span, which is where a missing <c>design</c> is reported.</summary>
-    private TextSpan? _scenarioSpan;
     private readonly Dictionary<string, double?> _curveValues = new(StringComparer.Ordinal);
 
     // ---- step 0b: the curves, their rows, and the design point ------------------------------------
@@ -233,33 +230,9 @@ internal sealed partial class BindingRun
             return LetNumber(driver);
         }
 
-        if (DesignNumber(curve.DriverRole?.CanonicalName ?? driver) is { } stated)
-        {
-            return stated;
-        }
-
         return curve.DriverKind == CurveDriverKind.Curve
             ? _curveValues.GetValueOrDefault(driver)
             : null;
-    }
-
-    /// <summary>Reads one design value as the bare number a curve's table is written in.</summary>
-    /// <remarks>
-    /// In the role's canonical unit, never in SI, which is what makes <c>design tout=-26</c> and
-    /// <c>design tout=-26 C</c> pick the same row of a table whose <c>x</c> column says −26.
-    /// </remarks>
-    private double? DesignNumber(string key)
-    {
-        if (!_design.TryGetValue(key, out var entry)
-            || !_pending.TryGetValue(new ValueId.Design(key), out var pending)
-            || pending.Value is not { } quantity)
-        {
-            return null;
-        }
-
-        return entry.Role?.Dimension is { } dimension && UnitTable.CanonicalUnitFor(dimension) is { } unit
-            ? quantity.ValueIn(unit)
-            : quantity.SiValue;
     }
 
     /// <summary>Reports what reading a curve cost, once every value has been evaluated.</summary>
@@ -293,7 +266,7 @@ internal sealed partial class BindingRun
             // is FS1528 below.
             var followable = curves.All(curve => CurveValueSeenBy(pending.Id, curve.Name) is not null);
 
-            if (ModeOf(pending.Id) == FluidMode.Dynamic || followable)
+            if (followable)
             {
                 if (_deferredTargets.Add(pending.Id))
                 {
@@ -319,16 +292,6 @@ internal sealed partial class BindingRun
                     ("curve", curve.Name),
                     ("driver", _curves[_curvesByName[curve.Name]].DriverName ?? curve.Name));
             }
-        }
-    }
-
-    /// <summary>Reports a <c>start=</c> that no clock reads (<c>FS1547</c>).</summary>
-    private void ReviewStart()
-    {
-        if (_startSpan is { } span && _project.Start is not null
-            && !_circuits.Any(static circuit => circuit.Mode == FluidMode.Dynamic))
-        {
-            Report(BinderDiagnostics.StartWithoutClock, span);
         }
     }
 
@@ -381,10 +344,9 @@ internal sealed partial class BindingRun
     /// <param name="Span">The line, where a missing design case is reported.</param>
     internal sealed record CaseNames(ImmutableArray<(string Name, TextSpan Span)> Names, TextSpan Span) : FileLine(Span);
 
-    /// <summary>The design choice: the case the file operates at, or language 1's driver values (<c>D-58</c>).</summary>
-    /// <param name="Case">The case named, or <see langword="null"/> in the driver form.</param>
-    /// <param name="Arguments">The driver values, in the driver form.</param>
-    /// <param name="Span">The line.</param>
-    internal sealed record DesignLine((string Name, TextSpan Span)? Case, ImmutableArray<ParameterSyntax> Arguments, TextSpan Span)
+    /// <summary>The design choice: the case the file operates at (<c>D-143</c>).</summary>
+    /// <param name="Case">The case named.</param>
+    /// <param name="Span">Where it is written.</param>
+    internal sealed record DesignLine((string Name, TextSpan Span) Case, TextSpan Span)
         : FileLine(Span);
 }
