@@ -166,6 +166,7 @@ internal sealed partial class BindingRun
     private static UnitSymbol? WrittenUnit(ExpressionSyntax expression, Dimension dimension) => expression switch
     {
         QuantityLiteralSyntax literal => UnitTable.Resolve(literal.Unit, dimension),
+        SharedUnitSyntax shared => UnitTable.Resolve(shared.Unit, dimension),
         UnaryExpressionSyntax unary => WrittenUnit(unary.Operand, dimension),
         ParenthesizedExpressionSyntax parenthesized => WrittenUnit(parenthesized.Inner, dimension),
         _ => null,

@@ -154,6 +154,9 @@ internal sealed partial class BindingRun
             case QuantityLiteralSyntax literal:
                 return UnitTable.Resolve(literal.Unit, null) is { } unit ? (true, unit.Dimension) : (false, default);
 
+            case SharedUnitSyntax shared:
+                return UnitTable.Resolve(shared.Unit, null) is { } common ? (true, common.Dimension) : (false, default);
+
             case QuantityReferenceSyntax quantity:
             {
                 // `HE1.dp kPa`: the reference's own dimension picks between a shared spelling's readings.

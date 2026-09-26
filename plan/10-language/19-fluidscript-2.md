@@ -209,8 +209,8 @@ A bare number takes the canonical unit of the dimension it lands in, as in langu
 **`K` is a temperature difference** (`D-172`): `band = 20 K`, `dt = 5 K`, as engineers write them. `C` and `°C`
 are absolute temperatures, and `dK` and `dC` remain accepted as differences. An absolute temperature in kelvin is
 not writable; `300 K` on a temperature is a dimension error whose fix is `°C`. A compound unit that contains a `K`
-(`kJ/(kg*K)`) is its own spelling and is unchanged. The reading is fixed per language by the version line, so a
-unit still means the same thing wherever it stands (`D-26`'s property, kept).
+(`kJ/(kg*K)`) is its own spelling and is unchanged. The unit table reads it so (`D-179`), so a unit still means
+the same thing wherever it stands (`D-26`'s property, kept).
 
 **Names are case-insensitive** where the registry owns them — kinds, parameters, properties: `Kp`, `KP` and `kp`
 bind alike, and the printer keeps what was written. That is `D-15`'s first stage, which `D-170` keeps. **Corrected 2026-09-25 (package 3a):** this
@@ -222,7 +222,10 @@ included: `PU1` and `pu1` are two components.
 
 **A list** is `[a, b, …]`, one value per case in the order `cases` names them; a unit after the closing
 bracket applies to every item: `t = [85, 70] C`. **A range** is `a..b`, and a trailing unit applies to
-both ends: `30..40 min`, `85..75 C`.
+both ends: `30..40 min`, `85..75 C`. The shared unit belongs to the items that state none -- a bare number, a
+negated one (`[-26, 5] C` is a −26 °C design day), and a bare name, as `heating kW` is -- and is applied when the
+item is evaluated (`D-179`); an item that states its own unit, or is an expression such as `a + 5`, is read as
+written.
 
 **A date** is written unquoted, `2026-01-15` or `2026-01-15 06:00` or `2026-01-15 06:00:30`: four
 digits, a hyphen, two, a hyphen, two, optionally a time. Language 1 needs quotes because `2026-01-15`

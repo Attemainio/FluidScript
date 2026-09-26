@@ -205,6 +205,40 @@ public sealed class Language2TranslatorTests
         Assert.Equal("winter", result.Model.Project.DesignScenario);
     }
 
+    /// <summary>
+    /// A shared unit is applied when the item is evaluated (<c>D-179</c>): <c>-26</c> is the bare −26 read in °C, a
+    /// design day, never the negation of a temperature; and a range's bare lower end reads its upper end's unit.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void ASharedUnitIsReadWhenTheItemIsEvaluated()
+    {
+        var result = Clean("""
+            fluidscript 2
+            project "p":
+              cases = [winter, mild]
+            let outdoor = [-26, 5] C
+            circuit "c":
+              fluid = water
+              PU1  pump
+              TV1  valve  stroke = 90 s
+              TE1  temperature_sensor
+              TC1  controller:
+                moves    = TV1
+                reads    = TE1
+                setpoint = 60 C
+                output   = 10..100 %
+              N1 - PU1 - TV1 - TE1 - N1
+            """);
+
+        var outdoor = Assert.Single(result.Model.Bindings, static binding => binding.Name == "outdoor");
+        Assert.Equal(247.15, outdoor.Value!.Value.SiValue, 9);
+
+        var loop = Assert.Single(result.Model.ControlBindings);
+        Assert.Equal(0.1, loop.OutputLow!.Value.SiValue, 12);
+        Assert.Equal(1.0, loop.OutputHigh!.Value.SiValue, 12);
+    }
+
     [Fact]
     [Trait("Category", "Unit")]
     public void PrimaryAndSecondaryAreTheExchangersTwoSides()

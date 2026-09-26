@@ -11,11 +11,11 @@ namespace FluidScript.Core.Language.Binding;
 
 internal sealed partial class Language2Reader
 {
-    /// <summary>Translates a value into what language 1's evaluator reads.</summary>
+    /// <summary>Reads a value as the evaluator reads it: a list's trailing unit, or a range's upper one, on each bare number it describes.</summary>
     /// <remarks>
-    /// One difference is resolved here: a list's trailing unit belongs to each item (<c>19</c> §Values, <c>L-75</c>).
-    /// An exchanger's <c>primary</c> and <c>secondary</c> are the registry's spellings, which the lookup resolves
-    /// (<c>D-179</c>).
+    /// Nothing is respelled (<c>D-179</c>): a <c>K</c> is a difference in the unit table, an exchanger's
+    /// <c>secondary.in</c> is the registry's spelling, and a shared unit is applied when the value is evaluated
+    /// (<see cref="SharedUnitSyntax"/>), with no token made up to carry it (<c>L-75</c>).
     /// </remarks>
     private ExpressionSyntax Value(ExpressionSyntax value) => value switch
     {
@@ -37,38 +37,32 @@ internal sealed partial class Language2Reader
 
     /// <summary>Gives each item of <c>[85, 70] C</c> the list's unit, where the item states none.</summary>
     /// <remarks>
-    /// A bare number becomes a quantity in the unit, <c>-26</c> keeps its sign, and a bare name takes the unit as
-    /// language 1's <c>heating kW</c> does. An item that states its own unit, or is an expression, is left as
-    /// written: a unit after the bracket describes the bare numbers, and has no say over <c>a + 5</c>.
+    /// A bare number, <c>-26</c> with its sign, takes the unit when it is evaluated (<see cref="SharedUnitSyntax"/>), and a
+    /// bare name takes it as <c>heating kW</c> does, with the list's own unit tokens. An item that states its own unit,
+    /// or is an expression, is left as written: a unit after the bracket describes the bare numbers, and has no say over
+    /// <c>a + 5</c>.
     /// </remarks>
     private ScenarioListSyntax WithUnit(UnitListSyntax list)
     {
         var unit = list.UnitText;
+        var at = TextSpan.FromBounds(list.Unit[0].Span.Start, list.Unit[^1].Span.End);
 
         return list.List with
         {
-            Elements = [.. list.List.Elements.Select(element => element with { Value = Unit(element.Value, unit, list.Unit) })],
+            Elements = [.. list.List.Elements.Select(element => element with { Value = element.Value is ReferenceSyntax reference
+                ? new QuantityReferenceSyntax(reference, list.Unit)
+                : Shared(Value(element.Value), unit, at) })],
         };
     }
 
-    private ExpressionSyntax Unit(ExpressionSyntax item, string unit, ImmutableArray<Token> unitTokens) => item switch
+    /// <summary>A bare number, or a negated one, reading a unit written elsewhere; anything else as it is.</summary>
+    private static ExpressionSyntax Shared(ExpressionSyntax item, string unit, TextSpan at) => item switch
     {
-        NumberLiteralSyntax number => Quantity(number, unit),
-        UnaryExpressionSyntax { Operand: NumberLiteralSyntax number } negative => negative with { Operand = Quantity(number, unit) },
-        ReferenceSyntax reference => new QuantityReferenceSyntax(reference, unitTokens),
-        _ => Value(item),
+        NumberLiteralSyntax or UnaryExpressionSyntax { Operand: NumberLiteralSyntax } => new SharedUnitSyntax(item, unit, at),
+        _ => item,
     };
 
-    /// <summary>A number given a unit it was not written with, keeping its own text and span.</summary>
-    private static QuantityLiteralSyntax Quantity(NumberLiteralSyntax number, string unit) =>
-        new(number.Token with
-        {
-            Kind = TokenKind.QuantityLiteral,
-            Unit = unit,
-            NumberText = number.Token.NumberText ?? number.Token.Text,
-        });
-
-    /// <summary>Translates <c>20..90 C</c> into language 1's range, whose ends each carry their own unit.</summary>
+    /// <summary>Translates <c>20..90 C</c> into a range whose ends are evaluated one by one.</summary>
     /// <remarks>A unit written on the upper end only applies to both (<c>19</c> §Values): <c>30..40 min</c> is thirty minutes to forty.</remarks>
     private RangeSyntax Range(RangeExpressionSyntax range)
     {
@@ -76,22 +70,14 @@ internal sealed partial class Language2Reader
         return new RangeSyntax(from, range.DotDot, to);
     }
 
-    /// <summary>Both ends of <c>10..100 %</c>, the upper end's unit on a bare lower end, wherever the range is written.</summary>
+    /// <summary>Both ends of <c>10..100 %</c>, a bare lower end taking the upper end's unit, wherever the range is written.</summary>
     private (ExpressionSyntax From, ExpressionSyntax To) Ends(RangeExpressionSyntax range)
     {
         var to = Value(range.To);
         var from = Value(range.From);
 
-        if (to is QuantityLiteralSyntax { Token.Unit: { } unit })
-        {
-            from = from switch
-            {
-                NumberLiteralSyntax number => Quantity(number, unit),
-                UnaryExpressionSyntax { Operand: NumberLiteralSyntax number } negative => negative with { Operand = Quantity(number, unit) },
-                _ => from,
-            };
-        }
-
-        return (from, to);
+        return to is QuantityLiteralSyntax { Token.Unit: { } unit } upper
+            ? (Shared(from, unit, upper.Span), to)
+            : (from, to);
     }
 }

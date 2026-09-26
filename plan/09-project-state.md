@@ -2045,6 +2045,14 @@ that governed each size. What P6.8 still owes, and what comes after:
     `languageMajor` text and the frontend's generated types; `22`'s exchanger section respelled, since its tables
     are what `RegistryMatchesTheComponentModelTests` reads. No corpus golden moved. Core 2588/0/2, Api 79/0,
     frontend 221 and 10 expected failures. Left for 5b-3: a list's and a range's unit (`L-75`).
+  - **Step 5b-3, a shared unit is applied at evaluation (2026-09-26, `D-179`; `L-75` closed).** The reader copied a
+    list's trailing unit, and a range's upper unit, onto each bare number as a made quantity token. Now it wraps the
+    number as written in `SharedUnitSyntax` -- the item and the unit where it is written -- and the evaluator reads
+    the bare value in that unit, as it reads `heating kW`; `-26` in `[-26, 5] C` is the bare −26 read in °C, the
+    design day. Three sites read the node: the evaluator, the binder's dimension typing, and a case's written unit;
+    the reference walker needs none, a number having no references. No corpus golden moved. `L-75` is closed with
+    all three steps. Core 2589/0/2 (a new test pins `[-26, 5] C` and `10..100 %`); the full suite's teardown
+    crash, seen twice in this step, is `C-98`'s (2 of 5 runs on this tree, 0 of 2 on `4768744`, its stated rate).
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

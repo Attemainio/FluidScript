@@ -90,6 +90,7 @@ public sealed class ExpressionEvaluator
         QuantityLiteralSyntax quantity => Literal(quantity),
         ReferenceSyntax reference => Reference(reference),
         QuantityReferenceSyntax quantity => QuantityReference(quantity),
+        SharedUnitSyntax shared => SharedUnit(shared),
         ParenthesizedExpressionSyntax parenthesized => Visit(parenthesized.Inner),
         UnaryExpressionSyntax unary => Unary(unary),
         BinaryExpressionSyntax binary => Binary(binary),
@@ -213,6 +214,26 @@ public sealed class ExpressionEvaluator
             new DiagnosticArgument("expected", value.Quantity.Dimension.Name.ToLowerInvariant()),
             new DiagnosticArgument("value", quantity.Unit),
             new DiagnosticArgument("actual", unit.Dimension.Name.ToLowerInvariant()));
+    }
+
+    /// <summary>Reads a bare number in the unit written once for its list or range (<c>D-179</c>): <c>85</c> in <c>[85, 70] C</c> is 85 °C.</summary>
+    /// <param name="shared">The number and the unit it takes.</param>
+    /// <remarks>
+    /// The number is evaluated as written, then read in the unit, as a bare reference with a unit after it is
+    /// (<see cref="QuantityReference"/>): <c>-26</c> in <c>[-26, -10] C</c> is the bare −26, then −26 °C, which is the
+    /// design day it says and not the negation of a temperature <c>13</c> refuses.
+    /// </remarks>
+    private EvaluationResult SharedUnit(SharedUnitSyntax shared)
+    {
+        var visited = Visit(shared.Operand);
+
+        if (visited is not EvaluationResult.Value { IsBare: true } value
+            || UnitTable.Resolve(shared.Unit, _expected) is not { } unit)
+        {
+            return visited;
+        }
+
+        return new EvaluationResult.Value(Quantity.FromUnit(value.Quantity.SiValue, unit), IsBare: false);
     }
 
     private EvaluationResult Unary(UnaryExpressionSyntax unary)
