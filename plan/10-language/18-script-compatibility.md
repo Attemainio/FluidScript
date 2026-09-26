@@ -191,7 +191,8 @@ and already firing. A misplaced line is a *grammar* error: the statement is in t
 `D-53` puts a code in the range that names its subject. What only compatibility can judge is a file
 whose directives name **different majors** — the parser sees two well-formed statements, and the gate
 cannot select semantics from them. That is `FS1705`'s trigger. Two directives naming the *same* major
-is an ordinary duplicate and stays `FS1112`.
+was an ordinary duplicate, `FS1112` -- retired with language 1's global directives, and measured
+2026-09-26 to raise nothing in language 2 (`L-83`).
 
 The narrowing is not a redefinition of the kind [`16-diagnostics`](16-diagnostics.md)'s invariant 7
 forbids: `FS1705` had never been registered or raised, and this table was its only reference.

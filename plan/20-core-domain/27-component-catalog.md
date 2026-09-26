@@ -383,7 +383,7 @@ mode of hand-curated data.
 | `FS2603` | Named catalogue does not exist | Error | `No catalogue '{name}'. Available: {list}.` |
 | `FS2604` | Catalogue file failed validation on load | Error | `Catalogue '{name}' is invalid: {reason}.` — a build/startup failure, not a user error |
 | `FS2605` | Entry lacks verified provenance | Error | Startup failure. An unverified row must never reach a user. |
-| `FS2606` | No `catalog` directive; the shipped default was used | Info | `Using catalogue '{name}'. Write 'catalog {name}' to pin it.` |
+| `FS2606` | No `catalog` directive; the shipped default was used | Info | `Using catalogue '{name}'. Write 'catalog = {name}' in the project block to pin it.` |
 | `FS2607` | A correlation was evaluated outside its fitted range | Warning | `'{name}': the {plate} correlation is fitted for Re {lo}–{hi} and this design runs at {re}. The result is an extrapolation.` |
 
 **Three of these are not registered yet, and each waits for a different thing.** `FS2601` and

@@ -37,7 +37,7 @@ multiplicative = unary , { ("*" | "/") , unary } ;
 unary        = [ "-" ] , primary ;
 primary      = quantity | number | reference , [ unit-symbol ] | "(" , expression , ")" | call ;
                                        (* heating kW; demand kg/s -- a unit after a reference, L-35, shipped 2026-09-22 *)
-reference    = identifier , { "." , indexed-name } ;   (* HE1.dp; HX1.in[2].t; T1.layer[3].t -- `12`, D-120 *)
+reference    = identifier , { "." , indexed-name } ;   (* HE1.dp; HX1.secondary.in.t; T1.layer[3].t -- D-120, D-179 *)
 call         = identifier , "(" , [ expression , { "," , expression } ] , ")" ;
 ```
 
@@ -144,7 +144,7 @@ let mdot = Q / (4.18 kJ/(kg*K) * dT)
 | **Declared parameters** | Always, immediately | `HE1.power` — what the user wrote |
 | **Sized parameters** | After sizing | `PU1.head` when the pump was auto-sized |
 | **Solved state** | After the solve | `N2.t`, `N2.p`, `HE1.dp`, `PU1.flow` |
-| **A port's state** | After the solve | `HX1.in[2].t`, `T1.out.t`, `T1.layer[3].t` (`D-120`) |
+| **A port's state** | After the solve | `HX1.secondary.in.t`, `T1.out.t`, `T1.layer[3].t` (`D-120`, `D-179`) |
 | **Derived geometry** | After sizing | `P1.diameter` |
 
 The property names are declared per component in
@@ -198,7 +198,7 @@ picking one.
 against each pass through the ordinary `ExpressionEvaluator`, with a scope over the pass -- a stated
 parameter reads as stated, a node or a port from its solved state, a rated exchanger's second side
 from the rating -- and writes each result into the model as a *stated* value with a basis
-(`from \`HE1.out[2].t\` at pass 1`) for the next pass to lower. Pass 0 evaluates against the bootstrap
+(`from \`HE1.secondary.out.t\` at pass 1`) for the next pass to lower. Pass 0 evaluates against the bootstrap
 seed, so a target the script anchors is stated before sizing decides what it owns; the seed supplies
 only stated parameters and `let`s, because its guess at an unstated node, written in as a stated
 value, put a 38 °C primary on a 150 kW exchanger and the first solve went non-finite. The run settles
@@ -295,15 +295,15 @@ hangs.
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS1401` | Duplicate `let` | Error | `'{name}' is already defined at line {n}.` |
-| `FS1402` | Static dependency cycle | Error | `'{a}' depends on itself: {a} → {b} → … → {a}.` |
-| `FS1403` | Division by zero | Error | `Dividing by zero here. '{expr}' is zero.` |
-| `FS1404` | Reference to an unknown name | Error | `Nothing named '{name}'. Did you mean '{suggestion}'?` |
+| `FS1401` | Duplicate `let` | Error | `'{name}' is already defined at line {line}.` |
+| `FS1402` | Static dependency cycle | Error | `'{name}' depends on itself: {cycle}.` |
+| `FS1403` | Division by zero | Error | `Dividing by zero here. '{expression}' is zero.` |
+| `FS1404` | Reference to an unknown name | Error | `Nothing named '{name}'.` |
 | `FS1405` | Fixed point did not converge | Error | `'{expr}' did not settle: {v1} then {v2} then {v3}. Try stating a value directly.` |
-| `FS1406` | Reference to a property the component does not have | Error | `A {kind} has no '{prop}'. It has: {list}.` |
+| `FS1406` | Reference to a property the component does not have | Error | `A {kind} has no '{property}'. It has: {available}.` |
 | `FS1407` | Reference to a solved value in a context evaluated before the solve | Error | `'{ref}' is only known after solving; it cannot set '{target}'.` |
-| `FS1408` | Unknown function | Error | `No function '{name}'. Available: {list}.` |
-| `FS1409` | Wrong argument count | Error | `'{fn}' takes {n} arguments.` |
+| `FS1408` | Unknown function | Error | `No function '{name}'. Available: {available}.` |
+| `FS1409` | Wrong argument count | Error | `'{function}' takes {expected} arguments.` |
 | `FS1410` | A deferred expression no pass could evaluate | Warning | `'{target} = {expr}' was never evaluated: {waited} is not published by any pass, so the value was chosen as if the line were absent. State a value directly.` |
 | `FS1411` | A `let` of a reserved constant's name | Error | `'{name}' is reserved for {what}, {value}. Choose another name.` |
 | `FS1412` | A deferred expression still waiting when the pass that would publish it failed | Warning | `'{target} = {expr}' was still waiting on {waited} when pass {pass} failed, so the circuit was solved without it. State it directly, or from a value the seed can supply.` |

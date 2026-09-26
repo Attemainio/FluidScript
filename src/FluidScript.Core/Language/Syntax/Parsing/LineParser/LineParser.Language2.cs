@@ -315,9 +315,9 @@ internal sealed partial class LineParser
     /// <summary>Reads what follows a name in a language 2 value: a reference, or a catalogue pinned to a version.</summary>
     /// <param name="name">The name, already consumed.</param>
     /// <remarks>
-    /// Language 2 writes no unit after a reference (language 1's <c>L-35</c>, <c>heating kW</c>): a unit follows
-    /// a number and nothing else (<c>19</c> §Values), so <c>moves = TV1 reads = TE1</c> can never read a name
-    /// as a unit.
+    /// A unit may follow a reference, <c>heating kW</c>, to give a curve's bare numbers a unit (<c>L-35</c>,
+    /// <c>D-57</c>), and a list's trailing unit reaches a bare name the same way (<c>19</c> §Values). Only a spelling
+    /// the unit table holds is taken, so a name after a name is never read as a unit.
     /// </remarks>
     private ExpressionSyntax? ParseLanguage2Name(IdentifierSyntax name)
     {

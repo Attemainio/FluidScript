@@ -381,7 +381,7 @@ an assignment.
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS2001` | Unknown substance name | Error | `There is no fluid called '{name}'. Available: {list}.` |
-| `FS2002` | Property pair does not determine a state | Error | `Cannot fix a state from {a} and {b} — they are not independent here.` |
+| `FS2002` | Property pair does not determine a state | Error | `Cannot fix a state from {a} and {b}; they are not independent here.` |
 | `FS2003` | A **converged or stated** state outside the substance's valid range, *including a state above its boiling line* | Error | `{name} data covers {lo} to {hi}; this state is at {value}.` |
 | `FS2004` | Property backend returned a non-finite value | Error | `Could not evaluate {property} for {name} at {state}.` |
 | `FS2005` | Glycol concentration outside 0–60 % | Error | `Glycol concentration must be between 0 and 60 %.` |

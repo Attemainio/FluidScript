@@ -231,10 +231,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
     private static string? Substance(CircuitBlock block) => block.Fluid?.Substance;
 
-    /// <summary>The role a circuit is drawn in: stated in language 2, read from the name in language 1 (<c>D-35</c>).</summary>
+    /// <summary>The role a circuit is drawn in, as its <c>role</c> setting states it (<c>D-35</c>).</summary>
     /// <remarks>
-    /// A language 2 circuit's title is free text in quotes, so it says nothing about the role; a circuit that
-    /// states no <c>role</c> is neutral without a word, where language 1 would report that its name is no role.
+    /// A circuit's title is free text in quotes, so it says nothing about the role; a circuit that states no
+    /// <c>role</c> is neutral without a word. Language 1 read the role from the circuit's name and reported a
+    /// name that was none.
     /// </remarks>
     private CircuitRole RoleOfCircuit(CircuitHead? head, string name, TextSpan span) =>
         head?.Role is { } stated
@@ -377,10 +378,10 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     {
         public CircuitSymbol? Circuit { get; set; }
 
-        /// <summary>Gets or sets the circuit's fluid: language 1's line in the block, language 2's setting.</summary>
+        /// <summary>Gets or sets the circuit's <c>fluid</c> setting.</summary>
         public CircuitFluid? Fluid { get; set; }
 
-        /// <summary>Gets or sets the style tokens a language 2 circuit's <c>style:</c> block states; language 1 writes its style as a line.</summary>
+        /// <summary>Gets or sets the style tokens the circuit's <c>style:</c> block states.</summary>
         public ImmutableArray<StyleTokenSyntax> Style { get; set; } = [];
 
         /// <summary>Gets the lines each statement writes, keyed by the statement so they are read in written order.</summary>
@@ -470,7 +471,7 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
     }
 
     /// <summary>A circuit's header as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
-    /// <param name="Name">The name, language 1's identifier or language 2's quoted title.</param>
+    /// <param name="Name">The circuit's quoted title.</param>
     /// <param name="Span">Where the header is written.</param>
     /// <param name="Number">The number written, if any.</param>
     /// <param name="Role">The role written, with where, if any.</param>

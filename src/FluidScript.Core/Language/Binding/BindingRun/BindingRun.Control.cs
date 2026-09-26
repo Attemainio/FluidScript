@@ -209,14 +209,13 @@ internal sealed partial class BindingRun
     }
 
     /// <summary>Binds what language 2 writes on a controller beyond its setpoint (<c>D-168</c>, <c>19</c> §Controllers).</summary>
-    /// <param name="binding">The line as language 1's short form binds it.</param>
+    /// <param name="binding">The loop as its <c>moves</c>, <c>reads</c> and <c>setpoint</c> bind it.</param>
     /// <param name="arguments">Its named arguments, by name as written.</param>
     /// <returns>The binding with its band, differential, output limits and curve.</returns>
     /// <remarks>
     /// A band and a differential are differences in what is measured (<c>20 K</c> on a temperature), and output
     /// limits are values of what is moved (<c>10..100 %</c> of a valve's position), which is why they sit on the
-    /// line and not on the controller: only the line knows either. The setpoint's dimension is checked here too,
-    /// which language 1 does not do.
+    /// line and not on the controller: only the line knows either. The setpoint's dimension is checked here too.
     /// </remarks>
     private ControlBindingSymbol WithTuning(ControlBindingSymbol binding, Dictionary<string, ParameterSyntax> arguments)
     {

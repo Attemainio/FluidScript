@@ -61,7 +61,7 @@ looks at first, and the one that makes a hydronic diagram immediately legible.
 Both a long name and a short one, because the language trades on density and `show = t` is what
 someone will type. The names are the language's, not this document's: `D-120` made the quantities of a
 state one table, `PropertyTable` ([`13`](../10-language/13-type-and-unit-system.md)), read by a port's
-state (`in[2].t`), a reference (`HX1.in[2].t`) and `show` alike. The short form is the symbol that
+state (`in[2].t`), a reference (`HX1.secondary.in.t`) and `show` alike. The short form is the symbol that
 table makes canonical; `show` accepts every spelling in it and the wire carries the long name.
 
 | Long | Short | Dimension | Notes |

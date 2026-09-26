@@ -283,13 +283,13 @@ share no numerical code.
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS3001` | Iteration cap reached | Error | `Could not solve in {n} steps. Furthest off: {component} by {amount}.` |
-| `FS3002` | Singular Jacobian | Error | `The circuit has no unique solution around {component}. Check for a missing pressure datum or a closed loop with no driver.` |
-| `FS3003` | Residual grew — diverging | Error | `The solution is moving away from a balance. Last stable point: {values}.` |
-| `FS3004` | Stalled — steps below tolerance, residual above | Error | `Stuck at {residual}. {component} may have conflicting requirements.` |
+| `FS3001` | Iteration cap reached | Error | `Could not solve in {steps} steps. Furthest off: {component} {equation} by {amount}.` |
+| `FS3002` | Singular Jacobian | Error | `The circuit has no unique solution around {component}. Check for a missing pressure datum, a closed circuit with no stated temperature, or a loop with no driver.` |
+| `FS3003` | Residual grew — diverging | Error | `The solution is moving away from a balance: {residual} after {steps} steps, from {previous}.` |
+| `FS3004` | Stalled — steps below tolerance, residual above | Error | `Stuck at {residual}: {component} {equation} may have conflicting requirements.` |
 | `FS3005` | A solver refused the system | Error | `{solver} cannot solve this: {reason}.` |
-| `FS3006` | Cancelled | Info | `Solve cancelled.` |
-| `FS3007` | Non-finite value during evaluation | Error | `{component} produced an impossible value at {state}.` |
+| `FS3006` | Cancelled | Info | `Solve cancelled after {steps} steps.` |
+| `FS3007` | Non-finite value during evaluation | Error | `{component} produced an impossible value in {equation} after {steps} steps.` |
 
 Every message names a component. That mapping exists only in `EquationSystem`, which is why
 `ResidualReport` is part of the result contract rather than a debugging afterthought.

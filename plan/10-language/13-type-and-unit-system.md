@@ -221,10 +221,11 @@ quantities; `C` alone, with no number before it, is an identifier.
 
 ### World units are dimensionless, and `spacing` is the reason to say so
 
-`spacing 20` (`D-37`) takes a bare `number`, never a `quantity`. World units are the canvas
-coordinate system ([`02-glossary`](../00-foundation/02-glossary.md)); they are not metres, not
-millimetres, and not pixels, so no symbol in the table above denotes one and `spacing 20 mm` is
-`FS1113`.
+`spacing = 20` (`D-37`, the project block's setting in language 2) takes a bare `number`, never a
+`quantity`. World units are the canvas coordinate system ([`02-glossary`](../00-foundation/02-glossary.md));
+they are not metres, not millimetres, and not pixels, so no symbol in the table above denotes one and
+`spacing = 20 mm` is `FS1514` (measured 2026-09-26; language 1's `spacing 20 mm` was `FS1113`, retired with
+it).
 
 **The temptation is to accept `mm` and treat the canvas as a drawing at some scale**, and it must be
 refused. A P&I diagram is a schematic: the distance between a pump and a valve on the page has no
@@ -268,7 +269,7 @@ parameter mean millimetres while its neighbour means metres, is precisely the tr
 
 ### The property table: one name for each quantity of a state
 
-`D-120` put a port's state on the port -- `in[2].t`, `HX1.in[2].flow` -- and `show temperature` had
+`D-120` put a port's state on the port -- `in[2].t`, `HX1.secondary.in.flow` -- and `show temperature` had
 named the same quantities since `57`. Both read one table, `PropertyTable` in Core's language layer,
 which is the registry of quantities a fluid state has and every spelling the language accepts for
 each:
@@ -447,12 +448,12 @@ A format that depends on the reader's locale means one file means two things on 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
 | `FS1301` | Unknown unit symbol | Error | `'{sym}' is not a unit. Did you mean '{suggestion}'?` |
-| `FS1302` | Adding two absolute temperatures (or pressures) | Error | `Cannot add two temperatures. To offset by a difference, write '{a} + {n} K'.` |
+| `FS1302` | Adding two absolute temperatures (or pressures) | Error | `Cannot add two {dimension}s. To offset by a difference, write '{example}'.` |
 | ~~`FS1303`~~ | Never implemented; unreachable since `K` is a difference (`D-172`) | — | — |
-| `FS1304` | Dimension mismatch in an assignment | Error | `'{param}' is a {expected}; '{value}' is a {actual}.` |
-| `FS1305` | Dimension mismatch in an operation | Error | `Cannot {op} a {a} and a {b}.` |
-| `FS1306` | Value outside a parameter's physical range | Warning | `{param} = {value} is outside the usual range ({lo}–{hi}). Check the unit.` |
-| `FS1307` | Negative value for a strictly positive parameter | Error | `{param} cannot be negative.` |
+| `FS1304` | Dimension mismatch in an assignment | Error | `'{parameter}' is a {expected}; '{value}' is a {actual}.` |
+| `FS1305` | Dimension mismatch in an operation | Error | `Cannot {operation} a {left} and a {right}.` |
+| `FS1306` | Value outside a parameter's physical range | Warning | `{parameter} = {value} is outside the usual range ({low}–{high}). Check the unit.` |
+| `FS1307` | Negative value for a strictly positive parameter | Error | `{parameter} cannot be negative.` |
 | `FS1308` | Negative `power` on a role spelling whose word carries the sign | Warning | `'{component}' is a {kind}, whose power is a capacity: {value} is read as {magnitude}. Write it positive, or use 'heat_exchanger' for a signed heat flow.` |
 
 **`FS1308` is the sign the word already carries, written again.** `load`, `cooler`, `radiator` and

@@ -1127,7 +1127,7 @@ public sealed record SizingResult
 | `FS2311` | Rated boundary profile cannot determine a second inlet state and capacity rate | Error | `'{name}' needs enough side-2 data to rate: provide an inlet plus flow2, or two temperatures with a duty; alternatively connect both secondary ports.` |
 | `FS2312` | Auto-sized pump circuit has no explicit resistance | Info | `'{name}' sized to zero head because its circuit contains no modelled resistance. Add a pipe, valve, exchanger drop, or other loss if resistance is intended.` |
 | `FS2313` | Parallel-set index branch has no valve | Info | `'{branch}' is the fixed index at {dp} kPa and has no valve; other branches are balanced to it, but no valve-authority target applies here.` |
-| `FS2314` | A duty-carrying component every declared scenario leaves inert (`D-143`) | Warning | `'{name}' carries no duty and no flow in any of the {count} scenarios ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.` |
+| `FS2314` | A duty-carrying component every declared scenario leaves inert (`D-143`) | Warning | `'{name}' carries no duty and no flow in any of the {count} cases ({names}), so nothing sizes it. If it exists to serve two demands that peak in different cases, the case where both are on is not in the list.` |
 
 **Registered as of 2026-09-19 (`C-74`):** `FS2301`, `FS2304`, `FS2305`, `FS2307`, `FS2310` and
 `FS2312` -- the six a rule detects. Each is raised beside the note that carried it before, with the

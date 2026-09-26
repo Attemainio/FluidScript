@@ -994,23 +994,23 @@ Invariants 5 and 7 are the two that get skipped and then cost a week of "the sol
 |---|---|---|---|
 | `FS2101` | Over-determined component | Error | `'{name}': {parameters} cannot all be set. Any {count} of them fix the rest.` |
 | `FS2102` | Under-determined after sizing | Error | `{name} needs one of: {list}.` |
-| `FS2103` | Both `kv` and `dp` stated | Warning | `{name}: using kv={kv}; dp is implied by it.` |
+| `FS2103` | Both `kv` and `dp` stated | Warning | `'{name}': using kv={kv}; dp is implied by it.` |
 | `FS2104` | Both `head` and `dp` stated and inconsistent | Error | `{name}: head={head} m is {implied} kPa, not {dp} kPa.` |
 | `FS2105` | Valve position outside 0–1 | Error | `'{name}': position must be between 0 and 1.` |
 | `FS2106` | Pipe discretization above the cap | Warning | `Using {cap} internal nodes instead of {n}.` |
-| `FS2107` | A node with a single connection that is not an `inlet` or `outlet` (`D-115`; a stated `p=` is a datum and does not make it one) | Warning | `'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t= or p= only states a level and passes no mass.` |
+| `FS2107` | A node with a single connection that is not an `inlet` or `outlet` (`D-115`; a stated `p=` is a datum and does not make it one) | Warning | `'{name}' is a dead end. Declare it 'inlet' or 'outlet' if fluid crosses there; a node's t or p only states a level and passes no mass.` |
 | `FS2108` | Efficiency outside 0–1 | Error | `'{name}': efficiency must be between 0 and 1.` |
 | `FS2109` | Rated exchanger over-determined: four temperatures, duty **and** a thermal size | Error | `'{name}': primary.in.t, primary.out.t, secondary.in.t, secondary.out.t and power already fix the thermal size. Remove {param}, or let a temperature be solved.` — shipped without the implied `UA`, which needs a `cp` the binder does not hold (`C-23`'s line); the sized value's basis carries it |
 | `FS2110` | A rating parameter stated in Duty mode | Warning | `'{name}': '{param}' has no secondary side to rate. State secondary.in.t, secondary.out.t, secondary.in.dt or secondary.in.flow, connect both secondary ports, or remove it.` |
 | `FS2111` | Requested duty exceeds what the inlet temperatures allow | Error | `{name} cannot transfer {power} kW: with {t_hot} and {t_cold} in, the most any exchanger could move is {qmax} kW.` |
 | `FS2112` | Exactly one secondary port is connected | Error | `'{name}': a coupled exchanger needs both secondary.in and secondary.out connected; {port} is open.` |
-| `FS2113` | Tank uses `t` with any indexed temperature, or states only part of `layer[1].t`…`layer[N].t` | Error | `{name}: state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them.` |
-| `FS2114` | `layers` is non-integral or outside 1…100 | Error | `{name}: layers must be a whole number from 1 to 100.` |
-| `FS2115` | A tank port level is outside 0…1 | Error | `{name}: {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).` |
+| `FS2113` | Tank uses `t` with any indexed temperature, or states only part of `layer[1].t`…`layer[N].t` | Error | `'{name}': state either t for every layer, or all of layer[1].t…layer[{layers}].t; do not mix them.` |
+| `FS2114` | `layers` is non-integral or outside 1…100 | Error | `'{name}': layers must be a whole number from 1 to 100.` |
+| `FS2115` | A tank port level is outside 0…1 | Error | `'{name}': {parameter} is a normalized level and must be between 0 (bottom) and 1 (top).` |
 | `FS2116` | Tank substance is not a supported single-phase liquid | Error | `{name}: stratified tank supports a single-phase liquid; {substance} is outside that model.` |
-| `FS2117` | A required parameter is absent | Error | `'{name}': a {kind} must state {parameter}.` |
+| `FS2117` | A required parameter is absent | Error | `'{name}': the {kind} must state {parameter}.` |
 | `FS2118` | A parameter group has too few of its members stated | Error | `'{name}': a {kind} must state {count} of {parameters}.` |
-| `FS2119` | A neutral exchanger's signed duty contradicts the direction its stated terminals give (`C-67`) | Error | `'{name}': power={power} means side {side} {duty}, but {inlet}={in} and {outlet}={out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.` |
+| `FS2119` | A neutral exchanger's signed duty contradicts the direction its stated terminals give (`C-67`) | Error | `'{name}': power = {power} means the {side} side {duty}, but {inlet} = {in} and {outlet} = {out} say the water {change}{cases}. Flip the sign, swap the temperatures, or use a role word such as load or heater.` |
 
 `FS2101` covers both of this kind's relations, which is why its message names the group rather than
 spelling one of them out. **It does not name the implied value.** For `ua`/`area`/`u` it could —

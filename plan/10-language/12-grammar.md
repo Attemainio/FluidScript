@@ -960,8 +960,8 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1101` | *(retired)* | — | A second 'connections' or 'schedule' section in one circuit. Language 1's sections; language 2 has none, and language 1 was removed (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1102` | *(retired)* | — | A connection above language 1's 'connections' line. Language 2 has no sections (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1103` | *(retired)* | — | A statement in the wrong language 1 section. Language 2 places a statement by its block, which is FS1802 (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1104` | Statement cannot be classified | Error | `Cannot read this line. Expected a component declaration or a connection.` |
-| `FS1105` | Parameter with no `=` | Error | `'{token}' looks like a parameter but has no value. Write '{token}=…'.` |
+| `FS1104` | Statement cannot be classified | Error | `Cannot read this line. Expected a declaration such as 'PU1 pump', a connection such as 'A - B', or a setting such as 'name = value'.` |
+| `FS1105` | Parameter with no `=` | Error | `'{token}' looks like a parameter but has no value. Write '{token} = …'.` |
 | `FS1106` | *(retired)* | — | A step or ramp outside language 1's 'schedule' section. In language 2 an event outside a run is FS1802 (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1107` | *(retired)* | — | A language 1 schedule in a circuit with no time to run in. Language 2's events belong to a run, which has time by construction (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1108` | Hyphen inside a name or kind name | Error | `'{text}' — a name cannot contain '-'. Write '{underscored}'.` |
@@ -972,12 +972,12 @@ public sealed record ParseResult(ScriptSyntax Root, ImmutableArray<Diagnostic> D
 | `FS1113` | *(retired)* | — | Language 1's 'spacing' line given a quantity. Language 2's spacing is a setting of the project block (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1114` | Text after a statement that is already complete | Error | `'{extra}' is more than this line can hold.` |
 | `FS1115` | A curve row outside a `curve` section | Error | `Put this pair under a 'curve' line.` |
-| `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on, such as 'curve {name} tout'.` |
+| `FS1116` | A `curve` header with no driver | Error | `'curve {name}' needs what it depends on after a colon, such as 'curve {name}: outdoor'.` |
 | `FS1117` | A curve row that is not two values | Error | `A curve row is one x and one y, such as '-26 50'.` |
 | `FS1118` | *(retired)* | — | Language 1's 'design' line with no values. Language 2 has no 'design' line: the first case is the operating one (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1119` | An index that is not a whole number touching its name: `in[a]`, `in[ 2 ]`, `in[]` (`D-120`) | Error | `An index is a whole number in brackets right after the name, such as 'in[2]'.` |
 | `FS1120` | *(retired)* | — | Language 1's 'scenarios' line with no names. Language 2 writes 'cases = [...]' (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1121` | A bracketed value list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A value list is one value per scenario, separated by commas, such as '[30, 10]'.` |
+| `FS1121` | A bracketed value list that is not comma-separated values: `[]`, `[30,]`, `[30 10]`, `[30` (`D-143`) | Error | `A list is one value per case, separated by commas, such as '[30, 10]'.` |
 | `FS1201` | *(retired)* | — | A token of language 1's style line that was no style. Language 2 checks each style setting against its key, which is FS1514 (L-77, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1202` | Two style tokens of the same category | Warning | `'{a}' overrides the earlier '{b}'.` |
 | `FS1203` | Bare `#rrggbb` in a `style` directive | Warning | `'#' starts a comment; the rest of this line was ignored. Write the colour as "{hex}".` |

@@ -551,15 +551,15 @@ package needed rather than a settled contract:
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS3101` | Step limited by CFL | Info | `Step limited to {dt} s by '{component}'. Fewer internal nodes would run faster.` |
-| `FS3102` | Step fell below `MinStep` | Error | `The simulation cannot advance past {t} s. Something is changing faster than the model can follow.` |
-| `FS3103` | Algebraic solve failed within a step | Error | `Could not balance the circuit at t = {t} s: {inner}.` |
+| `FS3101` | Step limited by CFL | Info | `Step limited to {step} s by '{component}'. Fewer internal nodes would run faster.` |
+| `FS3102` | Step fell below `MinStep` | Error | `The simulation cannot advance past {time} s. Something is changing faster than the model can follow.` |
+| `FS3103` | Algebraic solve failed within a step | Error | `Could not balance the circuit at t = {time} s: {inner}.` |
 | `FS3104` | Horizon reached before settling | Info | `Still changing at {horizon} s. Extend the run to see it settle.` |
 | `FS3105` | A schedule target is a parameter the run cannot move — a boundary state, a size, a parameter the component does not resolve at solve time (`S-77`) | Error | `Cannot change '{target}' — {reason}.` |
 | `FS3106` | Energy drift beyond tolerance | Warning | `Energy balance drifted by {pct} % over the run. Results may be unreliable.` |
-| `FS3107` | Non-finite/shape/snapshot/conservation invariant failure | Error | `Simulation stopped at {t} s because {invariant} failed. The last verified frame is {sequence}.` |
+| `FS3107` | Non-finite/shape/snapshot/conservation invariant failure | Error | `Simulation stopped at {time} s because {invariant} failed. The last verified frame is {sequence}.` |
 | `FS3108` | A tank layer/profile cannot initialize inside the supported property domain | Error | `Cannot initialize '{tank}' layer {layer} at {state}.` |
-| `FS3109` | A schedule target is also a control binding's actuator | Error | `'{target}' is driven by {controller}; a schedule cannot also move it.` |
+| `FS3109` | A schedule target is also a control binding's actuator | Error | `'{target}' is driven by {controller}; an event in a run cannot also move it.` |
 | `FS3110` | A static circuit is carried along in a transient run | Info | `'{circuit}' is static and is solved at each step without states of its own.` |
 
 **Settled (`FS3104`)** means every differential state has changed by less than

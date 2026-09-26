@@ -113,10 +113,10 @@ public sealed record ComponentKindInfo
 
 public sealed record ParameterInfo
 {
-    /// <summary>The script spelling: <c>power</c>, <c>in.t</c>, <c>in[2].flow</c> (`D-120`).</summary>
+    /// <summary>The script spelling: <c>power</c>, <c>in.t</c>, <c>secondary.in.flow</c> (`D-120`, `D-179`).</summary>
     public required string Name { get; init; }
 
-    /// <summary>The model's identifier, which the bound symbol, the sizes and the wire carry: <c>in2</c> for <c>in[2].t</c>, <c>flow2</c> for <c>in[2].flow</c>. Defaults to <see cref="Name"/>.</summary>
+    /// <summary>The model's identifier, which the bound symbol, the sizes and the wire carry: <c>in2</c> for <c>secondary.in.t</c>, <c>flow2</c> for <c>secondary.in.flow</c>. Defaults to <see cref="Name"/>.</summary>
     public string Key { get; init; }
 
 
@@ -296,16 +296,21 @@ kinds therefore fail clearly instead of producing a hydronic answer wearing air-
 same rule as kind aliases: the semantic map and metadata use `volume`; the lossless printer leaves
 `v` exactly as written. Similarity is scored only after exact canonical/alias lookup.
 
-### Stage 3 — similarity
+### Stage 3 — similarity, which suggests and never binds
 
-An input that matches nothing exactly is scored against every normalised keyword and alias, and
-**resolves when the best score clears the threshold**, with `FS1512` (info) naming what it read.
+An input that matches nothing exactly is scored against every normalised keyword and alias. **It never
+binds** (`D-170`, which supersedes `D-15`'s third stage for language 2; the stage bound a near spelling
+with an `FS1512` note until P6.11 retired it): a near kind is `FS1502` and a near parameter `FS1503`, both
+errors, and a near circuit role is `FS1519`, placed neutrally; the spelling it was near is the message's
+suggestion and its one-click fix.
+Measured 2026-09-25, before `D-170`: `PU1 pmp haed=15` bound as a pump with `head = 15`, and
+`RAD radiators power=30` as a neutral exchanger that put 30 kW *into* the water.
 
 | Rule | Value | Reasoning |
 |---|---|---|
 | Score | `1 − damerau_levenshtein(a, b) / max(len(a), len(b))` | Normalised edit distance with transposition, because `pmup` for `pump` is one keystroke, not two |
-| Threshold | **0.70** | `pmp`→`pump` scores 0.75 and must resolve; `valve`→`pipe` scores 0.20 and must not |
-| Ambiguity margin | **0.05** | If the runner-up is within this of the winner, nothing resolves |
+| Threshold | **0.70** | `pmp`→`pump` scores 0.75 and is offered as the fix; `valve`→`pipe` scores 0.20 and is not |
+| Ambiguity margin | **0.05** | If the runner-up is within this of the winner, both are named (`FS1513`) and neither is the fix |
 | Suggestion floor | **0.60** | Below this a failed match carries no suggestion at all |
 | Tie-break | none — ambiguity is reported | See below |
 
@@ -313,8 +318,8 @@ An input that matches nothing exactly is scored against every normalised keyword
 `4_way_valve` — a real device this version does not model — normalises to `4wayvalve`, which is
 exactly one substitution from both `2wayvalve` and `3wayvalve` and therefore scores **0.889 against
 `valve` and 0.889 against `three_way_valve`**. Picking the higher of two equal candidates is a coin
-flip that produces a silently wrong circuit. Below the margin the input is `FS1513` with both
-candidates ranked, which is a question the user answers in one keystroke.
+flip that would offer a wrong fix as the one-click answer. Below the margin the input is `FS1513` with
+both candidates ranked, which is a question the user answers in one keystroke.
 
 *(This example previously read "`valv` scores 0.80 against `valve` and 0.78 against a normalised
 `3_way_valve` prefix". No prefix is computed anywhere: under the formula above, `valv` scores 0.80
@@ -330,18 +335,17 @@ one, and *"There is no 'fan'. Did you mean 'tank'?"* is worse than saying only t
 Above the floor a suggestion still earns its place — `exchan` scores 0.67 against `exchanger`, too far
 to act on and plainly aimed at it.
 
-**Every stage-3 resolution emits `FS1512`, always, and it is info rather than warning.** The user gets
-their circuit and a line in the log saying what was read. Suppressing it would make the feature invisible
-magic — the same argument that makes `FS1510` mandatory for inferred components — and escalating it to a
-warning would put an amber squiggle on a script that is doing exactly what its author meant.
+**A near kind or parameter is an error, not a note.** `D-15` bound it and said so as information, which the
+log hides by default; a typo in a parameter's name then became a constraint the user never stated, which is a wrong
+answer that compiles. The fix the user accepts in one click costs a second (`D-170`).
 
 ### What resolution does not do
 
-- **It never invents a kind.** Below the threshold, or ambiguous, the declaration binds with
-  `Kind = Unknown` and the script continues (P4), exactly as before.
+- **It never invents a kind.** Anything but an exact or curated spelling binds with `Kind = Unknown`
+  and the script continues (P4).
 - **It never runs on component *names*.** `PU1` and `PUI` are different components, and a typo in a
-  name must produce a dangling reference, not a silent merge. Similarity applies to `kind-name`,
-  `parameter` names (`FS1503`'s suggestion), and `property-name` — all closed sets the registry owns.
+  name must produce a dangling reference, not a silent merge. Similarity suggests for `kind-name`,
+  `parameter` names (`FS1503`'s suggestion) and circuit roles — all closed sets the registry owns.
 - **It never changes the source text.** The script keeps the user's spelling; the printer round-trips
   it byte for byte (`R-25`); only the model contract and `/docs` carry the canonical keyword. An
   editor may *offer* the canonical form as a quick fix, and `52-editor` owns whether it does.
@@ -402,38 +406,22 @@ public sealed record CircuitSymbol
 
     public required string Substance { get; init; }
 
-    /// <summary>Steady or transient for this circuit, after applying `D-37`'s precedence.</summary>
-    /// <remarks>The circuit's own <c>fluid dynamic|static</c> wins; otherwise the project default;
-    /// otherwise <see cref="FluidMode.Static"/>. A circuit contradicting the project gets
-    /// <c>FS1517</c> and keeps its own value.</remarks>
+    /// <summary>Steady or transient for this circuit.</summary>
+    /// <remarks>Static as bound: the design solve is an equilibrium. A run projects the model and makes every
+    /// circuit dynamic except those its <c>steady</c> list names (`D-169`). Language 1's per-circuit
+    /// <c>fluid dynamic|static</c>, the project default and `FS1517` went with it (`D-174`).</remarks>
     public required FluidMode Mode { get; init; }
 
-    /// <summary>The circuit's role, resolved from <see cref="Name"/> through the role registry (`D-35`).</summary>
-    /// <value><c>Neutral</c> when the name matches no role — never an error.</value>
+    /// <summary>The circuit's role, resolved from its <c>role</c> setting through the role registry (`D-35`).</summary>
+    /// <value><c>Neutral</c> when none is written or the one written matches no role exactly (`FS1519`) — never an error.</value>
     public required CircuitRole Role { get; init; }
-
-    /// <summary>The circuit both attachments resolve into, or null when this circuit stands alone.</summary>
-    /// <remarks>Derived, not written: it is the circuit owning <see cref="Supply"/>'s and
-    /// <see cref="Return"/>'s resolved components, which must be the same one (`FS1526`).</remarks>
-    public string? ParentCircuit { get; init; }
-
-    /// <summary>Where this circuit takes flow from its parent, or null when it stands alone (`D-33`).</summary>
-    public AttachmentSymbol? Supply { get; init; }
-
-    /// <summary>Where this circuit returns flow to its parent, or null when it stands alone.</summary>
-    public AttachmentSymbol? Return { get; init; }
 
     public required TextSpan DeclarationSpan { get; init; }
 }
 
-/// <summary>One end of a subcircuit's attachment to its parent (`D-33`).</summary>
-/// <remarks><see cref="ParentComponent"/> is resolved during connection binding, so it is null
-/// while the named node does not exist; that condition is <c>FS1518</c>, not an exception. A name that
-/// resolves to this circuit's own component is <c>FS2217</c> instead — the two never both fire.</remarks>
-public sealed record AttachmentSymbol(
-    string ParentComponentName,
-    ComponentSymbol? ParentComponent,
-    TextSpan Span);
+// Language 1's subcircuit attachment -- `inlet N3` / `outlet N4` under a circuit header, `D-33` -- and its
+// AttachmentSymbol, ParentCircuit, `FS1518`, `FS1526` and `FS2217` were removed with language 1 (`D-174`):
+// language 2 wires a circuit to its parent with connections, and a circuit's parent is derived from them.
 
 /// <summary>A circuit's thermal classification, feeding `D-31` staging.</summary>
 /// <remarks>Registry data, not a closed set in the language: adding a role is a registry change,
@@ -499,15 +487,14 @@ public sealed record BindingSymbol(
 
 /// <summary>Presentation values: the project's default style, the named styles, and the spacing.</summary>
 /// <remarks>
-/// <see cref="Tokens"/> holds the project-level <c>style</c> directive's tokens verbatim, for the
-/// printer. <see cref="Default"/> is the same directive classified (`D-104`): stroke, width, corner,
-/// pattern and fill, each null when unstated. <see cref="Definitions"/> holds every
-/// <c>style name = tokens</c> by name (FS1205 on a second definition). <see cref="Spacing"/> is the
-/// <c>spacing</c> directive's value in world units -- the layout margin since `D-103` -- or null
-/// when the script states none, in which case <c>LayoutSolver.DefaultMargin</c> (0.5) applies.
-/// A circuit's <c>style name</c> line and a component's <c>style=name</c> parameter resolve at
-/// bind time onto <c>ComponentSymbol.Style</c>, merged project -> circuit -> component; FS1204
-/// names an undefined style. Core resolves; the renderer draws what `26` carries.
+/// <see cref="Default"/> is the project's <c>style:</c> block classified (`D-104`, `D-171`): stroke, width,
+/// corner, pattern and fill, each null when unstated; a circuit's own <c>style:</c> block overrides it for
+/// that circuit's components. <see cref="Spacing"/> is the <c>spacing</c> setting in world units -- the
+/// layout margin since `D-103` -- or null when the script states none, in which case
+/// <c>LayoutSolver.DefaultMargin</c> (0.5) applies. Core resolves; the renderer draws what `26` carries.
+/// Language 1's named styles (<c>style name = tokens</c>, a component's <c>style=name</c>, `FS1204`,
+/// `FS1205`) went with it (`D-174`); <see cref="Definitions"/> and <see cref="Tokens"/>' language 1 shape
+/// stay empty until the contract drops them (`C-139`, package 8).
 /// </remarks>
 public sealed record StyleSettings(
     ImmutableArray<StyleTokenSyntax> Tokens,
@@ -645,9 +632,10 @@ because this is a data change that breaks the language silently.
 
 ## Circuit role resolution
 
-`circuit AHU 101`'s role comes from the header name through the **same three stages** kind resolution
-uses (`D-15`): normalise, exact match against canonical names and curated aliases, then similarity.
-`AHU`, `ahu` and `air_handling_unit` all reach one role; `radiators` reaches `radiator` by similarity.
+A circuit's `role = …` resolves through the **same stages** kind resolution uses (`D-15`, `D-170`):
+normalise, then exact match against canonical names and curated aliases. `AHU`, `ahu` and
+`air_handling_unit` all reach one role; `radiators` does not reach `radiator`, it is `FS1519` with
+`radiator` as the fix.
 
 An unresolved name is **not an error**. The circuit gets `ThermalStageRole.Neutral` and `FS1519`
 (info), exactly as an unresolved component kind still produces a component (`P4`). A plant is full of
@@ -660,13 +648,14 @@ expects `AirHandlingUnit` to find `ahu`.
 
 ## Binding order
 
-0. **Partition into circuits and read the file-wide settings.** Each `CircuitHeaderSyntax` opens a
-   circuit that owns every statement until the next header; a script with no header gets one implicit
-   circuit named for the file (`FS1508`). `project` binds into `ProjectSettings`; `spacing` binds into
-   `StyleSettings`, not `ProjectSettings` — one value, one path (`D-37`).
-   Circuit numbers are assigned here — stated ones kept, omitted ones filled with the lowest unused
-   multiple of 100 in declaration order — and a collision is `FS1524`. Roles resolve through the role
-   registry (`FS1519`), and each circuit's `Mode` is settled by `D-37`'s precedence (`FS1517`).
+0. **Read the file (language 2's reader) and the circuits.** Each `circuit "…":` block is a circuit and
+   owns what it holds; a declaration or connection outside every block is `FS1802`, and a script with
+   no block still gets one circuit named for the file so the model is never empty (measured 2026-09-26;
+   language 1's implicit circuit said so with `FS1508`, retired). The project block's settings bind into
+   `ProjectSettings`, and `spacing` into `StyleSettings`, not `ProjectSettings` — one value, one path
+   (`D-37`). Circuit numbers are assigned here — stated ones kept, omitted ones filled with the lowest
+   unused multiple of 100 in declaration order — and a collision is `FS1524`. Roles resolve through the
+   role registry (`FS1519`), and every circuit binds static; a run sets the modes (`D-169`).
 0b. **Collect curves and the design point** (`D-57`, `D-58`). Each `curve` header and its rows become
    a `CurveSymbol`: a sorted table of `(x, y)` bare doubles, an end rule (clamped or extrapolated), and
    a driver name. Rows arriving out of order are sorted by `x`; two rows with the same `x` are
@@ -680,8 +669,8 @@ expects `AirHandlingUnit` to find `ahu`.
    declares here too** (I7, `D-110`): one `pipe` symbol per connection on the line, so that steps 2
    to 5 resolve its kind, bind and evaluate its parameters exactly as a written `P1 pipe length=25`
    would be; step 7 then wires the connection through it.
-2. **Resolve kinds** against the registry, in the three stages below — normalise, exact, similarity.
-   Unresolved → `FS1502`; ambiguous → `FS1513`. Either way the component is still created with an
+2. **Resolve kinds** against the registry — normalise, exact — with similarity only to suggest (`D-170`).
+   Unresolved → `FS1502`, with the near kind as its fix; ambiguous → `FS1513`. Either way the component is still created with an
    `Unknown` kind so later stages can skip it without the script collapsing (P4).
 3. **Bind parameters.** Each parameter name is looked up in the kind's canonical names and curated
    aliases, by the same normalisation as a kind name. A dotted name is a port's state (`D-120`):
@@ -689,8 +678,8 @@ expects `AirHandlingUnit` to find `ahu`.
    and `[1]` is folded away (`in[1].t` → `in.t`), then the folded form and the written form are
    tried in that order -- the folded first so `in[1].level` reaches the fixed `in.level` row, the
    written second so `layer[1].t` still reaches its family. Indexed families (`layer[1].t`…,
-   `in[2].level`…`out[16].level`) are matched against their declared pattern before similarity,
-   and an index outside the family is `FS1516` rather than a near miss. A pre-`D-120` spelling
+   `in[2].level`…`out[16].level`) are matched against their declared pattern before any suggestion
+   is scored, and an index outside the family is `FS1516` rather than a near miss. A pre-`D-120` spelling
    (`in=`, `in2=`, `t3=`) is not read: language 2 removed them and retired `FS1536` (`L-79`); a port state on a kind with unlimited unnamed ports is `FS1537`. A dotted name
    whose quantity the property table names but the port does not take is `FS1538`, listing what
    the port takes, and never a similarity match: `in.p` scores 0.75 against `in.t`, and a stated
@@ -753,27 +742,16 @@ expects `AirHandlingUnit` to find `ahu`.
    statement, agreeing or not. The component keeps its `p_<port>` value too; nothing downstream reads
    it, and the wire's `parameters` shows the line as written. Unlike heights this *is* a statement:
    the node's pressure is exactly as constrained as if the node had written it.
-8. **Bind attachments, control bindings, and the schedule.** Each `inlet`/`outlet` endpoint resolves against the
-   the model's single symbol table (`D-41`) — unresolved is `FS1518`, and resolving to a component of
-   the *same* circuit is `FS2217`, owned by topology because that is where circuit membership is
-   final. A lone `inlet` or `outlet` is `FS1520`. **Both must resolve into the same circuit**, which
-   is then this circuit's `ParentCircuit`; resolving into two different circuits is `FS1526`, because
-   the model carries one parent and a subcircuit fed by one circuit and draining into another is a
-   topology the user should state as connections rather than as an attachment. Each `control` line resolves its
-   named arguments — `by=` to a controller component (`FS1523`), `actuate=` to a settable parameter
-   (`FS1522`), `measure=` to a property reference, `setpoint=` to a quantity — with a missing required
-   argument reported as `FS1521`. Each `schedule` entry resolves its `component.parameter` target the
-   same way `actuate=` does, and evaluates its times against `Time` and its values against the
-   target parameter's dimension, so `at 60 s HE4.power = 45` is forty-five kilowatts by `D-14`'s
-   bare-number rule exactly as `power=45` would be.
-
-   **Attachments bind before inference, and the order is load-bearing** (`L-44`). `inlet N3` lowers to
-   a connection from the parent's `N3` to the subcircuit's *first unconnected inlet* — so run after I3
-   there are no unconnected inlets left, because that rule has already terminated every one of them with
-   a dead-leg node. Two consequences follow. The `_sourceConnections` snapshot includes
-   attachment-derived connections, which is right: `inlet` **is** a connection the user wrote. And
-   `ReportDeadEnds` needs no exemption for attachment parent nodes, because the edge it used to stand in
-   for is counted by the time it runs.
+8. **Bind control lines and runs.** A controller block (`19`) is one control line: `moves` resolves
+   through the registry's spellings to the key of the parameter it moves (`FS1522` when the kind has none
+   of that name, `FS1531` when a bare component has no single one), `reads` to a property the kind has
+   (`FS1406`) or to what a sensor measures, `setpoint` to a quantity in the measured dimension, and a
+   missing required setting is `FS1521`. A run's events (`at 60 s HE4.power = 45`) resolve their
+   `component.parameter` target the same way `moves` does, and evaluate their times against `Time` and
+   their values against the target parameter's dimension, so `45` there is forty-five kilowatts by
+   `D-14`'s bare-number rule exactly as `power = 45` would be. Language 1's subcircuit attachment
+   (`inlet N3`, `FS1518`, `FS1520`, `FS1526`, `FS2217`) went with it (`D-174`); a circuit is wired to its
+   parent by connections, which inference treats like any other.
 
 9. **Apply inference rules** I1, I2, I3 in that order — order matters, since I2 can only run once I1
    has created the undeclared nodes, and I3 can only run once every connection has claimed its port.
@@ -783,8 +761,8 @@ expects `AirHandlingUnit` to find `ahu`.
     never warned about — a controller appears in no connection by design, because a `control` line
     binds it rather than topology, so warning would put a squiggle on the one script using `D-40`
     correctly. A declared **`node`** is skipped for a weaker reason and it is a judgement rather than a
-    derivation: a node may legitimately be mentioned only as a subcircuit's attachment target, and a
-    lone declared node is more often a datum the user is about to wire than a mistake. The cost is that
+    derivation: a node may legitimately be declared as a datum another circuit's connection is about
+    to reach, and a lone declared node is more often a datum the user is about to wire than a mistake. The cost is that
     a genuinely orphaned `node` is silent; `FS2107` catches the dead-end case once topology runs, which
     is where the evidence to tell them apart exists.
 
@@ -812,7 +790,7 @@ been bound. Nothing in steps 0–10 may read `ComponentSymbol.Tag`; an architect
 because a binder stage that resolved a reference by tag would reintroduce exactly the identity `D-34`
 removed.
 
-The binder preserves the exact presence of `in[2].t`, `out[2].t`, `in[2].dt`, and `in[2].flow`
+The binder preserves the exact presence of `secondary.in.t`, `secondary.out.t`, `secondary.in.dt`, and `secondary.in.flow`
 (keyed `in2`, `out2`, `dt2`, `flow2`) plus secondary-port connections. During lowering, the heat-exchanger factory derives `duty`, `rated`, or `coupled` from
 that evidence using `D-19`'s precedence. It must not collapse “secondary ports unconnected” to Duty:
 that would erase Rated external-profile designs before Core sees them.
@@ -825,8 +803,7 @@ than a guess. They were defined in code and enumerated in no document, which is 
 recorded; the sets are below, and this document is now their home.
 
 A role is resolved by **normalised spelling**: the canonical name, or any alias, case-insensitively. An
-unknown circuit role is `FS1519` and an unknown schedule driver is `FS1527`, and both messages list the
-canonical names only — the aliases exist so a user's first guess lands, not to be memorised.
+unknown circuit role is `FS1519`, and its message lists the canonical names only — the aliases exist so a user's first guess lands, not to be memorised.
 
 **Circuit roles** (`D-35`). The default is `neutral`, which claims nothing and lays out in written
 order; every other role is a layout hint that [`25-layout-hints`](../20-core-domain/25-layout-hints.md)
@@ -885,7 +862,7 @@ only that it is a boundary.
 
 **I7 — implicit pipe** (`D-110`). A connection line that ends in pipe properties makes one `pipe`
 per connection on it, named `{A}__{B}` after the two endpoint identifiers (ports dropped: `PCV -
-HX1.in[2] length=12` makes `PCV__HX1`), with an ordinal on collision as I2 appends one. The symbol is
+HX1.secondary.in  12 m` makes `PCV__HX1`), with an ordinal on collision as I2 appends one. The symbol is
 `Origin = Inferred(I7, key)` where the key is the line's start offset and the connection's index on
 it, so the same line binds to the same pipe on every parse; `WrittenKind = pipe`; its parameters are
 the line's, **stated**. It is created in step 1, not step 9, because its parameters must go through
@@ -933,8 +910,8 @@ the language test suite must run in milliseconds, and property lookups are not m
 1. `Bind` never throws, for any syntax tree including one that is entirely `MalformedStatementSyntax`.
 2. Every `ComponentSymbol` has a unique `Name` **within the model** (`D-41`). Circuits scope tags, not
    identifiers: two circuits may not both declare a `PU1`, and a bare name resolves the same way from
-   anywhere in the script — which is what makes an attachment endpoint and a cross-circuit control
-   binding ordinary lookups rather than qualified ones.
+   anywhere in the script — which is what makes a connection between circuits and a cross-circuit
+   control line ordinary lookups rather than qualified ones.
 3. A parameter absent from `ComponentSymbol.Parameters` was not written by the user. There is no other
    reason for absence.
 4. Every `ConnectionSymbol` endpoint resolves to an existing `ComponentSymbol` and one of its ports.
@@ -968,8 +945,7 @@ the language test suite must run in milliseconds, and property lookups are not m
     function of declaration order alone — permuting statements that do not change declaration order
     leaves every tag unchanged.
 16. No registered `TagCode` produces a tag that lexes as a quantity literal (`FS1003`).
-17. Every `AttachmentSymbol` with a non-null `ParentComponent` names a component of a *different*
-    circuit. A circuit never attaches to itself.
+17. *(Removed with language 1's attachments, `D-174`: there is no `AttachmentSymbol` left to hold to it.)*
 
 Invariant 7 is checkable by an architecture test and should be, since it is the one a well-meaning
 refactor breaks first. Invariant 14 needs the same treatment for the same reason: reading a tag during
@@ -1033,64 +1009,63 @@ above, never to a `let`.
 
 | Code | Trigger | Severity | Message shape |
 |---|---|---|---|
-| `FS1501` | Duplicate component name anywhere in the script | Error | `'{name}' is already declared at line {n}{inCircuit}. Names are unique across the whole file; tags are what distinguish circuits.` |
-| `FS1502` | Unknown component kind, closest candidate above the suggestion floor | Error | `There is no '{kind}'. Did you mean '{suggestion}'?` |
+| `FS1501` | Duplicate component name anywhere in the script | Error | `'{name}' is already declared at line {line}. Names are unique across the whole file; tags are what distinguish circuits.` |
+| `FS1502` | Unknown component kind, closest candidate above the suggestion floor | Error | `There is no '{kind}'.` |
 | `FS1502` | Unknown component kind, nothing close enough to suggest | Error | `There is no '{kind}'.` |
-| `FS1503` | Unknown parameter for the kind | Error | `A {kind} has no '{param}'. It accepts: {list}.` |
+| `FS1503` | Unknown parameter for the kind | Error | `A {kind} has no '{parameter}'. It accepts: {available}.` |
 | `FS1504` | Endpoint names an unknown component | Error | Handled by I1 unless the name is a declared non-component symbol, then: `'{name}' is a value, not a component.` |
-| `FS1505` | Unknown port | Error | `A {kind} has no port '{port}'. Ports: {list}.` |
-| `FS1506` | Port connected more than once | Error | `Port '{port}' of '{name}' is already connected at line {n}.` |
+| `FS1505` | Unknown port | Error | `A {kind} has no port '{port}'. Ports: {available}.` |
+| `FS1506` | Port connected more than once | Error | `Port '{port}' of '{name}' is already connected at line {line}.` |
 | `FS1507` | Component in no connection | Warning | `'{name}' is not connected to anything.` |
 | `FS1508` | *(retired)* | — | Language 1 statements before any 'circuit' line, read into an implicit circuit. Language 2 declares a component only inside a circuit block, which is FS1802 (L-70, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1509` | *(retired)* | — | Meant "more than one `circuit` header", which `D-33` makes legal. Retired, not reused; left unallocated. |
 | `FS1510` | A component was inferred | Info | `Added {kind} '{name}' ({rule}).` |
-| `FS1511` | Graph is disconnected | Warning | `'{name}' and {n} others are not connected to the rest of the circuit.` |
+| `FS1511` | Graph is disconnected | Warning | `'{name}' and {count} others are not connected to the rest of the circuit.` |
 | `FS1512` | *(retired)* | — | A name bound to the registered spelling it was near, with a note. Language 2 binds only exact spellings and offers the near one as the fix (D-170, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1513` | A kind name is ambiguous within the margin | Error | `'{written}' could be '{a}' or '{b}'. Write one of them.` |
-| `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{param}' accepts {list}; '{written}' is none of them.` |
-| `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{param}' names a component property, like 'N2.t'.` |
+| `FS1513` | A kind name is ambiguous within the margin | Error | `'{written}' could be '{first}' or '{second}'. Write one of them.` |
+| `FS1514` | A symbol-valued parameter got an unaccepted name | Error | `'{parameter}' accepts {available}; '{written}' is none of them.` |
+| `FS1515` | A reference-valued parameter got something that is not a reference | Error | `'{parameter}' names a component property, like 'N2.t'.` |
 | `FS1516` | An indexed port or parameter lies outside its declared family | Error | `'{written}' is outside {kind}'s supported {min}…{max} range.` |
 | `FS1517` | *(retired)* | — | Language 1's circuit mode ('fluid water dynamic') contradicting the project's. Language 2 states modes per run (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1518` | *(retired)* | — | A language 1 attachment line naming no component. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {list}.` |
+| `FS1519` | A circuit's role name matched no registry entry | Info | `'{name}' is not a known circuit role, so it is placed neutrally. Known roles: {available}.` |
 | `FS1520` | *(retired)* | — | A language 1 circuit with an inlet attachment and no outlet, or the reverse. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1521` | A `control` binding is missing a required argument | Error | `A 'control' line needs {list}. Missing: {missing}.` |
+| `FS1521` | A `control` binding is missing a required argument | Error | `A controller needs {list}. Missing: {missing}.` |
 | `FS1522` | A `control` binding's `actuate=` names a parameter that cannot be set | Error | `'{param}' of '{component}' cannot be controlled.` |
 | `FS1523` | A `control` binding's `by=` names something that is not a controller | Error | `'{name}' is a {kind}, not a controller.` |
-| `FS1524` | Two circuits resolve to the same number | Error | `Circuit '{a}' and '{b}' are both {n}. Give one of them a different number.` |
-| `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {n}. Circuit names identify a circuit and must be unique.` |
+| `FS1524` | Two circuits resolve to the same number | Error | `Circuit {number} is already '{owner}'. Every circuit's number is its own.` |
+| `FS1525` | Two circuits share a name | Error | `'{name}' is already a circuit at line {line}.` |
 | `FS1526` | *(retired)* | — | A language 1 circuit attached to two parent circuits. Language 2 has no attachment lines (D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1527` | *(retired)* | — | A language 1 curve driven by a name that was no role, curve or design value. Language 2's driver is a let or time, which is FS1811 (D-167, D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' depends on '{driver}', which has no value here. Add 'design {driver}=…' or solve in time.` |
+| `FS1528` | A curve is read in a static circuit and its driver has no `design` value | Error | `'{curve}' follows '{driver}', which only a run has. Drive the curve by a let with one value per case, and have the run hand that let a curve of time.` |
 | `FS1529` | Two curve rows share an x value | Info | `'{curve}' has two rows at {x}; the later one is used.` |
 | `FS1530` | A curve has fewer than two rows | Error | `'{curve}' needs at least two rows to interpolate between.` |
 | `FS1531` | A bare `control` endpoint whose kind names no single actuated parameter or measured property | Error | `A {kind} has no single {role}. Write it out, such as '{example}'.` |
 | `FS1532` | An `at` clause on a kind that carries flow rather than observing it | Error | `'{name}' is a {kind}, which is not placed with 'at'. Connect it with '-' instead.` |
-| `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Place it with 'at' and the name of a node.` |
+| `FS1533` | An instrument that was declared and never placed | Warning | `'{name}' observes nothing. Put it in a chain, such as 'A - {name} - B', or place it with 'at' and the name of a node.` |
 | `FS1534` | A time curve's `format=` is not a quoted string, or names no day or no month (`D-60`) | Error | `'{curve}' has a format that cannot read a date: {reason}. Write a quoted .NET pattern with a day and a month, such as format="dd/MM/yyyy HH:mm".` |
 | `FS1535` | More curve rows failed to read than are marked one by one; the rest are counted on the header (`L-40`) | Error | `'{curve}': {count} more rows could not be read; the first {shown} are marked. Check the columns and the format.` |
 | `FS1536` | *(retired)* | — | A port, parameter or property in the spelling D-120 replaced (in2, t3, HX1.t_in2), bound with a note for one language major. Language 2 is the next major and does not read them (18, L-79). Retired by P6.11 package 7 step 6, not reused. |
-| `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity}=' rather than '{written}='.` |
+| `FS1537` | A port's state on a kind that has one state and no ports: `N1 node in.t=50` (`D-120`) | Error | `A {kind} has one state and no ports: write '{quantity} =' rather than '{written} ='.` |
 | `FS1538` | A port's quantity the kind does not take: `PU1 pump in.h=5`. Never a near miss -- `in.p` is one edit from `in.t` and was read as it (`D-124`) | Error | `A {kind}'s '{port}' has no '{quantity}'. It takes: {available}.` |
 | `FS1539` | A node's pressure stated twice: on the node and as a port pressure of a component touching it, or by two ports on one node (`D-124`) | Error | `'{written}' states the pressure of '{node}', which '{other}' already states. State it once.` |
-| `FS1540` | A scenario list whose length is not the declared count (`D-143`). Never padded | Error | `'{written}' states {given} values for {count} scenarios: {names}. State one per scenario, or one value for all of them.` |
-| `FS1541` | A scenario list where no `scenarios` line was written (`D-143`) | Error | `'{written}' states a list of values, but this file declares no scenarios. Add 'scenarios <name> <name>' before the first circuit.` |
-| `FS1542` | `design` names a scenario that was not declared (`D-143`) | Error | `'{name}' is not a scenario of this file. It declares: {names}.` |
+| `FS1540` | A scenario list whose length is not the declared count (`D-143`). Never padded | Error | `'{written}' states {given} {values} for {count} case{plural}: {names}. State one per case, or one value for all of them.` |
+| `FS1541` | A scenario list where no `scenarios` line was written (`D-143`) | Error | `'{written}' states a list of values, but this file declares no cases. Add 'cases = [<name>, <name>]' to the project block.` |
+| `FS1542` | `design` names a scenario that was not declared (`D-143`) | Error | `'{name}' is not a case of this file. It declares: {names}.` |
 | `FS1543` | *(retired)* | — | Language 1's scenarios with no 'design' line. Language 2's first case is the operating one (D-174). Retired by P6.11 package 7 step 4c, not reused. |
-| `FS1544` | Two scenarios declared with one name (`D-143`) | Error | `'{name}' is declared twice. Each scenario needs its own name.` |
-| `FS1545` | `start=` on the project line is not a time (`D-149`) | Error | `start={value} is not a time. Write it as a quoted ISO 8601 date, such as start="2026-01-15T06:00:00", or as Unix seconds.` |
-| `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and nothing says where a run starts on it. Add start="…" to the project line; until then a run holds it at its design value.` |
+| `FS1544` | Two scenarios declared with one name (`D-143`) | Error | `'{name}' is declared twice. Each case needs its own name.` |
+| `FS1545` | `start=` on the project line is not a time (`D-149`) | Error | `start = {value} is not a time. Write it as a date, such as start = 2026-01-15 06:00.` |
+| `FS1546` | A dynamic circuit reads a curve that runs on the clock and the project states no start (`D-149`) | Warning | `This follows '{curve}', which runs on the clock, and the run does not say where it starts. Add 'start = …' to the run; until then it holds the curve at its design value.` |
 | `FS1547` | *(retired)* | — | Language 1's project 'start=' with no dynamic circuit to read it. Language 2's start is a run setting (D-169, D-174). Retired by P6.11 package 7 step 4c, not reused. |
 | `FS1548` | A sensor's `at`, or a `measure=` naming a node, reads a node where more than two connections meet (`D-150`) | Error | `'{name}' reads '{node}', where {count} pipes meet, and a junction has no single stream to measure. Put a node on the pipe you mean, next to '{node}', and read that one.` |
 | `FS1549` | A component's `sized_at` names a driver none of its parameters read, directly or through a curve (`D-175`) | Warning | `'{component}' is sized at {point}, and none of its parameters read '{driver}', so it changes nothing. Read '{driver}' in a parameter, directly or through a curve, or remove the point.` |
 
-**`FS1527` and `D-59`'s permissiveness are reconciled by what a driver is for.** `D-59` says a name
-matching no role is not an error, because a plant is full of drivers nobody registered; `FS1527`
-says a driver naming nothing is one. Both hold, because a driver has to *supply a number* and there
-are exactly three things that can: another curve, the clock, or a `design` line. The registry
-decides only what **name** a design value may be written under — it is what makes `design tout=-26`
-reach `curve heating outdoor`. So `curve recovery flueTemp` with `design flueTemp=180` binds, and
-`curve recovery flueTemp` with nothing behind the name is `FS1527`.
+**A curve's driver has to supply a number, and in language 2 two things can: a `let` or the clock**
+(`D-167`). `D-59`'s permissiveness -- a driver name no registry knows is not an error, because a plant is
+full of drivers nobody registered -- survives as the `let`: `let flue = [180, 150] C` is a driver of any
+name, with one value per case. A curve driven by anything else is `FS1811`, whose fix is that `let`.
+Language 1's third source, a `design` line under a registered role name, and its `FS1527` went with
+language 1 (`D-174`).
 
 **`FS1532` and `FS1533` were not in this table and are additions, not corrections.** `D-61` settles
 what `at` means and says nothing about writing it on a pump, or about an instrument that states no
@@ -1121,10 +1096,10 @@ which is a change of meaning, not of scope.
 `FS1507` and `FS1511` are warnings rather than errors because a partially-written script is the normal
 editing state (P4) and erroring would blank the diagram on every keystroke.
 
-**`FS1502` and `FS1513` are the two ends of stage 3.** `FS1502` fires when nothing scored above the
-threshold — the input resembles no component — and carries the top-ranked candidate as a suggestion.
-`FS1513` fires when two candidates scored within the margin of each other. Both are errors; they differ
-in whether the message says "did you mean X" or "X or Y".
+**`FS1502` and `FS1513` are the two ends of stage 3.** `FS1502` fires for any kind written in no known
+spelling, and carries the top-ranked candidate as its one-click fix when it scored at least the
+suggestion floor (0.60). `FS1513` fires when two candidates scored within the margin of each other, and
+offers neither. Both are errors; they differ in whether the fix is "X" or the question is "X or Y".
 
 ## Worked example
 
@@ -1172,13 +1147,12 @@ and `HE1`. I3 therefore adds only the two terminating nodes for `PU1`. Final com
 - [ ] `FS1507` fires for `PU1` on the brief's example, unmodified.
 - [ ] `three_way_valve`, `ThreeWayValve`, `three way valve`, `3_way_valve`, `mixing_valve` and `3wv`
       all resolve to `ThreeWayValve` with **no** diagnostic — stage 2 is silent.
-- [ ] `pmp` resolves to `pump` with exactly one `FS1512`; `xyzzy` resolves to nothing and produces
-      `FS1502` naming a candidate.
-- [ ] `pwer=30` resolves to canonical parameter `power` with exactly one `FS1512`; a below-threshold
-      `pwor=30` produces `FS1503` with `power` only as a suggested edit.
+- [ ] `pmp` binds nothing: `FS1502` with `pump` as its one-click fix (`D-170`); `xyzzy` binds nothing
+      and `FS1502` offers no fix.
+- [ ] `pwer=30` binds nothing: `FS1503` with `power` as its one-click fix; `power` is never stated.
 - [ ] A deliberately ambiguous input produces `FS1513` naming both candidates and binds
       `Kind = Unknown` — asserted with a fixed registry, so adding an alias later cannot silently turn
-      an `FS1513` into a resolution.
+      an `FS1513` into a single offered fix.
 - [ ] Adding an alias to one kind does not change how any `samples/` script resolves — the whole
       corpus is re-bound and compared, because cross-kind interference is the failure mode stage 3
       invites.

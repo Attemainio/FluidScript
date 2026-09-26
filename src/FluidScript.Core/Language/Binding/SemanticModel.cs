@@ -68,6 +68,6 @@ public sealed record SemanticModel
     public HeightMap Heights { get; init; } = HeightMap.Empty;
 
     /// <summary>Gets every run the file holds, in the order written (<c>D-169</c>).</summary>
-    /// <value>Empty for a language 1 file, whose schedule and dynamic circuits are the file's own.</value>
+    /// <value>Empty when the file writes no run; the design solve is then its only solve.</value>
     public ImmutableArray<RunSymbol> Runs { get; init; } = [];
 }

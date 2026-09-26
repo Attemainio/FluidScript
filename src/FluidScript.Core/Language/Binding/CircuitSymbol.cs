@@ -30,13 +30,13 @@ public sealed record CircuitSymbol
 
     /// <summary>Gets whether this circuit is solved as an equilibrium or in time.</summary>
     /// <value>
-    /// The circuit's own <c>fluid dynamic|static</c> wins; otherwise the project default; otherwise
-    /// static (<c>D-37</c>). A circuit contradicting the project gets <c>FS1517</c> and keeps its own.
+    /// Static as bound: the design solve is an equilibrium. A run projects the model and makes every circuit
+    /// dynamic except those its <c>steady</c> list names (<c>D-169</c>, <see cref="RunProjection"/>).
     /// </value>
     public required FluidMode Mode { get; init; }
 
-    /// <summary>Gets the circuit's role, resolved from its name (<c>D-35</c>).</summary>
-    /// <value>Neutral when the name matches no role — never an error.</value>
+    /// <summary>Gets the circuit's role, resolved from its <c>role</c> setting (<c>D-35</c>).</summary>
+    /// <value>Neutral when none is written, or the one written matches no role exactly (<c>FS1519</c>, <c>D-170</c>) — never an error.</value>
     public required CircuitRole Role { get; init; }
 
     /// <summary>Gets where the header sits in the source.</summary>

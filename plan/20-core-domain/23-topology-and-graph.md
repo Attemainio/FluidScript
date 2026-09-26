@@ -321,24 +321,21 @@ So the existing rules carry over unchanged and need no per-circuit variants: one
 system over every node in the model, `FS2213` -- information, since `D-132` -- only for a subgraph
 coupled by nothing at all, which is then a system of its own.
 
-Because identifiers are unique across the model (`D-41`), an attachment endpoint is an ordinary
-symbol-table lookup with no qualification: `inlet N3` finds the one `N3` there is. Had names been
-scoped per circuit, each of the four attachment lines in the distribution header would have needed a
+Because identifiers are unique across the model (`D-41`), a connection between circuits is an ordinary
+symbol-table lookup with no qualification: `N3 - TV1` written in circuit 101 finds the one `N3` there is.
+Had names been scoped per circuit, every line joining a subcircuit to its parent would have needed a
 qualified form the language does not have — which is the argument that decided `D-41`.
 
-**A subcircuit's attachment lowers to ordinary connections.** `inlet N3` in circuit 101 becomes a
-connection from the parent's `N3` to 101's first unconnected inlet, and `outlet N5` a connection from
-101's last unconnected outlet to `N5`. After lowering there is nothing structurally special about a
-subcircuit: it is a set of components connected to the rest, and every well-posedness rule below
-applies to it without modification.
-
-That is the whole point of making attachment explicit. An inferred attachment would have to guess
-which port of which component the header meets, and a wrong guess yields a graph that is well-posed,
-solvable, and describes a different plant.
+**A subcircuit is joined to its parent by connections the script writes.** Language 1 had attachment
+lines (`inlet N3`, `outlet N5` under a circuit header, `D-33`) that lowered to connections to the
+subcircuit's first unconnected inlet and last unconnected outlet; language 2 removed them (`D-174`), and
+the connections are written as any other, their ports settled by the direction of flow (`19`). There is
+nothing structurally special about a subcircuit: it is a set of components connected to the rest, and
+every well-posedness rule below applies to it without modification.
 
 Two consequences worth stating because they surprise:
 
-- **A subcircuit is usually not its own hydraulic component.** Attaching it to the parent connects
+- **A subcircuit is usually not its own hydraulic component.** Connecting it to the parent joins
   them by flow, so parent and subcircuit share one pressure datum. A circuit boundary is a naming
   boundary, never automatically a hydraulic one.
 - **A circuit may span hydraulic components, and a hydraulic component may span circuits.** Neither
@@ -361,12 +358,10 @@ Resolution order, first match winning:
 | One side against a boundary, the other in a circuit | The circuit side |
 | Otherwise | The lower circuit number, with `FS2216` (info) naming the ambiguity |
 
-**`FS2217` and `FS1518` partition one mistake between them and never both fire.** `FS1518` is the
-binder's: the name resolves to nothing. `FS2217` is this document's: the name resolves, to a component
-of the attaching circuit itself. Splitting by *whether resolution succeeded* rather than by document
-convenience is what keeps a single typo from producing two errors — the outcome
-[`16-diagnostics`](../10-language/16-diagnostics.md)'s rule 4 exists to prevent, and one that two
-documents each owning a near-identical check would have produced.
+*`FS2217` (an attachment to the attaching circuit's own component) and `FS1518` (an attachment to nothing)
+partitioned one mistake between this document and the binder so that a typo produced one error, not two
+([`16-diagnostics`](../10-language/16-diagnostics.md) rule 4). Both were retired with language 1's
+attachments (`D-174`); an unknown name in a connection is a node inferred by rule I1, which `FS1510` reports.*
 
 The intuitive form of this rule is "the leftmost circuit owns it", and under `D-31` the losing side
 *is* the left one — but leftmost is a layout outcome, and `D-03` forbids Core from computing anything
@@ -644,7 +639,7 @@ half that was already square; taking that advice made the count square and the J
 set the flow its 20 kPa was measured at and `PU1 flow=0.3` its curve's duty point, and the simple
 loop solved to 0.086 kg/s and then out of the fluid's range -- against the invariant that a stated
 parameter is always a constraint (`D-02`, `D-32`). Now `flow` on an exchanger's side (`flow`,
-`in[2].flow`) or on a pump whose `head` is unstated is a `FixedFlow` row pinning that branch at the
+`secondary.in.flow`) or on a pump whose `head` is unstated is a `FixedFlow` row pinning that branch at the
 number, answered by the rows above -- a pump's head, a parallel branch's `kv` -- but never by the
 exchanger's own `power`, which does not appear in a flow residual. `vflow` is the same row through
 the density of the side's inlet node *as solved*: `ṁ − ρ(p, h)·V̇ = 0`, the identity `V̇ = ṁ/ρ` written
@@ -755,7 +750,7 @@ all but one free size on the path, or decoupling the blocks.
 | `FS2210` | More equations than unknowns | Error | `This circuit is over-specified by {n}. Remove one of: {list}{advice}.` -- `{advice}` is `, or add a valve: nothing on the branch through {components} can change its flow` when an unmatched flow sits on a branch nothing can throttle, `, or add a mixing valve: no mixing valve's stream reaches {labels}` when an unmatched temperature is on no split's stream, and `; {constraints} share {actuators}` for each unmatched group of more than one (`D-133`); the levels' own statements are left out of the advice (`C-28`); with no unmatched constraint `{list}` is every stated pressure, boundary or datum, and a stated pressure on a one-connection `node` adds `, or write '{node} outlet' (or inlet) if fluid crosses there: a node's p= holds the pressure level and passes no mass` (`C-106`) |
 | `FS2211` | Fewer equations than unknowns | Error | `This circuit is under-specified by {n}. Add one of: {list}.` |
 | `FS2212` | Two stated pressures in one loop with no flow path between them | Error | `'{a}' and '{b}' both set a pressure on the same closed loop, with no path between them for flow to take. Remove one, or connect them.` |
-| `FS2213` | Isolated subgraph | Error | `'{list}' are not connected to the rest of the circuit.` |
+| `FS2213` | Isolated subgraph | Error | `Nothing connects '{list}' to the rest of the plant, so that part is solved as a system of its own.` |
 | `FS2214` | Loop with no flow driver | Warning | `Nothing drives flow around {loop}; it will carry none. Is a pump on the wrong leg?` |
 | `FS2215` | Initial state outside the substance's range | Error | `{substance} cannot be at {state}.` |
 | `FS2216` | A two-sided component's owning circuit could not be determined from enthalpy | Info | `'{component}' touches {a} and {b} with no clear heat direction; tagging it into {chosen}.` |

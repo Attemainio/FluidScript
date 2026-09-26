@@ -1,3 +1,4 @@
+using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Language.Registry;
 using FluidScript.Core.Language.Syntax.Lexing;
 using FluidScript.Fixtures;
@@ -96,6 +97,55 @@ public sealed class DocumentationGateTests
         Assert.True(
             undocumented.Length == 0,
             $"R-28: every statement-introducing word ships with its page. Missing: {string.Join(", ", undocumented)}");
+    }
+
+    /// <summary>A plan's code table states each code's message as the registry does, and marks a retired code retired.</summary>
+    /// <remarks>
+    /// The plan documents each code in a table beside the rule that raises it, and nothing held those tables to the
+    /// descriptors: measured in P6.11 package 7 step 6, 60 of 184 rows stated a message the registry no longer had --
+    /// renamed arguments, language 2's wording, a suggestion moved into the fix. The registry is what ships (the
+    /// diagnostics page is generated from it), so a row that disagrees is a spec that describes another program.
+    /// The decision log, the registers and the state file are history and are not read.
+    /// </remarks>
+    [Fact]
+    [Trait("Category", "Docs")]
+    public void EveryPlanCodeTableStatesTheRegistrysMessage()
+    {
+        var row = new System.Text.RegularExpressions.Regex(@"^\| `(FS\d{4})` \|.*\| `(.*)` \|\s*$");
+        var planRoot = Path.Combine(RepositoryLayout.Root, "plan");
+        var disagreements = new List<string>();
+
+        foreach (var file in Directory.EnumerateFiles(planRoot, "*.md", SearchOption.AllDirectories)
+            .Where(static file => !file.EndsWith("defects.md", StringComparison.Ordinal)
+                && !file.EndsWith("06-decision-log.md", StringComparison.Ordinal)
+                && !file.EndsWith("09-project-state.md", StringComparison.Ordinal)))
+        {
+            var lines = File.ReadAllLines(file);
+
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var match = row.Match(lines[i]);
+                if (!match.Success)
+                {
+                    continue;
+                }
+
+                var code = match.Groups[1].Value;
+                var where = $"{Path.GetRelativePath(RepositoryLayout.Root, file)}:{i + 1}";
+
+                if (DiagnosticRegistry.IsRetired(code))
+                {
+                    disagreements.Add($"{where}: {code} is retired and the row does not say so");
+                }
+                else if (DiagnosticRegistry.TryGet(code, out var descriptor) && descriptor is not null
+                    && !string.Equals(descriptor.MessageTemplate, match.Groups[2].Value, StringComparison.Ordinal))
+                {
+                    disagreements.Add($"{where}: {code} reads `{match.Groups[2].Value}`; the registry says `{descriptor.MessageTemplate}`");
+                }
+            }
+        }
+
+        Assert.True(disagreements.Count == 0, string.Join(Environment.NewLine, disagreements));
     }
 
     [Fact]

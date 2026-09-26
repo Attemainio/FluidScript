@@ -2059,6 +2059,19 @@ that governed each size. What P6.8 still owes, and what comes after:
     binder's report sites and reference review are deleted, and `FS1536` is retired. No corpus golden moved; the
     diagnostics page and the metadata golden show the retirement; four docs pages stop promising the old forms.
     The documentation gate now probes each property's aliases (`primary.in.t`) where it probed the old spellings.
+  - **Step 6b, the prose sweep (2026-09-26; `L-78`, `L-80` closed, `L-84` found and closed).** Every passage was
+    checked against the code before it was rewritten, and three behaviours were measured to state them: a near
+    parameter (`pwer`) is `FS1503` with `power` as its fix, a file with no circuit block is `FS1802` with one
+    circuit named for the file, and `spacing = 20 mm` is `FS1514`. `15`'s stage 3 now suggests and never binds
+    (`D-170`), with its circuit-role section, binding steps 0, 2 and 8, the circuit and style sketches, invariant
+    17 and the driver reconciliation rewritten for language 2; `16`'s worked example is rerun in language 2; `23`
+    has no attachments; the exchanger's second side is `secondary.in` wherever a line is about an exchanger.
+    Checking the plan's code tables against the registry found **`L-84`**: 60 of 184 rows stated a message the
+    registry no longer had. They are synced, and `DocumentationGateTests.EveryPlanCodeTableStatesTheRegistrysMessage`
+    now fails on any drift. Stale code comments went too (`CircuitSymbol.Mode` and `.Role`, `TransientSettings`,
+    a parser remark that contradicted its own body). **Filed:** `L-81` (six templates write "A {kind}", "A inlet"),
+    `L-82` (`FS1514`'s "none of them" for one form), `L-83` (a second version line raises nothing); `U-11` notes
+    `52`'s completion still cites `FS1512`. Core 2590/0/2, Api 79/0.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

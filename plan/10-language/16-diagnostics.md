@@ -325,29 +325,31 @@ the three codes.
 
 ## Worked example
 
-A user writes `HE1 heat_exchanger pwor=30 in=20 out=20C+30C`. Two problems on one line. `pwor`
-scores below `D-15`'s 0.70 silent-resolution threshold, so it remains an unknown parameter while the
-nearest name is still useful as a suggested edit:
+A user writes `HE1  heat_exchanger  pwer = 30 kW  in.t = 20 C  out.t = 20 C + 30 C` on line 4 of a
+language 2 file. Two problems on one line. `pwer` scores 0.80 against `power`, and under `D-170` a near
+spelling binds nothing: it is an unknown parameter whose nearest name is the one-click fix. Measured
+2026-09-26 (P6.11 package 7 step 6):
 
 ```
-FS1503  Error   line 4, col 20-24
-        A heat_exchanger has no 'pwor'. It accepts: power, in, out, dt, dp, flow.
-        Suggestion: "Change 'pwor' to 'power'"  → replace [20,24) with "power"
+FS1503  Error   line 4, col 24-27
+        A heat_exchanger has no 'pwer'. It accepts: approach, area, arrangement, dp, dt, … (the whole list)
+        Suggestion: "Change it to 'power'"  → replace [24,28) with "power"
 
-FS1302  Error   line 4, col 37-44
-        Cannot add two temperatures. To offset by a difference, write '20C + 30 K'.
+FS1302  Error   line 4, col 59-69
+        Cannot add two temperatures. To offset by a difference, write '20 °C + 30 K'.
 ```
 
 What the rules produced: `FS1503` names the thing (3), lists alternatives (4), and suggests by edit
-distance (5 — `pwor`→`power` is the unique nearest name but below the binding threshold). `FS1302`
-says what is wrong then what to do
+distance (5 — `pwer`→`power` is the unique nearest name, and `D-170` makes it a fix rather than a
+binding). `FS1302` says what is wrong then what to do
 (2), using the user's own values (3) and the script's units (8). Neither mentions a token or a binder
 (6). The unknown parameter produced one diagnostic, not also a downstream "no value for power" (9).
 
-Applying the `FS1503` suggestion yields `power=30`, which parses (invariant 5). A closer typo such as
-`pwer` resolves silently to `power` with `FS1512` under `D-15`; it does not produce `FS1503`. The
+Applying the `FS1503` suggestion yields `power = 30 kW`, which parses (invariant 5). Under `D-15` the
+same `pwer` bound silently to `power` with `FS1512`; `D-170` retired that, because a typo that binds is a
+constraint the user never stated. The
 `FS1302` error has
-no suggestion, because `20C + 30 dK` and `20C + 30C - 273.15K` are both plausible readings and guessing
+no suggestion, because `20 C + 30 K` and `20 C + 30 C - 273.15 K` are both plausible readings and guessing
 would be rule 5's failure mode.
 
 ## Acceptance criteria
