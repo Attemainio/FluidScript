@@ -1,4 +1,3 @@
 project plant_01 cases [] design  start 
 style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
 circuit script 100  neutral Static
-FS1508 [0..0] No circuit name; using 'script'.

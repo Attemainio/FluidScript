@@ -3,4 +3,3 @@ style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern
 circuit script 100  neutral
 curve recovery extrapolated False [100:5 200:20]
 let flueTemp = 180 Dimensionless dimension Dimensionless
-FS1508 [0..0] No circuit name; using 'script'.

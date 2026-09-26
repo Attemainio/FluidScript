@@ -339,7 +339,9 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
             var name = head?.Name ?? documentName;
             var span = head?.Span ?? new TextSpan(0, 0);
 
-            if (head is null)
+            // Language 2 declares a component only inside a circuit (FS1802), so a file with none holds `let`s and
+            // curves alone and has no circuit whose name was left out (`L-70`).
+            if (head is null && parse.Language != 2)
             {
                 Report(BinderDiagnostics.NoCircuitHeader, span, ("name", name));
             }

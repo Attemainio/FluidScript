@@ -1245,4 +1245,65 @@ public sealed class Language2TranslatorTests
             Describe(result));
         Assert.Equal(2, result.Model.Runs.Length);
     }
+
+    /// <summary>A file of <c>let</c>s and curves has no circuit, and none whose name was left out (<c>L-70</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void AFileWithNoCircuitIsNotToldItsCircuitHasNoName()
+    {
+        var result = Bind("fluidscript 2\n\nlet flueTemp = 180\n\ncurve recovery: flueTemp\n  100   5\n  200  20\n");
+
+        Assert.DoesNotContain(result.Diagnostics, static d => d.Code == "FS1508");
+        Assert.Single(result.Model.Curves);
+    }
+
+    /// <summary>A bare <c>K</c> in an expression held until the solve is a difference there too (<c>D-172</c>, <c>L-69</c>).</summary>
+    /// <remarks>
+    /// The expression reads a temperature only the solve knows, so it is kept and evaluated again after the solve; it
+    /// must be kept in the form that reads <c>K</c> as a difference. The binder's dimension pass reads that same kept
+    /// tree: a temperature less a difference is a temperature, and less a temperature (<c>C</c>, the mistake) a
+    /// difference.
+    /// </remarks>
+    [Theory]
+    [InlineData("K", "Temperature")]
+    [InlineData("C", "TemperatureDelta")]
+    [Trait("Category", "Unit")]
+    public void AKelvinInAnExpressionHeldForTheSolveIsADifference(string unit, string dimension)
+    {
+        var result = Bind($$"""
+            fluidscript 2
+
+            let supply = HE1.secondary.out.t - 5 {{unit}}
+
+            circuit "script":
+              HE1  heat_exchanger  power = 30  primary.in.t = 20  primary.out.t = 50  secondary.in.t = 85  secondary.in.flow = 0.4
+              HE2  heat_exchanger  power = 20  secondary.in.t = supply  secondary.in.flow = 0.4
+
+            """);
+
+        var supply = Assert.Single(result.Model.Bindings, static binding => binding.Name == "supply");
+        Assert.Null(supply.Value);
+        Assert.Equal(dimension, supply.Dimension?.Name);
+    }
+
+    /// <summary>The declaration ceiling counts a language 2 file's components inside their circuits (<c>07</c>, <c>L-69</c>).</summary>
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void TheDeclarationCeilingCountsComponentsInsideCircuits()
+    {
+        var parse = FluidScript2Parser.Parse(new SourceText("""
+            fluidscript 2
+
+            circuit "a":
+              PU1  pump
+              HE1  heater:
+                power = 5 kW
+
+            """));
+
+        var over = new InputLimits(Declarations: 1).Check(parse.Root);
+
+        Assert.Equal("FS4601", Assert.Single(over).Code);
+        Assert.Empty(new InputLimits(Declarations: 2).Check(parse.Root));
+    }
 }

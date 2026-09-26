@@ -2,4 +2,3 @@ project project cases [] design  start
 style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
 circuit script 100  neutral
 curve outdoor extrapolated False [1767225600:-1 1767229200:-3]
-FS1508 [0..0] No circuit name; using 'script'.

@@ -1,4 +1,3 @@
 project project cases [winter,summer] design winter start 
 style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern = , Fill = , IsEmpty = True }
 circuit script 100  neutral
-FS1508 [0..0] No circuit name; using 'script'.

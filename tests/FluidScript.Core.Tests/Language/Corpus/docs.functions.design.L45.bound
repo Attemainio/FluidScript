@@ -3,4 +3,3 @@ style spacing  default StyleSpec { Stroke = , StrokeWidth = , Corner = , Pattern
 circuit script 100  neutral
 let tout = 247.14999999999998 Temperature dimension Temperature
 let tground = 281.15 Temperature dimension Temperature
-FS1508 [0..0] No circuit name; using 'script'.

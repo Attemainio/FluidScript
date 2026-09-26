@@ -112,6 +112,37 @@ internal sealed partial class BindingRun
         return known && dimension.IsNamed && dimension.Name != "Dimensionless" ? dimension : known && !dimension.IsNamed ? dimension : null;
     }
 
+    /// <summary>Types a sum or difference of temperatures as the evaluator computes it (<c>13</c>, <see cref="Quantity.TrySubtract"/>).</summary>
+    /// <returns>
+    /// A reading less a reading is a difference, and a reading with its difference -- either order for a sum, the reading
+    /// first for a difference -- is a reading; what the evaluator refuses is unknown. <see langword="null"/> when either
+    /// side is not a temperature, which the general rule types.
+    /// </returns>
+    /// <remarks>
+    /// Temperature alone, because its spellings say which it is (<c>C</c> a reading, <c>dK</c> a difference, language 2's
+    /// <c>K</c> a difference). A pressure literal's <c>kPa</c> is both, read against the other operand, which is what the
+    /// general rule's like-vector case stands for.
+    /// </remarks>
+    private static (bool Known, Dimension Dimension)? TemperatureSum(Dimension left, Dimension right, bool subtract)
+    {
+        if (!IsTemperature(left) || !IsTemperature(right))
+        {
+            return null;
+        }
+
+        if (left == right)
+        {
+            return left == Dimension.Temperature
+                ? subtract ? (true, Dimension.TemperatureDelta) : (false, default)
+                : (true, left);
+        }
+
+        return left == Dimension.Temperature || !subtract ? (true, Dimension.Temperature) : (false, default);
+
+        static bool IsTemperature(Dimension dimension) =>
+            dimension == Dimension.Temperature || dimension == Dimension.TemperatureDelta;
+    }
+
     /// <summary>The typing behind <see cref="DimensionOf(ExpressionSyntax, HashSet{string})"/>: whether the dimension is known, and what it is when it is.</summary>
     private (bool Known, Dimension Dimension) Type(ExpressionSyntax expression, HashSet<string> visiting)
     {
@@ -159,6 +190,11 @@ internal sealed partial class BindingRun
                         if (left.Dimension.IsNamed && left.Dimension.Name == "Dimensionless")
                         {
                             return right;
+                        }
+
+                        if (TemperatureSum(left.Dimension, right.Dimension, binary.Operator == BinaryOperator.Subtract) is { } temperature)
+                        {
+                            return temperature;
                         }
 
                         if (left.Dimension == right.Dimension || (right.Dimension.IsNamed && right.Dimension.Name == "Dimensionless"))

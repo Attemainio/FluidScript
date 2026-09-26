@@ -3,6 +3,7 @@ using System.Globalization;
 
 using FluidScript.Core.Diagnostics;
 using FluidScript.Core.Diagnostics.Descriptors;
+using FluidScript.Core.Language.Syntax.Ast;
 using FluidScript.Core.Language.Syntax.Ast.Statements;
 
 namespace FluidScript.Core.Language.Registry;
@@ -42,7 +43,7 @@ public sealed record InputLimits(
     {
         ArgumentNullException.ThrowIfNull(root);
 
-        var declarations = root.Statements.Count(static statement => statement is ComponentDeclarationSyntax);
+        var declarations = Counted(root.Statements);
         var tokens = root.Tokens.Length;
         var findings = ImmutableArray.CreateBuilder<Diagnostic>(2);
 
@@ -58,6 +59,15 @@ public sealed record InputLimits(
 
         return findings.ToImmutable();
     }
+
+    /// <summary>Counts the component declarations, wherever a block nests them: language 2 writes each inside its circuit (<c>L-69</c>).</summary>
+    private static int Counted(IEnumerable<StatementSyntax> statements) =>
+        statements.Sum(static statement => statement switch
+        {
+            ComponentDeclarationSyntax => 1,
+            BlockSyntax block => Counted([block.Head]) + Counted(block.Body),
+            _ => 0,
+        });
 
     /// <summary>Checks a counted system against the unknown ceiling.</summary>
     /// <param name="unknowns">What the counting table says the solve would carry.</param>
