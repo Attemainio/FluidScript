@@ -21,13 +21,13 @@ internal sealed partial class BindingRun
         // bound against the pipe's registry entry like a declaration's. A length it does not state is zero,
         // the factory's decided default for an implicit pipe. BindConnections wires it in by its key: the
         // line's position and the pair's index, which is what makes the name stable for the same script.
-        void DeclareImplicitPipes(ConnectionSyntax connection, string circuit)
+        void DeclareImplicitPipes(ConnectionLine connection, string circuit)
         {
-            var endpoints = connection.Endpoints;
+            var endpoints = connection.Ends;
 
             for (var i = 0; i + 1 < endpoints.Length; i++)
             {
-                var stem = $"{endpoints[i].Component.Token.Text}__{endpoints[i + 1].Component.Token.Text}";
+                var stem = $"{endpoints[i].Component}__{endpoints[i + 1].Component}";
                 var name = stem;
 
                 for (var ordinal = 2; _componentsByName.ContainsKey(name); ordinal++)
@@ -43,7 +43,7 @@ internal sealed partial class BindingRun
                     Origin = new Origin.Inferred("I7", key),
                     Kind = kind,
                     WrittenKind = "pipe",
-                    Parameters = BindParameters(connection.Parameters, kind, name),
+                    Parameters = BindParameters(connection.Pipe, kind, name),
                     // The connection line is the pipe's declaration (C-97): a click on the drawn pipe lands there.
                     DeclarationSpan = connection.Span,
                     CircuitName = circuit,
@@ -69,11 +69,15 @@ internal sealed partial class BindingRun
                         DeclareComponent(declaration, block.Circuit!.Name);
                         break;
 
-                    case ConnectionSyntax { Parameters.Length: > 0 } connection:
-                        DeclareImplicitPipes(connection, block.Circuit!.Name);
-                        break;
-
                     default:
+                        foreach (var line in block.Lines.GetValueOrDefault(statement) ?? [])
+                        {
+                            if (!line.Pipe.IsEmpty)
+                            {
+                                DeclareImplicitPipes(line, block.Circuit!.Name);
+                            }
+                        }
+
                         break;
                 }
             }
@@ -86,21 +90,13 @@ internal sealed partial class BindingRun
         // A name a `let` holds is left for the topology pass to refuse (FS1523), not absorbed.
         foreach (var block in blocks)
         {
-            foreach (var statement in block.Statements)
+            foreach (var endpoint in block.AllLines.SelectMany(static line => line.Ends))
             {
-                if (statement is not ConnectionSyntax connection)
-                {
-                    continue;
-                }
+                var name = endpoint.Component;
 
-                foreach (var endpoint in connection.Endpoints)
+                if (!_componentsByName.ContainsKey(name) && !_bindingsByName.ContainsKey(name))
                 {
-                    var name = endpoint.Component.Token.Text;
-
-                    if (!_componentsByName.ContainsKey(name) && !_bindingsByName.ContainsKey(name))
-                    {
-                        Infer(name, "I1", block.Circuit!.Name, endpoint.Span);
-                    }
+                    Infer(name, "I1", block.Circuit!.Name, endpoint.Span);
                 }
             }
         }

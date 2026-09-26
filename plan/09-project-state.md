@@ -1839,8 +1839,10 @@ that governed each size. What P6.8 still owes, and what comes after:
     translation for now; `DirectBindingTests` binds the converted corpus both ways and compares model shape and every
     diagnostic's code, span and message: 131 rows equal, the 8 rewritten at the switch skipped. **6b under way:** the circuit is read through
     `CircuitHead` and `CircuitFluid` records, which language 1's partition fills (no behaviour change, every golden
-    identical). Left in 6b: links (connections, ports, pipes -- `Topology`, `Inference`, `Ownership`), controls and
-    schedules, cases/design/curves, style and project.
+    identical). Connections are read through `ConnectionLine`/`LineEnd` records kept per statement (port evidence,
+    links, implicit pipes, I1 nodes, the symbol map), again with no behaviour change; only the legacy-reference review
+    still walks connection syntax, language 1's alone. Left in 6b: controls and schedules, cases/design/curves, style
+    and project.
 
 P6.3 follows; `S-79` is closed (`D-149`), so a setpoint following a curve now reads it at
 `start + t`. `C-118`

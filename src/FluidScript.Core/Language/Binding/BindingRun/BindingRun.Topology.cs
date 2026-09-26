@@ -36,7 +36,7 @@ internal sealed partial class BindingRun
 
     private void BindTopology(List<CircuitBlock> blocks)
     {
-        MaterializePorts();
+        MaterializePorts(blocks);
         BindConnections(blocks);
 
         // Before inference, because an `inlet` or `outlet` line IS a connection the user wrote
@@ -70,9 +70,9 @@ internal sealed partial class BindingRun
 
     // ---- step 6: materialize indexed ports --------------------------------------------------------
 
-    private void MaterializePorts()
+    private void MaterializePorts(List<CircuitBlock> blocks)
     {
-        var evidenced = EvidencedPorts();
+        var evidenced = EvidencedPorts(blocks);
 
         for (var i = 0; i < _components.Count; i++)
         {
@@ -106,7 +106,7 @@ internal sealed partial class BindingRun
     /// belongs to it. Nothing else creates one — a tank has sixteen possible inlets and exactly as
     /// many as the script used.
     /// </remarks>
-    private Dictionary<string, SortedSet<string>> EvidencedPorts()
+    private Dictionary<string, SortedSet<string>> EvidencedPorts(List<CircuitBlock> blocks)
     {
         var evidenced = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
@@ -120,24 +120,21 @@ internal sealed partial class BindingRun
             ports.Add(port);
         }
 
-        foreach (var connection in parse.Root.Statements.OfType<ConnectionSyntax>())
+        foreach (var end in blocks.SelectMany(static block => block.AllLines).SelectMany(static line => line.Ends))
         {
-            foreach (var endpoint in connection.Endpoints)
+            if (end.Port is not { } port)
             {
-                if (endpoint.Port is not { } port)
-                {
-                    continue;
-                }
-
-                // Evidence is in keys: `T1.in[3]` and the old `T1.in3` both materialize `in3`. An
-                // unresolvable spelling is kept as written and falls out at `Fit`.
-                var name = endpoint.Component.Token.Text;
-                var key = _componentsByName.TryGetValue(name, out var slot) && _components[slot.Index].Kind is { } kind
-                    ? kind.ResolvePort(port.Text, out _, out _) ?? port.Text
-                    : port.Text;
-
-                Evidence(name, key);
+                continue;
             }
+
+            // Evidence is in keys: `T1.in[3]` and the old `T1.in3` both materialize `in3`. An
+            // unresolvable spelling is kept as written and falls out at `Fit`.
+            var name = end.Component;
+            var key = _componentsByName.TryGetValue(name, out var slot) && _components[slot.Index].Kind is { } kind
+                ? kind.ResolvePort(port, out _, out _) ?? port
+                : port;
+
+            Evidence(name, key);
         }
 
         foreach (var component in _components)
@@ -215,9 +212,9 @@ internal sealed partial class BindingRun
     {
         foreach (var block in blocks)
         {
-            foreach (var connection in block.Statements.OfType<ConnectionSyntax>())
+            foreach (var connection in block.AllLines)
             {
-                var endpoints = connection.Endpoints;
+                var endpoints = connection.Ends;
 
                 // `A - B - C` is one line and two connections (rule I6). It stays one line in the
                 // file, which is why both connections carry the whole statement's span.
@@ -257,9 +254,9 @@ internal sealed partial class BindingRun
         }
     }
 
-    private EndpointSymbol? Endpoint(EndpointSyntax endpoint, string circuit, TextSpan span, bool outgoing)
+    private EndpointSymbol? Endpoint(LineEnd endpoint, string circuit, TextSpan span, bool outgoing)
     {
-        var name = endpoint.Component.Token.Text;
+        var name = endpoint.Component;
 
         // I1 — an endpoint naming nothing declared becomes a node, keeping the user's identifier so
         // `N1` in the script is `N1` in the model and in hover.
@@ -282,19 +279,17 @@ internal sealed partial class BindingRun
         // add a second one saying the same thing.
         if (component.Kind is not { } kind)
         {
-            return new EndpointSymbol(component.Name, endpoint.Port?.Text ?? string.Empty);
+            return new EndpointSymbol(component.Name, endpoint.Port ?? string.Empty);
         }
 
         return endpoint.Port is { } written
-            ? Qualified(component, kind, written, span)
+            ? Qualified(component, kind, written, endpoint.PortSpan, span)
             : Unqualified(component, kind, span, outgoing);
     }
 
     private EndpointSymbol? Qualified(
-        ComponentSymbol component, ComponentKindInfo kind, QualifiedNameSyntax written, TextSpan span)
+        ComponentSymbol component, ComponentKindInfo kind, string port, TextSpan portSpan, TextSpan span)
     {
-        var port = written.Text;
-
         if (kind.HasUnlimitedPorts)
         {
             return new EndpointSymbol(component.Name, port, PortStated: true);
@@ -306,7 +301,7 @@ internal sealed partial class BindingRun
 
         if (key is not null && suggestion is not null)
         {
-            ReportLegacySpelling(written.Span, port, suggestion);
+            ReportLegacySpelling(portSpan, port, suggestion);
         }
 
         if (key is not null && component.Ports.Contains(key, StringComparer.Ordinal))
@@ -320,7 +315,7 @@ internal sealed partial class BindingRun
             // the range is 1…16.
             Report(
                 BinderDiagnostics.IndexOutsideFamily,
-                written.Span,
+                portSpan,
                 ("written", port),
                 ("kind", kind.Keyword),
                 ("min", Math.Min(1, family.MinIndex).ToString(CultureInfo.InvariantCulture)),
@@ -330,7 +325,7 @@ internal sealed partial class BindingRun
         {
             Report(
                 BinderDiagnostics.UnknownPort,
-                written.Span,
+                portSpan,
                 ("kind", kind.Keyword),
                 ("port", port),
                 ("available", string.Join(", ", component.Ports.Select(kind.PortName))));

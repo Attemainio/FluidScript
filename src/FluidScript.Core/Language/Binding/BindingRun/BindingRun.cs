@@ -181,6 +181,11 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
                     }
 
                     current.Statements.Add(statement);
+                    if (statement is ConnectionSyntax connection)
+                    {
+                        current.Lines[statement] = [ConnectionLine.Of(connection)];
+                    }
+
                     break;
             }
         }
@@ -529,7 +534,39 @@ internal sealed partial class BindingRun(IComponentRegistry registry, ParseResul
 
         /// <summary>Gets or sets the circuit's fluid: language 1's line in the block, language 2's setting.</summary>
         public CircuitFluid? Fluid { get; set; }
+
+        /// <summary>Gets the connection lines each statement writes, keyed by the statement so they are read in written order.</summary>
+        public Dictionary<StatementSyntax, List<ConnectionLine>> Lines { get; } = new(ReferenceEqualityComparer.Instance);
+
+        /// <summary>Gets every connection line in the block, in the order written.</summary>
+        public IEnumerable<ConnectionLine> AllLines =>
+            Statements.SelectMany(statement => Lines.TryGetValue(statement, out var lines) ? lines : []);
     }
+
+    /// <summary>A connection line as the binder reads it (<c>D-177</c>): its ends in order, and the pipe it describes.</summary>
+    /// <param name="Ends">The ends; link <c>i</c> runs from end <c>i</c> to end <c>i + 1</c>.</param>
+    /// <param name="Pipe">The pipe's properties the line states, lowered to an implicit pipe per link (<c>D-110</c>).</param>
+    /// <param name="Span">The line, which every link on it reports against and which keys its implicit pipes.</param>
+    private sealed record ConnectionLine(ImmutableArray<LineEnd> Ends, ImmutableArray<ParameterSyntax> Pipe, TextSpan Span)
+    {
+        public static ConnectionLine Of(ConnectionSyntax connection) => new(
+            [.. connection.Endpoints.Select(static endpoint => new LineEnd(
+                endpoint.Component.Token.Text,
+                endpoint.Component.Span,
+                endpoint.Port?.Text,
+                endpoint.Port?.Span ?? endpoint.Span,
+                endpoint.Span))],
+            connection.Parameters,
+            connection.Span);
+    }
+
+    /// <summary>One end of a connection line (<c>D-177</c>).</summary>
+    /// <param name="Component">The component or node named.</param>
+    /// <param name="ComponentSpan">Where its name is written.</param>
+    /// <param name="Port">The port as written, or <see langword="null"/> when the end names none.</param>
+    /// <param name="PortSpan">Where the port is written; the end's span when it names none.</param>
+    /// <param name="Span">The whole end.</param>
+    private sealed record LineEnd(string Component, TextSpan ComponentSpan, string? Port, TextSpan PortSpan, TextSpan Span);
 
     /// <summary>A circuit's header as the binder reads it (<c>D-177</c>): no syntax, so either language can fill it.</summary>
     /// <param name="Name">The name, language 1's identifier or language 2's quoted title.</param>
